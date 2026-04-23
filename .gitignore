@@ -39,3 +39,7 @@ projects/**/*.png
 # Upstream reference repos live as submodules (see .gitmodules).
 # git tracks the submodule pointers; files inside each submodule are governed
 # by each submodule's own .gitignore.
+
+# Claude Code machine-local runtime state (skill caches, schedule lock files,
+# per-machine tool configs). Not part of the project — ignore everywhere.
+.claude/
