@@ -1,0 +1,1975 @@
+[
+  {
+    "task_id": "ZNF326",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::ZNF326 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::ZNF326 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.20556464900000293,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "cell cycle"
+          ],
+          "expected_up": [
+            "ZNF326"
+          ],
+          "expected_down": [
+            "ZNF326"
+          ],
+          "references": []
+        },
+        "rationale": "ZNF326 knockdown is linked to pathways ['cell cycle']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.20556464900000293,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.20556464900000293,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.20556464900000293,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.20556464900000293,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.3870558465953977,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2026,
+    "wall_sec": 23.045071363449097
+  },
+  {
+    "task_id": "ZNF326",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::ZNF326 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::ZNF326 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17037376900000112,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "Wnt",
+            "NF-kB",
+            "p53"
+          ],
+          "expected_up": [
+            "ZNF326",
+            "TGF"
+          ],
+          "expected_down": [
+            "ZNF326",
+            "TGF"
+          ],
+          "references": []
+        },
+        "rationale": "ZNF326 knockdown is linked to pathways ['Wnt', 'NF-kB', 'p53']; 2 expected-up and 2 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17037376900000112,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17037376900000112,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17037376900000112,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17037376900000112,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.3870558465953977,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2027,
+    "wall_sec": 0.5437159538269043
+  },
+  {
+    "task_id": "ZNF326",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::ZNF326 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::ZNF326 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1727650539999992,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "Wnt",
+            "NF-kB",
+            "p53"
+          ],
+          "expected_up": [
+            "ZNF326",
+            "TGF"
+          ],
+          "expected_down": [
+            "ZNF326",
+            "TGF"
+          ],
+          "references": []
+        },
+        "rationale": "ZNF326 knockdown is linked to pathways ['Wnt', 'NF-kB', 'p53']; 2 expected-up and 2 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1727650539999992,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1727650539999992,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1727650539999992,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1727650539999992,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.3870558465953977,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2028,
+    "wall_sec": 0.5429365634918213
+  },
+  {
+    "task_id": "CREB1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::CREB1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::CREB1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17157975099999945,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "apoptosis"
+          ],
+          "expected_up": [
+            "CREB1"
+          ],
+          "expected_down": [
+            "CREB1"
+          ],
+          "references": []
+        },
+        "rationale": "CREB1 knockdown is linked to pathways ['apoptosis']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17157975099999945,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17157975099999945,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17157975099999945,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17157975099999945,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.21306522476465545,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2026,
+    "wall_sec": 0.31774044036865234
+  },
+  {
+    "task_id": "CREB1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::CREB1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::CREB1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1739133620000004,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "apoptosis"
+          ],
+          "expected_up": [
+            "CREB1"
+          ],
+          "expected_down": [
+            "CREB1"
+          ],
+          "references": []
+        },
+        "rationale": "CREB1 knockdown is linked to pathways ['apoptosis']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1739133620000004,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1739133620000004,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1739133620000004,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1739133620000004,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.21306522476465545,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2027,
+    "wall_sec": 0.321819543838501
+  },
+  {
+    "task_id": "CREB1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::CREB1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::CREB1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16933166899999819,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "apoptosis"
+          ],
+          "expected_up": [
+            "CREB1"
+          ],
+          "expected_down": [
+            "CREB1"
+          ],
+          "references": []
+        },
+        "rationale": "CREB1 knockdown is linked to pathways ['apoptosis']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16933166899999819,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16933166899999819,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16933166899999819,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16933166899999819,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.21306522476465545,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2028,
+    "wall_sec": 0.31638479232788086
+  },
+  {
+    "task_id": "SNAI1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::SNAI1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::SNAI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1706892360000012,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "unknown"
+          ],
+          "expected_up": [
+            "SNAI1"
+          ],
+          "expected_down": [
+            "SNAI1"
+          ],
+          "references": []
+        },
+        "rationale": "SNAI1 knockdown is linked to pathways ['unknown']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.35,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1706892360000012,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1706892360000012,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1706892360000012,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1706892360000012,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.3651735270946674,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2026,
+    "wall_sec": 0.35406923294067383
+  },
+  {
+    "task_id": "SNAI1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::SNAI1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::SNAI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.169495229999999,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "unknown"
+          ],
+          "expected_up": [
+            "SNAI1"
+          ],
+          "expected_down": [
+            "SNAI1"
+          ],
+          "references": []
+        },
+        "rationale": "SNAI1 knockdown is linked to pathways ['unknown']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.35,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.169495229999999,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.169495229999999,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.169495229999999,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.169495229999999,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.3651735270946674,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2027,
+    "wall_sec": 0.3524186611175537
+  },
+  {
+    "task_id": "SNAI1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::SNAI1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::SNAI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011705300000202,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "unknown"
+          ],
+          "expected_up": [
+            "SNAI1"
+          ],
+          "expected_down": [
+            "SNAI1"
+          ],
+          "references": []
+        },
+        "rationale": "SNAI1 knockdown is linked to pathways ['unknown']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.35,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011705300000202,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011705300000202,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011705300000202,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011705300000202,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.3651735270946674,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2028,
+    "wall_sec": 0.35271525382995605
+  },
+  {
+    "task_id": "EP300",
+    "seed": 2026,
+    "wall_sec": 0.17045021057128906,
+    "error": "RuntimeError: SCGPTSmallBackbone.predict_logfc called before fit()",
+    "final_msd_topk": Infinity,
+    "n_rounds": 0,
+    "n_agents": 5,
+    "backbone_used": "error",
+    "steps": []
+  },
+  {
+    "task_id": "EP300",
+    "seed": 2027,
+    "wall_sec": 0.1691446304321289,
+    "error": "RuntimeError: SCGPTSmallBackbone.predict_logfc called before fit()",
+    "final_msd_topk": Infinity,
+    "n_rounds": 0,
+    "n_agents": 5,
+    "backbone_used": "error",
+    "steps": []
+  },
+  {
+    "task_id": "EP300",
+    "seed": 2028,
+    "wall_sec": 0.17312264442443848,
+    "error": "RuntimeError: SCGPTSmallBackbone.predict_logfc called before fit()",
+    "final_msd_topk": Infinity,
+    "n_rounds": 0,
+    "n_agents": 5,
+    "backbone_used": "error",
+    "steps": []
+  },
+  {
+    "task_id": "SPI1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::SPI1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::SPI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17349026099999776,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "unknown"
+          ],
+          "expected_up": [
+            "SPI1"
+          ],
+          "expected_down": [
+            "SPI1"
+          ],
+          "references": []
+        },
+        "rationale": "SPI1 knockdown is linked to pathways ['unknown']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.35,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17349026099999776,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17349026099999776,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17349026099999776,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17349026099999776,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.42113809560255416,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2026,
+    "wall_sec": 0.5063340663909912
+  },
+  {
+    "task_id": "SPI1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::SPI1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::SPI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16973170600000032,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "unknown"
+          ],
+          "expected_up": [
+            "SPI1"
+          ],
+          "expected_down": [
+            "SPI1"
+          ],
+          "references": []
+        },
+        "rationale": "SPI1 knockdown is linked to pathways ['unknown']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.35,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16973170600000032,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16973170600000032,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16973170600000032,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16973170600000032,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.42113809560255416,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2027,
+    "wall_sec": 0.5003147125244141
+  },
+  {
+    "task_id": "SPI1",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::SPI1 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::SPI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1752305660000033,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "unknown"
+          ],
+          "expected_up": [
+            "SPI1"
+          ],
+          "expected_down": [
+            "SPI1"
+          ],
+          "references": []
+        },
+        "rationale": "SPI1 knockdown is linked to pathways ['unknown']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.35,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1752305660000033,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1752305660000033,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1752305660000033,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1752305660000033,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.42113809560255416,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2028,
+    "wall_sec": 0.5059449672698975
+  },
+  {
+    "task_id": "BHLHE40",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::BHLHE40 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::BHLHE40 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16812854300000168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "cell cycle"
+          ],
+          "expected_up": [],
+          "expected_down": [],
+          "references": []
+        },
+        "rationale": "BHLHE40 knockdown is linked to pathways ['cell cycle']; 0 expected-up and 0 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16812854300000168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16812854300000168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16812854300000168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16812854300000168,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.2612136434950897,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2026,
+    "wall_sec": 0.40172481536865234
+  },
+  {
+    "task_id": "BHLHE40",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::BHLHE40 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::BHLHE40 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17251698900000179,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "cell cycle"
+          ],
+          "expected_up": [],
+          "expected_down": [],
+          "references": []
+        },
+        "rationale": "BHLHE40 knockdown is linked to pathways ['cell cycle']; 0 expected-up and 0 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17251698900000179,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17251698900000179,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17251698900000179,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17251698900000179,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.2612136434950897,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2027,
+    "wall_sec": 0.4042932987213135
+  },
+  {
+    "task_id": "BHLHE40",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::BHLHE40 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::BHLHE40 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011878100000644,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "cell cycle"
+          ],
+          "expected_up": [],
+          "expected_down": [],
+          "references": []
+        },
+        "rationale": "BHLHE40 knockdown is linked to pathways ['cell cycle']; 0 expected-up and 0 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011878100000644,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011878100000644,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011878100000644,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.17011878100000644,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.2612136434950897,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2028,
+    "wall_sec": 0.403717041015625
+  },
+  {
+    "task_id": "DDIT3",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::DDIT3 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::DDIT3 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1693989380000005,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "apoptosis"
+          ],
+          "expected_up": [
+            "DDIT3"
+          ],
+          "expected_down": [
+            "DDIT3"
+          ],
+          "references": []
+        },
+        "rationale": "DDIT3 knockdown is linked to pathways ['apoptosis']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1693989380000005,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1693989380000005,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1693989380000005,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1693989380000005,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.41261349667374825,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2026,
+    "wall_sec": 0.3656463623046875
+  },
+  {
+    "task_id": "DDIT3",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::DDIT3 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::DDIT3 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16822976499999953,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "apoptosis"
+          ],
+          "expected_up": [
+            "DDIT3"
+          ],
+          "expected_down": [
+            "DDIT3"
+          ],
+          "references": []
+        },
+        "rationale": "DDIT3 knockdown is linked to pathways ['apoptosis']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16822976499999953,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16822976499999953,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16822976499999953,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.16822976499999953,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.41261349667374825,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2027,
+    "wall_sec": 0.36501431465148926
+  },
+  {
+    "task_id": "DDIT3",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "dataset_id": "CXG::scRNA-seq::DDIT3 knockdown",
+          "n_cells": 48000,
+          "n_genes": 22000,
+          "hvgs": 3000,
+          "pct_mito_max": 12.0,
+          "doublet_rate": 0.04,
+          "passes_qc": true
+        },
+        "rationale": "Fetched CXG::scRNA-seq::DDIT3 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "llm_confidence": 0.85,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1717784769999966,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "apoptosis"
+          ],
+          "expected_up": [
+            "DDIT3"
+          ],
+          "expected_down": [
+            "DDIT3"
+          ],
+          "references": []
+        },
+        "rationale": "DDIT3 knockdown is linked to pathways ['apoptosis']; 1 expected-up and 1 expected-down genes.",
+        "llm_confidence": 0.75,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1717784769999966,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "scGPT",
+          "head": "perturbation_adapter",
+          "d_model": 512,
+          "n_layers": 12,
+          "alternatives": [
+            "Geneformer",
+            "scFoundation",
+            "scPRINT-2",
+            "UCE"
+          ]
+        },
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "llm_confidence": 0.7,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1717784769999966,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "epochs": 10,
+          "batch_size": 128,
+          "cv_split": "by_donor",
+          "early_stop_rule": "val_loss_plateau_3",
+          "grad_accum": 1,
+          "backbone": "scGPT"
+        },
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "llm_confidence": 0.8,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1717784769999966,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "checked_genes": [],
+          "deg_overlap_at_k": 0.0,
+          "enriched_pathways": [],
+          "held_out_auroc": 0.5,
+          "calibration": 0.0,
+          "negative_control_auroc": 0.5
+        },
+        "rationale": "DEG overlap@K=0.00, held-out AUROC=0.50, calibration=0.00. Negative control AUROC=0.50 (should be \u22480.5).",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.1717784769999966,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.41261349667374825,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "scgpt_small",
+    "seed": 2028,
+    "wall_sec": 0.36876559257507324
+  }
+]

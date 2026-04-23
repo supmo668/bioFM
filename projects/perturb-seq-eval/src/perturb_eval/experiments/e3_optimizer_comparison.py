@@ -8,13 +8,16 @@ iteration-vs-best-MSD figure that is the supplement's headline result.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 
 from perturb_eval.experiments.common import OptimizerTrajectory
 from perturb_eval.optimizers import Observation, build_optimizer
 from perturb_eval.types import Config, DEFAULT_CONFIG_SPACE
+
+# Optional callable for live evaluation — signature (phi, task, seed) -> float.
+EvalFn = Callable[[Config, str, int], float]
 
 
 def _phi_key(phi: Config) -> str:
@@ -29,6 +32,7 @@ def run_e3_optimizer_comparison(
     n_iterations: int = 20,
     n_seeds: int = 3,
     config_space: tuple[Config, ...] = DEFAULT_CONFIG_SPACE,
+    eval_fn: EvalFn | None = None,
 ) -> list[OptimizerTrajectory]:
     """Run each optimizer ``n_seeds`` times against the cached grid.
 
@@ -48,13 +52,20 @@ def run_e3_optimizer_comparison(
     trajectories: list[OptimizerTrajectory] = []
     tasks = tuple(contexts.keys())
 
-    # Restrict to configs that have grid entries for at least one task.
-    available = tuple(phi for phi in config_space if any((_phi_key(phi), t) in grid for t in tasks))
-    if not available:
-        raise ValueError(
-            "no overlap between config_space and grid keys — "
-            "make sure _phi_key convention matches the grid builder"
+    # When eval_fn is supplied we do not need a pre-filled grid; every
+    # (phi, task, seed) is evaluated live. Otherwise restrict config_space
+    # to configs that have grid entries.
+    if eval_fn is not None:
+        available = tuple(config_space)
+    else:
+        available = tuple(
+            phi for phi in config_space if any((_phi_key(phi), t) in grid for t in tasks)
         )
+        if not available:
+            raise ValueError(
+                "no overlap between config_space and grid keys — "
+                "make sure _phi_key convention matches the grid builder"
+            )
 
     for opt_name in optimizers:
         # One trajectory averaged across tasks and seeds.
@@ -89,6 +100,7 @@ def run_e3_optimizer_comparison(
             tasks=tasks,
             n_iterations=n_iterations,
             n_seeds=n_seeds,
+            eval_fn=eval_fn,
         )
         trajectories.append(
             OptimizerTrajectory(
@@ -115,8 +127,12 @@ def _collect_per_seed_trajectories(
     tasks: tuple[str, ...],
     n_iterations: int,
     n_seeds: int,
+    eval_fn: EvalFn | None = None,
 ) -> tuple[list[list[float]], np.ndarray, np.ndarray]:
     """Roll out each ``(task, seed)`` run to completion and keep the curves.
+
+    If ``eval_fn`` is supplied, it is called at every iteration in lieu of
+    a grid lookup — enabling live agentic-lifecycle evaluation.
 
     Returns
     -------
@@ -129,14 +145,19 @@ def _collect_per_seed_trajectories(
     best_mean_per_iter
         Mean best-so-far curve over all (task, seed) runs.
     """
-    task_min = {
-        task: min(v for (_, t_), v in grid.items() if t_ == task)
-        for task in tasks
-    }
+    if eval_fn is None:
+        task_min = {
+            task: min(v for (_, t_), v in grid.items() if t_ == task)
+            for task in tasks
+        }
+    else:
+        # Live evaluation: we don't yet know y_min; use 0 as regret floor
+        # (cumulative regret is reported vs the lowest value observed
+        # across the whole live run, computed after the fact).
+        task_min = {task: 0.0 for task in tasks}
+
     per_seed: list[list[float]] = []
-    # Mean best-so-far aggregation
     sums_best = np.zeros(n_iterations, dtype=np.float64)
-    # Mean cumulative regret aggregation
     sums_regret = np.zeros(n_iterations, dtype=np.float64)
     counts = np.zeros(n_iterations, dtype=np.int64)
 
@@ -151,7 +172,10 @@ def _collect_per_seed_trajectories(
             curve: list[float] = []
             for t in range(n_iterations):
                 phi = opt.suggest(context=ctx, observed=observed)
-                y = grid.get((_phi_key(phi), task))
+                if eval_fn is not None:
+                    y = float(eval_fn(phi, task, seed))
+                else:
+                    y = grid.get((_phi_key(phi), task))
                 if y is not None:
                     observed.append(Observation(config=phi, context=ctx, objective=float(y)))
                     running_best = min(running_best, y)

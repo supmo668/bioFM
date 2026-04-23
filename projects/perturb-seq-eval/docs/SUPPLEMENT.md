@@ -296,6 +296,104 @@ eventually finds each task's optimum, though it takes many iterations
 to do so (random's early iterations are ~ 14× worse than contextual
 GP's).*
 
+### 5.5 End-to-end agentic lifecycle benchmark on Adamson
+
+> **What this closes.** Everything above §5.4 runs the contextual GP
+> against a **pre-computed** MSD grid where the agents only contributed
+> a round-0 probe. The benchmark in this section runs the full
+> CellForge 5-agent lifecycle (DataCurator → Literature → Architect →
+> Trainer → Validator) **from scratch on every iteration**: agents
+> propose a data-curation recipe, retrieve literature (BioGPT when
+> available), pick a backbone, write a training recipe, fit the model
+> on the curated data, and gate the model on MSD. Reference
+> methodology: CellForge (arXiv:2508.02276) extended with BioFM-grounded
+> tools (BioGPT + Geneformer). LLM inference via OpenRouter Nemotron
+> free tier when agents need to rate or reason.
+
+**Protocol.** For each of the 7 Adamson targeted-knockdown perturbations
+(held-out one-at-a-time) × 3 seeds, run the end-to-end lifecycle with
+`max_rounds=3`, `use_biofm=True`. Each iteration materialises a real
+fitted `BackbonePredictor`; the Validator scores held-out MSD on
+top-20 DEGs; the loop refines based on Validator rationale. No grid
+lookup anywhere in the hot path.
+
+**Headline (real run, Modal A10G, n_boot = 2 000 over successful runs):**
+
+| Quantity | Value |
+|---|---|
+| n runs attempted | 21 (7 tasks × 3 seeds) |
+| n runs finite | 18 (3 scgpt_small fit-failures on EP300 corner case) |
+| n unique tasks with ≥1 finite run | 6 |
+| Mean final MSD (bootstrap 95 % CI) | **0.343 [0.309, 0.376]** |
+| Round-depth distribution | `{1: 18}` — Validator accepted (or all sub-rounds failed) in round 0 for every finite run |
+| Backbone chosen by Architect | `scgpt_small` 18/18 |
+
+Per-task mean MSDs (best → worst):
+
+| Held-out perturbation | Mean MSD (n = 3) |
+|---|---|
+| CREB1   | 0.213 |
+| BHLHE40 | 0.261 |
+| SNAI1   | 0.365 |
+| ZNF326  | 0.387 |
+| DDIT3   | 0.413 |
+| SPI1    | 0.421 |
+
+![Figure 6 — End-to-end agentic lifecycle MSD per Adamson task](../artifacts/modal_run/figures/fig6_lifecycle_optimizer.png)
+
+*Figure 6. Per-task held-out MSD under the end-to-end agentic
+lifecycle. Every point is one full 5-agent CellForge run that chose
+its own data-curation recipe, architecture (`scgpt_small` in all
+successful runs), training recipe, and validator threshold.
+MSDs are ≈ 5–7× higher than the hand-tuned §5.3 grid numbers — the
+honest price of letting agents drive the whole pipeline without an
+outer optimizer. Source:
+`artifacts/lifecycle/adamson_lifecycle_runs.json`,
+`artifacts/modal_run/figures/fig6_lifecycle_optimizer.{png,pdf,html}`,
+`artifacts/modal_run/revision/revision_stats_lifecycle.json`.*
+
+**Honest reading.** The agentic lifecycle produces MSDs that are
+**5–7× higher** than the pre-computed grid numbers in §5.3 (mean 0.343
+vs 0.057). Three contributors:
+
+1. The Architect agent deterministically proposes `scgpt_small` on
+   every call; §5.2 already showed `scgpt_small` is not a clear winner
+   on real Adamson at this parameter count.
+2. The Trainer agent uses a single standard recipe (adamw, lr=1e-2,
+   20–60 iters depending on the n_rounds knob) without exploration;
+   there is no outer optimizer in this run.
+3. The Validator accepted on round 0 in every finite run because the
+   accept-threshold is set liberally (threshold = 0.5 MSD); the
+   multi-round refinement path was therefore not exercised.
+
+This is the **correct baseline** against which the contextual-BO
+over-lifecycle experiment (below) measures routing benefit: the
+agentic pipeline alone, without an outer optimizer, is worse than the
+hand-tuned grid. If probe-conditioned routing does help, it should
+close that gap.
+
+**Honest scope statement.** The lifecycle in this iteration does not
+fully saturate the CellForge design space:
+
+- The Literature step uses BioGPT rather than a live PubMed retrieval;
+  the expected-gene lists it emits are model outputs, not grounded
+  citations.
+- The Architect's proposal is deterministic (always `scgpt_small`);
+  injecting structured randomness into CellForge's `ArchitectAgent` is
+  deferred to the next iteration (see §7 Open Q #5).
+- The Validator threshold is conservative; a stricter threshold would
+  trigger round-1/round-2 refinement and let us evaluate the
+  multi-round trajectory explicitly.
+- Inter-agent messaging remains round-wise critique aggregation
+  (CellForge default), not free-form chat.
+
+**Next step.** `scripts/modal/app_lifecycle_optimizer.py` (shipped in
+this revision) wraps the lifecycle in a contextual-BO over
+`(n_agents, n_rounds, backbone_family)`; the live-eval optimizer run
+will test whether probe-conditioned routing can reduce the 0.343 →
+sub-0.1 MSD gap. That run is the headline experiment for the ICLR
+workshop bar and is queued for the next compute window.
+
 ## 6. Discussion
 
 ### 6.1 The three regimes, side-by-side

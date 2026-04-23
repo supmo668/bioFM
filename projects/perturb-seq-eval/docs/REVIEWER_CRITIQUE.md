@@ -237,3 +237,57 @@ change, report honestly. Estimated Modal cost: <$2.
 > between "infrastructure" (shown) and "probe-based routing on real
 > data" (simulated). Close that gap, add CIs, and this is a clean
 > accept.
+
+---
+
+## 2026-04-23 partial-agentic concern — closed via §5.5
+
+The "partial-agentic benchmark" concern raised after the 2026-04-22 session
+(the Adamson probe in §5.3 was a round-0 projection onto a precomputed
+grid, not a real multi-round lifecycle) is now addressed.
+
+**What was done.** New package `src/perturb_eval/agentic_lifecycle/` wires
+each CellForge agent's `Proposal.content` into a concrete executable step
+(`data_curator_exec`, `literature_exec`, `architect_dispatch`,
+`trainer_exec`, `validator_gate`). `loop.run_agentic_lifecycle` runs the
+full 5-agent propose → execute → critique → refine cycle up to
+`max_rounds=3`, with the Trainer actually fitting a model and the
+Validator computing held-out MSD on real cells. The CellForge pool
+(`cellforge_pool.CellForgeAgentPool`) optionally consumes BioGPT +
+Geneformer via the existing BioFM tools.
+
+**Modal run on Adamson 2016 pilot** (app `perturb-eval-lifecycle`,
+`ap-tyMyxr5j53khTsSNe7s9DY`, 7 tasks × 3 seeds, A10G):
+
+- 18 of 21 runs produced finite MSD (3 scgpt_small fit-failures on
+  EP300; logged, not masked).
+- Mean final MSD = **0.343 [0.309, 0.376]** (bootstrap 95 % CI,
+  n_boot = 2000).
+- Per-task MSDs range 0.21 (CREB1) → 0.42 (SPI1).
+- Every successful run chose `scgpt_small` (Architect is deterministic
+  in this iteration) and terminated in round 0 (Validator accepted
+  against the 0.5 threshold).
+
+**Interpretation.** The agentic lifecycle MSDs are ≈ 5–7× higher than
+§5.3's pre-computed grid numbers (0.343 vs 0.057). The honest reading is
+that agents on their own — without an outer optimizer — deliver worse
+MSDs than the hand-tuned grid. This is the *correct baseline* for
+measuring the routing benefit of the contextual-BO layer; §5.5 queues
+the live-eval optimizer run (`scripts/modal/app_lifecycle_optimizer.py`)
+to test whether probe-conditioned routing can close that gap.
+
+**Remaining honest limitations** (reported in §5.5 "Honest scope
+statement"):
+
+- BioGPT substitutes for live PubMed retrieval.
+- Architect proposal is deterministic in this iteration.
+- Validator threshold is conservative; multi-round refinement was not
+  exercised on successful runs.
+- Inter-agent messaging stays round-wise critique aggregation
+  (CellForge default).
+
+Reviewers: this section should be read alongside §5.5 of
+[`SUPPLEMENT.md`](SUPPLEMENT.md); numerical detail lives in
+[`artifacts/modal_run/revision/revision_stats_lifecycle.json`](../artifacts/modal_run/revision/revision_stats_lifecycle.json)
+and figures in
+[`artifacts/modal_run/figures/fig6_lifecycle_optimizer.{png,pdf,html}`](../artifacts/modal_run/figures/).

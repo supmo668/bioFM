@@ -1,0 +1,239 @@
+[
+  {
+    "task_id": "hold_A",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "n_top_hvg": 40,
+          "pct_mito_max": 12.0
+        },
+        "rationale": "tight HVG for hold_A",
+        "llm_confidence": 0.6256947501430873,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.001086361997295171,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "UPR"
+          ],
+          "expected_up": [
+            "A"
+          ],
+          "expected_down": []
+        },
+        "rationale": "stub literature",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.001086361997295171,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "linear"
+        },
+        "rationale": "stub architect",
+        "llm_confidence": 0.6,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.001086361997295171,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "lr": 0.01,
+          "epochs": 50,
+          "ridge_lambda": 1.0
+        },
+        "rationale": "stub trainer",
+        "llm_confidence": 0.55,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.001086361997295171,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "threshold_msd": 0.5
+        },
+        "rationale": "stub validator",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.001086361997295171,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.00372767793206063,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "linear"
+  },
+  {
+    "task_id": "hold_B",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "n_top_hvg": 40,
+          "pct_mito_max": 12.0
+        },
+        "rationale": "tight HVG for hold_B",
+        "llm_confidence": 0.6256947501430873,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0004263090086169541,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "UPR"
+          ],
+          "expected_up": [
+            "A"
+          ],
+          "expected_down": []
+        },
+        "rationale": "stub literature",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0004263090086169541,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "linear"
+        },
+        "rationale": "stub architect",
+        "llm_confidence": 0.6,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0004263090086169541,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "lr": 0.01,
+          "epochs": 50,
+          "ridge_lambda": 1.0
+        },
+        "rationale": "stub trainer",
+        "llm_confidence": 0.55,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0004263090086169541,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "threshold_msd": 0.5
+        },
+        "rationale": "stub validator",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0004263090086169541,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.004140947054573507,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "linear"
+  },
+  {
+    "task_id": "hold_C",
+    "steps": [
+      {
+        "round_index": 0,
+        "agent_name": "DataCurator",
+        "proposal_content": {
+          "n_top_hvg": 40,
+          "pct_mito_max": 12.0
+        },
+        "rationale": "tight HVG for hold_C",
+        "llm_confidence": 0.6256947501430873,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0003988260286860168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Literature",
+        "proposal_content": {
+          "pathways": [
+            "UPR"
+          ],
+          "expected_up": [
+            "A"
+          ],
+          "expected_down": []
+        },
+        "rationale": "stub literature",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0003988260286860168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Architect",
+        "proposal_content": {
+          "backbone": "linear"
+        },
+        "rationale": "stub architect",
+        "llm_confidence": 0.6,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0003988260286860168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Trainer",
+        "proposal_content": {
+          "lr": 0.01,
+          "epochs": 50,
+          "ridge_lambda": 1.0
+        },
+        "rationale": "stub trainer",
+        "llm_confidence": 0.55,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0003988260286860168,
+        "succeeded": true
+      },
+      {
+        "round_index": 0,
+        "agent_name": "Validator",
+        "proposal_content": {
+          "threshold_msd": 0.5
+        },
+        "rationale": "stub validator",
+        "llm_confidence": 0.5,
+        "execution_artifact_path": null,
+        "wall_time_sec": 0.0003988260286860168,
+        "succeeded": true
+      }
+    ],
+    "final_msd_topk": 0.03019172682995422,
+    "final_validator_agreement": 0.5,
+    "n_rounds": 1,
+    "n_agents": 5,
+    "backbone_used": "linear"
+  }
+]

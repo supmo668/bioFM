@@ -53,6 +53,8 @@ Legend: **P0** blocker for submission · **P1** strongly recommended ·
 | mc7 | P2 | Rename `cma_es` → `one_plus_lambda_es` (or install the `cma` pkg and dispatch to real CMA-ES). | 30 m | $0 | ☑ | 2026-04-22 | `OnePlusLambdaES` is canonical class + registry key; `CMAESOptimizer` retained as backwards-compat alias. |
 | mc8 | P2 | Compute γ_T numerically per regime or delete the bound-interpretation paragraph. | 3 h or 15 m | $0 | ☑ | 2026-04-22 | Greedy max-info-gain (Krause–Singh–Guestrin 2008) in `bootstrap_and_analyze.py`. §6.4 now quotes γ_T = 56.17 / 63.10 / 53.97 with honest caveat about what γ_T does/doesn't predict. |
 | mc9 | P3 | Switch Plotly trajectory lines to Wong colourblind-safe palette. | 30 m | $0 | ☑ | 2026-04-22 | `WONG` palette in `scripts/local/render_figures_revised.py`; all five PNGs regenerated. |
+| LIFECYCLE | P0 | End-to-end agentic lifecycle benchmark on Adamson (closes partial-agentic gap from 2026-04-22). | 1 d | $2 | ☑ | 2026-04-23 | `src/perturb_eval/agentic_lifecycle/` + `scripts/modal/app_lifecycle.py`. Modal app `ap-tyMyxr5j53khTsSNe7s9DY`: 18/21 finite runs, mean MSD = 0.343 [0.309, 0.376], Architect → `scgpt_small` 18/18. §5.5 of SUPPLEMENT.md; Fig 6. |
+| LIFECYCLE-OPT | P1 | Contextual-BO over live agentic lifecycle (headline for ICLR bar). | ~2 h compute | $5–10 | ⬜ | — | `scripts/modal/app_lifecycle_optimizer.py` shipped + deployable; run queued for next compute window. |
 
 **Minimum submission bar (P0 only):** MC1 + MC2 + MC3a → **closed 2026-04-22**. bioRxiv-ready.
 

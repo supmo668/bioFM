@@ -1,0 +1,151 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software or results, please cite the supplement and
+  the upstream references below.
+title: >-
+  perturb-seq-eval: contextual Bayesian optimisation of multi-agent
+  hyperparameters on Perturb-Seq
+authors:
+  - family-names: "Last"
+    given-names: "First"
+    affiliation: "YOUR_AFFILIATION"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: "0.3.0"
+date-released: "2026-04-22"
+license: "Apache-2.0"
+repository-code: "https://github.com/mm-bconscious/bioFM"
+url: "https://github.com/mm-bconscious/bioFM/tree/main/projects/perturb-seq-eval"
+keywords:
+  - perturb-seq
+  - Bayesian optimization
+  - contextual bandit
+  - multi-agent LLM
+  - test-time compute
+  - biological foundation model
+  - scGPT
+  - Adamson 2016
+  - CellForge
+references:
+  - type: article
+    authors:
+      - family-names: "Wei"
+        given-names: "Yi"
+    title: "CellForge: a multi-agent LLM system for experimental design in computational biology"
+    year: 2025
+    url: "https://arxiv.org/abs/2508.02276"
+    notes: "propose-critique-vote 5-agent orchestration reference"
+  - type: article
+    authors:
+      - family-names: "Snell"
+        given-names: "Charlie"
+    title: "Scaling LLM test-time compute optimally can be more effective than scaling model parameters"
+    year: 2024
+    url: "https://arxiv.org/abs/2408.03314"
+  - type: article
+    authors:
+      - family-names: "Saad-Falcon"
+        given-names: "Jon"
+    title: "Archon: an architecture-search framework for inference-time techniques"
+    year: 2024
+    url: "https://arxiv.org/abs/2409.15254"
+  - type: conference-paper
+    authors:
+      - family-names: "Krause"
+        given-names: "Andreas"
+      - family-names: "Ong"
+        given-names: "Cheng Soon"
+    title: "Contextual Gaussian process bandit optimization"
+    year: 2011
+    conference:
+      name: "NeurIPS"
+  - type: article
+    authors:
+      - family-names: "Krause"
+        given-names: "Andreas"
+      - family-names: "Singh"
+        given-names: "Ajit"
+      - family-names: "Guestrin"
+        given-names: "Carlos"
+    title: "Near-optimal sensor placements in Gaussian processes: theory, efficient algorithms, and empirical studies"
+    year: 2008
+    journal: "Journal of Machine Learning Research"
+    volume: 9
+    notes: "greedy max-information-gain used for γ_T estimation"
+  - type: article
+    authors:
+      - family-names: "Hansen"
+        given-names: "Nikolaus"
+    title: "The CMA evolution strategy: a tutorial"
+    year: 2016
+    url: "https://arxiv.org/abs/1604.00772"
+  - type: article
+    authors:
+      - family-names: "Cui"
+        given-names: "Haotian"
+    title: "scGPT: toward building a foundation model for single-cell multi-omics using generative AI"
+    year: 2024
+    journal: "Nature Methods"
+  - type: article
+    authors:
+      - family-names: "Theodoris"
+        given-names: "Christina V."
+    title: "Transfer learning enables predictions in network biology"
+    year: 2023
+    journal: "Nature"
+    notes: "Geneformer; used as the Validator BioFM tool"
+  - type: article
+    authors:
+      - family-names: "Luo"
+        given-names: "Renqian"
+    title: "BioGPT: generative pre-trained transformer for biomedical text generation and mining"
+    year: 2022
+    journal: "Briefings in Bioinformatics"
+    notes: "BioGPT; used as the Literature BioFM tool"
+  - type: article
+    authors:
+      - family-names: "Lotfollahi"
+        given-names: "Mohammad"
+    title: "Predicting cellular responses to complex perturbations in high-throughput screens"
+    year: 2023
+    journal: "Molecular Systems Biology"
+  - type: article
+    authors:
+      - family-names: "Roohani"
+        given-names: "Yusuf"
+    title: "Predicting transcriptional outcomes of novel multigene perturbations with GEARS"
+    year: 2024
+    journal: "Nature Biotechnology"
+  - type: article
+    authors:
+      - family-names: "Lakshminarayanan"
+        given-names: "Balaji"
+    title: "Simple and scalable predictive uncertainty estimation using deep ensembles"
+    year: 2017
+    conference:
+      name: "NeurIPS"
+  - type: article
+    authors:
+      - family-names: "Wang"
+        given-names: "Xuezhi"
+    title: "Self-consistency improves chain of thought reasoning in language models"
+    year: 2023
+    conference:
+      name: "ICLR"
+  - type: article
+    authors:
+      - family-names: "Du"
+        given-names: "Yilun"
+    title: "Improving factuality and reasoning in language models through multiagent debate"
+    year: 2023
+    url: "https://arxiv.org/abs/2305.14325"
+  - type: article
+    authors:
+      - family-names: "Adamson"
+        given-names: "Britt"
+    title: >-
+      A multiplexed single-cell CRISPR screening platform enables systematic
+      dissection of the unfolded protein response
+    year: 2016
+    journal: "Cell"
+    volume: 167
+    pages: "1867-1882"

@@ -144,3 +144,28 @@ def test_executed_proposal_and_validation_types_are_frozen() -> None:
         p.succeeded = False  # type: ignore[misc]
     with pytest.raises(Exception):
         v.accepted = True  # type: ignore[misc]
+
+
+@pytest.mark.unit
+def test_agentic_lifecycle_terminates_and_produces_msd() -> None:
+    from perturb_eval.agentic_lifecycle.loop import MockAgentPool, run_agentic_lifecycle
+
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((200, 40)) * 0.3 + 2.0
+    labels = np.asarray(["CTRL"] * 50 + ["A"] * 50 + ["B"] * 50 + ["C"] * 50)
+    X[50:100, 5] -= 2.0
+    X[100:150, 10] -= 2.0
+    X[150:200, 15] -= 2.0
+    control_mask = labels == "CTRL"
+    target_gene_idx = {"A": 5, "B": 10, "C": 15}
+    pool = MockAgentPool(seed=0)
+    run = run_agentic_lifecycle(
+        task_id="hold_C",
+        X=X, labels=labels, control_mask=control_mask,
+        target_gene_idx=target_gene_idx, held_out="C",
+        agent_pool=pool, max_rounds=2,
+    )
+    assert run.n_rounds <= 2
+    assert run.final_msd_topk >= 0.0
+    assert run.backbone_used in ("linear", "mlp", "scgpt_small")
+    assert len(run.steps) >= 5

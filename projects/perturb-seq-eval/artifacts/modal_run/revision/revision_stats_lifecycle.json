@@ -1,0 +1,33 @@
+{
+  "n_runs_total": 21,
+  "n_runs_finite": 18,
+  "n_runs_failed": 3,
+  "n_unique_tasks": 6,
+  "final_msd_mean_ci95": [
+    0.3433766390376854,
+    0.3091797091745124,
+    0.37642613666070057
+  ],
+  "per_task_msd_mean": {
+    "ZNF326": 0.3870558465953977,
+    "CREB1": 0.21306522476465548,
+    "SNAI1": 0.3651735270946674,
+    "SPI1": 0.42113809560255416,
+    "BHLHE40": 0.2612136434950897,
+    "DDIT3": 0.41261349667374825
+  },
+  "per_task_msd_n_runs": {
+    "ZNF326": 3,
+    "CREB1": 3,
+    "SNAI1": 3,
+    "SPI1": 3,
+    "BHLHE40": 3,
+    "DDIT3": 3
+  },
+  "round_depth_distribution": {
+    "1": 18
+  },
+  "backbone_usage": {
+    "scgpt_small": 18
+  }
+}
