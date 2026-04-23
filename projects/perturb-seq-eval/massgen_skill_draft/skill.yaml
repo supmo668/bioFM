@@ -1,0 +1,57 @@
+# MassGen skill manifest (draft) — see README.md in this directory.
+# Submission target: massgen/skills/perturb-seq-eval/skill.yaml
+# Refer to MassGen's existing skills (e.g. massgen/skills/file-search/) for
+# the fields this must match in the upstream schema.
+
+name: perturb-seq-eval
+version: 0.1.0
+description: >
+  Observability + Bayesian agentic hyperparameter tuning for
+  propose-critique-vote orchestrators.
+
+inputs:
+  coordination_snapshot:
+    type: path
+    required: true
+    description: >
+      JSON dump of CoordinationTracker events for the completed (or in-flight)
+      session. For preflight use, pass the snapshot after the round-0
+      iteration ends.
+  budget_flops_proxy:
+    type: int
+    required: false
+    default: null
+    description: >
+      Optional upper bound on the FLOPs proxy (n_agents × n_rounds ×
+      backbone_factor). When omitted, the recommender uses its prior only.
+
+outputs:
+  run_metrics:
+    type: path
+    description: "Path to artifacts/run_metrics.json with ACE/CSD/TDI + deltas."
+  recommendation:
+    type: path
+    description: "Path to artifacts/recommendation.json with the Bayesian MAP configuration."
+
+lifecycle:
+  on_session_start: "handlers.preflight:run"
+  on_session_end:   "handlers.evaluate:run"
+
+config:
+  tdi_coefficients:
+    # Either the heuristic defaults or a path to a JSON file produced by
+    # perturb_eval.calibration.fit_tdi_coefficients.
+    path: null   # use defaults if absent
+  recommender:
+    prior_scale: 3.0
+    default_likelihood_var: 0.05
+    calibration_tuples_path: null
+
+# Dependencies are declared here but installed via pip extras in the parent
+# MassGen project (matches existing skill pattern).
+dependencies:
+  - "perturb-eval>=0.1,<0.2"
+  - "numpy>=1.26"
+
+# Conformance with MassGen anti-patterns: the severity extractor uses an
+# LLM (prompts/severity_rater.md), not keyword/regex matching.

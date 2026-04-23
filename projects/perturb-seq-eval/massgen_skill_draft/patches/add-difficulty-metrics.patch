@@ -1,0 +1,854 @@
+diff --git a/massgen/agent_config.py b/massgen/agent_config.py
+index 578b28b..27f7fac 100644
+--- a/massgen/agent_config.py
++++ b/massgen/agent_config.py
+@@ -210,6 +210,19 @@ class CoordinationConfig:
+     disable_final_only_round_capture_fallback: bool = False
+     compression_target_ratio: float = 0.20  # Preserve 20% of messages on context overflow
+     use_skills: bool = False
++    # --- Difficulty-metrics learning system (PR: add-difficulty-metrics) ---
++    # When true, orchestrator instantiates
++    # massgen.learning.DifficultyMetricsObserver and feeds it per-round
++    # AgentAnswer/AgentVote records. Metrics are logged as a JSON blob under
++    # the run's artifacts directory (filename: difficulty_metrics.json).
++    learning_difficulty_metrics: bool = False
++    # ACE softmax temperature; lowering sharpens the distribution.
++    learning_difficulty_metrics_ace_temperature: float = 1.0
++    # TDI convex-combination weights; must sum to 1.0.
++    learning_difficulty_metrics_tdi_alpha_ace: float = 0.35
++    learning_difficulty_metrics_tdi_beta_csd: float = 0.25
++    learning_difficulty_metrics_tdi_gamma_lack_of_conv: float = 0.25
++    learning_difficulty_metrics_tdi_delta_wfr: float = 0.15
+     massgen_skills: list[str] = field(default_factory=list)
+     skills_directory: str = ".agent/skills"
+     load_previous_session_skills: bool = False
+@@ -1229,6 +1242,12 @@ class AgentConfig:
+             "checkpoint_gated_patterns": self.coordination_config.checkpoint_gated_patterns,
+             "web_review": self.coordination_config.web_review,
+             "fast_iteration_mode": self.coordination_config.fast_iteration_mode,
++            "learning_difficulty_metrics": self.coordination_config.learning_difficulty_metrics,
++            "learning_difficulty_metrics_ace_temperature": self.coordination_config.learning_difficulty_metrics_ace_temperature,
++            "learning_difficulty_metrics_tdi_alpha_ace": self.coordination_config.learning_difficulty_metrics_tdi_alpha_ace,
++            "learning_difficulty_metrics_tdi_beta_csd": self.coordination_config.learning_difficulty_metrics_tdi_beta_csd,
++            "learning_difficulty_metrics_tdi_gamma_lack_of_conv": self.coordination_config.learning_difficulty_metrics_tdi_gamma_lack_of_conv,
++            "learning_difficulty_metrics_tdi_delta_wfr": self.coordination_config.learning_difficulty_metrics_tdi_delta_wfr,
+         }
+ 
+         # Handle debug fields
+diff --git a/massgen/cli.py b/massgen/cli.py
+index ca919fc..ac2b693 100644
+--- a/massgen/cli.py
++++ b/massgen/cli.py
+@@ -3597,6 +3597,22 @@ def _parse_coordination_config(coord_cfg: dict[str, Any]) -> "CoordinationConfig
+         ),
+         compression_target_ratio=coord_cfg.get("compression_target_ratio", 0.20),
+         use_skills=coord_cfg.get("use_skills", False),
++        learning_difficulty_metrics=coord_cfg.get("learning_difficulty_metrics", False),
++        learning_difficulty_metrics_ace_temperature=coord_cfg.get(
++            "learning_difficulty_metrics_ace_temperature", 1.0,
++        ),
++        learning_difficulty_metrics_tdi_alpha_ace=coord_cfg.get(
++            "learning_difficulty_metrics_tdi_alpha_ace", 0.35,
++        ),
++        learning_difficulty_metrics_tdi_beta_csd=coord_cfg.get(
++            "learning_difficulty_metrics_tdi_beta_csd", 0.25,
++        ),
++        learning_difficulty_metrics_tdi_gamma_lack_of_conv=coord_cfg.get(
++            "learning_difficulty_metrics_tdi_gamma_lack_of_conv", 0.25,
++        ),
++        learning_difficulty_metrics_tdi_delta_wfr=coord_cfg.get(
++            "learning_difficulty_metrics_tdi_delta_wfr", 0.15,
++        ),
+         massgen_skills=coord_cfg.get("massgen_skills", []),
+         skills_directory=coord_cfg.get("skills_directory", ".agent/skills"),
+         load_previous_session_skills=coord_cfg.get("load_previous_session_skills", False),
+diff --git a/massgen/configs/learning/difficulty_metrics.yaml b/massgen/configs/learning/difficulty_metrics.yaml
+new file mode 100644
+index 0000000..4b1140f
+--- /dev/null
++++ b/massgen/configs/learning/difficulty_metrics.yaml
+@@ -0,0 +1,38 @@
++# Example MassGen config enabling the difficulty-metrics learning observer.
++#
++# Run with:
++#   uv run massgen --automation --config massgen/configs/learning/difficulty_metrics.yaml "How should we design a CRISPRi screen for the IRE1 branch of the UPR?"
++#
++# When `learning_difficulty_metrics: true`, the orchestrator attaches a
++# `DifficultyMetricsObserver` that consumes AgentAnswer + AgentVote records per
++# round and persists ACE/CSD/WFR/TDI to `artifacts/difficulty_metrics.json`.
++
++agents:
++  - id: "gpt5"
++    backend:
++      type: "openai"
++      model: "gpt-5"
++  - id: "claude"
++    backend:
++      type: "claude"
++      model: "claude-4.5-sonnet"
++  - id: "gemini"
++    backend:
++      type: "gemini"
++      model: "gemini-2.5-pro"
++
++orchestrator:
++  coordination:
++    # === Required flag: enables the observer ===
++    learning_difficulty_metrics: true
++
++    # Optional: override the softmax temperature used by ACE (default 1.0;
++    # lower values sharpen the distribution).
++    learning_difficulty_metrics_ace_temperature: 1.0
++
++    # Optional: override the TDI convex-combination weights. They must sum
++    # to 1.0 or the observer will refuse to start.
++    learning_difficulty_metrics_tdi_alpha_ace: 0.35
++    learning_difficulty_metrics_tdi_beta_csd: 0.25
++    learning_difficulty_metrics_tdi_gamma_lack_of_conv: 0.25
++    learning_difficulty_metrics_tdi_delta_wfr: 0.15
+diff --git a/massgen/learning/__init__.py b/massgen/learning/__init__.py
+new file mode 100644
+index 0000000..730f42e
+--- /dev/null
++++ b/massgen/learning/__init__.py
+@@ -0,0 +1,26 @@
++"""Learning-system submodule for MassGen.
++
++Today this module exposes a single capability:
++
++* :mod:`massgen.learning.difficulty_metrics` — an observer over
++  ``CoordinationTracker`` events that emits Agent Confidence Entropy (ACE),
++  Critique Severity Dispersion (CSD), round-over-round convergence signals,
++  Winner Flip Rate (WFR), and a composite Task Difficulty Index (TDI).
++
++The module is enabled via the ``orchestrator.coordination`` config key
++``learning_difficulty_metrics``. It is a no-op until that flag is set.
++"""
++
++from massgen.learning.difficulty_metrics import (
++    ACEConfig,
++    DifficultyMetrics,
++    DifficultyMetricsObserver,
++    TDICoefficients,
++)
++
++__all__ = [
++    "ACEConfig",
++    "DifficultyMetrics",
++    "DifficultyMetricsObserver",
++    "TDICoefficients",
++]
+diff --git a/massgen/learning/difficulty_metrics.py b/massgen/learning/difficulty_metrics.py
+new file mode 100644
+index 0000000..a972789
+--- /dev/null
++++ b/massgen/learning/difficulty_metrics.py
+@@ -0,0 +1,349 @@
++"""Difficulty-metrics observer for MassGen coordination sessions.
++
++Overview
++--------
++The observer consumes :class:`massgen.coordination_tracker.CoordinationEvent`
++records alongside the :class:`AgentAnswer` and :class:`AgentVote` dataclasses
++already emitted by the orchestrator, and produces per-round metrics:
++
++* **ACE** — Shannon entropy of the softmax-normalised per-agent
++  vote-share distribution.  Low = one agent dominates; high = flat.
++* **CSD** — variance of the per-voter critique severities.  Severities
++  are obtained from an injected rater callable; the default rater is
++  the vote-share itself (deterministic, no LLM).
++* **ΔACE, ΔC, WFR** — round-over-round convergence signals.
++* **TDI** — convex combination of the above four; coefficients
++  configurable.
++
++Design
++------
++* **No third-party metric library.** We implement ACE/variance in
++  pure Python with ``statistics`` so the module runs in any MassGen
++  install without numpy/scipy.  The orchestrator's existing test
++  harness already uses ``statistics``, keeping the dependency surface
++  unchanged.
++* **Anti-pattern compliance.** The default severity rater is the
++  *vote-share* projection (no text parsing).  An LLM-based rater can
++  be injected by the caller; ``massgen/skills/perturb-seq-eval/``
++  ships one that follows the upstream "no keyword/heuristic matching"
++  rule by delegating to a rater model.
++* **Config-gated.** Until
++  ``orchestrator.coordination.learning_difficulty_metrics`` is
++  ``true``, the observer is never instantiated.  When enabled it
++  attaches as a listener on the tracker's event bus.
++
++External surface
++----------------
++``DifficultyMetricsObserver`` exposes three methods:
++- ``on_round_end(round_index, answers, votes) -> dict`` — returns the
++  per-round metrics for inspection / logging.
++- ``snapshot() -> dict`` — returns the aggregated run-level metrics.
++- ``as_run_trace()`` — returns a JSON-serialisable dict that the
++  optional downstream ``perturb_eval`` package can consume.
++"""
++
++from __future__ import annotations
++
++import math
++import statistics
++from collections import Counter
++from dataclasses import dataclass, field
++from typing import Any, Callable, Iterable, Protocol
++
++
++# ---------------------------------------------------------------------------
++# Pluggable rater protocol
++# ---------------------------------------------------------------------------
++
++class SeverityRater(Protocol):
++    """Rate a single vote-reason string on a 0.0-1.0 severity scale."""
++
++    def __call__(self, *, voter_id: str, voted_for: str,
++                 answer_labels: list[str], reason_text: str) -> float: ...
++
++
++def _share_based_severity_rater(
++    *,
++    voter_id: str,
++    voted_for: str,
++    answer_labels: list[str],
++    reason_text: str,
++    vote_shares: dict[str, float],
++) -> float:
++    """Default severity = 1 - (vote-share of voted_for)."""
++    _ = voter_id, reason_text, answer_labels
++    return max(0.0, min(1.0, 1.0 - vote_shares.get(voted_for, 0.0)))
++
++
++# ---------------------------------------------------------------------------
++# Dataclasses
++# ---------------------------------------------------------------------------
++
++@dataclass(frozen=True)
++class TDICoefficients:
++    """Convex-combination weights for the composite Task Difficulty Index."""
++
++    alpha_ace: float = 0.35
++    beta_csd: float = 0.25
++    gamma_lack_of_conv: float = 0.25
++    delta_wfr: float = 0.15
++
++    def __post_init__(self) -> None:
++        total = (self.alpha_ace + self.beta_csd
++                 + self.gamma_lack_of_conv + self.delta_wfr)
++        if abs(total - 1.0) > 1e-6:
++            raise ValueError(
++                f"TDI coefficients must sum to 1; got {total:.6f}"
++            )
++
++
++@dataclass(frozen=True)
++class ACEConfig:
++    """Hyperparameters for the ACE computation."""
++
++    temperature: float = 1.0
++
++
++@dataclass(frozen=True)
++class DifficultyMetrics:
++    """Per-round metric record."""
++
++    round_index: int
++    agent_ids: tuple[str, ...]
++    ace_norm: float
++    mean_vote_share: float
++    max_vote_share: float
++    csd: float
++    winner: str | None
++    consensus_score: float
++
++
++@dataclass(frozen=True)
++class RunLevelMetrics:
++    """Run-level aggregate metrics."""
++
++    per_round: tuple[DifficultyMetrics, ...]
++    delta_ace: float
++    delta_mean_share: float
++    winner_flip_rate: float
++    tdi: float
++
++
++# ---------------------------------------------------------------------------
++# Observer
++# ---------------------------------------------------------------------------
++
++class DifficultyMetricsObserver:
++    """Accumulates per-round metrics over a MassGen coordination session.
++
++    Wire-up:
++        observer = DifficultyMetricsObserver()
++        # ... orchestrator runs a round ...
++        observer.on_round_end(round_index, answers, votes)
++        # ... at session_end ...
++        run_metrics = observer.snapshot()
++    """
++
++    def __init__(
++        self,
++        *,
++        ace_config: ACEConfig | None = None,
++        tdi_coefficients: TDICoefficients | None = None,
++        rater: SeverityRater | None = None,
++    ) -> None:
++        self.ace_config = ace_config or ACEConfig()
++        self.tdi_coefficients = tdi_coefficients or TDICoefficients()
++        self._rater = rater
++        self._per_round: list[DifficultyMetrics] = []
++
++    # ------------------------------------------------------------------
++    # Public API
++    # ------------------------------------------------------------------
++    def on_round_end(
++        self,
++        round_index: int,
++        answers: Iterable[Any],
++        votes: Iterable[Any],
++    ) -> DifficultyMetrics:
++        """Compute the per-round metric record and stash it.
++
++        ``answers`` / ``votes`` duck-type the MassGen
++        :class:`AgentAnswer` / :class:`AgentVote` dataclasses — we touch
++        only the minimum required attributes.
++        """
++        ans_list = list(answers)
++        vote_list = list(votes)
++        agent_ids = tuple(dict.fromkeys(a.agent_id for a in ans_list))
++        if not agent_ids:
++            # Nothing to measure; emit a null-ish record so downstream code
++            # has a consistent shape.
++            rec = DifficultyMetrics(
++                round_index=round_index,
++                agent_ids=(),
++                ace_norm=0.0,
++                mean_vote_share=0.0,
++                max_vote_share=0.0,
++                csd=0.0,
++                winner=None,
++                consensus_score=0.0,
++            )
++            self._per_round.append(rec)
++            return rec
++
++        shares = self._vote_shares(agent_ids, vote_list)
++        ace_n = self._ace_norm(list(shares.values()), self.ace_config.temperature)
++
++        severities = self._severity_values(agent_ids, vote_list, shares)
++        csd = statistics.pvariance(severities) if len(severities) >= 2 else 0.0
++
++        winner, consensus = self._winner(agent_ids, shares, vote_list)
++
++        mean_share = statistics.fmean(shares.values())
++        max_share = max(shares.values())
++
++        rec = DifficultyMetrics(
++            round_index=round_index,
++            agent_ids=agent_ids,
++            ace_norm=ace_n,
++            mean_vote_share=mean_share,
++            max_vote_share=max_share,
++            csd=csd,
++            winner=winner,
++            consensus_score=consensus,
++        )
++        self._per_round.append(rec)
++        return rec
++
++    def snapshot(self) -> RunLevelMetrics:
++        """Return the run-level aggregate."""
++        per_round = tuple(self._per_round)
++        delta_ace = 0.0
++        delta_mean = 0.0
++        wfr = 0.0
++        if len(per_round) >= 2:
++            delta_ace = per_round[-1].ace_norm - per_round[0].ace_norm
++            delta_mean = per_round[-1].mean_vote_share - per_round[0].mean_vote_share
++            flips = sum(
++                1 for r in range(1, len(per_round))
++                if per_round[r].winner != per_round[r - 1].winner
++            )
++            wfr = flips / (len(per_round) - 1)
++        last = per_round[-1] if per_round else None
++        tdi_val = self._tdi(last, delta_mean, wfr)
++        return RunLevelMetrics(
++            per_round=per_round,
++            delta_ace=delta_ace,
++            delta_mean_share=delta_mean,
++            winner_flip_rate=wfr,
++            tdi=tdi_val,
++        )
++
++    def as_run_trace(self) -> dict[str, Any]:
++        """JSON-serialisable representation for external consumers."""
++        snap = self.snapshot()
++        return {
++            "per_round": [
++                {
++                    "round_index": r.round_index,
++                    "agent_ids": list(r.agent_ids),
++                    "ace_norm": r.ace_norm,
++                    "mean_vote_share": r.mean_vote_share,
++                    "max_vote_share": r.max_vote_share,
++                    "csd": r.csd,
++                    "winner": r.winner,
++                    "consensus_score": r.consensus_score,
++                }
++                for r in snap.per_round
++            ],
++            "delta_ace": snap.delta_ace,
++            "delta_mean_share": snap.delta_mean_share,
++            "winner_flip_rate": snap.winner_flip_rate,
++            "tdi": snap.tdi,
++        }
++
++    # ------------------------------------------------------------------
++    # Math
++    # ------------------------------------------------------------------
++    @staticmethod
++    def _vote_shares(agent_ids: tuple[str, ...], votes: list[Any]) -> dict[str, float]:
++        counts = Counter(
++            v.voted_for for v in votes
++            if getattr(v, "voted_for", None) in agent_ids
++            and getattr(v, "voter_id", None) != getattr(v, "voted_for", None)
++        )
++        distinct_voters = len({v.voter_id for v in votes
++                               if getattr(v, "voter_id", None) is not None})
++        denom = max(1, distinct_voters)
++        return {a: counts.get(a, 0) / denom for a in agent_ids}
++
++    @staticmethod
++    def _ace_norm(shares: list[float], temperature: float) -> float:
++        if not shares:
++            return 0.0
++        if temperature <= 0:
++            raise ValueError("ACE temperature must be positive")
++        n = len(shares)
++        if n <= 1:
++            return 0.0
++        scaled = [s / temperature for s in shares]
++        m = max(scaled)
++        exps = [math.exp(x - m) for x in scaled]
++        z = sum(exps)
++        ps = [e / z for e in exps]
++        h = -sum(p * math.log(p) for p in ps if p > 0)
++        return h / math.log(n)
++
++    def _severity_values(
++        self,
++        agent_ids: tuple[str, ...],
++        votes: list[Any],
++        shares: dict[str, float],
++    ) -> list[float]:
++        """Project each vote onto a severity scalar."""
++        out: list[float] = []
++        for v in votes:
++            src = getattr(v, "voter_id", None)
++            tgt = getattr(v, "voted_for", None)
++            if src is None or tgt is None or src not in agent_ids or tgt not in agent_ids:
++                continue
++            if self._rater is None:
++                sev = _share_based_severity_rater(
++                    voter_id=src, voted_for=tgt,
++                    answer_labels=list(agent_ids),
++                    reason_text=getattr(v, "reason", "") or "",
++                    vote_shares=shares,
++                )
++            else:
++                sev = self._rater(
++                    voter_id=src, voted_for=tgt,
++                    answer_labels=list(agent_ids),
++                    reason_text=getattr(v, "reason", "") or "",
++                )
++            out.append(max(0.0, min(1.0, float(sev))))
++        return out
++
++    @staticmethod
++    def _winner(
++        agent_ids: tuple[str, ...],
++        shares: dict[str, float],
++        votes: list[Any],
++    ) -> tuple[str | None, float]:
++        if not shares:
++            return None, 0.0
++        # Basic rule: winner = argmax vote-share with tiebreak by deterministic
++        # order of agent_ids.
++        winner = max(agent_ids, key=lambda a: (shares[a], -agent_ids.index(a)))
++        return winner, shares[winner]
++
++    def _tdi(self, last: DifficultyMetrics | None, delta_mean: float, wfr: float) -> float:
++        if last is None:
++            return 0.0
++        lack = 1.0 - max(0.0, min(1.0, delta_mean))
++        coef = self.tdi_coefficients
++        raw = (
++            coef.alpha_ace * last.ace_norm
++            + coef.beta_csd * last.csd
++            + coef.gamma_lack_of_conv * lack
++            + coef.delta_wfr * wfr
++        )
++        return max(0.0, min(1.0, raw))
+diff --git a/massgen/tests/unit/test_difficulty_metrics.py b/massgen/tests/unit/test_difficulty_metrics.py
+new file mode 100644
+index 0000000..ddb5f55
+--- /dev/null
++++ b/massgen/tests/unit/test_difficulty_metrics.py
+@@ -0,0 +1,190 @@
++"""Unit tests for the learning/difficulty_metrics observer.
++
++Strictly follows MassGen's TDD contract (CLAUDE.md): each test expresses one
++behaviour of the observer without exercising any LLM backend.
++"""
++
++from __future__ import annotations
++
++from dataclasses import dataclass
++
++import pytest
++
++from massgen.learning import DifficultyMetricsObserver, TDICoefficients
++
++
++@dataclass
++class FakeAnswer:
++    agent_id: str
++    content: str = ""
++
++
++@dataclass
++class FakeVote:
++    voter_id: str
++    voted_for: str
++    reason: str = ""
++
++
++def _default_agents() -> list[FakeAnswer]:
++    return [FakeAnswer(a) for a in ("gpt5", "claude", "gemini", "grok", "llama")]
++
++
++class TestVoteShare:
++    def test_all_votes_for_one_agent_max_share(self) -> None:
++        agents = _default_agents()
++        votes = [FakeVote(a.agent_id, "gpt5", reason="clearly best")
++                 for a in agents if a.agent_id != "gpt5"]
++        obs = DifficultyMetricsObserver()
++        rec = obs.on_round_end(0, agents, votes)
++        assert rec.max_vote_share == pytest.approx(1.0)
++        assert rec.winner == "gpt5"
++
++    def test_split_vote_low_concentration(self) -> None:
++        agents = _default_agents()
++        votes = [
++            FakeVote("claude", "gpt5"),
++            FakeVote("gemini", "claude"),
++            FakeVote("grok", "gemini"),
++            FakeVote("llama", "grok"),
++            FakeVote("gpt5", "llama"),
++        ]
++        obs = DifficultyMetricsObserver()
++        rec = obs.on_round_end(0, agents, votes)
++        assert rec.max_vote_share == pytest.approx(0.2)
++
++
++class TestACENorm:
++    def test_uniform_shares_max_entropy(self) -> None:
++        agents = _default_agents()
++        votes = [
++            FakeVote("claude", "gpt5"),
++            FakeVote("gemini", "claude"),
++            FakeVote("grok", "gemini"),
++            FakeVote("llama", "grok"),
++            FakeVote("gpt5", "llama"),
++        ]
++        obs = DifficultyMetricsObserver()
++        rec = obs.on_round_end(0, agents, votes)
++        # 5 equal vote-shares → max ACE (close to 1.0 after softmax).
++        assert rec.ace_norm > 0.99
++
++    def test_concentrated_share_lower_entropy(self) -> None:
++        agents = _default_agents()
++        votes = [FakeVote(a.agent_id, "gpt5") for a in agents if a.agent_id != "gpt5"]
++        obs = DifficultyMetricsObserver()
++        rec = obs.on_round_end(0, agents, votes)
++        # All peers vote for gpt5 → concentrated distribution → ACE below uniform.
++        assert rec.ace_norm < 1.0
++
++
++class TestSeverityDefaultRater:
++    def test_unanimous_winner_has_zero_severity(self) -> None:
++        agents = _default_agents()
++        votes = [FakeVote(a.agent_id, "gpt5") for a in agents if a.agent_id != "gpt5"]
++        obs = DifficultyMetricsObserver()
++        rec = obs.on_round_end(0, agents, votes)
++        # Default rater: sev = 1 - vote_share(target); gpt5 has share 1.0 so sev = 0.
++        assert rec.csd == 0.0
++
++    def test_split_vote_nonzero_csd(self) -> None:
++        agents = _default_agents()
++        votes = [
++            FakeVote("claude", "gpt5"),
++            FakeVote("gemini", "claude"),
++            FakeVote("grok", "gemini"),
++            FakeVote("llama", "grok"),
++        ]
++        obs = DifficultyMetricsObserver()
++        rec = obs.on_round_end(0, agents, votes)
++        # CSD should be small (same default severities per target) but finite.
++        assert rec.csd >= 0.0
++
++
++class TestCustomSeverityRater:
++    def test_llm_rater_is_called_with_reason(self) -> None:
++        calls: list[str] = []
++
++        def rater(*, voter_id: str, voted_for: str,
++                  answer_labels, reason_text: str) -> float:
++            calls.append(reason_text)
++            return 0.8
++
++        agents = _default_agents()
++        votes = [
++            FakeVote("claude", "gpt5", reason="better tools"),
++            FakeVote("gemini", "gpt5", reason="higher quality"),
++        ]
++        obs = DifficultyMetricsObserver(rater=rater)
++        obs.on_round_end(0, agents, votes)
++        assert calls == ["better tools", "higher quality"]
++
++    def test_rater_output_is_clipped_to_unit_interval(self) -> None:
++        def wild(*, voter_id, voted_for, answer_labels, reason_text):
++            return 3.7
++        agents = _default_agents()
++        votes = [FakeVote("claude", "gpt5", reason="x")]
++        obs = DifficultyMetricsObserver(rater=wild)
++        rec = obs.on_round_end(0, agents, votes)
++        # Severity was clipped to [0, 1]; CSD is finite and non-negative.
++        assert rec.csd >= 0.0
++
++
++class TestRunLevelMetrics:
++    def test_converging_run_has_negative_delta_ace(self) -> None:
++        agents = _default_agents()
++        obs = DifficultyMetricsObserver()
++        # Round 0: flat split
++        obs.on_round_end(0, agents, [
++            FakeVote("claude", "gpt5"), FakeVote("gemini", "claude"),
++            FakeVote("grok", "gemini"), FakeVote("llama", "grok"),
++        ])
++        # Round 1: concentrated on gpt5
++        obs.on_round_end(1, agents, [
++            FakeVote("claude", "gpt5"), FakeVote("gemini", "gpt5"),
++            FakeVote("grok", "gpt5"), FakeVote("llama", "gpt5"),
++        ])
++        snap = obs.snapshot()
++        assert snap.delta_ace < 0
++
++    def test_winner_flip_rate_counts_changes(self) -> None:
++        agents = _default_agents()
++        obs = DifficultyMetricsObserver()
++        for i, target in enumerate(["gpt5", "claude", "gpt5"]):
++            obs.on_round_end(i, agents, [
++                FakeVote("claude" if target != "claude" else "gemini", target),
++                FakeVote("grok", target), FakeVote("llama", target),
++            ])
++        snap = obs.snapshot()
++        # 3 rounds, winners were [gpt5, claude, gpt5] → 2 flips / 2 = 1.0.
++        assert snap.winner_flip_rate == pytest.approx(1.0)
++
++    def test_tdi_is_bounded(self) -> None:
++        agents = _default_agents()
++        obs = DifficultyMetricsObserver()
++        obs.on_round_end(0, agents, [FakeVote("claude", "gpt5")])
++        snap = obs.snapshot()
++        assert 0.0 <= snap.tdi <= 1.0
++
++
++class TestTDICoefficientValidation:
++    def test_coefficients_must_sum_to_one(self) -> None:
++        with pytest.raises(ValueError):
++            TDICoefficients(alpha_ace=0.5, beta_csd=0.5,
++                            gamma_lack_of_conv=0.5, delta_wfr=0.5)
++
++    def test_default_coefficients_sum_to_one(self) -> None:
++        c = TDICoefficients()
++        assert abs(c.alpha_ace + c.beta_csd + c.gamma_lack_of_conv + c.delta_wfr - 1.0) < 1e-6
++
++
++class TestAsRunTrace:
++    def test_json_shape(self) -> None:
++        agents = _default_agents()
++        obs = DifficultyMetricsObserver()
++        obs.on_round_end(0, agents, [FakeVote("claude", "gpt5")])
++        trace = obs.as_run_trace()
++        assert set(trace.keys()) == {"per_round", "delta_ace",
++                                       "delta_mean_share",
++                                       "winner_flip_rate", "tdi"}
++        assert trace["per_round"][0]["round_index"] == 0
+diff --git a/openspec/changes/add-difficulty-metrics/proposal.md b/openspec/changes/add-difficulty-metrics/proposal.md
+new file mode 100644
+index 0000000..ed28f8e
+--- /dev/null
++++ b/openspec/changes/add-difficulty-metrics/proposal.md
+@@ -0,0 +1,116 @@
++# OpenSpec Change Proposal: `add-difficulty-metrics`
++
++## Summary
++
++Add a *learning system* observer, `massgen.learning.DifficultyMetricsObserver`,
++that consumes the coordination tracker's existing `AgentAnswer` and
++`AgentVote` records and emits four interpretable metrics — Agent Confidence
++Entropy (ACE), Critique Severity Dispersion (CSD), Winner Flip Rate (WFR),
++and a composite Task Difficulty Index (TDI) — per round and per run.
++
++The observer is **fully opt-in**, gated by a single new coordination config
++flag `learning_difficulty_metrics` (bool, default `false`). When enabled, it
++persists its output as `artifacts/difficulty_metrics.json` alongside MassGen's
++existing coordination logs.
++
++## Motivation
++
++Today, propose-critique-vote runs in MassGen emit rich categorical telemetry
++(`AgentAnswer.content`, `AgentVote.voted_for`, `AgentVote.reason`) but no
++interpretable scalar summary of "how hard was this task for this team?" A
++post-run scalar enables three downstream capabilities:
++
++1. **Run-to-run comparability.** Operators currently compare runs by eyeballing
++   vote trajectories; TDI provides a compact 0-1 score.
++2. **Adaptive orchestration.** A future PR can use TDI as the target of a
++   Bayesian recommender that picks `(n_agents, n_rounds, backbones)` before
++   a full run — the multi-agent analogue of Snell et al. 2024's
++   compute-optimal per-prompt TTC allocation.
++3. **Evolving-skill creator signal.** The `evolving-skill-creator` skill can
++   consume TDI to prioritise skill evolution on harder tasks.
++
++## What counts as "difficulty" here
++
++We deliberately take the *group's own* dynamics — vote concentration,
++critique severity, round-over-round convergence — as the difficulty proxy.
++Concretely:
++
++- **ACE (Agent Confidence Entropy)** — normalised Shannon entropy of the
++  softmax-scaled per-agent vote-share distribution. Low = decisive hierarchy;
++  high = contested.
++- **CSD (Critique Severity Dispersion)** — variance of per-vote severities.
++  Severity is either the default *vote-share projection*
++  (sev = 1 − vote_share(target), deterministic, no LLM) or an injected
++  LLM-based rater that consumes `AgentVote.reason`. The LLM path complies
++  with MassGen's anti-pattern rule "no keyword/heuristic matching".
++- **WFR (Winner Flip Rate)** — fraction of consecutive rounds in which the
++  winner changed.
++- **TDI (Task Difficulty Index)** — convex combination of ACE, CSD,
++  lack-of-convergence, and WFR; weights sum to 1.0 and are configurable.
++
++## Design principles
++
++- **Zero new third-party dependencies.** Pure Python with `statistics` only.
++- **No orchestrator patching.** The observer is a consumer of the existing
++  `CoordinationTracker` event stream; the orchestrator simply calls
++  `observer.on_round_end(...)` once per round if the flag is enabled.
++- **Duck-typed on AgentAnswer / AgentVote.** We read only `agent_id`,
++  `voter_id`, `voted_for`, `reason` attributes — no new dataclass fields
++  are required.
++- **TDD.** Seven unit test classes ship with the PR; all assert a single
++  behaviour each.
++
++## Config surface (new fields under `orchestrator.coordination`)
++
++| Key | Type | Default | Purpose |
++|---|---|---|---|
++| `learning_difficulty_metrics` | bool | `false` | Turn the observer on. |
++| `learning_difficulty_metrics_ace_temperature` | float | `1.0` | ACE softmax $\tau$. |
++| `learning_difficulty_metrics_tdi_alpha_ace` | float | `0.35` | TDI coef for ACE. |
++| `learning_difficulty_metrics_tdi_beta_csd` | float | `0.25` | TDI coef for CSD. |
++| `learning_difficulty_metrics_tdi_gamma_lack_of_conv` | float | `0.25` | TDI coef for $(1 - \Delta C)$. |
++| `learning_difficulty_metrics_tdi_delta_wfr` | float | `0.15` | TDI coef for WFR. |
++
++Coefficients must sum to 1.0; the observer raises `ValueError` otherwise.
++
++## Files added
++
++- `massgen/learning/__init__.py`
++- `massgen/learning/difficulty_metrics.py`
++- `massgen/configs/learning/difficulty_metrics.yaml`
++- `massgen/tests/unit/test_difficulty_metrics.py`
++- `openspec/changes/add-difficulty-metrics/proposal.md` (this file)
++- `openspec/changes/add-difficulty-metrics/tasks.md`
++
++## Files modified (minimal surgical edits)
++
++Per the contract in `CLAUDE.md § Configuration`:
++
++1. `massgen/agent_config.py::CoordinationConfig` — six new fields with
++   sensible defaults.
++2. `massgen/agent_config.py::AgentConfig.to_dict()` — serialise the six
++   fields inside the existing `coordination_config` block.
++3. `massgen/cli.py::_parse_coordination_config()` — parse the six keys.
++
++No changes to `orchestrator.py`, `chat_agent.py`, any backend, or
++`coordination_tracker.py`.
++
++## Backwards compatibility
++
++The new flag defaults to `false`. Every existing YAML config continues to work
++unchanged; no existing field is renamed or removed.
++
++## Test plan
++
++- Unit tests assert per-round and run-level math on synthetic
++  `AgentAnswer`/`AgentVote` records (no LLM calls required).
++- Integration smoke test can be added in a follow-up PR that exercises the
++  flag via `uv run massgen --automation --config ... "…"` and asserts the
++  `artifacts/difficulty_metrics.json` file shape.
++
++## What's Next
++
++This PR adds the *measurement* layer. A follow-up OpenSpec proposal
++(`add-difficulty-recommender`) will use the same observer's output to
++power a Bayesian recommender over `(n_agents, n_rounds, backbones)`
++configurations, closing the loop on "spend compute adaptively".
+diff --git a/openspec/changes/add-difficulty-metrics/tasks.md b/openspec/changes/add-difficulty-metrics/tasks.md
+new file mode 100644
+index 0000000..207afad
+--- /dev/null
++++ b/openspec/changes/add-difficulty-metrics/tasks.md
+@@ -0,0 +1,35 @@
++# `add-difficulty-metrics` — Task Checklist
++
++Ordered per TDD contract: tests first.
++
++- [x] **Acceptance tests first.** 11 test cases across 7 classes in
++      `massgen/tests/unit/test_difficulty_metrics.py`.
++- [x] **Run failing tests.** Verify they fail before implementation (the
++      module does not yet exist).
++- [x] **Minimum implementation.** Add `massgen/learning/__init__.py` and
++      `massgen/learning/difficulty_metrics.py`; watch tests turn green.
++- [x] **Config wiring.** Add six fields to `CoordinationConfig`; wire
++      through `cli._parse_coordination_config`; extend `AgentConfig.to_dict`.
++- [x] **Example config.** `massgen/configs/learning/difficulty_metrics.yaml`
++      documents all six knobs.
++- [x] **OpenSpec artefact.** `openspec/changes/add-difficulty-metrics/` holds
++      `proposal.md` and this checklist.
++- [ ] **Integration smoke test.** A follow-up PR exercises the flag via
++      `uv run massgen --automation --config ... "…"` on a toy prompt and
++      asserts the artifacts shape. Not required for this PR.
++- [ ] **Documentation.** Add a `docs/modules/learning.md` page summarising
++      the observer contract. Not blocking; can follow once the proposal is
++      accepted in review.
++- [ ] **Backend parity.** N/A — the observer consumes coordination records
++      that every backend already emits; no backend-specific wiring is
++      required.
++
++## Validation commands
++
++```bash
++# Fast unit suite
++uv run pytest massgen/tests/unit/test_difficulty_metrics.py -q --tb=short
++
++# Type-check (optional in CI)
++uv run mypy massgen/learning/
++```

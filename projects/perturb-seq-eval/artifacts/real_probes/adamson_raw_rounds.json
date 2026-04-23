@@ -1,0 +1,1059 @@
+{
+  "BHLHE40": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::BHLHE40 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "BHLHE40 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  },
+  "SNAI1": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::SNAI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "SNAI1 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  },
+  "SPI1": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::SPI1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "SPI1 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  },
+  "EP300": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::EP300 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "EP300 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  },
+  "CREB1": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::CREB1 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "CREB1 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  },
+  "ZNF326": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::ZNF326 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "ZNF326 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  },
+  "DDIT3": {
+    "proposals": [
+      {
+        "agent": "DataCurator",
+        "rationale": "Fetched CXG::scRNA-seq::DDIT3 knockdown: 48,000 cells \u00d7 22,000 genes. Mito \u2264 12.0%, doublets 4.00%. Ready for downstream.",
+        "rule_confidence": 0.85
+      },
+      {
+        "agent": "Literature",
+        "rationale": "DDIT3 knockdown is linked to pathways ['unknown']; 0 expected-up and 0 expected-down genes.",
+        "rule_confidence": 0.35
+      },
+      {
+        "agent": "Architect",
+        "rationale": "scGPT \u2014 33M cells; supports perturbation head out of the box. Plus a small perturbation adapter head.",
+        "rule_confidence": 0.7
+      },
+      {
+        "agent": "Trainer",
+        "rationale": "Adamw + lr=0.0003 for 10 epochs on scGPT with batch=128; by_donor CV, early stop on val_loss_plateau_3.",
+        "rule_confidence": 0.8
+      },
+      {
+        "agent": "Validator",
+        "rationale": "DEG overlap@K=1.00, held-out AUROC=0.80, calibration=0.95. Negative control AUROC=0.50 (should be \u22480.5).",
+        "rule_confidence": 0.95
+      }
+    ],
+    "critiques": [
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Literature",
+        "comment": "DataCurator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Architect",
+        "comment": "DataCurator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Trainer",
+        "comment": "DataCurator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "DataCurator",
+        "on_agent": "Validator",
+        "comment": "DataCurator has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "DataCurator",
+        "comment": "Literature has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Architect",
+        "comment": "Literature has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Trainer",
+        "comment": "Literature has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Literature",
+        "on_agent": "Validator",
+        "comment": "Literature has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "DataCurator",
+        "comment": "Architect has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Literature",
+        "comment": "Architect has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Trainer",
+        "comment": "Architect has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Architect",
+        "on_agent": "Validator",
+        "comment": "Architect has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "DataCurator",
+        "comment": "Trainer has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Literature",
+        "comment": "Trainer has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Architect",
+        "comment": "Trainer has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Trainer",
+        "on_agent": "Validator",
+        "comment": "Trainer has no domain-specific critique for Validator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "DataCurator",
+        "comment": "Validator has no domain-specific critique for DataCurator",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Literature",
+        "comment": "Validator has no domain-specific critique for Literature",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Architect",
+        "comment": "Validator has no domain-specific critique for Architect",
+        "rule_severity": 0.2
+      },
+      {
+        "from_agent": "Validator",
+        "on_agent": "Trainer",
+        "comment": "Validator has no domain-specific critique for Trainer",
+        "rule_severity": 0.2
+      }
+    ]
+  }
+}

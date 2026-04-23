@@ -1,0 +1,188 @@
+\begin{thebibliography}{22}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Adamson et~al.(2016)Adamson, Norman, Jost, Cho, Nu{\~{n}}ez, Chen,
+  Villalta, Gilbert, Horlbeck, Hein, Pak, Gray, Gross, Dixit, Parnas, Regev,
+  and Weissman]{adamson2016perturbseq}
+Britt Adamson, Thomas~M. Norman, Marco Jost, Min~Y. Cho, James~K. Nu{\~{n}}ez,
+  Yuwen Chen, Jacqueline~E. Villalta, Luke~A. Gilbert, Max~A. Horlbeck,
+  Marco~Y. Hein, Ryan~A. Pak, Andrew~N. Gray, Carol~A. Gross, Atray Dixit, Oren
+  Parnas, Aviv Regev, and Jonathan~S. Weissman.
+\newblock A multiplexed single-cell {CRISPR} screening platform enables
+  systematic dissection of the unfolded protein response.
+\newblock \emph{Cell}, 167\penalty0 (7):\penalty0 1867--1882, 2016.
+\newblock \doi{10.1016/j.cell.2016.11.048}.
+
+\bibitem[Chen et~al.(2025)]{chen2025cellforge}
+Xiangru Chen et~al.
+\newblock {CellForge}: Agentic design of virtual cell models.
+\newblock \emph{arXiv preprint arXiv:2508.02276}, 2025.
+
+\bibitem[Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser,
+  Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman]{cobbe2021verifiers}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz
+  Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+  Christopher Hesse, and John Schulman.
+\newblock Training verifiers to solve math word problems.
+\newblock \emph{arXiv preprint arXiv:2110.14168}, 2021.
+
+\bibitem[Cui et~al.(2024)Cui, Wang, Maan, Pang, Luo, Duan, and
+  Wang]{cui2024scgpt}
+Haotian Cui, Chloe Wang, Hassaan Maan, Kuan Pang, Fengning Luo, Nan Duan, and
+  Bo~Wang.
+\newblock {scGPT}: toward building a foundation model for single-cell
+  multi-omics using generative {AI}.
+\newblock \emph{Nature Methods}, 21:\penalty0 1470--1480, 2024.
+\newblock \doi{10.1038/s41592-024-02201-0}.
+
+\bibitem[DeepSeek-AI et~al.(2025)DeepSeek-AI, Guo, Yang, Zhang, Song, Zhang,
+  et~al.]{deepseek2025r1}
+DeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang,
+  et~al.
+\newblock {DeepSeek-R1}: Incentivizing reasoning capability in {LLM}s via
+  reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2501.12948}, 2025.
+
+\bibitem[Hao et~al.(2024)Hao, Gong, Zeng, Liu, Guo, Cheng, Wang, Ma, Zhang, and
+  Song]{hao2024scfoundation}
+Minsheng Hao, Jing Gong, Xin Zeng, Chiming Liu, Yucheng Guo, Xingyi Cheng,
+  Taifeng Wang, Jianzhu Ma, Xuegong Zhang, and Le~Song.
+\newblock Large-scale foundation model on single-cell transcriptomics.
+\newblock \emph{Nature Methods}, 2024.
+\newblock \doi{10.1038/s41592-024-02305-7}.
+
+\bibitem[Kalfon et~al.(2025)Kalfon, Samaran, Peyr\'e, and
+  Cantini]{kalfon2025scprint}
+Jeremie Kalfon, Jules Samaran, Gabriel Peyr\'e, and Laura Cantini.
+\newblock {scPRINT}: pre-training on 50 million cells allows robust gene
+  network predictions.
+\newblock \emph{Nature Communications}, 2025.
+\newblock \doi{10.1038/s41467-025-58699-1}.
+
+\bibitem[Li and contributors(2025)]{massgen2025github}
+Zekun Li and contributors.
+\newblock {MassGen}: Multi-agent scaling system for {GenAI}.
+\newblock GitHub repository, \url{https://github.com/Leezekun/MassGen}, 2025.
+
+\bibitem[Lifshitz et~al.(2025)Lifshitz, McIlraith, and Du]{lifshitz2025mav}
+Shalev Lifshitz, Sheila~A. McIlraith, and Yilun Du.
+\newblock Multi-agent verification: Scaling test-time compute with goal
+  verifiers.
+\newblock \emph{arXiv preprint arXiv:2502.20379}, 2025.
+
+\bibitem[Lightman et~al.(2024)Lightman, Kosaraju, Burda, Edwards, Baker, Lee,
+  Leike, Schulman, Sutskever, and Cobbe]{lightman2024prm}
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy
+  Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+\newblock Let's verify step by step.
+\newblock In \emph{Proc.\ of the International Conference on Learning
+  Representations (ICLR)}, 2024.
+
+\bibitem[Liu et~al.(2025)Liu, Gao, Zhao, Zhang, Li, Qi, Ouyang, and
+  Zhou]{liu2025rethinkingtts}
+Runze Liu, Junqi Gao, Jian Zhao, Kaiyan Zhang, Xiu Li, Biqing Qi, Wanli Ouyang,
+  and Bowen Zhou.
+\newblock Can 1{B} {LLM} surpass 405{B} {LLM}? rethinking compute-optimal
+  test-time scaling.
+\newblock \emph{arXiv preprint arXiv:2502.06703}, 2025.
+
+\bibitem[Muennighoff et~al.(2025)Muennighoff, Yang, Shi, Li, Fei-Fei,
+  Hajishirzi, Zettlemoyer, Liang, Cand\`es, and Hashimoto]{muennighoff2025s1}
+Niklas Muennighoff, Zitong Yang, Weijia Shi, Xiang~Lisa Li, Li~Fei-Fei,
+  Hannaneh Hajishirzi, Luke Zettlemoyer, Percy Liang, Emmanuel Cand\`es, and
+  Tatsunori Hashimoto.
+\newblock s1: Simple test-time scaling.
+\newblock \emph{arXiv preprint arXiv:2501.19393}, 2025.
+
+\bibitem[Norman et~al.(2019)Norman, Horlbeck, Replogle, Ge, Xu, Jost, Gilbert,
+  and Weissman]{norman2019perturbseq}
+Thomas~M. Norman, Max~A. Horlbeck, Joseph~M. Replogle, Alex~Y. Ge, Albert Xu,
+  Marco Jost, Luke~A. Gilbert, and Jonathan~S. Weissman.
+\newblock Exploring genetic interaction manifolds constructed from rich
+  single-cell phenotypes.
+\newblock \emph{Cell}, 179\penalty0 (7):\penalty0 1541--1554, 2019.
+\newblock \doi{10.1016/j.cell.2019.05.031}.
+
+\bibitem[Replogle et~al.(2022)Replogle, Saunders, Pogson, Hussmann, Lenail,
+  Guna, Mascibroda, Wagner, Adelman, Lithwick-Yanai, Iremadze, Oberstrass,
+  Lipson, Bonnar, Jost, Norman, and Weissman]{replogle2022perturbseq}
+Joseph~M. Replogle, Reuben~A. Saunders, Angela~N. Pogson, Jeffrey~A. Hussmann,
+  Alexander Lenail, Alina Guna, Lauren Mascibroda, Eric~J. Wagner, Karen
+  Adelman, Gila Lithwick-Yanai, Nika Iremadze, Florian Oberstrass, Doron
+  Lipson, Jessica~L. Bonnar, Marco Jost, Thomas~M. Norman, and Jonathan~S.
+  Weissman.
+\newblock Mapping information-rich genotype-phenotype landscapes with
+  genome-scale {P}erturb-seq.
+\newblock \emph{Cell}, 185\penalty0 (14):\penalty0 2559--2575, 2022.
+\newblock \doi{10.1016/j.cell.2022.05.013}.
+
+\bibitem[Saad-Falcon et~al.(2024)Saad-Falcon, Lafuente, Natarajan, Maru,
+  Todorov, Buchanan, Chen, Guha, R\'e, and Mirhoseini]{saad2024archon}
+Jon Saad-Falcon, Adrian~Gamarra Lafuente, Shlok Natarajan, Nahum Maru, Hristo
+  Todorov, E.~Kelly Buchanan, Mayee Chen, Neel Guha, Christopher R\'e, and
+  Azalia Mirhoseini.
+\newblock Archon: An architecture search framework for inference-time
+  techniques.
+\newblock \emph{arXiv preprint arXiv:2409.15254}, 2024.
+
+\bibitem[Snell et~al.(2024)Snell, Lee, Xu, and Kumar]{snell2024scaling}
+Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar.
+\newblock Scaling {LLM} test-time compute optimally can be more effective than
+  scaling model parameters.
+\newblock \emph{arXiv preprint arXiv:2408.03314}, 2024.
+
+\bibitem[Theodoris et~al.(2023)Theodoris, Xiao, Chopra, Chaffin, Sayed, Hill,
+  Mantineo, Brydon, Zeng, Liu, and Ellinor]{theodoris2023geneformer}
+Christina~V. Theodoris, Ling Xiao, Anant Chopra, Mark~D. Chaffin, Zeina R.~Al
+  Sayed, Matthew~C. Hill, Helene Mantineo, Elizabeth~M. Brydon, Zexian Zeng,
+  X.\~Shirley Liu, and Patrick~T. Ellinor.
+\newblock Transfer learning enables predictions in network biology.
+\newblock \emph{Nature}, 618:\penalty0 616--624, 2023.
+\newblock \doi{10.1038/s41586-023-06139-9}.
+
+\bibitem[Wang et~al.(2023)Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery,
+  and Zhou]{wang2023selfconsistency}
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc~V. Le, Ed~H. Chi, Sharan Narang,
+  Aakanksha Chowdhery, and Denny Zhou.
+\newblock Self-consistency improves chain of thought reasoning in language
+  models.
+\newblock In \emph{Proc.\ of the International Conference on Learning
+  Representations (ICLR)}, 2023.
+
+\bibitem[Wu et~al.(2023)Wu, Bansal, Zhang, Wu, Li, Zhu, Jiang, Zhang, Zhang,
+  Liu, Awadallah, White, Burger, and Wang]{wu2023autogen}
+Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu,
+  Li~Jiang, Xiaoyun Zhang, Shaokun Zhang, Jiale Liu, Ahmed~Hassan Awadallah,
+  Ryen~W. White, Doug Burger, and Chi Wang.
+\newblock {AutoGen}: Enabling next-gen {LLM} applications via multi-agent
+  conversation.
+\newblock \emph{arXiv preprint arXiv:2308.08155}, 2023.
+
+\bibitem[Wu et~al.(2024)Wu, Sun, Li, Welleck, and Yang]{wu2024smalltllm}
+Yangzhen Wu, Zhiqing Sun, Shanda Li, Sean Welleck, and Yiming Yang.
+\newblock Inference scaling laws: An empirical analysis of compute-optimal
+  inference for {LLM} problem-solving.
+\newblock \emph{arXiv preprint arXiv:2408.00724}, 2024.
+
+\bibitem[Yao et~al.(2023)Yao, Yu, Zhao, Shafran, Griffiths, Cao, and
+  Narasimhan]{yao2023tot}
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Thomas~L. Griffiths, Yuan
+  Cao, and Karthik Narasimhan.
+\newblock Tree of thoughts: Deliberate problem solving with large language
+  models.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2023.
+
+\bibitem[Zhang et~al.(2025)Zhang, Lyu, Sun, Wang, Zhang, Guo, Wang,
+  Muennighoff, King, Liu, and Ma]{zhang2025ttssurvey}
+Qiyuan Zhang, Fuyuan Lyu, Zexu Sun, Lei Wang, Weixu Zhang, Zhihan Guo, Yufei
+  Wang, Niklas Muennighoff, Irwin King, Xue Liu, and Chen Ma.
+\newblock What, how, where, and how well? a survey on test-time scaling in
+  large language models.
+\newblock \emph{arXiv preprint arXiv:2503.24235}, 2025.
+
+\end{thebibliography}

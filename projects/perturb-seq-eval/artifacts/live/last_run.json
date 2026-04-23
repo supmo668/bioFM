@@ -1,0 +1,15 @@
+{
+  "task": "BHLHE40 knockdown",
+  "dataset": "Adamson2016_pilot",
+  "n_real_perturbations": 9,
+  "sample_reasons_rated": 5,
+  "metrics": {
+    "tdi": 0.597,
+    "delta_ace": -0.0,
+    "delta_mean_confidence": 0.17,
+    "winner_flip_rate": 0.0,
+    "final_consensus_score": 0.78,
+    "n_rounds": 2
+  },
+  "model": "nvidia/nemotron-3-super-120b-a12b:free"
+}

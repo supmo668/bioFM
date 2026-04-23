@@ -1,0 +1,15 @@
+[submodule "research/Awesome-Bio-Foundation-Models"]
+	path = research/Awesome-Bio-Foundation-Models
+	url = https://github.com/apeterswu/Awesome-Bio-Foundation-Models.git
+[submodule "research/awesome-foundation-model-single-cell-papers"]
+	path = research/awesome-foundation-model-single-cell-papers
+	url = https://github.com/OmicsML/awesome-foundation-model-single-cell-papers.git
+[submodule "research/biofm-eval"]
+	path = research/biofm-eval
+	url = https://github.com/m42-health/biofm-eval.git
+[submodule "research/test-time-compute-guide/testtimescaling.github.io"]
+	path = research/test-time-compute-guide/testtimescaling.github.io
+	url = https://github.com/testtimescaling/testtimescaling.github.io.git
+[submodule "tools/MassGen"]
+	path = tools/MassGen
+	url = https://github.com/Leezekun/MassGen.git

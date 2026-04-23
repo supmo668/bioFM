@@ -1,0 +1,107 @@
+# publish.yml — one source of truth for preprint venue submissions.
+#
+# Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
+# script never writes to this file — DOIs and deposition IDs go into
+# `publish.state.json` (gitignored) so this stays clean.
+#
+# See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
+
+title: >-
+  Agent Confidence Entropy as an Empirical Difficulty Oracle for Multi-Agent
+  Group Generation, with a Bayesian Pre-Test for Agentic Hyperparameter
+  Tuning on Perturb-Seq Experimental Design
+
+# One-paragraph description used as the abstract across all venues.
+# Last aligned to docs/SUPPLEMENT.md conclusion on 2026-04-22 (post-revision).
+description: |
+  We introduce a contextual Bayesian optimization framework for multi-agent
+  group-generation hyperparameters, where the context is a cheap preflight
+  probe of the agent team's own internal dynamics (Agent Confidence
+  Entropy, Critique Severity Dispersion, convergence speed, winner-flip
+  rate). We evaluate across three regimes with bootstrap 95% CIs (2 000
+  resamples over task × seed): (i) a synthetic shared-optimum DGP where
+  all three optimizer CIs overlap and the framework correctly falsifies
+  the contextual advantage; (ii) the Adamson 2016 Perturb-seq pilot
+  (K562, 7 targeted knockdowns) where — with probe signatures simulated
+  from a difficulty-indexed DGP rather than a live orchestrator — all
+  three optimizer CIs also overlap, and the contribution is the
+  backbone-axis observation that linear's synthetic dominance does not
+  transfer; (iii) a task-conditional synthetic DGP where contextual GP's
+  CI does not overlap the one+λ-ES baseline, giving the only
+  statistically-significant optimizer advantage in the suite. We also
+  report numerical γ_T per regime (Krause-Singh-Guestrin 2008 greedy)
+  and ship a small-but-valid from-scratch scGPT-like transformer
+  backbone (2.1 M parameters). The full Modal reproduction pipeline
+  stays under a $30 budget ceiling.
+
+# Author metadata. ORCID is optional but strongly recommended for DOI quality.
+creators:
+  - name: "Last, First"
+    affiliation: "YOUR_AFFILIATION"
+    orcid: "0000-0000-0000-0000"
+
+keywords:
+  - perturb-seq
+  - Bayesian optimization
+  - contextual bandit
+  - multi-agent LLM
+  - test-time compute
+  - biological foundation model
+  - scGPT
+
+# Licence applied to the paper + data. For mixed upload you can override
+# per-file below.
+license: cc-by-4.0
+
+# Files to upload. Paths are relative to the project root (`projects/perturb-seq-eval/`).
+# Directories are auto-zipped by scripts/publish/submit_to_venues.py.
+#
+# Bundle rationale (see research/PUBLISHING_RUNBOOK.md §2.5):
+#   * paper.pdf           — the peer-review-style manuscript (synthetic experiments).
+#   * supplement.zip      — the Adamson + revision-pass journal docs (all `docs/`
+#                           Markdown + cross-referenced README). The SUPPLEMENT.md
+#                           here is the reviewer-facing reproduction + results artifact.
+#   * modal_run_artifacts — JSON/JSONL inputs and regenerated PDF/PNG/HTML figures.
+#                           The `revision/` subdirectory has bootstrap CIs + γ_T.
+files:
+  - path: paper/paper.pdf
+    name: paper.pdf
+    description: "Peer-review-style manuscript (synthetic DGP results)."
+  - path: docs
+    name: supplement.zip
+    description: "Supplement documentation (SUPPLEMENT.md, SUPPLEMENT_DESIGN.md, REVIEWER_CRITIQUE.md, THESIS.md, DESIGN.md, MODAL.md, PUBLICATION_CHECKLIST.md, INTERNAL_FOLLOWUP.md)."
+  - path: artifacts/modal_run
+    name: modal_run_artifacts.zip
+    description: "Reproducibility bundle: E1/E2/E3/E3b raw results (JSON/JSONL), bootstrap CIs + γ_T (revision_stats.json), 5 figures in PNG/PDF/HTML."
+
+# Per-venue configuration. Set enabled:false to skip.
+venues:
+  zenodo:
+    enabled: true
+    # Set sandbox:true to test against https://sandbox.zenodo.org (separate account, DOI prefix 10.5072).
+    sandbox: false
+    upload_type: publication
+    publication_type: preprint
+    # Optional — Zenodo community IDs this deposit should appear in.
+    communities: []
+    # Optional — related identifiers (Crossref DOIs, GitHub URLs, etc.).
+    related_identifiers:
+      - identifier: "https://github.com/REPO/PATH"
+        relation: "isSupplementTo"
+        scheme: "url"
+
+  figshare:
+    enabled: true
+    defined_type: preprint    # preprint | dataset | software | …
+    # Figshare taxonomy category IDs (see https://api.figshare.com/v2/categories).
+    categories: []
+    group_id: null            # set to a group ID for institutional-account uploads
+
+  osf:
+    enabled: true
+    # server = one of the preprint providers listed at https://osf.io/preprints/
+    # biohackrxiv is the explicit hackathon fit; metaarxiv is general meta-science.
+    provider: biohackrxiv
+    # OSF subject taxonomy IDs. Find at https://api.osf.io/v2/subjects/?filter[provider]=biohackrxiv
+    subjects:
+      - "584240da54be81056cecaabc"   # example — replace with the real ID for your subject

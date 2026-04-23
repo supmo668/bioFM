@@ -1,0 +1,74 @@
+[project]
+name = "perturb-eval"
+version = "0.2.0"
+description = "Agentic evaluation + contextual Bayesian vs evolutionary hyperparameter tuning on perturb-seq MSD (see docs/SUPPLEMENT_DESIGN.md)."
+authors = [{ name = "bioFM workspace", email = "mm.bconscious@syntropyhealth.bio" }]
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "numpy (>=1.26,<3.0)",
+    "typer (>=0.12,<1.0)",
+]
+
+[project.scripts]
+perturb-eval = "perturb_eval.cli:app"
+
+[tool.poetry]
+packages = [{ include = "perturb_eval", from = "src" }]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8"
+pytest-cov = ">=4"
+ruff = ">=0.5"
+
+[tool.poetry.group.research]
+optional = true
+
+[tool.poetry.group.research.dependencies]
+scikit-optimize = ">=0.10"
+cma = ">=3.3"
+scikit-learn = ">=1.3"
+scipy = ">=1.11"
+
+[tool.poetry.group.scgpt]
+optional = true
+
+[tool.poetry.group.scgpt.dependencies]
+torch = ">=2.2"
+scanpy = ">=1.10"
+anndata = ">=0.10"
+h5py = ">=3.10"
+scipy = ">=1.11"
+
+[tool.poetry.group.modal]
+optional = true
+
+[tool.poetry.group.modal.dependencies]
+modal = ">=0.68"
+
+[tool.poetry.group.paper]
+optional = true
+
+[tool.poetry.group.paper.dependencies]
+matplotlib = ">=3.8"
+pandas = ">=2.2"
+pyarrow = ">=16"
+plotly = ">=5.22"
+kaleido = ">=0.2"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: pure Python, no external I/O",
+    "integration: requires real scGPT weights or network",
+]

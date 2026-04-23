@@ -1,0 +1,76 @@
+# Live-run configuration for projects/perturb-seq-eval/
+#
+# This file is the single source of truth for a real (non-synthetic) run of
+# the evaluation pipeline — one that (a) uses a real LLM via OpenRouter for
+# the severity rater, and (b) reads real Perturb-seq data.
+#
+# Environment variables referenced here (all from .env or the shell):
+#   OPENROUTER_API_KEY     required
+#   OPENROUTER_MODEL       default: nvidia/nemotron-3-super-120b-a12b:free
+#   OPENROUTER_BASE_URL    default: https://openrouter.ai/api/v1
+#   OPENROUTER_REFERER     required for OpenRouter's site-attribution policy
+#   OPENROUTER_APP_TITLE   optional; shown in your OpenRouter dashboard
+
+run:
+  name: "adamson2016_live"
+  seed: 2026
+  artifacts_dir: "./artifacts/live"
+
+llm:
+  provider: "openrouter"
+  # The literal model slug expected by OpenRouter's /v1/chat/completions.
+  # Verified live on 2026-04-18: this model is served on OpenRouter's free tier.
+  model: "${OPENROUTER_MODEL:nvidia/nemotron-3-super-120b-a12b:free}"
+  base_url: "${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}"
+  referer: "${OPENROUTER_REFERER:https://example.invalid}"
+  app_title: "${OPENROUTER_APP_TITLE:perturb-seq-eval}"
+  # Hard caps to stay inside the free tier's generous but finite quota.
+  max_tokens: 8
+  temperature: 0.0
+  timeout_seconds: 30
+  max_retries: 3
+
+rater:
+  # Prompt template used to turn each AgentVote.reason into a severity score.
+  # Path is relative to the project root.
+  prompt_path: "massgen_skill_draft/prompts/severity_rater.md"
+  # Fallback severity emitted when the reason is empty or the LLM returns
+  # an un-parseable response.
+  missing_reason_default: 0.2
+
+data:
+  dataset: "adamson2016"
+  # The .h5ad is fetched by scripts/fetch_adamson.py. File must exist before
+  # a live run; the pipeline does not auto-download.
+  h5ad_path: "data/Adamson2016_pilot.h5ad"
+  # The `pilot` subset has 5,768 K562 cells and 9 CRISPR perturbations.
+  # Pick which perturbation names become the "tasks" the agent team
+  # reasons about. If empty, all non-control perturbations are used.
+  perturbations: []
+  # Pool of perturbations that should be treated as negative controls
+  # (wildtype / non-targeting guides).
+  control_tokens: ["*", "62("]
+
+orchestration:
+  # When running against a real multi-agent orchestrator (e.g. MassGen),
+  # pass the coordination-tracker snapshot at these paths:
+  coordination_snapshot: null     # populated at runtime
+  # If you do not have a real orchestrator handy, the smoke script synthesises
+  # a minimal 5-agent / 2-round trace for rating-only validation.
+  synthesise_trace_if_missing: true
+
+metrics:
+  # Default TDI coefficients (default: heuristic; override by fitting calibration).
+  tdi_coefficients_path: null      # null → use perturb_eval.metrics.DEFAULT_TDI_COEFFS
+  ace_temperature: 1.0
+
+recommender:
+  prior_scale: 3.0
+  default_likelihood_var: 0.05
+  # A tiny bootstrap calibration set so recommender is non-trivial on day 1.
+  bootstrap_calibration: true
+
+logging:
+  level: INFO
+  save_llm_traces: true     # save every prompt + response for auditability
+  llm_trace_path: "./artifacts/live/llm_calls.jsonl"
