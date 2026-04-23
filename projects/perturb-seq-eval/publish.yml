@@ -12,27 +12,34 @@ title: >-
   Tuning on Perturb-Seq Experimental Design
 
 # One-paragraph description used as the abstract across all venues.
-# Last aligned to docs/SUPPLEMENT.md conclusion on 2026-04-22 (post-revision).
+# Last aligned to docs/SUPPLEMENT.md §5.5 end-to-end lifecycle on 2026-04-23.
 description: |
   We introduce a contextual Bayesian optimization framework for multi-agent
   group-generation hyperparameters, where the context is a cheap preflight
   probe of the agent team's own internal dynamics (Agent Confidence
   Entropy, Critique Severity Dispersion, convergence speed, winner-flip
-  rate). We evaluate across three regimes with bootstrap 95% CIs (2 000
+  rate). We evaluate across four regimes with bootstrap 95% CIs (2 000
   resamples over task × seed): (i) a synthetic shared-optimum DGP where
   all three optimizer CIs overlap and the framework correctly falsifies
   the contextual advantage; (ii) the Adamson 2016 Perturb-seq pilot
-  (K562, 7 targeted knockdowns) where — with probe signatures simulated
-  from a difficulty-indexed DGP rather than a live orchestrator — all
-  three optimizer CIs also overlap, and the contribution is the
-  backbone-axis observation that linear's synthetic dominance does not
-  transfer; (iii) a task-conditional synthetic DGP where contextual GP's
-  CI does not overlap the one+λ-ES baseline, giving the only
-  statistically-significant optimizer advantage in the suite. We also
-  report numerical γ_T per regime (Krause-Singh-Guestrin 2008 greedy)
-  and ship a small-but-valid from-scratch scGPT-like transformer
-  backbone (2.1 M parameters). The full Modal reproduction pipeline
-  stays under a $30 budget ceiling.
+  (K562, 7 targeted knockdowns) where, across three probe provenances
+  (simulated, live rule-based + Nemotron, live BioFM-grounded with
+  BioGPT + Geneformer), all three optimizer CIs overlap — the
+  contribution on real data is the backbone-axis observation that
+  linear's synthetic dominance does not transfer; (iii) a
+  task-conditional synthetic DGP where contextual GP's CI does not
+  overlap the one+λ-ES baseline, giving the only
+  statistically-significant optimizer advantage in the suite; and
+  (iv) an end-to-end agentic lifecycle on real Adamson data where the
+  full 5-agent CellForge loop (DataCurator → Literature → Architect →
+  Trainer → Validator) runs from scratch on every iteration with
+  real model fitting and a held-out MSD gate — no grid lookup — and
+  the contextual BO over this live lifecycle halves the single-path
+  mean MSD (0.117 → 0.056) while tying random at 8 iterations over
+  |Φ|=18. We report numerical γ_T per regime (Krause–Singh–Guestrin
+  2008 greedy) and ship a small-but-valid from-scratch scGPT-like
+  transformer backbone (2.1 M parameters). The full Modal
+  reproduction pipeline stays under a $30 budget ceiling.
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
 creators:

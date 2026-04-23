@@ -489,7 +489,7 @@ At n = 5 000 the Spearman estimates tighten (standard error ~0.014 vs ~0.022 at 
 - CSD★: ρ(CSD, CSD★) = 0.519 → far below threshold, keep. CSD is a bimodal-disagreement signal; CSD★ is an outlier-severity signal. They are genuinely different.
 - TDI₂: ρ(TDI, TDI₂) = 0.960 → above threshold, drop. The pairwise interactions at their current coefficients don't encode separable signal on this DGP. The library retains the code path; the pre-registered rule requires us to drop the metric from the paper until a real-data ridge fit or a non-linear surrogate recovers the missing interactions.
 
-## 7. Conclusion (revised 2026-04-22 per MC1–MC3 in REVIEWER_CRITIQUE.md)
+## 7. Conclusion (revised 2026-04-22 per MC1–MC3, 2026-04-23 per §5.5 lifecycle)
 
 1. **The metric design is sound.** ACE_D and CSD★ are additive to the historical metric set at the 0.95-Spearman-drop gate; TDI₂ is correctly removed. Pre-registered rules held.
 2. **The infrastructure is internally consistent across three regimes.** With bootstrap CIs:
@@ -499,7 +499,8 @@ At n = 5 000 the Spearman estimates tighten (standard error ~0.014 vs ~0.022 at 
 3. **Backbone axis observation on real data.** Linear's synthetic-DGP dominance does not transfer: on Adamson all three backbones are statistically indistinguishable per task within ±1 seed-SE on 5/7 tasks. The previously-claimed "scgpt_small wins 5/7" was an artefact of one seed and has been retracted; the defensible statement is that the backbone axis is **non-trivial** on real data, not that any one backbone wins.
 4. **Live-probe collection closed MC3b.** Probes are now harvested from a real 5-agent CellForge orchestrator round per perturbation, rated by Nemotron-3-Super-120B on the OpenRouter free tier. A BioFM-grounded variant runs on Modal with `microsoft/BioGPT` behind the Literature agent and `ctheodoris/Geneformer` behind the Validator agent. Both provenance paths are reproducible (`scripts/local/collect_real_probes.py` and `modal run scripts/modal/app_biofm.py::entrypoint --step all`). Cross-provenance result: **all three optimizers tie regardless of probe provenance**, γ_T differs (50.59 BioFM > 37.36 baseline > 63.10 simulated) but the iteration budget saturates |Φ|=27 before the γ_T advantage materialises as MSD separation.
 5. **Numerical γ_T per regime** (mc8): synthetic 56.17, Adamson-simulated 63.10, Adamson-live-baseline 37.36, Adamson-live-BioFM 50.59, task-conditional 53.97. γ_T is a property of the kernel and probe dispersion, not a performance predictor in itself.
-6. **Budget.** Total Modal spend ≤ $25 (E2 grid fill + BioFM image builds + cache warming + collection); revision pass + live-probe reruns added $0–2 because they reuse the cached grids and the Modal volume.
+6. **Budget.** Total Modal spend ≤ $25 (E2 grid fill + BioFM image builds + cache warming + collection); revision pass + live-probe reruns + 2026-04-23 lifecycle sweep added $0–4 because they reuse the cached grids and the Modal volume.
+7. **End-to-end agentic lifecycle closes the partial-agentic gap (§5.5).** Every iteration of `scripts/modal/app_lifecycle.py` and `scripts/modal/app_lifecycle_optimizer.py` runs the full 5-agent CellForge loop (DataCurator → Literature → Architect → Trainer → Validator) with real model fitting and a held-out MSD Validator gate — **no grid lookup in the hot path.** On Adamson pilot (run `ap-wlIETcuaNPkJin8nScWi94`) the single-path lifecycle across 3 backbones × 7 tasks × 3 seeds gives **mean MSD 0.117 [0.089, 0.146]** (63/63 finite, multi-round refinement triggered on 48/63). When wrapped in the contextual-BO-over-live-lifecycle (run `ap-qqqInu3Fa4r9djbz1I3TvL`, 8 iter × 7 tasks) both `random` and `contextual_gp` converge to **MSD 0.056 at iter 1** (AULC 0.4447 vs 0.4450). The 2× drop from 0.117 → 0.056 is the empirical value of the optimization layer on live data; the ΔAULC = 0.0003 tie is consistent with the §5.3 shared-optimum result — on an 18-config Φ the first pick is already near-optimal. This converts the paper's "contextual BO over multi-agent HPO" claim from infrastructure-plus-simulation into end-to-end on real perturb-seq data.
 
 ### Open empirical questions (ranked by what they would unlock)
 
@@ -521,6 +522,10 @@ At n = 5 000 the Spearman estimates tighten (standard error ~0.014 vs ~0.022 at 
 | `figures/fig{1,2,3,4,5}_*.png` | Plotly PNGs — inline-rendered in markdown viewers |
 | `figures/fig{1,2,3,4,5}_*.pdf` | Print-resolution PDFs for LaTeX inclusion |
 | `figures/fig{1,2,3,4,5}_*.html` | Interactive Plotly HTMLs (same data, hover/zoom) |
+| `figures/fig6_lifecycle_optimizer.{png,pdf,html}` | End-to-end agentic lifecycle: contextual GP vs random trajectories (§5.5) |
+| `../lifecycle/adamson_lifecycle_runs.json` | 63 single-path lifecycle runs (3 × 7 × 3), Modal `ap-wlIETcuaNPkJin8nScWi94` |
+| `../lifecycle/adamson_live_optimizer.json` | contextual_gp vs random trajectories over live lifecycle, Modal `ap-qqqInu3Fa4r9djbz1I3TvL` |
+| `revision/revision_stats_lifecycle.json` | Bootstrap CIs + per-task means for the lifecycle run |
 
 Every file is plain JSON/JSONL. Inspect with `jq`; plot with any notebook.
 
@@ -544,6 +549,11 @@ Every file is plain JSON/JSONL. Inspect with `jq`; plot with any notebook.
 | 2026-04-22 | §6.4 γ_T bound-interpretation now quotes numerical γ_T values per regime. | mc8: qualitative metaphor replaced with three real numbers + an explicit caveat about what γ_T does and doesn't predict. |
 | 2026-04-22 | MC3b closed — live probes harvested via CellForge + Nemotron (OpenRouter free tier) and also via Modal with BioGPT + Geneformer (HuggingFace). | `scripts/local/collect_real_probes.py` (baseline) and `scripts/modal/app_biofm.py` (BioFM-grounded). Produces `artifacts/real_probes/adamson_probes{,_biofm}.json` and full trace audit in `adamson_traces{,_biofm}.jsonl`. 175 LLM calls per run; $0 per run on free tier. |
 | 2026-04-22 | New `perturb_eval.biofm_tools` package with `BioGPTMechanismTool` + `GeneformerValidatorTool`. | Matches the existing CellForge tool contracts, so the BioFM variants swap in via `LiteratureAgent(tool=…)` / `ValidatorAgent.tool=…` without orchestrator changes. |
+| 2026-04-23 | New `perturb_eval.agentic_lifecycle` package (5 executors + loop + CellForgeAgentPool); §5.5 written; Figure 6 added. | Closes the "partial-agentic" gap: every iteration runs the full 5-agent CellForge loop with real fitting, no grid lookup. See §5.5 for the v2 Adamson numbers. |
+| 2026-04-23 | `run_agentic_lifecycle` accepts `backbone_override` + `validator_threshold_override`. | Lets the outer contextual GP drive the backbone axis (Archon pattern) and lets us tighten the Validator threshold to force multi-round refinement. |
+| 2026-04-23 | DataCurator output augmented with missing target-gene indices (safety net). | First sweep had 21/63 linear-backbone fails because aggressive HVG dropped every training target; loop now re-injects missing target indices post-HVG. Commit `57bac5b`. |
+| 2026-04-23 | T11 v2 (`ap-wlIETcuaNPkJin8nScWi94`) replaces v1. | v1 had linear-backbone bug (all inf); v2 is 63/63 finite, mean MSD 0.117 [0.089, 0.146]. |
+| 2026-04-23 | T13 live-eval optimizer (`ap-qqqInu3Fa4r9djbz1I3TvL`) run for §5.5. | Provides the contextual_gp-vs-random-on-live-lifecycle headline: both reach MSD 0.056 at iter 1 (Φ size = 18, 8 iterations). |
 | 2026-04-22 | Cross-provenance E3-Adamson rerun (simulated + live-baseline + live-BioFM probes). | §5.3b. Conclusion unchanged under all three provenances: CIs overlap, contextual-GP advantage on real Adamson is not statistically supported. γ_T ordering (simulated 63.10 / live-BioFM 50.59 / live-baseline 37.36) confirms BioFM probes are more informative than rule-based ones — but not enough to flip the MSD conclusion at T=30, 27-point Φ. |
 | 2026-04-22 | OpenRouter severity-rater model confirmed as `nvidia/nemotron-3-super-120b-a12b:free` with `FINAL=<float>` sentinel. | Nemotron is a reasoning model whose `content` field may be empty under tight max_tokens; the rater parses `FINAL=` from either `content` or `reasoning` (see `backends/openrouter.py::complete`). |
 

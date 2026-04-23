@@ -8,7 +8,7 @@
 > **Edit this file as work happens.** Mark items ☑ when done, add an
 > owner + date, link the PR / commit.
 
-## 0. Current posture (2026-04-22)
+## 0. Current posture (2026-04-23 after §5.5 end-to-end lifecycle)
 
 | Signal | State |
 |---|---|
