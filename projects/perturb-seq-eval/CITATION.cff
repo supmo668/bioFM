@@ -6,13 +6,21 @@ title: >-
   perturb-seq-eval: contextual Bayesian optimisation of multi-agent
   hyperparameters on Perturb-Seq
 authors:
-  - family-names: "Last"
-    given-names: "First"
-    affiliation: "YOUR_AFFILIATION"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
+  - family-names: "Mo"
+    given-names: "Mangyin"
+    affiliation: "Carnegie Mellon University"
+    orcid: "https://orcid.org/0009-0009-5233-3142"
 version: "0.4.0"
 date-released: "2026-04-23"
 license: "Apache-2.0"
+doi: "10.5281/zenodo.19716141"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.19716141"
+    description: "Zenodo (primary archival DOI)"
+  - type: doi
+    value: "10.6084/m9.figshare.32086920"
+    description: "Figshare (mirror DOI for supplement + artefacts)"
 repository-code: "https://github.com/mm-bconscious/bioFM"
 url: "https://github.com/mm-bconscious/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:

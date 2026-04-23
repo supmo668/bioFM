@@ -43,9 +43,9 @@ description: |
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
 creators:
-  - name: "Last, First"
-    affiliation: "YOUR_AFFILIATION"
-    orcid: "0000-0000-0000-0000"
+  - name: "Mo, Mangyin"
+    affiliation: "Carnegie Mellon University"
+    orcid: "0009-0009-5233-3142"
 
 keywords:
   - perturb-seq
@@ -100,15 +100,29 @@ venues:
   figshare:
     enabled: true
     defined_type: preprint    # preprint | dataset | software | …
-    # Figshare taxonomy category IDs (see https://api.figshare.com/v2/categories).
-    categories: []
+    # Figshare taxonomy category IDs (https://api.figshare.com/v2/categories).
+    # Must be leaf-level (`is_selectable=true`) categories — Figshare
+    # rejects parent nodes with "Not allowed to set category X".
+    # Verified 2026-04-23 on the published article 32086920.
+    categories:
+      - 24208   # Bioinformatics and computational biology (not elsewhere classified)
+      - 24193   # Genomics and transcriptomics
+      - 29173   # Machine learning (not elsewhere classified)
     group_id: null            # set to a group ID for institutional-account uploads
 
   osf:
-    enabled: true
+    # Temporarily disabled 2026-04-23: OSF's preprint subjects PATCH
+    # endpoint is returning 502 Bad Gateway, and their files
+    # primary_file relationship endpoint is 404ing on waterbutler-path
+    # GUIDs. State file retains project/preprint IDs so the run resumes
+    # cleanly once OSF recovers:
+    #   python scripts/publish/submit_to_venues.py osf
+    enabled: false
     # server = one of the preprint providers listed at https://osf.io/preprints/
     # biohackrxiv is the explicit hackathon fit; metaarxiv is general meta-science.
     provider: biohackrxiv
-    # OSF subject taxonomy IDs. Find at https://api.osf.io/v2/subjects/?filter[provider]=biohackrxiv
+    # BioHackrXiv subject taxonomy IDs (pulled live from
+    # https://api.osf.io/v2/providers/preprints/biohackrxiv/subjects/ on 2026-04-23).
     subjects:
-      - "584240da54be81056cecaabc"   # example — replace with the real ID for your subject
+      - "66defcf46c7cdc67bcf54ef3"   # Bioinformatics
+      - "66defd3e6c7cdc67bcf55380"   # Computational Biology

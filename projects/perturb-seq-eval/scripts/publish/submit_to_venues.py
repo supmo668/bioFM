@@ -340,10 +340,10 @@ class FigshareSubmitter:
                 "categories": self.vcfg.get("categories", []),
                 "defined_type": self.vcfg.get("defined_type", "preprint"),
                 "license": _figshare_license(self.cfg.license),
-                "authors": [
-                    {"name": c["name"], **({"orcid_id": c["orcid"]} if c.get("orcid") and _valid_orcid(c["orcid"]) else {})}
-                    for c in self.cfg.creators
-                ],
+                # Intentionally omit ORCID — Figshare's API rejects ORCIDs
+                # that belong to any other account (HTTP 422), and the
+                # token-holder's ORCID is inferred from their profile.
+                "authors": [{"name": c["name"]} for c in self.cfg.creators],
             }
             r = requests.post(
                 f"{self.base}/account/articles",
@@ -465,29 +465,79 @@ class OSFSubmitter:
             proj_id = r.json()["data"]["id"]
             self.state.set("osf", "project_id", proj_id)
 
-        # Upload the first file as the "primary" preprint file.
+        # Upload the first file as the "primary" preprint file. OSF's
+        # preprint ``primary_file`` relationship wants the 5-char file
+        # GUID (not the waterbutler path, not the project id). The
+        # waterbutler response exposes a ``resource`` field that is the
+        # project id — easy to confuse. Resolve the real GUID via the
+        # v2 API after upload.
         primary = files[0]
         primary_id = self.state.get("osf", "primary_file_id")
         if primary_id is None:
-            up_url = (
-                f"{self.files_api}/resources/{proj_id}/providers/osfstorage/"
-                f"?kind=file&name={primary['name']}"
+            # Idempotency: if this file already exists on the project,
+            # skip the upload and go straight to GUID resolution.
+            existing_resp = requests.get(
+                f"{self.files_api}/resources/{proj_id}/providers/osfstorage/",
+                headers={"Authorization": self.headers["Authorization"]},
+                timeout=60,
             )
-            # Upload uses the bearer token but plain octet-stream body.
-            up_headers = {"Authorization": self.headers["Authorization"]}
-            with primary["path"].open("rb") as fh:
-                r = requests.put(up_url, headers=up_headers, data=fh, timeout=600)
-            _raise_on(r)
-            primary_id = r.json()["data"]["attributes"]["resource"]
-            # Some OSF releases use 'id' or 'path' instead — try a few keys.
-            for k in ("resource", "id", "path"):
-                if k in r.json()["data"]["attributes"]:
-                    primary_id = r.json()["data"]["attributes"][k]
+            needs_upload = True
+            if existing_resp.status_code < 400:
+                for entry in existing_resp.json().get("data", []):
+                    if entry.get("attributes", {}).get("name") == primary["name"]:
+                        needs_upload = False
+                        break
+            if needs_upload:
+                up_url = (
+                    f"{self.files_api}/resources/{proj_id}/providers/osfstorage/"
+                    f"?kind=file&name={primary['name']}"
+                )
+                up_headers = {"Authorization": self.headers["Authorization"]}
+                with primary["path"].open("rb") as fh:
+                    r = requests.put(up_url, headers=up_headers, data=fh, timeout=600)
+                _raise_on(r)
+
+            # Resolve the 5-char OSF file GUID via v2.
+            files_resp = requests.get(
+                f"{self.api}/nodes/{proj_id}/files/osfstorage/",
+                headers={"Authorization": self.headers["Authorization"]},
+                timeout=60,
+            )
+            _raise_on(files_resp)
+            for entry in files_resp.json().get("data", []):
+                if entry.get("attributes", {}).get("name") == primary["name"]:
+                    primary_id = entry["id"]
                     break
+            if not primary_id:
+                raise RuntimeError(
+                    f"could not resolve OSF file GUID for {primary['name']}"
+                )
             self.state.set("osf", "primary_file_id", primary_id)
 
-        # Additional files (supplement) uploaded same way.
+        # Additional files (supplement) uploaded same way. Skip if a file
+        # with the same name already exists on the project — OSF's Waterbutler
+        # rejects overwrite uploads with 409 and there is no stable
+        # "replace" query parameter, so we list existing files and only
+        # push the missing ones. This is also what keeps resumed runs
+        # idempotent.
+        existing_resp = requests.get(
+            f"{self.files_api}/resources/{proj_id}/providers/osfstorage/",
+            headers={"Authorization": self.headers["Authorization"]},
+            timeout=60,
+        )
+        existing_names: set[str] = set()
+        if existing_resp.status_code < 400:
+            try:
+                for entry in existing_resp.json().get("data", []):
+                    name = (entry.get("attributes", {}) or {}).get("name")
+                    if name:
+                        existing_names.add(str(name))
+            except ValueError:
+                pass
         for f in files[1:]:
+            if f["name"] in existing_names:
+                print(f"[osf] skip existing file {f['name']}")
+                continue
             r = requests.put(
                 f"{self.files_api}/resources/{proj_id}/providers/osfstorage/"
                 f"?kind=file&name={f['name']}",
@@ -497,7 +547,9 @@ class OSFSubmitter:
             )
             _raise_on(r)
 
-        # Create the preprint record.
+        # Create the preprint record. **Keep the create payload minimal**
+        # — OSF's gateway returns 502 when ``subjects`` and ``primary_file``
+        # are included in the initial POST. Both go on follow-up PATCH.
         pp_id = self.state.get("osf", "preprint_id")
         if pp_id is None:
             payload = {
@@ -507,28 +559,58 @@ class OSFSubmitter:
                         "title": self.cfg.title,
                         "description": self.cfg.description,
                         "tags": self.cfg.keywords,
+                        "has_coi": False,
+                        "conflict_of_interest_statement": "",
                     },
                     "relationships": {
                         "node": {"data": {"type": "nodes", "id": proj_id}},
-                        "primary_file": {
-                            "data": {"type": "files", "id": primary_id}
-                        },
                         "provider": {
                             "data": {"type": "providers", "id": self.provider}
-                        },
-                        "subjects": {
-                            "data": [
-                                {"type": "subjects", "id": s}
-                                for s in self.vcfg.get("subjects", [])
-                            ]
                         },
                     },
                 }
             }
-            r = requests.post(f"{self.api}/preprints/", headers=self.headers, json=payload, timeout=30)
+            r = requests.post(
+                f"{self.api}/preprints/", headers=self.headers,
+                json=payload, timeout=60,
+            )
             _raise_on(r)
             pp_id = r.json()["data"]["id"]
             self.state.set("osf", "preprint_id", pp_id)
+
+        # PATCH subjects onto the created preprint (hierarchical-path shape).
+        if not self.state.get("osf", "subjects_set"):
+            subjects = self.vcfg.get("subjects", [])
+            if subjects:
+                patch = {
+                    "data": {
+                        "id": pp_id, "type": "preprints",
+                        "relationships": {
+                            "subjects": {
+                                "data": [
+                                    [{"type": "subjects", "id": s}] for s in subjects
+                                ]
+                            }
+                        },
+                    }
+                }
+                r = requests.patch(
+                    f"{self.api}/preprints/{pp_id}/",
+                    headers=self.headers, json=patch, timeout=60,
+                )
+                _raise_on(r)
+            self.state.set("osf", "subjects_set", True)
+
+        # PATCH primary_file relationship once the preprint exists.
+        if not self.state.get("osf", "primary_file_set"):
+            r = requests.patch(
+                f"{self.api}/preprints/{pp_id}/relationships/primary_file/",
+                headers=self.headers,
+                json={"data": {"type": "files", "id": primary_id}},
+                timeout=60,
+            )
+            _raise_on(r)
+            self.state.set("osf", "primary_file_set", True)
 
         if self.dry_run:
             print(f"[osf] DRY-RUN — preprint {pp_id} left unpublished")

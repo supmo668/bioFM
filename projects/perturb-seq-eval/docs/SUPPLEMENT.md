@@ -509,6 +509,12 @@ At n = 5 000 the Spearman estimates tighten (standard error ~0.014 vs ~0.022 at 
 3. **Pretraining `scgpt_small`.** The current from-scratch 2.1 M-param transformer has no access to the scGPT pretraining corpus. Pretraining on 33 M cells would plausibly restore a real transformer-specific backbone advantage on Adamson. Cost: 1 day + $20 Modal, out of current budget.
 4. **mc10 — Fair-parameter backbone comparison.** `scgpt_small` currently scales its embedding vocab to match HVG count, so synthetic (40 genes) and Adamson (2 000) are run with 13× different parameter counts. Fix `n_genes_used = 2 000` on both grids and rerun E2-synthetic.
 
+## DOIs (v0.4.0, published 2026-04-23)
+
+- **Zenodo** (primary archival): [10.5281/zenodo.19716141](https://doi.org/10.5281/zenodo.19716141)
+- **Figshare** (mirror): [10.6084/m9.figshare.32086920](https://doi.org/10.6084/m9.figshare.32086920)
+- **OSF BioHackrXiv**: deferred (OSF subjects PATCH endpoint 502 at publish time 2026-04-23; resumable via `python scripts/publish/submit_to_venues.py osf`)
+
 ## 8. Raw artifacts index (everything committed to `artifacts/modal_run/`)
 
 | File | Content |

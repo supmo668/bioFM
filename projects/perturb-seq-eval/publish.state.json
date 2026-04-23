@@ -1,0 +1,18 @@
+{
+  "zenodo": {
+    "deposit_id": 19716141,
+    "bucket": "https://zenodo.org/api/files/e3adf755-045d-4af0-91db-9db29104ebcc",
+    "doi": "10.5281/zenodo.19716141",
+    "published": true
+  },
+  "osf": {
+    "project_id": "wmeuy",
+    "primary_file_id": "69eaa3b8cb9be5b694f4e5c7",
+    "preprint_id": "dhu4z_v1"
+  },
+  "figshare": {
+    "article_id": 32086920,
+    "doi": "10.6084/m9.figshare.32086920",
+    "published": true
+  }
+}
