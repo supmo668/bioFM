@@ -138,6 +138,28 @@ def run_agentic_lifecycle(
             labels=labels[train_mask],
             proposal=dc["content"],
         )
+        # Guarantee that every target-gene index survives the HVG filter —
+        # otherwise the Trainer's target_gene_idx table collapses to empty
+        # and the whole round fails. This is a safety net on top of the
+        # DataCurator's proposal (NOT a replacement): we keep its HVG set
+        # and only *add* the target-gene indices that were dropped.
+        top_idx_set = {int(i) for i in curated["top_gene_indices"].tolist()}
+        missing_targets = [
+            int(i) for i in target_gene_idx.values() if int(i) not in top_idx_set
+        ]
+        if missing_targets:
+            augmented = np.concatenate(
+                [curated["top_gene_indices"], np.asarray(missing_targets, dtype=np.int64)]
+            )
+            curated = {
+                "X": X[train_mask][:, augmented],
+                "labels": labels[train_mask],
+                "top_gene_indices": augmented,
+                "execution_meta": {
+                    **curated["execution_meta"],
+                    "added_target_genes": len(missing_targets),
+                },
+            }
         literature = extract_expected_genes(lit["content"])
         # The outer optimizer may override the Architect's backbone choice
         # — this is what lets the contextual-BO search over the backbone
@@ -147,12 +169,20 @@ def run_agentic_lifecycle(
         if backbone_override is not None:
             arch_content["backbone"] = backbone_override
         backbone, backbone_used = dispatch_architect(arch_content)
+        # Remap the target-gene indices through the curated HVG index map.
+        # Skip perturbations whose target gene was discarded by the DataCurator
+        # (n_top_hvg may be much smaller than the original vocab).
+        top_idx_arr = np.asarray(curated["top_gene_indices"])
+        old_to_new = {int(old): new for new, old in enumerate(top_idx_arr.tolist())}
+        train_targets_curated = {
+            p: old_to_new[i] for p, i in train_targets.items() if int(i) in old_to_new
+        }
         tinfo = execute_trainer(
             backbone=backbone,
             X=curated["X"],
             labels=curated["labels"],
             control_mask=control_mask[train_mask],
-            target_gene_idx=train_targets,
+            target_gene_idx=train_targets_curated,
             trainer_proposal=trn["content"],
         )
 
