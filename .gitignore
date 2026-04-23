@@ -43,3 +43,10 @@ projects/**/*.png
 # Claude Code machine-local runtime state (skill caches, schedule lock files,
 # per-machine tool configs). Not part of the project — ignore everywhere.
 .claude/
+
+# Scratch directory used by scripts/publish/submit_to_venues.py to zip
+# upload bundles. Build artefacts, not source.
+projects/perturb-seq-eval/.publish_work/
+projects/*/.publish_work/
+.publish_work/
+
