@@ -1,0 +1,71 @@
+# publish.yml — source-of-truth metadata for scripts/publish/submit.py
+#
+# Copy to ./publish.yml (repo root) and edit. Keep sensitive tokens out of this
+# file; they go in env vars (ZENODO_TOKEN, FIGSHARE_TOKEN, OSF_TOKEN) or a
+# .env file at repo root.
+
+title: "Agent Confidence Entropy as an Empirical Difficulty Oracle"
+description: |
+  Supplementary materials for the perturb-seq-eval project:
+  metrics, backbones, optimizers, and a Modal-driven comprehensive run.
+  Companion to projects/perturb-seq-eval/docs/SUPPLEMENT.md.
+
+version: "0.3.0-supplement"
+license: "Apache-2.0"
+related_url: "https://github.com/YOUR_HANDLE/bioFM"
+
+authors:
+  - name: "Family Given"                   # required; "Lastname, Firstname" also accepted by Zenodo
+    orcid: "0000-0000-0000-0000"           # optional but strongly recommended
+    affiliation: "Affiliation string"      # optional free text
+
+keywords:
+  - "perturb-seq"
+  - "foundation model"
+  - "bayesian optimization"
+  - "test-time compute"
+  - "multi-agent"
+
+artifacts:
+  # The first artifact is treated as the "primary file" on OSF.
+  - path: "projects/perturb-seq-eval/paper/paper.pdf"
+    description: "Main paper PDF"
+  - path: "projects/perturb-seq-eval/docs/SUPPLEMENT.md.pdf"
+    description: "Rendered supplement document"
+  - path: "projects/perturb-seq-eval/artifacts/modal_run/results.zip"
+    description: "All Modal results + figures bundle"
+
+venues:
+  # ---------------------------------------------------------------------
+  # Zenodo — fastest. Token scopes: deposit:write, deposit:actions.
+  # ---------------------------------------------------------------------
+  zenodo:
+    enabled: true
+    upload_type: "publication"       # publication|software|dataset|image|poster|video|other
+    publication_type: "preprint"     # preprint|article|report|workingpaper|...
+    zenodo_license: "apache-2.0"     # must match a zenodo-supported id
+    # Optional: richer relations. If absent, falls back to the top-level related_url.
+    related_identifiers:
+      - identifier: "https://github.com/YOUR_HANDLE/bioFM"
+        relation: "isSupplementTo"
+        resource_type: "software"
+
+  # ---------------------------------------------------------------------
+  # Figshare — parallel mirror, own DOI.
+  # ---------------------------------------------------------------------
+  figshare:
+    enabled: true
+    defined_type: "preprint"         # preprint|software|dataset|fileset|...
+    categories: ["Machine Learning", "Computational Biology"]
+    figshare_license_id: 7           # 1=CC-BY-4.0, 7=Apache-2.0 (confirm on the /v2/licenses endpoint)
+
+  # ---------------------------------------------------------------------
+  # OSF Preprints — BioHackrXiv is the natural fit for hackathon outputs.
+  # Provider ids: osf, biohackrxiv, metaarxiv, psyarxiv, socarxiv, mindrxiv, agrirxiv, ...
+  # ---------------------------------------------------------------------
+  osf:
+    enabled: true
+    provider: "biohackrxiv"
+    subjects:
+      - "Bioinformatics"
+      - "Artificial Intelligence and Robotics"
