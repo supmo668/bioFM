@@ -1,0 +1,27 @@
+# LaTeX auxiliaries
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated (reproducible — keep in tree for convenience but regeneratable)
+# experiments/out/*.csv
+# figures/*.pdf
+# figures/*.png
+# tables/*.tex
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/

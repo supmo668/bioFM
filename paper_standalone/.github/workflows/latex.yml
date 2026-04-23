@@ -1,0 +1,54 @@
+name: build-paper
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-paper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy>=1.26 matplotlib>=3.8
+
+      - name: Regenerate CSVs
+        run: python experiments/simulate.py
+
+      - name: Render figures
+        run: python experiments/plot.py
+
+      - name: Render tables
+        run: python experiments/generate_tables.py
+
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: paper.tex
+          args: "-interaction=nonstopmode -halt-on-error -file-line-error"
+          latexmk_use_xelatex: false
+          post_compile: "bibtex paper; pdflatex -interaction=nonstopmode paper.tex; pdflatex -interaction=nonstopmode paper.tex"
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: paper.pdf
+
+      - name: Assert no undefined refs
+        run: |
+          if grep -E "Citation.*undefined|Reference.*undefined" paper.log; then
+            echo "::error::undefined references remain in paper.log"
+            exit 1
+          fi

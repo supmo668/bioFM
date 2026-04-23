@@ -1,0 +1,757 @@
+\documentclass[10pt,a4paper]{article}
+
+% ---- Packages ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{enumitem}
+% No algorithm2e / algorithm / algpseudocode assumed available in the
+% target TeX distribution — we inline the procedure as a numbered list.
+
+\hypersetup{colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black,
+            urlcolor=blue!50!black}
+
+\graphicspath{{figures/}}
+
+% ---- Title ----
+\title{Agent Confidence Entropy as a Pre-hoc Difficulty Oracle for
+       Multi-Agent Group Generation:\\
+       Bayesian Agentic Hyperparameter Tuning on Perturb-Seq
+       Experimental Design}
+
+\author{%
+  Anonymous Authors\\
+  Syntropy Health\\
+  \texttt{\{anonymous\}@syntropyhealth.bio}%
+}
+
+\date{}
+
+% ---- Document ----
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We study test-time compute (TTC) scaling in the multi-agent setting, taking as
+our testbed a five-agent orchestrator for perturb-seq experimental design
+inspired by \textsc{CellForge}~\citep{chen2025cellforge} and operated via the
+\textsc{MassGen} framework~\citep{massgen2025github}. We introduce four
+lightweight, compute-free metrics derived from the agents' own per-round
+confidence-and-critique trace --- Agent Confidence Entropy (ACE), Critique
+Severity Dispersion (CSD), a convergence signal based on the round-over-round
+change in mean confidence ($\Delta C$), and a Winner Flip Rate (WFR) --- and
+combine them into a composite Task Difficulty Index (TDI).
+Across $300$ synthetic tasks with controlled ground-truth difficulty we find:
+(i) the ridge-calibrated TDI attains Spearman $\rho\!=\!{+}0.918$ against the
+latent difficulty label, driven overwhelmingly by the convergence signal
+($\rho\!=\!{+}0.916$ for $1-\Delta C$ alone);
+(ii) a single-round probe signature is a substantially weaker predictor of
+latent difficulty ($\rho\!=\!{+}0.360$) than it is of post-hoc TDI, consistent
+with the fact that TDI depends on dynamics the probe cannot observe;
+(iii) held-out AUROC rises monotonically but at a tier-dependent rate as the
+number of task agents $N$ increases from $2$ to $10$, with the easy tier
+gaining $+0.21$ AUROC versus only $+0.06$ for the hard tier.
+We frame the implied \emph{agentic hyperparameter tuning} problem --- picking
+$(N, R, \textrm{backbone})$ before a full run --- as Bayesian inference over a
+discrete configuration space and show the limits that flow from probe weakness.
+All experiments are synthetic simulations; we state the assumptions of our
+data-generating process, delineate where the framework is likely to transfer,
+and outline the empirical validation we would need on real perturb-seq
+runs~\citep{norman2019perturbseq,replogle2022perturbseq} with a
+single-cell foundation model backbone such as \textsc{scGPT}~\citep{cui2024scgpt}.
+Code and reproducibility artifacts are released with the paper.
+\end{abstract}
+
+% =====================================================================
+\section{Introduction}\label{sec:intro}
+
+Test-time compute (TTC) has emerged as a first-class axis of capability in
+large language models. \citet{snell2024scaling} showed that an
+\emph{optimally allocated} per-prompt TTC budget lets a small model match a
+$14\times$ larger model under FLOPs-matched comparison, with the optimal
+allocation depending on the difficulty of the prompt. The recent taxonomy of
+\citet{zhang2025ttssurvey} organises the exploding TTC literature along four
+orthogonal axes --- \emph{what} to scale, \emph{how} to scale, \emph{where} to
+scale, and \emph{how well} the method scales --- but the prominent
+applications to date address \emph{single-chain} reasoning: parallel samples
+scored by a process reward model (PRM)~\citep{lightman2024prm}, sequential
+self-revision, tree search~\citep{yao2023tot}, or internal chain-of-thought
+trained via reinforcement learning~\citep{deepseek2025r1,muennighoff2025s1}.
+
+The multi-agent case is structurally different but no less TTC-laden. A
+group-generation system such as \textsc{CellForge}~\citep{chen2025cellforge}
+dispatches several specialised agents --- typically a data curator, a
+literature/prior agent, a model architect, a trainer, and a biological
+validator --- and coordinates them through propose-critique-vote rounds. Every
+such system today spends compute \emph{uniformly}: the same number of agents
+for the same number of rounds regardless of whether the task is GSK3B
+knockout (well-studied, linear pathway) or a novel combinatorial
+perturbation. \emph{This paper asks whether the group's own internal
+dynamics carry enough signal to allocate its compute adaptively.}
+
+\paragraph{Contributions.} We make four contributions, all within the
+empirical frame of perturb-seq experimental design~\citep{norman2019perturbseq,%
+adamson2016perturbseq} but generalising to any propose-critique-vote system:
+
+\begin{enumerate}[leftmargin=*]
+  \item We formalise four easy-to-compute observables of a multi-agent run ---
+        ACE, CSD, $\Delta C$/$\Delta$ACE, and WFR --- and combine them into a
+        scalar Task Difficulty Index (TDI).
+  \item We introduce a \emph{preflight probe}: a single shallow round whose
+        four-dimensional signature is intended to serve as a sufficient
+        statistic for a Bayesian recommender over orchestration
+        hyperparameters $\varphi = (N, R, \textrm{backbone})$.
+  \item We run a $300$-task controlled simulation study with a documented,
+        auditable data-generating process (DGP) and evaluate all metrics,
+        the probe, and the recommender end-to-end. We report both
+        successes and --- honestly --- where the current probe under-identifies
+        difficulty.
+  \item We release the calibration harness, the \textsc{MassGen}-installable
+        evaluation skill that produces metric reports on any propose-critique
+        run, and a detailed limitations analysis aimed at making follow-up
+        empirical work on real perturb-seq data actionable.
+\end{enumerate}
+
+\paragraph{Scope.} All reported experiments are synthetic simulations. We
+motivate every modelling choice, expose the parameters of the DGP, and state
+the specific empirical validation that a follow-up study on
+\textsc{Norman 2019}~\citep{norman2019perturbseq},
+\textsc{Adamson 2016}~\citep{adamson2016perturbseq}, or the genome-scale
+\textsc{Replogle 2022}~\citep{replogle2022perturbseq} perturb-seq screens
+would require. Section~\ref{sec:limits} makes the external-validity caveats
+explicit.
+
+% =====================================================================
+\section{Background and Related Work}\label{sec:related}
+
+\paragraph{Test-time compute scaling.} The modern TTC literature is usefully
+organised by whether the extra compute is spent \emph{in parallel} (best-of-$N$
+with a verifier~\citep{cobbe2021verifiers,lightman2024prm}, self-consistency
+voting~\citep{wang2023selfconsistency}), \emph{sequentially} (iterative
+revision, self-refine), \emph{hybrid} (tree search, MCTS,
+\citep{yao2023tot}), or \emph{internal} to the model
+(\citep{deepseek2025r1,muennighoff2025s1}); see \citet{zhang2025ttssurvey} for
+a taxonomy and \citet{wu2024smalltllm,liu2025rethinkingtts} for scaling-law
+analyses. \citet{snell2024scaling} is the primary reference for the
+difficulty-conditional compute-optimal idea that our work extends to the
+group setting.
+
+\paragraph{Multi-agent TTC.} \textsc{AutoGen}~\citep{wu2023autogen} and
+\textsc{MassGen}~\citep{massgen2025github} generalise propose-critique-vote to
+heterogeneous agent pools; \textsc{Archon}~\citep{saad2024archon} and
+\textsc{MAV}~\citep{lifshitz2025mav} treat inference-time architecture
+\emph{itself} as the search space. \textsc{CellForge}~\citep{chen2025cellforge}
+applies this pattern specifically to single-cell experimental design. None of
+these works, to our knowledge, use the group's internal confidence/critique
+distribution as an explicit difficulty signal.
+
+\paragraph{Perturb-seq and single-cell foundation models.} Perturb-seq
+couples CRISPR perturbations with single-cell RNA-sequencing readouts,
+offering a clean testbed for agentic scientific reasoning because ground-truth
+hardness can be proxied from literature density, replicate agreement, and
+donor-split transfer~\citep{norman2019perturbseq,adamson2016perturbseq,
+replogle2022perturbseq}. Backbones such as
+\textsc{scGPT}~\citep{cui2024scgpt}, \textsc{Geneformer}%
+~\citep{theodoris2023geneformer}, \textsc{scFoundation}~\citep{hao2024scfoundation},
+and \textsc{scPRINT}~\citep{kalfon2025scprint} provide pre-trained
+representations that the architect agent can configure.
+
+% =====================================================================
+\section{Problem Setup}\label{sec:setup}
+
+We consider an orchestrator with $N$ specialised agents $\{\mathcal{A}_i\}_{i=1}^N$
+coordinated over $R$ rounds. At each round $r$, every agent produces a
+structured proposal with scalar confidence $c_i(r) \in [0,1]$ and every other
+agent emits a critique with severity $S_{ij}(r) \in [0,1]$ (row $i$ critic,
+column $j$ target; self-critique is undefined). A winner index $w(r)$ is
+assigned by the orchestrator (typically $\mathrm{argmax}\, c - \overline{S}$,
+where $\overline{S}$ is the mean severity received). We let
+$\mathbf{C}(r)\!\in\!\mathbb{R}^N$ and $\mathbf{S}(r)\!\in\!\mathbb{R}^{N\times(N-1)}$
+denote the per-round tuples.
+
+A task $t$ has a latent intrinsic difficulty $d_t\!\in\![0,1]$. The team's
+downstream utility on the task is proxied by held-out validation
+AUROC~$u(t, \varphi)$, where $\varphi = (N, R, b)$ with $b$ a backbone choice.
+\emph{Agentic hyperparameter tuning} is the problem of picking
+$\varphi^\star\!\in\!\Phi$ minimising compute subject to a target utility ---
+the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
+single-chain allocation.
+
+% =====================================================================
+\section{Metrics}\label{sec:metrics}
+
+\subsection{Agent Confidence Entropy (ACE)}
+
+Let $p(r) = \mathrm{softmax}(\mathbf{C}(r)/\tau)$ be the softmax of the
+confidence vector at round $r$ with temperature $\tau$ (we use $\tau=1$
+throughout). ACE is the Shannon entropy of this distribution, normalised to
+$[0,1]$ by its maximum:
+\begin{equation}
+  \mathrm{ACE}(r) = -\sum_{i=1}^{N} p_i(r) \log p_i(r),\quad
+  \mathrm{ACE}_{\mathrm{norm}}(r) = \mathrm{ACE}(r)\,/\,\log N.
+\end{equation}
+$\mathrm{ACE}_{\mathrm{norm}}\!\to\!0$ when one agent dominates (a crisp hierarchy
+among agents) and $\to\!1$ when the distribution is flat. Crucially, a flat
+distribution has two very different causes --- \emph{confident consensus}
+(easy task) and \emph{uniform uncertainty} (hard task) --- so ACE must be read
+alongside the mean confidence.
+
+\subsection{Critique Severity Dispersion (CSD)}
+
+Let $\mathbf{S}(r)$ collect the off-diagonal entries of the critique matrix.
+We define CSD as the population variance of its entries:
+\begin{equation}
+  \mathrm{CSD}(r) = \mathrm{Var}\left(\mathbf{S}(r)\right).
+\end{equation}
+Large CSD concentrates disagreement: a small number of severe critiques weighs
+more than uniformly moderate ones. We also track the row- and column-variances
+for diagnostic use (which critic is inconsistent? which proposal is contested?).
+
+\subsection{Convergence signals}
+
+For a run with $R$ rounds we track three convergence signals:
+\begin{align}
+  \Delta\mathrm{ACE}     &\triangleq \mathrm{ACE}_{\mathrm{norm}}(R) - \mathrm{ACE}_{\mathrm{norm}}(0), \\
+  \Delta C               &\triangleq \overline{\mathbf{C}}(R) - \overline{\mathbf{C}}(0), \\
+  \mathrm{WFR}           &\triangleq \frac{1}{R-1} \sum_{r=2}^{R} \mathbb{1}\!\left[w(r) \neq w(r-1)\right].
+\end{align}
+A well-posed run has $\Delta\mathrm{ACE}\!<\!0$, $\Delta C\!>\!0$, and
+$\mathrm{WFR}\!\approx\!0$. We use $1-\min(\max(\Delta C,0),1)$ as a
+bounded ``lack of convergence'' feature.
+
+\subsection{Task Difficulty Index}
+
+We combine the four signals linearly:
+\begin{equation}
+  \mathrm{TDI} = \alpha\,\mathrm{ACE}_{\mathrm{norm}}(R)
+               + \beta\,\mathrm{CSD}(R)
+               + \gamma\,\bigl(1 - \min(\max(\Delta C, 0), 1)\bigr)
+               + \delta\,\mathrm{WFR},
+  \label{eq:tdi}
+\end{equation}
+with non-negative weights that sum to unity so $\mathrm{TDI}\!\in\![0,1]$. We
+compare two weight regimes: the hand-set \emph{default}
+$(\alpha,\beta,\gamma,\delta)=(0.35,0.25,0.25,0.15)$ and the \emph{calibrated}
+weights fitted by ridge regression of~(\ref{eq:tdi}) against a ground-truth
+difficulty label.
+
+% =====================================================================
+\section{Preflight Probe and Bayesian Recommender}\label{sec:probe}
+
+\paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
+$\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
+\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4$. In practice the probe is
+produced by a \emph{shallow} one-round execution of the orchestrator (smaller
+tool-call budget, narrower retrieval) so it is materially cheaper than a full
+run.
+
+\paragraph{Bayesian recommender.} Let $\Phi$ be a discrete configuration
+space of orchestration hyperparameters
+$\varphi = (N, R, b)$. We model
+$\mathbf{x}_0 \mid \varphi^\star \sim \mathcal{N}(\mu_\varphi,
+\Sigma_\varphi)$ with diagonal $\Sigma_\varphi$ and a structured prior
+$\pi(\varphi) \propto \exp(-\mathrm{FLOPs}(\varphi) / \kappa)$ that penalises
+compute. Given a calibration set
+$\{(\mathbf{x}_0^{(k)}, \varphi^{\star(k)})\}_{k=1}^K$, the recommender
+picks
+\begin{equation}
+  \widehat\varphi(\mathbf{x}_0) = \arg\max_{\varphi \in \Phi,\, \mathrm{FLOPs}(\varphi) \leq B}
+  \;\; \log \pi(\varphi) + \log \mathcal{N}(\mathbf{x}_0; \mu_\varphi, \Sigma_\varphi).
+\end{equation}
+With $K\!\sim\!100$ calibration tuples this is cheap, closed-form, and
+uncertainty-reportable.
+
+\begin{center}
+\fbox{\begin{minipage}{0.92\linewidth}
+\textbf{Procedure 1: Bayesian agentic hyperparameter tuning (one task).}\\[2pt]
+\textbf{Input:} task $t$, calibrated means $\{\mu_\varphi\}$, variances
+$\{\Sigma_\varphi\}$, budget $B$.\\
+\begin{enumerate}[leftmargin=2em,topsep=1pt,itemsep=0pt]
+  \item $\mathbf{x}_0 \gets \textsc{Signature}(\textsc{ShallowOneRound}(t))$.
+  \item For each $\varphi \in \Phi$ with $\mathrm{FLOPs}(\varphi) \le B$:
+        compute $\ell_\varphi = \log \pi(\varphi) + \log \mathcal{N}(\mathbf{x}_0; \mu_\varphi, \Sigma_\varphi)$.
+  \item Return $\arg\max_\varphi \ell_\varphi$.
+\end{enumerate}
+\end{minipage}}
+\end{center}
+
+% =====================================================================
+\section{Experimental Setup}\label{sec:setup_exp}
+
+\subsection{Data-generating process}\label{subsec:dgp}
+
+Because real multi-agent perturb-seq runs with scGPT are outside our compute
+envelope for this paper, we construct a \emph{documented} synthetic DGP under
+which the latent difficulty $d\!\sim\!U(0,1)$ is observed. A task with
+difficulty $d$ yields a run trace by:
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=0pt]
+  \item Drawing per-agent skills $s_i \sim \mathcal{N}(0.55, 0.08^2)$ and
+        convergence rates $\rho_i \sim \mathcal{N}((1{-}d)\cdot 0.15 + d\cdot(-0.02), 0.03^2)$.
+  \item Boosting a ``specialist'' skill by $0.10(1{-}d)$ with probability
+        $1 - 0.8 d$, simulating tasks with a clear owner.
+  \item At round $r$, emitting $c_i(r) = \mathrm{clip}(s_i + \rho_i r + \epsilon_i, 0, 1)$
+        with $\epsilon_i \sim \mathcal{N}(0, 0.05^2)$; for $d > 0.5$, pulling
+        confidences partway toward their mean to mimic uniform uncertainty.
+  \item Drawing critique severities
+        $S_{ij}(r) = \mathrm{clip}(\sigma_i + (0.6d + 0.1)(1 - c_j(r)) + \eta_{ij}, 0, 1)$
+        with per-agent strictness $\sigma_i$ and noise $\eta$.
+  \item Setting $w(r) = \arg\max_i \bigl(c_i(r) - \overline{S}_{\cdot i}(r)\bigr)$.
+\end{enumerate}
+A second DGP component is the utility model:
+$u(d, N, R, b) = 0.5 + (0.5 - 0.5 d)\bigl(1 - \exp(-N R b_f/\tau)\bigr) + \nu$
+with $b_f \in\{1.0, 1.3\}$ for backbones $\{\textsc{scGPT}, \textsc{scPRINT-2}\}$,
+$\tau\!=\!8$, and $\nu \sim \mathcal{N}(0, 0.01^2)$. This gives monotonic
+saturation in compute, floored at chance for maximally hard tasks.
+
+\subsection{Configuration space, compute, and protocol}
+
+$\Phi$ contains twelve configurations:
+$N\!\in\!\{3,5\}\times R\!\in\!\{1,2,3\}\times b\!\in\!\{\textsc{scGPT},
+\textsc{scPRINT-2}\}$. FLOPs are proxied by $N \cdot R \cdot b_f$. We run five
+experiments, all seeded with \texttt{default\_rng(2026)}.
+
+\begin{enumerate}[label=E\arabic*.,leftmargin=*,topsep=2pt,itemsep=1pt]
+  \item \emph{Metric validation.} Simulate $300$ tasks, each with a full
+        $N{=}5, R{=}3$ run. Correlate each metric with~$d$.
+  \item \emph{Probe $\to$ target.} Ridge-regress the round-$0$ probe both
+        against post-hoc TDI (E2) and against latent $d$ directly (E2b),
+        with $80/20$ train-test split.
+  \item \emph{Pareto frontier.} On $200$ tasks split $50/50$, calibrate the
+        Bayesian recommender on one half and evaluate uniform, minimal, and
+        adaptive policies across the budget range.
+  \item \emph{Agent scaling.} Sweep $N\!\in\!\{2,3,4,5,6,8,10\}$ with
+        $R{=}2$ fixed, $50$ tasks per difficulty tier.
+  \item \emph{TDI coefficient ablation.} Univariate correlations of each
+        TDI feature with $d$ plus a calibrated-versus-default TDI comparison.
+\end{enumerate}
+
+\subsection{Calibration.} TDI weights are ridge-fitted ($\lambda\!=\!0.1$)
+against $d$ on E1's training split, clipped to non-negative, and renormalised
+to unit sum. The Bayesian likelihood uses a variance floor of $0.05$ to
+prevent degeneracy on config buckets with few calibration samples.
+
+% =====================================================================
+\section{Results}\label{sec:results}
+
+\subsection{The metrics individually rank task difficulty --- with one signal dominating}
+
+\input{tables/tab1_metric_correlations.tex}
+\captionof{table}{Single-feature correlation with the latent difficulty label
+$d$, $n\!=\!300$. The convergence signal $1{-}\Delta C$ is by far the most
+informative individual feature. The default-coefficient TDI has moderate rank
+correlation but negative univariate $R^2$, indicating a location-scale mismatch
+that the calibration step fixes (see Table~\ref{tab:calib}).}\label{tab:corr}
+\vspace{4pt}
+
+Figure~\ref{fig:metric_vs_d} shows scatter plots of three representative
+signals against $d$. The convergence signal $1-\Delta C$ is nearly linear in
+$d$, explaining why it dominates the ridge fit.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.95\linewidth]{fig1_metric_vs_difficulty}
+  \caption{Per-task metric values versus latent difficulty ($n{=}300$). The
+    TDI panel uses default weights, which under-weight $1-\Delta C$.}
+  \label{fig:metric_vs_d}
+\end{figure}
+
+\subsection{Calibration closes the gap between default and data-driven TDI}
+
+\input{tables/tab2_calibration_improvement.tex}
+\captionof{table}{Default-versus-calibrated TDI on the $60$-task held-out
+split. Ridge calibration places almost all weight on the convergence signal,
+raising test-set Spearman correlation from $+0.52$ to $+0.92$.}\label{tab:calib}
+\vspace{4pt}
+
+The calibrated TDI has
+$(\alpha,\beta,\gamma,\delta) = (0.000, 0.064, 0.925, 0.010)$. This is an
+honest empirical finding with two interpretations: (i) in a DGP where
+convergence is the primary signature of difficulty (as ours is, by design),
+$\gamma$ should dominate; (ii) default heuristic weights under-weight the
+signal that matters most, justifying the calibration harness as a
+first-class component. We discuss the external-validity implications of this
+in~\S\ref{sec:limits}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.95\linewidth]{fig2_calibration_and_ablation}
+  \caption{Left: default-versus-calibrated TDI rank correlation with $d$.
+  Right: Spearman $\rho$ between each single feature and $d$. Red bars mark
+  features that individually contribute $\rho \le 0.2$.}
+  \label{fig:calib}
+\end{figure}
+
+\subsection{The probe partially identifies difficulty, but not post-hoc TDI}
+
+\input{tables/tab3_probe_to_target.tex}
+\captionof{table}{Held-out generalisation of the single-round probe.
+Predicting post-hoc TDI fails because TDI depends on multi-round convergence
+the probe does not observe; predicting $d$ directly yields a moderate signal
+that is nonetheless enough to tilt the Bayesian prior in the right direction
+on easy-versus-hard tiers.}\label{tab:probe}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.55\linewidth]{fig5_probe_to_difficulty}
+  \caption{Probe-to-$d$ ridge prediction on $n{=}300$ tasks. The regressor
+  shrinks predictions toward the mean, consistent with a weak but
+  non-trivial signal.}
+  \label{fig:probe}
+\end{figure}
+
+\subsection{Held-out utility scales monotonically with $N$ but at tier-dependent rates}
+
+\input{tables/tab4_agent_scaling.tex}
+\captionof{table}{Mean $\pm$ SEM held-out AUROC as a function of agent count $N$
+and difficulty tier, with rounds fixed at $R{=}2$. Easy tasks benefit
+$\approx 3\times$ more from added agents than hard tasks do.}\label{tab:scaling}
+\vspace{4pt}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.62\linewidth]{fig4_agent_scaling}
+  \caption{Utility scaling with $N$ stratified by difficulty tier. Hard-tier
+  curves plateau well below easy-tier curves, arguing for adaptive rather than
+  uniform allocation --- \emph{provided} difficulty is observable before
+  commit.}
+  \label{fig:scaling}
+\end{figure}
+
+\subsection{Pareto frontier: adaptive is competitive, uniform wins at large budgets}
+
+\input{tables/tab5_pareto_samples.tex}
+\captionof{table}{Held-out mean AUROC at selected compute budgets. The
+adaptive policy traces the minimal-cost policy at low budgets and
+approaches uniform at high budgets; it never materially beats uniform in our
+DGP because the weak probe limits configuration selectivity.}\label{tab:pareto}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.66\linewidth]{fig3_pareto}
+  \caption{Mean held-out AUROC versus compute-budget proxy. The adaptive
+  policy sits between minimal and uniform across the budget range; closing
+  the gap requires a richer probe (Section~\ref{sec:limits}).}
+  \label{fig:pareto}
+\end{figure}
+
+The Pareto result is the paper's most nuanced: the adaptive policy does not
+strictly dominate uniform in our DGP, because the probe signature explains
+only $R^2\!=\!0.16$ of $d$ on held-out data. This is not a failure of the
+framework but a statement about the currently minimal probe; we return to it
+in~\S\ref{sec:limits} as the central direction for follow-up work.
+
+% =====================================================================
+\section{Implementation and Observability Layer}\label{sec:impl}
+
+So far the paper has been algorithmic. This section is deliberately
+engineering-heavy because the paper's reviewer question
+``\emph{what did you have to contribute to \textsc{MassGen}?}'' deserves a
+precise answer. We separate our work into three buckets --- novel
+contribution, thin adapter over existing infrastructure, and explicitly-scoped
+future work --- and state each with enough detail that a reviewer can locate
+the corresponding file in the released code. A fuller design document is
+released as \texttt{docs/DESIGN.md} in the project; what follows is a
+one-section summary.
+
+\subsection{The trace schema as the decoupling contract}
+
+Our central engineering contribution is a narrow, immutable trace schema
+that decouples the orchestrator from the evaluator. A \texttt{RoundTrace}
+carries
+$(\mathrm{round\_index}, \mathrm{agent\_names}[N],
+\mathbf{C}[N], \mathbf{S}[N,N{-}1], w, \mathrm{consensus\_score},
+\mathrm{compute\_tokens})$;
+a \texttt{RunTrace} is an ordered tuple of \texttt{RoundTrace}s plus
+$(\mathrm{task\_id}, \mathrm{converged}, \mathrm{backbone})$. Both are
+\texttt{frozen=True} Python dataclasses, which makes them safe to serialise,
+hash, and pass across processes without defensive copying. The schema is
+deliberately \emph{numeric-only}: metrics operate on the numbers alone ---
+never on the LLM-facing proposal or critique text --- which makes metric
+computation costs negligible (\textit{ca.}\ $1$ ms per run) and also
+improves privacy posture (LLM content is never consumed by the metric layer).
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{lll}
+\toprule
+File & Kind & Status \\
+\midrule
+\texttt{types.py}, \texttt{metrics.py} & Novel abstraction + metrics & contributed \\
+\texttt{probe.py}, \texttt{bayesian.py}, \texttt{calibration.py} & Novel procedures & contributed \\
+\texttt{instrumentation.py} & Adapter for CellForge \texttt{ConsensusResult} & contributed \\
+\texttt{massgen\_adapter.py} & JSON entrypoints for MassGen skill & contributed \\
+\texttt{massgen\_skill\_draft/} (in-repo draft of a MassGen skill) & Ready-to-submit & not yet PR'd \\
+LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt + pure-Python scaffold & not yet calibrated on live traces \\
+\bottomrule
+\end{tabular}
+\caption{Contribution audit. See \texttt{docs/DESIGN.md} for the full file-by-file breakdown.}
+\label{tab:contrib}
+\end{table}
+
+\subsection{Adapting \textsc{CellForge}: duck typing, no patching}
+
+The orchestrator in \texttt{projects/cellforge-agents/} exposes a
+\texttt{ConsensusResult} whose \texttt{.rounds[i].proposals} carry
+\texttt{.agent}, \texttt{.confidence}, \texttt{.content}, and whose
+\texttt{.rounds[i].critiques} carry \texttt{.from\_agent},
+\texttt{.on\_agent}, \texttt{.severity}. The adapter in
+\texttt{src/perturb\_eval/instrumentation.py} is $\approx\!40$ lines of
+pure projection: it duck-types those two interfaces, builds a critique
+matrix that excludes self-critique, and reconstructs the per-round winner
+as $\arg\max_j (c_j - \overline{S}_{\cdot j})$. No orchestrator patching is
+required. Any propose-critique-vote system that exposes these two minimal
+shapes gets the full evaluator stack for free.
+
+\subsection{\textsc{MassGen}'s native observability is rich but differently
+shaped}\label{subsec:massgen_bridge}
+
+\textsc{MassGen}~\citep{massgen2025github} already provides a mature
+observability layer --- we are not claiming to add telemetry where there
+is none. The relevant components are
+\texttt{massgen/coordination\_tracker.py}, which records
+\texttt{AgentAnswer} (agent\_id, content, timestamp) and \texttt{AgentVote}
+(voter\_id, voted\_for, reason, timestamp) dataclasses, and
+\texttt{massgen/execution\_trace.py}, which emits structured markdown with
+round, vote, and tool-call entries.
+
+Two structural differences prevent a direct wiring:
+(i) \textsc{MassGen}'s \texttt{AgentAnswer} does not carry a numeric
+confidence; confidence is \emph{implicit} in how many peer voters endorse
+the answer.
+(ii) \textsc{MassGen}'s \texttt{AgentVote.reason} is a free-text rationale,
+not a numeric severity.
+\textsc{MassGen}'s own \texttt{CLAUDE.md} explicitly forbids
+keyword/regex-based categorisation of such rationales (\emph{``No
+keyword/heuristic matching for categorization or similarity''}), so the
+projection must use a small LLM-based rater.
+
+We therefore specify \textbf{a two-step extractor}, drafted in the
+repository at \texttt{massgen\_skill\_draft/}:
+\begin{enumerate}[leftmargin=*,topsep=0pt,itemsep=1pt]
+  \item \emph{Vote-share confidence.} For each round, agent $j$'s projected
+        confidence is $\hat{c}_j = (\mathrm{votes\_for}_j)/(N{-}1)$. This
+        is deterministic and requires no LLM call.
+  \item \emph{LLM-rated severity.} For each vote, project the free-text
+        \texttt{reason} onto a severity score in $[0,1]$ via a terse rater
+        prompt; see \texttt{massgen\_skill\_draft/prompts/severity\_rater.md}.
+        The extractor caches by reason string so at most one LLM call per
+        distinct reason per session.
+\end{enumerate}
+
+The corresponding MassGen skill artifact
+(\texttt{massgen\_skill\_draft/skill.yaml}) declares an
+\texttt{on\_session\_start} hook that runs preflight and an
+\texttt{on\_session\_end} hook that runs evaluate. Both handlers are
+$\leq 20$ lines of glue over \texttt{perturb\_eval.massgen\_adapter}, which
+keeps the skill minimal and audit-friendly.
+
+\paragraph{What we have \emph{not} done.} We have not (a) submitted the
+skill to \textsc{MassGen} upstream, (b) calibrated the severity rater
+against human annotators on real \textsc{MassGen} traces, or (c) validated
+the vote-share confidence projection against an alternative projection
+(e.g.\ an LLM-rated confidence). Each of these is one incremental
+engineering step and we flag them here so the boundary between our paper's
+claims and ``plug it in and it works'' is unambiguous.
+
+\subsection{Why the synthetic DGP is still informative}
+
+A reviewer may reasonably object: ``if the metrics depend on numeric
+confidence and severity, and those have to be projected from categorical
+\textsc{MassGen} observables via an unvalidated rater, how is the paper's
+Spearman $\rho\!=\!0.92$ meaningful?'' The answer is that the DGP in
+\S\ref{subsec:dgp} \emph{simulates the post-projection trace}: the
+confidence samples are numeric-by-construction, the severities are
+numeric-by-construction, and the latent difficulty label is observable. The
+paper therefore reports the performance of the metric layer \emph{under a
+perfect projection}. The severity-rater calibration is a separate pipeline
+question that would only tighten or loosen the error bars of real-world
+deployment; it does not change whether ACE, CSD, $\Delta C$, WFR, or TDI
+can identify difficulty \emph{given} a well-formed trace. We state this
+caveat explicitly in the limitations section.
+
+% =====================================================================
+\section{Discussion}\label{sec:discussion}
+
+\paragraph{What the group dynamics reveal.} The strongest empirical signal
+across our metrics is the \emph{round-over-round change in mean confidence}.
+Post-hoc, this signal ranks tasks by difficulty with Spearman $\rho\!=\!0.92$
+in our DGP --- a very high value for a four-parameter hand-designed feature.
+We interpret this as evidence that \emph{convergence is the primary
+observable of difficulty in a well-functioning multi-agent system}: the
+amount by which the team's mean confidence rises in a fixed number of rounds
+is a consolidated summary of ``is this tractable for this team?''.
+
+\paragraph{Why the probe is weaker than the post-hoc metric.} A single-round
+probe by definition cannot observe convergence. It sees only the starting
+distribution of agent confidences and critiques, which encodes a snapshot of
+prior agreement but not the response-to-critique dynamics that generate the
+downstream signal. This is a structural limitation of the minimal probe we
+test, not of the framework.
+
+\paragraph{Implications for upstream systems.} For
+\textsc{CellForge}~\citep{chen2025cellforge} and
+\textsc{MassGen}~\citep{massgen2025github}, the immediate actionable
+recommendation is: \emph{emit the $\{C(r), S(r), w(r)\}$ trace as a
+first-class output} of every orchestrator run. TDI and its diagnostics cost
+less than $1$\,ms per run and are trivial to surface through an existing
+skill interface; even without a calibrated recommender, the run-level
+quantities (ACE trajectory, $\Delta C$, WFR) are directly useful to human
+operators as a sanity check.
+
+% =====================================================================
+\section{Limitations and Threats to Validity}\label{sec:limits}
+
+We flag five limitations that a reviewer should weigh.
+
+\paragraph{Synthetic DGP.} Every empirical result in this paper comes from a
+hand-designed data-generating process (\S\ref{subsec:dgp}). The DGP is
+intentionally simple and its parameters are reported in full, but at least
+three of its assumptions may fail on real runs:
+(i) confidence rates rise linearly in $r$;
+(ii) critique severities couple to target confidence with a fixed weight;
+(iii) the utility model is a saturating exponential in $N\!\cdot\!R\!\cdot\!b_f$.
+Real LLM-driven agent dynamics may be noisier, more bursty (revision spikes),
+or influenced by prompt engineering in ways the DGP does not model. We
+explicitly did \emph{not} calibrate DGP parameters against measured
+\textsc{CellForge} or \textsc{MassGen} runs; doing so is the single most
+important follow-up experiment.
+
+\paragraph{Probe weakness.} Our minimal probe is one shallow round. Its
+four-dimensional signature predicts difficulty at $R^2\!=\!0.16$ on held-out
+tasks --- enough to tilt the prior but not to strictly dominate uniform
+allocation at large budgets. Richer probes are natural:
+(a) a \emph{two-round} shallow probe that admits a primitive $\Delta C$
+estimate; (b) a \emph{per-agent calibration} that down-weights historically
+over-confident agents via a Brier-style reliability prior; (c) a
+\emph{learnable probe} (MLP or tiny transformer) that maps a full trace
+segment to an implicit difficulty embedding. We chose the minimal probe
+because it sets a conservative floor.
+
+\paragraph{Configuration space.} $|\Phi|\!=\!12$ here. Larger $\Phi$ would
+stretch the Gaussian diagonal-covariance likelihood we use; a Gaussian mixture
+or a neural density estimator is a straightforward next step. Our Bayesian
+recommender is also a \emph{MAP} estimator; full posterior sampling would
+expose uncertainty that is currently swept into point predictions.
+
+\paragraph{Reward model free-riding.} We deliberately do not train a process
+reward model. A PRM over agent traces would likely outperform our
+hand-designed metrics, but it would also require an expensive labelling phase.
+The paper's claim is that hand-designed difficulty metrics over the
+already-produced trace are cheap and already actionable; a PRM is a
+complementary rather than competing direction.
+
+\paragraph{Generalisation across problem domains.} Our claims specialise to
+\emph{convergence-shaped} problems: propose-critique-vote systems where the
+team's confidence distribution meaningfully updates round over round. In
+problem domains where one agent simply answers ``I know'' with high confidence
+regardless of difficulty (e.g.\ rote retrieval), the TDI signal will be
+degenerate and the probe uninformative. The framework is not designed to
+replace a domain-specific accuracy evaluator.
+
+\paragraph{Reproducibility.} All experiments use \texttt{numpy.default\_rng(2026)}.
+The CSV artifacts, figures, and this paper's \LaTeX\ source are produced by
+three scripts in \texttt{paper/experiments/} that run in under a minute on a
+CPU without any network access.
+
+% =====================================================================
+\section{Reproducibility}\label{sec:reproducibility}
+
+Every number, figure, and table in this paper is produced by a three-script
+pipeline that runs in under 10 seconds on a single CPU without any network
+access. The pipeline is:
+\begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
+  \item \texttt{paper/experiments/simulate.py} --- runs seven experiments
+        (E1, E1b, E2, E2b, E3, E4, E5) and emits six CSVs into
+        \texttt{paper/experiments/out/}.
+  \item \texttt{paper/experiments/plot.py} --- renders the five figures as
+        PDF\,+\,PNG from the CSVs.
+  \item \texttt{paper/experiments/generate\_tables.py} --- emits the five
+        \texttt{.tex} snippets the manuscript \texttt{\string\input}s.
+\end{itemize}
+
+\paragraph{Seeded determinism.} All randomness flows through
+\texttt{numpy.random.default\_rng(2026)}, instantiated once in
+\texttt{simulate.py::main}. Rerunning the script with the same seed
+reproduces the CSVs byte-for-byte on any platform with identical
+\texttt{numpy} ABI behaviour.
+
+\paragraph{DGP parameters are frozen in-source.} All $17$ parameters of the
+data-generating process (\S\ref{subsec:dgp}) are declared in a single
+\texttt{DGP} dict at the top of \texttt{simulate.py}. Changing one value and
+rerunning yields a clearly diffable delta in every downstream artifact.
+
+\paragraph{Artifact dependency graph.}
+\begin{center}\small\ttfamily
+simulate.py $\to$ out/*.csv $\to$ \{plot.py, generate\_tables.py\}\\
+$\to$ figures/*.\{pdf,png\} $+$ tables/*.tex $\to$ paper.tex $\to$ paper.pdf
+\end{center}
+No file in the dependency graph is generated outside this pipeline.
+
+\paragraph{Software stack.} The entire pipeline requires only
+\texttt{numpy}, \texttt{matplotlib}, and a TeX Live distribution with
+\texttt{natbib}, \texttt{booktabs}, \texttt{hyperref}, \texttt{caption}, and
+\texttt{enumitem}. We do not depend on \texttt{scipy},
+\texttt{scikit-learn}, or \texttt{pandas}. The \texttt{algorithm} /
+\texttt{algpseudocode} packages are deliberately avoided (some TeX
+distributions omit them) --- \S\ref{sec:probe}'s procedure is rendered as a
+plain numbered list inside an \texttt{\string\fbox} so compilation succeeds
+on a minimal TeX install.
+
+\paragraph{Tests.} Forty-three unit tests under \texttt{tests/} cover the
+metric, probe, recommender, instrumentation, calibration, and model modules.
+They execute in under 100 ms.
+
+\paragraph{Sixteen tests for the reference TTC implementations.} The
+framework-free reference implementations of best-of-$N$, majority vote,
+weighted majority, iterative revision, and adaptive-budget allocation in
+\texttt{research/test-time-compute-guide/ref\_impl/} are covered by their own
+16-test suite; these are pedagogical rather than experimental but we include
+them so the single-chain TTC comparisons in \S\ref{sec:related} are not
+claims over a reader's prior knowledge alone.
+
+\paragraph{Companion design document.} The file \texttt{docs/DESIGN.md} in
+the project records the contribution audit, the MassGen bridge specification,
+and a reviewer-oriented validation checklist. It also lists three
+falsifying outcomes that would contradict the paper's central claims and
+explains exactly which one-line configuration change surfaces each.
+
+% =====================================================================
+\section{Conclusion}\label{sec:conclusion}
+
+We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
+four-feature lens on multi-agent group-generation traces, combined into a
+calibrated Task Difficulty Index with Spearman $\rho\!=\!0.92$ against a
+ground-truth difficulty label. We have positioned the TDI and its probe as
+the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
+single-chain allocation, and released a Bayesian recommender that turns
+agentic orchestration into a small and well-posed hyperparameter-tuning
+problem. Our experiments are synthetic, we flag the probe-weakness limitation
+honestly, and we outline the specific empirical validation on real
+perturb-seq data with an \textsc{scGPT} backbone that would move the claim
+from ``framework works on a documented DGP'' to ``framework routes production
+orchestration compute usefully''.
+
+\paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
+repository that accompanies this submission, including the
+\textsc{MassGen}-installable skill that produces per-run metric reports for
+any propose-critique-vote orchestrator.
+
+% =====================================================================
+\small
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

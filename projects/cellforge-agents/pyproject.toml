@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cellforge-agents"
+version = "0.1.0"
+description = "5-agent group generation PoC for multi-omics perturbation modelling (CellForge-inspired, MassGen-style)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "typer>=0.12",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=4", "ruff>=0.5"]
+openai = ["openai>=1.30"]
+anthropic = ["anthropic>=0.30"]
+
+[project.scripts]
+cellforge = "cellforge.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: fast unit tests with no external I/O",
+    "integration: requires a real LLM backend",
+]
