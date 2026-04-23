@@ -105,6 +105,8 @@ def run_agentic_lifecycle(
     held_out: str,
     agent_pool: AgentPool,
     max_rounds: int = 2,
+    backbone_override: str | None = None,
+    validator_threshold_override: float | None = None,
 ) -> LifecycleRun:
     """Run the end-to-end agentic lifecycle for one held-out perturbation.
 
@@ -137,7 +139,14 @@ def run_agentic_lifecycle(
             proposal=dc["content"],
         )
         literature = extract_expected_genes(lit["content"])
-        backbone, backbone_used = dispatch_architect(arch["content"])
+        # The outer optimizer may override the Architect's backbone choice
+        # — this is what lets the contextual-BO search over the backbone
+        # axis while the Architect still contributes the hyperparameter
+        # rationale (same pattern as Archon's inference-time HPO).
+        arch_content = dict(arch["content"])
+        if backbone_override is not None:
+            arch_content["backbone"] = backbone_override
+        backbone, backbone_used = dispatch_architect(arch_content)
         tinfo = execute_trainer(
             backbone=backbone,
             X=curated["X"],
@@ -180,15 +189,31 @@ def run_agentic_lifecycle(
             remapped = int(hits[0]) if hits.size else 0
         else:
             remapped = 0
-        report = score_and_gate(
-            backbone=backbone,
-            X=X_hvg,
-            labels=labels,
-            control_mask=control_mask,
-            held_out=held_out,
-            held_out_target_idx=remapped,
-            threshold_msd=float(val["content"].get("threshold_msd", 0.5)),
+        threshold = (
+            validator_threshold_override
+            if validator_threshold_override is not None
+            else float(val["content"].get("threshold_msd", 0.5))
         )
+        # If the Trainer step failed, skip the Validator scoring (avoids
+        # ``predict_logfc called before fit()`` when the backbone was never
+        # fit). We still record the round so the rationale is preserved.
+        if not tinfo["succeeded"]:
+            from perturb_eval.agentic_lifecycle.types import ExecutedValidation
+            report = ExecutedValidation(
+                msd_topk=float("inf"), biofm_agreement=0.0,
+                deg_overlap_at_k=0.0, accepted=False,
+                rationale=f"Trainer failed: {tinfo.get('error', '')}",
+            )
+        else:
+            report = score_and_gate(
+                backbone=backbone,
+                X=X_hvg,
+                labels=labels,
+                control_mask=control_mask,
+                held_out=held_out,
+                held_out_target_idx=remapped,
+                threshold_msd=threshold,
+            )
         final_msd = report.msd_topk
         final_agreement = report.biofm_agreement
 

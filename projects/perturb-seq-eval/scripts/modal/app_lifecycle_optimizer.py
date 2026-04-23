@@ -131,6 +131,8 @@ def run_live_optimizer(n_iterations: int = 8, n_seeds: int = 1) -> dict:
                 control_mask=ds["control_mask"],
                 target_gene_idx=ds["target_gene_idx"], held_out=task,
                 agent_pool=pool, max_rounds=phi.n_rounds,
+                backbone_override=phi.backbone,
+                validator_threshold_override=0.05,
             )
             msd = float(run.final_msd_topk)
         except Exception as e:  # noqa: BLE001
@@ -146,7 +148,7 @@ def run_live_optimizer(n_iterations: int = 8, n_seeds: int = 1) -> dict:
         Config(n_agents=a, n_rounds=r, backbone=b)
         for a in (3, 5)
         for r in (1, 2, 3)
-        for b in ("linear", "mlp")
+        for b in ("linear", "mlp", "scgpt_small")
     )
 
     trajectories = run_e3_optimizer_comparison(

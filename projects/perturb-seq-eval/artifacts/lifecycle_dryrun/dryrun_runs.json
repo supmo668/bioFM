@@ -10,9 +10,9 @@
           "pct_mito_max": 12.0
         },
         "rationale": "tight HVG for hold_A",
-        "llm_confidence": 0.6256947501430873,
+        "llm_confidence": 0.8112459094840709,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.001086361997295171,
+        "wall_time_sec": 0.0003206399851478636,
         "succeeded": true
       },
       {
@@ -30,7 +30,7 @@
         "rationale": "stub literature",
         "llm_confidence": 0.5,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.001086361997295171,
+        "wall_time_sec": 0.0003206399851478636,
         "succeeded": true
       },
       {
@@ -42,7 +42,7 @@
         "rationale": "stub architect",
         "llm_confidence": 0.6,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.001086361997295171,
+        "wall_time_sec": 0.0003206399851478636,
         "succeeded": true
       },
       {
@@ -56,7 +56,7 @@
         "rationale": "stub trainer",
         "llm_confidence": 0.55,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.001086361997295171,
+        "wall_time_sec": 0.0003206399851478636,
         "succeeded": true
       },
       {
@@ -68,7 +68,7 @@
         "rationale": "stub validator",
         "llm_confidence": 0.5,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.001086361997295171,
+        "wall_time_sec": 0.0003206399851478636,
         "succeeded": true
       }
     ],
@@ -89,9 +89,9 @@
           "pct_mito_max": 12.0
         },
         "rationale": "tight HVG for hold_B",
-        "llm_confidence": 0.6256947501430873,
+        "llm_confidence": 0.8112459094840709,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0004263090086169541,
+        "wall_time_sec": 0.00015833700308576226,
         "succeeded": true
       },
       {
@@ -109,7 +109,7 @@
         "rationale": "stub literature",
         "llm_confidence": 0.5,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0004263090086169541,
+        "wall_time_sec": 0.00015833700308576226,
         "succeeded": true
       },
       {
@@ -121,7 +121,7 @@
         "rationale": "stub architect",
         "llm_confidence": 0.6,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0004263090086169541,
+        "wall_time_sec": 0.00015833700308576226,
         "succeeded": true
       },
       {
@@ -135,7 +135,7 @@
         "rationale": "stub trainer",
         "llm_confidence": 0.55,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0004263090086169541,
+        "wall_time_sec": 0.00015833700308576226,
         "succeeded": true
       },
       {
@@ -147,7 +147,7 @@
         "rationale": "stub validator",
         "llm_confidence": 0.5,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0004263090086169541,
+        "wall_time_sec": 0.00015833700308576226,
         "succeeded": true
       }
     ],
@@ -168,9 +168,9 @@
           "pct_mito_max": 12.0
         },
         "rationale": "tight HVG for hold_C",
-        "llm_confidence": 0.6256947501430873,
+        "llm_confidence": 0.8112459094840709,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0003988260286860168,
+        "wall_time_sec": 0.0001240359852090478,
         "succeeded": true
       },
       {
@@ -188,7 +188,7 @@
         "rationale": "stub literature",
         "llm_confidence": 0.5,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0003988260286860168,
+        "wall_time_sec": 0.0001240359852090478,
         "succeeded": true
       },
       {
@@ -200,7 +200,7 @@
         "rationale": "stub architect",
         "llm_confidence": 0.6,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0003988260286860168,
+        "wall_time_sec": 0.0001240359852090478,
         "succeeded": true
       },
       {
@@ -214,7 +214,7 @@
         "rationale": "stub trainer",
         "llm_confidence": 0.55,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0003988260286860168,
+        "wall_time_sec": 0.0001240359852090478,
         "succeeded": true
       },
       {
@@ -226,7 +226,7 @@
         "rationale": "stub validator",
         "llm_confidence": 0.5,
         "execution_artifact_path": null,
-        "wall_time_sec": 0.0003988260286860168,
+        "wall_time_sec": 0.0001240359852090478,
         "succeeded": true
       }
     ],

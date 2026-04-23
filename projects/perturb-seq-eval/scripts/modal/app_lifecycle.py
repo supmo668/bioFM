@@ -81,14 +81,20 @@ def _env_secrets() -> dict[str, str]:
     volumes={"/data": DATA_VOL, "/biofm_cache": BIOFM_VOL},
     secrets=[modal.Secret.from_dict(_env_secrets())],
 )
-def run_lifecycle_adamson(n_seeds: int = 3, max_rounds: int = 3,
-                           use_biofm: bool = True) -> dict:
+def run_lifecycle_adamson(
+    n_seeds: int = 3,
+    max_rounds: int = 3,
+    use_biofm: bool = True,
+    validator_threshold: float = 0.05,
+    backbones: tuple[str, ...] = ("linear", "mlp", "scgpt_small"),
+) -> dict:
     """Run the end-to-end agentic lifecycle on each Adamson perturbation.
 
-    For each ``(perturbation, seed)`` pair: full CellForge 5-agent loop
-    up to ``max_rounds`` rounds, with the Trainer actually fitting a
-    model and the Validator gating on MSD. Returns a JSON manifest of
-    :class:`LifecycleRun` records on the shared volume.
+    Iterates over every ``(backbone, perturbation, seed)`` triple so the
+    §5.5 headline number is an average over the full backbone axis, not
+    just the Architect's deterministic pick. The Validator threshold is
+    tightened (default 0.05 MSD) so the multi-round refinement path
+    actually triggers on most tasks.
     """
     from perturb_eval.agentic_lifecycle.cellforge_pool import CellForgeAgentPool
     from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
@@ -104,31 +110,42 @@ def run_lifecycle_adamson(n_seeds: int = 3, max_rounds: int = 3,
     out_dir.mkdir(parents=True, exist_ok=True)
 
     runs: list[dict] = []
-    for pert in ds["perturbations"]:
-        for seed in range(2026, 2026 + n_seeds):
-            print(f"=== {pert} seed={seed} ===")
-            t0 = time.time()
-            try:
-                run = run_agentic_lifecycle(
-                    task_id=pert,
-                    X=ds["X"], labels=ds["labels"],
-                    control_mask=ds["control_mask"],
-                    target_gene_idx=ds["target_gene_idx"], held_out=pert,
-                    agent_pool=pool, max_rounds=max_rounds,
-                )
-                rec = asdict(run) | {"seed": seed, "wall_sec": time.time() - t0}
-                print(f"  MSD={rec['final_msd_topk']:.4f}  rounds={rec['n_rounds']}")
-            except Exception as e:  # noqa: BLE001
-                rec = {
-                    "task_id": pert, "seed": seed,
-                    "wall_sec": time.time() - t0,
-                    "error": f"{type(e).__name__}: {e}",
-                    "final_msd_topk": float("inf"),
-                    "n_rounds": 0, "n_agents": 5,
-                    "backbone_used": "error", "steps": [],
-                }
-                print(f"  FAILED: {rec['error']}")
-            runs.append(rec)
+    for backbone in backbones:
+        for pert in ds["perturbations"]:
+            for seed in range(2026, 2026 + n_seeds):
+                print(f"=== {pert} seed={seed} bb={backbone} ===")
+                t0 = time.time()
+                try:
+                    run = run_agentic_lifecycle(
+                        task_id=pert,
+                        X=ds["X"], labels=ds["labels"],
+                        control_mask=ds["control_mask"],
+                        target_gene_idx=ds["target_gene_idx"], held_out=pert,
+                        agent_pool=pool,
+                        max_rounds=max_rounds,
+                        backbone_override=backbone,
+                        validator_threshold_override=validator_threshold,
+                    )
+                    rec = asdict(run) | {
+                        "seed": seed,
+                        "wall_sec": time.time() - t0,
+                        "backbone_forced": backbone,
+                    }
+                    print(
+                        f"  MSD={rec['final_msd_topk']:.4f}  rounds={rec['n_rounds']}"
+                    )
+                except Exception as e:  # noqa: BLE001
+                    rec = {
+                        "task_id": pert, "seed": seed,
+                        "wall_sec": time.time() - t0,
+                        "error": f"{type(e).__name__}: {e}",
+                        "final_msd_topk": float("inf"),
+                        "n_rounds": 0, "n_agents": 5,
+                        "backbone_used": backbone, "backbone_forced": backbone,
+                        "steps": [],
+                    }
+                    print(f"  FAILED: {rec['error']}")
+                runs.append(rec)
 
     manifest = out_dir / "adamson_lifecycle_runs.json"
     manifest.write_text(json.dumps(runs, indent=2))
@@ -138,9 +155,16 @@ def run_lifecycle_adamson(n_seeds: int = 3, max_rounds: int = 3,
 
 
 @app.local_entrypoint()
-def entrypoint(n_seeds: int = 3, max_rounds: int = 3,
-               use_biofm: bool = True) -> None:
+def entrypoint(
+    n_seeds: int = 3,
+    max_rounds: int = 3,
+    use_biofm: bool = True,
+    validator_threshold: float = 0.05,
+) -> None:
     out = run_lifecycle_adamson.remote(
-        n_seeds=n_seeds, max_rounds=max_rounds, use_biofm=use_biofm,
+        n_seeds=n_seeds,
+        max_rounds=max_rounds,
+        use_biofm=use_biofm,
+        validator_threshold=validator_threshold,
     )
     print(json.dumps(out, indent=2, default=str))
