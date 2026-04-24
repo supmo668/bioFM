@@ -1,18 +1,25 @@
 {
   "zenodo": {
-    "deposit_id": 19716141,
-    "bucket": "https://zenodo.org/api/files/e3adf755-045d-4af0-91db-9db29104ebcc",
-    "doi": "10.5281/zenodo.19716141",
+    "deposit_id": 19721470,
+    "concept_doi": "10.5281/zenodo.19716140",
+    "doi": "10.5281/zenodo.19721470",
+    "v1_superseded": {
+      "deposit_id": 19716141,
+      "doi": "10.5281/zenodo.19716141",
+      "reason": "anonymous-author placeholder in paper.pdf; superseded by v2 on 2026-04-23"
+    },
     "published": true
   },
   "osf": {
     "project_id": "wmeuy",
     "primary_file_id": "69eaa3b8cb9be5b694f4e5c7",
-    "preprint_id": "dhu4z_v1"
+    "preprint_id": "dhu4z_v1",
+    "paper_pdf_corrected": "2026-04-23"
   },
   "figshare": {
     "article_id": 32086920,
     "doi": "10.6084/m9.figshare.32086920",
-    "published": true
+    "published": true,
+    "paper_pdf_corrected": "2026-04-23"
   }
 }

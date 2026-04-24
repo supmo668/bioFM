@@ -62,6 +62,20 @@ the divergence first — it is much cheaper than withdrawing a DOI.
       Any match outside the **Deviation Log** or the **Reviewer
       Critique** doc is a bug — either remove it or prefix it with
       "previously claimed / retracted".
+- [ ] 👤 **LaTeX placeholder scan (authorship + affiliation).** The
+      §2.6 grep below covers Markdown / YAML; LaTeX `\author{}` needs
+      its own scan because it doesn't use `Last, First` syntax:
+
+      ```bash
+      grep -rn "Anonymous\|\\\\anonymous\|{anonymous}\|YourName\|Syntropy Health" paper/ | grep -v ".aux\|.bbl\|.log"
+      ```
+
+      Empty output = clean. Any hit means `paper/paper.tex` still
+      carries a template placeholder that will end up in the
+      compiled PDF and propagate to every platform that hosts it.
+      This class of defect escaped the initial audit on 2026-04-23
+      (v0.4.0 → v0.4.1 authorship patch); the rule above exists
+      so it doesn't happen again.
 - [ ] 👤 **`publish.yml` file list covers every supplement asset** (see §2.5
       below). Missing docs/ or revision artifacts at submit time means
       reviewers get a broken bundle.

@@ -11,7 +11,9 @@
 
 | Venue | Status | Permanent ID | Live URL | Date |
 |---|---|---|---|---|
-| **Zenodo** | ✅ published | DOI `10.5281/zenodo.19716141` | <https://doi.org/10.5281/zenodo.19716141> · <https://zenodo.org/records/19716141> | 2026-04-23 |
+| **Zenodo concept DOI** (recommended for citation) | ✅ resolves to latest | DOI `10.5281/zenodo.19716140` | <https://doi.org/10.5281/zenodo.19716140> | 2026-04-23 |
+| **Zenodo v2** (current paper.pdf with Mangyin Mo / CMU authorship) | ✅ published | DOI `10.5281/zenodo.19721470` | <https://zenodo.org/records/19721470> | 2026-04-23 |
+| **Zenodo v1** (superseded, anonymous-author placeholder) | ⚠ retained for provenance | DOI `10.5281/zenodo.19716141` | <https://zenodo.org/records/19716141> | 2026-04-23 |
 | **Figshare** | ✅ published | DOI `10.6084/m9.figshare.32086920` | <https://doi.org/10.6084/m9.figshare.32086920> · [figshare article](https://figshare.com/articles/preprint/Agent_Confidence_Entropy_as_an_Empirical_Difficulty_Oracle_for_Multi-Agent_Group_Generation_with_a_Bayesian_Pre-Test_for_Agentic_Hyperparameter_Tuning_on_Perturb-Seq_Experimental_Design/32086920) | 2026-04-23 |
 | **OSF BioHackrXiv** | ⏸ draft on OSF (unpublished) | project `wmeuy` · preprint `dhu4z_v1` | <https://osf.io/wmeuy/> · <https://osf.io/preprints/biohackrxiv/dhu4z_v1/> | 2026-04-23 (created) |
 
@@ -25,6 +27,25 @@ A late pass after initial publication caught two defects. Both fixed:
 |---|---|---|---|
 | 10 Figshare files (4× paper.pdf + 3× supplement.zip + 3× modal_run_artifacts.zip) | Figshare DOI record | `submit_to_venues.py` Figshare submitter re-uploaded on every `all` / `--dry-run` invocation; Figshare's `/files` GET paginates at 10 so the problem was invisible locally. | Deleted 10 duplicates via `DELETE /v2/account/articles/{id}/files/{file_id}`. Iterated until stable (final count: 3 files). Patched the submitter to query current files and skip by MD5 match before upload. |
 | Placeholder URL `https://github.com/REPO/PATH` in Zenodo `related_identifiers` | Zenodo record 19716141 | `publish.yml` template shipped with a placeholder URL never swapped for the real one. | Replaced with `https://github.com/mm-bconscious/bioFM` + added cross-reference `10.6084/m9.figshare.32086920` (scheme: doi, relation: isIdenticalTo). Re-submitted via `/actions/edit` → `PUT metadata` → `/actions/publish`. |
+
+### Authorship patch (2026-04-23 late)
+
+A third defect was found after the dedup / related-URL fix: the
+compiled `paper/paper.pdf` carried the template's **Anonymous Authors,
+Syntropy Health, `{anonymous}@syntropyhealth.bio`** placeholder in the
+`\author{}` block. None of the coherence greps had hit it because the
+grep patterns targeted tokens in Markdown / YAML, not LaTeX source.
+
+Fix:
+
+1. `paper/paper.tex` `\author{}` now reads `Mangyin Mo`, `Carnegie Mellon University`, `mangyinm@alumni.cmu.edu`, `ORCID 0009-0009-5233-3142`.
+2. `paper.pdf` recompiled (12 pages, 635 940 bytes, md5 `e8eec5ba0a65531842fa14168b41b6b8`).
+3. **Zenodo**: created a new version (v2) via `/actions/newversion`; deleted the stale paper.pdf from the draft; uploaded the corrected PDF; added `publication_date` (required field); republished. New record DOI `10.5281/zenodo.19721470`. The **concept DOI** `10.5281/zenodo.19716140` is the canonical citation target — it always resolves to the latest version.
+4. **Figshare** (article 32086920, same DOI): deleted the stale paper.pdf via `/files/{id}`; uploaded the new one via the register → chunked-PUT → complete flow. DOI is unchanged; the article is versioned internally by Figshare.
+5. **OSF** (project `wmeuy`): deleted old paper.pdf via Waterbutler; uploaded the new one. The unpublished preprint `dhu4z_v1` references the project, so the corrected file will be what appears once OSF's subjects endpoint lets the preprint complete.
+6. Infisical: added `AUTHOR_EMAIL = mangyinm@alumni.cmu.edu` under `/research/perturb-seq-eval` in the GTM project.
+
+Root cause of the placeholder escape: the §2.6 coherence audit grep patterns were tuned for Markdown / YAML (`"Last, First"`, `REPO/PATH`, `0000-0000`, etc.) but did not scan LaTeX `\author{}`. Added follow-on grep: `grep -rn "Anonymous\|\\\\anonymous\|Syntropy Health" paper/` to the pre-flight checklist so this class of defect is caught next time.
 
 Bi-directional cross-references now live on both platforms:
 

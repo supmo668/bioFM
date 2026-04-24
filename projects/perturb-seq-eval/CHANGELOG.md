@@ -4,6 +4,24 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
+## [0.4.1] — 2026-04-23 (late, authorship patch)
+
+### Fixed
+
+- `paper/paper.tex` `\author{}` block carried `Anonymous Authors / Syntropy Health / {anonymous}@syntropyhealth.bio` from the template. Replaced with `Mangyin Mo / Carnegie Mellon University / mangyinm@alumni.cmu.edu / ORCID 0009-0009-5233-3142`. Recompiled `paper.pdf` (md5 `e8eec5ba0a65531842fa14168b41b6b8`).
+- Zenodo: created v2 record. Concept DOI `10.5281/zenodo.19716140` (canonical) now resolves to v2 `10.5281/zenodo.19721470`. v1 `10.5281/zenodo.19716141` retained for provenance.
+- Figshare (DOI `10.6084/m9.figshare.32086920`, unchanged): replaced paper.pdf in place; still 3 files total.
+- OSF (project `wmeuy`): replaced paper.pdf on the project's OSFStorage.
+
+### Added
+
+- Infisical secret `AUTHOR_EMAIL = mangyinm@alumni.cmu.edu` under `/research/perturb-seq-eval` in the SyntropyHealth GTM project (dev env).
+- `research/PUBLICATION_EVIDENCE.md` → "Authorship patch" section with the root-cause + remediation + new grep for the pre-flight checklist.
+
+### Root-cause note
+
+The §2.6 coherence audit's placeholder grep only scanned Markdown and YAML tokens (`Last, First`, `REPO/PATH`, `0000-0000`), not LaTeX author blocks. Added `grep -rn "Anonymous\\|Syntropy Health" paper/` to the checklist.
+
 ## [0.4.0] — 2026-04-23
 
 ### Published
