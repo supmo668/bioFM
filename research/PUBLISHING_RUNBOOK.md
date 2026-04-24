@@ -301,6 +301,16 @@ next run knows everything is already out the door.
 
 ## 6. Manual-only venues 👤
 
+> **Evidence ledger for venues already submitted lives in
+> [`research/PUBLICATION_EVIDENCE.md`](PUBLICATION_EVIDENCE.md) §0.**
+> That file also carries the prioritised queue for the venues below,
+> plus an explicit "venues I deliberately skip" list (ChemRxiv, medRxiv,
+> TechRxiv, OpenReview, ResearchGate) with rationale.
+>
+> Submission priority: §6.1 bioRxiv → §6.2 Preprints.org → §6.3 arXiv
+> (if endorsed) → §6.5 Research Square → §6.6 SSRN → §6.7 HAL. Stop
+> whenever the audience is already covered.
+
 These have no submission API. The script does **not** handle them. Run
 §5 first so you have the Zenodo DOI in hand — manual venues want it as
 "related content" on their upload forms.
@@ -352,6 +362,37 @@ supplement.
    - No direct supplementary upload — arXiv does not support it. Point at Zenodo/OSF for anything beyond the LaTeX.
 3. 👤 If not endorsed: email 2–3 established arXiv authors in `cs.LG` for endorsement, Zenodo DOI attached. See
    [`PUBLISHING_VENUES.md §3.9`](PUBLISHING_VENUES.md#39-arxiv--new-2026-endorsement-policy).
+
+### 6.5 Research Square (Springer Nature "In Review") 👤
+
+Best as a side-effect of submitting to a Springer-Nature journal — Research Square's expedited posting (48 h) is tied to an In Review enrollment on the journal side.
+
+1. 👤 Open <https://www.researchsquare.com/submit>.
+2. 👤 Upload `paper/paper.pdf`. Fill title + authors from `publish.yml`.
+3. 👤 Pick *In Review* if you are also submitting to a SN journal; otherwise pick standalone (2–3 week SLA).
+4. 👤 Link the Zenodo DOI as supplementary reference.
+
+Skip if you are not submitting to a Springer-Nature journal — the standalone path is slow and duplicates reach we already have from Zenodo + bioRxiv.
+
+### 6.6 SSRN (Elsevier) — CompSciRN / StatisticsRN 👤
+
+Useful for econometric / statistical-methods crowd and for HPO / agentic ML researchers who track Elsevier networks.
+
+1. 👤 Open <https://hq.ssrn.com/submission>.
+2. 👤 Upload PDF + select networks: `CompSciRN` (methodology) + `StatisticsRN` (γ_T formalism). Optionally `EconomicsRN` if the BO framing is of interest there.
+3. 👤 Moderation: 2–5 business days.
+4. 👤 Cite Zenodo DOI in the abstract.
+
+### 6.7 HAL (CNRS / France) 👤
+
+European preprint reach; SWORD API exists but only for affiliated institutions. Carnegie Mellon is not HAL-affiliated, so use the individual web path.
+
+1. 👤 Open <https://hal.science/deposit> and sign in with ORCID.
+2. 👤 Upload `paper.pdf` + metadata (mirror `publish.yml`).
+3. 👤 Pick domain: `Computer Science → Artificial Intelligence` cross-listed with `Life Sciences → Bioinformatics`.
+4. 👤 Moderation: 1–3 business days.
+
+Skip if no European co-author and no EU grant reporting need — Zenodo is already HAL-indexed via the OpenAIRE pipeline.
 
 ### 6.4 Regenerating `paper.pdf` when LaTeX drifts from the supplement 🔧
 
