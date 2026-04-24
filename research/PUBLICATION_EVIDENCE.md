@@ -17,6 +17,37 @@
 
 Two DOIs live, one OSF draft pending.
 
+### Post-publish remediation (2026-04-23 evening)
+
+A late pass after initial publication caught two defects. Both fixed:
+
+| Issue | Found in | Root cause | Fix |
+|---|---|---|---|
+| 10 Figshare files (4× paper.pdf + 3× supplement.zip + 3× modal_run_artifacts.zip) | Figshare DOI record | `submit_to_venues.py` Figshare submitter re-uploaded on every `all` / `--dry-run` invocation; Figshare's `/files` GET paginates at 10 so the problem was invisible locally. | Deleted 10 duplicates via `DELETE /v2/account/articles/{id}/files/{file_id}`. Iterated until stable (final count: 3 files). Patched the submitter to query current files and skip by MD5 match before upload. |
+| Placeholder URL `https://github.com/REPO/PATH` in Zenodo `related_identifiers` | Zenodo record 19716141 | `publish.yml` template shipped with a placeholder URL never swapped for the real one. | Replaced with `https://github.com/mm-bconscious/bioFM` + added cross-reference `10.6084/m9.figshare.32086920` (scheme: doi, relation: isIdenticalTo). Re-submitted via `/actions/edit` → `PUT metadata` → `/actions/publish`. |
+
+Bi-directional cross-references now live on both platforms:
+
+- Zenodo → GitHub (`isSupplementTo`) + Figshare DOI (`isIdenticalTo`).
+- Figshare → Zenodo DOI + GitHub URL (in `references` field).
+
+Audit script for next time:
+
+```bash
+set -a; source .env; set +a
+# Figshare dedup scan (uses article endpoint — not paginated)
+curl -sS "https://api.figshare.com/v2/account/articles/32086920" \
+  -H "Authorization: token $FIGSHARE_TOKEN" \
+  | jq '[.files[] | .name] | group_by(.) | map({name: .[0], count: length}) | map(select(.count > 1))'
+
+# Zenodo placeholder scan
+curl -sS "https://zenodo.org/api/deposit/depositions/19716141" \
+  -H "Authorization: Bearer $ZENODO_TOKEN" \
+  | jq '.metadata.related_identifiers' | grep -i "REPO/PATH\|YOUR_\|0000-0000"
+```
+
+Empty jq output = clean.
+
 ### OSF state detail
 
 At publish time (2026-04-23) OSF's preprint backend returned HTTP 502 on

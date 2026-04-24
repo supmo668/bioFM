@@ -355,7 +355,26 @@ class FigshareSubmitter:
             art_id = int(r.json()["location"].rsplit("/", 1)[-1])
             self.state.set("figshare", "article_id", art_id)
 
+        # Idempotency: Figshare accepts multiple files with the same name
+        # and does not return a 4xx on duplicate upload, so resume runs
+        # would silently accumulate copies. Query current files first and
+        # skip any name that already exists (compare on MD5 for safety).
+        existing_resp = requests.get(
+            f"{self.base}/account/articles/{art_id}",
+            headers=self.headers, timeout=30,
+        )
+        _raise_on(existing_resp)
+        existing_by_name: dict[str, str] = {}
+        for existing in existing_resp.json().get("files", []):
+            name = existing.get("name")
+            md5 = existing.get("computed_md5") or existing.get("supplied_md5")
+            if name:
+                existing_by_name[name] = md5 or ""
         for f in files:
+            existing_md5 = existing_by_name.get(f["name"])
+            if existing_md5 and existing_md5 == f["md5"]:
+                print(f"[figshare] skip existing file {f['name']} (md5 match)")
+                continue
             self._upload_file(art_id, f)
 
         r = requests.post(

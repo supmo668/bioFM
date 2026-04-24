@@ -91,11 +91,15 @@ venues:
     publication_type: preprint
     # Optional — Zenodo community IDs this deposit should appear in.
     communities: []
-    # Optional — related identifiers (Crossref DOIs, GitHub URLs, etc.).
+    # Related identifiers. Real URLs only — any "REPO/PATH"-style placeholder
+    # makes it into the published Zenodo metadata if left unreplaced.
     related_identifiers:
-      - identifier: "https://github.com/REPO/PATH"
+      - identifier: "https://github.com/mm-bconscious/bioFM"
         relation: "isSupplementTo"
         scheme: "url"
+      - identifier: "10.6084/m9.figshare.32086920"
+        relation: "isIdenticalTo"
+        scheme: "doi"
 
   figshare:
     enabled: true
