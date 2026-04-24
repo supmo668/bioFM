@@ -44,6 +44,9 @@ projects/**/*.png
 # per-machine tool configs). Not part of the project — ignore everywhere.
 .claude/
 
+# Git worktrees — isolated dev branches live here; each is its own checkout.
+.worktrees/
+
 # Scratch directory used by scripts/publish/submit_to_venues.py to zip
 # upload bundles. Build artefacts, not source.
 projects/perturb-seq-eval/.publish_work/
