@@ -449,6 +449,121 @@ this **before** running the bundle upload:
 
 Commit the updated `paper.tex` + `paper.pdf` before continuing to §5.
 
+### 6.5 Updating an already-published paper 🔧🤖
+
+Once a paper is live on any venue you may discover defects (see 2026-04-23
+`paper.pdf` authorship patch; v0.4.0 → v0.4.1). The class of change
+determines what's cheap to push and what forces a new DOI.
+
+| Change class | Example | API-driven? | Creates a new DOI? |
+|---|---|---|---|
+| Text (body, references, figures inside PDF) | authorship fix, typo, new result | Zenodo ❌ / Figshare ✅ / OSF ✅ | **Zenodo yes** (concept DOI stable); Figshare no (internal versions); OSF no (file replace) |
+| Bib-file hygiene (orphan removal only) | no visible change in compiled PDF | All ❌ — do not re-upload | — |
+| Metadata (related-ID, subject, keyword) | add a cross-reference | All ✅ | No |
+
+**Zenodo — create a new version** (the only flow that mints a new DOI):
+
+```bash
+set -a; source .env; set +a
+python3 <<'PY'
+import os, requests, datetime, json
+t = os.environ['ZENODO_TOKEN']
+h = {'Authorization': f'Bearer {t}'}
+current_id = json.load(open('projects/perturb-seq-eval/publish.state.json'))['zenodo']['deposit_id']
+base = f'https://zenodo.org/api/deposit/depositions/{current_id}'
+
+# 1. Fork the current version → new draft with the metadata copied in.
+r = requests.post(f'{base}/actions/newversion', headers=h, timeout=60); r.raise_for_status()
+draft_url = r.json()['links']['latest_draft']
+new_id = draft_url.rsplit('/',1)[-1]
+
+# 2. Delete the stale file from the new draft's bucket, upload the replacement.
+d = requests.get(draft_url, headers=h).json()
+bucket = d['links']['bucket']
+for f in d['files']:
+    if f['filename'] == 'paper.pdf':
+        requests.delete(f"{draft_url}/files/{f['id']}", headers=h)
+with open('projects/perturb-seq-eval/paper/paper.pdf','rb') as fh:
+    requests.put(f'{bucket}/paper.pdf', headers=h, data=fh.read())
+
+# 3. publication_date is a required field on new versions.
+meta = requests.get(draft_url, headers=h).json()['metadata']
+meta['publication_date'] = datetime.date.today().isoformat()
+requests.put(draft_url, headers={**h,'Content-Type':'application/json'},
+             json={'metadata': meta})
+
+# 4. Publish. Concept DOI 10.5281/zenodo.19716140 auto-redirects to the new
+#    record; update publish.state.json.zenodo.deposit_id / doi.
+out = requests.post(f'{draft_url}/actions/publish', headers=h).json()
+print('new record DOI:', out['doi'], 'concept DOI:', out.get('conceptdoi'))
+PY
+```
+
+**Figshare — replace file in place** (DOI unchanged):
+
+```bash
+python3 <<'PY'
+import os, requests, hashlib
+t = os.environ['FIGSHARE_TOKEN']
+h = {'Authorization': f'token {t}'}
+art = 'https://api.figshare.com/v2/account/articles/32086920'
+pdf = open('projects/perturb-seq-eval/paper/paper.pdf','rb').read()
+md5 = hashlib.md5(pdf).hexdigest(); size = len(pdf)
+
+# 1. Find + delete the old paper.pdf.
+cur = next(f for f in requests.get(art, headers=h).json()['files']
+            if f['name']=='paper.pdf')
+requests.delete(f"{art}/files/{cur['id']}", headers=h)
+
+# 2. Upload replacement via register → chunked PUT → complete.
+reg = requests.post(f'{art}/files',
+                    headers={**h,'Content-Type':'application/json'},
+                    json={'name':'paper.pdf','size':size,'md5':md5}).json()
+fid = int(reg['location'].rsplit('/',1)[-1])
+info = requests.get(f'{art}/files/{fid}', headers=h).json()
+parts = requests.get(info['upload_url'], headers=h).json()['parts']
+for p in parts:
+    requests.put(f"{info['upload_url']}/{p['partNo']}",
+                 data=pdf[p['startOffset']:p['endOffset']+1], headers=h)
+requests.post(f'{art}/files/{fid}', headers=h)  # complete
+PY
+```
+
+**OSF — delete + re-upload via Waterbutler**:
+
+```bash
+python3 <<'PY'
+import os, requests
+t = os.environ['OSF_TOKEN']; h = {'Authorization': f'Bearer {t}'}
+proj = 'wmeuy'
+files_api = 'https://files.osf.io/v1'
+for f in requests.get(f'{files_api}/resources/{proj}/providers/osfstorage/', headers=h).json()['data']:
+    if f['attributes']['name'] == 'paper.pdf':
+        path = f['attributes']['path']
+        requests.delete(f"{files_api}/resources/{proj}/providers/osfstorage{path}", headers=h)
+requests.put(f'{files_api}/resources/{proj}/providers/osfstorage/?kind=file&name=paper.pdf',
+             headers=h, data=open('projects/perturb-seq-eval/paper/paper.pdf','rb').read())
+PY
+```
+
+#### Manual-only venue updates 👤
+
+For every web-form venue there is **no replace-file API** — updates are
+full resubmits. Use this matrix:
+
+| Venue | Portal | How to update | Turnaround |
+|---|---|---|---|
+| **bioRxiv** | <https://submit.biorxiv.org> | Log in → find manuscript → **Submit revised manuscript** button → upload new PDF + source → new version attached to same DOI | 24–48 h re-screening |
+| **arXiv** | <https://arxiv.org/submit> (via [your account](https://arxiv.org/user/)) | Manuscript page → **Replace** → upload new tarball → new version (v2, v3…) keeps arXiv ID, appends version | usually < 12 h |
+| **Preprints.org** | <https://www.preprints.org/user> | Manuscript dashboard → **Submit revision** → upload + brief revision note → new version | ≤ 24 h |
+| **Research Square** (via SN In Review) | <https://www.researchsquare.com> | Manuscript page → **Update preprint** → upload new PDF | 48 h |
+| **SSRN** | <https://hq.ssrn.com/> | My Papers → select paper → **Edit My Paper** → **Replace Full Text** → upload | 2–5 d |
+| **HAL** | <https://hal.science> | User dashboard → deposit → **Add a new version** | 1–3 d |
+
+Rule of thumb: any body-text change propagates to every venue. A
+metadata-only change (e.g. new related-ID, author correction) can
+usually be made inline without a new version — check per-venue.
+
 ## 7. Post-publication 🤖
 
 Once the three API DOIs land, Claude automates the rest. The minimum
