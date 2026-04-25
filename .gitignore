@@ -31,10 +31,11 @@ credentials.json
 projects/**/results.jsonl
 projects/**/*.png
 
-# Don't track HF weights if accidentally downloaded in-repo
+# Don't track HF weights or large data files if downloaded in-repo.
 **/*.safetensors
 **/*.bin
 **/pytorch_model*
+**/*.h5ad
 
 # Upstream reference repos live as submodules (see .gitmodules).
 # git tracks the submodule pointers; files inside each submodule are governed
