@@ -70,84 +70,77 @@
 \newlabel{sec:probe}{{5}{3}{Preflight Probe and Bayesian Recommender}{section.5}{}}
 \@writefile{toc}{\contentsline {paragraph}{Probe signature.}{3}{section*.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Bayesian recommender.}{3}{section*.7}\protected@file@percent }
+\citation{peidli2024scperturb}
+\citation{adamson2016perturbseq}
+\citation{norman2019perturbseq}
 \@writefile{toc}{\contentsline {section}{\numberline {6}Experimental Setup}{4}{section.6}\protected@file@percent }
 \newlabel{sec:setup_exp}{{6}{4}{Experimental Setup}{section.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Data-generating process}{4}{subsection.6.1}\protected@file@percent }
-\newlabel{subsec:dgp}{{6.1}{4}{Data-generating process}{subsection.6.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Configuration space, compute, and protocol}{4}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Calibration.}{4}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Results}{5}{section.7}\protected@file@percent }
-\newlabel{sec:results}{{7}{5}{Results}{section.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}The metrics individually rank task difficulty --- with one signal dominating}{5}{subsection.7.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Single-feature correlation with the latent difficulty label $d$, $n\!=\!300$. The convergence signal $1{-}\Delta C$ is by far the most informative individual feature. The default-coefficient TDI has moderate rank correlation but negative univariate $R^2$, indicating a location-scale mismatch that the calibration step fixes (see Table\nobreakspace  {}\ref  {tab:calib}).\relax }}{5}{table.1}\protected@file@percent }
-\newlabel{tab:corr}{{1}{5}{Single-feature correlation with the latent difficulty label $d$, $n\!=\!300$. The convergence signal $1{-}\Delta C$ is by far the most informative individual feature. The default-coefficient TDI has moderate rank correlation but negative univariate $R^2$, indicating a location-scale mismatch that the calibration step fixes (see Table~\ref {tab:calib}).\relax }{table.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Per-task metric values versus latent difficulty ($n{=}300$). The TDI panel uses default weights, which under-weight $1-\Delta C$.\relax }}{5}{figure.caption.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Real Perturb-seq datasets}{4}{subsection.6.1}\protected@file@percent }
+\newlabel{subsec:datasets}{{6.1}{4}{Real Perturb-seq datasets}{subsection.6.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Backbone pool}{4}{subsection.6.2}\protected@file@percent }
+\newlabel{subsec:backbones}{{6.2}{4}{Backbone pool}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Agentic lifecycle with free-acting agents}{4}{subsection.6.3}\protected@file@percent }
+\newlabel{subsec:lifecycle}{{6.3}{4}{Agentic lifecycle with free-acting agents}{subsection.6.3}{}}
+\citation{lotfollahi2023cpa,roohani2024gears}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Compute and reproducibility}{5}{subsection.6.4}\protected@file@percent }
+\newlabel{subsec:compute}{{6.4}{5}{Compute and reproducibility}{subsection.6.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Results on Real Perturb-seq Data}{5}{section.7}\protected@file@percent }
+\newlabel{sec:results}{{7}{5}{Results on Real Perturb-seq Data}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Held-out MSD is controlled on both datasets}{5}{subsection.7.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces v0.5.0 headline: held-out-MSD-on-top-20-DEGs, real Perturb-seq data, median of the best trainer configuration per task across 54 configurations. Pre-registered gates: Adamson $<\!0.20$, Norman $<\!0.30$.\relax }}{5}{table.caption.8}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:metric_vs_d}{{1}{5}{Per-task metric values versus latent difficulty ($n{=}300$). The TDI panel uses default weights, which under-weight $1-\Delta C$.\relax }{figure.caption.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Calibration closes the gap between default and data-driven TDI}{5}{subsection.7.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Default-versus-calibrated TDI on the $60$-task held-out split. Ridge calibration places almost all weight on the convergence signal, raising test-set Spearman correlation from $+0.52$ to $+0.92$.\relax }}{5}{table.2}\protected@file@percent }
-\newlabel{tab:calib}{{2}{5}{Default-versus-calibrated TDI on the $60$-task held-out split. Ridge calibration places almost all weight on the convergence signal, raising test-set Spearman correlation from $+0.52$ to $+0.92$.\relax }{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}The probe partially identifies difficulty, but not post-hoc TDI}{5}{subsection.7.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out generalisation of the single-round probe. Predicting post-hoc TDI fails because TDI depends on multi-round convergence the probe does not observe; predicting $d$ directly yields a moderate signal that is nonetheless enough to tilt the Bayesian prior in the right direction on easy-versus-hard tiers.\relax }}{5}{table.3}\protected@file@percent }
-\newlabel{tab:probe}{{3}{5}{Held-out generalisation of the single-round probe. Predicting post-hoc TDI fails because TDI depends on multi-round convergence the probe does not observe; predicting $d$ directly yields a moderate signal that is nonetheless enough to tilt the Bayesian prior in the right direction on easy-versus-hard tiers.\relax }{table.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Left: default-versus-calibrated TDI rank correlation with $d$. Right: Spearman $\rho $ between each single feature and $d$. Red bars mark features that individually contribute $\rho \le 0.2$.\relax }}{6}{figure.caption.9}\protected@file@percent }
-\newlabel{fig:calib}{{2}{6}{Left: default-versus-calibrated TDI rank correlation with $d$. Right: Spearman $\rho $ between each single feature and $d$. Red bars mark features that individually contribute $\rho \le 0.2$.\relax }{figure.caption.9}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Probe-to-$d$ ridge prediction on $n{=}300$ tasks. The regressor shrinks predictions toward the mean, consistent with a weak but non-trivial signal.\relax }}{6}{figure.caption.10}\protected@file@percent }
-\newlabel{fig:probe}{{3}{6}{Probe-to-$d$ ridge prediction on $n{=}300$ tasks. The regressor shrinks predictions toward the mean, consistent with a weak but non-trivial signal.\relax }{figure.caption.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Held-out utility scales monotonically with $N$ but at tier-dependent rates}{6}{subsection.7.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Mean $\pm $ SEM held-out AUROC as a function of agent count $N$ and difficulty tier, with rounds fixed at $R{=}2$. Easy tasks benefit $\approx 3\times $ more from added agents than hard tasks do.\relax }}{6}{table.4}\protected@file@percent }
-\newlabel{tab:scaling}{{4}{6}{Mean $\pm $ SEM held-out AUROC as a function of agent count $N$ and difficulty tier, with rounds fixed at $R{=}2$. Easy tasks benefit $\approx 3\times $ more from added agents than hard tasks do.\relax }{table.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Pareto frontier: adaptive is competitive, uniform wins at large budgets}{6}{subsection.7.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Held-out mean AUROC at selected compute budgets. The adaptive policy traces the minimal-cost policy at low budgets and approaches uniform at high budgets; it never materially beats uniform in our DGP because the weak probe limits configuration selectivity.\relax }}{6}{table.5}\protected@file@percent }
-\newlabel{tab:pareto}{{5}{6}{Held-out mean AUROC at selected compute budgets. The adaptive policy traces the minimal-cost policy at low budgets and approaches uniform at high budgets; it never materially beats uniform in our DGP because the weak probe limits configuration selectivity.\relax }{table.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Utility scaling with $N$ stratified by difficulty tier. Hard-tier curves plateau well below easy-tier curves, arguing for adaptive rather than uniform allocation --- \emph  {provided} difficulty is observable before commit.\relax }}{7}{figure.caption.11}\protected@file@percent }
-\newlabel{fig:scaling}{{4}{7}{Utility scaling with $N$ stratified by difficulty tier. Hard-tier curves plateau well below easy-tier curves, arguing for adaptive rather than uniform allocation --- \emph {provided} difficulty is observable before commit.\relax }{figure.caption.11}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Mean held-out AUROC versus compute-budget proxy. The adaptive policy sits between minimal and uniform across the budget range; closing the gap requires a richer probe (Section\nobreakspace  {}\ref  {sec:limits}).\relax }}{7}{figure.caption.12}\protected@file@percent }
-\newlabel{fig:pareto}{{5}{7}{Mean held-out AUROC versus compute-budget proxy. The adaptive policy sits between minimal and uniform across the budget range; closing the gap requires a richer probe (Section~\ref {sec:limits}).\relax }{figure.caption.12}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Implementation and Observability Layer}{7}{section.8}\protected@file@percent }
-\newlabel{sec:impl}{{8}{7}{Implementation and Observability Layer}{section.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}The trace schema as the decoupling contract}{7}{subsection.8.1}\protected@file@percent }
+\newlabel{tab:headline-msd}{{1}{5}{v0.5.0 headline: held-out-MSD-on-top-20-DEGs, real Perturb-seq data, median of the best trainer configuration per task across 54 configurations. Pre-registered gates: Adamson $<\!0.20$, Norman $<\!0.30$.\relax }{table.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Agents genuinely use their configuration freedom}{5}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}TDI calibrated on real traces}{5}{subsection.7.3}\protected@file@percent }
+\newlabel{sec:tdi-real}{{7.3}{5}{TDI calibrated on real traces}{subsection.7.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Cross-dataset transfer}{5}{subsection.7.4}\protected@file@percent }
 \citation{massgen2025github}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Contribution audit. See \texttt  {docs/DESIGN.md} for the full file-by-file breakdown.\relax }}{8}{table.caption.13}\protected@file@percent }
-\newlabel{tab:contrib}{{6}{8}{Contribution audit. See \texttt {docs/DESIGN.md} for the full file-by-file breakdown.\relax }{table.caption.13}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Adapting \textsc  {CellForge}: duck typing, no patching}{8}{subsection.8.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}\textsc  {MassGen}'s native observability is rich but differently shaped}{8}{subsection.8.3}\protected@file@percent }
-\newlabel{subsec:massgen_bridge}{{8.3}{8}{\textsc {MassGen}'s native observability is rich but differently shaped}{subsection.8.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{What we have \emph  {not} done.}{8}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Why the synthetic DGP is still informative}{8}{subsection.8.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Spearman $\rho $ on real Perturb-seq traces. The v0.4.1 synthetic $\rho \!=\!0.92$ for TDI is retracted (synthetic experiments removed entirely from v0.5.0). Pre-registered real-data gate: $\rho \!>\!0.5$ for at least one component.\relax }}{6}{table.caption.9}\protected@file@percent }
+\newlabel{tab:tdi-real}{{2}{6}{Spearman $\rho $ on real Perturb-seq traces. The v0.4.1 synthetic $\rho \!=\!0.92$ for TDI is retracted (synthetic experiments removed entirely from v0.5.0). Pre-registered real-data gate: $\rho \!>\!0.5$ for at least one component.\relax }{table.caption.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Phase-3 pre-registered gate outcomes}{6}{subsection.7.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Implementation and Observability Layer}{6}{section.8}\protected@file@percent }
+\newlabel{sec:impl}{{8}{6}{Implementation and Observability Layer}{section.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}The trace schema as the decoupling contract}{6}{subsection.8.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Contribution audit. See \texttt  {docs/DESIGN.md} for the full file-by-file breakdown.\relax }}{6}{table.caption.10}\protected@file@percent }
+\newlabel{tab:contrib}{{3}{6}{Contribution audit. See \texttt {docs/DESIGN.md} for the full file-by-file breakdown.\relax }{table.caption.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Adapting \textsc  {CellForge}: duck typing, no patching}{6}{subsection.8.2}\protected@file@percent }
 \citation{chen2025cellforge}
 \citation{massgen2025github}
-\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion}{9}{section.9}\protected@file@percent }
-\newlabel{sec:discussion}{{9}{9}{Discussion}{section.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{What the group dynamics reveal.}{9}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Why the probe is weaker than the post-hoc metric.}{9}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Implications for upstream systems.}{9}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Limitations and Threats to Validity}{9}{section.10}\protected@file@percent }
-\newlabel{sec:limits}{{10}{9}{Limitations and Threats to Validity}{section.10}{}}
-\@writefile{toc}{\contentsline {paragraph}{Synthetic DGP.}{9}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Probe weakness.}{9}{section*.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Configuration space.}{9}{section*.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Reward model free-riding.}{9}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Generalisation across problem domains.}{9}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}\textsc  {MassGen}'s native observability is rich but differently shaped}{7}{subsection.8.3}\protected@file@percent }
+\newlabel{subsec:massgen_bridge}{{8.3}{7}{\textsc {MassGen}'s native observability is rich but differently shaped}{subsection.8.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{What we have \emph  {not} done.}{7}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion}{7}{section.9}\protected@file@percent }
+\newlabel{sec:discussion}{{9}{7}{Discussion}{section.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{What the group dynamics reveal.}{7}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why the probe is weaker than the post-hoc metric.}{7}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implications for upstream systems.}{7}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Limitations and Threats to Validity}{7}{section.10}\protected@file@percent }
+\newlabel{sec:limits}{{10}{7}{Limitations and Threats to Validity}{section.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{Synthetic DGP.}{7}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Probe weakness.}{8}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Configuration space.}{8}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reward model free-riding.}{8}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Generalisation across problem domains.}{8}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{8}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Reproducibility}{8}{section.11}\protected@file@percent }
+\newlabel{sec:reproducibility}{{11}{8}{Reproducibility}{section.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{Seeded determinism.}{8}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{DGP parameters are frozen in-source.}{8}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Artifact dependency graph.}{8}{section*.23}\protected@file@percent }
 \citation{snell2024scaling}
-\@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{10}{section*.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Reproducibility}{10}{section.11}\protected@file@percent }
-\newlabel{sec:reproducibility}{{11}{10}{Reproducibility}{section.11}{}}
-\@writefile{toc}{\contentsline {paragraph}{Seeded determinism.}{10}{section*.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{DGP parameters are frozen in-source.}{10}{section*.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Artifact dependency graph.}{10}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Software stack.}{10}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Tests.}{10}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Sixteen tests for the reference TTC implementations.}{10}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Companion design document.}{10}{section*.30}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}Conclusion}{10}{section.12}\protected@file@percent }
-\newlabel{sec:conclusion}{{12}{10}{Conclusion}{section.12}{}}
 \bibstyle{plainnat}
 \bibdata{references}
 \bibcite{adamson2016perturbseq}{{1}{2016}{{Adamson et~al.}}{{Adamson, Norman, Jost, Cho, Nu{\~{n}}ez, Chen, Villalta, Gilbert, Horlbeck, Hein, Pak, Gray, Gross, Dixit, Parnas, Regev, and Weissman}}}
 \bibcite{chen2025cellforge}{{2}{2025}{{Chen et~al.}}{{}}}
 \bibcite{cobbe2021verifiers}{{3}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman}}}
 \bibcite{cui2024scgpt}{{4}{2024}{{Cui et~al.}}{{Cui, Wang, Maan, Pang, Luo, Duan, and Wang}}}
+\@writefile{toc}{\contentsline {paragraph}{Software stack.}{9}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Tests.}{9}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sixteen tests for the reference TTC implementations.}{9}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Companion design document.}{9}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Conclusion}{9}{section.12}\protected@file@percent }
+\newlabel{sec:conclusion}{{12}{9}{Conclusion}{section.12}{}}
+\@writefile{toc}{\contentsline {paragraph}{Code and data.}{9}{section*.28}\protected@file@percent }
 \bibcite{deepseek2025r1}{{5}{2025}{{DeepSeek-AI et~al.}}{{DeepSeek-AI, Guo, Yang, Zhang, Song, Zhang, et~al.}}}
 \bibcite{hao2024scfoundation}{{6}{2024}{{Hao et~al.}}{{Hao, Gong, Zeng, Liu, Guo, Cheng, Wang, Ma, Zhang, and Song}}}
 \bibcite{kalfon2025scprint}{{7}{2025}{{Kalfon et~al.}}{{Kalfon, Samaran, Peyr\'e, and Cantini}}}
@@ -155,16 +148,18 @@
 \bibcite{lifshitz2025mav}{{9}{2025}{{Lifshitz et~al.}}{{Lifshitz, McIlraith, and Du}}}
 \bibcite{lightman2024prm}{{10}{2024}{{Lightman et~al.}}{{Lightman, Kosaraju, Burda, Edwards, Baker, Lee, Leike, Schulman, Sutskever, and Cobbe}}}
 \bibcite{liu2025rethinkingtts}{{11}{2025}{{Liu et~al.}}{{Liu, Gao, Zhao, Zhang, Li, Qi, Ouyang, and Zhou}}}
-\bibcite{muennighoff2025s1}{{12}{2025}{{Muennighoff et~al.}}{{Muennighoff, Yang, Shi, Li, Fei-Fei, Hajishirzi, Zettlemoyer, Liang, Cand\`es, and Hashimoto}}}
-\bibcite{norman2019perturbseq}{{13}{2019}{{Norman et~al.}}{{Norman, Horlbeck, Replogle, Ge, Xu, Jost, Gilbert, and Weissman}}}
-\bibcite{replogle2022perturbseq}{{14}{2022}{{Replogle et~al.}}{{Replogle, Saunders, Pogson, Hussmann, Lenail, Guna, Mascibroda, Wagner, Adelman, Lithwick-Yanai, Iremadze, Oberstrass, Lipson, Bonnar, Jost, Norman, and Weissman}}}
-\bibcite{saad2024archon}{{15}{2024}{{Saad-Falcon et~al.}}{{Saad-Falcon, Lafuente, Natarajan, Maru, Todorov, Buchanan, Chen, Guha, R\'e, and Mirhoseini}}}
-\@writefile{toc}{\contentsline {paragraph}{Code and data.}{11}{section*.31}\protected@file@percent }
-\bibcite{snell2024scaling}{{16}{2024}{{Snell et~al.}}{{Snell, Lee, Xu, and Kumar}}}
-\bibcite{theodoris2023geneformer}{{17}{2023}{{Theodoris et~al.}}{{Theodoris, Xiao, Chopra, Chaffin, Sayed, Hill, Mantineo, Brydon, Zeng, Liu, and Ellinor}}}
-\bibcite{wang2023selfconsistency}{{18}{2023}{{Wang et~al.}}{{Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery, and Zhou}}}
-\bibcite{wu2023autogen}{{19}{2023}{{Wu et~al.}}{{Wu, Bansal, Zhang, Wu, Li, Zhu, Jiang, Zhang, Zhang, Liu, Awadallah, White, Burger, and Wang}}}
-\bibcite{wu2024smalltllm}{{20}{2024}{{Wu et~al.}}{{Wu, Sun, Li, Welleck, and Yang}}}
-\bibcite{yao2023tot}{{21}{2023}{{Yao et~al.}}{{Yao, Yu, Zhao, Shafran, Griffiths, Cao, and Narasimhan}}}
-\bibcite{zhang2025ttssurvey}{{22}{2025}{{Zhang et~al.}}{{Zhang, Lyu, Sun, Wang, Zhang, Guo, Wang, Muennighoff, King, Liu, and Ma}}}
-\gdef \@abspage@last{12}
+\bibcite{lotfollahi2023cpa}{{12}{2023}{{Lotfollahi et~al.}}{{Lotfollahi, Susmelj, Donno, et~al.}}}
+\bibcite{muennighoff2025s1}{{13}{2025}{{Muennighoff et~al.}}{{Muennighoff, Yang, Shi, Li, Fei-Fei, Hajishirzi, Zettlemoyer, Liang, Cand\`es, and Hashimoto}}}
+\bibcite{norman2019perturbseq}{{14}{2019}{{Norman et~al.}}{{Norman, Horlbeck, Replogle, Ge, Xu, Jost, Gilbert, and Weissman}}}
+\bibcite{peidli2024scperturb}{{15}{2024}{{Peidli et~al.}}{{Peidli, Green, Shen, et~al.}}}
+\bibcite{replogle2022perturbseq}{{16}{2022}{{Replogle et~al.}}{{Replogle, Saunders, Pogson, Hussmann, Lenail, Guna, Mascibroda, Wagner, Adelman, Lithwick-Yanai, Iremadze, Oberstrass, Lipson, Bonnar, Jost, Norman, and Weissman}}}
+\bibcite{roohani2024gears}{{17}{2024}{{Roohani et~al.}}{{Roohani, Huang, and Leskovec}}}
+\bibcite{saad2024archon}{{18}{2024}{{Saad-Falcon et~al.}}{{Saad-Falcon, Lafuente, Natarajan, Maru, Todorov, Buchanan, Chen, Guha, R\'e, and Mirhoseini}}}
+\bibcite{snell2024scaling}{{19}{2024}{{Snell et~al.}}{{Snell, Lee, Xu, and Kumar}}}
+\bibcite{theodoris2023geneformer}{{20}{2023}{{Theodoris et~al.}}{{Theodoris, Xiao, Chopra, Chaffin, Sayed, Hill, Mantineo, Brydon, Zeng, Liu, and Ellinor}}}
+\bibcite{wang2023selfconsistency}{{21}{2023}{{Wang et~al.}}{{Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery, and Zhou}}}
+\bibcite{wu2023autogen}{{22}{2023}{{Wu et~al.}}{{Wu, Bansal, Zhang, Wu, Li, Zhu, Jiang, Zhang, Zhang, Liu, Awadallah, White, Burger, and Wang}}}
+\bibcite{wu2024smalltllm}{{23}{2024}{{Wu et~al.}}{{Wu, Sun, Li, Welleck, and Yang}}}
+\bibcite{yao2023tot}{{24}{2023}{{Yao et~al.}}{{Yao, Yu, Zhao, Shafran, Griffiths, Cao, and Narasimhan}}}
+\bibcite{zhang2025ttssurvey}{{25}{2025}{{Zhang et~al.}}{{Zhang, Lyu, Sun, Wang, Zhang, Guo, Wang, Muennighoff, King, Liu, and Ma}}}
+\gdef \@abspage@last{11}

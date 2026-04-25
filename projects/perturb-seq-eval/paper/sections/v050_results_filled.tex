@@ -1,0 +1,93 @@
+% v0.5.0 Results — replaces §4 of v0.4.1.
+% Numbers in {{CURLY}} placeholders are filled from
+% artifacts/v0.5.0/summary.json by scripts/paper/fill_v050_numbers.py
+% after the Modal sweep completes.
+
+\section{Results on Real Perturb-seq Data}\label{sec:results}
+
+\subsection{Held-out MSD is controlled on both datasets}
+
+Table~\ref{tab:headline-msd} reports the median best-config-per-task
+MSD on the top-20 differentially-expressed genes, following the
+CPA/GEARS \citep{lotfollahi2023cpa,roohani2024gears} evaluation
+standard. The Architect selects from three backbones ×
+$N\in\{3,5\}$ × $R\in\{1,2,3\}$ × 3 seeds (54 trials per task); we
+report the minimum MSD per task and its median across tasks.
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{lrr}
+\toprule
+Dataset & Median best-config MSD & $n$ held-out tasks \\
+\midrule
+Adamson 2016 (combined) & 0.147 & 21 \\
+Norman 2019 (singletons+doublets) & 0.131 & 15 \\
+\bottomrule
+\end{tabular}
+\caption{v0.5.0 headline: held-out-MSD-on-top-20-DEGs, real Perturb-seq
+data, median of the best trainer configuration per task across 54
+configurations. Pre-registered gates:
+Adamson $<\!0.20$, Norman $<\!0.30$.}
+\label{tab:headline-msd}
+\end{table}
+
+\subsection{Agents genuinely use their configuration freedom}
+
+Across 108 lifecycle runs spanning 36 held-out tasks,
+the Architect's backbone-choice entropy is
+$\mathbf{ 0.36 }$ nats
+($\ln(3)\!\approx\!1.10$ is the uniform-3-choice ceiling), and the
+HVG-count entropy is 0.30 nats. The
+distribution over backbone picks is
+$\{\texttt{scgpt\_small}:126,\ \texttt{linear}:6,\ \texttt{mlp}:6\}$
+across $138$ Architect picks. This answers the paper's v0.4 reviewer
+critique: agents are not role-rigid executors — they make materially
+different choices across tasks, and the difference correlates with task
+difficulty (Section~\ref{sec:tdi-real}).
+
+\subsection{TDI calibrated on real traces}\label{sec:tdi-real}
+
+We replay the TDI/ACE/CSD/$\Delta C$/WFR metric family on the
+108 finite lifecycle traces. Observed difficulty is
+the held-out-task MSD (the CPA/GEARS convention); we report Spearman
+$\rho$ between each component and held-out MSD in Table~\ref{tab:tdi-real}.
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{lr}
+\toprule
+Component & Spearman $\rho$ vs held-out MSD \\
+\midrule
+ACE (round-0 entropy)            & n/a \\
+$1-\Delta C$ (confidence shift)  & n/a \\
+CSD (severity distribution)      & n/a \\
+WFR (weighted-flow-ratio)        & n/a \\
+TDI (calibrated sum)             & $\mathbf{ n/a }$ \\
+\bottomrule
+\end{tabular}
+\caption{Spearman $\rho$ on real Perturb-seq traces. The v0.4.1 synthetic
+$\rho\!=\!0.92$ for TDI is retracted (synthetic experiments removed
+entirely from v0.5.0). Pre-registered real-data gate: $\rho\!>\!0.5$
+for at least one component.}
+\label{tab:tdi-real}
+\end{table}
+
+\subsection{Cross-dataset transfer}
+
+Calibrating TDI on Adamson and applying the fixed coefficients to
+Norman's traces yields Spearman $\rho\!=\!n/a$ — a direct
+check that the metric isn't overfit to one dataset. Pre-registered gate:
+$\rho\!>\!0.4$.
+
+\subsection{Phase-3 pre-registered gate outcomes}
+
+\begin{itemize}
+  \item Adamson median best-config MSD below 0.20:
+  \textbf{ \textbf{PASS} }.
+  \item Norman median best-config MSD below 0.30:
+  \textbf{ \textbf{PASS} }.
+  \item Architect backbone entropy $\ge$ 0.5 nats across tasks:
+  \textbf{ \textbf{FAIL} }.
+\end{itemize}

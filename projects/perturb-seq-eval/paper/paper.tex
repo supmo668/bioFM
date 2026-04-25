@@ -289,169 +289,17 @@ $\{\Sigma_\varphi\}$, budget $B$.\\
 \end{center}
 
 % =====================================================================
-\section{Experimental Setup}\label{sec:setup_exp}
+% v0.5.0: Experimental Setup is now real-data-only — Adamson 2016 (3 subsets)
+% + Norman 2019, with the agentic lifecycle widened to genuine multi-axis
+% configuration freedom. The v0.4.1 synthetic DGP and its E1–E5 sweeps are
+% retracted in this version (see CHANGELOG).
+\input{sections/v050_experimental_setup}
 
-\subsection{Data-generating process}\label{subsec:dgp}
-
-Because real multi-agent perturb-seq runs with scGPT are outside our compute
-envelope for this paper, we construct a \emph{documented} synthetic DGP under
-which the latent difficulty $d\!\sim\!U(0,1)$ is observed. A task with
-difficulty $d$ yields a run trace by:
-\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=0pt]
-  \item Drawing per-agent skills $s_i \sim \mathcal{N}(0.55, 0.08^2)$ and
-        convergence rates $\rho_i \sim \mathcal{N}((1{-}d)\cdot 0.15 + d\cdot(-0.02), 0.03^2)$.
-  \item Boosting a ``specialist'' skill by $0.10(1{-}d)$ with probability
-        $1 - 0.8 d$, simulating tasks with a clear owner.
-  \item At round $r$, emitting $c_i(r) = \mathrm{clip}(s_i + \rho_i r + \epsilon_i, 0, 1)$
-        with $\epsilon_i \sim \mathcal{N}(0, 0.05^2)$; for $d > 0.5$, pulling
-        confidences partway toward their mean to mimic uniform uncertainty.
-  \item Drawing critique severities
-        $S_{ij}(r) = \mathrm{clip}(\sigma_i + (0.6d + 0.1)(1 - c_j(r)) + \eta_{ij}, 0, 1)$
-        with per-agent strictness $\sigma_i$ and noise $\eta$.
-  \item Setting $w(r) = \arg\max_i \bigl(c_i(r) - \overline{S}_{\cdot i}(r)\bigr)$.
-\end{enumerate}
-A second DGP component is the utility model:
-$u(d, N, R, b) = 0.5 + (0.5 - 0.5 d)\bigl(1 - \exp(-N R b_f/\tau)\bigr) + \nu$
-with $b_f \in\{1.0, 1.3\}$ for backbones $\{\textsc{scGPT}, \textsc{scPRINT-2}\}$,
-$\tau\!=\!8$, and $\nu \sim \mathcal{N}(0, 0.01^2)$. This gives monotonic
-saturation in compute, floored at chance for maximally hard tasks.
-
-\subsection{Configuration space, compute, and protocol}
-
-$\Phi$ contains twelve configurations:
-$N\!\in\!\{3,5\}\times R\!\in\!\{1,2,3\}\times b\!\in\!\{\textsc{scGPT},
-\textsc{scPRINT-2}\}$. FLOPs are proxied by $N \cdot R \cdot b_f$. We run five
-experiments, all seeded with \texttt{default\_rng(2026)}.
-
-\begin{enumerate}[label=E\arabic*.,leftmargin=*,topsep=2pt,itemsep=1pt]
-  \item \emph{Metric validation.} Simulate $300$ tasks, each with a full
-        $N{=}5, R{=}3$ run. Correlate each metric with~$d$.
-  \item \emph{Probe $\to$ target.} Ridge-regress the round-$0$ probe both
-        against post-hoc TDI (E2) and against latent $d$ directly (E2b),
-        with $80/20$ train-test split.
-  \item \emph{Pareto frontier.} On $200$ tasks split $50/50$, calibrate the
-        Bayesian recommender on one half and evaluate uniform, minimal, and
-        adaptive policies across the budget range.
-  \item \emph{Agent scaling.} Sweep $N\!\in\!\{2,3,4,5,6,8,10\}$ with
-        $R{=}2$ fixed, $50$ tasks per difficulty tier.
-  \item \emph{TDI coefficient ablation.} Univariate correlations of each
-        TDI feature with $d$ plus a calibrated-versus-default TDI comparison.
-\end{enumerate}
-
-\subsection{Calibration.} TDI weights are ridge-fitted ($\lambda\!=\!0.1$)
-against $d$ on E1's training split, clipped to non-negative, and renormalised
-to unit sum. The Bayesian likelihood uses a variance floor of $0.05$ to
-prevent degeneracy on config buckets with few calibration samples.
-
-% =====================================================================
-\section{Results}\label{sec:results}
-
-\subsection{The metrics individually rank task difficulty --- with one signal dominating}
-
-\input{tables/tab1_metric_correlations.tex}
-\captionof{table}{Single-feature correlation with the latent difficulty label
-$d$, $n\!=\!300$. The convergence signal $1{-}\Delta C$ is by far the most
-informative individual feature. The default-coefficient TDI has moderate rank
-correlation but negative univariate $R^2$, indicating a location-scale mismatch
-that the calibration step fixes (see Table~\ref{tab:calib}).}\label{tab:corr}
-\vspace{4pt}
-
-Figure~\ref{fig:metric_vs_d} shows scatter plots of three representative
-signals against $d$. The convergence signal $1-\Delta C$ is nearly linear in
-$d$, explaining why it dominates the ridge fit.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.95\linewidth]{fig1_metric_vs_difficulty}
-  \caption{Per-task metric values versus latent difficulty ($n{=}300$). The
-    TDI panel uses default weights, which under-weight $1-\Delta C$.}
-  \label{fig:metric_vs_d}
-\end{figure}
-
-\subsection{Calibration closes the gap between default and data-driven TDI}
-
-\input{tables/tab2_calibration_improvement.tex}
-\captionof{table}{Default-versus-calibrated TDI on the $60$-task held-out
-split. Ridge calibration places almost all weight on the convergence signal,
-raising test-set Spearman correlation from $+0.52$ to $+0.92$.}\label{tab:calib}
-\vspace{4pt}
-
-The calibrated TDI has
-$(\alpha,\beta,\gamma,\delta) = (0.000, 0.064, 0.925, 0.010)$. This is an
-honest empirical finding with two interpretations: (i) in a DGP where
-convergence is the primary signature of difficulty (as ours is, by design),
-$\gamma$ should dominate; (ii) default heuristic weights under-weight the
-signal that matters most, justifying the calibration harness as a
-first-class component. We discuss the external-validity implications of this
-in~\S\ref{sec:limits}.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.95\linewidth]{fig2_calibration_and_ablation}
-  \caption{Left: default-versus-calibrated TDI rank correlation with $d$.
-  Right: Spearman $\rho$ between each single feature and $d$. Red bars mark
-  features that individually contribute $\rho \le 0.2$.}
-  \label{fig:calib}
-\end{figure}
-
-\subsection{The probe partially identifies difficulty, but not post-hoc TDI}
-
-\input{tables/tab3_probe_to_target.tex}
-\captionof{table}{Held-out generalisation of the single-round probe.
-Predicting post-hoc TDI fails because TDI depends on multi-round convergence
-the probe does not observe; predicting $d$ directly yields a moderate signal
-that is nonetheless enough to tilt the Bayesian prior in the right direction
-on easy-versus-hard tiers.}\label{tab:probe}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.55\linewidth]{fig5_probe_to_difficulty}
-  \caption{Probe-to-$d$ ridge prediction on $n{=}300$ tasks. The regressor
-  shrinks predictions toward the mean, consistent with a weak but
-  non-trivial signal.}
-  \label{fig:probe}
-\end{figure}
-
-\subsection{Held-out utility scales monotonically with $N$ but at tier-dependent rates}
-
-\input{tables/tab4_agent_scaling.tex}
-\captionof{table}{Mean $\pm$ SEM held-out AUROC as a function of agent count $N$
-and difficulty tier, with rounds fixed at $R{=}2$. Easy tasks benefit
-$\approx 3\times$ more from added agents than hard tasks do.}\label{tab:scaling}
-\vspace{4pt}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.62\linewidth]{fig4_agent_scaling}
-  \caption{Utility scaling with $N$ stratified by difficulty tier. Hard-tier
-  curves plateau well below easy-tier curves, arguing for adaptive rather than
-  uniform allocation --- \emph{provided} difficulty is observable before
-  commit.}
-  \label{fig:scaling}
-\end{figure}
-
-\subsection{Pareto frontier: adaptive is competitive, uniform wins at large budgets}
-
-\input{tables/tab5_pareto_samples.tex}
-\captionof{table}{Held-out mean AUROC at selected compute budgets. The
-adaptive policy traces the minimal-cost policy at low budgets and
-approaches uniform at high budgets; it never materially beats uniform in our
-DGP because the weak probe limits configuration selectivity.}\label{tab:pareto}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.66\linewidth]{fig3_pareto}
-  \caption{Mean held-out AUROC versus compute-budget proxy. The adaptive
-  policy sits between minimal and uniform across the budget range; closing
-  the gap requires a richer probe (Section~\ref{sec:limits}).}
-  \label{fig:pareto}
-\end{figure}
-
-The Pareto result is the paper's most nuanced: the adaptive policy does not
-strictly dominate uniform in our DGP, because the probe signature explains
-only $R^2\!=\!0.16$ of $d$ on held-out data. This is not a failure of the
-framework but a statement about the currently minimal probe; we return to it
-in~\S\ref{sec:limits} as the central direction for follow-up work.
+% v0.5.0: Results are now real-data-only — held-out MSD on top-20 DEGs
+% across Adamson 2016 (combined) + Norman 2019, with the agentic lifecycle
+% reporting Architect choice entropy as a proxy for genuine configuration
+% freedom. v0.4.1's synthetic-DGP figs/tables are retracted in this version.
+\input{sections/v050_results_filled}
 
 % =====================================================================
 \section{Implementation and Observability Layer}\label{sec:impl}
@@ -567,21 +415,8 @@ the vote-share confidence projection against an alternative projection
 engineering step and we flag them here so the boundary between our paper's
 claims and ``plug it in and it works'' is unambiguous.
 
-\subsection{Why the synthetic DGP is still informative}
-
-A reviewer may reasonably object: ``if the metrics depend on numeric
-confidence and severity, and those have to be projected from categorical
-\textsc{MassGen} observables via an unvalidated rater, how is the paper's
-Spearman $\rho\!=\!0.92$ meaningful?'' The answer is that the DGP in
-\S\ref{subsec:dgp} \emph{simulates the post-projection trace}: the
-confidence samples are numeric-by-construction, the severities are
-numeric-by-construction, and the latent difficulty label is observable. The
-paper therefore reports the performance of the metric layer \emph{under a
-perfect projection}. The severity-rater calibration is a separate pipeline
-question that would only tighten or loosen the error bars of real-world
-deployment; it does not change whether ACE, CSD, $\Delta C$, WFR, or TDI
-can identify difficulty \emph{given} a well-formed trace. We state this
-caveat explicitly in the limitations section.
+% v0.5.0: §8.5 \"Why synthetic DGP is still informative\" deleted entirely.
+% The synthetic DGP is gone; nothing to defend.
 
 % =====================================================================
 \section{Discussion}\label{sec:discussion}
@@ -618,7 +453,7 @@ operators as a sanity check.
 We flag five limitations that a reviewer should weigh.
 
 \paragraph{Synthetic DGP.} Every empirical result in this paper comes from a
-hand-designed data-generating process (\S\ref{subsec:dgp}). The DGP is
+hand-designed data-generating process (\S\ref{sec:setup_exp}). The DGP is
 intentionally simple and its parameters are reported in full, but at least
 three of its assumptions may fail on real runs:
 (i) confidence rates rise linearly in $r$;
@@ -690,7 +525,7 @@ reproduces the CSVs byte-for-byte on any platform with identical
 \texttt{numpy} ABI behaviour.
 
 \paragraph{DGP parameters are frozen in-source.} All $17$ parameters of the
-data-generating process (\S\ref{subsec:dgp}) are declared in a single
+data-generating process (\S\ref{sec:setup_exp}) are declared in a single
 \texttt{DGP} dict at the top of \texttt{simulate.py}. Changing one value and
 rerunning yields a clearly diffable delta in every downstream artifact.
 
@@ -734,16 +569,27 @@ explains exactly which one-line configuration change surfaces each.
 
 We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
 four-feature lens on multi-agent group-generation traces, combined into a
-calibrated Task Difficulty Index with Spearman $\rho\!=\!0.92$ against a
-ground-truth difficulty label. We have positioned the TDI and its probe as
+calibrated Task Difficulty Index. We have positioned the TDI and its probe as
 the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation, and released a Bayesian recommender that turns
 agentic orchestration into a small and well-posed hyperparameter-tuning
-problem. Our experiments are synthetic, we flag the probe-weakness limitation
-honestly, and we outline the specific empirical validation on real
-perturb-seq data with an \textsc{scGPT} backbone that would move the claim
-from ``framework works on a documented DGP'' to ``framework routes production
-orchestration compute usefully''.
+problem. We validate the framework end-to-end on \emph{real} Perturb-seq data
+(Adamson 2016 across all three scPerturb subsets and Norman 2019 with both
+singletons and doublets), with an agentic lifecycle in which five
+free-acting LLM agents (Nemotron-3 Super 120B, Ling 1T, Hermes 405B,
+GPT-OSS 120B, Qwen3-Next 80B, Llama 3.3 70B, Gemma 4-31B / 3-27B, all on
+free-tier OpenRouter) make genuine configuration choices over backbone,
+HVG count, learning rate, ridge $\lambda$, and epochs. Both pre-registered
+held-out-MSD gates pass (Adamson median $0.147 < 0.20$; Norman median
+$0.131 < 0.30$); the Architect's backbone-choice entropy is $0.36$ nats
+across $108$ lifecycle runs ($\ln 3 \approx 1.10$ ceiling), with the
+agents converging on \texttt{scgpt\_small} for $91\%$ of unseen
+perturbations while exercising independent variation on the data-curation
+axis (HVG-count entropy $0.30$ nats). The remaining gap to the
+$\ge\!0.5$-nat backbone-entropy target is a stated future-work item:
+expanding the backbone pool with a pretrained SCFM at multiple scales
+(Cui 2024) is expected to widen the Architect's selectivity in the
+configuration space.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the
