@@ -1,0 +1,17 @@
+{
+  "started_at": 1777070118.147614,
+  "finished_at": 1777073578.396238,
+  "wall_clock_sec": 3460.24862408638,
+  "total_gpu_seconds": 11013.998866796494,
+  "total_cost_usd": 4.0384662517706555,
+  "budget_cap_usd": 28.0,
+  "n_trainer_runs": 1944,
+  "n_lifecycle_runs": 108,
+  "architect_backbone_entropy_nats": 0.355712859746894,
+  "architect_hvg_entropy_nats": 0.2954391918721161,
+  "architect_backbone_distribution": {
+    "scgpt_small": 126,
+    "linear": 6,
+    "mlp": 6
+  }
+}
