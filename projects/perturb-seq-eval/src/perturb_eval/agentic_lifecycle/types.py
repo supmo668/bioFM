@@ -5,8 +5,8 @@ See docs/plans/2026-04-22-end-to-end-agentic-lifecycle.md Task 1.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 
 @dataclass(frozen=True)
@@ -23,6 +23,20 @@ class ExecutedProposal:
 
 
 @dataclass(frozen=True)
+class StructuredCritiqueDTO:
+    """Validator critique payload consumed by the next round's Architect.
+
+    Kept as a plain dataclass (not a Pydantic model) so it's trivially
+    serialisable alongside other ``types.py`` DTOs. The Pydantic mirror
+    lives in :mod:`proposal_schema` for LLM-output validation.
+    """
+
+    which_genes_failed: tuple[str, ...] = ()
+    suggested_next_config_delta: dict[str, Any] = field(default_factory=dict)
+    accept_reason: str = ""
+
+
+@dataclass(frozen=True)
 class ExecutedValidation:
     """Validator's report after scoring a trained model."""
 
@@ -31,6 +45,7 @@ class ExecutedValidation:
     deg_overlap_at_k: float
     accepted: bool
     rationale: str
+    critique: Optional[StructuredCritiqueDTO] = None
 
 
 @dataclass(frozen=True)
