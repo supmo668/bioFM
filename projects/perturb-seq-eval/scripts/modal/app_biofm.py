@@ -97,7 +97,7 @@ def _inject_openrouter_env() -> dict:
             "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
         ),
         "OPENROUTER_REFERER": os.environ.get(
-            "OPENROUTER_REFERER", "https://github.com/mm-bconscious/bioFM"
+            "OPENROUTER_REFERER", "https://github.com/supmo668/bioFM"
         ),
         "OPENROUTER_APP_TITLE": "perturb-seq-eval",
         "HF_CACHE_DIR": "/biofm_cache",

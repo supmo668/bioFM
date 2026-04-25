@@ -90,7 +90,7 @@ venues:
     # Related identifiers. Real URLs only — any "REPO/PATH"-style placeholder
     # makes it into the published Zenodo metadata if left unreplaced.
     related_identifiers:
-      - identifier: "https://github.com/mm-bconscious/bioFM"
+      - identifier: "https://github.com/supmo668/bioFM"
         relation: "isSupplementTo"
         scheme: "url"
       - identifier: "10.6084/m9.figshare.32086920"
