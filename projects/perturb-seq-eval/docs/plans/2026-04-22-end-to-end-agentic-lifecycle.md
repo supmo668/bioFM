@@ -1792,8 +1792,8 @@ authors:
 version: "0.3.0"
 date-released: "2026-04-22"
 license: "Apache-2.0"
-repository: "https://github.com/mm-bconscious/bioFM"
-url: "https://github.com/mm-bconscious/bioFM/tree/main/projects/perturb-seq-eval"
+repository: "https://github.com/supmo668/bioFM"
+url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 references:
   - type: article
     authors:

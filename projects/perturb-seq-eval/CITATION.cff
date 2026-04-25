@@ -32,8 +32,8 @@ identifiers:
   - type: doi
     value: "10.6084/m9.figshare.32086920"
     description: "Figshare (mirror for supplement + artefacts, paper.pdf updated in-place)"
-repository-code: "https://github.com/mm-bconscious/bioFM"
-url: "https://github.com/mm-bconscious/bioFM/tree/main/projects/perturb-seq-eval"
+repository-code: "https://github.com/supmo668/bioFM"
+url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:
   - perturb-seq
   - Bayesian optimization
