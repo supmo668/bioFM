@@ -15,10 +15,13 @@ bioFM/
 │   └── MODELS.md                                 my classification & pipeline-fit cheat-sheet
 ├── tools/
 │   └── MassGen/                                  (submodule: Leezekun/MassGen multi-agent scaling)
+├── libs/                                         ← reusable libraries consumed by projects/
+│   ├── test-time-compute/                        TTC scaling library for BioFM-265M
+│   └── cellforge-agents/                         5-agent propose-critique-vote orchestrator
 ├── projects/
-│   ├── test-time-compute/                        Project 1 — TTC for BioFM-265M
-│   ├── cellforge-agents/                         Project 2 — 5-agent perturbation-modelling PoC
-│   └── perturb-seq-eval/                         Project 3 — Bayesian agentic HP tuning (thesis)
+│   └── perturb-seq-eval/                         the paper-bearing research project
+│                                                  (Bayesian agentic HP tuning — thesis,
+│                                                   v0.5.0 real-data headline)
 └── docs/
 ```
 
@@ -39,7 +42,7 @@ to hydrate all upstream reference repositories.
 
 ## Project 1 — Test-Time Compute Scaling for BioFM-265M
 
-See [`projects/test-time-compute/README.md`](projects/test-time-compute/README.md).
+See [`libs/test-time-compute/README.md`](libs/test-time-compute/README.md).
 
 Wraps `m42-health/BioFM-265M` (a 265 M Mistral-style causal genomic decoder with biologically-informed tokenization) and adds three orthogonal TTC levers:
 
@@ -48,7 +51,7 @@ Wraps `m42-health/BioFM-265M` (a 265 M Mistral-style causal genomic decoder with
 3. **Temperature / top-k search** to trace the compute ↔ quality Pareto frontier.
 
 ```bash
-cd projects/test-time-compute
+cd libs/test-time-compute
 pip install -r requirements.txt && pip install -e .
 pytest -q                                          # 21/21 unit tests
 ttc best-of-n --prompt ATGCGTACGT --n 8
@@ -58,7 +61,7 @@ ttc sweep --prompt ATGCGTACGT --budget 32
 
 ## Project 2 — CellForge-inspired 5-Agent Group Generation PoC
 
-See [`projects/cellforge-agents/README.md`](projects/cellforge-agents/README.md).
+See [`libs/cellforge-agents/README.md`](libs/cellforge-agents/README.md).
 
 Five specialised agents coordinated **MassGen-style** (propose → critique → vote → refine) on perturbation-response modelling from multi-omics data:
 
@@ -71,7 +74,7 @@ Five specialised agents coordinated **MassGen-style** (propose → critique → 
 | 5 | Validator | pathway enrichment, DEG overlap, held-out AUROC, negative controls |
 
 ```bash
-cd projects/cellforge-agents
+cd libs/cellforge-agents
 pip install -r requirements.txt && pip install -e .
 pytest -q                                          # 28/28 unit tests
 cellforge run --perturbation "GSK3B knockout" --modality scRNA-seq
@@ -115,9 +118,9 @@ python examples/end_to_end.py  # shows metrics + coefficient fit + Bayesian rout
 
 ## Contributing back upstream
 
-- `projects/cellforge-agents/src/cellforge/orchestrator.py` is intentionally shaped like a [MassGen](https://github.com/Leezekun/MassGen) skill so it can be packaged via `npx skills add` (MassGen already supports multi-framework skill install).
+- `libs/cellforge-agents/src/cellforge/orchestrator.py` is intentionally shaped like a [MassGen](https://github.com/Leezekun/MassGen) skill so it can be packaged via `npx skills add` (MassGen already supports multi-framework skill install).
 - `research/MODELS.md` is a PR-ready addition to either [Awesome-Bio-Foundation-Models](https://github.com/apeterswu/Awesome-Bio-Foundation-Models) or [awesome-foundation-model-single-cell-papers](https://github.com/OmicsML/awesome-foundation-model-single-cell-papers) (pipeline-fit columns are not in either today).
-- `projects/test-time-compute` layers cleanly on top of [m42-health/biofm-eval](https://github.com/m42-health/biofm-eval); a natural PR target is adding a `Generator.best_of_n(...)` convenience method alongside their existing `Generator.generate`.
+- `libs/test-time-compute` layers cleanly on top of [m42-health/biofm-eval](https://github.com/m42-health/biofm-eval); a natural PR target is adding a `Generator.best_of_n(...)` convenience method alongside their existing `Generator.generate`.
 
 ## Re-running the surveys
 
@@ -125,4 +128,4 @@ The `research/` sub-repos are regular git clones. `cd research/<name> && git pul
 
 ## License
 
-Everything I authored in `projects/` and `research/MODELS.md` is Apache-2.0. The cloned sub-repos keep their upstream licenses (CC-BY-NC-4.0 for `biofm-eval`, MIT for `Awesome-Bio-Foundation-Models`, Apache-2.0 for `MassGen`, etc. — see each directory).
+Everything I authored in `libs/`, `projects/`, and `research/MODELS.md` is Apache-2.0. The cloned sub-repos keep their upstream licenses (CC-BY-NC-4.0 for `biofm-eval`, MIT for `Awesome-Bio-Foundation-Models`, Apache-2.0 for `MassGen`, etc. — see each directory).
