@@ -4,6 +4,15 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
+## [0.5.0+layout] — 2026-04-24 (post-publish housekeeping)
+
+### Repository structure
+
+- **`libs/` directory introduced at the repo root.** `cellforge-agents` and `test-time-compute` moved out of `projects/` into `libs/`. Rationale: only `perturb-seq-eval` is the paper-bearing research project; the other two are reusable libraries (cellforge is imported via `cellforge_pool.py`; test-time-compute is referenced as related work).
+- Path-sensitive code (`scripts/modal/app_lifecycle.py`, `app_lifecycle_optimizer.py`, `app_biofm.py`, `scripts/local/collect_real_probes.py`) updated with a `libs/`-first lookup that falls back to the legacy `projects/cellforge-agents/` location for older checkouts.
+- All doc + paper refs swept to `libs/cellforge-agents/` / `libs/test-time-compute/`.
+- Re-published Zenodo v3 metadata + Figshare references with the corrected `https://github.com/supmo668/bioFM` URL (the v0.4.x records had `mm-bconscious/bioFM` which never existed). DOIs unchanged: Zenodo `10.5281/zenodo.19748260`, Figshare `10.6084/m9.figshare.32086920`.
+
 ## [0.5.0] — 2026-04-24 (real-data headline rewrite)
 
 ### Changed (headline)
