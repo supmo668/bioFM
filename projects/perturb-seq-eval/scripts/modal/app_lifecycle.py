@@ -28,8 +28,14 @@ try:
     PROJECT_DIR_HOST = Path(__file__).resolve().parents[2]
 except IndexError:
     PROJECT_DIR_HOST = Path(__file__).resolve().parent
+# v0.5.0 layout: libs/cellforge-agents lives at the repo root, sibling
+# to projects/. Repo root is parents[3] from this file. Fall back to
+# legacy `projects/cellforge-agents` for older checkouts.
 try:
-    CELLFORGE_DIR_HOST = PROJECT_DIR_HOST.parent / "cellforge-agents"
+    REPO_ROOT_HOST = Path(__file__).resolve().parents[3]
+    CELLFORGE_DIR_HOST = REPO_ROOT_HOST / "libs" / "cellforge-agents"
+    if not CELLFORGE_DIR_HOST.exists():
+        CELLFORGE_DIR_HOST = PROJECT_DIR_HOST.parent / "cellforge-agents"
 except Exception:  # noqa: BLE001
     CELLFORGE_DIR_HOST = PROJECT_DIR_HOST
 

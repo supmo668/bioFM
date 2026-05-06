@@ -9,7 +9,7 @@ on Perturb-Seq Experimental Design."**
 ## Thesis in one sentence
 
 The per-round joint distribution of agent confidence + critique severity in a
-[CellForge-style 5-agent team](../cellforge-agents/) is a sufficient statistic
+[CellForge-style 5-agent team](../../libs/cellforge-agents/) is a sufficient statistic
 for task difficulty. A cheap preflight probe of that distribution yields a
 Bayesian recommender for the optimal team size, round count, and backbone —
 turning agentic orchestration into hyperparameter tuning.
@@ -84,8 +84,8 @@ perturb-eval preflight --perturbation "GSK3B knockout" --modality scRNA-seq
 
 ```text
 research/test-time-compute-guide/       theory of TTC + taxonomy
-projects/test-time-compute/             TTC applied to a single BioFM (BioFM-265M)
-projects/cellforge-agents/              5-agent orchestration — the thing under study here
+libs/test-time-compute/             TTC applied to a single BioFM (BioFM-265M)
+libs/cellforge-agents/              5-agent orchestration — the thing under study here
 projects/perturb-seq-eval/  ──────────► evaluation + Bayesian HP tuning for the above
 ```
 

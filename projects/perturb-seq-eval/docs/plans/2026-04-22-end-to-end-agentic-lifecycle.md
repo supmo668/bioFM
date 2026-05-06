@@ -16,7 +16,7 @@ Before coding:
 
 1. [ ] Read [`docs/REVIEWER_CRITIQUE.md`](../REVIEWER_CRITIQUE.md) end-to-end. MC1, MC2, MC3 are closed; this plan addresses the remaining "partial-agentic" gap the author flagged 2026-04-22.
 2. [ ] Read [`docs/SUPPLEMENT.md`](../SUPPLEMENT.md) §5.3–§5.4 for current numbers + §9 deviation log.
-3. [ ] Read `projects/cellforge-agents/src/cellforge/orchestrator.py` (the `propose_critique_vote` loop the agentic lifecycle wraps). Note the `max_rounds` + `consensus_threshold` parameters.
+3. [ ] Read `libs/cellforge-agents/src/cellforge/orchestrator.py` (the `propose_critique_vote` loop the agentic lifecycle wraps). Note the `max_rounds` + `consensus_threshold` parameters.
 4. [ ] Read the CellForge paper at [arXiv:2508.02276](https://arxiv.org/abs/2508.02276). Our orchestrator matches the description in §3.2–§3.4; the 5 agents (DataCurator / Literature / Architect / Trainer / Validator) are the canonical set.
 5. [ ] Read `src/perturb_eval/biofm_tools/biogpt_literature.py` and `geneformer_validator.py` — these are the two BioFM-grounded tools already wired.
 6. [ ] Source `.env` at repo root before every shell session (Zenodo, Figshare, OpenRouter, OSF tokens). `OPENROUTER_API_KEY` returning HTTP 200 on `/v1/auth/key` is the prerequisite for the agent loop.
@@ -1001,7 +1001,7 @@ class CellForgeAgentPool:
 - [ ] **Step 4: Run**
 
 ```bash
-PYTHONPATH=src:../cellforge-agents/src pytest tests/test_agentic_lifecycle.py::test_cellforge_pool_emits_proposal_with_confidence -v
+PYTHONPATH=src:../../libs/cellforge-agents/src pytest tests/test_agentic_lifecycle.py::test_cellforge_pool_emits_proposal_with_confidence -v
 ```
 
 Expected: PASS (if `cellforge` package importable).

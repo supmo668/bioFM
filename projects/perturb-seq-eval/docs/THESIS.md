@@ -2,7 +2,7 @@
 
 Status: working draft (v0.1, 2026-04-18).
 Target venue: workshop submission to ICML 2026 FM4LS and/or a MassGen contribution RFC.
-Companion code: this directory (`projects/perturb-seq-eval/`) is the reference implementation; the orchestration layer under evaluation is `projects/cellforge-agents/`.
+Companion code: this directory (`projects/perturb-seq-eval/`) is the reference implementation; the orchestration layer under evaluation is `libs/cellforge-agents/`.
 
 ## 1. One-sentence claim
 
@@ -34,7 +34,7 @@ Perturb-seq (single-cell CRISPR screens with transcriptomic readout) is the clea
 
 ### 3.2 The 5 CellForge agents (our standing setup)
 
-Identical to `projects/cellforge-agents/`: **DataCurator · Literature · Architect · Trainer · Validator**, coordinated via a MassGen-style propose→critique→vote loop. The orchestrator emits a per-round trace (proposals[5], confidences[5], critiques[5×4]) that is the raw material for every metric below.
+Identical to `libs/cellforge-agents/`: **DataCurator · Literature · Architect · Trainer · Validator**, coordinated via a MassGen-style propose→critique→vote loop. The orchestrator emits a per-round trace (proposals[5], confidences[5], critiques[5×4]) that is the raw material for every metric below.
 
 ## 4. The metrics (the core contribution)
 

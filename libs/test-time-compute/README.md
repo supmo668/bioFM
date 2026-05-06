@@ -52,7 +52,7 @@ test-time-compute/
 ## Quick start
 
 ```bash
-cd projects/test-time-compute
+cd libs/test-time-compute
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .

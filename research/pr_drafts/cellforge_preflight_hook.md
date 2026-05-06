@@ -1,7 +1,7 @@
 # PR Draft — `cellforge-agents` preflight hook + BioFM tool injection
 
 > Body for a `gh pr create` against the upstream CellForge repo (or the
-> companion `projects/cellforge-agents/` if it lives in the same repo).
+> companion `libs/cellforge-agents/` if it lives in the same repo).
 > Author-side checklist at the bottom.
 
 ## Title

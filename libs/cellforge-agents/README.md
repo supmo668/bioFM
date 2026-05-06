@@ -47,7 +47,7 @@ cellforge-agents/
 ## Quick start
 
 ```bash
-cd projects/cellforge-agents
+cd libs/cellforge-agents
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .

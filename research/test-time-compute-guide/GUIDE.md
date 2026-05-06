@@ -5,8 +5,8 @@ who already knows Transformer-based LLMs but has not internalised the modern
 TTC literature. After reading, you should be able to (a) place any new TTC
 paper on a four-axis taxonomy, (b) pick the right TTC strategy for a given
 problem + compute budget, and (c) map each idea onto the code we wrote in
-[`projects/test-time-compute/`](../../projects/test-time-compute/) and
-[`projects/cellforge-agents/`](../../projects/cellforge-agents/).
+[`libs/test-time-compute/`](../../libs/test-time-compute/) and
+[`libs/cellforge-agents/`](../../libs/cellforge-agents/).
 
 ## 0. Why this exists
 
@@ -144,12 +144,12 @@ prompts) → `ref_impl/adaptive_budget.py`.
 
 | Concept in the taxonomy | File in our repo | Axis |
 |---|---|---|
-| Best-of-N with verifier | [`projects/test-time-compute/src/ttc/strategies.py::_best_of_n`](../../projects/test-time-compute/src/ttc/strategies.py) | Parallel, SEA + VER |
-| Self-consistency (majority) | [`projects/test-time-compute/src/ttc/strategies.py::_self_consistency`](../../projects/test-time-compute/src/ttc/strategies.py) | Parallel, AGG |
+| Best-of-N with verifier | [`libs/test-time-compute/src/ttc/strategies.py::_best_of_n`](../../libs/test-time-compute/src/ttc/strategies.py) | Parallel, SEA + VER |
+| Self-consistency (majority) | [`libs/test-time-compute/src/ttc/strategies.py::_self_consistency`](../../libs/test-time-compute/src/ttc/strategies.py) | Parallel, AGG |
 | Temperature-sweep (width-1 search over sampling hparams) | `strategies.py::_temperature_sweep` | Hybrid, SEA |
-| Swappable verifier (domain reward) | [`scoring.py`](../../projects/test-time-compute/src/ttc/scoring.py) | VER |
+| Swappable verifier (domain reward) | [`scoring.py`](../../libs/test-time-compute/src/ttc/scoring.py) | VER |
 | Compute-budget accounting | `StrategyResult.compute_budget` | *How well: Efficiency* |
-| Multi-agent verification + voting | [`projects/cellforge-agents/src/cellforge/orchestrator.py`](../../projects/cellforge-agents/src/cellforge/orchestrator.py) | Parallel + Hybrid, VER + AGG |
+| Multi-agent verification + voting | [`libs/cellforge-agents/src/cellforge/orchestrator.py`](../../libs/cellforge-agents/src/cellforge/orchestrator.py) | Parallel + Hybrid, VER + AGG |
 
 Everything in `ref_impl/` below is **framework-free** — no transformers, no
 torch — so you can study the algorithm in isolation before looking at the
@@ -169,7 +169,7 @@ A few features of the biology setting amplify TTC's payoff:
 3. **Problem difficulty varies wildly by perturbation / gene / variant.**
    Adaptive allocation (Snell's compute-optimal strategy) is the right default.
 4. **The multi-agent frontier is wide open.** Our
-   [`cellforge-agents`](../../projects/cellforge-agents/) project is a direct
+   [`cellforge-agents`](../../libs/cellforge-agents/) project is a direct
    instantiation of *multi-agent verification* (arXiv:2502.20379) in a
    biology setting.
 
@@ -192,7 +192,7 @@ A few features of the biology setting amplify TTC's payoff:
 ## 7. Exercises
 
 1. Classify the three TTC strategies in
-   [`projects/test-time-compute/src/ttc/strategies.py`](../../projects/test-time-compute/src/ttc/strategies.py)
+   [`libs/test-time-compute/src/ttc/strategies.py`](../../libs/test-time-compute/src/ttc/strategies.py)
    on all four axes (What / How / Where / How Well). Answer key in comments of
    each strategy function.
 2. Implement **beam search with PRM-style scoring** as a new strategy in
