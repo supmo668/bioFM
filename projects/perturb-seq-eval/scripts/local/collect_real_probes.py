@@ -34,8 +34,12 @@ from pathlib import Path
 
 # Ensure repo-local imports work even if the package isn't pip-installed.
 ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT.parent / "cellforge-agents" / "src"))
+# v0.5.0: cellforge-agents lives under libs/ at the repo root.
+_cf_src_lib = REPO_ROOT / "libs" / "cellforge-agents" / "src"
+_cf_src_legacy = ROOT.parent / "cellforge-agents" / "src"
+sys.path.insert(0, str(_cf_src_lib if _cf_src_lib.exists() else _cf_src_legacy))
 
 from perturb_eval.backends.openrouter import OpenRouterBackend  # noqa: E402
 from perturb_eval.experiments.common import probe_signature_from_trace  # noqa: E402

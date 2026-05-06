@@ -31,7 +31,7 @@ test-time-compute-guide/
 no HF weights. The point is to show *the algorithms*, not *one
 implementation*. Once you see the shape of Best-of-N in ten lines, you can
 recognise it in any codebase — including the ~300-line BioFM-aware version at
-[`projects/test-time-compute/`](../../projects/test-time-compute/).
+[`libs/test-time-compute/`](../../libs/test-time-compute/).
 
 ## How to study this
 
@@ -39,7 +39,7 @@ recognise it in any codebase — including the ~300-line BioFM-aware version at
 2. **Skim [testtimescaling.github.io/README.md](testtimescaling.github.io/README.md)** — scan the big paper table to see how the taxonomy classifies real papers.
 3. **Open `ref_impl/` in order**: `best_of_n` → `majority_vote` → `weighted_majority` → `iterative_revision` → `adaptive_budget`. Each file is ≤ 80 lines with a docstring explaining the axis and the canonical paper.
 4. **Run the tests**: `PYTHONPATH=ref_impl python3 -m pytest ref_impl/tests/ -q`. All pass without any downloads.
-5. **Jump to the applied version**: [`projects/test-time-compute/`](../../projects/test-time-compute/) shows the same strategies wrapped around BioFM-265M.
+5. **Jump to the applied version**: [`libs/test-time-compute/`](../../libs/test-time-compute/) shows the same strategies wrapped around BioFM-265M.
 
 ## Sources
 

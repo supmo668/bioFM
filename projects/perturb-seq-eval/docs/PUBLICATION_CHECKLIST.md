@@ -103,7 +103,7 @@ Net: **8 of 10 critique items closed (MC1 + MC2 + MC3a + mc5 + mc6 + mc7 + mc8 +
 
 - [ ] upload SUPPLEMENT.md + code + artifacts to bioRxiv and arXiv cs.LG
 - [ ] open a PR against [`tools/MassGen`](../../../tools/MassGen/) exposing the evaluation as a skill; draft already committed under [`massgen_skill_draft/`](../massgen_skill_draft/)
-- [ ] submit PR to [`projects/cellforge-agents`](../../cellforge-agents/) for the preflight CLI hook
+- [ ] submit PR to [`libs/cellforge-agents`](../../../libs/cellforge-agents/) for the preflight CLI hook
 - Scope: what we can ship today, revisions or not.
 
 ### 4.2 *Nature Methods* Brief Communications (after §1, §2 revisions)
