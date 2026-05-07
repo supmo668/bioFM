@@ -11,27 +11,37 @@ authors:
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
-version: "0.5.0"
+version: "0.5.1"
 date-released: "2026-04-24"
 license: "Apache-2.0"
-# Concept DOI — always resolves to the latest Zenodo version. v1 was
-# 10.5281/zenodo.19716141 (released 2026-04-23 early, anonymous-authors
-# placeholder). v2 is 10.5281/zenodo.19721470 (2026-04-23 late, with
-# Mangyin Mo + CMU authorship on the paper PDF).
+# Concept DOI — always resolves to the latest Zenodo version. Lineage:
+# v1 (19716141): anonymous-authors placeholder (superseded);
+# v2 (19721470): v0.4.1 with correct authorship (superseded);
+# v3 (19748260): v0.5.0 real-data headline rewrite (superseded by v0.5.1
+#                because the abstract/intro/limits/repro sections still
+#                carried legacy synthetic-DGP claims);
+# v4 (20060974): v0.5.1 — every synthetic-data claim retracted from the
+#                paper body; CI guardrail forbids synthetic-cell generators.
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.19716140"
-    description: "Zenodo concept DOI (resolves to latest version — v3 in v0.5.0)"
+    description: "Zenodo concept DOI (resolves to latest version — v4 in v0.5.1)"
+  - type: doi
+    value: "10.5281/zenodo.20060974"
+    description: "Zenodo v4 (v0.5.1 — synthetic claims fully retracted, CI guardrail added)"
+  - type: doi
+    value: "10.5281/zenodo.19748260"
+    description: "Zenodo v3 (v0.5.0; superseded by v0.5.1 — body still had legacy synthetic claims)"
   - type: doi
     value: "10.5281/zenodo.19721470"
-    description: "Zenodo v2 (v0.4.1; superseded by v0.5.0 but DOI remains live)"
+    description: "Zenodo v2 (v0.4.1; superseded — historical)"
   - type: doi
     value: "10.5281/zenodo.19716141"
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare (mirror for supplement + artefacts, paper.pdf updated in-place across versions)"
+    description: "Figshare (mirror for supplement + artefacts; paper.pdf updated in-place to v0.5.1)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:
