@@ -18,19 +18,20 @@
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{chen2025cellforge}
 \citation{massgen2025github}
-\citation{norman2019perturbseq,replogle2022perturbseq}
-\citation{cui2024scgpt}
+\citation{adamson2016perturbseq}
+\citation{norman2019perturbseq}
 \citation{snell2024scaling}
 \citation{zhang2025ttssurvey}
 \citation{lightman2024prm}
 \citation{yao2023tot}
 \citation{deepseek2025r1,muennighoff2025s1}
 \citation{chen2025cellforge}
-\citation{norman2019perturbseq,adamson2016perturbseq}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
-\citation{norman2019perturbseq}
+\citation{norman2019perturbseq,adamson2016perturbseq}
 \citation{adamson2016perturbseq}
+\citation{norman2019perturbseq}
+\citation{peidli2024scperturb}
 \citation{replogle2022perturbseq}
 \citation{cobbe2021verifiers,lightman2024prm}
 \citation{wang2023selfconsistency}
@@ -69,10 +70,10 @@
 \@writefile{toc}{\contentsline {section}{\numberline {5}Preflight Probe and Bayesian Recommender}{3}{section.5}\protected@file@percent }
 \newlabel{sec:probe}{{5}{3}{Preflight Probe and Bayesian Recommender}{section.5}{}}
 \@writefile{toc}{\contentsline {paragraph}{Probe signature.}{3}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Bayesian recommender.}{3}{section*.7}\protected@file@percent }
 \citation{peidli2024scperturb}
 \citation{adamson2016perturbseq}
 \citation{norman2019perturbseq}
+\@writefile{toc}{\contentsline {paragraph}{Bayesian recommender.}{4}{section*.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {6}Experimental Setup}{4}{section.6}\protected@file@percent }
 \newlabel{sec:setup_exp}{{6}{4}{Experimental Setup}{section.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Real Perturb-seq datasets}{4}{subsection.6.1}\protected@file@percent }
@@ -93,10 +94,9 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Agents genuinely use their configuration freedom}{5}{subsection.7.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.3}TDI calibrated on real traces}{5}{subsection.7.3}\protected@file@percent }
 \newlabel{sec:tdi-real}{{7.3}{5}{TDI calibrated on real traces}{subsection.7.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Cross-dataset transfer}{5}{subsection.7.4}\protected@file@percent }
-\citation{massgen2025github}
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Spearman $\rho $ on real Perturb-seq traces. The v0.4.1 synthetic $\rho \!=\!0.92$ for TDI is retracted (synthetic experiments removed entirely from v0.5.0). Pre-registered real-data gate: $\rho \!>\!0.5$ for at least one component.\relax }}{6}{table.caption.9}\protected@file@percent }
 \newlabel{tab:tdi-real}{{2}{6}{Spearman $\rho $ on real Perturb-seq traces. The v0.4.1 synthetic $\rho \!=\!0.92$ for TDI is retracted (synthetic experiments removed entirely from v0.5.0). Pre-registered real-data gate: $\rho \!>\!0.5$ for at least one component.\relax }{table.caption.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Cross-dataset transfer}{6}{subsection.7.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Phase-3 pre-registered gate outcomes}{6}{subsection.7.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {8}Implementation and Observability Layer}{6}{section.8}\protected@file@percent }
 \newlabel{sec:impl}{{8}{6}{Implementation and Observability Layer}{section.8}{}}
@@ -104,8 +104,11 @@
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Contribution audit. See \texttt  {docs/DESIGN.md} for the full file-by-file breakdown.\relax }}{6}{table.caption.10}\protected@file@percent }
 \newlabel{tab:contrib}{{3}{6}{Contribution audit. See \texttt {docs/DESIGN.md} for the full file-by-file breakdown.\relax }{table.caption.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Adapting \textsc  {CellForge}: duck typing, no patching}{6}{subsection.8.2}\protected@file@percent }
+\citation{massgen2025github}
 \citation{chen2025cellforge}
 \citation{massgen2025github}
+\citation{cui2024scgpt}
+\citation{theodoris2023geneformer}
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.3}\textsc  {MassGen}'s native observability is rich but differently shaped}{7}{subsection.8.3}\protected@file@percent }
 \newlabel{subsec:massgen_bridge}{{8.3}{7}{\textsc {MassGen}'s native observability is rich but differently shaped}{subsection.8.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{What we have \emph  {not} done.}{7}{section*.11}\protected@file@percent }
@@ -116,24 +119,23 @@
 \@writefile{toc}{\contentsline {paragraph}{Implications for upstream systems.}{7}{section*.14}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {10}Limitations and Threats to Validity}{7}{section.10}\protected@file@percent }
 \newlabel{sec:limits}{{10}{7}{Limitations and Threats to Validity}{section.10}{}}
-\@writefile{toc}{\contentsline {paragraph}{Synthetic DGP.}{7}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Probe weakness.}{8}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Configuration space.}{8}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Reward model free-riding.}{8}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Generalisation across problem domains.}{8}{section*.19}\protected@file@percent }
+\citation{replogle2022perturbseq}
+\citation{peidli2024scperturb}
+\@writefile{toc}{\contentsline {paragraph}{Backbone scope.}{8}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cell-line and dataset scope.}{8}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Architect entropy gate.}{8}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Configuration space.}{8}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reward model free-riding.}{8}{section*.19}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{8}{section*.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {11}Reproducibility}{8}{section.11}\protected@file@percent }
 \newlabel{sec:reproducibility}{{11}{8}{Reproducibility}{section.11}{}}
 \@writefile{toc}{\contentsline {paragraph}{Seeded determinism.}{8}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{DGP parameters are frozen in-source.}{8}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Artifact dependency graph.}{8}{section*.23}\protected@file@percent }
 \citation{snell2024scaling}
 \bibstyle{plainnat}
 \bibdata{references}
 \bibcite{adamson2016perturbseq}{{1}{2016}{{Adamson et~al.}}{{Adamson, Norman, Jost, Cho, Nu{\~{n}}ez, Chen, Villalta, Gilbert, Horlbeck, Hein, Pak, Gray, Gross, Dixit, Parnas, Regev, and Weissman}}}
-\bibcite{chen2025cellforge}{{2}{2025}{{Chen et~al.}}{{}}}
-\bibcite{cobbe2021verifiers}{{3}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman}}}
-\bibcite{cui2024scgpt}{{4}{2024}{{Cui et~al.}}{{Cui, Wang, Maan, Pang, Luo, Duan, and Wang}}}
+\@writefile{toc}{\contentsline {paragraph}{Datasets are pinned, not generated.}{9}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Artifact dependency graph.}{9}{section*.23}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Software stack.}{9}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Tests.}{9}{section*.25}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Sixteen tests for the reference TTC implementations.}{9}{section*.26}\protected@file@percent }
@@ -141,6 +143,9 @@
 \@writefile{toc}{\contentsline {section}{\numberline {12}Conclusion}{9}{section.12}\protected@file@percent }
 \newlabel{sec:conclusion}{{12}{9}{Conclusion}{section.12}{}}
 \@writefile{toc}{\contentsline {paragraph}{Code and data.}{9}{section*.28}\protected@file@percent }
+\bibcite{chen2025cellforge}{{2}{2025}{{Chen et~al.}}{{}}}
+\bibcite{cobbe2021verifiers}{{3}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman}}}
+\bibcite{cui2024scgpt}{{4}{2024}{{Cui et~al.}}{{Cui, Wang, Maan, Pang, Luo, Duan, and Wang}}}
 \bibcite{deepseek2025r1}{{5}{2025}{{DeepSeek-AI et~al.}}{{DeepSeek-AI, Guo, Yang, Zhang, Song, Zhang, et~al.}}}
 \bibcite{hao2024scfoundation}{{6}{2024}{{Hao et~al.}}{{Hao, Gong, Zeng, Liu, Guo, Cheng, Wang, Ma, Zhang, and Song}}}
 \bibcite{kalfon2025scprint}{{7}{2025}{{Kalfon et~al.}}{{Kalfon, Samaran, Peyr\'e, and Cantini}}}

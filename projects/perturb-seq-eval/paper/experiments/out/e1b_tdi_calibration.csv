@@ -1,2 +1,0 @@
-default_r2_test,default_spearman_test,calibrated_r2_test,calibrated_spearman_test,calibrated_alpha,calibrated_beta,calibrated_gamma,calibrated_delta,n_train,n_test
--0.015067851351247663,0.523978883023062,-0.5813048029541981,0.9178105029174771,0.0,0.06426232229377452,0.9252487631743185,0.0104889145319069,240,60

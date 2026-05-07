@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.2)  24 APR 2026 16:40
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.2)  6 MAY 2026 19:02
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -613,16 +613,16 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <5> on input line 55.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 84.
+(Font)              <10> on input line 89.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 84.
+(Font)              <7> on input line 89.
 Package microtype Info: Character `029' is missing
 (microtype)             in font `T1/lmr/m/sc/10'.
 (microtype)             Ignoring protrusion settings for this character.
  [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2]
-Overfull \hbox (24.37593pt too wide) in paragraph at lines 254--260
+Overfull \hbox (24.37593pt too wide) in paragraph at lines 261--267
  []\T1/lmr/bx/n/10 (-20) Probe sig-na-ture.[] \T1/lmr/m/n/10 (-20) Given a run,
  the round-$\OT1/lmr/m/n/10 (-20) 0$ \T1/lmr/m/n/10 (-20) probe sig-na-ture is 
 $\OT1/lmr/bx/n/10 (-20) x[] \OT1/lmr/m/n/10 (-20) = ([][](0)\OML/lmm/m/it/10 ; 
@@ -630,12 +630,12 @@ $\OT1/lmr/bx/n/10 (-20) x[] \OT1/lmr/m/n/10 (-20) = ([][](0)\OML/lmm/m/it/10 ;
 \OML/lmm/m/it/10 ; []\OT1/lmr/m/n/10 (-20) (0)) \OMS/lmsy/m/n/10 2
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 288--288
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 295--295
 
  []
 
-[3] (./sections/v050_experimental_setup.tex
+(./sections/v050_experimental_setup.tex
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
 4.
 
@@ -645,7 +645,7 @@ File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 19.
  [4])
-Overfull \hbox (5.86055pt too wide) in paragraph at lines 90--297
+Overfull \hbox (5.86055pt too wide) in paragraph at lines 90--304
 \T1/lmr/m/n/10 (-20) com-pleted record. Ev-ery run is ap-pended atom-i-cally to
  \T1/lmtt/m/n/10 /data/v0.5.0/{trainer,lifecycle}_runs.jsonl
  []
@@ -657,10 +657,10 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [5])
 
 LaTeX Font Warning: Font shape `T1/lmr/m/scit' undefined
-(Font)              using `T1/lmr/m/scsl' instead on input line 309.
+(Font)              using `T1/lmr/m/scsl' instead on input line 316.
 
 
-Overfull \hbox (112.1009pt too wide) in paragraph at lines 319--333
+Overfull \hbox (112.1009pt too wide) in paragraph at lines 326--340
 \T1/lmr/m/n/10 (-20) from the eval-u-a-tor. A \T1/lmtt/m/n/10 RoundTrace \T1/lm
 r/m/n/10 (-20) car-ries $\OT1/lmr/m/n/10 (-20) ([]\OML/lmm/m/it/10 ; []\OT1/lmr
 /m/n/10 (-20) [\OML/lmm/m/it/10 N\OT1/lmr/m/n/10 (-20) ]\OML/lmm/m/it/10 ; \OT1
@@ -671,7 +671,7 @@ r/m/n/10 (-20) car-ries $\OT1/lmr/m/n/10 (-20) ([]\OML/lmm/m/it/10 ; []\OT1/lmr
  []
 
 
-Overfull \hbox (5.11943pt too wide) in paragraph at lines 319--333
+Overfull \hbox (5.11943pt too wide) in paragraph at lines 326--340
 \T1/lmr/m/n/10 (-20) a \T1/lmtt/m/n/10 RunTrace \T1/lmr/m/n/10 (-20) is an or-d
 ered tu-ple of \T1/lmtt/m/n/10 RoundTrace\T1/lmr/m/n/10 (-20) s plus $\OT1/lmr/
 m/n/10 (-20) ([]\OML/lmm/m/it/10 ; []; []\OT1/lmr/m/n/10 (-20) )$\T1/lmr/m/n/10
@@ -679,23 +679,23 @@ m/n/10 (-20) ([]\OML/lmm/m/it/10 ; []; []\OT1/lmr/m/n/10 (-20) )$\T1/lmr/m/n/10
  []
 
 
-Overfull \hbox (114.58801pt too wide) in paragraph at lines 337--349
+Overfull \hbox (114.58801pt too wide) in paragraph at lines 344--356
  [][] 
  []
 
 
 LaTeX Font Warning: Font shape `T1/lmr/bx/sc' undefined
-(Font)              using `T1/lmr/bx/n' instead on input line 353.
+(Font)              using `T1/lmr/bx/n' instead on input line 360.
 
 
-Overfull \hbox (24.28409pt too wide) in paragraph at lines 355--366
-\T1/lmr/m/n/10 (-20) The or-ches-tra-tor in \T1/lmtt/m/n/10 projects/cellforge-
-agents/ \T1/lmr/m/n/10 (-20) ex-poses a \T1/lmtt/m/n/10 ConsensusResult \T1/lmr
-/m/n/10 (-20) whose \T1/lmtt/m/n/10 .rounds[i].proposals
+Overfull \hbox (3.28415pt too wide) in paragraph at lines 362--373
+\T1/lmr/m/n/10 (-20) The or-ches-tra-tor in \T1/lmtt/m/n/10 libs/cellforge-agen
+ts/ \T1/lmr/m/n/10 (-20) ex-poses a \T1/lmtt/m/n/10 ConsensusResult \T1/lmr/m/n
+/10 (-20) whose \T1/lmtt/m/n/10 .rounds[i].proposals
  []
 
 
-Overfull \hbox (7.03227pt too wide) in paragraph at lines 355--366
+Overfull \hbox (7.03227pt too wide) in paragraph at lines 362--373
 \T1/lmr/m/n/10 (-20) carry \T1/lmtt/m/n/10 .agent\T1/lmr/m/n/10 (-20) , \T1/lmt
 t/m/n/10 .confidence\T1/lmr/m/n/10 (-20) , \T1/lmtt/m/n/10 .content\T1/lmr/m/n/
 10 (-20) , and whose \T1/lmtt/m/n/10 .rounds[i].critiques \T1/lmr/m/n/10 (-20) 
@@ -704,13 +704,27 @@ nt\T1/lmr/m/n/10 (-20) ,
  []
 
 [6]
-Overfull \hbox (37.43665pt too wide) in paragraph at lines 403--409
+Overfull \hbox (37.43665pt too wide) in paragraph at lines 410--416
 []\T1/lmr/m/n/10 (-20) The cor-re-spond-ing Mass-Gen skill ar-ti-fact (\T1/lmtt
 /m/n/10 massgen_skill_draft/skill.yaml\T1/lmr/m/n/10 (-20) ) de-clares an \T1/l
 mtt/m/n/10 on_session_start
  []
 
-[7] [8] (./paper.bbl [9] [10]) [11] (./paper.aux)
+[7]
+Overfull \hbox (36.26834pt too wide) in paragraph at lines 504--513
+ []\T1/lmr/bx/n/10 (-20) Reproducibility.[] \T1/lmr/m/n/10 (-20) The pipeline i
+s one Modal com-mand: \T1/lmtt/m/n/10 modal run scripts/modal/app_v05.py::entry
+point\T1/lmr/m/n/10 (-20) .
+ []
+
+
+Overfull \hbox (85.48979pt too wide) in paragraph at lines 529--534
+[]\T1/lmtt/m/n/10 src/perturb_eval/experiments/e_v05_real_traces.py \T1/lmr/m/n
+/10 (-20) --- con-sumes \T1/lmtt/m/n/10 trainer_runs.jsonl \T1/lmr/m/n/10 (-20)
+ + \T1/lmtt/m/n/10 lifecycle_runs.jsonl
+ []
+
+[8] (./paper.bbl [9] [10]) [11] (./paper.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
@@ -718,13 +732,13 @@ Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: F62BA81E8C1F8560D66FAC58AB155DCB;5652.
  ) 
 Here is how much of TeX's memory you used:
- 15535 strings out of 480247
- 247381 string characters out of 5896152
+ 15571 strings out of 480247
+ 247785 string characters out of 5896152
  578699 words of memory out of 5000000
  32751 multiletter control sequences out of 15000+600000
- 598503 words of font info for 283 fonts, out of 8000000 for 9000
+ 600195 words of font info for 301 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 60i,10n,63p,1002b,504s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,10n,63p,1002b,496s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dv
 ips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/share/te
 xmf/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ma
@@ -747,10 +761,10 @@ texmf/fonts/type1/public/lm/lmtt12.pfb></usr/share/texmf/fonts/type1/public/lm/
 lmtt9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/ms
 am10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msb
 m10.pfb>
-Output written on paper.pdf (11 pages, 564965 bytes).
+Output written on paper.pdf (11 pages, 568279 bytes).
 PDF statistics:
- 534 PDF objects out of 1000 (max. 8388607)
- 458 compressed objects within 5 object streams
+ 540 PDF objects out of 1000 (max. 8388607)
+ 465 compressed objects within 5 object streams
  110 named destinations out of 1000 (max. 500000)
  72929 words of extra memory for PDF output out of 74296 (max. 10000000)
 
