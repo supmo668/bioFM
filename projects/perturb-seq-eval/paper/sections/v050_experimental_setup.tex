@@ -77,13 +77,13 @@ configuration space:
   a free-text rationale.
 \end{itemize}
 
-Agents are driven by free-tier OpenRouter chat models in a
-weight-inclusive rotation pool (Nemotron-253B, DeepSeek-V3 671B MoE,
-DeepSeek-R1, Qwen-2.5-72B, Llama-3.3-70B, Nemotron-70B, Gemini-2.0
-Flash) with role-preferred selection, 60\,s cooldowns on rate-limit
-errors, and sha256 disk caching on
-$(\mathrm{task\_id},\mathrm{round},\mathrm{role},\mathrm{prompt},\mathrm{model\_id})$.
-Zero dollars on LLM inference.
+For the headline runs reported in this paper we drive every agent with
+\textsc{Nemotron-30B} for demonstration purposes; the rotation client
+exposes a model-agnostic chat interface so any OpenAI-compatible
+endpoint can be substituted without code changes. The client applies
+60\,s cooldowns on rate-limit errors and sha256 disk caching on
+$(\mathrm{task\_id},\mathrm{round},\mathrm{role},\mathrm{prompt},\mathrm{model\_id})$
+to keep re-runs cheap and resumable.
 
 \subsection{Compute and reproducibility}\label{subsec:compute}
 

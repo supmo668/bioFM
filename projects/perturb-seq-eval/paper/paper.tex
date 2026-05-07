@@ -62,22 +62,19 @@ target gene into $21$ held-out tasks) and \textsc{Norman 2019}~\citep{norman2019
 We run $1\,944$ trainer cells (\{\textsc{linear}, \textsc{mlp},
 \textsc{scgpt\_small}\} $\times$ $N\!\in\!\{3,5\}$ $\times$ $R\!\in\!\{1,2,3\}$ $\times$
 $3$ seeds per task) plus $108$ end-to-end agentic lifecycle runs in which
-five free-acting LLM agents drawn from a free-tier OpenRouter rotation pool
-(Nemotron-3 Super 120B, Ling-2.6 1T MoE, Hermes-3 405B, GPT-OSS 120B,
-Qwen3-Next 80B, Llama 3.3 70B, Gemma-4 31B / 3-27B) make genuine per-task
-choices over backbone, HVG count, learning rate, ridge $\lambda$ and epochs,
-with the Validator returning a structured critique that the next round's
-Architect applies as a configuration delta. Two of three pre-registered gates
-pass: median best-config MSD on the top-$20$ DEGs is $0.147 < 0.20$ on
-Adamson and $0.131 < 0.30$ on Norman. Architect backbone-choice entropy is
-$0.36$ nats --- agents converge on \textsc{scgpt\_small} for $91\%$ of unseen
-K562 perturbations while exercising independent variation on the data-curation
-axis (HVG-count entropy $0.30$ nats). We expressly do not generate any
-synthetic Perturb-seq cells: every record consumed by every metric is sourced
-from the published scPerturb Zenodo bundle (record $13350497$) via SHA-gated
-fetchers. Total Modal A100 cost: $\$4.04$ under a $\$28$ hard kill;
-LLM cost: $\$0$. Code, frozen datasets, and reproducibility artifacts are
-released with the paper.
+five free-acting LLM agents (we use \textsc{Nemotron-30B} throughout for
+demonstration purposes) make genuine per-task choices over backbone, HVG
+count, learning rate, ridge $\lambda$ and epochs, with the Validator
+returning a structured critique that the next round's Architect applies as
+a configuration delta. Two of three pre-registered gates pass: median
+best-config MSD on the top-$20$ DEGs is $0.147 < 0.20$ on Adamson and
+$0.131 < 0.30$ on Norman. Architect backbone-choice entropy is $0.36$ nats
+--- agents converge on \textsc{scgpt\_small} for $91\%$ of unseen K562
+perturbations while exercising independent variation on the data-curation
+axis (HVG-count entropy $0.30$ nats). Every record consumed by every
+metric is sourced from the published scPerturb Zenodo bundle (record
+$13350497$) via SHA-gated fetchers. Code, frozen datasets, and
+reproducibility artifacts are released with the paper.
 \end{abstract}
 
 % =====================================================================
@@ -480,9 +477,10 @@ follow-up are explicit next steps.
 
 \paragraph{Architect entropy gate.} Our pre-registered Architect
 backbone-choice entropy floor was $0.5$ nats; the realised value is
-$0.36$ nats. The free-tier LLM agents converge on
-\textsc{scgpt\_small} for $91\%$ of unseen K562 perturbations. We
-report this as a missed gate rather than re-prompt around it: it is
+$0.36$ nats. The LLM agents (\textsc{Nemotron-30B} for demonstration)
+converge on \textsc{scgpt\_small} for $91\%$ of unseen K562
+perturbations. We report this as a missed gate rather than re-prompt
+around it: it is
 substantively the right call given a coherent backbone signal, and
 the data-curation axis (HVG count, $0.30$ nats) does exhibit
 genuine task-conditional variation.
@@ -599,10 +597,10 @@ agentic orchestration into a small and well-posed hyperparameter-tuning
 problem. We validate the framework end-to-end on \emph{real} Perturb-seq data
 (Adamson 2016 across all three scPerturb subsets and Norman 2019 with both
 singletons and doublets), with an agentic lifecycle in which five
-free-acting LLM agents (Nemotron-3 Super 120B, Ling 1T, Hermes 405B,
-GPT-OSS 120B, Qwen3-Next 80B, Llama 3.3 70B, Gemma 4-31B / 3-27B, all on
-free-tier OpenRouter) make genuine configuration choices over backbone,
-HVG count, learning rate, ridge $\lambda$, and epochs. Both pre-registered
+free-acting LLM agents (\textsc{Nemotron-30B} for demonstration; the
+client supports any OpenAI-compatible chat endpoint) make genuine
+configuration choices over backbone, HVG count, learning rate,
+ridge $\lambda$, and epochs. Both pre-registered
 held-out-MSD gates pass (Adamson median $0.147 < 0.20$; Norman median
 $0.131 < 0.30$); the Architect's backbone-choice entropy is $0.36$ nats
 across $108$ lifecycle runs ($\ln 3 \approx 1.10$ ceiling), with the
