@@ -15,31 +15,27 @@ title: >-
 # Last aligned to docs/SUPPLEMENT.md §5.5 end-to-end lifecycle on 2026-04-23.
 description: |
   We introduce a contextual Bayesian optimization framework for multi-agent
-  group-generation hyperparameters, where the context is a cheap preflight
-  probe of the agent team's own internal dynamics (Agent Confidence
-  Entropy, Critique Severity Dispersion, convergence speed, winner-flip
-  rate). We evaluate across four regimes with bootstrap 95% CIs (2 000
-  resamples over task × seed): (i) a synthetic shared-optimum DGP where
-  all three optimizer CIs overlap and the framework correctly falsifies
-  the contextual advantage; (ii) the Adamson 2016 Perturb-seq pilot
-  (K562, 7 targeted knockdowns) where, across three probe provenances
-  (simulated, live rule-based + Nemotron, live BioFM-grounded with
-  BioGPT + Geneformer), all three optimizer CIs overlap — the
-  contribution on real data is the backbone-axis observation that
-  linear's synthetic dominance does not transfer; (iii) a
-  task-conditional synthetic DGP where contextual GP's CI does not
-  overlap the one+λ-ES baseline, giving the only
-  statistically-significant optimizer advantage in the suite; and
-  (iv) an end-to-end agentic lifecycle on real Adamson data where the
-  full 5-agent CellForge loop (DataCurator → Literature → Architect →
-  Trainer → Validator) runs from scratch on every iteration with
-  real model fitting and a held-out MSD gate — no grid lookup — and
-  the contextual BO over this live lifecycle halves the single-path
-  mean MSD (0.117 → 0.056) while tying random at 8 iterations over
-  |Φ|=18. We report numerical γ_T per regime (Krause–Singh–Guestrin
-  2008 greedy) and ship a small-but-valid from-scratch scGPT-like
-  transformer backbone (2.1 M parameters). The full Modal
-  reproduction pipeline stays under a $30 budget ceiling.
+  group-generation hyperparameters with the latent task difficulty as the
+  context, validated end-to-end on real Perturb-seq data. v0.5.0 retracts
+  the v0.4.1 synthetic DGP and headline E1–E5 sweeps entirely; every
+  reported number now comes from real Adamson 2016 (all three scPerturb
+  subsets, 97 TF perturbations stratified by mean |Δlog1p| into 21
+  held-out tasks) and Norman 2019 (15 singletons + 5 doublets stratified
+  by guide-count quartile, seed=2026). The agentic lifecycle runs on
+  Modal A100 with five free-acting LLM agents (Nemotron-3 Super 120B,
+  Ling 1T MoE, Hermes-3 405B, GPT-OSS 120B, Qwen3-Next 80B, Llama 3.3
+  70B, Gemma-4 31B / 3-27B; all on free-tier OpenRouter) making genuine
+  per-task choices over backbone, HVG count, learning rate, ridge λ,
+  and epochs, with the Validator returning a structured critique that
+  the next round's Architect applies as a configuration delta. Two of
+  three pre-registered gates pass: Adamson median best-config MSD
+  0.147 < 0.20; Norman 0.131 < 0.30. Architect backbone-choice entropy
+  is 0.36 nats — agents converge on the from-scratch scGPT-like
+  backbone (2.1 M parameters) for 91 % of unseen K562 perturbations
+  while exercising independent variation on the data-curation axis
+  (HVG-count entropy 0.30 nats). Total Modal cost: $4.04, well under
+  the $28 hard kill. LLM cost: $0.
+
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
 creators:
@@ -73,13 +69,13 @@ license: cc-by-4.0
 files:
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "Peer-review-style manuscript (synthetic DGP results)."
+    description: "Peer-review-style manuscript (v0.5.0: real Adamson + Norman results, synthetic DGP retracted)."
   - path: docs
     name: supplement.zip
     description: "Supplement documentation (SUPPLEMENT.md, SUPPLEMENT_DESIGN.md, REVIEWER_CRITIQUE.md, THESIS.md, DESIGN.md, MODAL.md, PUBLICATION_CHECKLIST.md, INTERNAL_FOLLOWUP.md)."
-  - path: artifacts/modal_run
-    name: modal_run_artifacts.zip
-    description: "Reproducibility bundle: E1/E2/E3/E3b raw results (JSON/JSONL), bootstrap CIs + γ_T (revision_stats.json), 5 figures in PNG/PDF/HTML."
+  - path: artifacts/v0.5.0
+    name: v050_run_artifacts.zip
+    description: "v0.5.0 Modal A100 sweep artifacts: trainer_runs.jsonl (1944 runs), lifecycle_runs.jsonl (108 runs), summary.json (analyser output), provenance.json (cost + entropy)."
 
 # Per-venue configuration. Set enabled:false to skip.
 venues:

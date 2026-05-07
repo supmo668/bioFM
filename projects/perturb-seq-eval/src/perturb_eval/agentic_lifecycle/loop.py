@@ -21,7 +21,8 @@ from typing import Protocol
 
 import numpy as np
 
-from perturb_eval.agentic_lifecycle.architect_dispatch import dispatch_architect
+from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_architect_config
+from perturb_eval.backbones import build_backbone
 from perturb_eval.agentic_lifecycle.data_curator_exec import execute_data_curator
 from perturb_eval.agentic_lifecycle.literature_exec import extract_expected_genes
 from perturb_eval.agentic_lifecycle.trainer_exec import execute_trainer
@@ -168,7 +169,12 @@ def run_agentic_lifecycle(
         arch_content = dict(arch["content"])
         if backbone_override is not None:
             arch_content["backbone"] = backbone_override
-        backbone, backbone_used = dispatch_architect(arch_content)
+        # v0.5.0: merge the previous round's validator critique delta so
+        # the Architect can target-fix on rejection.
+        critique_delta = context.get("validator_critique_delta")
+        arch_cfg = resolve_architect_config(arch_content, critique_delta=critique_delta)
+        backbone = build_backbone(arch_cfg["backbone"])
+        backbone_used = arch_cfg["backbone"]
         # Remap the target-gene indices through the curated HVG index map.
         # Skip perturbations whose target gene was discarded by the DataCurator
         # (n_top_hvg may be much smaller than the original vocab).
@@ -254,6 +260,16 @@ def run_agentic_lifecycle(
             "last_validator_rationale": report.rationale,
             "last_msd": report.msd_topk,
             "literature": literature,
+            "validator_critique_delta": (
+                dict(report.critique.suggested_next_config_delta)
+                if report.critique is not None
+                else {}
+            ),
+            "validator_failed_genes": (
+                report.critique.which_genes_failed
+                if report.critique is not None
+                else ()
+            ),
         }
 
     return LifecycleRun(

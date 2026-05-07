@@ -1,8 +1,11 @@
-"""Unit tests for the experiment runners E1, E2, E3.
+"""Unit tests for the experiment runners — v0.5.0 real-data only.
 
-See docs/SUPPLEMENT_DESIGN.md §4. Every runner is testable on tiny
-synthetic inputs (≤ 200 ms) so CI stays fast and the Modal budget is
-only spent on the headline run.
+The legacy synthetic runners (E1 metric overlap, train_grid_cell_synthetic)
+were removed in v0.5.0 per the paper's no-synthetic invariant. Tests for
+those code paths were dropped along with the runners; the surviving E2
+grid enumeration and E3 optimizer comparison tests do not generate any
+Perturb-seq cells (E3 uses a hand-built MSD grid for optimizer math
+verification only — no expression simulation).
 """
 
 from __future__ import annotations
@@ -11,38 +14,12 @@ import numpy as np
 import pytest
 
 from perturb_eval.experiments import (
-    GridCellResult,
     OptimizerTrajectory,
     enumerate_grid,
     probe_signature_from_trace,
-    run_e1_metric_overlap,
     run_e3_optimizer_comparison,
-    train_grid_cell_synthetic,
 )
 from perturb_eval.types import Config, RoundTrace, RunTrace
-
-
-@pytest.mark.unit
-class TestE1MetricOverlap:
-    def test_runs_and_returns_expected_schema(self) -> None:
-        out = run_e1_metric_overlap(n_traces=100, seed=2026)
-        assert "spearman_matrix" in out
-        assert "feature_names" in out
-        assert "drop_candidates" in out
-        feats = out["feature_names"]
-        assert {"ace_h", "ace_d", "csd", "csd_star", "tdi", "tdi2"}.issubset(set(feats))
-        rho = out["spearman_matrix"]
-        assert rho.shape == (len(feats), len(feats))
-        # Diagonal is 1.0 by definition of Spearman.
-        np.testing.assert_allclose(np.diag(rho), 1.0, atol=1e-9)
-        # |rho| ≤ 1
-        assert np.all(np.abs(rho) <= 1.0 + 1e-9)
-
-    def test_drop_candidates_is_list_of_strings(self) -> None:
-        out = run_e1_metric_overlap(n_traces=50, seed=0)
-        assert isinstance(out["drop_candidates"], list)
-        for s in out["drop_candidates"]:
-            assert isinstance(s, str)
 
 
 @pytest.mark.unit
@@ -56,14 +33,6 @@ class TestE2Grid:
         assert len(cells) == 2 * 2 * 2
         # Uniqueness
         assert len(set(cells)) == len(cells)
-
-    def test_train_grid_cell_synthetic_returns_finite_msd(self) -> None:
-        phi = Config(n_agents=5, n_rounds=2, backbone="scGPT")
-        result = train_grid_cell_synthetic(phi=phi, task="A", seed=2026, n_cells=120)
-        assert isinstance(result, GridCellResult)
-        assert np.isfinite(result.msd_topk)
-        assert result.msd_topk >= 0
-        assert result.wall_time_sec >= 0
 
 
 @pytest.mark.unit

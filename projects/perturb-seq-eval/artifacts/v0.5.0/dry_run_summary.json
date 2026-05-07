@@ -1,0 +1,19 @@
+{
+  "n_adamson_tfs_total": 15,
+  "n_tasks_after_stratify": 15,
+  "n_tasks_tested": 3,
+  "finite_runs": 3,
+  "mean_msd": 4.945079631992216,
+  "architect_backbone_entropy_nats": 1.0114042647073518,
+  "architect_hvg_entropy_nats": 0.6931471805599453,
+  "architect_backbone_dist": {
+    "linear": 1,
+    "scgpt_small": 2,
+    "mlp": 3
+  },
+  "strength_bin_counts": {
+    "0": 5,
+    "1": 5,
+    "2": 5
+  }
+}

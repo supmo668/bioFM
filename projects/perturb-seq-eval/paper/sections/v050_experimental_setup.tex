@@ -1,0 +1,98 @@
+% v0.5.0 Experimental Setup — replaces §3 of v0.4.1.
+% All synthetic content is removed; the paper is now real-data-only.
+
+\section{Experimental Setup}\label{sec:setup_exp}
+
+\subsection{Real Perturb-seq datasets}\label{subsec:datasets}
+
+We validate on two published K562 CRISPRi/a Perturb-seq datasets,
+fetched programmatically via the scPerturb repackaging
+\citep{peidli2024scperturb} on Zenodo record 13350497 so the pipeline is
+one-command-reproducible:
+
+\begin{itemize}
+  \item \textbf{Adamson 2016} \citep{adamson2016perturbseq}. The full
+  set spans three 10X runs ($10\text{X}001$ pilot,
+  $10\text{X}005$, $10\text{X}010$). We load all three subsets and
+  concatenate cells onto the intersection of their gene vocabularies,
+  then take the top-2000 HVG but \emph{retain every target TF}
+  regardless of variance rank. This yields \texttt{\textbf{97}} TFs total.
+  We stratify the TF set into three quantile bins of mean $|\Delta
+  \log\text{1p}|$ on the target gene and sample \texttt{\textbf{7}} TFs
+  per bin with \texttt{seed=2026}, giving
+  \texttt{\textbf{21}} held-out tasks that span the weak/medium/strong
+  response spectrum fairly.
+  \item \textbf{Norman 2019} \citep{norman2019perturbseq}. ${\sim}100\,\text{k}$
+  K562 cells, $200+$ single and double CRISPRa perturbations. We
+  stratify by singleton/doublet and guide-count quartile and sample
+  \texttt{\textbf{15}} singletons $+$ \texttt{\textbf{5}} doublets
+  (same seed), giving \texttt{\textbf{20}} held-out tasks.
+\end{itemize}
+
+No synthetic data is used anywhere in this paper. The scPerturb
+Zenodo file handles are pinned in
+\texttt{src/perturb\_eval/data/download.py} with SHA256-gated
+idempotent fetchers.
+
+\subsection{Backbone pool}\label{subsec:backbones}
+
+The Architect picks from three backbones:
+
+\begin{itemize}
+  \item \textbf{Linear} — ridge regression per target gene, pure NumPy.
+  \item \textbf{MLP} — two-layer MLP on HVG-normalised counts, Torch.
+  \item \textbf{scgpt\_small} — a 2.1\,M-parameter gene-token
+  transformer trained from scratch per task (\emph{not} the pretrained
+  Cui 2024 scGPT-whole-human checkpoint; we rename for clarity in this
+  version of the paper). The full pretrained SCFM is noted as future
+  work in \S\ref{sec:limits}.
+\end{itemize}
+
+\subsection{Agentic lifecycle with free-acting agents}\label{subsec:lifecycle}
+
+Five agents — DataCurator, Literature, Architect, Trainer, Validator
+— produce Pydantic-validated proposals over the following widened
+configuration space:
+
+\begin{itemize}
+  \item \textbf{DataCurator}: \texttt{hvg\_method}$\in$\{seurat, scanpy\},
+  \texttt{hvg\_count}$\in$\{500, 1000, 2000, 5000\},
+  \texttt{qc\_mito\_max}, \texttt{split\_strategy}$\in$\{per\_pert\_holdout, unseen\_gene\},
+  \texttt{batch\_correction}$\in$\{none, combat, harmony\}.
+  \item \textbf{Literature}: multi-tool — BioGPT mechanism retrieval plus
+  PubMed E-utilities and STRING-DB neighbour queries; output is a
+  structured pathway prior + PPI neighbours that the Architect
+  consumes.
+  \item \textbf{Architect}: backbone $\in$\{linear, mlp, scgpt\_small\},
+  \texttt{n\_agents}$\in$[2,8], \texttt{n\_rounds}$\in$[1,5],
+  \texttt{hvg\_count}, \texttt{learning\_rate}$>0$,
+  \texttt{ridge\_lambda}$\ge 0$, \texttt{epochs}$\in$[1,500].
+  \item \textbf{Trainer}: \texttt{lr}, \texttt{epochs},
+  \texttt{ridge\_lambda}.
+  \item \textbf{Validator}: dynamic threshold $\in$[0.02, 0.3] derived
+  from the task's probe signature; returns a
+  \texttt{StructuredCritique} with \texttt{which\_genes\_failed} and
+  \texttt{suggested\_next\_config\_delta} — the Architect applies the
+  delta in the next round, closing a true refinement loop rather than
+  a free-text rationale.
+\end{itemize}
+
+Agents are driven by free-tier OpenRouter chat models in a
+weight-inclusive rotation pool (Nemotron-253B, DeepSeek-V3 671B MoE,
+DeepSeek-R1, Qwen-2.5-72B, Llama-3.3-70B, Nemotron-70B, Gemini-2.0
+Flash) with role-preferred selection, 60\,s cooldowns on rate-limit
+errors, and sha256 disk caching on
+$(\mathrm{task\_id},\mathrm{round},\mathrm{role},\mathrm{prompt},\mathrm{model\_id})$.
+Zero dollars on LLM inference.
+
+\subsection{Compute and reproducibility}\label{subsec:compute}
+
+The full sweep runs on a single Modal A100-40GB container with a
+hard-kill watchdog at \$28: if cumulative GPU-hours times the A100
+rate would exceed the cap, the watchdog exits cleanly after committing
+every completed record. Every run is appended atomically to
+\texttt{/data/v0.5.0/\{trainer,lifecycle\}\_runs.jsonl} on a Modal
+volume; re-runs pick up from the last committed line. Config grid:
+$\{$linear, mlp, scgpt\_small$\} \times N\in\{3,5\} \times
+R\in\{1,2,3\} \times$ 3 seeds, giving 54 trainer configurations per
+task, plus 3 seeds per task for the full agentic lifecycle.

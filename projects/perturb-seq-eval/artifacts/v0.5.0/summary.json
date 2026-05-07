@@ -1,0 +1,452 @@
+{
+  "n_trainer_runs": 1944,
+  "n_lifecycle_runs": 108,
+  "n_lifecycle_finite": 108,
+  "n_tasks_analysed": 36,
+  "median_msd_adamson": 0.14727711497418855,
+  "median_msd_norman": 0.13085418679563518,
+  "architect_backbone_entropy_nats": 0.355712859746894,
+  "architect_hvg_entropy_nats": 0.2954391918721161,
+  "architect_backbone_distribution": {
+    "scgpt_small": 126,
+    "linear": 6,
+    "mlp": 6
+  },
+  "gate_adamson_median_below_0_20": true,
+  "gate_norman_median_below_0_30": true,
+  "gate_architect_entropy_above_0_5_nats": false,
+  "best_config_per_task": {
+    "ATF6": {
+      "task": "ATF6",
+      "best_msd": 0.5390183721975204,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "CAD": {
+      "task": "CAD",
+      "best_msd": 0.4144174072146297,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "CARS": {
+      "task": "CARS",
+      "best_msd": 0.648817774791562,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "CREB1": {
+      "task": "CREB1",
+      "best_msd": 7.688921887537833,
+      "best_config": {
+        "backbone": "linear",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "EIF2B2": {
+      "task": "EIF2B2",
+      "best_msd": 0.14727711497418855,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "EP300": {
+      "task": "EP300",
+      "best_msd": 7.696243121367759,
+      "best_config": {
+        "backbone": "linear",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "HARS": {
+      "task": "HARS",
+      "best_msd": 0.24219268011871606,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "IER3IP1": {
+      "task": "IER3IP1",
+      "best_msd": 0.10317473858018045,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "KCTD16": {
+      "task": "KCTD16",
+      "best_msd": 0.07863075157284243,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "PDIA6": {
+      "task": "PDIA6",
+      "best_msd": 0.17488897095252767,
+      "best_config": {
+        "backbone": "linear",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "PPWD1": {
+      "task": "PPWD1",
+      "best_msd": 0.04941652707650935,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SAMM50": {
+      "task": "SAMM50",
+      "best_msd": 0.09674572938526456,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SARS": {
+      "task": "SARS",
+      "best_msd": 0.32791671904792713,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 2,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SCYL1": {
+      "task": "SCYL1",
+      "best_msd": 0.1481538011993201,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SEC61G": {
+      "task": "SEC61G",
+      "best_msd": 0.14168325073211271,
+      "best_config": {
+        "backbone": "linear",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SEC63": {
+      "task": "SEC63",
+      "best_msd": 0.15890625124865645,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SRP72": {
+      "task": "SRP72",
+      "best_msd": 0.14472576043692378,
+      "best_config": {
+        "backbone": "linear",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SRPRB": {
+      "task": "SRPRB",
+      "best_msd": 0.11896066835005255,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "SYVN1": {
+      "task": "SYVN1",
+      "best_msd": 0.12243501181176149,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "UFM1": {
+      "task": "UFM1",
+      "best_msd": 0.12418204012508358,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "XBP1": {
+      "task": "XBP1",
+      "best_msd": 0.023151191748963802,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 54
+    },
+    "BAK1": {
+      "task": "BAK1",
+      "best_msd": 0.08393697295586673,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "BCL2L11": {
+      "task": "BCL2L11",
+      "best_msd": 0.052333857489479794,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 3,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "CBL_UBASH3A": {
+      "task": "CBL_UBASH3A",
+      "best_msd": 0.13670203430217867,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "CEBPB_PTPN12": {
+      "task": "CEBPB_PTPN12",
+      "best_msd": 0.07399326628970969,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 2,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "CEBPE_RUNX1T1": {
+      "task": "CEBPE_RUNX1T1",
+      "best_msd": 0.2484699901842815,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "CELF2": {
+      "task": "CELF2",
+      "best_msd": 0.13085418679563518,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "CITED1": {
+      "task": "CITED1",
+      "best_msd": 0.039384163417662085,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "DLX2": {
+      "task": "DLX2",
+      "best_msd": 0.18294463718803103,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "FOXF1": {
+      "task": "FOXF1",
+      "best_msd": 0.0531455900277669,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "KLF1_MAP2K6": {
+      "task": "KLF1_MAP2K6",
+      "best_msd": 0.5690298342444114,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "NIT1": {
+      "task": "NIT1",
+      "best_msd": 0.29108194095270606,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "SAMD1_TGFBR2": {
+      "task": "SAMD1_TGFBR2",
+      "best_msd": 0.12883179471497785,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 3,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "SAMD1_ZBTB1": {
+      "task": "SAMD1_ZBTB1",
+      "best_msd": 0.2510209270312474,
+      "best_config": {
+        "backbone": "mlp",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "SNAI1_UBASH3B": {
+      "task": "SNAI1_UBASH3B",
+      "best_msd": 0.04830871214823645,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    },
+    "UBASH3B_PTPN9": {
+      "task": "UBASH3B_PTPN9",
+      "best_msd": 0.2164460622471363,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "N": 3,
+        "R": 1,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 54
+    }
+  }
+}

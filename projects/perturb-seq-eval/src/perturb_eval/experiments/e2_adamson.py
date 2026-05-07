@@ -25,6 +25,101 @@ from perturb_eval.experiments.e2_grid_fill import phi_identifier
 from perturb_eval.types import Config
 
 
+def load_adamson_combined(
+    h5ad_paths: "list[Path | str]",
+    *,
+    n_top_hvg: int = 2000,
+    max_cells_per_pert: int = 200,
+) -> dict:
+    """Load + concatenate multiple Adamson 10X subsets into one canonical dict.
+
+    The scPerturb 10X001 (pilot), 10X005, and 10X010 subsets share the
+    same schema but cover different TF perturbation sets. To maximise
+    target-gene retention we load each subset with HVG *disabled*
+    (``n_top_hvg=len(gene_names)``), take the gene-vocab intersection
+    across files, then apply the HVG cut on the concatenated matrix so
+    every subset votes on which genes survive. Target TFs that exist in
+    the shared vocab always survive the HVG cut (we augment the HVG set
+    with every target gene before slicing).
+    """
+    import numpy as np
+
+    if not h5ad_paths:
+        raise ValueError("need at least one h5ad path")
+
+    # Load each subset with per-file HVG disabled (huge n_top_hvg).
+    per_file = [
+        load_adamson_matrix(p, n_top_hvg=10**9, max_cells_per_pert=max_cells_per_pert)
+        for p in h5ad_paths
+    ]
+
+    # Gene vocab intersection.
+    gene_sets = [set(d["gene_names"]) for d in per_file]
+    shared_genes = sorted(set.intersection(*gene_sets))
+    if not shared_genes:
+        raise ValueError("no shared genes across Adamson subsets")
+
+    # Re-index each subset onto the shared vocab.
+    Xs = []
+    all_labels = []
+    all_ctrl = []
+    for d in per_file:
+        gene_to_old_idx = {g: i for i, g in enumerate(d["gene_names"])}
+        order = np.array([gene_to_old_idx[g] for g in shared_genes])
+        Xs.append(d["X"][:, order])
+        all_labels.append(d["labels"])
+        all_ctrl.append(d["control_mask"])
+
+    X_full = np.concatenate(Xs, axis=0)
+    labels = np.concatenate(all_labels, axis=0).astype("U32")
+    control_mask = np.concatenate(all_ctrl, axis=0)
+
+    # Collect target TF names before HVG cut so every target survives.
+    all_target_tfs: set[str] = set()
+    for d in per_file:
+        all_target_tfs.update(d["perturbations"])
+    gene_to_shared_idx = {g: i for i, g in enumerate(shared_genes)}
+    target_indices_to_keep = {
+        gene_to_shared_idx[tf]
+        for tf in all_target_tfs
+        if tf in gene_to_shared_idx
+    }
+
+    # HVG on the combined matrix.
+    if n_top_hvg < len(shared_genes):
+        gene_var = X_full.var(axis=0)
+        top_by_var = set(np.argsort(-gene_var)[:n_top_hvg].tolist())
+        keep_set = top_by_var | target_indices_to_keep
+        kept = sorted(keep_set)
+        X = X_full[:, kept]
+        final_genes = [shared_genes[i] for i in kept]
+    else:
+        X = X_full
+        final_genes = list(shared_genes)
+
+    gene_to_new_idx = {g: i for i, g in enumerate(final_genes)}
+    target_gene_idx: dict[str, int] = {}
+    perturbations: list[str] = []
+    for d in per_file:
+        for p in d["perturbations"]:
+            if p in target_gene_idx:
+                continue
+            if p in gene_to_new_idx:
+                target_gene_idx[p] = gene_to_new_idx[p]
+                perturbations.append(p)
+            # else: target dropped from vocab entirely (not present in
+            # shared genes at all) — skip (honest gap).
+
+    return {
+        "X": X.astype(np.float64),
+        "labels": labels,
+        "control_mask": control_mask,
+        "target_gene_idx": target_gene_idx,
+        "perturbations": tuple(perturbations),
+        "gene_names": tuple(final_genes),
+    }
+
+
 def _normalise_pert_label(raw: str) -> str:
     """Adamson pilot labels look like ``'DDIT3_pDS263'``; keep the gene name."""
     return raw.split("_")[0]
@@ -157,8 +252,14 @@ def train_grid_cell_adamson(
     if not train_mask.any():
         raise ValueError("empty training mask — dataset may be misformed")
 
-    backbone_name = phi.backbone if phi.backbone in {"linear", "mlp", "scgpt_small"} else "linear"
-    backbone = build_backbone(backbone_name)
+    from perturb_eval.backbones import available_backbones
+
+    if phi.backbone not in available_backbones():
+        raise ValueError(
+            f"unknown backbone {phi.backbone!r}; "
+            f"available: {sorted(available_backbones())}"
+        )
+    backbone = build_backbone(phi.backbone)
     train_targets = {p: idx for p, idx in ds["target_gene_idx"].items() if p != held}
     backbone.fit(
         ds["X"][train_mask],

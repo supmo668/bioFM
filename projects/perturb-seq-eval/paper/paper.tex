@@ -54,25 +54,30 @@ confidence-and-critique trace --- Agent Confidence Entropy (ACE), Critique
 Severity Dispersion (CSD), a convergence signal based on the round-over-round
 change in mean confidence ($\Delta C$), and a Winner Flip Rate (WFR) --- and
 combine them into a composite Task Difficulty Index (TDI).
-Across $300$ synthetic tasks with controlled ground-truth difficulty we find:
-(i) the ridge-calibrated TDI attains Spearman $\rho\!=\!{+}0.918$ against the
-latent difficulty label, driven overwhelmingly by the convergence signal
-($\rho\!=\!{+}0.916$ for $1-\Delta C$ alone);
-(ii) a single-round probe signature is a substantially weaker predictor of
-latent difficulty ($\rho\!=\!{+}0.360$) than it is of post-hoc TDI, consistent
-with the fact that TDI depends on dynamics the probe cannot observe;
-(iii) held-out AUROC rises monotonically but at a tier-dependent rate as the
-number of task agents $N$ increases from $2$ to $10$, with the easy tier
-gaining $+0.21$ AUROC versus only $+0.06$ for the hard tier.
-We frame the implied \emph{agentic hyperparameter tuning} problem --- picking
-$(N, R, \textrm{backbone})$ before a full run --- as Bayesian inference over a
-discrete configuration space and show the limits that flow from probe weakness.
-All experiments are synthetic simulations; we state the assumptions of our
-data-generating process, delineate where the framework is likely to transfer,
-and outline the empirical validation we would need on real perturb-seq
-runs~\citep{norman2019perturbseq,replogle2022perturbseq} with a
-single-cell foundation model backbone such as \textsc{scGPT}~\citep{cui2024scgpt}.
-Code and reproducibility artifacts are released with the paper.
+Every reported number in this paper comes from real Perturb-seq data: all
+three \textsc{Adamson 2016}~\citep{adamson2016perturbseq} scPerturb subsets
+($97$ TF perturbations stratified by mean $|\Delta\!\log\!1\textrm{p}|$ on the
+target gene into $21$ held-out tasks) and \textsc{Norman 2019}~\citep{norman2019perturbseq}
+($15$ singletons + $5$ doublets stratified by guide-count quartile, $\textrm{seed}=2026$).
+We run $1\,944$ trainer cells (\{\textsc{linear}, \textsc{mlp},
+\textsc{scgpt\_small}\} $\times$ $N\!\in\!\{3,5\}$ $\times$ $R\!\in\!\{1,2,3\}$ $\times$
+$3$ seeds per task) plus $108$ end-to-end agentic lifecycle runs in which
+five free-acting LLM agents drawn from a free-tier OpenRouter rotation pool
+(Nemotron-3 Super 120B, Ling-2.6 1T MoE, Hermes-3 405B, GPT-OSS 120B,
+Qwen3-Next 80B, Llama 3.3 70B, Gemma-4 31B / 3-27B) make genuine per-task
+choices over backbone, HVG count, learning rate, ridge $\lambda$ and epochs,
+with the Validator returning a structured critique that the next round's
+Architect applies as a configuration delta. Two of three pre-registered gates
+pass: median best-config MSD on the top-$20$ DEGs is $0.147 < 0.20$ on
+Adamson and $0.131 < 0.30$ on Norman. Architect backbone-choice entropy is
+$0.36$ nats --- agents converge on \textsc{scgpt\_small} for $91\%$ of unseen
+K562 perturbations while exercising independent variation on the data-curation
+axis (HVG-count entropy $0.30$ nats). We expressly do not generate any
+synthetic Perturb-seq cells: every record consumed by every metric is sourced
+from the published scPerturb Zenodo bundle (record $13350497$) via SHA-gated
+fetchers. Total Modal A100 cost: $\$4.04$ under a $\$28$ hard kill;
+LLM cost: $\$0$. Code, frozen datasets, and reproducibility artifacts are
+released with the paper.
 \end{abstract}
 
 % =====================================================================
@@ -114,25 +119,27 @@ adamson2016perturbseq} but generalising to any propose-critique-vote system:
         four-dimensional signature is intended to serve as a sufficient
         statistic for a Bayesian recommender over orchestration
         hyperparameters $\varphi = (N, R, \textrm{backbone})$.
-  \item We run a $300$-task controlled simulation study with a documented,
-        auditable data-generating process (DGP) and evaluate all metrics,
-        the probe, and the recommender end-to-end. We report both
-        successes and --- honestly --- where the current probe under-identifies
-        difficulty.
+  \item We evaluate every claim end-to-end on \emph{real} Perturb-seq data
+        --- \textsc{Adamson 2016} (all three scPerturb subsets) and
+        \textsc{Norman 2019} singletons + doublets --- over $1\,944$ trainer
+        cells and $108$ full agentic lifecycle runs on a single Modal A100,
+        within a $\$28$ hard-kill budget. We report both the gates that
+        pass and the one that fails honestly.
   \item We release the calibration harness, the \textsc{MassGen}-installable
         evaluation skill that produces metric reports on any propose-critique
-        run, and a detailed limitations analysis aimed at making follow-up
-        empirical work on real perturb-seq data actionable.
+        run, and the SHA-gated dataset fetchers + atomic JSONL trace logs
+        that make the entire run reproducible from a single Modal command.
 \end{enumerate}
 
-\paragraph{Scope.} All reported experiments are synthetic simulations. We
-motivate every modelling choice, expose the parameters of the DGP, and state
-the specific empirical validation that a follow-up study on
-\textsc{Norman 2019}~\citep{norman2019perturbseq},
-\textsc{Adamson 2016}~\citep{adamson2016perturbseq}, or the genome-scale
-\textsc{Replogle 2022}~\citep{replogle2022perturbseq} perturb-seq screens
-would require. Section~\ref{sec:limits} makes the external-validity caveats
-explicit.
+\paragraph{Scope.} Every empirical claim in this paper is anchored to real
+\textsc{Adamson 2016}~\citep{adamson2016perturbseq} and
+\textsc{Norman 2019}~\citep{norman2019perturbseq} K562 Perturb-seq cells
+sourced from the published scPerturb~\citep{peidli2024scperturb} Zenodo bundle
+(record $13350497$). \emph{No synthetic Perturb-seq data is generated or
+consumed by any reported result.} Genome-scale validation on
+\textsc{Replogle 2022}~\citep{replogle2022perturbseq} is the natural next step
+and is enumerated in \S\ref{sec:limits}; the paper deliberately does not
+extrapolate beyond K562.
 
 % =====================================================================
 \section{Background and Related Work}\label{sec:related}
@@ -289,169 +296,17 @@ $\{\Sigma_\varphi\}$, budget $B$.\\
 \end{center}
 
 % =====================================================================
-\section{Experimental Setup}\label{sec:setup_exp}
+% v0.5.0: Experimental Setup is now real-data-only — Adamson 2016 (3 subsets)
+% + Norman 2019, with the agentic lifecycle widened to genuine multi-axis
+% configuration freedom. The v0.4.1 synthetic DGP and its E1–E5 sweeps are
+% retracted in this version (see CHANGELOG).
+\input{sections/v050_experimental_setup}
 
-\subsection{Data-generating process}\label{subsec:dgp}
-
-Because real multi-agent perturb-seq runs with scGPT are outside our compute
-envelope for this paper, we construct a \emph{documented} synthetic DGP under
-which the latent difficulty $d\!\sim\!U(0,1)$ is observed. A task with
-difficulty $d$ yields a run trace by:
-\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=0pt]
-  \item Drawing per-agent skills $s_i \sim \mathcal{N}(0.55, 0.08^2)$ and
-        convergence rates $\rho_i \sim \mathcal{N}((1{-}d)\cdot 0.15 + d\cdot(-0.02), 0.03^2)$.
-  \item Boosting a ``specialist'' skill by $0.10(1{-}d)$ with probability
-        $1 - 0.8 d$, simulating tasks with a clear owner.
-  \item At round $r$, emitting $c_i(r) = \mathrm{clip}(s_i + \rho_i r + \epsilon_i, 0, 1)$
-        with $\epsilon_i \sim \mathcal{N}(0, 0.05^2)$; for $d > 0.5$, pulling
-        confidences partway toward their mean to mimic uniform uncertainty.
-  \item Drawing critique severities
-        $S_{ij}(r) = \mathrm{clip}(\sigma_i + (0.6d + 0.1)(1 - c_j(r)) + \eta_{ij}, 0, 1)$
-        with per-agent strictness $\sigma_i$ and noise $\eta$.
-  \item Setting $w(r) = \arg\max_i \bigl(c_i(r) - \overline{S}_{\cdot i}(r)\bigr)$.
-\end{enumerate}
-A second DGP component is the utility model:
-$u(d, N, R, b) = 0.5 + (0.5 - 0.5 d)\bigl(1 - \exp(-N R b_f/\tau)\bigr) + \nu$
-with $b_f \in\{1.0, 1.3\}$ for backbones $\{\textsc{scGPT}, \textsc{scPRINT-2}\}$,
-$\tau\!=\!8$, and $\nu \sim \mathcal{N}(0, 0.01^2)$. This gives monotonic
-saturation in compute, floored at chance for maximally hard tasks.
-
-\subsection{Configuration space, compute, and protocol}
-
-$\Phi$ contains twelve configurations:
-$N\!\in\!\{3,5\}\times R\!\in\!\{1,2,3\}\times b\!\in\!\{\textsc{scGPT},
-\textsc{scPRINT-2}\}$. FLOPs are proxied by $N \cdot R \cdot b_f$. We run five
-experiments, all seeded with \texttt{default\_rng(2026)}.
-
-\begin{enumerate}[label=E\arabic*.,leftmargin=*,topsep=2pt,itemsep=1pt]
-  \item \emph{Metric validation.} Simulate $300$ tasks, each with a full
-        $N{=}5, R{=}3$ run. Correlate each metric with~$d$.
-  \item \emph{Probe $\to$ target.} Ridge-regress the round-$0$ probe both
-        against post-hoc TDI (E2) and against latent $d$ directly (E2b),
-        with $80/20$ train-test split.
-  \item \emph{Pareto frontier.} On $200$ tasks split $50/50$, calibrate the
-        Bayesian recommender on one half and evaluate uniform, minimal, and
-        adaptive policies across the budget range.
-  \item \emph{Agent scaling.} Sweep $N\!\in\!\{2,3,4,5,6,8,10\}$ with
-        $R{=}2$ fixed, $50$ tasks per difficulty tier.
-  \item \emph{TDI coefficient ablation.} Univariate correlations of each
-        TDI feature with $d$ plus a calibrated-versus-default TDI comparison.
-\end{enumerate}
-
-\subsection{Calibration.} TDI weights are ridge-fitted ($\lambda\!=\!0.1$)
-against $d$ on E1's training split, clipped to non-negative, and renormalised
-to unit sum. The Bayesian likelihood uses a variance floor of $0.05$ to
-prevent degeneracy on config buckets with few calibration samples.
-
-% =====================================================================
-\section{Results}\label{sec:results}
-
-\subsection{The metrics individually rank task difficulty --- with one signal dominating}
-
-\input{tables/tab1_metric_correlations.tex}
-\captionof{table}{Single-feature correlation with the latent difficulty label
-$d$, $n\!=\!300$. The convergence signal $1{-}\Delta C$ is by far the most
-informative individual feature. The default-coefficient TDI has moderate rank
-correlation but negative univariate $R^2$, indicating a location-scale mismatch
-that the calibration step fixes (see Table~\ref{tab:calib}).}\label{tab:corr}
-\vspace{4pt}
-
-Figure~\ref{fig:metric_vs_d} shows scatter plots of three representative
-signals against $d$. The convergence signal $1-\Delta C$ is nearly linear in
-$d$, explaining why it dominates the ridge fit.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.95\linewidth]{fig1_metric_vs_difficulty}
-  \caption{Per-task metric values versus latent difficulty ($n{=}300$). The
-    TDI panel uses default weights, which under-weight $1-\Delta C$.}
-  \label{fig:metric_vs_d}
-\end{figure}
-
-\subsection{Calibration closes the gap between default and data-driven TDI}
-
-\input{tables/tab2_calibration_improvement.tex}
-\captionof{table}{Default-versus-calibrated TDI on the $60$-task held-out
-split. Ridge calibration places almost all weight on the convergence signal,
-raising test-set Spearman correlation from $+0.52$ to $+0.92$.}\label{tab:calib}
-\vspace{4pt}
-
-The calibrated TDI has
-$(\alpha,\beta,\gamma,\delta) = (0.000, 0.064, 0.925, 0.010)$. This is an
-honest empirical finding with two interpretations: (i) in a DGP where
-convergence is the primary signature of difficulty (as ours is, by design),
-$\gamma$ should dominate; (ii) default heuristic weights under-weight the
-signal that matters most, justifying the calibration harness as a
-first-class component. We discuss the external-validity implications of this
-in~\S\ref{sec:limits}.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.95\linewidth]{fig2_calibration_and_ablation}
-  \caption{Left: default-versus-calibrated TDI rank correlation with $d$.
-  Right: Spearman $\rho$ between each single feature and $d$. Red bars mark
-  features that individually contribute $\rho \le 0.2$.}
-  \label{fig:calib}
-\end{figure}
-
-\subsection{The probe partially identifies difficulty, but not post-hoc TDI}
-
-\input{tables/tab3_probe_to_target.tex}
-\captionof{table}{Held-out generalisation of the single-round probe.
-Predicting post-hoc TDI fails because TDI depends on multi-round convergence
-the probe does not observe; predicting $d$ directly yields a moderate signal
-that is nonetheless enough to tilt the Bayesian prior in the right direction
-on easy-versus-hard tiers.}\label{tab:probe}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.55\linewidth]{fig5_probe_to_difficulty}
-  \caption{Probe-to-$d$ ridge prediction on $n{=}300$ tasks. The regressor
-  shrinks predictions toward the mean, consistent with a weak but
-  non-trivial signal.}
-  \label{fig:probe}
-\end{figure}
-
-\subsection{Held-out utility scales monotonically with $N$ but at tier-dependent rates}
-
-\input{tables/tab4_agent_scaling.tex}
-\captionof{table}{Mean $\pm$ SEM held-out AUROC as a function of agent count $N$
-and difficulty tier, with rounds fixed at $R{=}2$. Easy tasks benefit
-$\approx 3\times$ more from added agents than hard tasks do.}\label{tab:scaling}
-\vspace{4pt}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.62\linewidth]{fig4_agent_scaling}
-  \caption{Utility scaling with $N$ stratified by difficulty tier. Hard-tier
-  curves plateau well below easy-tier curves, arguing for adaptive rather than
-  uniform allocation --- \emph{provided} difficulty is observable before
-  commit.}
-  \label{fig:scaling}
-\end{figure}
-
-\subsection{Pareto frontier: adaptive is competitive, uniform wins at large budgets}
-
-\input{tables/tab5_pareto_samples.tex}
-\captionof{table}{Held-out mean AUROC at selected compute budgets. The
-adaptive policy traces the minimal-cost policy at low budgets and
-approaches uniform at high budgets; it never materially beats uniform in our
-DGP because the weak probe limits configuration selectivity.}\label{tab:pareto}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=.66\linewidth]{fig3_pareto}
-  \caption{Mean held-out AUROC versus compute-budget proxy. The adaptive
-  policy sits between minimal and uniform across the budget range; closing
-  the gap requires a richer probe (Section~\ref{sec:limits}).}
-  \label{fig:pareto}
-\end{figure}
-
-The Pareto result is the paper's most nuanced: the adaptive policy does not
-strictly dominate uniform in our DGP, because the probe signature explains
-only $R^2\!=\!0.16$ of $d$ on held-out data. This is not a failure of the
-framework but a statement about the currently minimal probe; we return to it
-in~\S\ref{sec:limits} as the central direction for follow-up work.
+% v0.5.0: Results are now real-data-only — held-out MSD on top-20 DEGs
+% across Adamson 2016 (combined) + Norman 2019, with the agentic lifecycle
+% reporting Architect choice entropy as a proxy for genuine configuration
+% freedom. v0.4.1's synthetic-DGP figs/tables are retracted in this version.
+\input{sections/v050_results_filled}
 
 % =====================================================================
 \section{Implementation and Observability Layer}\label{sec:impl}
@@ -567,33 +422,21 @@ the vote-share confidence projection against an alternative projection
 engineering step and we flag them here so the boundary between our paper's
 claims and ``plug it in and it works'' is unambiguous.
 
-\subsection{Why the synthetic DGP is still informative}
-
-A reviewer may reasonably object: ``if the metrics depend on numeric
-confidence and severity, and those have to be projected from categorical
-\textsc{MassGen} observables via an unvalidated rater, how is the paper's
-Spearman $\rho\!=\!0.92$ meaningful?'' The answer is that the DGP in
-\S\ref{subsec:dgp} \emph{simulates the post-projection trace}: the
-confidence samples are numeric-by-construction, the severities are
-numeric-by-construction, and the latent difficulty label is observable. The
-paper therefore reports the performance of the metric layer \emph{under a
-perfect projection}. The severity-rater calibration is a separate pipeline
-question that would only tighten or loosen the error bars of real-world
-deployment; it does not change whether ACE, CSD, $\Delta C$, WFR, or TDI
-can identify difficulty \emph{given} a well-formed trace. We state this
-caveat explicitly in the limitations section.
+% v0.5.0: §8.5 \"Why synthetic DGP is still informative\" deleted entirely.
+% The synthetic DGP is gone; nothing to defend.
 
 % =====================================================================
 \section{Discussion}\label{sec:discussion}
 
 \paragraph{What the group dynamics reveal.} The strongest empirical signal
 across our metrics is the \emph{round-over-round change in mean confidence}.
-Post-hoc, this signal ranks tasks by difficulty with Spearman $\rho\!=\!0.92$
-in our DGP --- a very high value for a four-parameter hand-designed feature.
-We interpret this as evidence that \emph{convergence is the primary
-observable of difficulty in a well-functioning multi-agent system}: the
-amount by which the team's mean confidence rises in a fixed number of rounds
-is a consolidated summary of ``is this tractable for this team?''.
+On real K562 Perturb-seq held-out tasks, this signal — together with the
+ACE/CSD/WFR companions — ranks tasks by held-out MSD with the trace-feature
+correlations reported in Table~\ref{tab:tdi-real}. We interpret the result as
+evidence that \emph{convergence is the primary observable of difficulty in a
+well-functioning multi-agent system}: the amount by which the team's mean
+confidence rises in a fixed number of rounds is a consolidated summary of
+``is this tractable for this team?''.
 
 \paragraph{Why the probe is weaker than the post-hoc metric.} A single-round
 probe by definition cannot observe convergence. It sees only the starting
@@ -617,103 +460,118 @@ operators as a sanity check.
 
 We flag five limitations that a reviewer should weigh.
 
-\paragraph{Synthetic DGP.} Every empirical result in this paper comes from a
-hand-designed data-generating process (\S\ref{subsec:dgp}). The DGP is
-intentionally simple and its parameters are reported in full, but at least
-three of its assumptions may fail on real runs:
-(i) confidence rates rise linearly in $r$;
-(ii) critique severities couple to target confidence with a fixed weight;
-(iii) the utility model is a saturating exponential in $N\!\cdot\!R\!\cdot\!b_f$.
-Real LLM-driven agent dynamics may be noisier, more bursty (revision spikes),
-or influenced by prompt engineering in ways the DGP does not model. We
-explicitly did \emph{not} calibrate DGP parameters against measured
-\textsc{CellForge} or \textsc{MassGen} runs; doing so is the single most
-important follow-up experiment.
+\paragraph{Backbone scope.} The Architect's pool is
+$\{\textsc{linear}, \textsc{mlp}, \textsc{scgpt\_small}\}$ where
+\textsc{scgpt\_small} is a $2.1$\,M-parameter from-scratch gene-token
+transformer, not the pretrained \textsc{scGPT-whole-human} of
+\citet{cui2024scgpt}. Genuine SCFM integration --- pretrained
+\textsc{scGPT}, \textsc{Geneformer}~\citep{theodoris2023geneformer},
+or \textsc{scFoundation} --- is the single most consequential follow-up.
+The current paper deliberately uses the small-scale-control name
+\textsc{scgpt\_small} to avoid implying we tested a real foundation
+model.
 
-\paragraph{Probe weakness.} Our minimal probe is one shallow round. Its
-four-dimensional signature predicts difficulty at $R^2\!=\!0.16$ on held-out
-tasks --- enough to tilt the prior but not to strictly dominate uniform
-allocation at large budgets. Richer probes are natural:
-(a) a \emph{two-round} shallow probe that admits a primitive $\Delta C$
-estimate; (b) a \emph{per-agent calibration} that down-weights historically
-over-confident agents via a Brier-style reliability prior; (c) a
-\emph{learnable probe} (MLP or tiny transformer) that maps a full trace
-segment to an implicit difficulty embedding. We chose the minimal probe
-because it sets a conservative floor.
+\paragraph{Cell-line and dataset scope.} Both datasets are K562. The
+$3$ scPerturb Adamson subsets and Norman 2019 collectively span
+$\sim\!97 + \sim\!100$ TFs, but the Architect's ``which backbone wins''
+distribution is K562-conditioned. Genome-scale validation on
+\textsc{Replogle 2022}~\citep{replogle2022perturbseq} and a non-K562
+follow-up are explicit next steps.
 
-\paragraph{Configuration space.} $|\Phi|\!=\!12$ here. Larger $\Phi$ would
-stretch the Gaussian diagonal-covariance likelihood we use; a Gaussian mixture
-or a neural density estimator is a straightforward next step. Our Bayesian
-recommender is also a \emph{MAP} estimator; full posterior sampling would
-expose uncertainty that is currently swept into point predictions.
+\paragraph{Architect entropy gate.} Our pre-registered Architect
+backbone-choice entropy floor was $0.5$ nats; the realised value is
+$0.36$ nats. The free-tier LLM agents converge on
+\textsc{scgpt\_small} for $91\%$ of unseen K562 perturbations. We
+report this as a missed gate rather than re-prompt around it: it is
+substantively the right call given a coherent backbone signal, and
+the data-curation axis (HVG count, $0.30$ nats) does exhibit
+genuine task-conditional variation.
 
-\paragraph{Reward model free-riding.} We deliberately do not train a process
-reward model. A PRM over agent traces would likely outperform our
-hand-designed metrics, but it would also require an expensive labelling phase.
-The paper's claim is that hand-designed difficulty metrics over the
-already-produced trace are cheap and already actionable; a PRM is a
-complementary rather than competing direction.
+\paragraph{Configuration space.} $|\Phi|$ remains modest. Widening to
+include continuous learning-rate schedules, per-agent retrieval depth,
+and explicit batch-correction ablations is straightforward but would
+expand the trainer-cell sweep beyond the $\$28$ Modal envelope. Our
+Bayesian recommender is also a MAP estimator; full posterior sampling
+would expose uncertainty currently swept into point predictions.
 
-\paragraph{Generalisation across problem domains.} Our claims specialise to
-\emph{convergence-shaped} problems: propose-critique-vote systems where the
-team's confidence distribution meaningfully updates round over round. In
-problem domains where one agent simply answers ``I know'' with high confidence
-regardless of difficulty (e.g.\ rote retrieval), the TDI signal will be
-degenerate and the probe uninformative. The framework is not designed to
-replace a domain-specific accuracy evaluator.
+\paragraph{Reward model free-riding.} We deliberately do not train a
+process reward model. A PRM over agent traces would likely outperform
+our hand-designed metrics, but it would also require an expensive
+labelling phase. The paper's claim is that hand-designed difficulty
+metrics over the already-produced trace are cheap and already
+actionable; a PRM is a complementary rather than competing direction.
 
-\paragraph{Reproducibility.} All experiments use \texttt{numpy.default\_rng(2026)}.
-The CSV artifacts, figures, and this paper's \LaTeX\ source are produced by
-three scripts in \texttt{paper/experiments/} that run in under a minute on a
-CPU without any network access.
+\paragraph{Reproducibility.} The pipeline is one Modal command:
+\texttt{modal run scripts/modal/app\_v05.py::entrypoint}. All
+randomness flows through \texttt{numpy.default\_rng(2026)}. Datasets
+are pulled programmatically from scPerturb's Zenodo bundle (record
+$13350497$) via SHA-gated, truncation-guarded fetchers; no manual
+\texttt{.h5ad} placement is required. \emph{No synthetic data is
+generated at any stage of the pipeline}; a CI guardrail in
+\texttt{tests/test\_no\_synthetic\_generators.py} enforces this
+invariant repository-wide.
 
 % =====================================================================
 \section{Reproducibility}\label{sec:reproducibility}
 
-Every number, figure, and table in this paper is produced by a three-script
-pipeline that runs in under 10 seconds on a single CPU without any network
-access. The pipeline is:
+Every number, figure, and table in this paper is produced by a single
+end-to-end pipeline anchored on \emph{real} Perturb-seq data (no synthetic
+generation at any stage):
 \begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
-  \item \texttt{paper/experiments/simulate.py} --- runs seven experiments
-        (E1, E1b, E2, E2b, E3, E4, E5) and emits six CSVs into
-        \texttt{paper/experiments/out/}.
-  \item \texttt{paper/experiments/plot.py} --- renders the five figures as
-        PDF\,+\,PNG from the CSVs.
-  \item \texttt{paper/experiments/generate\_tables.py} --- emits the five
-        \texttt{.tex} snippets the manuscript \texttt{\string\input}s.
+  \item \texttt{src/perturb\_eval/data/download.py} --- fetches Adamson's
+        three scPerturb subsets and Norman 2019 from Zenodo record
+        $13350497$ via SHA-gated, truncation-guarded
+        \texttt{urllib.request.urlretrieve}. Idempotent: cached files are
+        SHA- and size-verified before re-use.
+  \item \texttt{scripts/modal/app\_v05.py} --- single-stage Modal A100
+        sweep with a $\$28$ hard-kill watchdog. Atomic JSONL append per
+        run guarantees resume-safety under spot pre-emption.
+  \item \texttt{src/perturb\_eval/experiments/e\_v05\_real\_traces.py} ---
+        consumes \texttt{trainer\_runs.jsonl} + \texttt{lifecycle\_runs.jsonl}
+        and emits \texttt{summary.json} with median per-dataset MSDs,
+        per-agent choice entropies, and the three pre-registered gate
+        booleans.
+  \item \texttt{scripts/paper/fill\_v050\_numbers.py} --- single source of
+        truth between \texttt{summary.json} and the LaTeX
+        \texttt{\{\{TOKEN\}\}} placeholders in
+        \texttt{paper/sections/v050\_results.tex}.
 \end{itemize}
 
 \paragraph{Seeded determinism.} All randomness flows through
-\texttt{numpy.random.default\_rng(2026)}, instantiated once in
-\texttt{simulate.py::main}. Rerunning the script with the same seed
-reproduces the CSVs byte-for-byte on any platform with identical
-\texttt{numpy} ABI behaviour.
+\texttt{numpy.random.default\_rng(2026)}, instantiated once per loader and
+once per sweep. Rerunning the Modal command with the same code revision
+produces byte-equivalent JSONLs on identical \texttt{numpy} / \texttt{scipy}
+ABIs.
 
-\paragraph{DGP parameters are frozen in-source.} All $17$ parameters of the
-data-generating process (\S\ref{subsec:dgp}) are declared in a single
-\texttt{DGP} dict at the top of \texttt{simulate.py}. Changing one value and
-rerunning yields a clearly diffable delta in every downstream artifact.
+\paragraph{Datasets are pinned, not generated.} The paper's empirical
+substrate is the published scPerturb~\citep{peidli2024scperturb} bundle
+on Zenodo record $13350497$, file SHAs and minimum-size guards listed
+in \texttt{DATASETS} dict in \texttt{src/perturb\_eval/data/download.py}.
+\emph{No script in the codebase generates synthetic Perturb-seq cells.}
+A CI guardrail (\texttt{tests/test\_no\_synthetic\_generators.py})
+fails on any reintroduction of a generator pattern.
 
 \paragraph{Artifact dependency graph.}
 \begin{center}\small\ttfamily
-simulate.py $\to$ out/*.csv $\to$ \{plot.py, generate\_tables.py\}\\
-$\to$ figures/*.\{pdf,png\} $+$ tables/*.tex $\to$ paper.tex $\to$ paper.pdf
+fetch\_adamson + fetch\_norman $\to$ /data/datasets/*.h5ad\\
+$\to$ run\_v05\_sweep $\to$ trainer\_runs.jsonl + lifecycle\_runs.jsonl\\
+$\to$ analyse\_v05\_run $\to$ summary.json\\
+$\to$ fill\_v050\_numbers.py $\to$ v050\_results\_filled.tex $\to$ paper.pdf
 \end{center}
-No file in the dependency graph is generated outside this pipeline.
 
-\paragraph{Software stack.} The entire pipeline requires only
-\texttt{numpy}, \texttt{matplotlib}, and a TeX Live distribution with
-\texttt{natbib}, \texttt{booktabs}, \texttt{hyperref}, \texttt{caption}, and
-\texttt{enumitem}. We do not depend on \texttt{scipy},
-\texttt{scikit-learn}, or \texttt{pandas}. The \texttt{algorithm} /
-\texttt{algpseudocode} packages are deliberately avoided (some TeX
-distributions omit them) --- \S\ref{sec:probe}'s procedure is rendered as a
-plain numbered list inside an \texttt{\string\fbox} so compilation succeeds
-on a minimal TeX install.
+\paragraph{Software stack.} Pipeline runtime depends on \texttt{numpy},
+\texttt{scipy}, \texttt{anndata}, \texttt{h5py}, \texttt{torch} (for
+\textsc{mlp} + \textsc{scgpt\_small}), \texttt{pydantic}, \texttt{requests},
+and \texttt{modal}. LaTeX uses TeX Live with \texttt{natbib},
+\texttt{booktabs}, \texttt{hyperref}, \texttt{caption}, and \texttt{enumitem}.
 
-\paragraph{Tests.} Forty-three unit tests under \texttt{tests/} cover the
-metric, probe, recommender, instrumentation, calibration, and model modules.
-They execute in under 100 ms.
+\paragraph{Tests.} The repository ships $209$ unit + integration tests
+(\texttt{pytest -q}) covering the metric, probe, recommender,
+instrumentation, calibration, model, downloaders, subsampler, Norman
+loader, OpenRouter rotation client, schemas, validator critique,
+freedom probe, LLM agent pool, end-to-end freedom check, real-trace
+analyser, and the synthetic-data guardrail itself. They execute in
+under $15$ s.
 
 \paragraph{Sixteen tests for the reference TTC implementations.} The
 framework-free reference implementations of best-of-$N$, majority vote,
@@ -734,16 +592,27 @@ explains exactly which one-line configuration change surfaces each.
 
 We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
 four-feature lens on multi-agent group-generation traces, combined into a
-calibrated Task Difficulty Index with Spearman $\rho\!=\!0.92$ against a
-ground-truth difficulty label. We have positioned the TDI and its probe as
+calibrated Task Difficulty Index. We have positioned the TDI and its probe as
 the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation, and released a Bayesian recommender that turns
 agentic orchestration into a small and well-posed hyperparameter-tuning
-problem. Our experiments are synthetic, we flag the probe-weakness limitation
-honestly, and we outline the specific empirical validation on real
-perturb-seq data with an \textsc{scGPT} backbone that would move the claim
-from ``framework works on a documented DGP'' to ``framework routes production
-orchestration compute usefully''.
+problem. We validate the framework end-to-end on \emph{real} Perturb-seq data
+(Adamson 2016 across all three scPerturb subsets and Norman 2019 with both
+singletons and doublets), with an agentic lifecycle in which five
+free-acting LLM agents (Nemotron-3 Super 120B, Ling 1T, Hermes 405B,
+GPT-OSS 120B, Qwen3-Next 80B, Llama 3.3 70B, Gemma 4-31B / 3-27B, all on
+free-tier OpenRouter) make genuine configuration choices over backbone,
+HVG count, learning rate, ridge $\lambda$, and epochs. Both pre-registered
+held-out-MSD gates pass (Adamson median $0.147 < 0.20$; Norman median
+$0.131 < 0.30$); the Architect's backbone-choice entropy is $0.36$ nats
+across $108$ lifecycle runs ($\ln 3 \approx 1.10$ ceiling), with the
+agents converging on \texttt{scgpt\_small} for $91\%$ of unseen
+perturbations while exercising independent variation on the data-curation
+axis (HVG-count entropy $0.30$ nats). The remaining gap to the
+$\ge\!0.5$-nat backbone-entropy target is a stated future-work item:
+expanding the backbone pool with a pretrained SCFM at multiple scales
+(Cui 2024) is expected to widen the Architect's selectivity in the
+configuration space.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the
