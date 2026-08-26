@@ -325,6 +325,6 @@ Three adjacent things are **deliberately not here**:
 
 ## Agent execution notes (AIADLC)
 
-- **CA tasks (T3–T7, T9–T13, T15–T17)** are the worktree agent's build scope — 14 tasks, each with a failing-test done-condition.
+- **CA tasks (T3–T7, T9–T13, T15–T17)** are the worktree agent's build scope — 13 tasks, each with a failing-test done-condition (17 total − 4 human-owned).
 - **H tasks (T1, T2, T8, T14)** are blockers the agent must **escalate, not simulate**. T1/T2 gate T11; T8 gates T9; T14 gates T15. The agent builds the code and tests around them, leaves the human artifacts absent, and reports the blocked set at the boundary.
 - **The hard rule stands:** no agent-written biological numbers, no agent-created curated records, no agent edits to the frozen evaluator. T7's panel is drafted `ratified: false` **by design** — drafting accessions is allowed; ratifying them is not.
