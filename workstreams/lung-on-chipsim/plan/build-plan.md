@@ -1,8 +1,8 @@
 # Build Plan — ChipSim M0 Data Spine (slice 1)
 
-**Workstream:** `lung-on-chipsim` · **Module:** `projects/lung-on-chipsim`
+**Workstream:** `lung-on-chipsim` · **Module:** `projects/lung-on-chipsim` (project root — every `Files:` path below is relative to it, per A&D AM-4)
 **Source:** [Plan — ChipSim M0 Data Spine: Agent vs Human Implementation Roadmap](https://app.notion.com/p/2be47ffc30a34400ab31077cc57b3ffd)
-**Implements:** Design §1 and §1.4 only (see Scope check).
+**Implements:** the DrugBank clause of Design §1's S1 layer + §1.4's access ruling (see Scope check and A&D amendment AM-5). **Not** §1.2 beyond identity, **not** §1.3 splits/leakage, **not** S2–S8.
 **Upstream:** [A&D](../A-and-D.md) · [PVR](../PVR.md)
 
 ## Goal
