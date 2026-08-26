@@ -356,8 +356,9 @@ issues:
     # The linear-* skill suite (CTO-only) consumes team/project/initiative to map
     # Workstream→Initiative, Plan→Project, Phase→Milestone, Iteration→Issue and
     # writes the resulting URLs back into .claude/workstreams/<ws>/context.json.
-    team: ""                     # Linear team name or key (required when tracker includes linear)
+    team: "Syntropyhealth"       # Linear team name or key (required when tracker includes linear)
     project: ""                  # optional Linear project name to file phase issues under
+                                 # (per-workstream projects are set in context.json instead)
     initiative: ""               # optional Initiative name override (default: derived from workstream)
     # ── Lifecycle-label taxonomy (P7) ──────────────────────────────────────
     # Map canonical slugs to workspace label names. Unset slugs default to the
