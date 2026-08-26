@@ -292,6 +292,42 @@ Everything except full L1000 fits in single-digit GB; subset L1000 *before* writ
 > leaderboard number as your baseline — re-run it on your split; (2) check test targets against
 > the pLM pretraining corpus; (3) keep one truly untouched holdout scored **at most twice**.
 
+#### §1.4 Access & administrative lead-time audit
+
+Every external dependency, checked against its current terms (Aug 2026). The column that matters
+is **lead time** — a resource that needs a human to approve you is a schedule risk, not a download.
+
+| Resource | Access mode | Lead time | Mitigation / substitute |
+|---|---|---|---|
+| ChEMBL | open SQLite dump, no account | none | — |
+| PubChem | open PUG-REST + FTP bulk, rate-limited (~5 req/s) | none | batch via FTP, never scrape interactively |
+| BindingDB | free account for TSV/SDF dumps (CC-BY; ChEMBL-sourced portion CC-BY-SA) | minutes | UCSD Library publishes dated public mirrors |
+| Papyrus | open via GitHub/Zenodo | none | — |
+| TDC (ADME + DTI) | pip package, pulls from Harvard Dataverse | none | — |
+| CycPeptMPDB | free download, CC-BY 4.0 | none | — |
+| **DrugBank** | **unblocked via snapshot** — pinned public copy of DrugBank 4.2 (dhimmel/drugbank, 2015-03-19, CC BY-NC 4.0, Zenodo 10.5281/zenodo.45579). The *current* release remains application-gated with manual review | **none** for the snapshot; days–weeks only if current data is wanted | identity and drug→transporter/carrier edges only, **never affinities**; 2015 vintage forbids any coverage claim |
+| **PDBbind** | **registration-gated**; the PDBbind+ portal is a paid product | hours–days | **PDBbind CleanSplit / GEMS on Zenodo is fully open** and is the better dataset anyway (leakage-controlled) |
+| PDB / RCSB | open API and bulk | none | — |
+| AlphaFold DB | open bulk download, CC-BY 4.0 | none | — |
+| OSP PK-Sim library | open GitHub | none | — |
+| LINCS L1000 (GSE92742 / GSE70138) | **fully open via GEO**, cmapPy reads it directly | none | clue.io needs an account; not needed for the level-5 pull |
+| Tox21 / ToxCast | open (EPA invitrodb / tcpl) | none | — |
+| Human Lung Cell Atlas | open via CZ CELLxGENE Discover + Census API | none | — |
+| Human Protein Atlas | open TSV downloads | none | — |
+| GTEx | portal summary data open | none for summaries | raw data is dbGaP-protected — **do not design anything that needs it** |
+| ESM-2 650M | Hugging Face, open weights | none | — |
+| Boltz-2 | MIT code + weights; auto-download, HF mirror | none | — |
+| Chai-1 | **Apache-2.0, code and weights** (since Nov 2024) | none | may sit inside the loop for geometry |
+| AlphaFold Server | Google-account registration; non-commercial; ~20–30 jobs/day manual UI; outputs may not feed docking/screening systems or model training | account minutes; **throughput is the constraint** | manual hypothesis checks only, never scripted — ToS |
+| Modal | Starter free tier: $30/month credit, 10-GPU concurrency; card required at signup | minutes | ~40–50 free T4-hours/month covers the PoC panel |
+| n8n | self-hosted Community Edition, Sustainable Use License | minutes | fair-code, not OSI; never redistribute or offer as a service |
+
+> **Administrative critical path — now empty.** DrugBank is resolved by the pinned 2015 snapshot
+> route, so the only remaining gate is **PDBbind** (registration), which CleanSplit/GEMS on Zenodo
+> already supersedes. Nothing in v1 waits on a human approving you. Register for PDBbind on day 0
+> in the background and build as if it will never arrive. **The real critical path is literature
+> curation (M0), which no amount of paperwork accelerates.**
+
 ### §2 · Objectives — seven losses
 
 | # | Task | Loss | Why this form |
@@ -397,7 +433,7 @@ chipsim/
     uncertainty/   ensemble.py conformal.py
     eval/          splits.py metrics.py controls.py card.py
     acquire/       bald.py diversity.py
-  configs/         theta_priors.yaml assumptions.yaml env.yaml
+  configs/         theta_priors.yaml assumptions.yaml env.yaml barrier_panel.yaml
   orchestration/   n8n workflow JSON exports (versioned here), modal_app.py
   journal/         append-only run records — diff, seeds, scores, veto state
   notebooks/
@@ -408,6 +444,23 @@ chipsim/
 > no duplicate keys), a **leakage** test (no test scaffold or target in train; no test target
 > above the identity threshold), and a **monotonicity** test (raising flow lowers cumulative
 > flux). If these three pass, most catastrophic silent failures are already excluded.
+
+### §4.5 Orchestration — n8n drives, Modal runs, the evaluator stays frozen
+
+The execution substrate for §2A's loop. Design goal: **the platform carries the reproducibility
+burden; the agent carries only the science.**
+
+- **n8n (self-hosted CE)** is the workflow engine. **One workflow per loop stage: `etl` (S1–S8 pulls **plus contract tests**), `dispatch` (read the run queue, stamp `(θ, drug, schedule, seed)`, spawn the runner), `poll`, `journal` (append the run record), `card` (rebuild the evaluation card on milestone tags).** Workflow JSON is exported to git on every change — dispatch itself is replayable.
+- **Long-running modelling runs on Modal.** Boltz-2 affinity, ESM-2 embeddings and Chai-1 poses are Modal functions spawned with a call id; n8n applies a **Wait + HTTP poll loop** until completion, with a timeout that *fails* the run instead of hanging it. Polling, not holding — the workflow survives a restart and never pins an interactive session.
+- **The frozen evaluator is a versioned HTTP service.** n8n calls it; the agent and the workflows cannot write to it. The gate scalar and veto flags come back over the wire, never computed in-flight.
+- **Determinism is enforced at dispatch.** Every run record carries `(θ, drug, schedule, seed)`, the evaluator version and the data snapshot hash, so any kept diff replays bit-identically.
+
+> **Scope note on the "not a second brain" rule (§2A).** The prohibition is on **gating decisions**
+> — computing the gate scalar, weighing a veto, rewriting a proposal. **Data-contract tests inside
+> the `etl` workflow are explicitly sanctioned by the bullet above and are not gating**: they
+> validate units, identifiers and duplicate keys, and they carry no veto. The line to hold is that
+> an `if`-node must never weigh a *scientific* verdict; all such gating lives in the frozen
+> evaluator service.
 
 ### §5 · Milestones
 
@@ -454,3 +507,81 @@ unavoidable human-bound block (M0 curation) that no agent accelerates.
 - **DrugBank** — pinned public **4.2 snapshot (2015-03-19)**, CC BY-NC 4.0. Identity + drug→transporter/carrier edges **only, never affinities**. 2015 vintage **forbids any coverage claim**.
 - **n8n** — self-hosted CE under the Sustainable Use License (fair-code): free for personal/internal use; never redistribute or offer as a service.
 - **Overall posture** — non-commercial personal research.
+
+---
+
+## Amendments — CTO rulings, 2026-08-26
+
+Raised by the `lung-on-chipsim` agent at the G4 grill (escalation #4) and ruled here. Notion is
+authoritative for the imported body above; **this section is repo-local and must be folded back
+into the Notion Spec/Design before the next import.**
+
+### AM-1 · §1.4 and §4.5 were missing from this mirror (import defect, now fixed)
+
+The first import pass dropped **§1.4 (access & administrative lead-time audit)** and **§4.5
+(orchestration)** from the Design doc. Both are restored above. Consequences that were reported as
+architecture contradictions and are now resolved: the plan's `Implements: §1 and §1.4` reference
+resolves; and T16's `etl` workflow with contract tests is explicitly sanctioned by §4.5.
+
+### AM-2 · Panel composition — two actors, two phases, no contradiction
+
+§2A's write scope ("the agent may edit … panel composition") governs **XB, the runtime experiment
+brain**, editing panel composition as a gated mechanism diff under the ratchet. The M0 plan's
+"H owns panel composition" governs **build time**, where the human ratifies the initial accession
+list. Both hold. The rule:
+
+| Phase | Actor | May do |
+|---|---|---|
+| Build (M0) | **H** | ratify the initial accessions; flip `ratified: true`. CA may *draft* the list, never ratify it |
+| Runtime (M3+) | **XB** | propose panel-composition diffs, gated + journaled + revertible |
+
+### AM-3 · `barrier_panel.yaml` is a sanctioned split of the binding-site inventory
+
+§2B assigns the binding-site inventory to `theta_priors.yaml`; the M0 plan introduces
+`configs/barrier_panel.yaml`. Ruling — **split by kind, because the "no agent writes a biological
+number" rule cuts exactly here:**
+
+- **`barrier_panel.yaml`** — panel *identity*: symbol, UniProt accession, alias, face, `ratified`. **Not numbers.** CA may draft; H ratifies.
+- **`theta_priors.yaml`** — panel *abundances* and every other θ quantity: value, range, unit, citation. **Numbers. H only, always.**
+
+`configs/` in §4.4 is updated to list both.
+
+### AM-4 · Repository root — the project root is the module directory
+
+§4.4's tree is rooted at the **project** directory, with the package nested one level below it.
+Canonical for this workstream:
+
+```
+projects/lung-on-chipsim/          <- PROJECT ROOT; every "Files:" path in the plan is relative to this
+  chipsim/                         <- the Python package
+    ingest/ harmonize/ encoders/ heads/ transport/ occupancy/ surface/ uncertainty/ eval/ acquire/
+  configs/  data/  orchestration/  journal/  notebooks/  tests/
+  pyproject.toml
+```
+
+So `chipsim/ingest/drugbank_snapshot.py` and `data/raw/` are **both** project-root-relative and
+consistent. The module directory is renamed to lowercase `projects/lung-on-chipsim` to match the
+module, branch, agent and workstream names — the previous `projects/Lung-on-ChipSIM` resolved only
+by macOS case-insensitivity and would break on a case-sensitive filesystem.
+
+### AM-5 · Scope line restated precisely
+
+`Implements: Design §1 and §1.4 only` overclaimed. The M0 slice-1 plan implements **the DrugBank
+clause of §1's S1 layer, plus §1.4's access ruling** — and deliberately not the rest of §1
+(§1.2 harmonization beyond identity, §1.3 splits and leakage defences, S2–S8). §1.3 in particular
+is the *reason* the frozen evaluator is deferred, so it belongs to the M0c plan, not this one.
+
+### AM-6 · OPEN — escalated to the principal, not ruled here
+
+The **two-group calibration arithmetic does not close** (escalation item A5). §2D's PoC amendment
+requires ≥30 calibration points in **each** of the two pre-registered P-gp groups (≥60), while
+§2E sets the PoC compound set at **20–40** and the plan excludes `unknown` compounds from both
+groups. Even reading "calibration points" as curated chip records rather than compounds, the M0
+target of 60–100 records is split four ways (δ-calibration / conformal calibration / locked test /
+active-learning pool), so the conformal-calibration allocation alone cannot reach 60.
+
+This is a **scope decision about what the PoC may claim**, not a plan defect, and it is unresolved
+in the source documents. Three exits: grow the PoC compound set; lower the ≥30 threshold and widen
+the binomial CIs accordingly; or rescope the M5 coverage claim to marginal-with-disclosure and
+record the downgrade on the model card. **No M0 task depends on the answer**, so M0 slice 1 may
+proceed while it is open — but it must be closed before M5 pre-registration.

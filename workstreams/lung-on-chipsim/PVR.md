@@ -1,6 +1,6 @@
 # PVR — ChipSim: Lung-on-a-Chip as a Perturbation-Framed LBM System
 
-**Workstream:** `lung-on-chipsim` · **Module:** `projects/lung-on-chipsim`
+**Workstream:** `lung-on-chipsim` · **Module:** `projects/lung-on-chipsim` (project root)
 **Status:** imported from Notion 2026-08-26 — authoritative source is Notion; this is the in-repo mirror
 **Source:** [PRD — Lung-on-a-Chip as a Perturbation-Framed LBM System (Requirements & Vision)](https://app.notion.com/p/8c73e759a0a046659e00da96898ca394)
 **Companions:** [A&D](./A-and-D.md) · [build plan](./plan/build-plan.md) · [Index](https://app.notion.com/p/d419cffbca33420a9a7d39abbe3eb67b) · [Open Questions](https://app.notion.com/p/8e0482407f574bc6ac0f508f906183ac)
