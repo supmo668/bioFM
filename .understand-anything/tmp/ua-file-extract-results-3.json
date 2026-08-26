@@ -1,0 +1,2064 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 13,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 15,
+      "nonEmptyLines": 13,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 91,
+      "nonEmptyLines": 74,
+      "functions": [
+        {
+          "name": "_canonical_backbone",
+          "startLine": 25,
+          "endLine": 28,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "resolve_architect_config",
+          "startLine": 31,
+          "endLine": 81,
+          "params": [
+            "proposal",
+            "critique_delta"
+          ]
+        },
+        {
+          "name": "dispatch_architect",
+          "startLine": 84,
+          "endLine": 91,
+          "params": [
+            "proposal"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_canonical_backbone",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "resolve_architect_config",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "dispatch_architect",
+          "line": 84,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_canonical_backbone",
+          "callee": "name.strip().lower",
+          "lineNumber": 26
+        },
+        {
+          "caller": "_canonical_backbone",
+          "callee": "name.strip",
+          "lineNumber": 26
+        },
+        {
+          "caller": "_canonical_backbone",
+          "callee": "_ALIAS.get",
+          "lineNumber": 27
+        },
+        {
+          "caller": "_canonical_backbone",
+          "callee": "available_backbones",
+          "lineNumber": 28
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "cfg.items",
+          "lineNumber": 62
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "_canonical_backbone",
+          "lineNumber": 69
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "str",
+          "lineNumber": 69
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "critique_delta.items",
+          "lineNumber": 72
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "_canonical_backbone",
+          "lineNumber": 74
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "str",
+          "lineNumber": 74
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "_canonical_backbone",
+          "lineNumber": 80
+        },
+        {
+          "caller": "resolve_architect_config",
+          "callee": "str",
+          "lineNumber": 80
+        },
+        {
+          "caller": "dispatch_architect",
+          "callee": "resolve_architect_config",
+          "lineNumber": 89
+        },
+        {
+          "caller": "dispatch_architect",
+          "callee": "build_backbone",
+          "lineNumber": 90
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 40,
+      "nonEmptyLines": 33,
+      "functions": [
+        {
+          "name": "execute_data_curator",
+          "startLine": 14,
+          "endLine": 40,
+          "params": [
+            "X",
+            "labels",
+            "proposal"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "execute_data_curator",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "execute_data_curator",
+          "callee": "int",
+          "lineNumber": 21
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "proposal.get",
+          "lineNumber": 21
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "float",
+          "lineNumber": 22
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "proposal.get",
+          "lineNumber": 22
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "np.arange",
+          "lineNumber": 26
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "X.var",
+          "lineNumber": 28
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "np.argsort",
+          "lineNumber": 29
+        },
+        {
+          "caller": "execute_data_curator",
+          "callee": "int",
+          "lineNumber": 37
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 16,
+      "nonEmptyLines": 12,
+      "functions": [
+        {
+          "name": "extract_expected_genes",
+          "startLine": 11,
+          "endLine": 16,
+          "params": [
+            "proposal"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "extract_expected_genes",
+          "line": 11,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "extract_expected_genes",
+          "callee": "list",
+          "lineNumber": 13
+        },
+        {
+          "caller": "extract_expected_genes",
+          "callee": "proposal.get",
+          "lineNumber": 13
+        },
+        {
+          "caller": "extract_expected_genes",
+          "callee": "list",
+          "lineNumber": 14
+        },
+        {
+          "caller": "extract_expected_genes",
+          "callee": "proposal.get",
+          "lineNumber": 14
+        },
+        {
+          "caller": "extract_expected_genes",
+          "callee": "list",
+          "lineNumber": 15
+        },
+        {
+          "caller": "extract_expected_genes",
+          "callee": "proposal.get",
+          "lineNumber": 15
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 283,
+      "nonEmptyLines": 256,
+      "functions": [
+        {
+          "name": "run_agentic_lifecycle",
+          "startLine": 99,
+          "endLine": 283,
+          "params": [
+            "task_id",
+            "X",
+            "labels",
+            "control_mask",
+            "target_gene_idx",
+            "held_out",
+            "agent_pool",
+            "max_rounds",
+            "backbone_override",
+            "validator_threshold_override"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "AgentPool",
+          "startLine": 33,
+          "endLine": 42,
+          "methods": [
+            "propose"
+          ],
+          "properties": []
+        },
+        {
+          "name": "MockAgentPool",
+          "startLine": 46,
+          "endLine": 93,
+          "methods": [
+            "propose"
+          ],
+          "properties": [
+            "seed"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AgentPool",
+          "line": 33,
+          "isDefault": false
+        },
+        {
+          "name": "MockAgentPool",
+          "line": 45,
+          "isDefault": false
+        },
+        {
+          "name": "run_agentic_lifecycle",
+          "line": 99,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "propose",
+          "callee": "np.random.default_rng",
+          "lineNumber": 58
+        },
+        {
+          "caller": "propose",
+          "callee": "abs",
+          "lineNumber": 58
+        },
+        {
+          "caller": "propose",
+          "callee": "hash",
+          "lineNumber": 58
+        },
+        {
+          "caller": "propose",
+          "callee": "float",
+          "lineNumber": 63
+        },
+        {
+          "caller": "propose",
+          "callee": "rng.uniform",
+          "lineNumber": 63
+        },
+        {
+          "caller": "propose",
+          "callee": "ValueError",
+          "lineNumber": 93
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "float",
+          "lineNumber": 121
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "target_gene_idx.items",
+          "lineNumber": 127
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "range",
+          "lineNumber": 129
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "agent_pool.propose",
+          "lineNumber": 130
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "agent_pool.propose",
+          "lineNumber": 131
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "agent_pool.propose",
+          "lineNumber": 132
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "agent_pool.propose",
+          "lineNumber": 133
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "agent_pool.propose",
+          "lineNumber": 134
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "time.perf_counter",
+          "lineNumber": 136
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "execute_data_curator",
+          "lineNumber": 137
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "int",
+          "lineNumber": 147
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "curated[\"top_gene_indices\"].tolist",
+          "lineNumber": 147
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "int",
+          "lineNumber": 149
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "target_gene_idx.values",
+          "lineNumber": 149
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "int",
+          "lineNumber": 149
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "np.concatenate",
+          "lineNumber": 152
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "np.asarray",
+          "lineNumber": 153
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "len",
+          "lineNumber": 161
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "extract_expected_genes",
+          "lineNumber": 164
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "dict",
+          "lineNumber": 169
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "context.get",
+          "lineNumber": 174
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "resolve_architect_config",
+          "lineNumber": 175
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "build_backbone",
+          "lineNumber": 176
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "np.asarray",
+          "lineNumber": 181
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "int",
+          "lineNumber": 182
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "enumerate",
+          "lineNumber": 182
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "top_idx_arr.tolist",
+          "lineNumber": 182
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "train_targets.items",
+          "lineNumber": 184
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "int",
+          "lineNumber": 184
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "execute_trainer",
+          "lineNumber": 186
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "time.perf_counter",
+          "lineNumber": 195
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "steps.append",
+          "lineNumber": 203
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "LifecycleStep",
+          "lineNumber": 204
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "dict",
+          "lineNumber": 207
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "str",
+          "lineNumber": 208
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "agent_out.get",
+          "lineNumber": 208
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "float",
+          "lineNumber": 209
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "np.where",
+          "lineNumber": 224
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "int",
+          "lineNumber": 225
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "float",
+          "lineNumber": 231
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "val[\"content\"].get",
+          "lineNumber": 231
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "ExecutedValidation",
+          "lineNumber": 238
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "float",
+          "lineNumber": 239
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "tinfo.get",
+          "lineNumber": 241
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "score_and_gate",
+          "lineNumber": 244
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "dict",
+          "lineNumber": 264
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "LifecycleRun",
+          "lineNumber": 275
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "tuple",
+          "lineNumber": 277
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "float",
+          "lineNumber": 278
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "float",
+          "lineNumber": 279
+        },
+        {
+          "caller": "run_agentic_lifecycle",
+          "callee": "len",
+          "lineNumber": 281
+        }
+      ],
+      "metrics": {
+        "importCount": 7,
+        "exportCount": 3,
+        "functionCount": 1,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 48,
+      "nonEmptyLines": 42,
+      "functions": [
+        {
+          "name": "execute_trainer",
+          "startLine": 13,
+          "endLine": 48,
+          "params": [
+            "backbone",
+            "X",
+            "labels",
+            "control_mask",
+            "target_gene_idx",
+            "trainer_proposal"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "execute_trainer",
+          "line": 13,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "execute_trainer",
+          "callee": "BackboneTrainConfig",
+          "lineNumber": 23
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "int",
+          "lineNumber": 24
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "trainer_proposal.get",
+          "lineNumber": 24
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "int",
+          "lineNumber": 25
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "trainer_proposal.get",
+          "lineNumber": 25
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "int",
+          "lineNumber": 26
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "trainer_proposal.get",
+          "lineNumber": 26
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "float",
+          "lineNumber": 27
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "trainer_proposal.get",
+          "lineNumber": 27
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "float",
+          "lineNumber": 28
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "trainer_proposal.get",
+          "lineNumber": 28
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "time.perf_counter",
+          "lineNumber": 30
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "backbone.fit",
+          "lineNumber": 32
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "labels.tolist",
+          "lineNumber": 32
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "type",
+          "lineNumber": 37
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "len",
+          "lineNumber": 41
+        },
+        {
+          "caller": "execute_trainer",
+          "callee": "time.perf_counter",
+          "lineNumber": 42
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 75,
+      "nonEmptyLines": 56,
+      "classes": [
+        {
+          "name": "ExecutedProposal",
+          "startLine": 13,
+          "endLine": 22,
+          "methods": [],
+          "properties": [
+            "agent_name",
+            "proposal_content",
+            "rationale",
+            "llm_confidence",
+            "execution_artifact_path",
+            "wall_time_sec",
+            "succeeded"
+          ]
+        },
+        {
+          "name": "StructuredCritiqueDTO",
+          "startLine": 26,
+          "endLine": 36,
+          "methods": [],
+          "properties": [
+            "which_genes_failed",
+            "suggested_next_config_delta",
+            "accept_reason"
+          ]
+        },
+        {
+          "name": "ExecutedValidation",
+          "startLine": 40,
+          "endLine": 48,
+          "methods": [],
+          "properties": [
+            "msd_topk",
+            "biofm_agreement",
+            "deg_overlap_at_k",
+            "accepted",
+            "rationale",
+            "critique"
+          ]
+        },
+        {
+          "name": "LifecycleStep",
+          "startLine": 52,
+          "endLine": 62,
+          "methods": [],
+          "properties": [
+            "round_index",
+            "agent_name",
+            "proposal_content",
+            "rationale",
+            "llm_confidence",
+            "execution_artifact_path",
+            "wall_time_sec",
+            "succeeded"
+          ]
+        },
+        {
+          "name": "LifecycleRun",
+          "startLine": 66,
+          "endLine": 75,
+          "methods": [],
+          "properties": [
+            "task_id",
+            "steps",
+            "final_msd_topk",
+            "final_validator_agreement",
+            "n_rounds",
+            "n_agents",
+            "backbone_used"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ExecutedProposal",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "StructuredCritiqueDTO",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "ExecutedValidation",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "LifecycleStep",
+          "line": 51,
+          "isDefault": false
+        },
+        {
+          "name": "LifecycleRun",
+          "line": 65,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 0,
+        "classCount": 5
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 129,
+      "nonEmptyLines": 110,
+      "functions": [
+        {
+          "name": "suggest_config_delta",
+          "startLine": 22,
+          "endLine": 54,
+          "params": [
+            "accepted",
+            "msd",
+            "threshold_msd",
+            "current_backbone",
+            "deg_sign_agreement"
+          ]
+        },
+        {
+          "name": "score_and_gate",
+          "startLine": 57,
+          "endLine": 129,
+          "params": [
+            "backbone",
+            "X",
+            "labels",
+            "control_mask",
+            "held_out",
+            "held_out_target_idx",
+            "threshold_msd",
+            "biofm_agreement",
+            "gene_names"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "suggest_config_delta",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "score_and_gate",
+          "line": 57,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "suggest_config_delta",
+          "callee": "_BACKBONE_ROTATION.index",
+          "lineNumber": 47
+        },
+        {
+          "caller": "suggest_config_delta",
+          "callee": "len",
+          "lineNumber": 48
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "mask_p.any",
+          "lineNumber": 72
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "mask_c.any",
+          "lineNumber": 72
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "ExecutedValidation",
+          "lineNumber": 73
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "float",
+          "lineNumber": 74
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "StructuredCritiqueDTO",
+          "lineNumber": 79
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "backbone.predict_logfc",
+          "lineNumber": 84
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.mean",
+          "lineNumber": 85
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.mean",
+          "lineNumber": 85
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.argsort",
+          "lineNumber": 86
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.abs",
+          "lineNumber": 86
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "float",
+          "lineNumber": 87
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "mean_squared_deviation",
+          "lineNumber": 87
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "float",
+          "lineNumber": 88
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.mean",
+          "lineNumber": 88
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.sign",
+          "lineNumber": 88
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.sign",
+          "lineNumber": 88
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "bool",
+          "lineNumber": 89
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.sign",
+          "lineNumber": 99
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "np.sign",
+          "lineNumber": 99
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "len",
+          "lineNumber": 101
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "tuple",
+          "lineNumber": 102
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "str",
+          "lineNumber": 103
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "int",
+          "lineNumber": 103
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "tuple",
+          "lineNumber": 106
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "int",
+          "lineNumber": 106
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "suggest_config_delta",
+          "lineNumber": 108
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "getattr",
+          "lineNumber": 112
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "StructuredCritiqueDTO",
+          "lineNumber": 116
+        },
+        {
+          "caller": "score_and_gate",
+          "callee": "ExecutedValidation",
+          "lineNumber": 122
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 58,
+      "nonEmptyLines": 49,
+      "functions": [
+        {
+          "name": "available_backbones",
+          "startLine": 24,
+          "endLine": 29,
+          "params": []
+        },
+        {
+          "name": "build_backbone",
+          "startLine": 32,
+          "endLine": 43,
+          "params": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "available_backbones",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "build_backbone",
+          "line": 32,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "available_backbones",
+          "callee": "names.append",
+          "lineNumber": 28
+        },
+        {
+          "caller": "available_backbones",
+          "callee": "tuple",
+          "lineNumber": 29
+        },
+        {
+          "caller": "build_backbone",
+          "callee": "ValueError",
+          "lineNumber": 35
+        },
+        {
+          "caller": "build_backbone",
+          "callee": "sorted",
+          "lineNumber": 36
+        },
+        {
+          "caller": "build_backbone",
+          "callee": "ImportError",
+          "lineNumber": 39
+        }
+      ],
+      "metrics": {
+        "importCount": 4,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 121,
+      "nonEmptyLines": 94,
+      "functions": [
+        {
+          "name": "mean_squared_deviation",
+          "startLine": 66,
+          "endLine": 83,
+          "params": [
+            "predicted",
+            "observed",
+            "top_k_indices"
+          ]
+        },
+        {
+          "name": "per_perturbation_mean",
+          "startLine": 91,
+          "endLine": 102,
+          "params": [
+            "expression",
+            "labels"
+          ]
+        },
+        {
+          "name": "log_fold_change",
+          "startLine": 105,
+          "endLine": 121,
+          "params": [
+            "mean_perturbed",
+            "mean_control",
+            "pseudocount"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "BackboneTrainConfig",
+          "startLine": 17,
+          "endLine": 28,
+          "methods": [],
+          "properties": [
+            "top_k_genes",
+            "seed",
+            "max_iter",
+            "learning_rate",
+            "ridge_lambda"
+          ]
+        },
+        {
+          "name": "BackboneFitArtifacts",
+          "startLine": 32,
+          "endLine": 36,
+          "methods": [],
+          "properties": [
+            "backbone_name",
+            "n_train_perturbations",
+            "train_seconds",
+            "extra"
+          ]
+        },
+        {
+          "name": "BackbonePredictor",
+          "startLine": 39,
+          "endLine": 63,
+          "methods": [
+            "fit",
+            "predict_logfc"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BackboneTrainConfig",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "BackboneFitArtifacts",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "BackbonePredictor",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "mean_squared_deviation",
+          "line": 66,
+          "isDefault": false
+        },
+        {
+          "name": "per_perturbation_mean",
+          "line": 91,
+          "isDefault": false
+        },
+        {
+          "name": "log_fold_change",
+          "line": 105,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "mean_squared_deviation",
+          "callee": "ValueError",
+          "lineNumber": 77
+        },
+        {
+          "caller": "mean_squared_deviation",
+          "callee": "float",
+          "lineNumber": 83
+        },
+        {
+          "caller": "mean_squared_deviation",
+          "callee": "np.mean",
+          "lineNumber": 83
+        },
+        {
+          "caller": "per_perturbation_mean",
+          "callee": "np.asarray",
+          "lineNumber": 96
+        },
+        {
+          "caller": "per_perturbation_mean",
+          "callee": "np.unique",
+          "lineNumber": 98
+        },
+        {
+          "caller": "per_perturbation_mean",
+          "callee": "mask.any",
+          "lineNumber": 100
+        },
+        {
+          "caller": "per_perturbation_mean",
+          "callee": "str",
+          "lineNumber": 101
+        },
+        {
+          "caller": "per_perturbation_mean",
+          "callee": "np.mean",
+          "lineNumber": 101
+        },
+        {
+          "caller": "log_fold_change",
+          "callee": "np.asarray",
+          "lineNumber": 119
+        },
+        {
+          "caller": "log_fold_change",
+          "callee": "np.asarray",
+          "lineNumber": 119
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 6,
+        "functionCount": 3,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 86,
+      "nonEmptyLines": 72,
+      "classes": [
+        {
+          "name": "LinearBackbone",
+          "startLine": 24,
+          "endLine": 86,
+          "methods": [
+            "__init__",
+            "fit",
+            "predict_logfc"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "LinearBackbone",
+          "line": 24,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "fit",
+          "callee": "time.perf_counter",
+          "lineNumber": 40
+        },
+        {
+          "caller": "fit",
+          "callee": "np.asarray",
+          "lineNumber": 41
+        },
+        {
+          "caller": "fit",
+          "callee": "per_perturbation_mean",
+          "lineNumber": 42
+        },
+        {
+          "caller": "fit",
+          "callee": "np.mean",
+          "lineNumber": 43
+        },
+        {
+          "caller": "fit",
+          "callee": "means.items",
+          "lineNumber": 47
+        },
+        {
+          "caller": "fit",
+          "callee": "log_fold_change",
+          "lineNumber": 50
+        },
+        {
+          "caller": "fit",
+          "callee": "per_pert_logfc.append",
+          "lineNumber": 51
+        },
+        {
+          "caller": "fit",
+          "callee": "target_dips.append",
+          "lineNumber": 52
+        },
+        {
+          "caller": "fit",
+          "callee": "float",
+          "lineNumber": 52
+        },
+        {
+          "caller": "fit",
+          "callee": "ValueError",
+          "lineNumber": 55
+        },
+        {
+          "caller": "fit",
+          "callee": "np.stack",
+          "lineNumber": 57
+        },
+        {
+          "caller": "fit",
+          "callee": "max",
+          "lineNumber": 60
+        },
+        {
+          "caller": "fit",
+          "callee": "len",
+          "lineNumber": 60
+        },
+        {
+          "caller": "fit",
+          "callee": "stacked.mean",
+          "lineNumber": 61
+        },
+        {
+          "caller": "fit",
+          "callee": "float",
+          "lineNumber": 62
+        },
+        {
+          "caller": "fit",
+          "callee": "np.mean",
+          "lineNumber": 62
+        },
+        {
+          "caller": "fit",
+          "callee": "BackboneFitArtifacts",
+          "lineNumber": 64
+        },
+        {
+          "caller": "fit",
+          "callee": "len",
+          "lineNumber": 66
+        },
+        {
+          "caller": "fit",
+          "callee": "time.perf_counter",
+          "lineNumber": 67
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "RuntimeError",
+          "lineNumber": 78
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "ValueError",
+          "lineNumber": 80
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "self._mean_logfc.copy",
+          "lineNumber": 83
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 129,
+      "nonEmptyLines": 110,
+      "classes": [
+        {
+          "name": "MLPBackbone",
+          "startLine": 30,
+          "endLine": 129,
+          "methods": [
+            "__init__",
+            "_featurize",
+            "fit",
+            "predict_logfc"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "MLPBackbone",
+          "line": 30,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_featurize",
+          "callee": "np.zeros",
+          "lineNumber": 44
+        },
+        {
+          "caller": "fit",
+          "callee": "time.perf_counter",
+          "lineNumber": 57
+        },
+        {
+          "caller": "fit",
+          "callee": "np.random.default_rng",
+          "lineNumber": 58
+        },
+        {
+          "caller": "fit",
+          "callee": "np.asarray",
+          "lineNumber": 59
+        },
+        {
+          "caller": "fit",
+          "callee": "per_perturbation_mean",
+          "lineNumber": 60
+        },
+        {
+          "caller": "fit",
+          "callee": "np.mean",
+          "lineNumber": 61
+        },
+        {
+          "caller": "fit",
+          "callee": "means.items",
+          "lineNumber": 66
+        },
+        {
+          "caller": "fit",
+          "callee": "Xs.append",
+          "lineNumber": 69
+        },
+        {
+          "caller": "fit",
+          "callee": "self._featurize",
+          "lineNumber": 69
+        },
+        {
+          "caller": "fit",
+          "callee": "Ys.append",
+          "lineNumber": 70
+        },
+        {
+          "caller": "fit",
+          "callee": "log_fold_change",
+          "lineNumber": 70
+        },
+        {
+          "caller": "fit",
+          "callee": "ValueError",
+          "lineNumber": 72
+        },
+        {
+          "caller": "fit",
+          "callee": "np.stack",
+          "lineNumber": 73
+        },
+        {
+          "caller": "fit",
+          "callee": "np.stack",
+          "lineNumber": 74
+        },
+        {
+          "caller": "fit",
+          "callee": "Y.mean",
+          "lineNumber": 75
+        },
+        {
+          "caller": "fit",
+          "callee": "np.sqrt",
+          "lineNumber": 83
+        },
+        {
+          "caller": "fit",
+          "callee": "np.sqrt",
+          "lineNumber": 84
+        },
+        {
+          "caller": "fit",
+          "callee": "rng.standard_normal((in_dim, hid)).astype",
+          "lineNumber": 85
+        },
+        {
+          "caller": "fit",
+          "callee": "rng.standard_normal",
+          "lineNumber": 85
+        },
+        {
+          "caller": "fit",
+          "callee": "np.zeros",
+          "lineNumber": 86
+        },
+        {
+          "caller": "fit",
+          "callee": "rng.standard_normal((hid, out_dim)).astype",
+          "lineNumber": 87
+        },
+        {
+          "caller": "fit",
+          "callee": "rng.standard_normal",
+          "lineNumber": 87
+        },
+        {
+          "caller": "fit",
+          "callee": "np.zeros",
+          "lineNumber": 88
+        },
+        {
+          "caller": "fit",
+          "callee": "range",
+          "lineNumber": 93
+        },
+        {
+          "caller": "fit",
+          "callee": "np.tanh",
+          "lineNumber": 95
+        },
+        {
+          "caller": "fit",
+          "callee": "len",
+          "lineNumber": 99
+        },
+        {
+          "caller": "fit",
+          "callee": "E.mean",
+          "lineNumber": 100
+        },
+        {
+          "caller": "fit",
+          "callee": "len",
+          "lineNumber": 102
+        },
+        {
+          "caller": "fit",
+          "callee": "dH.mean",
+          "lineNumber": 103
+        },
+        {
+          "caller": "fit",
+          "callee": "BackboneFitArtifacts",
+          "lineNumber": 110
+        },
+        {
+          "caller": "fit",
+          "callee": "len",
+          "lineNumber": 112
+        },
+        {
+          "caller": "fit",
+          "callee": "time.perf_counter",
+          "lineNumber": 113
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "RuntimeError",
+          "lineNumber": 123
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "ValueError",
+          "lineNumber": 125
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "self._featurize",
+          "lineNumber": 126
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "np.tanh",
+          "lineNumber": 127
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 190,
+      "nonEmptyLines": 166,
+      "classes": [
+        {
+          "name": "_ArchitectureConfig",
+          "startLine": 35,
+          "endLine": 42,
+          "methods": [],
+          "properties": [
+            "n_bins",
+            "embed_dim",
+            "n_layers",
+            "n_heads",
+            "ffn_dim",
+            "max_genes",
+            "lora_rank"
+          ]
+        },
+        {
+          "name": "SCGPTSmallBackbone",
+          "startLine": 45,
+          "endLine": 190,
+          "methods": [
+            "__init__",
+            "_rank_bin",
+            "fit",
+            "_pad_to_full",
+            "predict_logfc"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_ArchitectureConfig",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "SCGPTSmallBackbone",
+          "line": 45,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "ImportError",
+          "lineNumber": 50
+        },
+        {
+          "caller": "__init__",
+          "callee": "_ArchitectureConfig",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_rank_bin",
+          "callee": "np.argsort",
+          "lineNumber": 63
+        },
+        {
+          "caller": "_rank_bin",
+          "callee": "np.empty_like",
+          "lineNumber": 64
+        },
+        {
+          "caller": "_rank_bin",
+          "callee": "np.arange",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_rank_bin",
+          "callee": "range",
+          "lineNumber": 66
+        },
+        {
+          "caller": "_rank_bin",
+          "callee": "(rank * bins // X.shape[1]).astype",
+          "lineNumber": 68
+        },
+        {
+          "caller": "fit",
+          "callee": "time.perf_counter",
+          "lineNumber": 78
+        },
+        {
+          "caller": "fit",
+          "callee": "torch.manual_seed",
+          "lineNumber": 82
+        },
+        {
+          "caller": "fit",
+          "callee": "np.asarray",
+          "lineNumber": 83
+        },
+        {
+          "caller": "fit",
+          "callee": "per_perturbation_mean",
+          "lineNumber": 84
+        },
+        {
+          "caller": "fit",
+          "callee": "np.mean",
+          "lineNumber": 85
+        },
+        {
+          "caller": "fit",
+          "callee": "min",
+          "lineNumber": 91
+        },
+        {
+          "caller": "fit",
+          "callee": "max",
+          "lineNumber": 91
+        },
+        {
+          "caller": "fit",
+          "callee": "means.items",
+          "lineNumber": 96
+        },
+        {
+          "caller": "fit",
+          "callee": "int",
+          "lineNumber": 99
+        },
+        {
+          "caller": "fit",
+          "callee": "Ys.append",
+          "lineNumber": 102
+        },
+        {
+          "caller": "fit",
+          "callee": "log_fold_change",
+          "lineNumber": 102
+        },
+        {
+          "caller": "fit",
+          "callee": "target_ids.append",
+          "lineNumber": 103
+        },
+        {
+          "caller": "fit",
+          "callee": "ValueError",
+          "lineNumber": 105
+        },
+        {
+          "caller": "fit",
+          "callee": "np.stack",
+          "lineNumber": 106
+        },
+        {
+          "caller": "fit",
+          "callee": "Y.mean",
+          "lineNumber": 107
+        },
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 113
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 113
+        },
+        {
+          "caller": "__init__",
+          "callee": "nn.Embedding",
+          "lineNumber": 114
+        },
+        {
+          "caller": "__init__",
+          "callee": "nn.Embedding",
+          "lineNumber": 115
+        },
+        {
+          "caller": "__init__",
+          "callee": "nn.TransformerEncoderLayer",
+          "lineNumber": 116
+        },
+        {
+          "caller": "__init__",
+          "callee": "nn.TransformerEncoder",
+          "lineNumber": 119
+        },
+        {
+          "caller": "__init__",
+          "callee": "nn.Linear",
+          "lineNumber": 120
+        },
+        {
+          "caller": "forward",
+          "callee": "self.target_emb(target_idx).unsqueeze",
+          "lineNumber": 123
+        },
+        {
+          "caller": "forward",
+          "callee": "self.target_emb",
+          "lineNumber": 123
+        },
+        {
+          "caller": "forward",
+          "callee": "self.encoder(e).squeeze",
+          "lineNumber": 124
+        },
+        {
+          "caller": "forward",
+          "callee": "self.encoder",
+          "lineNumber": 124
+        },
+        {
+          "caller": "forward",
+          "callee": "self.head",
+          "lineNumber": 125
+        },
+        {
+          "caller": "fit",
+          "callee": "MicroTransformer",
+          "lineNumber": 127
+        },
+        {
+          "caller": "fit",
+          "callee": "torch.optim.Adam",
+          "lineNumber": 134
+        },
+        {
+          "caller": "fit",
+          "callee": "model.parameters",
+          "lineNumber": 134
+        },
+        {
+          "caller": "fit",
+          "callee": "torch.tensor",
+          "lineNumber": 135
+        },
+        {
+          "caller": "fit",
+          "callee": "torch.tensor",
+          "lineNumber": 137
+        },
+        {
+          "caller": "fit",
+          "callee": "range",
+          "lineNumber": 138
+        },
+        {
+          "caller": "fit",
+          "callee": "opt.zero_grad",
+          "lineNumber": 139
+        },
+        {
+          "caller": "fit",
+          "callee": "model",
+          "lineNumber": 140
+        },
+        {
+          "caller": "fit",
+          "callee": "((pred - Yr_trunc) ** 2).mean",
+          "lineNumber": 141
+        },
+        {
+          "caller": "fit",
+          "callee": "loss.backward",
+          "lineNumber": 142
+        },
+        {
+          "caller": "fit",
+          "callee": "opt.step",
+          "lineNumber": 143
+        },
+        {
+          "caller": "fit",
+          "callee": "model.eval",
+          "lineNumber": 146
+        },
+        {
+          "caller": "fit",
+          "callee": "torch.no_grad",
+          "lineNumber": 147
+        },
+        {
+          "caller": "fit",
+          "callee": "torch.arange",
+          "lineNumber": 148
+        },
+        {
+          "caller": "fit",
+          "callee": "model(all_targets).cpu().numpy",
+          "lineNumber": 149
+        },
+        {
+          "caller": "fit",
+          "callee": "model(all_targets).cpu",
+          "lineNumber": 149
+        },
+        {
+          "caller": "fit",
+          "callee": "model",
+          "lineNumber": 149
+        },
+        {
+          "caller": "fit",
+          "callee": "self._pad_to_full",
+          "lineNumber": 151
+        },
+        {
+          "caller": "fit",
+          "callee": "range",
+          "lineNumber": 152
+        },
+        {
+          "caller": "fit",
+          "callee": "BackboneFitArtifacts",
+          "lineNumber": 155
+        },
+        {
+          "caller": "fit",
+          "callee": "len",
+          "lineNumber": 157
+        },
+        {
+          "caller": "fit",
+          "callee": "time.perf_counter",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_pad_to_full",
+          "callee": "np.zeros",
+          "lineNumber": 166
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "RuntimeError",
+          "lineNumber": 177
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "self._target_embeddings.get",
+          "lineNumber": 180
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "int",
+          "lineNumber": 181
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "np.zeros",
+          "lineNumber": 181
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "self._mean_logfc.copy",
+          "lineNumber": 183
+        },
+        {
+          "caller": "predict_logfc",
+          "callee": "np.zeros",
+          "lineNumber": 185
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    }
+  ]
+}

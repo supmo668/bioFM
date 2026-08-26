@@ -43,10 +43,13 @@ projects/**/*.png
 
 # Claude Code machine-local runtime state (skill caches, schedule lock files,
 # per-machine tool configs). Not part of the project — ignore everywhere.
-.claude/
+.claude/*
+!.claude/agents/
+!.claude/workstreams/
 
 # Git worktrees — isolated dev branches live here; each is its own checkout.
 .worktrees/
+worktrees/
 
 # Scratch directory used by scripts/publish/submit_to_venues.py to zip
 # upload bundles. Build artefacts, not source.

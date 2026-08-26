@@ -1,0 +1,1464 @@
+{
+ "nodes": [
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/__init__.py",
+   "type": "file",
+   "name": "__init__.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/__init__.py",
+   "summary": "Package root for cellforge-agents that re-exports the Orchestrator, ConsensusResult and the core Problem/Proposal/Critique data carriers as the public API.",
+   "tags": [
+    "entry-point",
+    "barrel",
+    "package-root",
+    "multi-agent"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/__main__.py",
+   "type": "file",
+   "name": "__main__.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/__main__.py",
+   "summary": "Enables `python -m cellforge` by invoking the Typer CLI app defined in cli.py.",
+   "tags": [
+    "entry-point",
+    "cli",
+    "bootstrap"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "type": "file",
+   "name": "__init__.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "summary": "Barrel for the five CellForge agents plus the build_default_team factory that instantiates the canonical DataCurator, Literature, Architect, Trainer and Validator team.",
+   "tags": [
+    "barrel",
+    "factory",
+    "multi-agent",
+    "entry-point"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "type": "function",
+   "name": "build_default_team",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "lineRange": [
+    18,
+    26
+   ],
+   "summary": "Factory returning the canonical ordered list of five agent instances (DataCurator, Literature, Architect, Trainer, Validator) consumed by the Orchestrator.",
+   "tags": [
+    "factory",
+    "multi-agent",
+    "team-assembly"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "file",
+   "name": "base.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/base.py",
+   "summary": "Defines the abstract BaseAgent contract every CellForge agent implements: an abstract propose() and a default low-severity critique() that subclasses override.",
+   "tags": [
+    "abstract-base",
+    "multi-agent",
+    "interface",
+    "agent"
+   ],
+   "complexity": "simple",
+   "languageNotes": "Uses ABC with @abstractmethod for propose while giving critique a concrete default, so subclasses only override the method they specialise."
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "class",
+   "name": "BaseAgent",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/base.py",
+   "lineRange": [
+    10,
+    29
+   ],
+   "summary": "Abstract two-method agent contract: propose(ctx) must emit a Proposal, critique(ctx, other) returns a gentle 0.2-severity Critique unless overridden.",
+   "tags": [
+    "abstract-base",
+    "agent",
+    "interface"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "type": "file",
+   "name": "architect.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "summary": "Agent 3 (Model Architect): queries the BioFMCatalog for backbones matching the problem modality and proposes the top pick with a perturbation adapter head and conservative d_model=512.",
+   "tags": [
+    "agent",
+    "multi-agent",
+    "model-selection",
+    "architecture"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/agents/architect.py:ArchitectAgent",
+   "type": "class",
+   "name": "ArchitectAgent",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "lineRange": [
+    10,
+    41
+   ],
+   "summary": "Proposes a foundation-model backbone and adapter-head configuration from the catalog, returning low confidence when no backbone exists for the modality.",
+   "tags": [
+    "agent",
+    "model-selection",
+    "architecture"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "type": "file",
+   "name": "data_curator.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "summary": "Agent 1 (Data Curator): fetches a dataset id via OmicsTool, runs stub QC, proposes the dataset with mito/doublet thresholds, and critiques Architect proposals whose d_model exceeds 1024.",
+   "tags": [
+    "agent",
+    "multi-agent",
+    "data-curation",
+    "quality-control"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/agents/data_curator.py:DataCuratorAgent",
+   "type": "class",
+   "name": "DataCuratorAgent",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "lineRange": [
+    10,
+    52
+   ],
+   "summary": "Resolves and QC-checks a single-cell dataset for the perturbation and vetoes oversized architectures (d_model > 1024) with severity 0.6.",
+   "tags": [
+    "agent",
+    "data-curation",
+    "quality-control",
+    "critique"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "type": "file",
+   "name": "literature.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "summary": "Agent 2 (Literature/Prior): derives pathway and expected up/down gene hypotheses from LiteratureTool and critiques the Validator when expected marker genes were not checked.",
+   "tags": [
+    "agent",
+    "multi-agent",
+    "literature-prior",
+    "hypothesis"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/agents/literature.py:LiteratureAgent",
+   "type": "class",
+   "name": "LiteratureAgent",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "lineRange": [
+    10,
+    53
+   ],
+   "summary": "Builds a mechanism-based prior (pathways, expected_up/down genes, PMID references) and critiques Validator proposals missing expected genes with severity 0.7.",
+   "tags": [
+    "agent",
+    "literature-prior",
+    "critique",
+    "hypothesis"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "type": "file",
+   "name": "trainer.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "summary": "Agent 4 (Trainer): reads n_cells and backbone from prior DataCurator/Architect proposals, builds a training recipe via TrainerTool, and flags Architect picks with d_model > 2048 as over budget.",
+   "tags": [
+    "agent",
+    "multi-agent",
+    "training-recipe",
+    "hyperparameters"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/agents/trainer.py:TrainerAgent",
+   "type": "class",
+   "name": "TrainerAgent",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "lineRange": [
+    10,
+    57
+   ],
+   "summary": "Proposes optimizer, learning rate, epochs, batch size, CV split and early-stop rule derived from prior proposals; critiques compute-infeasible architectures with severity 0.8.",
+   "tags": [
+    "agent",
+    "training-recipe",
+    "critique",
+    "hyperparameters"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "type": "file",
+   "name": "validator.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "summary": "Agent 5 (Biological & Statistical Validator): compares stubbed predicted DEGs against the Literature agent's expected genes via PathwayTool and reports overlap@K, AUROC, calibration and a negative-control check.",
+   "tags": [
+    "agent",
+    "multi-agent",
+    "validation",
+    "evaluation"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/agents/validator.py:ValidatorAgent",
+   "type": "class",
+   "name": "ValidatorAgent",
+   "filePath": "libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "lineRange": [
+    10,
+    49
+   ],
+   "summary": "Runs DEG-overlap and pathway validation against expected genes and sets confidence as 0.5 + 0.45 * overlap, capped at 0.95.",
+   "tags": [
+    "agent",
+    "validation",
+    "evaluation"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "type": "file",
+   "name": "cli.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/cli.py",
+   "summary": "Typer CLI exposing a `run` command that builds a Problem from flags, runs the default 5-agent team through the Orchestrator, and prints the consensus result as JSON.",
+   "tags": [
+    "entry-point",
+    "cli",
+    "api-handler",
+    "multi-agent"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:libs/cellforge-agents/src/cellforge/cli.py:cmd_run",
+   "type": "function",
+   "name": "cmd_run",
+   "filePath": "libs/cellforge-agents/src/cellforge/cli.py",
+   "lineRange": [
+    18,
+    43
+   ],
+   "summary": "Typer `run` command: constructs Problem(perturbation, modality, cell_type_hint), drives Orchestrator with build_default_team() for max_rounds, and echoes a JSON summary of the winner and round statistics.",
+   "tags": [
+    "cli",
+    "entry-point",
+    "command"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "type": "file",
+   "name": "orchestrator.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "summary": "MassGen-inspired synchronous orchestrator implementing the propose -> critique -> vote loop: every agent proposes, cross-critiques, and the proposal with the best confidence-minus-mean-severity score wins, stopping early once it clears the consensus threshold.",
+   "tags": [
+    "orchestrator",
+    "multi-agent",
+    "consensus",
+    "service"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Frozen dataclasses (RoundResult, ConsensusResult) keep round history immutable; Context passes tuple snapshots of prior proposals/critiques so agents cannot mutate shared state."
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:RoundResult",
+   "type": "class",
+   "name": "RoundResult",
+   "filePath": "libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "lineRange": [
+    20,
+    23
+   ],
+   "summary": "Frozen record of one orchestration round: its index plus the tuple of proposals and critiques produced.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "multi-agent"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:ConsensusResult",
+   "type": "class",
+   "name": "ConsensusResult",
+   "filePath": "libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "lineRange": [
+    27,
+    33
+   ],
+   "summary": "Frozen final result of a run: winning Proposal, all proposals/critiques, per-round history, convergence flag and consensus score.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "consensus"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:Orchestrator",
+   "type": "class",
+   "name": "Orchestrator",
+   "filePath": "libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "lineRange": [
+    36,
+    121
+   ],
+   "summary": "Drives the agent team for up to max_rounds: builds a Context, collects proposals, has every agent critique every other's proposal, scores each proposal as confidence minus mean critique severity, and returns early when the winner meets consensus_threshold (default 0.7).",
+   "tags": [
+    "orchestrator",
+    "consensus",
+    "voting",
+    "multi-agent"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "file",
+   "name": "problem.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/problem.py",
+   "summary": "Immutable data carriers for the agent loop: the Modality enum and frozen dataclasses Problem, Proposal, Critique and Context (the per-round blackboard).",
+   "tags": [
+    "data-model",
+    "type-definition",
+    "immutable",
+    "multi-agent"
+   ],
+   "complexity": "simple",
+   "languageNotes": "All carriers are @dataclass(frozen=True); Modality subclasses both str and Enum so it serialises cleanly and works as a Typer choice."
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/problem.py:Modality",
+   "type": "class",
+   "name": "Modality",
+   "filePath": "libs/cellforge-agents/src/cellforge/problem.py",
+   "lineRange": [
+    10,
+    13
+   ],
+   "summary": "str-backed Enum of supported single-cell modalities: scRNA-seq, scATAC-seq and CITE-seq.",
+   "tags": [
+    "enum",
+    "data-model",
+    "modality"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/problem.py:Problem",
+   "type": "class",
+   "name": "Problem",
+   "filePath": "libs/cellforge-agents/src/cellforge/problem.py",
+   "lineRange": [
+    17,
+    25
+   ],
+   "summary": "Frozen description of a perturbation-response modelling task: perturbation string, modality, organism, cell-type hint, target DEG count and a soft compute budget.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "task-spec"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/problem.py:Proposal",
+   "type": "class",
+   "name": "Proposal",
+   "filePath": "libs/cellforge-agents/src/cellforge/problem.py",
+   "lineRange": [
+    29,
+    36
+   ],
+   "summary": "Frozen structured proposal from one agent: agent name, arbitrary content dict, rationale, confidence in [0,1] and tools used.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "proposal"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/problem.py:Critique",
+   "type": "class",
+   "name": "Critique",
+   "filePath": "libs/cellforge-agents/src/cellforge/problem.py",
+   "lineRange": [
+    40,
+    46
+   ],
+   "summary": "Frozen critique of another agent's proposal with from/on agent names, severity from 0 (approve) to 1 (reject) and a comment.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "critique"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/problem.py:Context",
+   "type": "class",
+   "name": "Context",
+   "filePath": "libs/cellforge-agents/src/cellforge/problem.py",
+   "lineRange": [
+    50,
+    56
+   ],
+   "summary": "Frozen shared blackboard handed to every agent per round: the Problem plus tuples of prior proposals and critiques and the round index.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "blackboard"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "type": "file",
+   "name": "__init__.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "summary": "Barrel re-exporting the five agent tool belts: BioFMCatalog, LiteratureTool, OmicsTool, PathwayTool and TrainerTool.",
+   "tags": [
+    "barrel",
+    "tools",
+    "multi-agent"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "type": "file",
+   "name": "biofm_catalog.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "summary": "Architect tool belt: an in-memory mirror of research/MODELS.md mapping modalities (scRNA-seq, scATAC-seq, CITE-seq, DNA, protein) to ranked BackboneSuggestion entries.",
+   "tags": [
+    "tool",
+    "catalog",
+    "model-selection",
+    "data-model"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BackboneSuggestion",
+   "type": "class",
+   "name": "BackboneSuggestion",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "lineRange": [
+    10,
+    13
+   ],
+   "summary": "Frozen record naming a foundation-model backbone, its modality and a short recommendation note.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "catalog"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BioFMCatalog",
+   "type": "class",
+   "name": "BioFMCatalog",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "lineRange": [
+    16,
+    57
+   ],
+   "summary": "Static catalog of BioFM backbones keyed by modality; suggest() returns the ordered list for a modality and read_markdown() can load the source MODELS.md.",
+   "tags": [
+    "tool",
+    "catalog",
+    "model-selection"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "type": "file",
+   "name": "literature.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "summary": "Literature tool belt stubbing PubMed retrieval: returns deterministic LiteratureHit records and a curated mechanism map (pathways, expected up/down genes) for GSK3B, LPS and IL6 perturbations.",
+   "tags": [
+    "tool",
+    "literature",
+    "stub",
+    "hypothesis"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureHit",
+   "type": "class",
+   "name": "LiteratureHit",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "lineRange": [
+    12,
+    16
+   ],
+   "summary": "Frozen stub literature record with PMID, title, year and mentioned genes.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "literature"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureTool",
+   "type": "class",
+   "name": "LiteratureTool",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "lineRange": [
+    19,
+    61
+   ],
+   "summary": "Offline stand-in for PubMed/bioRxiv search: search() fabricates max_hits hits and mechanism() looks up pathways and expected genes by substring-matching the perturbation against a small curated map.",
+   "tags": [
+    "tool",
+    "literature",
+    "stub"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "type": "file",
+   "name": "omics.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "summary": "Data-curator tool belt stubbing AnnData-style loading and QC: fetch() fabricates a CellxGene-style dataset id and qc() returns fixed QCReport metrics.",
+   "tags": [
+    "tool",
+    "quality-control",
+    "stub",
+    "single-cell"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:QCReport",
+   "type": "class",
+   "name": "QCReport",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "lineRange": [
+    13,
+    20
+   ],
+   "summary": "Frozen single-cell QC summary: cell/gene counts, max mito and ribo percentages, HVG count, doublet rate and dataset id.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "quality-control"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:OmicsTool",
+   "type": "class",
+   "name": "OmicsTool",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "lineRange": [
+    23,
+    43
+   ],
+   "summary": "Stub omics loader returning a synthetic dataset id for a modality x perturbation pair and constant QC metrics (48k cells, 22k genes, 12% mito, 4% doublets).",
+   "tags": [
+    "tool",
+    "quality-control",
+    "stub"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "type": "file",
+   "name": "pathway.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "summary": "Validator tool belt stubbing pathway enrichment: computes Jaccard overlap between predicted and expected up/down gene lists and derives AUROC, calibration and negative-control metrics from it.",
+   "tags": [
+    "tool",
+    "validation",
+    "evaluation",
+    "stub"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:ValidationReport",
+   "type": "class",
+   "name": "ValidationReport",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "lineRange": [
+    12,
+    17
+   ],
+   "summary": "Frozen validation metrics: DEG overlap@K, enriched pathways, held-out AUROC, calibration and negative-control AUROC.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "evaluation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:PathwayTool",
+   "type": "class",
+   "name": "PathwayTool",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "lineRange": [
+    20,
+    39
+   ],
+   "summary": "Scores predicted vs expected DEG lists as the mean Jaccard of up and down sets, then maps that overlap to smooth AUROC/calibration values and a fixed 0.5 negative control.",
+   "tags": [
+    "tool",
+    "validation",
+    "evaluation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:libs/cellforge-agents/src/cellforge/tools/pathway.py:_jaccard",
+   "type": "function",
+   "name": "_jaccard",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "lineRange": [
+    42,
+    48
+   ],
+   "summary": "Jaccard similarity of two gene lists, returning 1.0 when both are empty.",
+   "tags": [
+    "utility",
+    "set-similarity",
+    "metric"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "type": "file",
+   "name": "trainer.py",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "summary": "Trainer tool belt producing a reproducible TrainingRecipe from simple heuristics on cell count and compute budget (adamw, lr, epochs, batch size, donor-level CV, early stopping).",
+   "tags": [
+    "tool",
+    "training-recipe",
+    "hyperparameters",
+    "stub"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainingRecipe",
+   "type": "class",
+   "name": "TrainingRecipe",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "lineRange": [
+    9,
+    16
+   ],
+   "summary": "Frozen training configuration: optimizer, learning rate, epochs, batch size, CV split, early-stop rule and gradient accumulation.",
+   "tags": [
+    "data-model",
+    "immutable",
+    "hyperparameters"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainerTool",
+   "type": "class",
+   "name": "TrainerTool",
+   "filePath": "libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "lineRange": [
+    19,
+    33
+   ],
+   "summary": "Builds a TrainingRecipe using heuristics: datasets over 100k cells get smaller lr/batch and grad_accum=2, budgets under 60s get 5 epochs instead of 10.",
+   "tags": [
+    "tool",
+    "training-recipe",
+    "heuristics"
+   ],
+   "complexity": "simple"
+  }
+ ],
+ "edges": [
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/architect.py:ArchitectAgent",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/architect.py:ArchitectAgent",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/data_curator.py:DataCuratorAgent",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/data_curator.py:DataCuratorAgent",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/literature.py:LiteratureAgent",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/literature.py:LiteratureAgent",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/trainer.py:TrainerAgent",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/trainer.py:TrainerAgent",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/validator.py:ValidatorAgent",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/validator.py:ValidatorAgent",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "target": "function:libs/cellforge-agents/src/cellforge/cli.py:cmd_run",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "target": "function:libs/cellforge-agents/src/cellforge/cli.py:cmd_run",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:RoundResult",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:RoundResult",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:ConsensusResult",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:ConsensusResult",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:Orchestrator",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:Orchestrator",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Modality",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Modality",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Problem",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Problem",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Proposal",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Proposal",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Critique",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Critique",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Context",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/problem.py:Context",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BackboneSuggestion",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BackboneSuggestion",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BioFMCatalog",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BioFMCatalog",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureHit",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureHit",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureTool",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureTool",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:QCReport",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:QCReport",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:OmicsTool",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:OmicsTool",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:ValidationReport",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:ValidationReport",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:PathwayTool",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:PathwayTool",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "target": "function:libs/cellforge-agents/src/cellforge/tools/pathway.py:_jaccard",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "target": "function:libs/cellforge-agents/src/cellforge/tools/pathway.py:_jaccard",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainingRecipe",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainingRecipe",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainerTool",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainerTool",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/__main__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/architect.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/literature.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/trainer.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/__init__.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/cli.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/agents/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/literature.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/omics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/pathway.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:libs/cellforge-agents/src/cellforge/tools/__init__.py",
+   "target": "file:libs/cellforge-agents/src/cellforge/tools/trainer.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/architect.py:ArchitectAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "inherits",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/data_curator.py:DataCuratorAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "inherits",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/literature.py:LiteratureAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "inherits",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/trainer.py:TrainerAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "inherits",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/validator.py:ValidatorAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/base.py:BaseAgent",
+   "type": "inherits",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/cli.py:cmd_run",
+   "target": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/cli.py:cmd_run",
+   "target": "class:libs/cellforge-agents/src/cellforge/orchestrator.py:Orchestrator",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/architect.py:ArchitectAgent",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/data_curator.py:DataCuratorAgent",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/literature.py:LiteratureAgent",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/trainer.py:TrainerAgent",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:libs/cellforge-agents/src/cellforge/agents/__init__.py:build_default_team",
+   "target": "class:libs/cellforge-agents/src/cellforge/agents/validator.py:ValidatorAgent",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/architect.py:ArchitectAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py:BioFMCatalog",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/data_curator.py:DataCuratorAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/omics.py:OmicsTool",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/literature.py:LiteratureAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/literature.py:LiteratureTool",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/trainer.py:TrainerAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/trainer.py:TrainerTool",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:libs/cellforge-agents/src/cellforge/agents/validator.py:ValidatorAgent",
+   "target": "class:libs/cellforge-agents/src/cellforge/tools/pathway.py:PathwayTool",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  }
+ ]
+}

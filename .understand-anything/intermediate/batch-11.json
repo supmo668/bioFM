@@ -1,0 +1,164 @@
+{
+  "nodes": [
+    {
+      "id": "document:libs/cellforge-agents/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "libs/cellforge-agents/README.md",
+      "summary": "Package overview for cellforge-agents, a CellForge-inspired, MassGen-style proof-of-concept in which five role-specialised agents (DataCurator, Literature, Architect, Trainer, Validator) run a propose-critique-vote loop for multi-omics perturbation modelling. Nine sections cover the agent roles and tool belts, the source layout, quick-start commands, upstream contribution paths, and the hand-off of per-round traces to the perturb-seq-eval evaluation project.",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "multi-agent",
+        "overview",
+        "architecture"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses a markdown table to map each agent to its responsibility and tool module, plus a fenced ASCII tree describing the src/cellforge package layout."
+    },
+    {
+      "id": "config:libs/cellforge-agents/pyproject.toml",
+      "type": "config",
+      "name": "pyproject.toml",
+      "filePath": "libs/cellforge-agents/pyproject.toml",
+      "summary": "PEP 621 packaging metadata for the cellforge-agents library: setuptools src-layout build, runtime dependencies on typer and pydantic, optional dev/openai/anthropic extras, a `cellforge` console script pointing at cellforge.cli:app, and ruff (line-length 100, py310) and pytest (testpaths=tests, unit/integration markers) tool settings.",
+      "tags": [
+        "configuration",
+        "build-system",
+        "packaging",
+        "python",
+        "test-config"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Declares optional-dependencies groups so LLM backends (openai, anthropic) are installed only on demand, keeping the core install backend-agnostic."
+    },
+    {
+      "id": "document:libs/cellforge-agents/requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "libs/cellforge-agents/requirements.txt",
+      "summary": "Minimal pip requirements pin for the cellforge-agents quick start, listing typer, pydantic, and pytest so the package can be installed and tested without the optional LLM backends.",
+      "tags": [
+        "documentation",
+        "dependencies",
+        "configuration",
+        "python"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/src/cellforge/orchestrator.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/src/cellforge/problem.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/src/cellforge/cli.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/src/cellforge/agents/validator.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "file:libs/cellforge-agents/examples/perturbation_run.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "document:research/MODELS.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/README.md",
+      "target": "document:projects/perturb-seq-eval/docs/THESIS.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:libs/cellforge-agents/pyproject.toml",
+      "target": "file:libs/cellforge-agents/src/cellforge/cli.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:libs/cellforge-agents/pyproject.toml",
+      "target": "file:libs/cellforge-agents/src/cellforge/__init__.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:libs/cellforge-agents/pyproject.toml",
+      "target": "file:libs/cellforge-agents/tests/test_agents.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:libs/cellforge-agents/pyproject.toml",
+      "target": "file:libs/cellforge-agents/tests/test_orchestrator.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:libs/cellforge-agents/pyproject.toml",
+      "target": "file:libs/cellforge-agents/tests/test_tools.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:libs/cellforge-agents/pyproject.toml",
+      "target": "document:libs/cellforge-agents/README.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:libs/cellforge-agents/requirements.txt",
+      "target": "config:libs/cellforge-agents/pyproject.toml",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

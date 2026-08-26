@@ -1,0 +1,970 @@
+{
+ "nodes": [
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/__init__.py",
+   "type": "file",
+   "name": "__init__.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/__init__.py",
+   "summary": "Package root for perturb_eval that re-exports the public API: the Bayesian recommender, probe signature/preflight, the ACE/CSD/TDI metric functions, and the frozen trace/config dataclasses.",
+   "tags": [
+    "entry-point",
+    "barrel",
+    "exports",
+    "public-api"
+   ],
+   "complexity": "simple",
+   "languageNotes": "Python package barrel using an explicit __all__ list to define the public surface."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/__main__.py",
+   "type": "file",
+   "name": "__main__.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/__main__.py",
+   "summary": "Module entry point so `python -m perturb_eval` launches the Typer CLI application.",
+   "tags": [
+    "entry-point",
+    "cli",
+    "bootstrap"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "type": "file",
+   "name": "bayesian.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "summary": "Bayesian MAP recommender that maps a 4-d probe signature to a recommended orchestrator Config under a FLOPs budget, using per-config Gaussian likelihoods with diagonal covariance and a size-favouring prior computed in log-space.",
+   "tags": [
+    "bayesian-inference",
+    "recommender",
+    "hyperparameter-tuning",
+    "numpy"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Log-space posterior (log prior + Gaussian log-likelihood) with diagonal covariance chosen for small calibration sets; public API designed so a full-covariance or mixture model can be swapped in."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "type": "file",
+   "name": "calibration.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "summary": "Fits Task Difficulty Index (TDI) coefficients from labelled RunTrace records via a small ridge regression over per-run metric features, producing a TDICoeffs record.",
+   "tags": [
+    "calibration",
+    "regression",
+    "metrics",
+    "training"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Uses closed-form ridge regression (np.linalg.solve with lambda*I) rather than OLS for robustness at small N."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "type": "file",
+   "name": "cli.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "summary": "Typer CLI exposing `perturb-eval preflight` (probe signature -> recommended config as JSON) and a stub `evaluate` command.",
+   "tags": [
+    "cli",
+    "entry-point",
+    "typer",
+    "api-handler"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py",
+   "type": "file",
+   "name": "__init__.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py",
+   "summary": "Experiments package barrel re-exporting the real-data grid and optimizer-comparison runners; documents that synthetic-DGP runners were removed in v0.5.0.",
+   "tags": [
+    "barrel",
+    "entry-point",
+    "experiments",
+    "exports"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "type": "file",
+   "name": "common.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "summary": "Shared frozen dataclasses (GridCellResult, OptimizerTrajectory) and a helper that derives a 4-d probe signature from a RunTrace, used by all experiment runners.",
+   "tags": [
+    "data-model",
+    "utility",
+    "experiments",
+    "dataclass"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "type": "file",
+   "name": "e2_adamson.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "summary": "Real-data E2 grid-cell trainer for Adamson 2016 Perturb-seq: reads .h5ad files with h5py, log1p-normalises and selects HVGs, builds a leave-one-perturbation-out split, trains the chosen backbone and reports held-out MSD as a GridCellResult.",
+   "tags": [
+    "data-loading",
+    "experiment",
+    "training",
+    "single-cell",
+    "h5ad"
+   ],
+   "complexity": "complex",
+   "languageNotes": "Reads AnnData HDF5 directly via h5py (handling csr/csc encodings) to avoid a scanpy dependency; combines multiple h5ad files on the intersection of gene sets."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "type": "file",
+   "name": "e2_grid_fill.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "summary": "E2 grid helpers: enumerates the (phi, task, seed) Cartesian grid, produces stable phi identifiers, converts a Config into a BackboneTrainConfig, and writes GridCellResult rows to JSONL.",
+   "tags": [
+    "experiment",
+    "utility",
+    "serialization",
+    "grid-search"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "type": "file",
+   "name": "e3_optimizer_comparison.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "summary": "E3 runner that benchmarks each registered optimizer on a cached (phi, task) -> MSD grid (or a live eval function), producing best-so-far OptimizerTrajectory curves averaged across seeds and tasks with per-seed curves retained.",
+   "tags": [
+    "experiment",
+    "benchmark",
+    "optimization",
+    "bayesian-optimization"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:Recommendation",
+   "type": "class",
+   "name": "Recommendation",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "lineRange": [
+    34,
+    42
+   ],
+   "summary": "Frozen result of a recommendation: the chosen Config, its posterior log-probability and the ranked alternatives.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "recommender"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:BayesianRecommender",
+   "type": "class",
+   "name": "BayesianRecommender",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "lineRange": [
+    46,
+    156
+   ],
+   "summary": "Fits per-config Gaussian signature likelihoods from (signature, config) pairs and returns the MAP Config under a FLOPs budget via recommend().",
+   "tags": [
+    "bayesian-inference",
+    "recommender",
+    "hyperparameter-tuning"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/calibration.py:TDICoeffs",
+   "type": "class",
+   "name": "TDICoeffs",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "lineRange": [
+    31,
+    38
+   ],
+   "summary": "Frozen container for fitted TDI weights (alpha, beta, gamma, delta) with an as_dict helper.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "calibration"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+   "type": "function",
+   "name": "fit_tdi_coefficients",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "lineRange": [
+    41,
+    85
+   ],
+   "summary": "Builds a feature matrix of final ACE_norm, CSD, lack-of-convergence and winner flip rate per labelled trace and solves a ridge regression for TDI coefficients.",
+   "tags": [
+    "calibration",
+    "regression",
+    "metrics"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_preflight",
+   "type": "function",
+   "name": "cmd_preflight",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "lineRange": [
+    17,
+    42
+   ],
+   "summary": "Typer command that builds a ProbeSignature from CLI options, runs the Bayesian recommender under a budget and prints the recommendation as JSON.",
+   "tags": [
+    "cli",
+    "api-handler",
+    "recommender"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_evaluate",
+   "type": "function",
+   "name": "cmd_evaluate",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "lineRange": [
+    46,
+    50
+   ],
+   "summary": "Placeholder Typer command for evaluating a trace JSON; currently raises NotImplementedError.",
+   "tags": [
+    "cli",
+    "stub",
+    "api-handler"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:GridCellResult",
+   "type": "class",
+   "name": "GridCellResult",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "lineRange": [
+    14,
+    22
+   ],
+   "summary": "One row of the offline (phi, task, seed) grid recording held-out MSD, wall time and backbone name.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "experiment"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:OptimizerTrajectory",
+   "type": "class",
+   "name": "OptimizerTrajectory",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "lineRange": [
+    26,
+    47
+   ],
+   "summary": "An optimizer's best-so-far MSD curve averaged across seeds/tasks, retaining per-seed inner curves for variance reporting.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "benchmark"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:probe_signature_from_trace",
+   "type": "function",
+   "name": "probe_signature_from_trace",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "lineRange": [
+    50,
+    68
+   ],
+   "summary": "Derives the 4-d probe signature (ACE_norm, mean/max confidence, CSD) from the first round of a RunTrace.",
+   "tags": [
+    "utility",
+    "metrics",
+    "probe"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_combined",
+   "type": "function",
+   "name": "load_adamson_combined",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "lineRange": [
+    28,
+    120
+   ],
+   "summary": "Loads several Adamson .h5ad files, intersects their gene sets, selects top-variance HVGs and concatenates cells, labels and control masks into one matrix.",
+   "tags": [
+    "data-loading",
+    "single-cell",
+    "preprocessing"
+   ],
+   "complexity": "complex"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_matrix",
+   "type": "function",
+   "name": "load_adamson_matrix",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "lineRange": [
+    133,
+    224
+   ],
+   "summary": "Reads a single Adamson .h5ad via h5py (dense/csr/csc), log1p-normalises, normalises perturbation labels, subsamples per perturbation and selects HVGs.",
+   "tags": [
+    "data-loading",
+    "h5ad",
+    "preprocessing"
+   ],
+   "complexity": "complex"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "type": "function",
+   "name": "train_grid_cell_adamson",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "lineRange": [
+    227,
+    294
+   ],
+   "summary": "Trains the backbone named in a Config on a leave-one-perturbation-out Adamson split and returns a GridCellResult with held-out MSD on top-K DEGs and wall time.",
+   "tags": [
+    "training",
+    "experiment",
+    "evaluation"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:enumerate_grid",
+   "type": "function",
+   "name": "enumerate_grid",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "lineRange": [
+    27,
+    33
+   ],
+   "summary": "Yields the Cartesian product of configs, tasks and seeds for the E2 grid.",
+   "tags": [
+    "utility",
+    "grid-search",
+    "generator"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:phi_identifier",
+   "type": "function",
+   "name": "phi_identifier",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "lineRange": [
+    36,
+    37
+   ],
+   "summary": "Returns a stable string identifier for a Config from its agents, rounds and backbone.",
+   "tags": [
+    "utility",
+    "identifier"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:write_results_jsonl",
+   "type": "function",
+   "name": "write_results_jsonl",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "lineRange": [
+    50,
+    57
+   ],
+   "summary": "Serialises GridCellResult rows to a JSONL file, creating parent directories as needed.",
+   "tags": [
+    "serialization",
+    "io",
+    "utility"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:run_e3_optimizer_comparison",
+   "type": "function",
+   "name": "run_e3_optimizer_comparison",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "lineRange": [
+    27,
+    118
+   ],
+   "summary": "Runs every requested optimizer for n_iterations against the cached MSD grid (or a live eval_fn) across tasks and seeds, returning averaged OptimizerTrajectory curves.",
+   "tags": [
+    "benchmark",
+    "optimization",
+    "experiment"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:_collect_per_seed_trajectories",
+   "type": "function",
+   "name": "_collect_per_seed_trajectories",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "lineRange": [
+    121,
+    192
+   ],
+   "summary": "Collects per-seed best-so-far curves for one optimizer by re-running the suggest/observe loop on each seed and task.",
+   "tags": [
+    "benchmark",
+    "optimization",
+    "helper"
+   ],
+   "complexity": "moderate"
+  }
+ ],
+ "edges": [
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:Recommendation",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:Recommendation",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:BayesianRecommender",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:BayesianRecommender",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/calibration.py:TDICoeffs",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/calibration.py:TDICoeffs",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_preflight",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_preflight",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_evaluate",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_evaluate",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:GridCellResult",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:GridCellResult",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:OptimizerTrajectory",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:OptimizerTrajectory",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:probe_signature_from_trace",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:probe_signature_from_trace",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_combined",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_combined",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_matrix",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_matrix",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:enumerate_grid",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:enumerate_grid",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:phi_identifier",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:phi_identifier",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:write_results_jsonl",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:write_results_jsonl",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:run_e3_optimizer_comparison",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:run_e3_optimizer_comparison",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:_collect_per_seed_trajectories",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/__main__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/calibration.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/cli.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_preflight",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:BayesianRecommender",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/cli.py:cmd_preflight",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/probe.py:ProbeSignature",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_mean_confidence",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:round_metrics",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:winner_flip_rate",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:probe_signature_from_trace",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_norm",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:probe_signature_from_trace",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_dispersion",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:available_backbones",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py:phi_identifier",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:train_grid_cell_adamson",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:GridCellResult",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_combined",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py:load_adamson_matrix",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:run_e3_optimizer_comparison",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:build_optimizer",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:run_e3_optimizer_comparison",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:_collect_per_seed_trajectories",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:run_e3_optimizer_comparison",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/experiments/common.py:OptimizerTrajectory",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:_collect_per_seed_trajectories",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:build_optimizer",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py:_collect_per_seed_trajectories",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Observation",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  }
+ ]
+}

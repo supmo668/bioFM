@@ -1,0 +1,1501 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 13,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "research/test-time-compute-guide/ref_impl/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 23,
+      "nonEmptyLines": 20,
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 99,
+      "nonEmptyLines": 82,
+      "functions": [
+        {
+          "name": "_classify",
+          "startLine": 44,
+          "endLine": 50,
+          "params": [
+            "mean",
+            "spread"
+          ]
+        },
+        {
+          "name": "adaptive_route",
+          "startLine": 53,
+          "endLine": 99,
+          "params": [
+            "prompt",
+            "generate",
+            "verify",
+            "revise",
+            "probe_n",
+            "budget"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "Difficulty",
+          "startLine": 28,
+          "endLine": 31,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AdaptiveResult",
+          "startLine": 35,
+          "endLine": 41,
+          "methods": [],
+          "properties": [
+            "winner",
+            "difficulty",
+            "probe_mean",
+            "probe_spread",
+            "budget_spent",
+            "strategy_used"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Difficulty",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "AdaptiveResult",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "_classify",
+          "line": 44,
+          "isDefault": false
+        },
+        {
+          "name": "adaptive_route",
+          "line": 53,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "adaptive_route",
+          "callee": "ValueError",
+          "lineNumber": 63
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "generate",
+          "lineNumber": 64
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "verify",
+          "lineNumber": 65
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "sum",
+          "lineNumber": 66
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "len",
+          "lineNumber": 66
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "max",
+          "lineNumber": 67
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "min",
+          "lineNumber": 67
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "_classify",
+          "lineNumber": 68
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "max",
+          "lineNumber": 71
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "iterative_revision",
+          "lineNumber": 74
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "min",
+          "lineNumber": 76
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "AdaptiveResult",
+          "lineNumber": 78
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "len",
+          "lineNumber": 81
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "best_of_n",
+          "lineNumber": 85
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "AdaptiveResult",
+          "lineNumber": 86
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "len",
+          "lineNumber": 89
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "weighted_majority",
+          "lineNumber": 93
+        },
+        {
+          "caller": "adaptive_route",
+          "callee": "AdaptiveResult",
+          "lineNumber": 94
+        }
+      ],
+      "metrics": {
+        "importCount": 4,
+        "exportCount": 4,
+        "functionCount": 2,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 46,
+      "nonEmptyLines": 37,
+      "functions": [
+        {
+          "name": "best_of_n",
+          "startLine": 27,
+          "endLine": 46,
+          "params": [
+            "prompt",
+            "generate",
+            "verify",
+            "n"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "BoNResult",
+          "startLine": 20,
+          "endLine": 24,
+          "methods": [],
+          "properties": [
+            "winner",
+            "candidates",
+            "scores",
+            "total_tokens"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BoNResult",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "best_of_n",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "best_of_n",
+          "callee": "ValueError",
+          "lineNumber": 35
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "generate",
+          "lineNumber": 36
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "RuntimeError",
+          "lineNumber": 38
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "tuple",
+          "lineNumber": 39
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "verify",
+          "lineNumber": 39
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "max",
+          "lineNumber": 40
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "range",
+          "lineNumber": 40
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "len",
+          "lineNumber": 40
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "BoNResult",
+          "lineNumber": 41
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "tuple",
+          "lineNumber": 43
+        },
+        {
+          "caller": "best_of_n",
+          "callee": "sum",
+          "lineNumber": 45
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 1,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 64,
+      "nonEmptyLines": 52,
+      "functions": [
+        {
+          "name": "iterative_revision",
+          "startLine": 30,
+          "endLine": 64,
+          "params": [
+            "prompt",
+            "generate",
+            "revise",
+            "verify",
+            "max_rounds",
+            "improvement_threshold"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "RevisionResult",
+          "startLine": 22,
+          "endLine": 27,
+          "methods": [],
+          "properties": [
+            "winner",
+            "trajectory",
+            "scores",
+            "total_tokens",
+            "converged"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "RevisionResult",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "iterative_revision",
+          "line": 30,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "iterative_revision",
+          "callee": "ValueError",
+          "lineNumber": 40
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "generate",
+          "lineNumber": 42
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "RuntimeError",
+          "lineNumber": 44
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "verify",
+          "lineNumber": 45
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "range",
+          "lineNumber": 48
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "revise",
+          "lineNumber": 49
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "verify",
+          "lineNumber": 50
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "drafts.append",
+          "lineNumber": 51
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "scores.append",
+          "lineNumber": 52
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "max",
+          "lineNumber": 57
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "range",
+          "lineNumber": 57
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "len",
+          "lineNumber": 57
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "RevisionResult",
+          "lineNumber": 58
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "tuple",
+          "lineNumber": 60
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "tuple",
+          "lineNumber": 61
+        },
+        {
+          "caller": "iterative_revision",
+          "callee": "sum",
+          "lineNumber": 62
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 1,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 54,
+      "nonEmptyLines": 43,
+      "functions": [
+        {
+          "name": "_default_project",
+          "startLine": 28,
+          "endLine": 30,
+          "params": [
+            "c"
+          ]
+        },
+        {
+          "name": "majority_vote",
+          "startLine": 33,
+          "endLine": 54,
+          "params": [
+            "prompt",
+            "generate",
+            "n",
+            "project"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "MajorityResult",
+          "startLine": 22,
+          "endLine": 25,
+          "methods": [],
+          "properties": [
+            "winner",
+            "counts",
+            "total_tokens"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "MajorityResult",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "_default_project",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "majority_vote",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_default_project",
+          "callee": "c.text.strip",
+          "lineNumber": 30
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "ValueError",
+          "lineNumber": 41
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "generate",
+          "lineNumber": 43
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "RuntimeError",
+          "lineNumber": 45
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "Counter",
+          "lineNumber": 46
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "project",
+          "lineNumber": 46
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "counts.most_common",
+          "lineNumber": 47
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "next",
+          "lineNumber": 49
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "project",
+          "lineNumber": 49
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "MajorityResult",
+          "lineNumber": 50
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "dict",
+          "lineNumber": 52
+        },
+        {
+          "caller": "majority_vote",
+          "callee": "sum",
+          "lineNumber": 53
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 3,
+        "functionCount": 2,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 61,
+      "nonEmptyLines": 42,
+      "functions": [
+        {
+          "name": "_pool",
+          "startLine": 10,
+          "endLine": 16,
+          "params": []
+        },
+        {
+          "name": "deterministic_generator",
+          "startLine": 20,
+          "endLine": 26,
+          "params": []
+        },
+        {
+          "name": "length_verifier",
+          "startLine": 30,
+          "endLine": 34,
+          "params": []
+        },
+        {
+          "name": "answer_preferring_verifier",
+          "startLine": 38,
+          "endLine": 45,
+          "params": []
+        },
+        {
+          "name": "improving_reviser",
+          "startLine": 49,
+          "endLine": 53,
+          "params": []
+        },
+        {
+          "name": "plateauing_reviser",
+          "startLine": 57,
+          "endLine": 61,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_pool",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "deterministic_generator",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "length_verifier",
+          "line": 29,
+          "isDefault": false
+        },
+        {
+          "name": "answer_preferring_verifier",
+          "line": 37,
+          "isDefault": false
+        },
+        {
+          "name": "improving_reviser",
+          "line": 48,
+          "isDefault": false
+        },
+        {
+          "name": "plateauing_reviser",
+          "line": 56,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_pool",
+          "callee": "Candidate",
+          "lineNumber": 12
+        },
+        {
+          "caller": "_pool",
+          "callee": "Candidate",
+          "lineNumber": 13
+        },
+        {
+          "caller": "_pool",
+          "callee": "Candidate",
+          "lineNumber": 14
+        },
+        {
+          "caller": "_pool",
+          "callee": "Candidate",
+          "lineNumber": 15
+        },
+        {
+          "caller": "deterministic_generator",
+          "callee": "_pool",
+          "lineNumber": 21
+        },
+        {
+          "caller": "_gen",
+          "callee": "len",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_gen",
+          "callee": "range",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_v",
+          "callee": "float",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_v",
+          "callee": "len",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_v",
+          "callee": "scores.get",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_r",
+          "callee": "Candidate",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_r",
+          "callee": "Candidate",
+          "lineNumber": 60
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 6,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 55,
+      "nonEmptyLines": 38,
+      "functions": [
+        {
+          "name": "_gen_factory",
+          "startLine": 7,
+          "endLine": 10,
+          "params": [
+            "pool_texts"
+          ]
+        },
+        {
+          "name": "_identity_reviser",
+          "startLine": 13,
+          "endLine": 14,
+          "params": [
+            "prompt",
+            "draft"
+          ]
+        },
+        {
+          "name": "test_easy_prompt_routes_to_revision",
+          "startLine": 17,
+          "endLine": 23,
+          "params": []
+        },
+        {
+          "name": "test_hard_prompt_routes_to_bon",
+          "startLine": 26,
+          "endLine": 35,
+          "params": []
+        },
+        {
+          "name": "test_medium_prompt_routes_to_weighted_majority",
+          "startLine": 38,
+          "endLine": 46,
+          "params": []
+        },
+        {
+          "name": "test_probe_n_below_two_rejected",
+          "startLine": 49,
+          "endLine": 55,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_gen_factory",
+          "line": 7,
+          "isDefault": false
+        },
+        {
+          "name": "_identity_reviser",
+          "line": 13,
+          "isDefault": false
+        },
+        {
+          "name": "test_easy_prompt_routes_to_revision",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "test_hard_prompt_routes_to_bon",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "test_medium_prompt_routes_to_weighted_majority",
+          "line": 38,
+          "isDefault": false
+        },
+        {
+          "name": "test_probe_n_below_two_rejected",
+          "line": 49,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_gen",
+          "callee": "Candidate",
+          "lineNumber": 9
+        },
+        {
+          "caller": "_gen",
+          "callee": "len",
+          "lineNumber": 9
+        },
+        {
+          "caller": "_gen",
+          "callee": "range",
+          "lineNumber": 9
+        },
+        {
+          "caller": "test_easy_prompt_routes_to_revision",
+          "callee": "_gen_factory",
+          "lineNumber": 18
+        },
+        {
+          "caller": "test_easy_prompt_routes_to_revision",
+          "callee": "adaptive_route",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_hard_prompt_routes_to_bon",
+          "callee": "_gen_factory",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_hard_prompt_routes_to_bon",
+          "callee": "adaptive_route",
+          "lineNumber": 33
+        },
+        {
+          "caller": "test_medium_prompt_routes_to_weighted_majority",
+          "callee": "_gen_factory",
+          "lineNumber": 39
+        },
+        {
+          "caller": "test_medium_prompt_routes_to_weighted_majority",
+          "callee": "adaptive_route",
+          "lineNumber": 44
+        },
+        {
+          "caller": "test_probe_n_below_two_rejected",
+          "callee": "_gen_factory",
+          "lineNumber": 51
+        },
+        {
+          "caller": "test_probe_n_below_two_rejected",
+          "callee": "pytest.raises",
+          "lineNumber": 54
+        },
+        {
+          "caller": "test_probe_n_below_two_rejected",
+          "callee": "adaptive_route",
+          "lineNumber": 55
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 6,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 28,
+      "nonEmptyLines": 18,
+      "functions": [
+        {
+          "name": "test_returns_argmax",
+          "startLine": 8,
+          "endLine": 11,
+          "params": [
+            "deterministic_generator",
+            "answer_preferring_verifier"
+          ]
+        },
+        {
+          "name": "test_counts_tokens",
+          "startLine": 14,
+          "endLine": 16,
+          "params": [
+            "deterministic_generator",
+            "length_verifier"
+          ]
+        },
+        {
+          "name": "test_rejects_zero_n",
+          "startLine": 19,
+          "endLine": 21,
+          "params": [
+            "deterministic_generator",
+            "length_verifier"
+          ]
+        },
+        {
+          "name": "test_empty_generator_raises",
+          "startLine": 24,
+          "endLine": 28,
+          "params": [
+            "length_verifier"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_returns_argmax",
+          "line": 8,
+          "isDefault": false
+        },
+        {
+          "name": "test_counts_tokens",
+          "line": 14,
+          "isDefault": false
+        },
+        {
+          "name": "test_rejects_zero_n",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "test_empty_generator_raises",
+          "line": 24,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_returns_argmax",
+          "callee": "best_of_n",
+          "lineNumber": 9
+        },
+        {
+          "caller": "test_returns_argmax",
+          "callee": "len",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_counts_tokens",
+          "callee": "best_of_n",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_rejects_zero_n",
+          "callee": "pytest.raises",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_rejects_zero_n",
+          "callee": "best_of_n",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_empty_generator_raises",
+          "callee": "pytest.raises",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_empty_generator_raises",
+          "callee": "best_of_n",
+          "lineNumber": 28
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 27,
+      "nonEmptyLines": 20,
+      "functions": [
+        {
+          "name": "test_score_rises_monotonically",
+          "startLine": 7,
+          "endLine": 12,
+          "params": [
+            "length_verifier",
+            "improving_reviser"
+          ]
+        },
+        {
+          "name": "test_plateau_triggers_convergence",
+          "startLine": 15,
+          "endLine": 20,
+          "params": [
+            "length_verifier",
+            "plateauing_reviser"
+          ]
+        },
+        {
+          "name": "test_counts_all_trajectory_tokens",
+          "startLine": 23,
+          "endLine": 27,
+          "params": [
+            "length_verifier",
+            "improving_reviser"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_score_rises_monotonically",
+          "line": 7,
+          "isDefault": false
+        },
+        {
+          "name": "test_plateau_triggers_convergence",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "test_counts_all_trajectory_tokens",
+          "line": 23,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "gen",
+          "callee": "Candidate",
+          "lineNumber": 9
+        },
+        {
+          "caller": "test_score_rises_monotonically",
+          "callee": "iterative_revision",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_score_rises_monotonically",
+          "callee": "list",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_score_rises_monotonically",
+          "callee": "sorted",
+          "lineNumber": 11
+        },
+        {
+          "caller": "gen",
+          "callee": "Candidate",
+          "lineNumber": 17
+        },
+        {
+          "caller": "test_plateau_triggers_convergence",
+          "callee": "iterative_revision",
+          "lineNumber": 18
+        },
+        {
+          "caller": "test_plateau_triggers_convergence",
+          "callee": "len",
+          "lineNumber": 20
+        },
+        {
+          "caller": "gen",
+          "callee": "Candidate",
+          "lineNumber": 25
+        },
+        {
+          "caller": "test_counts_all_trajectory_tokens",
+          "callee": "iterative_revision",
+          "lineNumber": 26
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 35,
+      "nonEmptyLines": 24,
+      "functions": [
+        {
+          "name": "test_majority_wins",
+          "startLine": 6,
+          "endLine": 10,
+          "params": [
+            "deterministic_generator"
+          ]
+        },
+        {
+          "name": "test_counts_sum_to_n",
+          "startLine": 13,
+          "endLine": 15,
+          "params": [
+            "deterministic_generator"
+          ]
+        },
+        {
+          "name": "test_custom_projection",
+          "startLine": 18,
+          "endLine": 35,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_majority_wins",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "test_counts_sum_to_n",
+          "line": 13,
+          "isDefault": false
+        },
+        {
+          "name": "test_custom_projection",
+          "line": 18,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_majority_wins",
+          "callee": "majority_vote",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_counts_sum_to_n",
+          "callee": "majority_vote",
+          "lineNumber": 14
+        },
+        {
+          "caller": "test_counts_sum_to_n",
+          "callee": "sum",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_counts_sum_to_n",
+          "callee": "r.counts.values",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_custom_projection",
+          "callee": "Candidate",
+          "lineNumber": 22
+        },
+        {
+          "caller": "test_custom_projection",
+          "callee": "Candidate",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_custom_projection",
+          "callee": "Candidate",
+          "lineNumber": 24
+        },
+        {
+          "caller": "gen",
+          "callee": "len",
+          "lineNumber": 28
+        },
+        {
+          "caller": "gen",
+          "callee": "range",
+          "lineNumber": 28
+        },
+        {
+          "caller": "project",
+          "callee": "round",
+          "lineNumber": 31
+        },
+        {
+          "caller": "project",
+          "callee": "float",
+          "lineNumber": 31
+        },
+        {
+          "caller": "project",
+          "callee": "c.text.split",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_custom_projection",
+          "callee": "majority_vote",
+          "lineNumber": 33
+        },
+        {
+          "caller": "test_custom_projection",
+          "callee": "project",
+          "lineNumber": 35
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 39,
+      "nonEmptyLines": 29,
+      "functions": [
+        {
+          "name": "test_weights_tip_the_vote",
+          "startLine": 7,
+          "endLine": 22,
+          "params": [
+            "answer_preferring_verifier"
+          ]
+        },
+        {
+          "name": "test_degenerates_to_majority_when_scores_equal",
+          "startLine": 25,
+          "endLine": 39,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_weights_tip_the_vote",
+          "line": 7,
+          "isDefault": false
+        },
+        {
+          "name": "test_degenerates_to_majority_when_scores_equal",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_weights_tip_the_vote",
+          "callee": "Candidate",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_weights_tip_the_vote",
+          "callee": "Candidate",
+          "lineNumber": 12
+        },
+        {
+          "caller": "test_weights_tip_the_vote",
+          "callee": "Candidate",
+          "lineNumber": 13
+        },
+        {
+          "caller": "test_weights_tip_the_vote",
+          "callee": "weighted_majority",
+          "lineNumber": 19
+        },
+        {
+          "caller": "test_degenerates_to_majority_when_scores_equal",
+          "callee": "Candidate",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_degenerates_to_majority_when_scores_equal",
+          "callee": "Candidate",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_degenerates_to_majority_when_scores_equal",
+          "callee": "Candidate",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_degenerates_to_majority_when_scores_equal",
+          "callee": "weighted_majority",
+          "lineNumber": 38
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/types.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 40,
+      "nonEmptyLines": 24,
+      "classes": [
+        {
+          "name": "Candidate",
+          "startLine": 10,
+          "endLine": 14,
+          "methods": [],
+          "properties": [
+            "text",
+            "tokens"
+          ]
+        },
+        {
+          "name": "Generator",
+          "startLine": 17,
+          "endLine": 23,
+          "methods": [
+            "__call__"
+          ],
+          "properties": []
+        },
+        {
+          "name": "Verifier",
+          "startLine": 26,
+          "endLine": 34,
+          "methods": [
+            "__call__"
+          ],
+          "properties": []
+        },
+        {
+          "name": "Reviser",
+          "startLine": 37,
+          "endLine": 40,
+          "methods": [
+            "__call__"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Candidate",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "Generator",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "Verifier",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "Reviser",
+          "line": 37,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 0,
+        "classCount": 4
+      }
+    },
+    {
+      "path": "research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 64,
+      "nonEmptyLines": 50,
+      "functions": [
+        {
+          "name": "_default_project",
+          "startLine": 29,
+          "endLine": 30,
+          "params": [
+            "c"
+          ]
+        },
+        {
+          "name": "weighted_majority",
+          "startLine": 33,
+          "endLine": 64,
+          "params": [
+            "prompt",
+            "generate",
+            "verify",
+            "n",
+            "project"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "WeightedResult",
+          "startLine": 23,
+          "endLine": 26,
+          "methods": [],
+          "properties": [
+            "winner",
+            "class_scores",
+            "total_tokens"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "WeightedResult",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "_default_project",
+          "line": 29,
+          "isDefault": false
+        },
+        {
+          "name": "weighted_majority",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_default_project",
+          "callee": "c.text.strip",
+          "lineNumber": 30
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "ValueError",
+          "lineNumber": 42
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "generate",
+          "lineNumber": 44
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "RuntimeError",
+          "lineNumber": 46
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "defaultdict",
+          "lineNumber": 48
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "verify",
+          "lineNumber": 49
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "zip",
+          "lineNumber": 50
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "project",
+          "lineNumber": 51
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "max",
+          "lineNumber": 53
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "max",
+          "lineNumber": 56
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "project",
+          "lineNumber": 57
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "candidates.index",
+          "lineNumber": 58
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "WeightedResult",
+          "lineNumber": 60
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "dict",
+          "lineNumber": 62
+        },
+        {
+          "caller": "weighted_majority",
+          "callee": "sum",
+          "lineNumber": 63
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 3,
+        "functionCount": 2,
+        "classCount": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "file:libs/cellforge-agents/src/cellforge/backends/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "libs/cellforge-agents/src/cellforge/backends/__init__.py",
+      "summary": "Package barrel for cellforge.backends that re-exports the LLMBackend protocol and the MockBackend implementation as the public backend API.",
+      "tags": ["barrel", "entry-point", "backend", "exports"],
+      "complexity": "simple",
+      "languageNotes": "Python package __init__ using __all__ to declare the public re-export surface."
+    },
+    {
+      "id": "file:libs/cellforge-agents/src/cellforge/backends/base.py",
+      "type": "file",
+      "name": "base.py",
+      "filePath": "libs/cellforge-agents/src/cellforge/backends/base.py",
+      "summary": "Defines the LLMBackend structural protocol that every cellforge agent backend must satisfy: a name attribute and a complete(system, user, max_tokens) method returning a string.",
+      "tags": ["type-definition", "protocol", "backend", "interface"],
+      "complexity": "simple",
+      "languageNotes": "Uses typing.Protocol for structural (duck-typed) subtyping, so real SDK wrappers and test mocks conform without explicit inheritance."
+    },
+    {
+      "id": "file:libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "type": "file",
+      "name": "mock.py",
+      "filePath": "libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "summary": "Deterministic, network-free MockBackend that routes on keywords in the user prompt (curate, literature, architecture, train, validate, critique) and returns canned JSON so the full propose-critique-vote agent loop can run in tests and offline demos.",
+      "tags": ["backend", "mock", "test-double", "deterministic", "offline"],
+      "complexity": "simple",
+      "languageNotes": "A @dataclass satisfying the LLMBackend Protocol via structural typing; keyword routing stands in for a real LLM call."
+    },
+    {
+      "id": "class:libs/cellforge-agents/src/cellforge/backends/base.py:LLMBackend",
+      "type": "class",
+      "name": "LLMBackend",
+      "filePath": "libs/cellforge-agents/src/cellforge/backends/base.py",
+      "lineRange": [8, 17],
+      "summary": "Protocol declaring the minimal backend contract used by agents: a name string and a complete(system, user, *, max_tokens=512) -> str method. Real backends (OpenAI, Anthropic, vLLM) and MockBackend all conform to it.",
+      "tags": ["protocol", "interface", "backend", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:libs/cellforge-agents/src/cellforge/backends/mock.py:MockBackend",
+      "type": "class",
+      "name": "MockBackend",
+      "filePath": "libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "lineRange": [14, 49],
+      "summary": "Dataclass backend whose complete() lowercases the user prompt and returns a fixed JSON string keyed on role keywords (curation/QC stats, literature priors, model architecture, training recipe, validation metrics, critique), falling back to a generic mock note.",
+      "tags": ["mock", "backend", "test-double", "deterministic"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:libs/cellforge-agents/src/cellforge/backends/__init__.py",
+      "target": "file:libs/cellforge-agents/src/cellforge/backends/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/cellforge-agents/src/cellforge/backends/__init__.py",
+      "target": "file:libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/cellforge-agents/src/cellforge/backends/base.py",
+      "target": "class:libs/cellforge-agents/src/cellforge/backends/base.py:LLMBackend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/cellforge-agents/src/cellforge/backends/base.py",
+      "target": "class:libs/cellforge-agents/src/cellforge/backends/base.py:LLMBackend",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "target": "class:libs/cellforge-agents/src/cellforge/backends/mock.py:MockBackend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "target": "class:libs/cellforge-agents/src/cellforge/backends/mock.py:MockBackend",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:libs/cellforge-agents/src/cellforge/backends/mock.py:MockBackend",
+      "target": "class:libs/cellforge-agents/src/cellforge/backends/base.py:LLMBackend",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    }
+  ]
+}

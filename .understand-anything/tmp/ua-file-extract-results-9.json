@@ -1,0 +1,154 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 4,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 22,
+      "nonEmptyLines": 16,
+      "functions": [
+        {
+          "name": "run",
+          "startLine": 15,
+          "endLine": 22,
+          "params": [
+            "payload"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "run",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "evaluate_skill",
+          "lineNumber": 18
+        },
+        {
+          "caller": "run",
+          "callee": "Path",
+          "lineNumber": 19
+        },
+        {
+          "caller": "run",
+          "callee": "payload.get",
+          "lineNumber": 19
+        },
+        {
+          "caller": "run",
+          "callee": "out.parent.mkdir",
+          "lineNumber": 20
+        },
+        {
+          "caller": "run",
+          "callee": "out.write_text",
+          "lineNumber": 21
+        },
+        {
+          "caller": "run",
+          "callee": "json.dumps",
+          "lineNumber": 21
+        },
+        {
+          "caller": "run",
+          "callee": "str",
+          "lineNumber": 22
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 26,
+      "nonEmptyLines": 19,
+      "functions": [
+        {
+          "name": "run",
+          "startLine": 19,
+          "endLine": 26,
+          "params": [
+            "payload"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "run",
+          "line": 19,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "preflight_skill",
+          "lineNumber": 22
+        },
+        {
+          "caller": "run",
+          "callee": "Path",
+          "lineNumber": 23
+        },
+        {
+          "caller": "run",
+          "callee": "payload.get",
+          "lineNumber": 23
+        },
+        {
+          "caller": "run",
+          "callee": "out.parent.mkdir",
+          "lineNumber": 24
+        },
+        {
+          "caller": "run",
+          "callee": "out.write_text",
+          "lineNumber": 25
+        },
+        {
+          "caller": "run",
+          "callee": "json.dumps",
+          "lineNumber": 25
+        },
+        {
+          "caller": "run",
+          "callee": "str",
+          "lineNumber": 26
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

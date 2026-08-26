@@ -1,0 +1,61 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py", "language": "python", "sizeLines": 15, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py", "language": "python", "sizeLines": 91, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py", "language": "python", "sizeLines": 40, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py", "language": "python", "sizeLines": 16, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py", "language": "python", "sizeLines": 283, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py", "language": "python", "sizeLines": 48, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py", "language": "python", "sizeLines": 75, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py", "language": "python", "sizeLines": 129, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py", "language": "python", "sizeLines": 58, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py", "language": "python", "sizeLines": 121, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py", "language": "python", "sizeLines": 86, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py", "language": "python", "sizeLines": 129, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py", "language": "python", "sizeLines": 190, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py"
+    ]
+  }
+}

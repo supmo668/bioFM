@@ -1,0 +1,68 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "research/test-time-compute-guide/ref_impl/__init__.py", "language": "python", "sizeLines": 23, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/adaptive_budget.py", "language": "python", "sizeLines": 99, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/best_of_n.py", "language": "python", "sizeLines": 46, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/iterative_revision.py", "language": "python", "sizeLines": 64, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/majority_vote.py", "language": "python", "sizeLines": 54, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/tests/conftest.py", "language": "python", "sizeLines": 61, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py", "language": "python", "sizeLines": 55, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py", "language": "python", "sizeLines": 28, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py", "language": "python", "sizeLines": 27, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py", "language": "python", "sizeLines": 35, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py", "language": "python", "sizeLines": 39, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/types.py", "language": "python", "sizeLines": 40, "fileCategory": "code"},
+    {"path": "research/test-time-compute-guide/ref_impl/weighted_majority.py", "language": "python", "sizeLines": 64, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+ "research/test-time-compute-guide/ref_impl/__init__.py": [
+  "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+  "research/test-time-compute-guide/ref_impl/best_of_n.py",
+  "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+  "research/test-time-compute-guide/ref_impl/majority_vote.py",
+  "research/test-time-compute-guide/ref_impl/types.py",
+  "research/test-time-compute-guide/ref_impl/weighted_majority.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/adaptive_budget.py": [
+  "research/test-time-compute-guide/ref_impl/best_of_n.py",
+  "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+  "research/test-time-compute-guide/ref_impl/types.py",
+  "research/test-time-compute-guide/ref_impl/weighted_majority.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/best_of_n.py": [
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/iterative_revision.py": [
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/majority_vote.py": [
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/tests/conftest.py": [
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py": [
+  "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py": [
+  "research/test-time-compute-guide/ref_impl/best_of_n.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py": [
+  "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py": [
+  "research/test-time-compute-guide/ref_impl/majority_vote.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py": [
+  "research/test-time-compute-guide/ref_impl/types.py",
+  "research/test-time-compute-guide/ref_impl/weighted_majority.py"
+ ],
+ "research/test-time-compute-guide/ref_impl/types.py": [],
+ "research/test-time-compute-guide/ref_impl/weighted_majority.py": [
+  "research/test-time-compute-guide/ref_impl/types.py"
+ ]
+}
+}

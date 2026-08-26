@@ -1,0 +1,1203 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 7,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "libs/test-time-compute/src/ttc/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 12,
+      "nonEmptyLines": 10,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/test-time-compute/src/ttc/__main__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 4,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/test-time-compute/src/ttc/cli.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 145,
+      "nonEmptyLines": 124,
+      "functions": [
+        {
+          "name": "_log_setup",
+          "startLine": 24,
+          "endLine": 28,
+          "params": [
+            "verbose"
+          ]
+        },
+        {
+          "name": "_dump",
+          "startLine": 31,
+          "endLine": 48,
+          "params": [
+            "result",
+            "as_json"
+          ]
+        },
+        {
+          "name": "cmd_greedy",
+          "startLine": 52,
+          "endLine": 69,
+          "params": [
+            "prompt",
+            "max_new_tokens",
+            "model",
+            "verifier",
+            "json_out",
+            "verbose"
+          ]
+        },
+        {
+          "name": "cmd_best_of_n",
+          "startLine": 73,
+          "endLine": 95,
+          "params": [
+            "prompt",
+            "n",
+            "max_new_tokens",
+            "temperature",
+            "top_k",
+            "model",
+            "verifier",
+            "json_out",
+            "verbose"
+          ]
+        },
+        {
+          "name": "cmd_sc",
+          "startLine": 99,
+          "endLine": 119,
+          "params": [
+            "prompt",
+            "n",
+            "max_new_tokens",
+            "temperature",
+            "top_k",
+            "model",
+            "json_out",
+            "verbose"
+          ]
+        },
+        {
+          "name": "cmd_sweep",
+          "startLine": 123,
+          "endLine": 141,
+          "params": [
+            "prompt",
+            "budget",
+            "max_new_tokens",
+            "model",
+            "verifier",
+            "json_out",
+            "verbose"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_log_setup",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "_dump",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_greedy",
+          "line": 51,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_best_of_n",
+          "line": 72,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_sc",
+          "line": 98,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_sweep",
+          "line": 122,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_log_setup",
+          "callee": "logging.basicConfig",
+          "lineNumber": 25
+        },
+        {
+          "caller": "_dump",
+          "callee": "len",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_dump",
+          "callee": "list",
+          "lineNumber": 39
+        },
+        {
+          "caller": "_dump",
+          "callee": "typer.echo",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_dump",
+          "callee": "json.dumps",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_dump",
+          "callee": "typer.echo",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_dump",
+          "callee": "typer.echo",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_dump",
+          "callee": "typer.echo",
+          "lineNumber": 46
+        },
+        {
+          "caller": "_dump",
+          "callee": "typer.echo",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_dump",
+          "callee": "typer.echo",
+          "lineNumber": 48
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "typer.Option",
+          "lineNumber": 53
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "typer.Option",
+          "lineNumber": 57
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "_log_setup",
+          "lineNumber": 60
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "RunConfig",
+          "lineNumber": 61
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "SamplingConfig",
+          "lineNumber": 66
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "_dump",
+          "lineNumber": 69
+        },
+        {
+          "caller": "cmd_greedy",
+          "callee": "run_strategy",
+          "lineNumber": 69
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "typer.Option",
+          "lineNumber": 74
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "typer.Option",
+          "lineNumber": 75
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "typer.Option",
+          "lineNumber": 81
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "_log_setup",
+          "lineNumber": 84
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "RunConfig",
+          "lineNumber": 85
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "SamplingConfig",
+          "lineNumber": 90
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "_dump",
+          "lineNumber": 95
+        },
+        {
+          "caller": "cmd_best_of_n",
+          "callee": "run_strategy",
+          "lineNumber": 95
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "typer.Option",
+          "lineNumber": 100
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "typer.Option",
+          "lineNumber": 106
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "_log_setup",
+          "lineNumber": 109
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "RunConfig",
+          "lineNumber": 110
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "SamplingConfig",
+          "lineNumber": 115
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "_dump",
+          "lineNumber": 119
+        },
+        {
+          "caller": "cmd_sc",
+          "callee": "run_strategy",
+          "lineNumber": 119
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "typer.Option",
+          "lineNumber": 124
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "typer.Option",
+          "lineNumber": 125
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "typer.Option",
+          "lineNumber": 129
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "_log_setup",
+          "lineNumber": 132
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "RunConfig",
+          "lineNumber": 133
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "SamplingConfig",
+          "lineNumber": 138
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "_dump",
+          "lineNumber": 141
+        },
+        {
+          "caller": "cmd_sweep",
+          "callee": "run_strategy",
+          "lineNumber": 141
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 6,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/test-time-compute/src/ttc/config.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 47,
+      "nonEmptyLines": 34,
+      "classes": [
+        {
+          "name": "StrategyName",
+          "startLine": 13,
+          "endLine": 17,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "SamplingConfig",
+          "startLine": 21,
+          "endLine": 29,
+          "methods": [],
+          "properties": [
+            "max_new_tokens",
+            "temperature",
+            "top_k",
+            "top_p",
+            "do_sample",
+            "num_return_sequences"
+          ]
+        },
+        {
+          "name": "RunConfig",
+          "startLine": 33,
+          "endLine": 47,
+          "methods": [],
+          "properties": [
+            "strategy",
+            "model_name",
+            "prompt",
+            "n_samples",
+            "sampling",
+            "seed",
+            "verifier",
+            "temperature_grid"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "StrategyName",
+          "line": 13,
+          "isDefault": false
+        },
+        {
+          "name": "SamplingConfig",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "RunConfig",
+          "line": 32,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 0,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "libs/test-time-compute/src/ttc/runner.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 78,
+      "nonEmptyLines": 59,
+      "functions": [
+        {
+          "name": "_real_generate_factory",
+          "startLine": 16,
+          "endLine": 50,
+          "params": [
+            "model",
+            "tokenizer"
+          ]
+        },
+        {
+          "name": "run_strategy",
+          "startLine": 53,
+          "endLine": 75,
+          "params": [
+            "cfg",
+            "generate",
+            "verifier"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_real_generate_factory",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "run_strategy",
+          "line": 53,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_real_generate_factory",
+          "callee": "next",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_real_generate_factory",
+          "callee": "model.parameters",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_gen",
+          "callee": "\" \".join",
+          "lineNumber": 27
+        },
+        {
+          "caller": "_gen",
+          "callee": "tokenizer",
+          "lineNumber": 28
+        },
+        {
+          "caller": "_gen",
+          "callee": "v.to",
+          "lineNumber": 30
+        },
+        {
+          "caller": "_gen",
+          "callee": "enc.items",
+          "lineNumber": 31
+        },
+        {
+          "caller": "_gen",
+          "callee": "dict",
+          "lineNumber": 34
+        },
+        {
+          "caller": "_gen",
+          "callee": "torch.inference_mode",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_gen",
+          "callee": "model.generate",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_gen",
+          "callee": "tokenizer.batch_decode",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_gen",
+          "callee": "int",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_gen",
+          "callee": "Candidate",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_gen",
+          "callee": "t.replace",
+          "lineNumber": 48
+        },
+        {
+          "caller": "run_strategy",
+          "callee": "load_biofm",
+          "lineNumber": 68
+        },
+        {
+          "caller": "run_strategy",
+          "callee": "_real_generate_factory",
+          "lineNumber": 70
+        },
+        {
+          "caller": "run_strategy",
+          "callee": "build_verifier",
+          "lineNumber": 72
+        },
+        {
+          "caller": "run_strategy",
+          "callee": "logger.info",
+          "lineNumber": 74
+        },
+        {
+          "caller": "run_strategy",
+          "callee": "dispatch",
+          "lineNumber": 75
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/test-time-compute/src/ttc/scoring.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 129,
+      "nonEmptyLines": 92,
+      "functions": [
+        {
+          "name": "_clean",
+          "startLine": 111,
+          "endLine": 112,
+          "params": [
+            "seq"
+          ]
+        },
+        {
+          "name": "_kmers",
+          "startLine": 115,
+          "endLine": 118,
+          "params": [
+            "seq",
+            "k"
+          ]
+        },
+        {
+          "name": "build_verifier",
+          "startLine": 121,
+          "endLine": 129,
+          "params": [
+            "name"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "Verifier",
+          "startLine": 18,
+          "endLine": 23,
+          "methods": [
+            "__call__"
+          ],
+          "properties": [
+            "name"
+          ]
+        },
+        {
+          "name": "GCContentVerifier",
+          "startLine": 26,
+          "endLine": 46,
+          "methods": [
+            "__init__",
+            "__call__"
+          ],
+          "properties": []
+        },
+        {
+          "name": "KmerConsensusVerifier",
+          "startLine": 49,
+          "endLine": 77,
+          "methods": [
+            "__init__",
+            "fit",
+            "__call__"
+          ],
+          "properties": []
+        },
+        {
+          "name": "LogLikelihoodVerifier",
+          "startLine": 80,
+          "endLine": 103,
+          "methods": [
+            "__init__",
+            "__call__"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Verifier",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "GCContentVerifier",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "KmerConsensusVerifier",
+          "line": 49,
+          "isDefault": false
+        },
+        {
+          "name": "LogLikelihoodVerifier",
+          "line": 80,
+          "isDefault": false
+        },
+        {
+          "name": "_clean",
+          "line": 111,
+          "isDefault": false
+        },
+        {
+          "name": "_kmers",
+          "line": 115,
+          "isDefault": false
+        },
+        {
+          "name": "build_verifier",
+          "line": 121,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__call__",
+          "callee": "_clean",
+          "lineNumber": 40
+        },
+        {
+          "caller": "__call__",
+          "callee": "seq.count",
+          "lineNumber": 43
+        },
+        {
+          "caller": "__call__",
+          "callee": "seq.count",
+          "lineNumber": 43
+        },
+        {
+          "caller": "__call__",
+          "callee": "len",
+          "lineNumber": 43
+        },
+        {
+          "caller": "__call__",
+          "callee": "abs",
+          "lineNumber": 44
+        },
+        {
+          "caller": "__init__",
+          "callee": "Counter",
+          "lineNumber": 60
+        },
+        {
+          "caller": "fit",
+          "callee": "Counter",
+          "lineNumber": 63
+        },
+        {
+          "caller": "fit",
+          "callee": "self._reference_kmers.update",
+          "lineNumber": 65
+        },
+        {
+          "caller": "fit",
+          "callee": "_kmers",
+          "lineNumber": 65
+        },
+        {
+          "caller": "fit",
+          "callee": "_clean",
+          "lineNumber": 65
+        },
+        {
+          "caller": "__call__",
+          "callee": "_kmers",
+          "lineNumber": 71
+        },
+        {
+          "caller": "__call__",
+          "callee": "_clean",
+          "lineNumber": 71
+        },
+        {
+          "caller": "__call__",
+          "callee": "sum",
+          "lineNumber": 74
+        },
+        {
+          "caller": "__call__",
+          "callee": "self._reference_kmers.values",
+          "lineNumber": 74
+        },
+        {
+          "caller": "__call__",
+          "callee": "sum",
+          "lineNumber": 76
+        },
+        {
+          "caller": "__call__",
+          "callee": "self._reference_kmers.get",
+          "lineNumber": 76
+        },
+        {
+          "caller": "__call__",
+          "callee": "len",
+          "lineNumber": 76
+        },
+        {
+          "caller": "__call__",
+          "callee": "\" \".join",
+          "lineNumber": 97
+        },
+        {
+          "caller": "__call__",
+          "callee": "self._tokenizer",
+          "lineNumber": 98
+        },
+        {
+          "caller": "__call__",
+          "callee": "enc.items",
+          "lineNumber": 99
+        },
+        {
+          "caller": "__call__",
+          "callee": "torch.inference_mode",
+          "lineNumber": 100
+        },
+        {
+          "caller": "__call__",
+          "callee": "self._model",
+          "lineNumber": 101
+        },
+        {
+          "caller": "__call__",
+          "callee": "float",
+          "lineNumber": 103
+        },
+        {
+          "caller": "__call__",
+          "callee": "out.loss.item",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_clean",
+          "callee": "\"\".join",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_clean",
+          "callee": "seq.upper",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_kmers",
+          "callee": "len",
+          "lineNumber": 116
+        },
+        {
+          "caller": "_kmers",
+          "callee": "range",
+          "lineNumber": 118
+        },
+        {
+          "caller": "_kmers",
+          "callee": "len",
+          "lineNumber": 118
+        },
+        {
+          "caller": "build_verifier",
+          "callee": "KeyError",
+          "lineNumber": 128
+        },
+        {
+          "caller": "build_verifier",
+          "callee": "list",
+          "lineNumber": 128
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 7,
+        "functionCount": 3,
+        "classCount": 4
+      }
+    },
+    {
+      "path": "libs/test-time-compute/src/ttc/strategies.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 153,
+      "nonEmptyLines": 129,
+      "functions": [
+        {
+          "name": "_greedy",
+          "startLine": 36,
+          "endLine": 56,
+          "params": [
+            "generate",
+            "cfg",
+            "verifier"
+          ]
+        },
+        {
+          "name": "_best_of_n",
+          "startLine": 59,
+          "endLine": 78,
+          "params": [
+            "generate",
+            "cfg",
+            "verifier"
+          ]
+        },
+        {
+          "name": "_self_consistency",
+          "startLine": 81,
+          "endLine": 103,
+          "params": [
+            "generate",
+            "cfg",
+            "_unused"
+          ]
+        },
+        {
+          "name": "_temperature_sweep",
+          "startLine": 106,
+          "endLine": 130,
+          "params": [
+            "generate",
+            "cfg",
+            "verifier"
+          ]
+        },
+        {
+          "name": "dispatch",
+          "startLine": 141,
+          "endLine": 149,
+          "params": [
+            "strategy",
+            "generate",
+            "cfg",
+            "verifier"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "Candidate",
+          "startLine": 18,
+          "endLine": 20,
+          "methods": [],
+          "properties": [
+            "text",
+            "tokens_generated"
+          ]
+        },
+        {
+          "name": "StrategyResult",
+          "startLine": 27,
+          "endLine": 33,
+          "methods": [],
+          "properties": [
+            "strategy",
+            "winner",
+            "candidates",
+            "scores",
+            "compute_budget",
+            "verifier_name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Candidate",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "StrategyResult",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "_greedy",
+          "line": 36,
+          "isDefault": false
+        },
+        {
+          "name": "_best_of_n",
+          "line": 59,
+          "isDefault": false
+        },
+        {
+          "name": "_self_consistency",
+          "line": 81,
+          "isDefault": false
+        },
+        {
+          "name": "_temperature_sweep",
+          "line": 106,
+          "isDefault": false
+        },
+        {
+          "name": "dispatch",
+          "line": 141,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_greedy",
+          "callee": "SamplingConfig",
+          "lineNumber": 37
+        },
+        {
+          "caller": "_greedy",
+          "callee": "generate",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_greedy",
+          "callee": "RuntimeError",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_greedy",
+          "callee": "tuple",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_greedy",
+          "callee": "verifier",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_greedy",
+          "callee": "StrategyResult",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_greedy",
+          "callee": "tuple",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_greedy",
+          "callee": "sum",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "SamplingConfig",
+          "lineNumber": 60
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "generate",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "tuple",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "verifier",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "max",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "range",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "len",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "StrategyResult",
+          "lineNumber": 71
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "tuple",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_best_of_n",
+          "callee": "sum",
+          "lineNumber": 76
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "SamplingConfig",
+          "lineNumber": 82
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "generate",
+          "lineNumber": 90
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "KmerConsensusVerifier(k=6).fit",
+          "lineNumber": 93
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "KmerConsensusVerifier",
+          "lineNumber": 93
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "tuple",
+          "lineNumber": 94
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "consensus",
+          "lineNumber": 94
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "max",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "range",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "len",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "StrategyResult",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "tuple",
+          "lineNumber": 99
+        },
+        {
+          "caller": "_self_consistency",
+          "callee": "sum",
+          "lineNumber": 101
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "max",
+          "lineNumber": 109
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "max",
+          "lineNumber": 109
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "len",
+          "lineNumber": 109
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "SamplingConfig",
+          "lineNumber": 111
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "generate",
+          "lineNumber": 119
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "all_cands.extend",
+          "lineNumber": 120
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "all_scores.extend",
+          "lineNumber": 121
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "verifier",
+          "lineNumber": 121
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "max",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "range",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "len",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "StrategyResult",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "tuple",
+          "lineNumber": 126
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "tuple",
+          "lineNumber": 127
+        },
+        {
+          "caller": "_temperature_sweep",
+          "callee": "sum",
+          "lineNumber": 128
+        },
+        {
+          "caller": "dispatch",
+          "callee": "KeyError",
+          "lineNumber": 148
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 7,
+        "functionCount": 5,
+        "classCount": 2
+      }
+    }
+  ]
+}

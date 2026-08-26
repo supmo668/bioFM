@@ -1,0 +1,496 @@
+{
+  "nodes": [
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py",
+      "summary": "Package barrel for the MassGen extractor draft that re-exports project_confidence and project_severity as the public API of the extractors package.",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "package-init"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Python package __init__ using relative imports and an explicit __all__ list to define the public surface."
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "type": "file",
+      "name": "confidence.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "summary": "Deterministic, LLM-free projection of per-agent confidence from a round's peer votes: each agent's confidence is its share of non-self votes, with the denominator adjusted for abstaining voters.",
+      "tags": [
+        "utility",
+        "voting",
+        "confidence-projection",
+        "multi-agent",
+        "pure-function"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Uses a typing.Protocol (AgentVoteLike) for structural duck-typing so any object with voter_id/voted_for attributes is accepted without importing MassGen's concrete AgentVote class."
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "type": "file",
+      "name": "severity.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "summary": "LLM-driven severity projection that builds an N x (N-1) critic-vs-target severity matrix from vote reasons via an injected rater backend, with a per-call cache for repeated reasons and a default prior for missing reasons.",
+      "tags": [
+        "utility",
+        "llm-rater",
+        "severity-projection",
+        "multi-agent",
+        "dependency-injection"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "The rater is an abstract Callable[[str], float] injected by the caller; RaterBackend is a type alias and AgentVoteLike is a structural Protocol, keeping the module free of MassGen imports."
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "type": "file",
+      "name": "test_extractors_skeleton.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "summary": "Pytest acceptance-test skeleton for the extractor package, covering vote-share confidence rules (unanimity, self-vote exclusion, abstention) and severity matrix shape, reason caching, and missing-reason fallback using a FakeVote dataclass and stub raters.",
+      "tags": [
+        "test",
+        "pytest",
+        "acceptance-test",
+        "voting",
+        "multi-agent"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Tests are named after the behaviour they enforce (MassGen TDD contract); closures over a dict counter are used to count rater invocations."
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:AgentVoteLike",
+      "type": "class",
+      "name": "AgentVoteLike",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "lineRange": [
+        20,
+        22
+      ],
+      "summary": "Structural Protocol describing the minimal vote record shape (voter_id, voted_for) consumed by project_confidence.",
+      "tags": [
+        "type-definition",
+        "protocol",
+        "data-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:project_confidence",
+      "type": "function",
+      "name": "project_confidence",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "lineRange": [
+        25,
+        48
+      ],
+      "summary": "Computes a confidence score per agent as the fraction of distinct peer voters who voted for it, ignoring self-votes and votes for unknown agents, and shrinking the denominator when voters abstain.",
+      "tags": [
+        "utility",
+        "voting",
+        "confidence-projection",
+        "pure-function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:AgentVoteLike",
+      "type": "class",
+      "name": "AgentVoteLike",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "lineRange": [
+        18,
+        21
+      ],
+      "summary": "Structural Protocol for vote records carrying voter_id, voted_for, and a free-text reason used by the severity rater.",
+      "tags": [
+        "type-definition",
+        "protocol",
+        "data-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:project_severity",
+      "type": "function",
+      "name": "project_severity",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "lineRange": [
+        32,
+        78
+      ],
+      "summary": "Builds an N x (N-1) severity matrix where each voter's rated reason is assigned to every non-chosen target; renders the prompt template once per distinct reason, clamps the rater output to [0,1], and uses DEFAULT_SEVERITY_ON_MISSING_REASON when the reason is empty.",
+      "tags": [
+        "utility",
+        "llm-rater",
+        "severity-projection",
+        "caching",
+        "matrix"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:FakeVote",
+      "type": "class",
+      "name": "FakeVote",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        18,
+        21
+      ],
+      "summary": "Lightweight dataclass test double satisfying the AgentVoteLike protocol with voter_id, voted_for, and an optional reason.",
+      "tags": [
+        "test",
+        "test-double",
+        "data-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_unanimous_vote_concentrates_on_winner",
+      "type": "function",
+      "name": "test_confidence_unanimous_vote_concentrates_on_winner",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        24,
+        30
+      ],
+      "summary": "Asserts that when four agents all vote for a fifth, the winner's confidence is 1.0 and all others are 0.0.",
+      "tags": [
+        "test",
+        "voting",
+        "confidence-projection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_ignores_self_votes",
+      "type": "function",
+      "name": "test_confidence_ignores_self_votes",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        33,
+        37
+      ],
+      "summary": "Asserts that an agent voting for itself is excluded from the confidence count.",
+      "tags": [
+        "test",
+        "voting",
+        "confidence-projection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_handles_abstention",
+      "type": "function",
+      "name": "test_confidence_handles_abstention",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        40,
+        46
+      ],
+      "summary": "Asserts that with a single participating voter the denominator becomes 1 rather than N-1, so the voted-for agent gets confidence 1.0.",
+      "tags": [
+        "test",
+        "voting",
+        "edge-case"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_matrix_shape",
+      "type": "function",
+      "name": "test_severity_matrix_shape",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        49,
+        59
+      ],
+      "summary": "Asserts that project_severity returns a 3 x 2 matrix for three agents using a constant stub rater.",
+      "tags": [
+        "test",
+        "severity-projection",
+        "matrix"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_caches_identical_reasons",
+      "type": "function",
+      "name": "test_severity_caches_identical_reasons",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        62,
+        72
+      ],
+      "summary": "Asserts that the rater backend is invoked only once when two votes share an identical reason string.",
+      "tags": [
+        "test",
+        "severity-projection",
+        "caching"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_missing_reason_falls_back_to_default",
+      "type": "function",
+      "name": "test_missing_reason_falls_back_to_default",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "lineRange": [
+        75,
+        85
+      ],
+      "summary": "Asserts that an empty reason never triggers the rater and that a two-agent round with a vote for the only alternative yields an all-zero severity matrix.",
+      "tags": [
+        "test",
+        "severity-projection",
+        "edge-case"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "target": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:AgentVoteLike",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "target": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:AgentVoteLike",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:project_confidence",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:project_confidence",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "target": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:AgentVoteLike",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "target": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:AgentVoteLike",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:project_severity",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:project_severity",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:FakeVote",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "class:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:FakeVote",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_unanimous_vote_concentrates_on_winner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_unanimous_vote_concentrates_on_winner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_ignores_self_votes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_ignores_self_votes",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_handles_abstention",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_handles_abstention",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_matrix_shape",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_matrix_shape",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_caches_identical_reasons",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_caches_identical_reasons",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_missing_reason_falls_back_to_default",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_missing_reason_falls_back_to_default",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_unanimous_vote_concentrates_on_winner",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:project_confidence",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_ignores_self_votes",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:project_confidence",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_confidence_handles_abstention",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py:project_confidence",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_matrix_shape",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:project_severity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_severity_caches_identical_reasons",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:project_severity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py:test_missing_reason_falls_back_to_default",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py:project_severity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

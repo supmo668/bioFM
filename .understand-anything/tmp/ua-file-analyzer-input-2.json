@@ -1,0 +1,90 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "libs/cellforge-agents/src/cellforge/__init__.py", "language": "python", "sizeLines": 12, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/__main__.py", "language": "python", "sizeLines": 4, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/__init__.py", "language": "python", "sizeLines": 26, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/architect.py", "language": "python", "sizeLines": 41, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/base.py", "language": "python", "sizeLines": 29, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/data_curator.py", "language": "python", "sizeLines": 52, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/literature.py", "language": "python", "sizeLines": 53, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/trainer.py", "language": "python", "sizeLines": 57, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/agents/validator.py", "language": "python", "sizeLines": 49, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/cli.py", "language": "python", "sizeLines": 47, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/orchestrator.py", "language": "python", "sizeLines": 121, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/problem.py", "language": "python", "sizeLines": 56, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/tools/__init__.py", "language": "python", "sizeLines": 13, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py", "language": "python", "sizeLines": 57, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/tools/literature.py", "language": "python", "sizeLines": 61, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/tools/omics.py", "language": "python", "sizeLines": 43, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/tools/pathway.py", "language": "python", "sizeLines": 48, "fileCategory": "code"},
+    {"path": "libs/cellforge-agents/src/cellforge/tools/trainer.py", "language": "python", "sizeLines": 33, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+ "libs/cellforge-agents/src/cellforge/__init__.py": [
+  "libs/cellforge-agents/src/cellforge/orchestrator.py",
+  "libs/cellforge-agents/src/cellforge/problem.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/__main__.py": [
+  "libs/cellforge-agents/src/cellforge/cli.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/__init__.py": [
+  "libs/cellforge-agents/src/cellforge/agents/architect.py",
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+  "libs/cellforge-agents/src/cellforge/agents/literature.py",
+  "libs/cellforge-agents/src/cellforge/agents/trainer.py",
+  "libs/cellforge-agents/src/cellforge/agents/validator.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/architect.py": [
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/problem.py",
+  "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/base.py": [
+  "libs/cellforge-agents/src/cellforge/problem.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/data_curator.py": [
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/problem.py",
+  "libs/cellforge-agents/src/cellforge/tools/omics.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/literature.py": [
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/problem.py",
+  "libs/cellforge-agents/src/cellforge/tools/literature.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/trainer.py": [
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/problem.py",
+  "libs/cellforge-agents/src/cellforge/tools/trainer.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/agents/validator.py": [
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/problem.py",
+  "libs/cellforge-agents/src/cellforge/tools/pathway.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/cli.py": [
+  "libs/cellforge-agents/src/cellforge/agents/__init__.py",
+  "libs/cellforge-agents/src/cellforge/orchestrator.py",
+  "libs/cellforge-agents/src/cellforge/problem.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/orchestrator.py": [
+  "libs/cellforge-agents/src/cellforge/agents/base.py",
+  "libs/cellforge-agents/src/cellforge/problem.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/problem.py": [],
+ "libs/cellforge-agents/src/cellforge/tools/__init__.py": [
+  "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+  "libs/cellforge-agents/src/cellforge/tools/literature.py",
+  "libs/cellforge-agents/src/cellforge/tools/omics.py",
+  "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+  "libs/cellforge-agents/src/cellforge/tools/trainer.py"
+ ],
+ "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py": [],
+ "libs/cellforge-agents/src/cellforge/tools/literature.py": [],
+ "libs/cellforge-agents/src/cellforge/tools/omics.py": [],
+ "libs/cellforge-agents/src/cellforge/tools/pathway.py": [],
+ "libs/cellforge-agents/src/cellforge/tools/trainer.py": []
+}
+}
