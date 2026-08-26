@@ -1,0 +1,1050 @@
+{
+  "nodes": [
+    {
+      "id": "file:libs/test-time-compute/src/ttc/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "libs/test-time-compute/src/ttc/__init__.py",
+      "summary": "Package barrel for the ttc (test-time compute) library; re-exports RunConfig, StrategyName, Candidate, StrategyResult and run_strategy as the public API.",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "public-api",
+        "test-time-compute"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Python package __init__ with an explicit __all__ list defining the public surface."
+    },
+    {
+      "id": "file:libs/test-time-compute/src/ttc/__main__.py",
+      "type": "file",
+      "name": "__main__.py",
+      "filePath": "libs/test-time-compute/src/ttc/__main__.py",
+      "summary": "Module entry point that makes `python -m ttc` launch the Typer CLI app defined in cli.py.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "bootstrap"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:libs/test-time-compute/src/ttc/cli.py",
+      "type": "file",
+      "name": "cli.py",
+      "filePath": "libs/test-time-compute/src/ttc/cli.py",
+      "summary": "Typer-based CLI exposing greedy, best-of-n, self-consistency and temperature-sweep commands that build a RunConfig, invoke run_strategy and print results as text or JSON.",
+      "tags": [
+        "cli",
+        "entry-point",
+        "typer",
+        "api-handler",
+        "test-time-compute"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Each command is a Typer-decorated function; `typer.Option` defaults double as argument parsing and help text."
+    },
+    {
+      "id": "file:libs/test-time-compute/src/ttc/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "libs/test-time-compute/src/ttc/config.py",
+      "summary": "Immutable configuration dataclasses for TTC runs: the StrategyName enum, SamplingConfig (HF generate hyper-parameters) and the top-level RunConfig.",
+      "tags": [
+        "config",
+        "data-model",
+        "dataclass",
+        "type-definition"
+      ],
+      "complexity": "simple",
+      "languageNotes": "All dataclasses are frozen=True so run descriptors can be serialised to JSONL without post-hoc mutation."
+    },
+    {
+      "id": "file:libs/test-time-compute/src/ttc/runner.py",
+      "type": "file",
+      "name": "runner.py",
+      "filePath": "libs/test-time-compute/src/ttc/runner.py",
+      "summary": "High-level runner that wires a lazily loaded BioFM causal LM into the pure strategy layer, building a generate closure and verifier before dispatching the configured strategy.",
+      "tags": [
+        "service",
+        "orchestration",
+        "factory",
+        "dependency-injection",
+        "test-time-compute"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "torch and ttc.model_loader are imported lazily inside functions so pure-Python tests can inject mock generate/verifier callables without heavy dependencies."
+    },
+    {
+      "id": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "type": "file",
+      "name": "scoring.py",
+      "filePath": "libs/test-time-compute/src/ttc/scoring.py",
+      "summary": "Pluggable verifiers that score generated DNA sequences (GC-content band, k-mer consensus, model log-likelihood) behind a Verifier Protocol, plus a string-keyed build_verifier factory.",
+      "tags": [
+        "scoring",
+        "verifier",
+        "strategy-pattern",
+        "factory",
+        "bioinformatics"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses typing.Protocol for structural subtyping: verifier classes are not subclasses of Verifier but satisfy its __call__/name shape."
+    },
+    {
+      "id": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "type": "file",
+      "name": "strategies.py",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Pure-functional test-time compute strategies (greedy, best-of-n, self-consistency, temperature sweep) that take a GenerateFn and Verifier and return a StrategyResult, with a STRATEGIES registry and dispatch function.",
+      "tags": [
+        "strategy-pattern",
+        "algorithm",
+        "test-time-compute",
+        "data-model",
+        "dispatcher"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Strategies are plain functions keyed in a dict registry; the functional shape (prompt -> candidates callable) keeps them testable without a model."
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/cli.py:_dump",
+      "type": "function",
+      "name": "_dump",
+      "filePath": "libs/test-time-compute/src/ttc/cli.py",
+      "summary": "Formats a StrategyResult as a JSON payload or human-readable key/value lines and echoes it via Typer.",
+      "tags": [
+        "output",
+        "serialization",
+        "cli"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        31,
+        48
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/cli.py:cmd_greedy",
+      "type": "function",
+      "name": "cmd_greedy",
+      "filePath": "libs/test-time-compute/src/ttc/cli.py",
+      "summary": "Typer command running the greedy decoding strategy for a prompt and printing the single-candidate result.",
+      "tags": [
+        "cli",
+        "command",
+        "greedy"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        52,
+        69
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/cli.py:cmd_best_of_n",
+      "type": "function",
+      "name": "cmd_best_of_n",
+      "filePath": "libs/test-time-compute/src/ttc/cli.py",
+      "summary": "Typer command sampling N candidates and selecting the best by the chosen verifier.",
+      "tags": [
+        "cli",
+        "command",
+        "best-of-n"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        73,
+        95
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sc",
+      "type": "function",
+      "name": "cmd_sc",
+      "filePath": "libs/test-time-compute/src/ttc/cli.py",
+      "summary": "Typer command running self-consistency selection via k-mer consensus across N sampled candidates.",
+      "tags": [
+        "cli",
+        "command",
+        "self-consistency"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        99,
+        119
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sweep",
+      "type": "function",
+      "name": "cmd_sweep",
+      "filePath": "libs/test-time-compute/src/ttc/cli.py",
+      "summary": "Typer command distributing a sample budget across a temperature grid and selecting the best-scoring candidate.",
+      "tags": [
+        "cli",
+        "command",
+        "temperature-sweep"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        123,
+        141
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/config.py:StrategyName",
+      "type": "class",
+      "name": "StrategyName",
+      "filePath": "libs/test-time-compute/src/ttc/config.py",
+      "summary": "String-backed Enum naming the four supported TTC strategies: greedy, best_of_n, self_consistency, temperature_sweep.",
+      "tags": [
+        "enum",
+        "type-definition",
+        "config"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        13,
+        17
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "class",
+      "name": "SamplingConfig",
+      "filePath": "libs/test-time-compute/src/ttc/config.py",
+      "summary": "Frozen dataclass of sampling hyper-parameters (max_new_tokens, temperature, top_k, top_p, do_sample, num_return_sequences) passed straight to model.generate.",
+      "tags": [
+        "dataclass",
+        "config",
+        "sampling"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        21,
+        29
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "class",
+      "name": "RunConfig",
+      "filePath": "libs/test-time-compute/src/ttc/config.py",
+      "summary": "Frozen top-level run descriptor holding strategy, model name, prompt, sample count, nested SamplingConfig, seed, verifier name and temperature grid.",
+      "tags": [
+        "dataclass",
+        "config",
+        "data-model"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        33,
+        47
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/runner.py:_real_generate_factory",
+      "type": "function",
+      "name": "_real_generate_factory",
+      "filePath": "libs/test-time-compute/src/ttc/runner.py",
+      "summary": "Builds a GenerateFn closure around a real HuggingFace causal LM and tokenizer, space-separating bases, running model.generate under inference_mode and wrapping outputs as Candidate objects.",
+      "tags": [
+        "factory",
+        "closure",
+        "inference",
+        "huggingface"
+      ],
+      "complexity": "moderate",
+      "lineRange": [
+        16,
+        50
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "function",
+      "name": "run_strategy",
+      "filePath": "libs/test-time-compute/src/ttc/runner.py",
+      "summary": "Executes a TTC run: lazily loads BioFM and builds the generate function and verifier when not injected, then dispatches to the configured strategy.",
+      "tags": [
+        "orchestration",
+        "entry-point",
+        "dependency-injection"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        53,
+        75
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/scoring.py:Verifier",
+      "type": "class",
+      "name": "Verifier",
+      "filePath": "libs/test-time-compute/src/ttc/scoring.py",
+      "summary": "Protocol defining the verifier interface: a named callable mapping a candidate sequence (plus optional prompt) to a float score where higher is better.",
+      "tags": [
+        "protocol",
+        "interface",
+        "type-definition"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        18,
+        23
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/scoring.py:GCContentVerifier",
+      "type": "class",
+      "name": "GCContentVerifier",
+      "filePath": "libs/test-time-compute/src/ttc/scoring.py",
+      "summary": "Rewards candidates whose GC content lies within a tolerance band around a target fraction, using a smooth linear penalty.",
+      "tags": [
+        "verifier",
+        "scoring",
+        "bioinformatics"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        26,
+        46
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/scoring.py:KmerConsensusVerifier",
+      "type": "class",
+      "name": "KmerConsensusVerifier",
+      "filePath": "libs/test-time-compute/src/ttc/scoring.py",
+      "summary": "Scores a candidate by its average k-mer frequency against a fitted reference pool; used for self-consistency where the pool is the other candidates.",
+      "tags": [
+        "verifier",
+        "scoring",
+        "k-mer",
+        "consensus"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        49,
+        77
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/scoring.py:LogLikelihoodVerifier",
+      "type": "class",
+      "name": "LogLikelihoodVerifier",
+      "filePath": "libs/test-time-compute/src/ttc/scoring.py",
+      "summary": "Scores a candidate by the negative mean NLL of a loaded HF causal LM over prompt plus candidate; requires torch at call time.",
+      "tags": [
+        "verifier",
+        "scoring",
+        "log-likelihood",
+        "huggingface"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        80,
+        103
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/scoring.py:build_verifier",
+      "type": "function",
+      "name": "build_verifier",
+      "filePath": "libs/test-time-compute/src/ttc/scoring.py",
+      "summary": "Factory that instantiates a verifier by registry name (gc_content, kmer_consensus) so the CLI can select verifiers by string.",
+      "tags": [
+        "factory",
+        "registry",
+        "verifier"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        121,
+        129
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/strategies.py:Candidate",
+      "type": "class",
+      "name": "Candidate",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Frozen dataclass holding one generated sequence and the number of tokens generated to produce it.",
+      "tags": [
+        "dataclass",
+        "data-model",
+        "candidate"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "class",
+      "name": "StrategyResult",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Frozen dataclass capturing a strategy run: winning candidate, all candidates and scores, total compute budget and verifier name.",
+      "tags": [
+        "dataclass",
+        "data-model",
+        "result"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        27,
+        33
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/strategies.py:_greedy",
+      "type": "function",
+      "name": "_greedy",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Runs deterministic greedy decoding (top_k=1, no sampling) for a single candidate and scores it with the verifier.",
+      "tags": [
+        "strategy",
+        "greedy",
+        "decoding"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        36,
+        56
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/strategies.py:_best_of_n",
+      "type": "function",
+      "name": "_best_of_n",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Samples n_samples candidates in one generate call and returns the highest-scoring one under the verifier.",
+      "tags": [
+        "strategy",
+        "best-of-n",
+        "sampling"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        59,
+        78
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/strategies.py:_self_consistency",
+      "type": "function",
+      "name": "_self_consistency",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Samples n candidates and selects the one most representative of the pool by fitting a KmerConsensusVerifier on the other candidates, ignoring the injected verifier.",
+      "tags": [
+        "strategy",
+        "self-consistency",
+        "consensus"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        81,
+        103
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/strategies.py:_temperature_sweep",
+      "type": "function",
+      "name": "_temperature_sweep",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Splits the sample budget evenly across cfg.temperature_grid, samples at each temperature and returns the best-scoring candidate overall.",
+      "tags": [
+        "strategy",
+        "temperature-sweep",
+        "sampling"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        106,
+        130
+      ]
+    },
+    {
+      "id": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "type": "function",
+      "name": "dispatch",
+      "filePath": "libs/test-time-compute/src/ttc/strategies.py",
+      "summary": "Looks up the strategy function in the STRATEGIES registry by StrategyName and invokes it with the generate function, config and verifier.",
+      "tags": [
+        "dispatcher",
+        "registry",
+        "strategy-pattern"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        141,
+        149
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:_dump",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_greedy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_greedy",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_best_of_n",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_best_of_n",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sc",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sc",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sweep",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sweep",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_greedy",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_greedy",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_best_of_n",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_best_of_n",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sc",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sc",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sweep",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/cli.py:cmd_sweep",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/config.py",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:StrategyName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/config.py",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:StrategyName",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/config.py",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/config.py",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/config.py",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/config.py",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:RunConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:_real_generate_factory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "target": "function:libs/test-time-compute/src/ttc/runner.py:_real_generate_factory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "target": "function:libs/test-time-compute/src/ttc/scoring.py:build_verifier",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/runner.py:run_strategy",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/runner.py:_real_generate_factory",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:Candidate",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:Verifier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:Verifier",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:GCContentVerifier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:GCContentVerifier",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:KmerConsensusVerifier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:KmerConsensusVerifier",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:LogLikelihoodVerifier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:LogLikelihoodVerifier",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "function:libs/test-time-compute/src/ttc/scoring.py:build_verifier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "function:libs/test-time-compute/src/ttc/scoring.py:build_verifier",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:libs/test-time-compute/src/ttc/scoring.py:GCContentVerifier",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:Verifier",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "class:libs/test-time-compute/src/ttc/scoring.py:KmerConsensusVerifier",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:Verifier",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "class:libs/test-time-compute/src/ttc/scoring.py:LogLikelihoodVerifier",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:Verifier",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:Candidate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:Candidate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_greedy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_best_of_n",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_self_consistency",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_temperature_sweep",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_greedy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_greedy",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_greedy",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_best_of_n",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_best_of_n",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_best_of_n",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_self_consistency",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_self_consistency",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_self_consistency",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:dispatch",
+      "target": "function:libs/test-time-compute/src/ttc/strategies.py:_temperature_sweep",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_temperature_sweep",
+      "target": "class:libs/test-time-compute/src/ttc/strategies.py:StrategyResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_temperature_sweep",
+      "target": "class:libs/test-time-compute/src/ttc/config.py:SamplingConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:libs/test-time-compute/src/ttc/strategies.py:_self_consistency",
+      "target": "class:libs/test-time-compute/src/ttc/scoring.py:KmerConsensusVerifier",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/__init__.py",
+      "target": "file:libs/test-time-compute/src/ttc/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/__init__.py",
+      "target": "file:libs/test-time-compute/src/ttc/runner.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/__main__.py",
+      "target": "file:libs/test-time-compute/src/ttc/cli.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "file:libs/test-time-compute/src/ttc/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/cli.py",
+      "target": "file:libs/test-time-compute/src/ttc/runner.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "file:libs/test-time-compute/src/ttc/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "file:libs/test-time-compute/src/ttc/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "file:libs/test-time-compute/src/ttc/model_loader.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/scoring.py",
+      "target": "file:libs/test-time-compute/tests/test_scoring.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/strategies.py",
+      "target": "file:libs/test-time-compute/tests/test_strategies.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:libs/test-time-compute/src/ttc/runner.py",
+      "target": "file:libs/test-time-compute/tests/test_runner_smoke.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

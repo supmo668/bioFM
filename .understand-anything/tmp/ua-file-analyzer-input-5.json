@@ -1,0 +1,55 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "paper_standalone/src/perturb_eval/__init__.py", "language": "python", "sizeLines": 34, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/__main__.py", "language": "python", "sizeLines": 4, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/bayesian.py", "language": "python", "sizeLines": 171, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/calibration.py", "language": "python", "sizeLines": 85, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/cli.py", "language": "python", "sizeLines": 54, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/instrumentation.py", "language": "python", "sizeLines": 102, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/massgen_adapter.py", "language": "python", "sizeLines": 71, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/metrics.py", "language": "python", "sizeLines": 212, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/probe.py", "language": "python", "sizeLines": 61, "fileCategory": "code"},
+    {"path": "paper_standalone/src/perturb_eval/types.py", "language": "python", "sizeLines": 93, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+ "paper_standalone/src/perturb_eval/__init__.py": [
+  "paper_standalone/src/perturb_eval/bayesian.py",
+  "paper_standalone/src/perturb_eval/metrics.py",
+  "paper_standalone/src/perturb_eval/probe.py",
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/__main__.py": [
+  "paper_standalone/src/perturb_eval/cli.py"
+ ],
+ "paper_standalone/src/perturb_eval/bayesian.py": [
+  "paper_standalone/src/perturb_eval/probe.py",
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/calibration.py": [
+  "paper_standalone/src/perturb_eval/metrics.py",
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/cli.py": [
+  "paper_standalone/src/perturb_eval/bayesian.py",
+  "paper_standalone/src/perturb_eval/probe.py"
+ ],
+ "paper_standalone/src/perturb_eval/instrumentation.py": [
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/massgen_adapter.py": [
+  "paper_standalone/src/perturb_eval/bayesian.py",
+  "paper_standalone/src/perturb_eval/metrics.py",
+  "paper_standalone/src/perturb_eval/probe.py",
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/metrics.py": [
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/probe.py": [
+  "paper_standalone/src/perturb_eval/metrics.py",
+  "paper_standalone/src/perturb_eval/types.py"
+ ],
+ "paper_standalone/src/perturb_eval/types.py": []
+}
+}

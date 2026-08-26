@@ -1,0 +1,21 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "libs/test-time-compute/src/ttc/__init__.py", "language": "python", "sizeLines": 12, "fileCategory": "code"},
+    {"path": "libs/test-time-compute/src/ttc/__main__.py", "language": "python", "sizeLines": 4, "fileCategory": "code"},
+    {"path": "libs/test-time-compute/src/ttc/cli.py", "language": "python", "sizeLines": 145, "fileCategory": "code"},
+    {"path": "libs/test-time-compute/src/ttc/config.py", "language": "python", "sizeLines": 47, "fileCategory": "code"},
+    {"path": "libs/test-time-compute/src/ttc/runner.py", "language": "python", "sizeLines": 78, "fileCategory": "code"},
+    {"path": "libs/test-time-compute/src/ttc/scoring.py", "language": "python", "sizeLines": 129, "fileCategory": "code"},
+    {"path": "libs/test-time-compute/src/ttc/strategies.py", "language": "python", "sizeLines": 153, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+    "libs/test-time-compute/src/ttc/__init__.py": ["libs/test-time-compute/src/ttc/config.py", "libs/test-time-compute/src/ttc/runner.py"],
+    "libs/test-time-compute/src/ttc/__main__.py": ["libs/test-time-compute/src/ttc/cli.py"],
+    "libs/test-time-compute/src/ttc/cli.py": ["libs/test-time-compute/src/ttc/config.py", "libs/test-time-compute/src/ttc/runner.py"],
+    "libs/test-time-compute/src/ttc/config.py": [],
+    "libs/test-time-compute/src/ttc/runner.py": ["libs/test-time-compute/src/ttc/config.py", "libs/test-time-compute/src/ttc/scoring.py", "libs/test-time-compute/src/ttc/strategies.py"],
+    "libs/test-time-compute/src/ttc/scoring.py": [],
+    "libs/test-time-compute/src/ttc/strategies.py": ["libs/test-time-compute/src/ttc/config.py", "libs/test-time-compute/src/ttc/scoring.py"]
+  }
+}

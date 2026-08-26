@@ -1,0 +1,436 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 4,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 4,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 48,
+      "nonEmptyLines": 38,
+      "functions": [
+        {
+          "name": "project_confidence",
+          "startLine": 25,
+          "endLine": 48,
+          "params": [
+            "agent_ids",
+            "votes"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "AgentVoteLike",
+          "startLine": 20,
+          "endLine": 22,
+          "methods": [],
+          "properties": [
+            "voter_id",
+            "voted_for"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AgentVoteLike",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "project_confidence",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "project_confidence",
+          "callee": "len",
+          "lineNumber": 30
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "enumerate",
+          "lineNumber": 35
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "Counter",
+          "lineNumber": 36
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "set",
+          "lineNumber": 37
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "voters_seen.add",
+          "lineNumber": 44
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "max",
+          "lineNumber": 47
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "min",
+          "lineNumber": 47
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "len",
+          "lineNumber": 47
+        },
+        {
+          "caller": "project_confidence",
+          "callee": "counts.get",
+          "lineNumber": 48
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 1,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 78,
+      "nonEmptyLines": 64,
+      "functions": [
+        {
+          "name": "project_severity",
+          "startLine": 32,
+          "endLine": 78,
+          "params": [
+            "agent_ids",
+            "votes",
+            "rater",
+            "prompt_template"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "AgentVoteLike",
+          "startLine": 18,
+          "endLine": 21,
+          "methods": [],
+          "properties": [
+            "voter_id",
+            "voted_for",
+            "reason"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AgentVoteLike",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "project_severity",
+          "line": 32,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "project_severity",
+          "callee": "len",
+          "lineNumber": 45
+        },
+        {
+          "caller": "project_severity",
+          "callee": "range",
+          "lineNumber": 46
+        },
+        {
+          "caller": "project_severity",
+          "callee": "enumerate",
+          "lineNumber": 49
+        },
+        {
+          "caller": "project_severity",
+          "callee": "idx.get",
+          "lineNumber": 53
+        },
+        {
+          "caller": "project_severity",
+          "callee": "(v.reason or \"\").strip",
+          "lineNumber": 62
+        },
+        {
+          "caller": "project_severity",
+          "callee": "prompt_template.format",
+          "lineNumber": 67
+        },
+        {
+          "caller": "project_severity",
+          "callee": "\",\".join",
+          "lineNumber": 70
+        },
+        {
+          "caller": "project_severity",
+          "callee": "float",
+          "lineNumber": 73
+        },
+        {
+          "caller": "project_severity",
+          "callee": "max",
+          "lineNumber": 73
+        },
+        {
+          "caller": "project_severity",
+          "callee": "min",
+          "lineNumber": 73
+        },
+        {
+          "caller": "project_severity",
+          "callee": "rater",
+          "lineNumber": 73
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 1,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 85,
+      "nonEmptyLines": 66,
+      "functions": [
+        {
+          "name": "test_confidence_unanimous_vote_concentrates_on_winner",
+          "startLine": 24,
+          "endLine": 30,
+          "params": []
+        },
+        {
+          "name": "test_confidence_ignores_self_votes",
+          "startLine": 33,
+          "endLine": 37,
+          "params": []
+        },
+        {
+          "name": "test_confidence_handles_abstention",
+          "startLine": 40,
+          "endLine": 46,
+          "params": []
+        },
+        {
+          "name": "test_severity_matrix_shape",
+          "startLine": 49,
+          "endLine": 59,
+          "params": []
+        },
+        {
+          "name": "test_severity_caches_identical_reasons",
+          "startLine": 62,
+          "endLine": 72,
+          "params": []
+        },
+        {
+          "name": "test_missing_reason_falls_back_to_default",
+          "startLine": 75,
+          "endLine": 85,
+          "params": []
+        }
+      ],
+      "classes": [
+        {
+          "name": "FakeVote",
+          "startLine": 18,
+          "endLine": 21,
+          "methods": [],
+          "properties": [
+            "voter_id",
+            "voted_for",
+            "reason"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "FakeVote",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "test_confidence_unanimous_vote_concentrates_on_winner",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "test_confidence_ignores_self_votes",
+          "line": 33,
+          "isDefault": false
+        },
+        {
+          "name": "test_confidence_handles_abstention",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "test_severity_matrix_shape",
+          "line": 49,
+          "isDefault": false
+        },
+        {
+          "name": "test_severity_caches_identical_reasons",
+          "line": 62,
+          "isDefault": false
+        },
+        {
+          "name": "test_missing_reason_falls_back_to_default",
+          "line": 75,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_confidence_unanimous_vote_concentrates_on_winner",
+          "callee": "FakeVote",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_confidence_unanimous_vote_concentrates_on_winner",
+          "callee": "project_confidence",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_confidence_unanimous_vote_concentrates_on_winner",
+          "callee": "all",
+          "lineNumber": 30
+        },
+        {
+          "caller": "test_confidence_unanimous_vote_concentrates_on_winner",
+          "callee": "range",
+          "lineNumber": 30
+        },
+        {
+          "caller": "test_confidence_ignores_self_votes",
+          "callee": "FakeVote",
+          "lineNumber": 35
+        },
+        {
+          "caller": "test_confidence_ignores_self_votes",
+          "callee": "FakeVote",
+          "lineNumber": 35
+        },
+        {
+          "caller": "test_confidence_ignores_self_votes",
+          "callee": "project_confidence",
+          "lineNumber": 36
+        },
+        {
+          "caller": "test_confidence_handles_abstention",
+          "callee": "FakeVote",
+          "lineNumber": 43
+        },
+        {
+          "caller": "test_confidence_handles_abstention",
+          "callee": "project_confidence",
+          "lineNumber": 44
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "FakeVote",
+          "lineNumber": 51
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "FakeVote",
+          "lineNumber": 52
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "FakeVote",
+          "lineNumber": 53
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "project_severity",
+          "lineNumber": 56
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "len",
+          "lineNumber": 58
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "all",
+          "lineNumber": 59
+        },
+        {
+          "caller": "test_severity_matrix_shape",
+          "callee": "len",
+          "lineNumber": 59
+        },
+        {
+          "caller": "test_severity_caches_identical_reasons",
+          "callee": "FakeVote",
+          "lineNumber": 65
+        },
+        {
+          "caller": "test_severity_caches_identical_reasons",
+          "callee": "FakeVote",
+          "lineNumber": 66
+        },
+        {
+          "caller": "test_severity_caches_identical_reasons",
+          "callee": "project_severity",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_missing_reason_falls_back_to_default",
+          "callee": "FakeVote",
+          "lineNumber": 78
+        },
+        {
+          "caller": "rater",
+          "callee": "AssertionError",
+          "lineNumber": 80
+        },
+        {
+          "caller": "test_missing_reason_falls_back_to_default",
+          "callee": "project_severity",
+          "lineNumber": 81
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 7,
+        "functionCount": 6,
+        "classCount": 1
+      }
+    }
+  ]
+}

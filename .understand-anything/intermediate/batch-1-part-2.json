@@ -1,0 +1,1592 @@
+{
+ "nodes": [
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "type": "file",
+   "name": "instrumentation.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "summary": "Non-invasive adapter that converts a CellForge ConsensusResult (any object with .rounds exposing proposals/critiques) into RoundTrace/RunTrace records, including an N x (N-1) critique severity matrix.",
+   "tags": [
+    "adapter",
+    "instrumentation",
+    "serialization",
+    "orchestrator"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Duck-typed via getattr so the orchestrator class is never patched or imported."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "type": "file",
+   "name": "massgen_adapter.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "summary": "Exposes the preflight recommender and run-metric evaluator as MassGen-skill entrypoints that accept and return JSON-friendly dicts, without importing MassGen.",
+   "tags": [
+    "adapter",
+    "api-handler",
+    "integration",
+    "skill"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "type": "file",
+   "name": "metrics.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "summary": "Pure numpy implementations of the paper's agent-consensus metrics: ACE and normalised ACE entropy, ACE_d, critique severity dispersion/max/star, per-round RoundMetrics, delta-ACE, delta-confidence, winner flip rate, TDI and TDI2 difficulty indices, and the RunMetrics aggregator.",
+   "tags": [
+    "metrics",
+    "numpy",
+    "pure-functions",
+    "evaluation",
+    "statistics"
+   ],
+   "complexity": "complex",
+   "languageNotes": "Softmax entropy is computed with a log-sum-exp shift for numerical stability; TDI2 restricts interaction terms to an explicit whitelist so typos fail loudly."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "type": "file",
+   "name": "__init__.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "summary": "Optimizer registry mapping names (random, cma_es alias, one_plus_lambda_es, contextual_gp) to classes and exposing available_optimizers/build_optimizer factories.",
+   "tags": [
+    "factory",
+    "registry",
+    "barrel",
+    "optimization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "type": "file",
+   "name": "base.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "summary": "Shared optimizer contract: the Observation dataclass, the Optimizer Protocol, and the continuous config embedding (config_to_vec) plus nearest_config decoding used by every optimizer.",
+   "tags": [
+    "type-definition",
+    "data-model",
+    "protocol",
+    "optimization"
+   ],
+   "complexity": "simple",
+   "languageNotes": "Uses typing.Protocol for structural subtyping so optimizers need not inherit from a base class."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "type": "file",
+   "name": "cma_es.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "summary": "Numpy-only (1+lambda) evolution strategy on the continuous relaxation of the config space, adapting step size with Rechenberg's one-fifth-success rule; retains a CMAESOptimizer alias for backwards compatibility.",
+   "tags": [
+    "optimization",
+    "evolutionary-strategy",
+    "numpy",
+    "optimizer"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Renamed from CMAESOptimizer after review because it lacks rank-mu covariance adaptation; alias kept for old callers."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "type": "file",
+   "name": "contextual_gp.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "summary": "Contextual Gaussian-process bandit with a factored Matern-5/2 x Hamming-like kernel, fitting an exact GP posterior on observations and selecting the config maximising expected improvement at a new context.",
+   "tags": [
+    "bayesian-optimization",
+    "gaussian-process",
+    "optimizer",
+    "numpy"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Exact O(n^3) Cholesky-based GP posterior with a hand-rolled erf approximation to stay dependency-free."
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "type": "file",
+   "name": "random_baseline.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "summary": "Uniform random optimizer serving as the floor baseline every real optimizer must beat.",
+   "tags": [
+    "baseline",
+    "optimizer",
+    "optimization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "type": "file",
+   "name": "probe.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "summary": "Preflight probe: defines the 4-d ProbeSignature and derives it from a single shallow RoundTrace so the Bayesian recommender can propose a full configuration cheaply.",
+   "tags": [
+    "probe",
+    "data-model",
+    "metrics",
+    "preflight"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "file",
+   "name": "types.py",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "summary": "Immutable frozen dataclasses shared across the package: RoundTrace, RunTrace, RoundMetrics, RunMetrics and Config (with a FLOPs proxy), plus the default config space.",
+   "tags": [
+    "data-model",
+    "type-definition",
+    "dataclass",
+    "core"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "All dataclasses are frozen=True so traces are hashable and safe to pass between processes."
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:_build_critique_matrix",
+   "type": "function",
+   "name": "_build_critique_matrix",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "lineRange": [
+    17,
+    39
+   ],
+   "summary": "Builds the N x (N-1) critique severity matrix in agent_names order from duck-typed critique objects.",
+   "tags": [
+    "helper",
+    "matrix",
+    "instrumentation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+   "type": "function",
+   "name": "round_trace_from_consensus_round",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "lineRange": [
+    42,
+    75
+   ],
+   "summary": "Converts one consensus round object (proposals + critiques) into a frozen RoundTrace with confidences, severity matrix and winner index.",
+   "tags": [
+    "adapter",
+    "serialization",
+    "instrumentation"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+   "type": "function",
+   "name": "run_trace_from_consensus",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "lineRange": [
+    78,
+    102
+   ],
+   "summary": "Converts a full ConsensusResult into a RunTrace by mapping each round and recording the final consensus/backbone metadata.",
+   "tags": [
+    "adapter",
+    "serialization",
+    "instrumentation"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:preflight_skill",
+   "type": "function",
+   "name": "preflight_skill",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "lineRange": [
+    22,
+    49
+   ],
+   "summary": "MassGen skill entrypoint: parses a probe dict and optional budget, runs BayesianRecommender and returns a JSON-friendly recommendation.",
+   "tags": [
+    "api-handler",
+    "adapter",
+    "recommender"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+   "type": "function",
+   "name": "evaluate_skill",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "lineRange": [
+    52,
+    71
+   ],
+   "summary": "MassGen skill entrypoint: validates a RunTrace payload and returns the computed RunMetrics as a dict.",
+   "tags": [
+    "api-handler",
+    "adapter",
+    "metrics"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace",
+   "type": "function",
+   "name": "ace",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    25,
+    52
+   ],
+   "summary": "Shannon entropy (nats) of the temperature-softmaxed agent confidence distribution, computed with log-sum-exp for stability.",
+   "tags": [
+    "metrics",
+    "entropy",
+    "numpy"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_norm",
+   "type": "function",
+   "name": "ace_norm",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    55,
+    60
+   ],
+   "summary": "ACE normalised by log(N) into [0, 1].",
+   "tags": [
+    "metrics",
+    "entropy",
+    "normalization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_d",
+   "type": "function",
+   "name": "ace_d",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    67,
+    100
+   ],
+   "summary": "Direct entropy of raw confidences treated as a distribution, with validation of non-negative inputs.",
+   "tags": [
+    "metrics",
+    "entropy",
+    "numpy"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_dispersion",
+   "type": "function",
+   "name": "critique_severity_dispersion",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    107,
+    118
+   ],
+   "summary": "Variance of all off-diagonal critique severities in a round (CSD).",
+   "tags": [
+    "metrics",
+    "critique",
+    "variance"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_max",
+   "type": "function",
+   "name": "critique_severity_max",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    121,
+    126
+   ],
+   "summary": "Maximum critique severity observed in a round.",
+   "tags": [
+    "metrics",
+    "critique"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_star",
+   "type": "function",
+   "name": "critique_severity_star",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    129,
+    153
+   ],
+   "summary": "Robust critique severity summary combining max and median severities (CST).",
+   "tags": [
+    "metrics",
+    "critique",
+    "robust-statistics"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:_flatten_critiques",
+   "type": "function",
+   "name": "_flatten_critiques",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    156,
+    170
+   ],
+   "summary": "Flattens a ragged critique severity matrix into a 1-d numpy array.",
+   "tags": [
+    "helper",
+    "numpy",
+    "utility"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:round_metrics",
+   "type": "function",
+   "name": "round_metrics",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    177,
+    191
+   ],
+   "summary": "Computes the per-round RoundMetrics bundle (ACE, ACE_norm, mean/max confidence, CSD, CSD max) from a RoundTrace.",
+   "tags": [
+    "metrics",
+    "aggregation",
+    "evaluation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_ace",
+   "type": "function",
+   "name": "delta_ace",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    198,
+    202
+   ],
+   "summary": "Change in ACE between first and last rounds.",
+   "tags": [
+    "metrics",
+    "convergence"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_mean_confidence",
+   "type": "function",
+   "name": "delta_mean_confidence",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    205,
+    209
+   ],
+   "summary": "Change in mean agent confidence between first and last rounds.",
+   "tags": [
+    "metrics",
+    "convergence"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:winner_flip_rate",
+   "type": "function",
+   "name": "winner_flip_rate",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    212,
+    222
+   ],
+   "summary": "Fraction of consecutive rounds in which the winning agent changed (WFR).",
+   "tags": [
+    "metrics",
+    "stability"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi",
+   "type": "function",
+   "name": "tdi",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    237,
+    262
+   ],
+   "summary": "Task Difficulty Index: weighted sum of final ACE_norm, final CSD, lack of convergence and winner flip rate using default or calibrated coefficients.",
+   "tags": [
+    "metrics",
+    "difficulty-index",
+    "evaluation"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi2",
+   "type": "function",
+   "name": "tdi2",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    280,
+    323
+   ],
+   "summary": "TDI extended with whitelisted pairwise interaction terms between the four base features.",
+   "tags": [
+    "metrics",
+    "difficulty-index",
+    "interaction-terms"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "type": "function",
+   "name": "run_metrics",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "lineRange": [
+    330,
+    340
+   ],
+   "summary": "Aggregates a RunTrace into RunMetrics: per-round metrics plus delta-ACE, delta-confidence, WFR and TDI.",
+   "tags": [
+    "metrics",
+    "aggregation",
+    "evaluation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:available_optimizers",
+   "type": "function",
+   "name": "available_optimizers",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "lineRange": [
+    19,
+    20
+   ],
+   "summary": "Returns the tuple of registered optimizer names.",
+   "tags": [
+    "registry",
+    "utility"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:build_optimizer",
+   "type": "function",
+   "name": "build_optimizer",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "lineRange": [
+    23,
+    35
+   ],
+   "summary": "Factory that looks up an optimizer by name in the registry and instantiates it with the config space and seed.",
+   "tags": [
+    "factory",
+    "registry",
+    "optimization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Observation",
+   "type": "class",
+   "name": "Observation",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "lineRange": [
+    18,
+    23
+   ],
+   "summary": "Frozen (config, context, objective) triple recorded from an evaluator run.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "optimization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:config_to_vec",
+   "type": "function",
+   "name": "config_to_vec",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "lineRange": [
+    26,
+    40
+   ],
+   "summary": "Continuous relaxation of a Config: min-max scaled n_agents and n_rounds concatenated with a backbone one-hot.",
+   "tags": [
+    "embedding",
+    "utility",
+    "optimization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:nearest_config",
+   "type": "function",
+   "name": "nearest_config",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "lineRange": [
+    43,
+    47
+   ],
+   "summary": "Decodes a continuous vector back to the nearest Config in the space by Euclidean distance.",
+   "tags": [
+    "decoding",
+    "utility",
+    "optimization"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Optimizer",
+   "type": "class",
+   "name": "Optimizer",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "lineRange": [
+    50,
+    55
+   ],
+   "summary": "Structural Protocol every optimizer satisfies: a suggest(context, observed) -> Config method.",
+   "tags": [
+    "protocol",
+    "type-definition",
+    "interface"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py:OnePlusLambdaES",
+   "type": "class",
+   "name": "OnePlusLambdaES",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "lineRange": [
+    23,
+    73
+   ],
+   "summary": "(1+lambda)-ES keeping a Gaussian search distribution over the config embedding, sampling offspring, decoding to the nearest Config and adapting sigma with the one-fifth-success rule.",
+   "tags": [
+    "optimizer",
+    "evolutionary-strategy",
+    "numpy"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py:ContextualGPOptimizer",
+   "type": "class",
+   "name": "ContextualGPOptimizer",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "lineRange": [
+    39,
+    107
+   ],
+   "summary": "Contextual GP bandit that fits an exact Gaussian-process posterior with a Matern x Hamming product kernel and suggests the config with highest expected improvement at the given context.",
+   "tags": [
+    "optimizer",
+    "gaussian-process",
+    "bayesian-optimization"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py:RandomOptimizer",
+   "type": "class",
+   "name": "RandomOptimizer",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "lineRange": [
+    11,
+    20
+   ],
+   "summary": "Baseline optimizer that suggests a uniformly random Config regardless of context or observations.",
+   "tags": [
+    "optimizer",
+    "baseline",
+    "random"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/probe.py:ProbeSignature",
+   "type": "class",
+   "name": "ProbeSignature",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "lineRange": [
+    22,
+    31
+   ],
+   "summary": "Frozen 4-d summary (ace_norm, mean_conf, max_conf, csd) consumed by the recommender, with an as_vector helper.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "probe"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:signature_from_round",
+   "type": "function",
+   "name": "signature_from_round",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "lineRange": [
+    34,
+    45
+   ],
+   "summary": "Computes a ProbeSignature from one RoundTrace using ACE_norm, confidence statistics and CSD.",
+   "tags": [
+    "probe",
+    "metrics",
+    "utility"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:preflight",
+   "type": "function",
+   "name": "preflight",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "lineRange": [
+    48,
+    61
+   ],
+   "summary": "Runs the caller-supplied shallow round callable and converts its RoundTrace into a ProbeSignature.",
+   "tags": [
+    "probe",
+    "preflight",
+    "entry-point"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundTrace",
+   "type": "class",
+   "name": "RoundTrace",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "lineRange": [
+    13,
+    22
+   ],
+   "summary": "One orchestration round: agent names, confidences, critique severity matrix, winner index, consensus score and compute tokens.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "trace"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunTrace",
+   "type": "class",
+   "name": "RunTrace",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "lineRange": [
+    26,
+    40
+   ],
+   "summary": "A full orchestrator run for one task: ordered RoundTrace tuple plus metadata, with n_rounds/n_agents helpers.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "trace"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundMetrics",
+   "type": "class",
+   "name": "RoundMetrics",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "lineRange": [
+    44,
+    55
+   ],
+   "summary": "Per-round derived metrics bundle (ACE, ACE_norm, confidence stats, CSD).",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "metrics"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunMetrics",
+   "type": "class",
+   "name": "RunMetrics",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "lineRange": [
+    59,
+    68
+   ],
+   "summary": "Run-level metrics bundle including per-round metrics, deltas, WFR and TDI.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "metrics"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:Config",
+   "type": "class",
+   "name": "Config",
+   "filePath": "projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "lineRange": [
+    72,
+    84
+   ],
+   "summary": "Orchestrator hyperparameter configuration (n_agents, n_rounds, backbone) with a flops_proxy cost estimate.",
+   "tags": [
+    "data-model",
+    "dataclass",
+    "configuration"
+   ],
+   "complexity": "simple"
+  }
+ ],
+ "edges": [
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:_build_critique_matrix",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:preflight_skill",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:preflight_skill",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_norm",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_norm",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_d",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_d",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_dispersion",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_dispersion",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_max",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_max",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_star",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_star",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:_flatten_critiques",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:round_metrics",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:round_metrics",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_ace",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_ace",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_mean_confidence",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_mean_confidence",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:winner_flip_rate",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:winner_flip_rate",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi2",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi2",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:available_optimizers",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:available_optimizers",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:build_optimizer",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py:build_optimizer",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Observation",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Observation",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:config_to_vec",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:config_to_vec",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:nearest_config",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:nearest_config",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Optimizer",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Optimizer",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py:OnePlusLambdaES",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py:OnePlusLambdaES",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py:ContextualGPOptimizer",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py:ContextualGPOptimizer",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py:RandomOptimizer",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py:RandomOptimizer",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/probe.py:ProbeSignature",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/probe.py:ProbeSignature",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:signature_from_round",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:signature_from_round",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:preflight",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:preflight",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundTrace",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundTrace",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunTrace",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunTrace",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundMetrics",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundMetrics",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunMetrics",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunMetrics",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:Config",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1.0
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:Config",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:projects/perturb-seq-eval/src/perturb_eval/probe.py",
+   "target": "file:projects/perturb-seq-eval/src/perturb_eval/types.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:preflight_skill",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/bayesian.py:BayesianRecommender",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:preflight_skill",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/probe.py:ProbeSignature",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:signature_from_round",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_norm",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:signature_from_round",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_dispersion",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:preflight",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/probe.py:signature_from_round",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:_build_critique_matrix",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundTrace",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunTrace",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:round_metrics",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RoundMetrics",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/types.py:RunMetrics",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:round_metrics",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:winner_flip_rate",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_ace",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:run_metrics",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_mean_confidence",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace_norm",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:ace",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_dispersion",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:_flatten_critiques",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_max",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:_flatten_critiques",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:critique_severity_star",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:_flatten_critiques",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:tdi",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/metrics.py:delta_mean_confidence",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:nearest_config",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:config_to_vec",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py:OnePlusLambdaES",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:config_to_vec",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py:OnePlusLambdaES",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:nearest_config",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py:ContextualGPOptimizer",
+   "target": "function:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:config_to_vec",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py:OnePlusLambdaES",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Optimizer",
+   "type": "implements",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py:ContextualGPOptimizer",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Optimizer",
+   "type": "implements",
+   "direction": "forward",
+   "weight": 0.9
+  },
+  {
+   "source": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py:RandomOptimizer",
+   "target": "class:projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py:Optimizer",
+   "type": "implements",
+   "direction": "forward",
+   "weight": 0.9
+  }
+ ]
+}

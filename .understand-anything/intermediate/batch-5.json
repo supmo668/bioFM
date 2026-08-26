@@ -1,0 +1,1314 @@
+{
+  "nodes": [
+    {
+      "id": "file:paper_standalone/src/perturb_eval/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "paper_standalone/src/perturb_eval/__init__.py",
+      "summary": "Package barrel for perturb_eval that re-exports the public API: the BayesianRecommender, the ACE/CSD/TDI metric functions, the ProbeSignature/preflight probe, and the frozen trace/config dataclasses.",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "public-api"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Python package barrel using an explicit __all__ list to pin the public surface."
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/__main__.py",
+      "type": "file",
+      "name": "__main__.py",
+      "filePath": "paper_standalone/src/perturb_eval/__main__.py",
+      "summary": "Module runner that lets `python -m perturb_eval` invoke the Typer CLI app.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "boilerplate"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "type": "file",
+      "name": "bayesian.py",
+      "filePath": "paper_standalone/src/perturb_eval/bayesian.py",
+      "summary": "Bayesian MAP recommender that maps a 4-d probe signature to an orchestrator Config under a FLOPs budget using per-config diagonal Gaussian likelihoods fitted on calibration logs and an exponential prior favouring smaller configs.",
+      "tags": [
+        "bayesian-inference",
+        "recommender",
+        "hyperparameter-tuning",
+        "data-model",
+        "numpy"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Log-space posterior computation for numerical stability; backs off to global mean/variance for configs with fewer than 2 calibration samples."
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "type": "file",
+      "name": "calibration.py",
+      "filePath": "paper_standalone/src/perturb_eval/calibration.py",
+      "summary": "Fits the four Task Difficulty Index (TDI) coefficients via a small ridge regression against difficulty labels from logged RunTrace records, clipping and renormalising weights so TDI stays in [0, 1].",
+      "tags": [
+        "calibration",
+        "regression",
+        "hyperparameter-tuning",
+        "numpy"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Closed-form ridge solve (A^T A + lambda I)^-1 A^T b via numpy.linalg.solve rather than an iterative optimiser."
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/cli.py",
+      "type": "file",
+      "name": "cli.py",
+      "filePath": "paper_standalone/src/perturb_eval/cli.py",
+      "summary": "Typer CLI exposing a `preflight` command that builds a ProbeSignature from flags and prints the recommended Config as JSON, plus a stub `evaluate` command that is not yet implemented.",
+      "tags": [
+        "cli",
+        "entry-point",
+        "api-handler",
+        "typer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "type": "file",
+      "name": "instrumentation.py",
+      "filePath": "paper_standalone/src/perturb_eval/instrumentation.py",
+      "summary": "Non-invasive adapter translating a CellForge orchestrator ConsensusResult (duck-typed rounds with proposals and critiques) into immutable RoundTrace/RunTrace records, including an N x (N-1) critique severity matrix and per-round winner selection.",
+      "tags": [
+        "adapter",
+        "instrumentation",
+        "serialization",
+        "duck-typing"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses getattr-based duck typing so the orchestrator class is never imported or patched."
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "type": "file",
+      "name": "massgen_adapter.py",
+      "filePath": "paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "summary": "Exposes the evaluation pipeline as MassGen skill entrypoints: preflight_skill runs the Bayesian recommender on a probe payload and evaluate_skill scores a RunTrace, both returning JSON-serialisable dicts without importing MassGen.",
+      "tags": [
+        "adapter",
+        "api-handler",
+        "integration",
+        "skill"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "type": "file",
+      "name": "metrics.py",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "summary": "Pure metric functions for multi-agent consensus runs: Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), round-over-round deltas, winner flip rate, and the composite Task Difficulty Index (TDI), rolled up into RoundMetrics/RunMetrics.",
+      "tags": [
+        "metrics",
+        "utility",
+        "numpy",
+        "evaluation",
+        "pure-functions"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Softmax entropy computed with log-sum-exp; critique matrices drop the diagonal when square and are treated as already self-excluding when rectangular."
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/probe.py",
+      "type": "file",
+      "name": "probe.py",
+      "filePath": "paper_standalone/src/perturb_eval/probe.py",
+      "summary": "Defines the 4-d ProbeSignature (ace_norm, mean_conf, max_conf, csd) and the preflight probe that derives it from a single shallow round 0 trace supplied by a user callable.",
+      "tags": [
+        "probe",
+        "data-model",
+        "evaluation",
+        "framework-agnostic"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "file",
+      "name": "types.py",
+      "filePath": "paper_standalone/src/perturb_eval/types.py",
+      "summary": "Frozen dataclasses shared across the package: RoundTrace and RunTrace for logged orchestrator runs, RoundMetrics and RunMetrics for derived scores, and Config with a FLOPs proxy plus the DEFAULT_CONFIG_SPACE grid.",
+      "tags": [
+        "type-definition",
+        "data-model",
+        "dataclass",
+        "immutable"
+      ],
+      "complexity": "simple",
+      "languageNotes": "All dataclasses are frozen=True so traces are hashable and safe to pass between processes."
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/bayesian.py:Recommendation",
+      "type": "class",
+      "name": "Recommendation",
+      "filePath": "paper_standalone/src/perturb_eval/bayesian.py",
+      "lineRange": [
+        34,
+        42
+      ],
+      "summary": "Frozen result of a recommendation: the chosen Config, its log posterior, per-config log-likelihoods for audit, the full ranked config space, the budget, and calibration sample count.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "result"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "type": "class",
+      "name": "BayesianRecommender",
+      "filePath": "paper_standalone/src/perturb_eval/bayesian.py",
+      "lineRange": [
+        46,
+        156
+      ],
+      "summary": "Gaussian-likelihood recommender: fit() learns per-config means/variances from (ProbeSignature, Config) tuples with global backoff, and recommend() returns the MAP Config under a FLOPs budget using an exponential prior on compute.",
+      "tags": [
+        "bayesian-inference",
+        "recommender",
+        "service",
+        "numpy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/calibration.py:TDICoeffs",
+      "type": "class",
+      "name": "TDICoeffs",
+      "filePath": "paper_standalone/src/perturb_eval/calibration.py",
+      "lineRange": [
+        31,
+        38
+      ],
+      "summary": "Frozen holder for the four TDI weights (alpha, beta, gamma, delta) with an as_dict helper for passing to the tdi metric.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "coefficients"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+      "type": "function",
+      "name": "fit_tdi_coefficients",
+      "filePath": "paper_standalone/src/perturb_eval/calibration.py",
+      "lineRange": [
+        41,
+        85
+      ],
+      "summary": "Builds a feature matrix of (final ace_norm, final csd, lack-of-convergence, winner flip rate) per labelled trace and solves a ridge regression for TDI weights, falling back to defaults when there is no data.",
+      "tags": [
+        "calibration",
+        "regression",
+        "numpy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/cli.py:cmd_preflight",
+      "type": "function",
+      "name": "cmd_preflight",
+      "filePath": "paper_standalone/src/perturb_eval/cli.py",
+      "lineRange": [
+        17,
+        42
+      ],
+      "summary": "Typer `preflight` command: constructs a ProbeSignature from CLI options, runs an unfitted BayesianRecommender under the given budget, and echoes the recommended config and top-5 ranking as JSON.",
+      "tags": [
+        "cli",
+        "api-handler",
+        "entry-point"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/cli.py:cmd_evaluate",
+      "type": "function",
+      "name": "cmd_evaluate",
+      "filePath": "paper_standalone/src/perturb_eval/cli.py",
+      "lineRange": [
+        46,
+        50
+      ],
+      "summary": "Stub Typer `evaluate` command intended to compute run metrics from a RunTrace JSON dump; currently raises NotImplementedError.",
+      "tags": [
+        "cli",
+        "stub",
+        "todo"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/instrumentation.py:_build_critique_matrix",
+      "type": "function",
+      "name": "_build_critique_matrix",
+      "filePath": "paper_standalone/src/perturb_eval/instrumentation.py",
+      "lineRange": [
+        17,
+        39
+      ],
+      "summary": "Projects a list of critique objects (from_agent, on_agent, severity) into an N x (N-1) severity matrix ordered by agent_names with each critic's own column skipped.",
+      "tags": [
+        "utility",
+        "matrix",
+        "adapter"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+      "type": "function",
+      "name": "round_trace_from_consensus_round",
+      "filePath": "paper_standalone/src/perturb_eval/instrumentation.py",
+      "lineRange": [
+        42,
+        75
+      ],
+      "summary": "Converts one orchestrator RoundResult-like object into a RoundTrace, computing the critique matrix and selecting the round winner as argmax of confidence minus mean severity received.",
+      "tags": [
+        "adapter",
+        "serialization",
+        "instrumentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+      "type": "function",
+      "name": "run_trace_from_consensus",
+      "filePath": "paper_standalone/src/perturb_eval/instrumentation.py",
+      "lineRange": [
+        78,
+        102
+      ],
+      "summary": "Converts an orchestrator ConsensusResult-like object into a RunTrace, assigning per-round compute token counts and carrying over the converged flag and backbone name.",
+      "tags": [
+        "adapter",
+        "serialization",
+        "instrumentation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:preflight_skill",
+      "type": "function",
+      "name": "preflight_skill",
+      "filePath": "paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "lineRange": [
+        22,
+        49
+      ],
+      "summary": "MassGen-shaped entrypoint that parses a probe dict and optional budget, runs BayesianRecommender.recommend, and returns the chosen config and posterior as a JSON-friendly dict.",
+      "tags": [
+        "api-handler",
+        "adapter",
+        "skill"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+      "type": "function",
+      "name": "evaluate_skill",
+      "filePath": "paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "lineRange": [
+        52,
+        71
+      ],
+      "summary": "MassGen-shaped entrypoint that validates a RunTrace in the payload, computes run_metrics, and returns TDI, deltas, flip rate, and final consensus score as a dict.",
+      "tags": [
+        "api-handler",
+        "adapter",
+        "skill"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:ace",
+      "type": "function",
+      "name": "ace",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        25,
+        52
+      ],
+      "summary": "Agent Confidence Entropy: Shannon entropy in nats of the temperature-scaled softmax over per-agent confidences, computed with log-sum-exp for stability.",
+      "tags": [
+        "metrics",
+        "entropy",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:ace_norm",
+      "type": "function",
+      "name": "ace_norm",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        55,
+        60
+      ],
+      "summary": "ACE normalised to [0, 1] by dividing by log(N); returns 0 for a single agent.",
+      "tags": [
+        "metrics",
+        "entropy",
+        "normalization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_dispersion",
+      "type": "function",
+      "name": "critique_severity_dispersion",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        67,
+        78
+      ],
+      "summary": "Critique Severity Dispersion: population variance of the off-diagonal critique matrix entries, 0 for an empty matrix.",
+      "tags": [
+        "metrics",
+        "variance",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_max",
+      "type": "function",
+      "name": "critique_severity_max",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        81,
+        86
+      ],
+      "summary": "Returns the largest severity in the critique matrix as the loudest-critic signal.",
+      "tags": [
+        "metrics",
+        "utility",
+        "critique"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:_flatten_critiques",
+      "type": "function",
+      "name": "_flatten_critiques",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        89,
+        103
+      ],
+      "summary": "Flattens a critique matrix into a 1-D float array, dropping the diagonal when the matrix is square and keeping all entries when rectangular.",
+      "tags": [
+        "utility",
+        "matrix",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:round_metrics",
+      "type": "function",
+      "name": "round_metrics",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        110,
+        124
+      ],
+      "summary": "Computes a RoundMetrics record for one RoundTrace: raw and normalised ACE, mean and max confidence, CSD and CSD max, plus pass-through winner and consensus score.",
+      "tags": [
+        "metrics",
+        "aggregation",
+        "factory"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:delta_ace",
+      "type": "function",
+      "name": "delta_ace",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        131,
+        135
+      ],
+      "summary": "Difference in normalised ACE between the final and first rounds; negative indicates convergence.",
+      "tags": [
+        "metrics",
+        "convergence",
+        "delta"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:delta_mean_confidence",
+      "type": "function",
+      "name": "delta_mean_confidence",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        138,
+        142
+      ],
+      "summary": "Difference in mean agent confidence between the final and first rounds; positive indicates a team growing confident.",
+      "tags": [
+        "metrics",
+        "convergence",
+        "delta"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:winner_flip_rate",
+      "type": "function",
+      "name": "winner_flip_rate",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        145,
+        155
+      ],
+      "summary": "Fraction of consecutive round pairs in which the winning agent changed, with denominator R-1.",
+      "tags": [
+        "metrics",
+        "stability",
+        "convergence"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:tdi",
+      "type": "function",
+      "name": "tdi",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        170,
+        195
+      ],
+      "summary": "Composite Task Difficulty Index: weighted linear combination of final ace_norm, final CSD, lack of confidence convergence, and winner flip rate using default or calibrated coefficients, clipped to [0, 1].",
+      "tags": [
+        "metrics",
+        "difficulty-index",
+        "composite"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/metrics.py:run_metrics",
+      "type": "function",
+      "name": "run_metrics",
+      "filePath": "paper_standalone/src/perturb_eval/metrics.py",
+      "lineRange": [
+        202,
+        212
+      ],
+      "summary": "Run-level roll-up that computes per-round metrics for a RunTrace and assembles a RunMetrics with delta ACE, delta mean confidence, winner flip rate, final consensus score, and TDI.",
+      "tags": [
+        "metrics",
+        "aggregation",
+        "factory"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/probe.py:ProbeSignature",
+      "type": "class",
+      "name": "ProbeSignature",
+      "filePath": "paper_standalone/src/perturb_eval/probe.py",
+      "lineRange": [
+        22,
+        31
+      ],
+      "summary": "Frozen 4-d probe summary (ace_norm, mean_conf, max_conf, csd) consumed by the recommender, with an as_vector accessor.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "feature-vector"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/probe.py:signature_from_round",
+      "type": "function",
+      "name": "signature_from_round",
+      "filePath": "paper_standalone/src/perturb_eval/probe.py",
+      "lineRange": [
+        34,
+        45
+      ],
+      "summary": "Derives a ProbeSignature from a single RoundTrace by computing normalised ACE, mean and max confidence, and critique severity dispersion.",
+      "tags": [
+        "probe",
+        "factory",
+        "metrics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:paper_standalone/src/perturb_eval/probe.py:preflight",
+      "type": "function",
+      "name": "preflight",
+      "filePath": "paper_standalone/src/perturb_eval/probe.py",
+      "lineRange": [
+        48,
+        61
+      ],
+      "summary": "Runs a caller-supplied shallow round callable, validates that it produced a round 0 trace, and returns its ProbeSignature.",
+      "tags": [
+        "probe",
+        "entry-point",
+        "framework-agnostic"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/types.py:RoundTrace",
+      "type": "class",
+      "name": "RoundTrace",
+      "filePath": "paper_standalone/src/perturb_eval/types.py",
+      "lineRange": [
+        13,
+        22
+      ],
+      "summary": "Frozen record of one orchestration round: agent names, confidences, critique severity matrix, winner index, consensus score, and compute tokens.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "trace"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/types.py:RunTrace",
+      "type": "class",
+      "name": "RunTrace",
+      "filePath": "paper_standalone/src/perturb_eval/types.py",
+      "lineRange": [
+        26,
+        40
+      ],
+      "summary": "Frozen record of a full orchestrator run for one task with its rounds, convergence flag, and backbone, plus n_rounds and n_agents properties.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "trace"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/types.py:RoundMetrics",
+      "type": "class",
+      "name": "RoundMetrics",
+      "filePath": "paper_standalone/src/perturb_eval/types.py",
+      "lineRange": [
+        44,
+        55
+      ],
+      "summary": "Frozen per-round derived metrics: ACE, normalised ACE, mean/max confidence, CSD, CSD max, winner index, and consensus score.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "metrics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/types.py:RunMetrics",
+      "type": "class",
+      "name": "RunMetrics",
+      "filePath": "paper_standalone/src/perturb_eval/types.py",
+      "lineRange": [
+        59,
+        68
+      ],
+      "summary": "Frozen run-level metrics summary: per-round metrics, delta ACE, delta mean confidence, winner flip rate, final consensus score, and TDI.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "metrics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:paper_standalone/src/perturb_eval/types.py:Config",
+      "type": "class",
+      "name": "Config",
+      "filePath": "paper_standalone/src/perturb_eval/types.py",
+      "lineRange": [
+        72,
+        84
+      ],
+      "summary": "Frozen orchestrator hyperparameter set (n_agents, n_rounds, backbone) with a flops_proxy method that weights backbones by rough parameter count for budget comparisons.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "hyperparameters"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "target": "class:paper_standalone/src/perturb_eval/bayesian.py:Recommendation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "target": "class:paper_standalone/src/perturb_eval/bayesian.py:Recommendation",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "target": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "target": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "target": "class:paper_standalone/src/perturb_eval/calibration.py:TDICoeffs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "target": "class:paper_standalone/src/perturb_eval/calibration.py:TDICoeffs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "target": "function:paper_standalone/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "target": "function:paper_standalone/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/cli.py",
+      "target": "function:paper_standalone/src/perturb_eval/cli.py:cmd_preflight",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/cli.py",
+      "target": "function:paper_standalone/src/perturb_eval/cli.py:cmd_preflight",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/cli.py",
+      "target": "function:paper_standalone/src/perturb_eval/cli.py:cmd_evaluate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/cli.py",
+      "target": "function:paper_standalone/src/perturb_eval/cli.py:cmd_evaluate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "target": "function:paper_standalone/src/perturb_eval/instrumentation.py:_build_critique_matrix",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "target": "function:paper_standalone/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "target": "function:paper_standalone/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "target": "function:paper_standalone/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "target": "function:paper_standalone/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:preflight_skill",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:preflight_skill",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:ace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:ace",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:ace_norm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:ace_norm",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_dispersion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_dispersion",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_max",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_max",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:_flatten_critiques",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:round_metrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:round_metrics",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:delta_ace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:delta_ace",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:delta_mean_confidence",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:delta_mean_confidence",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:winner_flip_rate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:winner_flip_rate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:tdi",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:tdi",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:run_metrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:run_metrics",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "class:paper_standalone/src/perturb_eval/probe.py:ProbeSignature",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "class:paper_standalone/src/perturb_eval/probe.py:ProbeSignature",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "function:paper_standalone/src/perturb_eval/probe.py:signature_from_round",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "function:paper_standalone/src/perturb_eval/probe.py:signature_from_round",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "function:paper_standalone/src/perturb_eval/probe.py:preflight",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "function:paper_standalone/src/perturb_eval/probe.py:preflight",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RoundTrace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RoundTrace",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RunTrace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RunTrace",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RoundMetrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RoundMetrics",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RunMetrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RunMetrics",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:Config",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/types.py",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:Config",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/__init__.py",
+      "target": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/__init__.py",
+      "target": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/__init__.py",
+      "target": "file:paper_standalone/src/perturb_eval/probe.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/__init__.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/__main__.py",
+      "target": "file:paper_standalone/src/perturb_eval/cli.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "target": "file:paper_standalone/src/perturb_eval/probe.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "target": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/calibration.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/cli.py",
+      "target": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/cli.py",
+      "target": "file:paper_standalone/src/perturb_eval/probe.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/instrumentation.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "file:paper_standalone/src/perturb_eval/bayesian.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "file:paper_standalone/src/perturb_eval/probe.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/massgen_adapter.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "file:paper_standalone/src/perturb_eval/metrics.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:paper_standalone/src/perturb_eval/probe.py",
+      "target": "file:paper_standalone/src/perturb_eval/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:Config",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "target": "class:paper_standalone/src/perturb_eval/probe.py:ProbeSignature",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:round_metrics",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:delta_mean_confidence",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/calibration.py:fit_tdi_coefficients",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:winner_flip_rate",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/cli.py:cmd_preflight",
+      "target": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/cli.py:cmd_preflight",
+      "target": "class:paper_standalone/src/perturb_eval/probe.py:ProbeSignature",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/instrumentation.py:round_trace_from_consensus_round",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RoundTrace",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/instrumentation.py:run_trace_from_consensus",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RunTrace",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:preflight_skill",
+      "target": "class:paper_standalone/src/perturb_eval/bayesian.py:BayesianRecommender",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:preflight_skill",
+      "target": "class:paper_standalone/src/perturb_eval/probe.py:ProbeSignature",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:run_metrics",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/metrics.py:round_metrics",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RoundMetrics",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/metrics.py:run_metrics",
+      "target": "class:paper_standalone/src/perturb_eval/types.py:RunMetrics",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/probe.py:signature_from_round",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:ace_norm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:paper_standalone/src/perturb_eval/probe.py:signature_from_round",
+      "target": "function:paper_standalone/src/perturb_eval/metrics.py:critique_severity_dispersion",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

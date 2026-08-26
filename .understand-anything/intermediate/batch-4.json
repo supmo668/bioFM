@@ -1,0 +1,1086 @@
+{
+  "nodes": [
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/__init__.py",
+      "summary": "Package barrel for the framework-free test-time compute reference implementations; re-exports the five strategy functions (best_of_n, majority_vote, weighted_majority, iterative_revision, adaptive_route) and the shared Candidate/Generator/Verifier types.",
+      "tags": [
+        "barrel",
+        "entry-point",
+        "test-time-compute",
+        "reference-implementation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "type": "file",
+      "name": "adaptive_budget.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "summary": "Implements Snell et al.'s compute-optimal adaptive routing: a small probe batch is scored by the verifier, the prompt's difficulty is classified from the probe mean and spread, and the remaining budget is dispatched to iterative revision (easy), best-of-N (hard), or weighted majority (medium).",
+      "tags": [
+        "test-time-compute",
+        "adaptive-routing",
+        "strategy",
+        "orchestrator",
+        "reference-implementation"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Composes the other three strategies; Difficulty is a str-backed Enum and AdaptiveResult a frozen dataclass."
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "type": "file",
+      "name": "best_of_n.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "summary": "Reference Best-of-N strategy: draws n independent candidates from a Generator, scores each with a Verifier, and returns the argmax along with all candidates, scores, and total token cost.",
+      "tags": [
+        "test-time-compute",
+        "best-of-n",
+        "strategy",
+        "reference-implementation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "type": "file",
+      "name": "iterative_revision.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "summary": "Reference sequential revision strategy: generates an initial draft, repeatedly feeds it through a Reviser, scores each draft with a Verifier, and stops early when the score improvement falls below a threshold or max_rounds is reached.",
+      "tags": [
+        "test-time-compute",
+        "iterative-revision",
+        "strategy",
+        "reference-implementation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "type": "file",
+      "name": "majority_vote.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "summary": "Reference self-consistency / majority-vote strategy (Wang et al. 2022): samples n candidates, groups them by a pluggable answer projection, and returns the exemplar of the most populous equivalence class with per-class counts.",
+      "tags": [
+        "test-time-compute",
+        "majority-vote",
+        "self-consistency",
+        "strategy",
+        "reference-implementation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "file",
+      "name": "types.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/types.py",
+      "summary": "Minimal shared types for all reference implementations: the frozen Candidate dataclass (text plus token cost) and the Generator, Verifier, and Reviser structural Protocols that strategies accept as callables.",
+      "tags": [
+        "type-definition",
+        "protocol",
+        "data-model",
+        "test-time-compute"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Uses typing.Protocol so any plain function with the right signature (including test fixtures) satisfies Generator/Verifier/Reviser without inheritance."
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "type": "file",
+      "name": "weighted_majority.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "summary": "Reference verifier-weighted majority strategy: each candidate contributes its Verifier score to its projected equivalence class, the class with the highest total score wins, and the highest-scoring member of that class is returned; degenerates to plain majority vote when all scores are equal.",
+      "tags": [
+        "test-time-compute",
+        "weighted-majority",
+        "strategy",
+        "reference-implementation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "type": "file",
+      "name": "conftest.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "summary": "Shared pytest fixtures providing deterministic fakes for the ref_impl Protocols: a cycling candidate generator with a built-in majority, a length-based verifier, an answer_A-preferring verifier, and improving/plateauing revisers.",
+      "tags": [
+        "test",
+        "fixtures",
+        "pytest",
+        "test-doubles"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Fixtures are plain closures that structurally satisfy the Generator/Verifier/Reviser Protocols from types.py."
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "type": "file",
+      "name": "test_adaptive_budget.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "summary": "Tests adaptive_route's difficulty classification and dispatch: tight/high probe scores route to iterative revision, wide-spread scores to best-of-N, middling scores to weighted majority, and probe_n < 2 is rejected.",
+      "tags": [
+        "test",
+        "pytest",
+        "adaptive-routing",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "type": "file",
+      "name": "test_best_of_n.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "summary": "Tests best_of_n returns the verifier argmax, sums candidate tokens, rejects n=0, and raises when the generator yields no candidates.",
+      "tags": [
+        "test",
+        "pytest",
+        "best-of-n",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "type": "file",
+      "name": "test_iterative_revision.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "summary": "Tests iterative_revision: scores rise monotonically with an improving reviser, a plateauing reviser triggers early convergence after one round, and total_tokens sums the whole trajectory.",
+      "tags": [
+        "test",
+        "pytest",
+        "iterative-revision",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "type": "file",
+      "name": "test_majority_vote.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "summary": "Tests majority_vote picks the most frequent answer, that class counts sum to n, and that a custom numeric projection groups textually different but numerically equal answers.",
+      "tags": [
+        "test",
+        "pytest",
+        "majority-vote",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "type": "file",
+      "name": "test_weighted_majority.py",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "summary": "Tests weighted_majority: verifier weights can override a count majority, and with uniform scores it degenerates to plain majority vote.",
+      "tags": [
+        "test",
+        "pytest",
+        "weighted-majority",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/adaptive_budget.py:Difficulty",
+      "type": "class",
+      "name": "Difficulty",
+      "filePath": "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "lineRange": [
+        28,
+        31
+      ],
+      "summary": "String-backed Enum with EASY, MEDIUM, and HARD levels used to label a prompt's estimated difficulty.",
+      "tags": [
+        "enum",
+        "data-model",
+        "adaptive-routing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/adaptive_budget.py:AdaptiveResult",
+      "type": "class",
+      "name": "AdaptiveResult",
+      "filePath": "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "lineRange": [
+        35,
+        41
+      ],
+      "summary": "Frozen dataclass capturing the routed winner, classified difficulty, probe mean and spread, budget spent, and which strategy was used.",
+      "tags": [
+        "data-model",
+        "result",
+        "adaptive-routing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "type": "function",
+      "name": "adaptive_route",
+      "filePath": "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "lineRange": [
+        53,
+        99
+      ],
+      "summary": "Probes the prompt with probe_n samples, classifies difficulty from the verifier score mean and spread, then routes the remaining budget to iterative_revision, best_of_n, or weighted_majority and returns an AdaptiveResult.",
+      "tags": [
+        "strategy",
+        "adaptive-routing",
+        "orchestrator",
+        "test-time-compute"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/best_of_n.py:BoNResult",
+      "type": "class",
+      "name": "BoNResult",
+      "filePath": "research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "lineRange": [
+        20,
+        24
+      ],
+      "summary": "Frozen dataclass holding the winning candidate, all candidates, their verifier scores, and total tokens spent.",
+      "tags": [
+        "data-model",
+        "result",
+        "best-of-n"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/best_of_n.py:best_of_n",
+      "type": "function",
+      "name": "best_of_n",
+      "filePath": "research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "lineRange": [
+        27,
+        46
+      ],
+      "summary": "Samples n candidates, scores each with the verifier, and returns the argmax candidate in a BoNResult; raises on n < 1 or an empty generator.",
+      "tags": [
+        "strategy",
+        "best-of-n",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/iterative_revision.py:RevisionResult",
+      "type": "class",
+      "name": "RevisionResult",
+      "filePath": "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "lineRange": [
+        22,
+        27
+      ],
+      "summary": "Frozen dataclass holding the best draft, the full revision trajectory, per-draft scores, total tokens, and whether the loop converged early.",
+      "tags": [
+        "data-model",
+        "result",
+        "iterative-revision"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/iterative_revision.py:iterative_revision",
+      "type": "function",
+      "name": "iterative_revision",
+      "filePath": "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "lineRange": [
+        30,
+        64
+      ],
+      "summary": "Generates one draft then revises it up to max_rounds-1 times, scoring each draft and breaking early when improvement drops below improvement_threshold; returns the best draft in a RevisionResult.",
+      "tags": [
+        "strategy",
+        "iterative-revision",
+        "sequential",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/majority_vote.py:MajorityResult",
+      "type": "class",
+      "name": "MajorityResult",
+      "filePath": "research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "lineRange": [
+        22,
+        25
+      ],
+      "summary": "Frozen dataclass holding the winning candidate, a projected-answer-to-count map, and total tokens.",
+      "tags": [
+        "data-model",
+        "result",
+        "majority-vote"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/majority_vote.py:majority_vote",
+      "type": "function",
+      "name": "majority_vote",
+      "filePath": "research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "lineRange": [
+        33,
+        54
+      ],
+      "summary": "Samples n candidates, counts them by an optional projection function (default: stripped text), and returns the first candidate in the most common class as a MajorityResult.",
+      "tags": [
+        "strategy",
+        "majority-vote",
+        "self-consistency",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/weighted_majority.py:WeightedResult",
+      "type": "class",
+      "name": "WeightedResult",
+      "filePath": "research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "lineRange": [
+        23,
+        26
+      ],
+      "summary": "Frozen dataclass holding the winning candidate, per-class summed verifier scores, and total tokens.",
+      "tags": [
+        "data-model",
+        "result",
+        "weighted-majority"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/weighted_majority.py:weighted_majority",
+      "type": "function",
+      "name": "weighted_majority",
+      "filePath": "research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "lineRange": [
+        33,
+        64
+      ],
+      "summary": "Samples n candidates, sums verifier scores per projected equivalence class, picks the class with the highest total, and returns its highest-scoring member as a WeightedResult.",
+      "tags": [
+        "strategy",
+        "weighted-majority",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/types.py:Candidate",
+      "type": "class",
+      "name": "Candidate",
+      "filePath": "research/test-time-compute-guide/ref_impl/types.py",
+      "lineRange": [
+        10,
+        14
+      ],
+      "summary": "Frozen dataclass representing one generated output with its text and token cost for FLOPs-matched comparisons.",
+      "tags": [
+        "data-model",
+        "type-definition",
+        "test-time-compute"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/types.py:Generator",
+      "type": "class",
+      "name": "Generator",
+      "filePath": "research/test-time-compute-guide/ref_impl/types.py",
+      "lineRange": [
+        17,
+        23
+      ],
+      "summary": "Protocol for a model callable that maps a prompt and sample count n to a list of Candidates.",
+      "tags": [
+        "protocol",
+        "type-definition",
+        "interface"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/types.py:Verifier",
+      "type": "class",
+      "name": "Verifier",
+      "filePath": "research/test-time-compute-guide/ref_impl/types.py",
+      "lineRange": [
+        26,
+        34
+      ],
+      "summary": "Protocol for a scoring callable (PRM, ORM, or domain checker) that maps a Candidate and prompt to a float where higher is better.",
+      "tags": [
+        "protocol",
+        "type-definition",
+        "interface"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:research/test-time-compute-guide/ref_impl/types.py:Reviser",
+      "type": "class",
+      "name": "Reviser",
+      "filePath": "research/test-time-compute-guide/ref_impl/types.py",
+      "lineRange": [
+        37,
+        40
+      ],
+      "summary": "Protocol for a callable that takes a prompt and a draft Candidate and returns a revised Candidate.",
+      "tags": [
+        "protocol",
+        "type-definition",
+        "interface"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py:test_hard_prompt_routes_to_bon",
+      "type": "function",
+      "name": "test_hard_prompt_routes_to_bon",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "lineRange": [
+        26,
+        35
+      ],
+      "summary": "Uses a verifier with wide score spread across three answers to assert adaptive_route classifies the prompt HARD and dispatches to best_of_n.",
+      "tags": [
+        "test",
+        "adaptive-routing",
+        "best-of-n"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py:test_custom_projection",
+      "type": "function",
+      "name": "test_custom_projection",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "lineRange": [
+        18,
+        35
+      ],
+      "summary": "Builds candidates with textually different but numerically equal answers and asserts a rounding projection makes majority_vote group them into the winning class.",
+      "tags": [
+        "test",
+        "majority-vote",
+        "projection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_weights_tip_the_vote",
+      "type": "function",
+      "name": "test_weights_tip_the_vote",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "lineRange": [
+        7,
+        22
+      ],
+      "summary": "Asserts that a single high-scoring answer_A beats two lower-scoring answer_B samples under weighted_majority, overriding the count majority.",
+      "tags": [
+        "test",
+        "weighted-majority",
+        "verifier"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_degenerates_to_majority_when_scores_equal",
+      "type": "function",
+      "name": "test_degenerates_to_majority_when_scores_equal",
+      "filePath": "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "lineRange": [
+        25,
+        39
+      ],
+      "summary": "Asserts that weighted_majority with a uniform verifier reduces to plain majority vote and picks the count-majority answer.",
+      "tags": [
+        "test",
+        "weighted-majority",
+        "majority-vote"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/adaptive_budget.py:Difficulty",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/adaptive_budget.py:Difficulty",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/adaptive_budget.py:AdaptiveResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/adaptive_budget.py:AdaptiveResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/best_of_n.py:BoNResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/best_of_n.py:BoNResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/best_of_n.py:best_of_n",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/best_of_n.py:best_of_n",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/iterative_revision.py:RevisionResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/iterative_revision.py:RevisionResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/iterative_revision.py:iterative_revision",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/iterative_revision.py:iterative_revision",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/majority_vote.py:MajorityResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/majority_vote.py:MajorityResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/majority_vote.py:majority_vote",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/majority_vote.py:majority_vote",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/weighted_majority.py:WeightedResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/weighted_majority.py:WeightedResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/weighted_majority.py:weighted_majority",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/weighted_majority.py:weighted_majority",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Candidate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Candidate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Generator",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Generator",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Verifier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Verifier",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Reviser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "target": "class:research/test-time-compute-guide/ref_impl/types.py:Reviser",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py:test_hard_prompt_routes_to_bon",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py:test_hard_prompt_routes_to_bon",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py:test_custom_projection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py:test_custom_projection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_weights_tip_the_vote",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_weights_tip_the_vote",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_degenerates_to_majority_when_scores_equal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_degenerates_to_majority_when_scores_equal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/__init__.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "target": "function:research/test-time-compute-guide/ref_impl/iterative_revision.py:iterative_revision",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "target": "function:research/test-time-compute-guide/ref_impl/best_of_n.py:best_of_n",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "target": "function:research/test-time-compute-guide/ref_impl/weighted_majority.py:weighted_majority",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py:test_hard_prompt_routes_to_bon",
+      "target": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/adaptive_budget.py:adaptive_route",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/best_of_n.py:best_of_n",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/iterative_revision.py:iterative_revision",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py:test_custom_projection",
+      "target": "function:research/test-time-compute-guide/ref_impl/majority_vote.py:majority_vote",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "target": "function:research/test-time-compute-guide/ref_impl/majority_vote.py:majority_vote",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_weights_tip_the_vote",
+      "target": "function:research/test-time-compute-guide/ref_impl/weighted_majority.py:weighted_majority",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py:test_degenerates_to_majority_when_scores_equal",
+      "target": "function:research/test-time-compute-guide/ref_impl/weighted_majority.py:weighted_majority",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/weighted_majority.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
+      "target": "file:research/test-time-compute-guide/ref_impl/tests/conftest.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "libs/cellforge-agents/README.md", "language": "markdown", "sizeLines": 75, "fileCategory": "docs"},
+    {"path": "libs/cellforge-agents/pyproject.toml", "language": "toml", "sizeLines": 38, "fileCategory": "config"},
+    {"path": "libs/cellforge-agents/requirements.txt", "language": "txt", "sizeLines": 3, "fileCategory": "docs"}
+  ],
+  "batchImportData": {
+    "libs/cellforge-agents/README.md": [],
+    "libs/cellforge-agents/pyproject.toml": [],
+    "libs/cellforge-agents/requirements.txt": []
+  }
+}
