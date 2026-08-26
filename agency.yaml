@@ -31,7 +31,7 @@ principals:
 
 # ── Project ───────────────────────────────────────────────────────────────
 project:
-  name: "your-repo"
+  name: "bioFM"
   timezone: "UTC"
   # Monorepo app modules. Each becomes a workstream + a worktree (one worktree
   # agent per module) when you run `/aiadlc-init-monorepo`. Leave empty for a
