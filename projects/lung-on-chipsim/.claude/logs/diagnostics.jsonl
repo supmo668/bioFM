@@ -7,3 +7,5 @@
 {"timestamp": "2026-08-29T19:39:46Z", "level": "info", "hook_event": "SubagentStop", "session_id": "abe82a15-02b1-4427-8fec-ef8b93ce281b", "message": "No API calls found in transcript slice"}
 {"timestamp": "2026-08-29T19:40:14Z", "level": "info", "hook_event": "SubagentStop", "session_id": "abe82a15-02b1-4427-8fec-ef8b93ce281b", "message": "No API calls found in transcript slice"}
 {"timestamp": "2026-08-29T19:48:52Z", "level": "info", "hook_event": "SubagentStop", "session_id": "abe82a15-02b1-4427-8fec-ef8b93ce281b", "message": "No API calls found in transcript slice"}
+{"timestamp": "2026-08-30T23:35:19Z", "level": "warn", "hook_event": "SessionEnd", "session_id": "abe82a15-02b1-4427-8fec-ef8b93ce281b", "message": "OTLP export failed", "detail": "http_status=422"}
+{"timestamp": "2026-08-30T23:35:20Z", "level": "warn", "hook_event": "SessionEnd", "session_id": "abe82a15-02b1-4427-8fec-ef8b93ce281b", "message": "OTLP export failed", "detail": "http_status=422"}
