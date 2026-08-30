@@ -581,7 +581,35 @@ target of 60–100 records is split four ways (δ-calibration / conformal calibr
 active-learning pool), so the conformal-calibration allocation alone cannot reach 60.
 
 This is a **scope decision about what the PoC may claim**, not a plan defect, and it is unresolved
-in the source documents. Three exits: grow the PoC compound set; lower the ≥30 threshold and widen
-the binomial CIs accordingly; or rescope the M5 coverage claim to marginal-with-disclosure and
-record the downgrade on the model card. **No M0 task depends on the answer**, so M0 slice 1 may
-proceed while it is open — but it must be closed before M5 pre-registration.
+in the source documents. **No M0 task depends on the answer**, so M0 slice 1 may proceed while it
+is open — but it must be closed before M5 pre-registration.
+
+**Quantified 2026-08-30** (`projects/lung-on-chipsim/CONTEXT.md`, agent glossary). The underlying
+ambiguity was that *"calibration point"* was never defined and is load-bearing. Ruling adopted:
+**a calibration point is a curated chip record allocated to the conformal-calibration bucket —
+never a compound.** That resolves the units but makes the gap *worse*, and now measurable:
+
+| Reading of "calibration point" | Requirement | Available | Verdict |
+|---|---|---|---|
+| Compound | ≥60 compounds with a firm P-gp call | 20–40 total, minus `unknown` | fails outright |
+| **Curated chip record** *(adopted)* | ≥60 records **in the conformal bucket alone** | 60–100 records split four ways → **~8–15 per group** | needs **~200–240 records**, i.e. **2–4× the M0 target at its ceiling** |
+
+The four-way sealed allocation is what does the damage: records are assigned to δ-calibration,
+conformal calibration, locked test and active-learning pool before any is read, and may never be
+double-used, so only a quarter of the corpus is ever available to the coverage claim.
+
+**Three exits, with their cost now known:**
+
+1. **Grow the corpus to ~200–240 curated records.** Honest, and fatal to the schedule — curation is
+   already the critical path at 60–100, so this is a 2–4× multiple on the one task no agent can
+   accelerate.
+2. **Lower the ≥30 threshold** to what ~8–15 per group supports, and widen the binomial CIs to
+   match. Keeps the two-group structure and the calibration veto; costs statistical power, and the
+   CIs may become wide enough that the veto rarely fires — which must itself be disclosed.
+3. **Rescope the M5 claim to marginal coverage with disclosure**, dropping the two-group Mondrian
+   veto for the PoC and recording the downgrade on the model card. This is the exit the A&D already
+   contemplates elsewhere for the under-curation case ("drop the L2 discrepancy layer and the
+   two-group veto and say so on the model card"), so it is precedented rather than novel.
+
+Exit 3 is the one the documents are already structured to absorb; exit 2 preserves the most
+machinery; exit 1 preserves the claim but not the timeline. **Principal's call.**
