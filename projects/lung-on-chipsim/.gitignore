@@ -1,0 +1,14 @@
+# ChipSim data tree — build-plan S7.
+#
+# ChipSim never redistributes DrugBank. The snapshot lands under data/raw/,
+# is DVC-tracked, and is git-ignored. What MUST stay tracked is everything that
+# makes the snapshot *recoverable and auditable*: the .dvc pointers, the
+# .gitkeep anchors, and the processed-artifact digests (defect 10c).
+
+data/raw/*
+data/interim/*
+data/processed/*
+
+!*.dvc
+!.gitkeep
+!data/processed/*.sha256
