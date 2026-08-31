@@ -62,3 +62,15 @@ def adjudication_blank_path() -> Path:
 @pytest.fixture
 def adjudication_filled_path() -> Path:
     return FIXTURE_DIR / "pgp_adjudication_filled.csv"
+
+
+#: Every path fixture defined above, for the resolution test in test_scaffold-adjacent
+#: coverage. Keeping the list here means a new fixture is one edit, not two.
+PATH_FIXTURE_NAMES = (
+    "provenance_fixture_path",
+    "panel_ratified_path",
+    "panel_unratified_path",
+    "poc_roster_path",
+    "adjudication_blank_path",
+    "adjudication_filled_path",
+)
