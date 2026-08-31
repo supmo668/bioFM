@@ -5,9 +5,9 @@
 # defect 33. No pipeline path may read this file; tests/test_fixtures.py
 # asserts that.
 # ============================================================================
-# HAPPY PATH. Commits match, so T2 specifies an EMPTY rationale.
+# NEGATIVE. Commit swapped with NO rationale -> T11 must FAIL this (defect 17).
 
-source_commit:            deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+source_commit:            feedfacefeedfacefeedfacefeedfacefeedface
 audited_commit:           deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
 commit_change_rationale:  ""
 source_repo:      https://github.com/dhimmel/drugbank

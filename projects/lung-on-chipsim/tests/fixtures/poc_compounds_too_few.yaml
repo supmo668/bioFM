@@ -5,7 +5,7 @@
 # defect 33. No pipeline path may read this file; tests/test_fixtures.py
 # asserts that.
 # ============================================================================
-# HAPPY PATH: 24 entries, inside S11a's 20-40 bound.
+# NEGATIVE for S11a: 19 entries, below the 20 floor.
 
 compounds:
   - {canonical_inchikey: FIXTURECMPDAAA-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-00", evidence_doi: "10.0000/chipsim.fixture.000"}
@@ -27,8 +27,3 @@ compounds:
   - {canonical_inchikey: FIXTURECMPDAAQ-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-16", evidence_doi: "10.0000/chipsim.fixture.016"}
   - {canonical_inchikey: FIXTURECMPDAAR-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-17", evidence_doi: "10.0000/chipsim.fixture.017"}
   - {canonical_inchikey: FIXTURECMPDAAS-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-18", evidence_doi: "10.0000/chipsim.fixture.018"}
-  - {canonical_inchikey: FIXTURECMPDAAT-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-19", evidence_doi: "10.0000/chipsim.fixture.019"}
-  - {canonical_inchikey: FIXTURECMPDAAU-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-20", evidence_doi: "10.0000/chipsim.fixture.020"}
-  - {canonical_inchikey: FIXTURECMPDAAV-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-21", evidence_doi: "10.0000/chipsim.fixture.021"}
-  - {canonical_inchikey: FIXTURECMPDAAW-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-22", evidence_doi: "10.0000/chipsim.fixture.022"}
-  - {canonical_inchikey: FIXTURECMPDAAX-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-23", evidence_doi: "10.0000/chipsim.fixture.023"}

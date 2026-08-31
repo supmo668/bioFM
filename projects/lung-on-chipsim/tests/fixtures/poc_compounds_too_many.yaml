@@ -5,7 +5,7 @@
 # defect 33. No pipeline path may read this file; tests/test_fixtures.py
 # asserts that.
 # ============================================================================
-# HAPPY PATH: 24 entries, inside S11a's 20-40 bound.
+# NEGATIVE for S11a: 41 entries, above the 40 ceiling.
 
 compounds:
   - {canonical_inchikey: FIXTURECMPDAAA-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-00", evidence_doi: "10.0000/chipsim.fixture.000"}
@@ -32,3 +32,20 @@ compounds:
   - {canonical_inchikey: FIXTURECMPDAAV-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-21", evidence_doi: "10.0000/chipsim.fixture.021"}
   - {canonical_inchikey: FIXTURECMPDAAW-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-22", evidence_doi: "10.0000/chipsim.fixture.022"}
   - {canonical_inchikey: FIXTURECMPDAAX-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-23", evidence_doi: "10.0000/chipsim.fixture.023"}
+  - {canonical_inchikey: FIXTURECMPDAAY-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-24", evidence_doi: "10.0000/chipsim.fixture.024"}
+  - {canonical_inchikey: FIXTURECMPDAAZ-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-25", evidence_doi: "10.0000/chipsim.fixture.025"}
+  - {canonical_inchikey: FIXTURECMPDABA-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-26", evidence_doi: "10.0000/chipsim.fixture.026"}
+  - {canonical_inchikey: FIXTURECMPDABB-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-27", evidence_doi: "10.0000/chipsim.fixture.027"}
+  - {canonical_inchikey: FIXTURECMPDABC-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-28", evidence_doi: "10.0000/chipsim.fixture.028"}
+  - {canonical_inchikey: FIXTURECMPDABD-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-29", evidence_doi: "10.0000/chipsim.fixture.029"}
+  - {canonical_inchikey: FIXTURECMPDABE-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-30", evidence_doi: "10.0000/chipsim.fixture.030"}
+  - {canonical_inchikey: FIXTURECMPDABF-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-31", evidence_doi: "10.0000/chipsim.fixture.031"}
+  - {canonical_inchikey: FIXTURECMPDABG-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-32", evidence_doi: "10.0000/chipsim.fixture.032"}
+  - {canonical_inchikey: FIXTURECMPDABH-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-33", evidence_doi: "10.0000/chipsim.fixture.033"}
+  - {canonical_inchikey: FIXTURECMPDABI-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-34", evidence_doi: "10.0000/chipsim.fixture.034"}
+  - {canonical_inchikey: FIXTURECMPDABJ-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-35", evidence_doi: "10.0000/chipsim.fixture.035"}
+  - {canonical_inchikey: FIXTURECMPDABK-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-36", evidence_doi: "10.0000/chipsim.fixture.036"}
+  - {canonical_inchikey: FIXTURECMPDABL-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-37", evidence_doi: "10.0000/chipsim.fixture.037"}
+  - {canonical_inchikey: FIXTURECMPDABM-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-38", evidence_doi: "10.0000/chipsim.fixture.038"}
+  - {canonical_inchikey: FIXTURECMPDABN-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-39", evidence_doi: "10.0000/chipsim.fixture.039"}
+  - {canonical_inchikey: FIXTURECMPDABO-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-40", evidence_doi: "10.0000/chipsim.fixture.040"}

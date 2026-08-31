@@ -5,11 +5,11 @@
 # defect 33. No pipeline path may read this file; tests/test_fixtures.py
 # asserts that.
 # ============================================================================
-# HAPPY PATH. Commits match, so T2 specifies an EMPTY rationale.
+# POSITIVE. Commit swapped WITH a rationale -> T11 must PASS this.
 
-source_commit:            deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+source_commit:            feedfacefeedfacefeedfacefeedfacefeedface
 audited_commit:           deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-commit_change_rationale:  ""
+commit_change_rationale:  "FIXTURE: snapshot re-pinned; rationale present, so the swap is justified."
 source_repo:      https://github.com/dhimmel/drugbank
 upstream_version: "4.2"
 snapshot_date:    "2015-03-19"

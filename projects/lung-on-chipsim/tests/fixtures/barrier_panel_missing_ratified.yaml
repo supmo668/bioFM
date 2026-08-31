@@ -10,11 +10,8 @@
 # accession could not exercise. The RATIFICATION is the synthetic part -
 # `ratified: true` here is a fixture flag, never a human ratification. The real
 # configs/barrier_panel.yaml is ratified only by H, in T8.
-# HAPPY PATH for T9.
+# NEGATIVE for T9: `ratified` key ABSENT - absence is not consent (defect 1).
 
-ratified: true
-ratified_by: "FIXTURE - not a real ratification"
-ratified_on: "1970-01-01"
 panel:
   - {symbol: ABCB1, uniprot: P08183, alias: "P-gp / MDR1", face: apical}
   - {symbol: ABCG2, uniprot: Q9UNQ0, alias: "BCRP", face: apical}
