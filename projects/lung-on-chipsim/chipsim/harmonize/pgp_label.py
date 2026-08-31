@@ -92,6 +92,19 @@ def barrier_panel_edges(edges: pd.DataFrame, panel_path: Path) -> pd.DataFrame:
     joined = edges.merge(
         panel.loc[:, ["uniprot_id", "symbol", "face"]], on="uniprot_id", how="inner"
     )
+
+    # A ratified panel whose accessions match NOTHING in the snapshot is a broken
+    # panel, not an empty result. Returning the empty frame makes every compound
+    # label 'unknown', which is indistinguishable from a genuine absence of
+    # evidence — the exact failure load_ratified_panel's docstring names.
+    if joined.empty:
+        raise RuntimeError(
+            f"the ratified panel at {panel_path} matched ZERO protein edges "
+            f"({len(panel)} panel accessions vs {len(edges)} edges). This is a broken "
+            "panel or a mis-parsed edge table, not an empty result: downstream every "
+            "compound would come back 'unknown', which reads as a genuine absence of "
+            "evidence. Check the accessions and the organism filter."
+        )
     return joined.loc[:, list(PANEL_EDGE_COLUMNS)].reset_index(drop=True)
 
 
@@ -140,6 +153,16 @@ def pgp_substrate_label(
             "free bases and undercounts silently."
         )
 
+    keys = compounds["canonical_inchikey"]
+    if keys.isna().any() or (keys.astype(str).str.strip() == "").any():
+        raise ValueError(
+            "compounds carries null/blank `canonical_inchikey`. groupby would drop the "
+            "null rows silently and keep the blank ones as a legitimate group, so the "
+            "label set would be quietly missing compounds."
+        )
+    if compounds.empty:
+        raise ValueError("compounds is empty — refusing to emit an empty label set")
+
     accession = resolve_panel_accession(panel_path, ABCB1_SYMBOL)
 
     substrate_edges = panel_edges[
@@ -159,7 +182,10 @@ def pgp_substrate_label(
     labels.index.name = "canonical_inchikey"
 
     # Structural guarantee, not a hopeful comment: 'no' cannot be produced here.
-    assert set(labels.unique()) <= PRE_ADJUDICATION_LABELS, (
-        f"pre-adjudication labels escaped their domain: {sorted(set(labels.unique()))}"
-    )
+    # A bare `assert` would be the ONE check that vanishes under `python -O` /
+    # PYTHONOPTIMIZE=1 — and it is the check that keeps 'no' (a positive claim
+    # requiring a citation) out of a pre-adjudication label set.
+    escaped = sorted(set(labels.unique()) - PRE_ADJUDICATION_LABELS)
+    if escaped:
+        raise RuntimeError(f"pre-adjudication labels escaped their domain: {escaped}")
     return labels

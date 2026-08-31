@@ -98,7 +98,9 @@ def fetch_snapshot(dest: Path, commit: str) -> dict[str, str]:
 
     Raises ``ValueError`` unless `commit` matches ``^[0-9a-f]{40}$``.
 
-    Never writes outside `dest`, and leaves `dest` untouched when it raises: every
+    Never writes outside `dest`, and leaves `dest` untouched when it raises BEFORE publishing; a failure
+    during the publish loop can leave `dest` partly replaced, which verify_snapshot
+    detects (the manifest and the files will disagree): every
     file is downloaded into a temporary directory first and only moved into place
     once all three have arrived. A half-fetched snapshot that still carried a
     manifest would be indistinguishable from a complete one.
@@ -162,6 +164,33 @@ def verify_snapshot(dest: Path) -> dict[str, str]:
     if problems:
         raise SnapshotFetchError("snapshot integrity check failed:\n  " + "\n  ".join(problems))
     return recomputed
+
+
+#: What may legitimately be git-tracked under data/raw/: DVC pointers, directory
+#: anchors, the integrity manifest, and T1/T2's human provenance artifacts.
+VENDORING_ALLOWED_SUFFIXES = (".dvc",)
+VENDORING_ALLOWED_NAMES = frozenset({".gitkeep", MANIFEST_NAME, "provenance.yaml", "PROVENANCE.md"})
+
+
+def vendored_offenders(tracked_paths) -> list[str]:
+    """Paths under data/raw/ that constitute REDISTRIBUTED payload.
+
+    ChipSim never redistributes DrugBank. This is the single definition of that
+    rule; T11's positive test and its falsification both call it, so a widened
+    allow-list breaks the falsification too. (Previously the rule was restated
+    inline in both tests, which made the falsification a closed tautology that
+    imported no production code.)
+
+    Deliberately NOT a `*.tsv` glob: per CTO ruling E-5 the DVC store holds the
+    snapshot as EXTENSIONLESS md5 blobs, which a suffix glob would never catch.
+    """
+    offenders = []
+    for path in tracked_paths:
+        name = Path(path).name
+        if path.endswith(VENDORING_ALLOWED_SUFFIXES) or name in VENDORING_ALLOWED_NAMES:
+            continue
+        offenders.append(path)
+    return offenders
 
 
 # --------------------------------------------------------------------------- #
@@ -258,12 +287,22 @@ HUMAN_ORGANISM = "Homo sapiens"
 
 EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "category", "organism")
 
+#: Row-count floor for human protein edges on the real snapshot.
+MIN_EDGE_ROWS = 1000
 
-def load_protein_edges(raw_dir: Path) -> pd.DataFrame:
+
+def load_protein_edges(
+    raw_dir: Path,
+    min_rows: int = MIN_EDGE_ROWS,
+    require_all_categories: bool = True,
+) -> pd.DataFrame:
     """Columns: drugbank_id, uniprot_id, category, organism.
 
     `category` is one of target, enzyme, transporter, carrier.
     Filters to organism == 'Homo sapiens'.
+
+    `min_rows` and `require_all_categories` are the non-vacuity guards; tests that
+    deliberately exercise a degenerate table lower them explicitly at the call site.
     """
     path = Path(raw_dir) / "proteins.tsv"
     if not path.is_file():
@@ -288,6 +327,31 @@ def load_protein_edges(raw_dir: Path) -> pd.DataFrame:
         )
 
     frame = frame[frame["organism"] == HUMAN_ORGANISM].reset_index(drop=True)
+
+    # The floor mirrors load_compounds. Without it an organism-label drift
+    # ("Human" vs "Homo sapiens") silently yields ZERO edges, every compound then
+    # labels 'unknown', and that is indistinguishable from a real absence of
+    # evidence. An almost-empty frame passes every column assertion.
+    if len(frame) < min_rows:
+        raise ValueError(
+            f"parsed only {len(frame)} human protein edges from {path}, below the floor "
+            f"of {min_rows}. Check the organism filter: values must read exactly "
+            f"{HUMAN_ORGANISM!r}."
+        )
+
+    # EQUALITY, asserted here rather than only in tests (defect 9). Restricting it
+    # to the test suite means it runs only against a hand-built fixture and can
+    # never fail on real data — a snapshot that lost three of four categories to a
+    # bad filter would sail through.
+    if require_all_categories:
+        observed = set(frame["category"].dropna().unique())
+        if observed != set(EDGE_CATEGORIES):
+            raise ValueError(
+                f"{path} yielded categories {sorted(observed)} after the "
+                f"{HUMAN_ORGANISM!r} filter; expected exactly "
+                f"{sorted(EDGE_CATEGORIES)}. A missing category means a filter "
+                "dropped edges the pipeline depends on."
+            )
     return frame
 
 
@@ -340,7 +404,13 @@ def write_compounds(df: pd.DataFrame, out: Path) -> None:
 
 
 def write_digest_sidecar(target: Path) -> str:
-    """Write `<target>.sha256` beside a processed artifact and return the digest.
+    """Write the digest sidecar beside a processed artifact and return the digest.
+
+    NOTE the sidecar REPLACES the suffix — `drugbank_compounds.parquet` yields
+    `drugbank_compounds.sha256`, not `...parquet.sha256`. That is what build-plan
+    T5a specifies and what `.gitignore` tracks, so it is deliberate; the cost is
+    that two artifacts sharing a stem would collide. `read_digest_sidecar` verifies
+    the recorded filename to make such a collision visible instead of silent.
 
     The sidecar is git-tracked while the artifact itself is not: it is what lets a
     reviewer verify the artifact without it being redistributed.
@@ -353,11 +423,24 @@ def write_digest_sidecar(target: Path) -> str:
 
 
 def read_digest_sidecar(target: Path) -> str:
-    """Parse the digest out of `<target>.sha256`."""
-    sidecar = Path(target).with_suffix(".sha256")
+    """Parse the digest out of the sidecar, verifying it describes THIS file.
+
+    The sidecar body records the filename, so a stem collision (`x.parquet` and
+    `x.csv` both writing `x.sha256`) is detectable here rather than silently
+    handing back another artifact's digest.
+    """
+    target = Path(target)
+    sidecar = target.with_suffix(".sha256")
     if not sidecar.is_file():
         raise FileNotFoundError(f"digest sidecar missing: {sidecar}")
-    return sidecar.read_text().split()[0]
+
+    parts = sidecar.read_text().split()
+    if len(parts) >= 2 and parts[1] != target.name:
+        raise ValueError(
+            f"{sidecar} records a digest for {parts[1]!r}, not {target.name!r}. "
+            "Two artifacts sharing a stem have collided on one sidecar."
+        )
+    return parts[0]
 
 
 def _main(argv=None) -> int:

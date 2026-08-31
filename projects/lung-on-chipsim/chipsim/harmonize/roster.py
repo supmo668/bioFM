@@ -54,7 +54,12 @@ def load_poc_roster(path: Path, snapshot_keys: set[str] | None = None) -> pd.Dat
                     "cannot be audited, and an unkeyed one cannot be joined."
                 )
 
-    frame = pd.DataFrame(entries).loc[:, list(ROSTER_COLUMNS)]
+    # Built from STRIPPED values. Validating the stripped form but keeping the raw
+    # one lets " AAA" pass validation, evade the duplicate check against "AAA", and
+    # then silently fail every downstream join.
+    frame = pd.DataFrame(
+        [{c: str(e.get(c) or "").strip() for c in ROSTER_COLUMNS} for e in entries]
+    )
 
     duplicates = frame["canonical_inchikey"][frame["canonical_inchikey"].duplicated()]
     if not duplicates.empty:

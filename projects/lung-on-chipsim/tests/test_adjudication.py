@@ -74,6 +74,27 @@ def test_s11a_rejects_an_empty_canonical_inchikey(poc_roster_path, tmp_path):
         load_poc_roster(path)
 
 
+def test_s11a_rejects_an_empty_name(poc_roster_path, tmp_path):
+    """`name` is the third member of ROSTER_COLUMNS and had no rejection test —
+    narrowing the validation loop to skip it passed the whole suite."""
+    doc = yaml.safe_load(poc_roster_path.read_text())
+    doc["compounds"][0]["name"] = "  "
+    path = tmp_path / "r.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    with pytest.raises(RosterValidationError, match="empty `name`"):
+        load_poc_roster(path)
+
+
+def test_s11a_strips_whitespace_from_keys(poc_roster_path, tmp_path):
+    """A key entered as ' AAA' must not evade the duplicate check against 'AAA'."""
+    doc = yaml.safe_load(poc_roster_path.read_text())
+    doc["compounds"][1]["canonical_inchikey"] = " " + doc["compounds"][0]["canonical_inchikey"]
+    path = tmp_path / "r.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    with pytest.raises(RosterValidationError, match="repeats canonical_inchikey"):
+        load_poc_roster(path)
+
+
 def test_s11a_rejects_a_key_absent_from_the_snapshot(poc_roster_path):
     """The fourth rejection case — a roster naming a compound the snapshot does
     not contain cannot be joined and would silently shrink the PoC."""
@@ -130,21 +151,49 @@ def test_t13_verdict_columns_start_empty(labels, compounds_for_labels, tmp_path)
         assert (frame[column] == "").all()
 
 
-def test_t13_never_clobbers_a_partially_filled_worksheet(labels, compounds_for_labels, tmp_path):
+def test_t13_never_clobbers_a_partially_filled_worksheet(compounds_for_labels, tmp_path):
     """THE condition that protects T14's 60-90 minutes from a single ETL re-run
-    (defect 22). Every non-empty human cell must survive a regeneration."""
-    out = tmp_path / "w.csv"
-    write_adjudication_worksheet(labels, compounds_for_labels, out)
+    (defect 22). Every non-empty human cell must survive a regeneration.
 
+    The regeneration must ACTUALLY REGENERATE. An earlier version of this test drove
+    it with `labels` derived from the same fixture already on disk, so a merge that
+    did nothing at all — `if out.exists(): return len(existing)` — passed it:
+    "preserved" and "never written" were indistinguishable. It now asserts the merge
+    did real work: a NEW key must appear, and a CHANGED snapshot_label must win,
+    while human cells survive.
+    """
+    out = tmp_path / "w.csv"
     partial = pd.read_csv(
         FIXTURES / "pgp_adjudication_partial.csv", dtype=str, keep_default_na=False
     )
     partial.to_csv(out, index=False)
-    before = pd.read_csv(out, dtype=str, keep_default_na=False).set_index("canonical_inchikey")
+    before = partial.set_index("canonical_inchikey")
 
-    write_adjudication_worksheet(labels, compounds_for_labels, out)
+    new_key = "FIXTURENEWKEYAA-FIXTUREKEY-N"
+    changed_key = before.index[0]
+    keys = [*before.index, new_key]
+    values = ["unknown"] * len(before) + ["unknown"]
+    # flip the first key's snapshot_label away from whatever is on disk
+    values[0] = "yes" if before.loc[changed_key, "snapshot_label"] != "yes" else "unknown"
+    labels = pd.Series(values, index=keys)
+    labels.index.name = "canonical_inchikey"
+
+    compounds = pd.DataFrame(
+        {"canonical_inchikey": keys, "name": [f"n-{i}" for i in range(len(keys))]}
+    )
+
+    write_adjudication_worksheet(labels, compounds, out)
     after = pd.read_csv(out, dtype=str, keep_default_na=False).set_index("canonical_inchikey")
 
+    # (a) the merge really ran — the new key is present with human cells blank
+    assert set(after.index) == set(labels.index)
+    for column in HUMAN_OWNED_COLUMNS:
+        assert after.loc[new_key, column] == ""
+
+    # (b) the refreshed snapshot_label wins over the stale on-disk one
+    assert after.loc[changed_key, "snapshot_label"] == labels[changed_key]
+
+    # (c) and every non-empty human cell still survived
     filled = before[before["adjudicated_label"].str.strip() != ""]
     assert not filled.empty, "fixture must carry some filled cells to be a real test"
     for key, row in filled.iterrows():
@@ -153,13 +202,88 @@ def test_t13_never_clobbers_a_partially_filled_worksheet(labels, compounds_for_l
                 assert after.loc[key, column] == row[column], f"{column} for {key} was clobbered"
 
 
+def test_t13_preserves_a_row_whose_only_human_content_is_a_doi(tmp_path):
+    """The mid-session state: DOIs and attribution collected first, verdicts last.
+
+    A guard keyed on `adjudicated_label` alone treats this row as unadjudicated and
+    silently drops it — destroying exactly the work the module exists to protect.
+    """
+    out = tmp_path / "w.csv"
+    pd.DataFrame(
+        [
+            {
+                "canonical_inchikey": "AAA",
+                "name": "a",
+                "snapshot_label": "yes",
+                "adjudicated_label": "yes",
+                "evidence_doi": "10.1/x",
+                "adjudicated_by": "H",
+                "adjudicated_on": "2026-08-30",
+            },
+            {
+                "canonical_inchikey": "BBB",
+                "name": "b",
+                "snapshot_label": "unknown",
+                "adjudicated_label": "",
+                "evidence_doi": "10.1000/inprogress",
+                "adjudicated_by": "H.Reviewer",
+                "adjudicated_on": "2026-08-30",
+            },
+        ]
+    ).to_csv(out, index=False)
+
+    labels = pd.Series(["yes"], index=["AAA"])
+    labels.index.name = "canonical_inchikey"
+    compounds = pd.DataFrame({"canonical_inchikey": ["AAA"], "name": ["a"]})
+
+    with pytest.raises(AdjudicationError, match="carrying human work"):
+        write_adjudication_worksheet(labels, compounds, out)
+
+
+def test_t13_preserves_a_column_the_human_added(tmp_path):
+    """A reviewer's `notes` column must survive regeneration."""
+    out = tmp_path / "w.csv"
+    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
+    frame["notes"] = [f"note-{i}" for i in range(len(frame))]
+    frame.to_csv(out, index=False)
+
+    labels = pd.Series(list(frame["snapshot_label"]), index=list(frame["canonical_inchikey"]))
+    labels.index.name = "canonical_inchikey"
+
+    write_adjudication_worksheet(labels, frame.loc[:, ["canonical_inchikey", "name"]], out)
+    after = pd.read_csv(out, dtype=str, keep_default_na=False).set_index("canonical_inchikey")
+    assert "notes" in after.columns
+    assert after.loc[frame["canonical_inchikey"].iloc[0], "notes"] == "note-0"
+
+
+def test_t13_writes_atomically(tmp_path, monkeypatch):
+    """`out` holds irreplaceable human work; a truncating in-place write means a
+    failure during serialization destroys it."""
+    out = tmp_path / "w.csv"
+    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
+    frame.to_csv(out, index=False)
+    original = out.read_text()
+
+    labels = pd.Series(list(frame["snapshot_label"]), index=list(frame["canonical_inchikey"]))
+    labels.index.name = "canonical_inchikey"
+
+    def boom(self, *a, **k):
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", boom)
+    with pytest.raises(OSError):
+        write_adjudication_worksheet(labels, frame.loc[:, ["canonical_inchikey", "name"]], out)
+
+    assert out.read_text() == original, "the human worksheet was damaged by a failed write"
+
+
 def test_t13_raises_if_an_adjudicated_key_disappears(labels, compounds_for_labels, tmp_path):
     out = tmp_path / "w.csv"
     filled = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
     filled.to_csv(out, index=False)
 
     shrunk = labels.iloc[2:]
-    with pytest.raises(AdjudicationError, match="previously-adjudicated"):
+    with pytest.raises(AdjudicationError, match="carrying human work"):
         write_adjudication_worksheet(shrunk, compounds_for_labels, out)
 
 
@@ -224,6 +348,37 @@ def test_t15_verdict_without_an_adjudicator_raises(tmp_path):
         adjudicate_pgp_labels(path)
 
 
+def test_t15_maps_each_compound_to_ITS_OWN_verdict():
+    """The mapping, not just the shape (verdicts were freely permutable).
+
+    Asserting only `set(series)` and a count accepts an implementation that reverses
+    the verdict column — every compound receives a DIFFERENT compound's verdict, the
+    aggregate is identical, and the whole suite passes. Same defect class as r1's
+    constant-'unknown' label: right shape, wrong mapping.
+    """
+    series = adjudicate_pgp_labels(FIXTURES / "pgp_adjudication_filled.csv")
+
+    assert series["FIXTURECMPDAAA-FIXTUREKEY-N"] == "yes"
+    assert series["FIXTURECMPDAAB-FIXTUREKEY-N"] == "no"
+    assert series["FIXTURECMPDAAC-FIXTUREKEY-N"] == "unknown"
+    assert series.index.is_unique
+
+    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
+    for _, row in frame.iterrows():
+        assert series[row["canonical_inchikey"]] == row["adjudicated_label"]
+
+
+def test_t15_rejects_a_duplicated_canonical_inchikey(tmp_path):
+    """Two contradictory verdicts for one compound must not be accepted silently."""
+    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
+    frame = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
+    path = tmp_path / "dup.csv"
+    frame.to_csv(path, index=False)
+
+    with pytest.raises(AdjudicationError, match="repeats canonical_inchikey"):
+        adjudicate_pgp_labels(path)
+
+
 def test_t15_fully_adjudicated_fixture_returns_the_domain():
     series = adjudicate_pgp_labels(FIXTURES / "pgp_adjudication_filled.csv")
     assert set(series) == {"yes", "no", "unknown"}
@@ -244,6 +399,22 @@ def test_t15_parquet_round_trips_to_an_identical_series(tmp_path):
     pd.testing.assert_series_equal(read_pgp_labels(out), series)
 
 
+def test_t15_parquet_preserves_index_metadata_without_normalization(tmp_path):
+    """Read the file RAW, not through read_pgp_labels.
+
+    `read_pgp_labels` unconditionally reassigns `index.name`, so it manufactures the
+    very property the round-trip asserts — dropping the index name on write still
+    passed. This checks what is actually on disk.
+    """
+    out = tmp_path / "pgp_labels.parquet"
+    series = adjudicate_pgp_labels(FIXTURES / "pgp_adjudication_filled.csv", parquet_out=out)
+
+    raw = pd.read_parquet(out, engine="pyarrow")
+    assert raw.index.name == "canonical_inchikey"
+    assert raw.index.tolist() == series.index.tolist()
+    assert raw["adjudicated_label"].tolist() == series.tolist()
+
+
 # --------------------------------------------------------------------------- #
 # T17 · provenance block
 # --------------------------------------------------------------------------- #
@@ -257,6 +428,36 @@ def fixture_labels() -> pd.Series:
 def test_t17_renders_the_composed_version_string(provenance_fixture_path, fixture_labels):
     block = render_data_provenance(provenance_fixture_path, fixture_labels)
     assert "DrugBank 4.2 (2015-03-19 snapshot)" in block
+
+
+def test_t17_label_counts_are_not_permutable():
+    """Hard-coded integers on an ASYMMETRIC series.
+
+    Computing the expectation by calling `label_counts` — the function under test —
+    can only confirm the renderer and the counter agree with each other. And the
+    filled fixture used to be 8/8/8, so ANY permutation of the three counts was
+    invisible even to a hand-written expectation.
+    """
+    labels = pd.Series(["yes", "yes", "yes", "no", "unknown", "unknown"], index=list("abcdef"))
+    assert label_counts(labels) == {"yes": 3, "no": 1, "unknown": 2}
+
+
+def test_t17_renders_the_counts_it_was_given(provenance_fixture_path):
+    labels = pd.Series(["yes", "yes", "yes", "no", "unknown", "unknown"], index=list("abcdef"))
+    block = render_data_provenance(provenance_fixture_path, labels)
+    assert "- yes: 3" in block
+    assert "- no: 1" in block
+    assert "- unknown: 2" in block
+
+
+def test_t17_label_counts_rejects_out_of_domain_values():
+    with pytest.raises(ValueError, match="outside"):
+        label_counts(pd.Series(["yes", "no", "Yes", "substrate"], index=list("abcd")))
+
+
+def test_t17_label_counts_rejects_nulls():
+    with pytest.raises(ValueError, match="null"):
+        label_counts(pd.Series(["yes", "no", None], index=list("abc")))
 
 
 def test_t17_renders_three_integer_counts(provenance_fixture_path, fixture_labels):

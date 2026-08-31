@@ -24,6 +24,7 @@ from chipsim.ingest.drugbank_snapshot import (
     HUMAN_ORGANISM,
     MIN_COMPOUND_ROWS,
     PERSISTED_COMPOUND_COLUMNS,
+    _split_list_cell,
     load_compounds,
     load_protein_edges,
     read_digest_sidecar,
@@ -72,11 +73,40 @@ def test_t5_atc_codes_splits_multiple_values(compounds):
     assert row["atc_codes"] == ["B01AC06", "N02BA01"]
 
 
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("", []),
+        ("   ", []),
+        (None, []),
+        ("A", ["A"]),
+        ("A|B", ["A", "B"]),
+        ("A||B", ["A", "B"]),
+        (" A | B ", ["A", "B"]),
+    ],
+)
+def test_t5_split_list_cell(raw, expected):
+    """Direct unit coverage of the splitter.
+
+    The previous test asserted `[] not in [[""]]` — a constant Python expression,
+    true regardless of the implementation — and its frame-level check was vacuous
+    because the only fixture row with an empty ATC cell (DB90006) is dropped for
+    having no InChIKey before the splitting code ever runs. A naive
+    `str(value).split("|")`, which returns `[""]` for an empty cell, passed.
+    """
+    assert _split_list_cell(raw) == expected
+
+
 def test_t5_empty_list_cell_becomes_empty_list(compounds):
-    """An absent ATC code is [], not [''] — a one-element list of the empty string
-    would count as 'has an ATC code' in every downstream length check."""
+    """And the same branch reached through the real loader.
+
+    DB90009 is a small molecule WITH an InChIKey and an EMPTY atc_codes cell, so it
+    survives the InChIKey filter and actually exercises the empty branch.
+    """
+    row = compounds[compounds["drugbank_id"] == "DB90009"].iloc[0]
+    assert row["atc_codes"] == []
+    assert row["groups"] == ["approved"]
     assert all(isinstance(v, list) for v in compounds["atc_codes"])
-    assert [] not in [[""]]
     assert all("" not in v for v in compounds["atc_codes"])
 
 
@@ -146,6 +176,50 @@ def test_t5b_is_deterministic():
     assert canonical_inchikey(inchi) == canonical_inchikey(inchi)
 
 
+#: GOLDEN canonical InChIKeys, recorded from rdkit 2026.3.5.
+#:
+#: pyproject pins rdkit precisely because "tautomer canonicalization and the bundled
+#: InChI toolkit both change across releases, so an unpinned rdkit can silently
+#: repartition the splits while every recorded sha256 and every test stays green."
+#: Without a golden value that was a literally accurate description of this suite:
+#: `test_t5b_is_deterministic` is satisfied by `return "X"`, and nothing else
+#: asserted an actual key.
+#:
+#: If one of these changes, the rdkit pin has MOVED and any sealed allocation
+#: derived from these keys must be re-derived. Do not simply update the literal.
+GOLDEN_CANONICAL_KEYS = {
+    # aspirin — plain case, no salt, no charge
+    "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+    # verapamil HYDROCHLORIDE — exercises the salt-strip path; must land on the
+    # FREE BASE key, not its own
+    "InChI=1S/C27H38N2O4.ClH/c1-20(2)27(19-28,22-10-12-24(31-5)26(18-22)33-7)"
+    "14-8-15-29(3)16-13-21-9-11-23(30-4)25(17-21)32-6;/h9-12,17-18,20H,8,13-16H2,1-7H3;1H": "SGTNSNPWRIOYBX-UHFFFAOYSA-N",
+    # diclofenac SODIUM — salt strip to the free acid
+    "InChI=1S/C14H11Cl2NO2.Na/c15-10-5-3-6-11(16)14(10)17-12-7-2-1-4-9(12)8-13(18)19;"
+    "/h1-7,17H,8H2,(H,18,19);": "DCOPUUMXTXDBNB-UHFFFAOYSA-N",
+}
+
+
+@pytest.mark.parametrize("inchi,expected", sorted(GOLDEN_CANONICAL_KEYS.items()))
+def test_t5b_golden_canonical_keys(inchi, expected):
+    """Pins the rdkit pin's EFFECT, not just the pin string in pyproject."""
+    assert canonical_inchikey(inchi) == expected
+
+
+def test_t5b_salt_strips_to_the_free_base_key():
+    """Stated as an explicit relation, so the intent survives a key update."""
+    free_base = (
+        "InChI=1S/C27H38N2O4/c1-20(2)27(19-28,22-10-12-24(31-5)26(18-22)33-7)"
+        "14-8-15-29(3)16-13-21-9-11-23(30-4)25(17-21)32-6/h9-12,17-18,20H,8,13-16H2,1-7H3"
+    )
+    hcl = (
+        free_base.replace("C27H38N2O4/", "C27H38N2O4.ClH/")
+        .replace("1-7H3", "1-7H3;1H")
+        .replace("32-6/h", "32-6;/h")
+    )
+    assert canonical_inchikey(hcl) == canonical_inchikey(free_base)
+
+
 # --------------------------------------------------------------------------- #
 # T5a · persistence
 # --------------------------------------------------------------------------- #
@@ -200,24 +274,24 @@ def test_t5a_refuses_a_frame_without_canonical_identity(compounds, tmp_path):
 
 
 def test_t6_frame_is_non_empty():
-    assert len(load_protein_edges(SNAPSHOT_DIR)) > 0
+    assert len(load_protein_edges(SNAPSHOT_DIR, min_rows=0)) > 0
 
 
 def test_t6_category_set_equality_not_subset():
     """EQUALITY, not subset (defect 9). A subset check passes on a frame that lost
     three of the four categories to a bad filter."""
-    edges = load_protein_edges(SNAPSHOT_DIR)
+    edges = load_protein_edges(SNAPSHOT_DIR, min_rows=0)
     assert set(edges["category"]) == set(EDGE_CATEGORIES)
 
 
 def test_t6_filters_to_human():
-    edges = load_protein_edges(SNAPSHOT_DIR)
+    edges = load_protein_edges(SNAPSHOT_DIR, min_rows=0)
     assert set(edges["organism"]) == {HUMAN_ORGANISM}
 
 
 def test_t6_drops_the_non_human_edge():
     """The rat ABCB1 edge on DB90002 must not survive the species filter."""
-    edges = load_protein_edges(SNAPSHOT_DIR)
+    edges = load_protein_edges(SNAPSHOT_DIR, min_rows=0)
     rat = edges[(edges["drugbank_id"] == "DB90002") & (edges["uniprot_id"] == "P08183")]
     assert rat.empty
 
@@ -226,7 +300,7 @@ def test_t6_golden_row_is_present():
     """The golden-row assertion: a named reference drug with a known ABCB1
     transporter edge. This is what catches a silent species-filter mismatch that
     empties the frame — an empty frame passes every column-shape assertion."""
-    edges = load_protein_edges(SNAPSHOT_DIR)
+    edges = load_protein_edges(SNAPSHOT_DIR, min_rows=0)
     golden = edges[
         (edges["drugbank_id"] == "DB90004")
         & (edges["uniprot_id"] == "P08183")
@@ -235,9 +309,51 @@ def test_t6_golden_row_is_present():
     assert len(golden) == 1, "the ABCB1 transporter golden row is missing"
 
 
+def test_t6_raises_when_a_category_is_lost_to_the_organism_filter(tmp_path):
+    """Set-EQUALITY asserted inside the loader, not only in the tests.
+
+    Keeping the equality check in the test suite means it runs only against a
+    hand-built fixture and can never fail on real data: a snapshot that lost three
+    of four categories to a bad filter would sail through `load_protein_edges`.
+    Here the carrier/enzyme/target edges are non-human, so only `transporter`
+    survives the filter — a table shaped exactly like a species-filter mismatch.
+    """
+    (tmp_path / "proteins.tsv").write_text(
+        "drugbank_id\tuniprot_id\tcategory\torganism\n"
+        "DB1\tP1\ttransporter\tHomo sapiens\n"
+        "DB2\tP2\tenzyme\tRattus norvegicus\n"
+        "DB3\tP3\tcarrier\tRattus norvegicus\n"
+        "DB4\tP4\ttarget\tRattus norvegicus\n"
+    )
+    with pytest.raises(ValueError, match="expected exactly"):
+        load_protein_edges(tmp_path, min_rows=0)
+
+    # ...and it is the equality check doing the work, not the floor
+    relaxed = load_protein_edges(tmp_path, min_rows=0, require_all_categories=False)
+    assert set(relaxed["category"]) == {"transporter"}
+
+
+def test_t6_row_count_floor_is_enforced():
+    """Mirrors load_compounds' floor. Without it an organism-label drift yields
+    ZERO edges silently, and every compound then labels 'unknown'."""
+    with pytest.raises(ValueError, match="below the floor"):
+        load_protein_edges(SNAPSHOT_DIR)
+
+
+def test_t6_organism_drift_yields_an_error_not_an_empty_frame(tmp_path):
+    """'Human' instead of 'Homo sapiens' must not return 0 rows quietly."""
+    (tmp_path / "proteins.tsv").write_text(
+        "drugbank_id\tuniprot_id\tcategory\torganism\n"
+        "DB1\tP1\ttransporter\tHuman\n"
+        "DB2\tP2\tenzyme\tHuman\n"
+    )
+    with pytest.raises(ValueError, match="organism filter|below the floor|expected exactly"):
+        load_protein_edges(tmp_path, min_rows=1)
+
+
 def test_t6_unexpected_category_raises(tmp_path):
     (tmp_path / "proteins.tsv").write_text(
         "drugbank_id\tuniprot_id\tcategory\torganism\nDB1\tP1\tnot-a-category\tHomo sapiens\n"
     )
     with pytest.raises(ValueError, match="unexpected edge category"):
-        load_protein_edges(tmp_path)
+        load_protein_edges(tmp_path, min_rows=0)

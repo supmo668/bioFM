@@ -32,7 +32,11 @@ from chipsim.harmonize.contracts import (
     check_provenance,
     load_provenance,
 )
-from chipsim.ingest.drugbank_snapshot import MANIFEST_NAME, verify_snapshot
+from chipsim.ingest.drugbank_snapshot import (
+    MANIFEST_NAME,
+    vendored_offenders,
+    verify_snapshot,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw" / "drugbank"
@@ -91,6 +95,49 @@ def test_provenance_complete_rejects_an_empty_unconditional_key(
     path.write_text(yaml.safe_dump(doc))
 
     with pytest.raises(ProvenanceContractError):
+        check_provenance(load_provenance(path))
+
+
+@pytest.mark.parametrize(
+    "bad_commit",
+    ["main", "DEADBEEF" * 5, "deadbeef" * 4 + "deadbee", "", "not-a-sha"],
+)
+def test_provenance_rejects_a_non_40_hex_commit(provenance_fixture_path, tmp_path, bad_commit):
+    """The 40-hex check was dead code with respect to the suite — deleting it passed.
+
+    A passing positive case asserts nothing about a rejection rule. Both commit
+    fields are set together so the E-1 biconditional does not raise first and mask
+    the check under test.
+    """
+    doc = load_provenance(provenance_fixture_path)
+    doc["source_commit"] = bad_commit
+    doc["audited_commit"] = bad_commit
+    path = tmp_path / "p.yaml"
+    path.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(ProvenanceContractError):
+        check_provenance(load_provenance(path))
+
+
+@pytest.mark.parametrize("count", [0, 1, 2, 4])
+def test_provenance_rejects_a_wrong_attribution_count(provenance_fixture_path, tmp_path, count):
+    """The attribution-count check was also dead code — deleting it passed."""
+    doc = load_provenance(provenance_fixture_path)
+    doc["attribution"] = [f"entry {i}" for i in range(count)]
+    path = tmp_path / "p.yaml"
+    path.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(ProvenanceContractError):
+        check_provenance(load_provenance(path))
+
+
+def test_provenance_rejects_a_non_list_attribution(provenance_fixture_path, tmp_path):
+    doc = load_provenance(provenance_fixture_path)
+    doc["attribution"] = "Wishart et al.; Himmelstein et al.; Licence discussion"
+    path = tmp_path / "p.yaml"
+    path.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(ProvenanceContractError, match="must be a list"):
         check_provenance(load_provenance(path))
 
 
@@ -157,7 +204,7 @@ def test_snapshot_hashes_match_manifest():
 
 
 def test_drugbank_not_vendored():
-    """`git ls-files` matches no .tsv under data/raw/ — recursive, so a nested
+    """`git ls-files` matches no payload under data/raw/ — recursive, so a nested
     layout cannot hide one (defect 7).
 
     Widened past `*.tsv` deliberately (CTO ruling E-5): the DVC store holds the
@@ -171,31 +218,47 @@ def test_drugbank_not_vendored():
         check=True,
     ).stdout.split()
 
-    #: What is legitimately tracked under data/raw/: pointers, anchors, the
-    #: integrity manifest, and T1/T2's human provenance artifacts. Anything else
-    #: is vendored payload.
-    allowed_suffixes = (".dvc",)
-    allowed_names = {".gitkeep", MANIFEST_NAME, "provenance.yaml", "PROVENANCE.md"}
-
-    offenders = [
-        p for p in tracked if not p.endswith(allowed_suffixes) and Path(p).name not in allowed_names
-    ]
+    offenders = vendored_offenders(tracked)
     assert offenders == [], f"DrugBank payload is vendored into git: {offenders}"
 
 
-def test_drugbank_not_vendored_catches_a_forced_tsv(tmp_path):
-    """The done-condition's falsification: `git add -f` a TSV and the test fails.
+@pytest.mark.parametrize(
+    "path",
+    [
+        "data/raw/drugbank/drugbank.tsv",
+        "data/raw/drugbank/nested/deeper/proteins.tsv",
+        # the extensionless md5 blob form ruling E-5 calls out — a *.tsv glob misses it
+        "data/raw/files/md5/ab/cdef0123456789",
+        "data/raw/drugbank.parquet",
+    ],
+)
+def test_drugbank_not_vendored_catches_payload(path):
+    """The falsification, driven through the SAME production rule as the test above.
 
-    Asserted against the real rule rather than by mutating the index, so the
-    working tree is never left dirty.
+    This was previously a closed tautology: it re-declared the allow-list inline and
+    rebuilt the comprehension, so it exercised a Python list comprehension and
+    nothing else. Widening `vendored_offenders`'s allow-list to permit `.tsv` would
+    have left it passing. Now both call `chipsim.ingest.drugbank_snapshot.
+    vendored_offenders`, so the falsification breaks when the rule does.
     """
-    tracked = ["data/raw/drugbank/drugbank.tsv", "data/raw/.gitkeep"]
-    allowed_suffixes = (".dvc",)
-    allowed_names = {".gitkeep", MANIFEST_NAME, "provenance.yaml", "PROVENANCE.md"}
-    offenders = [
-        p for p in tracked if not p.endswith(allowed_suffixes) and Path(p).name not in allowed_names
-    ]
-    assert offenders == ["data/raw/drugbank/drugbank.tsv"]
+    assert vendored_offenders([path, "data/raw/.gitkeep"]) == [path]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "data/raw/drugbank.dvc",
+        "data/raw/drugbank/proteins.tsv.dvc",
+        "data/raw/.gitkeep",
+        "data/raw/drugbank/SHA256SUMS.json",
+        "data/raw/drugbank/provenance.yaml",
+        "data/raw/drugbank/PROVENANCE.md",
+    ],
+)
+def test_vendoring_rule_allows_what_must_stay_tracked(path):
+    """The other direction: the rule must not reject the files that make the
+    snapshot recoverable and auditable."""
+    assert vendored_offenders([path]) == []
 
 
 def test_dvc_pointer_is_tracked():

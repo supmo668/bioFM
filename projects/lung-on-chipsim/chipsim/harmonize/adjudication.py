@@ -15,6 +15,7 @@ Two failure modes shape this module, and both are *silent*:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -54,12 +55,49 @@ def _blank(value: object) -> bool:
     return value is None or pd.isna(value) or str(value).strip() == ""
 
 
+def _has_any_human_content(frame: pd.DataFrame) -> pd.Series:
+    """True per row when ANY human-owned cell is non-blank.
+
+    Keying the guard on `adjudicated_label` alone (as this module first did) misses
+    the single most common mid-session state: a reviewer collects DOIs and
+    attribution FIRST and enters verdicts LAST. Such a row looks unadjudicated to a
+    label-only check and is silently dropped — destroying exactly the work this
+    module exists to protect.
+    """
+    present = [c for c in HUMAN_OWNED_COLUMNS if c in frame.columns]
+    if not present:
+        return pd.Series(False, index=frame.index, dtype=bool)
+    filled = [~frame[c].map(_blank).astype(bool) for c in present]
+    combined = filled[0]
+    for extra in filled[1:]:
+        combined = combined | extra
+    return combined.astype(bool)
+
+
+def _reject_duplicate_keys(keys: pd.Series, where: str) -> None:
+    duplicates = sorted(set(keys[keys.duplicated()]))
+    if duplicates:
+        raise AdjudicationError(
+            f"{where} repeats canonical_inchikey: {duplicates[:5]}"
+            + (" ..." if len(duplicates) > 5 else "")
+            + ". One compound cannot carry two verdicts, and a duplicated index "
+            "fans out or arbitrarily collapses every downstream join."
+        )
+
+
 def _read_worksheet(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[])
     missing = [c for c in WORKSHEET_COLUMNS if c not in frame.columns]
     if missing:
         raise AdjudicationError(f"{path} is missing column(s): {missing}")
-    return frame.loc[:, list(WORKSHEET_COLUMNS)]
+
+    _reject_duplicate_keys(frame["canonical_inchikey"], str(path))
+
+    # Declared columns first, then any column the human added (a `notes` or `pmid`
+    # column typed in Excel). Dropping them would be the same class of silent loss
+    # the never-clobber rule forbids.
+    extra = [c for c in frame.columns if c not in WORKSHEET_COLUMNS]
+    return frame.loc[:, [*WORKSHEET_COLUMNS, *extra]]
 
 
 def write_adjudication_worksheet(
@@ -80,6 +118,11 @@ def write_adjudication_worksheet(
 
     if "canonical_inchikey" not in compounds.columns:
         raise AdjudicationError("compounds must carry `canonical_inchikey` (T5b)")
+
+    # A duplicated labels index writes duplicate rows, after which EVERY later
+    # regeneration dies in reindex with a bare pandas error naming neither the file
+    # nor the key. Reject it at the door instead.
+    _reject_duplicate_keys(pd.Series(list(labels.index)), "the labels index")
 
     names = (
         compounds.loc[:, ["canonical_inchikey", "name"]]
@@ -106,35 +149,58 @@ def write_adjudication_worksheet(
         }
     )
 
+    carried_columns: list[str] = []
+
     if out.exists():
         existing = _read_worksheet(out)
 
-        adjudicated = existing[~existing["adjudicated_label"].map(_blank)]
-        vanished = sorted(set(adjudicated["canonical_inchikey"]) - set(labels.index))
-        if vanished:
-            raise AdjudicationError(
-                f"{len(vanished)} previously-adjudicated key(s) are absent from the new "
-                f"labels: {vanished[:5]}"
-                + (" ..." if len(vanished) > 5 else "")
-                + ". Refusing to write: this would silently discard human adjudication. "
-                "If the snapshot legitimately changed, reconcile deliberately."
-            )
+        if not existing.empty:
+            # ANY human-owned cell counts, not just adjudicated_label. A reviewer
+            # mid-session has DOIs and attribution filled and verdicts still blank.
+            touched = existing[_has_any_human_content(existing)]
+            vanished = sorted(set(touched["canonical_inchikey"]) - set(labels.index))
+            if vanished:
+                raise AdjudicationError(
+                    f"{len(vanished)} key(s) carrying human work are absent from the new "
+                    f"labels: {vanished[:5]}"
+                    + (" ..." if len(vanished) > 5 else "")
+                    + ". Refusing to write: this would silently discard human "
+                    "adjudication (including rows where only the DOI or attribution "
+                    "has been filled in so far). If the snapshot legitimately changed, "
+                    "reconcile deliberately."
+                )
 
-        prior = existing.set_index("canonical_inchikey")
-        fresh = fresh.set_index("canonical_inchikey")
-        for column in HUMAN_OWNED_COLUMNS:
-            if column not in prior.columns:
-                continue
-            carried = prior[column].reindex(fresh.index)
-            keep = carried.map(lambda v: not _blank(v))
-            fresh.loc[keep.fillna(False), column] = carried[keep.fillna(False)]
-        fresh = fresh.reset_index()
+            prior = existing.set_index("canonical_inchikey")
+            fresh = fresh.set_index("canonical_inchikey")
 
-    fresh = fresh.loc[:, list(WORKSHEET_COLUMNS)].sort_values(
-        "canonical_inchikey", kind="mergesort"
-    )
+            # Human-owned verdict columns, plus any column the human added.
+            carried_columns = [
+                c for c in prior.columns if c in HUMAN_OWNED_COLUMNS or c not in WORKSHEET_COLUMNS
+            ]
+            for column in carried_columns:
+                if column not in fresh.columns:
+                    fresh[column] = ""
+                carried = prior[column].reindex(fresh.index)
+                keep = (~carried.map(_blank).astype(bool)).fillna(False)
+                fresh.loc[keep, column] = carried[keep]
+            fresh = fresh.reset_index()
+
+    ordered = [*WORKSHEET_COLUMNS, *[c for c in carried_columns if c not in WORKSHEET_COLUMNS]]
+    fresh = fresh.loc[:, ordered].sort_values("canonical_inchikey", kind="mergesort")
+
     out.parent.mkdir(parents=True, exist_ok=True)
-    fresh.to_csv(out, index=False)
+
+    # Atomic publish. `out` holds irreplaceable human work; a truncating in-place
+    # write means a disk-full / encoding error / SIGINT during serialization
+    # destroys it, and the merged content exists only in memory at that moment.
+    # `fetch_snapshot` already stages for exactly this reason.
+    tmp = out.with_name(out.name + ".tmp")
+    try:
+        fresh.to_csv(tmp, index=False)
+        os.replace(tmp, out)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
     return len(fresh)
 
 

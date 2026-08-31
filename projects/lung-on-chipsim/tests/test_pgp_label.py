@@ -34,7 +34,7 @@ def compounds() -> pd.DataFrame:
 
 @pytest.fixture
 def edges() -> pd.DataFrame:
-    return load_protein_edges(SNAPSHOT_DIR)
+    return load_protein_edges(SNAPSHOT_DIR, min_rows=0)
 
 
 @pytest.fixture

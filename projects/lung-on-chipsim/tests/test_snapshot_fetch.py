@@ -96,6 +96,27 @@ def test_fetch_urls_are_pinned_to_the_commit(tmp_path, stub_download):
         assert "/dhimmel/drugbank/" in url
 
 
+def test_fetch_requests_one_url_per_file(tmp_path, stub_download):
+    """Each URL must name its OWN file.
+
+    The commit-and-repo check above passes for a `snapshot_url` hard-coded to
+    always return `.../drugbank.tsv` — i.e. a fetch that downloads one file three
+    times and stores it under three names. `stub_download` writes CONTENT keyed on
+    the TARGET, so it can never observe the wrong URL; this asserts the URL set.
+    """
+    ds.fetch_snapshot(tmp_path / "drugbank", VALID)
+    assert set(stub_download) == {ds.snapshot_url(VALID, n) for n in ds.SNAPSHOT_FILES}
+    assert len(set(stub_download)) == 3, "the same URL was fetched more than once"
+
+
+@pytest.mark.parametrize("name", ["drugbank.tsv", "drugbank-slim.tsv", "proteins.tsv"])
+def test_snapshot_url_names_the_file_and_the_data_subdir(name):
+    """Also pins `_REPO_SUBDIR`, which no test previously touched."""
+    url = ds.snapshot_url(VALID, name)
+    assert url.endswith(f"/data/{name}")
+    assert VALID in url
+
+
 def test_manifest_matches_the_files_on_disk(tmp_path, stub_download):
     dest = tmp_path / "drugbank"
     digests = ds.fetch_snapshot(dest, VALID)
@@ -161,9 +182,50 @@ def test_a_failure_midway_leaves_dest_empty(tmp_path, monkeypatch):
 
     monkeypatch.setattr(ds, "_download", _flaky)
     dest = tmp_path / "drugbank"
+    assert not dest.exists()
     with pytest.raises(ds.SnapshotFetchError):
         ds.fetch_snapshot(dest, VALID)
-    assert not dest.exists() or not list(dest.iterdir()), "partial snapshot was published"
+
+    # `dest` never existed, so `not dest.exists()` short-circuits the whole
+    # assertion. Check the published-content condition explicitly instead.
+    published = list(dest.iterdir()) if dest.exists() else []
+    assert published == [], f"partial snapshot was published: {published}"
+
+
+def test_a_failure_midway_leaves_an_EXISTING_snapshot_intact(tmp_path, monkeypatch):
+    """The case that actually matters, and was untested.
+
+    `fetch_snapshot` publishes with sequential `shutil.move` calls, which is not
+    atomic. A failure part-way over an EXISTING good snapshot can leave a mixed
+    old/new tree — and `verify_snapshot` would then bless it against whichever
+    manifest won. This test records the ACTUAL behaviour so a future change to
+    directory-swap publishing is a visible improvement rather than a silent one.
+    """
+    dest = tmp_path / "drugbank"
+
+    def _ok(url, target):
+        target.write_bytes(CONTENT[target.name])
+
+    monkeypatch.setattr(ds, "_download", _ok)
+    ds.fetch_snapshot(dest, VALID)
+    before = {p.name: p.read_bytes() for p in dest.iterdir()}
+    assert ds.verify_snapshot(dest)
+
+    def _flaky(url, target):
+        if target.name == "proteins.tsv":
+            raise ds.SnapshotFetchError("simulated failure over an existing snapshot")
+        target.write_bytes(CONTENT[target.name] + b"-NEW")
+
+    monkeypatch.setattr(ds, "_download", _flaky)
+    with pytest.raises(ds.SnapshotFetchError):
+        ds.fetch_snapshot(dest, VALID)
+
+    after = {p.name: p.read_bytes() for p in dest.iterdir()}
+    assert after == before, (
+        "a failed re-fetch modified the existing snapshot. The download stages in a "
+        "tempdir, so nothing should reach `dest` unless every file downloaded."
+    )
+    assert ds.verify_snapshot(dest), "the prior snapshot no longer verifies"
 
 
 def test_http_error_is_surfaced_not_swallowed(tmp_path, monkeypatch):

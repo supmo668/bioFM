@@ -31,9 +31,31 @@ def label_counts(labels: pd.Series) -> dict[str, int]:
 
     Missing keys would make the caller's formatting branch on presence; an
     explicit zero keeps `pgp_groups_usable` honest.
+
+    REFUSES anything outside the domain rather than projecting onto it. Projecting
+    silently discards NaN, casing variants ('Yes') and stray verdicts, so the card
+    — the audit surface — would render counts summing to less than the cohort and
+    state them with total confidence.
     """
+    outside = sorted({str(v) for v in labels.dropna().unique()} - ADJUDICATED_LABELS)
+    if outside:
+        raise ValueError(
+            f"labels carry value(s) outside {sorted(ADJUDICATED_LABELS)}: {outside}. "
+            "Refusing to render a provenance block whose counts would silently omit them."
+        )
+    if labels.isna().any():
+        raise ValueError(
+            f"labels carry {int(labels.isna().sum())} null value(s); a null is neither "
+            "a verdict nor an 'unknown' and must not vanish from the counts."
+        )
+
     counts = labels.value_counts().to_dict()
-    return {label: int(counts.get(label, 0)) for label in sorted(ADJUDICATED_LABELS)}
+    resolved = {label: int(counts.get(label, 0)) for label in sorted(ADJUDICATED_LABELS)}
+    if sum(resolved.values()) != len(labels):
+        raise ValueError(
+            f"label counts sum to {sum(resolved.values())} but the cohort has {len(labels)} rows"
+        )
+    return resolved
 
 
 def pgp_groups_usable(counts: dict[str, int]) -> bool:

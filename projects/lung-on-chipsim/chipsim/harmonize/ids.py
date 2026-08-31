@@ -82,6 +82,14 @@ def add_canonical_identity(compounds: pd.DataFrame) -> pd.DataFrame:
 
     out = compounds.copy()
 
+    if out.empty:
+        # pandas invokes the callable once on a synthetic all-NaN row for dtype
+        # inference, which would raise "1 compound(s) failed canonicalization: nan"
+        # for a frame containing zero compounds and point a debugger at a
+        # structure that does not exist.
+        out["canonical_inchikey"] = pd.Series(dtype="object")
+        return out
+
     failures: list[tuple[str, str]] = []
 
     def _one(row: pd.Series) -> str | None:
