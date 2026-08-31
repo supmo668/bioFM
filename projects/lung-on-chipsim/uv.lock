@@ -321,10 +321,9 @@ requires-dist = [
     { name = "pandas" },
     { name = "pyarrow", specifier = "==25.0.1" },
     { name = "pyyaml" },
-    { name = "rdkit" },
+    { name = "rdkit", specifier = "==2026.3.5" },
     { name = "requests" },
 ]
-provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [

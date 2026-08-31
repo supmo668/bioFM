@@ -5,11 +5,10 @@ Skipped in M0 slice 1: the solver does not exist until M1.
 
 import pytest
 
-# NOTE: build-plan S4 prescribes the string "M0 slice 3 — splits/ODE not yet built"
-# for both this module and test_leakage.py. That reason is accurate for leakage and
-# WRONG here — monotonicity waits on the M1 ODE solver, not on the slice-3 splits.
-# Using the accurate reason so anyone triaging skips is not misdirected; flagged to
-# the CTO as a plan wording defect rather than silently following it.
+# The skip names its OWN blocker: the M1 ODE solver, not slice-3 splits.
+# RATIFIED as CTO ruling E-3 (dispatch #11) and now specified in build-plan S4 —
+# a skip reason that misnames its blocker sends the next reader to the wrong
+# milestone.
 pytestmark = pytest.mark.skip(reason="M1 — ODE solver not yet built")
 
 

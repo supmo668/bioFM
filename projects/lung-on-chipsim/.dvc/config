@@ -2,4 +2,11 @@
     remote = local
     analytics = false
 ['remote "local"']
-    url = ../../../.dvc-storage
+    # CTO ruling E-5 (dispatch #11) — DATA-LOSS FIX. This MUST be an absolute path
+    # OUTSIDE every git tree. The previous value `../../../.dvc-storage` resolved to
+    # worktrees/lung-on-chipsim/.dvc-storage — INSIDE the worktree — so the routine
+    # `git worktree remove` / `/worktree-delete` destroyed the only copy of the snapshot.
+    # Absolute, not `~`-relative: dvc does not reliably expand `~` here.
+    # Sits beside the ISCP db, per agency.yaml's iscp.db_path_template convention.
+    # Do not "simplify" this back inside the tree. See build-plan.md S9.
+    url = /Users/mo/.aiadlc/biofm/dvc-storage

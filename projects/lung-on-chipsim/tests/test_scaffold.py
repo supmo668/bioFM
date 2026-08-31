@@ -8,10 +8,11 @@ rather than in P1-P4.
 Two of these were found to be untrue or unfalsifiable as originally verified:
   - S1's negative ("exits non-zero if any __init__.py is removed") was FALSE
     before the guard in chipsim/__init__.py existed — PEP 420 made it import fine.
-  - S3's negative ("exits non-zero if testpaths is removed") is STILL not true via
-    the CLI: pytest skips .venv by default norecursedirs, so tests/ is collected
-    either way. It is asserted here against the config instead, and the plan's
-    stated CLI form is recorded as not achievable. See test_s3_testpaths_configured.
+  - S3's negative ("exits non-zero if testpaths is removed") is not true via the
+    CLI: pytest skips .venv by default norecursedirs, so tests/ is collected either
+    way. Asserted here against the parsed config instead. The CTO RATIFIED this as
+    ruling E-2 and the plan now specifies the parsed-config form; this module is no
+    longer deviating from S3, it implements it. See test_s3_testpaths_configured.
 """
 
 import shutil
@@ -163,9 +164,10 @@ def test_s2_no_empty_dev_extra_shadowing_the_group(pyproject):
 def test_s3_testpaths_configured(pyproject):
     """S3's done-condition, asserted against config rather than the CLI.
 
-    The plan words it as "`pytest --collect-only` exits non-zero if testpaths is
-    removed". That is NOT achievable here: pytest's default norecursedirs skips
-    .venv, so with testpaths removed it still discovers tests/ and exits 0
+    S3 (as amended per ratified CTO ruling E-2) asks for exactly this: an
+    assertion against the parsed config. The r2 CLI wording — "exits non-zero if
+    testpaths is removed" — was NOT achievable: pytest's default norecursedirs
+    skips .venv, so with testpaths removed it still discovers tests/ and exits 0
     (verified). Asserting the config is the honest form of the same guarantee.
     """
     assert pyproject["tool"]["pytest"]["ini_options"]["testpaths"] == ["tests"]
@@ -266,6 +268,98 @@ def test_s7_dvc_store_is_never_committable():
     """The DVC remote holds the DrugBank snapshot as extensionless md5 blobs.
     T11's test_drugbank_not_vendored matches *.tsv and would not catch them."""
     assert _check_ignore(".dvc-storage/files/md5/ab/cdef0123")
+
+
+# --------------------------------------------------------------------------- #
+# S9 · DVC remote lives OUTSIDE every git tree (CTO ruling E-5 — data-loss fix)
+# --------------------------------------------------------------------------- #
+
+
+def _dvc_remote_url() -> str:
+    """Parse the configured default remote url out of .dvc/config."""
+    import configparser
+
+    cfg = configparser.ConfigParser()
+    read = cfg.read(PROJECT_ROOT / ".dvc" / "config")
+    assert read, ".dvc/config missing or unreadable"
+    name = cfg["core"]["remote"]
+
+    # `dvc remote add` writes the section header as ['remote "local"'] — the single
+    # quotes are literal, so configparser sees them as part of the section name.
+    # Hand-edited configs may omit them. Accept either form rather than pinning to
+    # one and silently KeyError-ing on the other.
+    candidates = (f'remote "{name}"', f"'remote \"{name}\"'")
+    for sect in candidates:
+        if cfg.has_section(sect):
+            return cfg[sect]["url"].strip()
+    raise AssertionError(
+        f"no remote section for {name!r} in .dvc/config; sections={cfg.sections()}"
+    )
+
+
+@pytest.mark.integration
+def test_s9_remote_is_absolute():
+    """E-5: the url must be absolute. A relative url is resolved against
+    .dvc/, which is how it ended up inside the worktree in the first place."""
+    url = _dvc_remote_url()
+    assert not url.startswith("~"), f"dvc does not reliably expand '~' in .dvc/config; got {url!r}"
+    assert Path(url).is_absolute(), f"remote url must be absolute, got {url!r}"
+
+
+@pytest.mark.integration
+def test_s9_remote_is_outside_every_git_tree():
+    """THE data-loss guard. The r2 url `../../../.dvc-storage` resolved to
+    worktrees/lung-on-chipsim/.dvc-storage — inside the worktree — so a routine
+    `git worktree remove` destroyed the only copy of the snapshot.
+
+    This asserts the store is not under the project root, not under the worktree
+    root, and not under the main checkout either. If someone "simplifies" the path
+    back inside the tree, this fails."""
+    store = Path(_dvc_remote_url()).resolve()
+
+    def _toplevel(cwd: Path) -> Path | None:
+        r = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return Path(r.stdout.strip()).resolve() if r.returncode == 0 else None
+
+    def _common_dir(cwd: Path) -> Path | None:
+        # For a linked worktree this points at the MAIN checkout's .git dir,
+        # which is how we reach the main tree from inside the worktree.
+        r = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return Path(r.stdout.strip()).resolve() if r.returncode == 0 else None
+
+    trees = []
+    wt_root = _toplevel(PROJECT_ROOT)
+    if wt_root is not None:
+        trees.append(wt_root)
+    common = _common_dir(PROJECT_ROOT)
+    if common is not None:
+        trees.append(common.parent)  # the main checkout's working tree
+
+    assert trees, "could not resolve any git tree to test against"
+    for tree in trees:
+        assert not store.is_relative_to(tree), (
+            f"DVC remote {store} is INSIDE git tree {tree}. "
+            "`git worktree remove` would destroy the only copy of the snapshot. "
+            "See build-plan.md S9 / CTO ruling E-5."
+        )
+
+
+@pytest.mark.integration
+def test_s9_remote_matches_the_ruled_path():
+    """E-5 named the path explicitly so it stays beside the ISCP db."""
+    assert _dvc_remote_url() == "/Users/mo/.aiadlc/biofm/dvc-storage"
 
 
 # --------------------------------------------------------------------------- #
