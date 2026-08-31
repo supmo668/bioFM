@@ -21,6 +21,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pandas as pd
 import requests
 
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
@@ -161,6 +162,202 @@ def verify_snapshot(dest: Path) -> dict[str, str]:
     if problems:
         raise SnapshotFetchError("snapshot integrity check failed:\n  " + "\n  ".join(problems))
     return recomputed
+
+
+# --------------------------------------------------------------------------- #
+# T5 · parse the compound table
+# --------------------------------------------------------------------------- #
+
+#: Row-count floor for the real snapshot. DrugBank 4.2 carries several thousand
+#: compounds; anything under this means the parse silently produced a near-empty
+#: frame. The floor is what makes T5's done-condition non-vacuous (defect 9) — a
+#: column-only assertion passes trivially on an empty frame.
+MIN_COMPOUND_ROWS = 1000
+
+#: Columns T5 emits, in declared order (T5a persists in this order).
+COMPOUND_COLUMNS = (
+    "drugbank_id",
+    "name",
+    "type",
+    "groups",
+    "atc_codes",
+    "inchi",
+    "inchikey",
+)
+
+#: The upstream TSVs pipe-join multi-valued cells.
+_LIST_SEP = "|"
+
+
+def _split_list_cell(value: object) -> list[str]:
+    """Pipe-joined string -> list[str]. Empty/NA -> []."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return []
+    text = str(value).strip()
+    if not text:
+        return []
+    return [part.strip() for part in text.split(_LIST_SEP) if part.strip()]
+
+
+def load_compounds(raw_dir: Path, min_rows: int = MIN_COMPOUND_ROWS) -> pd.DataFrame:
+    """`raw_dir` contains drugbank.tsv, drugbank-slim.tsv, proteins.tsv at its TOP LEVEL.
+
+    Columns: drugbank_id, name, type, groups (list[str]),
+    atc_codes (list[str]), inchi, inchikey.
+    Drops rows with no InChIKey. Does not canonicalise — that is T5b / harmonize/ids.py.
+
+    `min_rows` is the non-vacuity floor (defect 9). It defaults to the real
+    snapshot's floor; tests parsing a small fixture pass `min_rows=0` explicitly,
+    so lowering it is always a visible act at the call site rather than a silent
+    default.
+    """
+    path = Path(raw_dir) / "drugbank.tsv"
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"{path} not found. The snapshot is fetched by T4a "
+            "(`python -m chipsim.ingest.drugbank_snapshot --dest ... --commit ...`)."
+        )
+
+    frame = pd.read_csv(path, sep="\t", dtype=str, keep_default_na=False, na_values=[""])
+
+    missing = [c for c in COMPOUND_COLUMNS if c not in frame.columns]
+    if missing:
+        raise ValueError(f"{path} is missing expected column(s): {missing}")
+
+    frame = frame.loc[:, list(COMPOUND_COLUMNS)].copy()
+
+    # Drop rows with no InChIKey: without a structure key there is nothing to
+    # join on downstream, and T5b cannot canonicalise them.
+    frame = frame[frame["inchikey"].notna() & (frame["inchikey"].str.strip() != "")]
+
+    for column in ("groups", "atc_codes"):
+        frame[column] = frame[column].map(_split_list_cell)
+
+    frame = frame.reset_index(drop=True)
+
+    if len(frame) < min_rows:
+        raise ValueError(
+            f"parsed only {len(frame)} compound rows from {path}, below the floor of "
+            f"{min_rows}. An almost-empty frame passes every column assertion, so the "
+            "floor is what makes this check non-vacuous (defect 9)."
+        )
+    return frame
+
+
+# --------------------------------------------------------------------------- #
+# T6 · parse the protein-edge table
+# --------------------------------------------------------------------------- #
+
+#: The four edge categories the upstream table uses. T6 asserts EQUALITY against
+#: this set, not a subset (defect 9): a subset check passes on a frame that lost
+#: three of the four categories to a bad filter.
+EDGE_CATEGORIES = frozenset({"target", "enzyme", "transporter", "carrier"})
+
+#: Only human edges are in scope.
+HUMAN_ORGANISM = "Homo sapiens"
+
+EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "category", "organism")
+
+
+def load_protein_edges(raw_dir: Path) -> pd.DataFrame:
+    """Columns: drugbank_id, uniprot_id, category, organism.
+
+    `category` is one of target, enzyme, transporter, carrier.
+    Filters to organism == 'Homo sapiens'.
+    """
+    path = Path(raw_dir) / "proteins.tsv"
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"{path} not found. The snapshot is fetched by T4a "
+            "(`python -m chipsim.ingest.drugbank_snapshot --dest ... --commit ...`)."
+        )
+
+    frame = pd.read_csv(path, sep="\t", dtype=str, keep_default_na=False, na_values=[""])
+
+    missing = [c for c in EDGE_COLUMNS if c not in frame.columns]
+    if missing:
+        raise ValueError(f"{path} is missing expected column(s): {missing}")
+
+    frame = frame.loc[:, list(EDGE_COLUMNS)].copy()
+
+    unknown = set(frame["category"].dropna().unique()) - EDGE_CATEGORIES
+    if unknown:
+        raise ValueError(
+            f"{path} carries unexpected edge category/categories {sorted(unknown)}; "
+            f"expected a subset of {sorted(EDGE_CATEGORIES)}"
+        )
+
+    frame = frame[frame["organism"] == HUMAN_ORGANISM].reset_index(drop=True)
+    return frame
+
+
+# --------------------------------------------------------------------------- #
+# T5a · persist the compound frame
+# --------------------------------------------------------------------------- #
+
+#: Persisted column order. `canonical_inchikey` (T5b) leads because the frame is
+#: sorted on it and every downstream task indexes on it.
+PERSISTED_COMPOUND_COLUMNS = (
+    "canonical_inchikey",
+    "drugbank_id",
+    "name",
+    "type",
+    "groups",
+    "atc_codes",
+    "inchi",
+    "inchikey",
+)
+
+#: Parquet format version pinned so the bytes are reproducible across pyarrow
+#: releases; compression off for the same reason.
+_PARQUET_VERSION = "2.6"
+
+
+def write_compounds(df: pd.DataFrame, out: Path) -> None:
+    """Declared column order and dtypes, sorted by canonical_inchikey.
+
+    pyarrow, version='2.6', compression=None.
+    """
+    missing = [c for c in PERSISTED_COMPOUND_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"cannot persist: frame is missing {missing}. "
+            "Run add_canonical_identity() (T5b) before write_compounds() (T5a)."
+        )
+
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    frame = (
+        df.loc[:, list(PERSISTED_COMPOUND_COLUMNS)]
+        .sort_values("canonical_inchikey", kind="mergesort")
+        .reset_index(drop=True)
+    )
+
+    frame.to_parquet(out, engine="pyarrow", version=_PARQUET_VERSION, compression=None, index=False)
+
+    write_digest_sidecar(out)
+
+
+def write_digest_sidecar(target: Path) -> str:
+    """Write `<target>.sha256` beside a processed artifact and return the digest.
+
+    The sidecar is git-tracked while the artifact itself is not: it is what lets a
+    reviewer verify the artifact without it being redistributed.
+    """
+    target = Path(target)
+    digest = _sha256(target)
+    sidecar = target.with_suffix(".sha256")
+    sidecar.write_text(f"{digest}  {target.name}\n")
+    return digest
+
+
+def read_digest_sidecar(target: Path) -> str:
+    """Parse the digest out of `<target>.sha256`."""
+    sidecar = Path(target).with_suffix(".sha256")
+    if not sidecar.is_file():
+        raise FileNotFoundError(f"digest sidecar missing: {sidecar}")
+    return sidecar.read_text().split()[0]
 
 
 def _main(argv=None) -> int:

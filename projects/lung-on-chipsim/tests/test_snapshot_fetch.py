@@ -8,10 +8,13 @@ fixture-backed unit condition plus an explicitly deferred integration condition
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
 from chipsim.ingest import drugbank_snapshot as ds
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 VALID = "a" * 40
 CONTENT = {
@@ -180,10 +183,97 @@ def test_http_error_is_surfaced_not_swallowed(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------- #
 
 
+#: T1/T2's human artifact. No agent may write it — a fabricated source_commit
+#: would make the whole provenance claim a confident lie.
+LIVE_PROVENANCE = PROJECT_ROOT / "data" / "raw" / "drugbank" / "provenance.yaml"
+
+#: Keyed on the ARTIFACT, not an unconditional skip. An unconditional skip stays
+#: green and silent forever after T2 lands; this one lifts itself the moment the
+#: human delivers, so the integration leg cannot be forgotten.
+_blocked_on_t2 = pytest.mark.skipif(
+    not LIVE_PROVENANCE.exists(),
+    reason="T4a/T4 integration leg — blocked on T2 (H pins the snapshot commit); "
+    "auto-lifts when data/raw/drugbank/provenance.yaml lands",
+)
+
+
+def _pinned_commit() -> str:
+    import yaml
+
+    return yaml.safe_load(LIVE_PROVENANCE.read_text())["source_commit"]
+
+
 @pytest.mark.network
 @pytest.mark.integration
-@pytest.mark.skip(reason="T4a integration leg — blocked on T2 (H pins the snapshot commit)")
-def test_live_fetch_against_the_pinned_commit():
-    """Deferred. Runs only once data/raw/drugbank/provenance.yaml carries a real
-    source_commit — which no agent may write."""
-    raise AssertionError("blocked on T2")
+@_blocked_on_t2
+def test_live_fetch_against_the_pinned_commit(tmp_path):
+    """T4a's done-condition: the three TSVs exist and their recomputed sha256s
+    equal SHA256SUMS.json.
+
+    Runs only once data/raw/drugbank/provenance.yaml carries a real source_commit
+    — which no agent may write.
+    """
+    digests = ds.fetch_snapshot(tmp_path, _pinned_commit())
+    assert set(digests) == set(ds.SNAPSHOT_FILES)
+    for name in ds.SNAPSHOT_FILES:
+        assert (tmp_path / name).is_file()
+    assert ds.verify_snapshot(tmp_path) == digests
+
+
+@pytest.mark.integration
+@_blocked_on_t2
+def test_t4_dvc_pointer_tracks_the_snapshot():
+    """T4's four done-conditions (defects 5, 10):
+    (a) git status lists no .tsv; (b) drugbank.dvc exists, is git-tracked, and
+    parses as YAML with a non-empty outs[0].md5; (c) dvc status is up-to-date;
+    (d) SHA256SUMS.json is git-tracked.
+    """
+    import subprocess
+
+    import yaml
+
+    # (a)
+    porcelain = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert not [line for line in porcelain.splitlines() if line.endswith(".tsv")]
+
+    # (b)
+    pointer = PROJECT_ROOT / "data" / "raw" / "drugbank.dvc"
+    assert pointer.is_file(), "T4 has not run: data/raw/drugbank.dvc is absent"
+    doc = yaml.safe_load(pointer.read_text())
+    assert doc["outs"][0]["md5"]
+    assert (
+        subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "data/raw/drugbank.dvc"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )
+
+    # (c)
+    status = subprocess.run(
+        ["dvc", "status", "data/raw/drugbank.dvc"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert status.returncode == 0, status.stderr
+
+    # (d)
+    assert (
+        subprocess.run(
+            ["git", "ls-files", "--error-unmatch", f"data/raw/drugbank/{ds.MANIFEST_NAME}"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )

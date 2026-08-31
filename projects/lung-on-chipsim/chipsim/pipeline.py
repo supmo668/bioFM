@@ -1,0 +1,136 @@
+"""ETL pipeline CLI — the entrypoints the T16 n8n workflow export names.
+
+Five subcommands, one per workflow node:
+
+    fetch -> hash-verify -> parse -> provenance-tests -> write
+
+T16's done-condition requires that **each node names a CLI entrypoint that exists
+in the installed package**. `SUBCOMMANDS` is the single source of truth for that:
+the workflow JSON is validated against it, so a node naming a command that was
+renamed or removed fails the test rather than failing at 3am in n8n.
+
+**Not in slice 1:** provisioning n8n and executing the workflow end-to-end
+(tracked as T16a, deferred). This module is exercised directly by tests.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+#: Node name -> subcommand. The workflow export is checked against these keys.
+SUBCOMMANDS = (
+    "fetch",
+    "hash-verify",
+    "parse",
+    "provenance-tests",
+    "write",
+)
+
+MODULE_PATH = "chipsim.pipeline"
+
+
+def _cmd_fetch(ns: argparse.Namespace) -> int:
+    from chipsim.ingest.drugbank_snapshot import fetch_snapshot
+
+    digests = fetch_snapshot(ns.dest, ns.commit)
+    for name, digest in sorted(digests.items()):
+        print(f"{digest}  {name}")
+    return 0
+
+
+def _cmd_hash_verify(ns: argparse.Namespace) -> int:
+    from chipsim.ingest.drugbank_snapshot import verify_snapshot
+
+    verified = verify_snapshot(ns.dest)
+    print(f"verified {len(verified)} file(s) against the manifest")
+    return 0
+
+
+def _cmd_parse(ns: argparse.Namespace) -> int:
+    from chipsim.harmonize.ids import add_canonical_identity, canonicalization_disagreements
+    from chipsim.ingest.drugbank_snapshot import load_compounds, load_protein_edges
+
+    compounds = add_canonical_identity(load_compounds(ns.raw_dir))
+    edges = load_protein_edges(ns.raw_dir)
+    disagreements = len(canonicalization_disagreements(compounds))
+    print(
+        f"compounds={len(compounds)} edges={len(edges)} "
+        f"raw_vs_canonical_disagreements={disagreements}"
+    )
+    return 0
+
+
+def _cmd_provenance_tests(ns: argparse.Namespace) -> int:
+    """Run the provenance contract suite. Named `provenance-tests`, NOT
+    `contract tests`: §4.5 sanctions *data*-contract tests, which arrive with the
+    ChEMBL plan (defect 29)."""
+    import subprocess
+
+    return subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", str(ns.tests)], check=False
+    ).returncode
+
+
+def _cmd_write(ns: argparse.Namespace) -> int:
+    from chipsim.harmonize.ids import add_canonical_identity
+    from chipsim.ingest.drugbank_snapshot import load_compounds, write_compounds
+
+    compounds = add_canonical_identity(load_compounds(ns.raw_dir))
+    write_compounds(compounds, ns.out)
+    print(f"wrote {ns.out}")
+    return 0
+
+
+_HANDLERS = {
+    "fetch": _cmd_fetch,
+    "hash-verify": _cmd_hash_verify,
+    "parse": _cmd_parse,
+    "provenance-tests": _cmd_provenance_tests,
+    "write": _cmd_write,
+}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(prog=f"python -m {MODULE_PATH}")
+    sub = ap.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("fetch", help="download the pinned snapshot")
+    p.add_argument("--dest", required=True, type=Path)
+    p.add_argument("--commit", required=True)
+
+    p = sub.add_parser("hash-verify", help="recompute sha256s against the manifest")
+    p.add_argument("--dest", required=True, type=Path)
+
+    p = sub.add_parser("parse", help="parse compounds + protein edges")
+    p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
+
+    p = sub.add_parser("provenance-tests", help="run the provenance contract suite")
+    p.add_argument("--tests", default=Path("tests/test_provenance.py"), type=Path)
+
+    p = sub.add_parser("write", help="persist the compound frame")
+    p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
+    p.add_argument("--out", required=True, type=Path)
+
+    return ap
+
+
+def available_subcommands() -> tuple[str, ...]:
+    """The subcommands actually registered on the parser.
+
+    Derived from the parser rather than restated, so the T16 check cannot pass
+    against a stale list.
+    """
+    parser = build_parser()
+    actions = [a for a in parser._actions if isinstance(a, argparse._SubParsersAction)]
+    return tuple(actions[0].choices) if actions else ()
+
+
+def main(argv=None) -> int:
+    ns = build_parser().parse_args(argv)
+    return _HANDLERS[ns.command](ns)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

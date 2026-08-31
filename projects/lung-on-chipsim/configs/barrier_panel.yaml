@@ -1,0 +1,34 @@
+# ============================================================================
+# Barrier transporter / receptor panel — build-plan T7 (agent-drafted DRAFT).
+#
+# `ratified` is a REAL, FILE-LEVEL, PARSED BOOLEAN key (defects 1, 18) — not a
+# comment and not per-entry. It is `false` here and MUST stay false until a human
+# ratifies the accessions in T8.
+#
+#   *** NO AGENT MAY SET `ratified: true`. ***
+#
+# T8 is human-owned: check every accession against UniProt, correct any that are
+# wrong, delete any not expressed in airway epithelium, then set ratified: true
+# and fill ratified_by / ratified_on.
+#
+# Why this matters: a wrong accession silently EMPTIES a join and yields an
+# *empty* rather than a *wrong* result — a failure that looks like success.
+# chipsim.harmonize.pgp_label resolves ABCB1 FROM this file by symbol; it never
+# hard-codes P08183 (defect 4 / AM-2: composition is configuration, not code).
+#
+# The accessions below are the agent's DRAFT reading of the canonical human
+# entries. They are a starting point for T8's review, NOT a verified list.
+# tests/test_barrier_panel.py (T19) checks each against the live UniProt API.
+# ============================================================================
+
+ratified: false
+ratified_by: ""
+ratified_on: ""
+panel:
+  - {symbol: ABCB1,   uniprot: P08183, alias: "P-gp / MDR1",  face: apical}
+  - {symbol: ABCG2,   uniprot: Q9UNQ0, alias: "BCRP",         face: apical}
+  - {symbol: ABCC1,   uniprot: P33527, alias: "MRP1",         face: basolateral}
+  - {symbol: TFRC,    uniprot: P02786, alias: "TfR1",         face: apical}
+  - {symbol: FCGRT,   uniprot: P55899, alias: "FcRn",         face: apical}
+  - {symbol: SLC15A1, uniprot: P46059, alias: "PepT1",        face: apical}
+  - {symbol: SLCO2B1, uniprot: O94956, alias: "OATP2B1",      face: basolateral}

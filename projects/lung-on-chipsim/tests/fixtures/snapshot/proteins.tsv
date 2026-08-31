@@ -1,0 +1,10 @@
+drugbank_id	uniprot_id	category	organism	known_action
+DB90004	P08183	transporter	Homo sapiens	yes
+DB90005	P08183	transporter	Homo sapiens	yes
+DB90001	P29274	target	Homo sapiens	yes
+DB90002	P23219	enzyme	Homo sapiens	yes
+DB90003	P02768	carrier	Homo sapiens	no
+DB90007	P08183	enzyme	Homo sapiens	unknown
+DB90001	Q9UNQ0	transporter	Homo sapiens	no
+DB90002	P08183	transporter	Rattus norvegicus	yes
+DB90003	P33527	transporter	Homo sapiens	no

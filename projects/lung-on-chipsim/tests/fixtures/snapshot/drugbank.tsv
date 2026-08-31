@@ -1,0 +1,9 @@
+drugbank_id	name	type	groups	atc_codes	categories	inchikey	inchi
+DB90001	Fixture-Caffeine	small molecule	approved|investigational	N06BC01	Stimulants	RYYVLZVUVIJVGH-UHFFFAOYSA-N	InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3
+DB90002	Fixture-Aspirin	small molecule	approved	B01AC06|N02BA01	Analgesics	BSYNRYMUTXBXSQ-UHFFFAOYSA-N	InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)
+DB90003	Fixture-Ibuprofen	small molecule	approved	M01AE01	Anti-Inflammatories	HEFNNWSXXWATRW-UHFFFAOYSA-N	InChI=1S/C13H18O2/c1-9(2)8-11-4-6-12(7-5-11)10(3)13(14)15/h4-7,9-10H,8H2,1-3H3,(H,14,15)
+DB90004	Fixture-Verapamil-Free-Base	small molecule	approved	C08DA01	Calcium Channel Blockers	SGTNSNPWRIOYBX-UHFFFAOYSA-N	InChI=1S/C27H38N2O4/c1-20(2)27(19-28,22-10-12-24(31-5)26(18-22)33-7)14-8-15-29(3)16-13-21-9-11-23(30-4)25(17-21)32-6/h9-12,17-18,20H,8,13-16H2,1-7H3
+DB90005	Fixture-Verapamil-Hydrochloride	small molecule	approved	C08DA01	Calcium Channel Blockers	DOQPXTMNIUCOSY-UHFFFAOYSA-N	InChI=1S/C27H38N2O4.ClH/c1-20(2)27(19-28,22-10-12-24(31-5)26(18-22)33-7)14-8-15-29(3)16-13-21-9-11-23(30-4)25(17-21)32-6;/h9-12,17-18,20H,8,13-16H2,1-7H3;1H
+DB90006	Fixture-No-Structure	biotech	approved		Antibodies		
+DB90007	Fixture-Paracetamol	small molecule	approved	N02BE01	Analgesics	RZVAJINKPMORJF-UHFFFAOYSA-N	InChI=1S/C8H9NO2/c1-6(10)9-7-2-4-8(11)5-3-7/h2-5,11H,1H3,(H,9,10)
+DB90008	Fixture-Diclofenac-Sodium	small molecule	approved	M01AB05	Anti-Inflammatories	VSFBPYWDRANDLM-UHFFFAOYSA-N	InChI=1S/C14H11Cl2NO2.Na/c15-10-5-3-6-11(16)14(10)17-12-7-2-1-4-9(12)8-13(18)19;/h1-7,17H,8H2,(H,18,19);
