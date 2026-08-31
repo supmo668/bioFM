@@ -52,6 +52,13 @@ projects/**/*.png
 .claude/usr/*/*/*
 !.claude/usr/*/*/dispatches/
 
+# DVC content-addressed store. The default remote resolves here, so after any
+# `dvc push` this directory holds the DrugBank-derived snapshot as extensionless
+# md5-named blobs. A single `git add -A` would vendor them — the one thing the
+# ChipSim data plan forbids ("ChipSim never redistributes DrugBank"). Note that
+# T11's test_drugbank_not_vendored matches *.tsv and would NOT catch these.
+.dvc-storage/
+
 # Git worktrees — isolated dev branches live here; each is its own checkout.
 .worktrees/
 worktrees/

@@ -1,14 +1,30 @@
 # ChipSim data tree — build-plan S7.
 #
-# ChipSim never redistributes DrugBank. The snapshot lands under data/raw/,
-# is DVC-tracked, and is git-ignored. What MUST stay tracked is everything that
-# makes the snapshot *recoverable and auditable*: the .dvc pointers, the
-# .gitkeep anchors, and the processed-artifact digests (defect 10c).
+# ChipSim never redistributes DrugBank. Bulk data lands under data/, is
+# DVC-tracked, and is git-ignored. What MUST stay tracked is everything that
+# makes the snapshot recoverable, auditable and attributable: the .dvc pointers,
+# the .gitkeep anchors, the processed-artifact digests, and the human-authored
+# provenance artifacts (T1/T2).
+#
+# NOTE ON ORDERING — this is the bug the first draft had. `data/raw/*` excludes
+# the DIRECTORY data/raw/drugbank/, and git cannot re-include a file whose parent
+# directory is excluded. That silently git-ignored T1/T2's provenance.yaml and
+# T3/T4's SHA256SUMS.json, both of which the plan requires to be git-tracked.
+# The directory negations below MUST precede the file negations.
 
-data/raw/*
-data/interim/*
-data/processed/*
+data/raw/**
+data/interim/**
+data/processed/**
 
-!*.dvc
-!.gitkeep
+# Keep directories traversable so the file negations below can fire.
+!data/raw/**/
+!data/interim/**/
+!data/processed/**/
+
+# The files that must stay tracked.
+!data/**/*.dvc
+!data/**/.gitkeep
+!data/raw/drugbank/provenance.yaml
+!data/raw/drugbank/PROVENANCE.md
+!data/raw/drugbank/SHA256SUMS.json
 !data/processed/*.sha256
