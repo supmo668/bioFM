@@ -1,0 +1,47 @@
+[project]
+name = "chipsim"
+version = "0.1.0"
+description = "ChipSim — lung-on-chip exposure and barrier-response simulator (M0 data spine)."
+readme = "CONTEXT.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "CC-BY-NC-4.0" }
+
+# Runtime dependencies. `pyarrow` is pinned (not floated) because parquet bytes
+# are not stable across pyarrow versions and T5a/T15 record a sha256 over the
+# serialized file — build-plan S2 / defect 27.
+dependencies = [
+    "pandas",
+    "pyarrow==25.0.1",
+    "PyYAML",
+    "requests",
+    "rdkit",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["chipsim"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "dvc",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "network: hits a live remote endpoint (T19 UniProt verification); deselect with -m 'not network'",
+    "integration: requires a human-gated artifact or the fetched snapshot on disk; deselect with -m 'not integration'",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
