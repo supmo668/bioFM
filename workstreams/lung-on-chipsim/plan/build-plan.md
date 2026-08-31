@@ -171,13 +171,21 @@ engine (defect 26); its version is pinned because parquet bytes are not stable a
 
 ### S3 · Configure pytest — **CA · 2 min**
 - **Files:** `pyproject.toml` (edit: `[tool.pytest.ini_options]`, `testpaths = ["tests"]`, markers `network`, `integration`)
-- **Done when** `pytest --collect-only` exits 0 from the project root; exits non-zero if `testpaths` is removed.
+- **Done when** `pytest --collect-only` exits 0 from the project root, **and** a test asserts against the
+  *parsed* config that `[tool.pytest.ini_options].testpaths == ["tests"]` and that both markers are
+  registered. **(CTO ruling E-2.)** The r2 wording — "exits non-zero if `testpaths` is removed" — was
+  false as written and could never fail: pytest's default `norecursedirs` already skips `.venv`, so
+  collection still exits 0 with `testpaths` absent. Asserting on the parsed config tests the real thing.
 
 ### S4 · Create the test package and the day-one modules — **CA · 4 min**
 A&D §4.4 requires the three day-one tests. **`test_provenance.py` is a new file, distinct from
 `test_contracts.py`** — §4.4 reserves `test_contracts.py` for the §1.2 *data*-contract test, and
 T11's provenance checks are a different kind (defect 29).
-- **Files:** `tests/conftest.py` (new, `project_root` + fixture loaders) · `tests/test_provenance.py` · `tests/test_contracts.py` · `tests/test_leakage.py` · `tests/test_monotonicity.py` (new; leakage and monotonicity carry `pytest.mark.skip(reason="M0 slice 3 — splits/ODE not yet built")`)
+- **Files:** `tests/conftest.py` (new, `project_root` + fixture loaders) · `tests/test_provenance.py` · `tests/test_contracts.py` · `tests/test_leakage.py` · `tests/test_monotonicity.py` (new). **Each skip names its own blocker — CTO ruling E-3:**
+  `test_leakage.py` carries `pytest.mark.skip(reason="M0 slice 3 — splits not yet built")`;
+  `test_monotonicity.py` carries `pytest.mark.skip(reason="M1 ODE solver not yet built")`. Monotonicity
+  waits on the **M1 ODE solver**, not on slice-3 splits — a skip reason that misnames its own blocker
+  sends the next reader to the wrong milestone.
 - **Done when** `pytest --collect-only` discovers all four modules and `conftest.py`'s fixtures resolve.
 
 ### S5 · Create the committed test fixtures — **CA · 5 min**
@@ -197,7 +205,16 @@ Only the non-biological file is written. `theta_priors.yaml` and `assumptions.ya
 The ignore rule must **not** swallow the `.dvc` pointer files, which are the one thing that must be
 committed (defect 10c).
 - **Files:** `data/raw/.gitkeep` · `data/interim/.gitkeep` · `data/processed/.gitkeep` · `.gitignore` (**new** — per AM-4 this is `projects/lung-on-chipsim/.gitignore`, which did not exist) containing `data/raw/*`, `data/interim/*`, `data/processed/*`, plus `!*.dvc`, `!.gitkeep`, `!data/processed/*.sha256`
-- **Done when** `git check-ignore -q data/raw/probe.tsv` exits 0, and `git check-ignore -q data/raw/drugbank.dvc` exits **1**.
+- **Done when** the probe set below passes. **A top-level-only probe is not a probe of this rule (CTO
+  ruling E-4)** — `data/raw/*` excludes the *directory* `data/raw/drugbank/`, and **git cannot re-include
+  a file beneath an excluded directory**: negations below an excluded directory are inert. The r2 probes
+  passed against a `.gitignore` that silently ignored T1/T2's human artifacts and T4's done-condition (d).
+  So the probes MUST assert on **nested** paths explicitly:
+  - `git check-ignore -q data/raw/probe.tsv` exits **0** (bulk data ignored)
+  - `git check-ignore -q data/raw/drugbank/probe.tsv` exits **0** (nested bulk data ignored)
+  - each of these exits **1** (tracked — must NOT be ignored):
+    `data/raw/drugbank/provenance.yaml`, `data/raw/drugbank/PROVENANCE.md`,
+    `data/raw/drugbank/SHA256SUMS.json`, `data/raw/drugbank.dvc`
 
 ### S8 · Initialize DVC — **CA · 3 min**
 `dvc init --subdir` is required because the project root is a subdirectory of an existing git repo
@@ -207,8 +224,30 @@ committed (defect 10c).
 
 ### S9 · Configure a DVC remote — **CA · 2 min**
 Nothing in r1 configured storage, so `dvc pull` could never succeed (defect 11).
-- **Files:** `.dvc/config` (edit: `dvc remote add -d local ../../.dvc-storage`)
-- **Done when** `dvc remote list` names a default remote and `dvc push` followed by `dvc pull` on a clean cache round-trips the snapshot.
+
+**The remote MUST live at an absolute path OUTSIDE every git tree. CTO ruling E-5 — this is a
+data-loss fix, not a preference. Do not "simplify" it back inside the tree.**
+
+- **Files:** `.dvc/config` (edit) — the remote url is exactly:
+  ```
+  url = /Users/mo/.aiadlc/biofm/dvc-storage
+  ```
+- **Why (do not remove this rationale):**
+  1. **A relative url destroys the data.** r2 specified `../../../.dvc-storage`, which from
+     `projects/lung-on-chipsim/.dvc/` resolves to **`worktrees/lung-on-chipsim/.dvc-storage`** — *inside*
+     the worktree. `git worktree remove` is a routine operation here (there is a `/worktree-delete`
+     skill), so as specified **a routine cleanup destroys the only copy of the snapshot.**
+  2. **Absolute, not `~`-relative.** DVC does not reliably expand `~` in `.dvc/config`.
+  3. **Beside the ISCP database**, following the convention already in `agency.yaml`
+     (`iscp.db_path_template: ~/.aiadlc/{repo}/iscp.db`). It survives worktree removal, survives branch
+     switches, and is outside every git tree so it can never be vendored.
+  4. **It needs no `.gitignore` entry at all**, and it retires F-02 as a live risk rather than merely
+     ignoring it: extensionless md5 blobs cannot be `git add -A`'d if they are not under the repo.
+     Keep the F-02 ignore rule anyway as belt-and-braces, and keep the widened
+     `test_drugbank_not_vendored` — matching only `*.tsv` would never have caught blob-form bytes.
+- **Done when** `dvc remote list` names a default remote whose url is that absolute external path, the
+  configured url resolves outside the repository root, and `dvc push` followed by `dvc pull` on a clean
+  cache round-trips the snapshot.
 
 ### S10 · Create `orchestration/n8n/` — **CA · 1 min**
 - **Files:** `orchestration/n8n/.gitkeep` (new)
@@ -253,7 +292,13 @@ T11 can parse, and your prose.
     - Licence discussion: doi:10.15363/thinklab.d213
   non_commercial_commitment: "<one sentence you would defend>"
   ```
-- **Done when** `yaml.safe_load` yields all eight keys non-empty, `attribution` has three entries, and `PROVENANCE.md` exists.
+- **Done when** `yaml.safe_load` yields the contract in the form ratified by **CTO ruling E-1**:
+  **nine keys present; eight always non-empty; `commit_change_rationale` non-empty IFF
+  `source_commit != audited_commit`.** `attribution` has three entries, and `PROVENANCE.md` exists.
+  The r2 wording ("all eight keys non-empty") contradicted T2, which *requires*
+  `commit_change_rationale` to be empty when `source_commit == audited_commit`. This conditional is
+  strictly **more** checkable than "all non-empty", because it makes the *empty* case an assertion
+  rather than an exemption.
 
 ### T3 · Write the fetch script — **CA · 5 min**
 - **Files:** `chipsim/ingest/drugbank_snapshot.py` (edit)
@@ -295,12 +340,15 @@ for the §1.2 *data*-contract test, which arrives with the ChEMBL plan (defect 2
 - **Interfaces:**
   ```python
   def test_provenance_complete():
-      """provenance.yaml parses and carries all eight keys non-empty;
-      source_commit matches ^[0-9a-f]{40}$; attribution has three entries."""
+      """provenance.yaml parses and carries all NINE keys present, with the eight
+      unconditional keys non-empty; source_commit matches ^[0-9a-f]{40}$;
+      attribution has three entries. (CTO ruling E-1.)"""
 
   def test_provenance_commit_substitution_is_justified():
-      """source_commit == audited_commit, OR commit_change_rationale is non-empty
-      (defect 17) — a silent snapshot swap fails here."""
+      """The conditional contract, ratified E-1: commit_change_rationale is
+      non-empty IFF source_commit != audited_commit. Both directions assert —
+      a silent snapshot swap fails (rationale missing), AND a rationale offered
+      for an unchanged commit fails too (defect 17)."""
 
   def test_snapshot_hashes_match_manifest():
       """Recomputed sha256 of each fetched file equals SHA256SUMS.json (defect 2).
@@ -316,6 +364,9 @@ for the §1.2 *data*-contract test, which arrives with the ChEMBL plan (defect 2
   ```
 - **Done when** all five pass against `tests/fixtures/provenance.yaml`, `test_drugbank_not_vendored` fails if you `git add -f` a TSV, and `test_dvc_pointer_is_tracked` fails if the pointer is untracked.
 - **Blocked-by:** T1/T2 for the *live* provenance file; the unit conditions above run against the fixture.
+- **Sign-off note (CTO ruling E-1):** T11 is **unblocked for sign-off against fixtures** even though
+  T1/T2's real artifacts are absent, because the conditional contract is testable in both directions
+  from fixtures alone.
 
 ### T5 · Parse the compound table — **CA · 5 min**
 - **Files:** `chipsim/ingest/drugbank_snapshot.py` (edit)
@@ -604,6 +655,26 @@ target now exists) · AM-5 ✓ (T5b is §1.2 *identity*, inside the boundary) ·
 > it is **non-blocking for M0 slice 1** — no task here depends on the group-size threshold — but
 > **M5 pre-registration is gated on it.** Defect 24's fix means T15/T17 now *measure* the `yes`/`no`
 > populations, so AM-6 can be closed against real counts rather than estimates.
+
+## 7a · Amendment r2 → r2.1 — CTO rulings E-1…E-5 (dispatch #11, 2026-08-31)
+
+Five rulings from the CTO on the P0.1 report, re-issued by the principal. **No scope change** — four
+wording corrections and one config path. Each is recorded inline at the section it amends.
+
+| Ruling | Section | Change |
+|---|---|---|
+| **E-1** RATIFIED | T1, T11 | Nine keys present; eight always non-empty; `commit_change_rationale` non-empty **IFF** `source_commit != audited_commit`. Resolves a genuine self-contradiction between T1's "all eight non-empty" and T2's requirement that the rationale be empty on an unchanged commit. **T11 sign-off unblocked against fixtures.** |
+| **E-2** RATIFIED | S3 | Assert against the *parsed* config. The old done-condition could never fail — pytest's default `norecursedirs` already skips `.venv`. |
+| **E-3** RATIFIED | S4 | `test_monotonicity` skip reason names the **M1 ODE solver**, its actual blocker — not slice-3 splits. |
+| **E-4** RULED (defect) | S7 | Probe set extended to **nested** paths. A top-level-only probe does not test the rule that git cannot re-include a file beneath an excluded directory. |
+| **E-5** RULED (**data-loss fix**) | S9 | DVC remote relocated to the absolute external path `/Users/mo/.aiadlc/biofm/dvc-storage`. The r2 relative url resolved *inside* the worktree, so `git worktree remove` destroyed the only copy of the snapshot. |
+
+**Approval provenance:** these amendments were dictated by the CTO's ratified rulings and re-issued
+verbatim by the principal in-session on 2026-08-31 with the instruction to apply them and continue.
+They were not authored by the agent. `plan-approval.md` is re-signed to `r2.1` on that basis; the
+hash moves `737a8d9 → <r2.1>`.
+
+---
 
 ## 8 · Scope check
 
