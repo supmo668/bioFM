@@ -1,4 +1,6 @@
-FIXTURE — SYNTHETIC. NOT A DrugBank REDISTRIBUTION.
+FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+
+Also: NOT A DrugBank REDISTRIBUTION.
 
 These TSVs mimic the *schema* of the dhimmel/drugbank 4.2 snapshot so T5/T5b/T6's
 parse logic is testable while T2 (the pinned commit) and T4a (the fetch) are

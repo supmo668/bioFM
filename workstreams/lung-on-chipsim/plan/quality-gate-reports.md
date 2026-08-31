@@ -1,10 +1,17 @@
 # Quality Gate Reports — lung-on-chipsim
 
 > Kept OUT of `build-plan.md` deliberately. `tools/plan-gate` hash-locks the
-> build plan to the human's approval signature (hash `737a8d9`, approved-by
-> Matthew Mo). Appending QGRs to it changes that hash and BLOCKS the gate —
-> verified: appending this report moved the hash to `abd3ef4` and
-> `plan-gate verify` exited 2. Reports live here and the plan stays sealed.
+> build plan to the human's approval signature (currently hash `b79a5e4` = r2.1,
+> approved-by Matthew Mo; previously `737a8d9` = r2). Appending QGRs to it changes
+> that hash and BLOCKS the gate — verified: appending a report moved the hash to
+> `abd3ef4` and `plan-gate verify` exited 2. Reports live here and the plan stays
+> sealed.
+>
+> **Standing rule (CTO directive, 2026-08-31):** the worktree agent does not amend
+> `build-plan.md` on its own initiative. When a CTO ruling requires a plan
+> amendment, make the change, say so in the next dispatch, and the CTO lands it on
+> trunk and re-signs in the same move — so the signature always attaches to the
+> plan actually being built.
 
 ## Quality Gate Reports
 

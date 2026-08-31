@@ -60,6 +60,18 @@ SHARED_NAMES = {
     "poc_compounds.yaml",
 }
 
+#: Fixture SUBDIRECTORIES. tests/fixtures/snapshot/ mimics the dhimmel/drugbank
+#: TSV *schema* so T5/T5b/T6's parse logic is testable while T2/T4a are blocked.
+#: It carries no DrugBank content.
+FIXTURE_SUBDIRS = {
+    "snapshot": {
+        "README.md",
+        "drugbank.tsv",
+        "drugbank-slim.tsv",
+        "proteins.tsv",
+    },
+}
+
 EXPECTED_FIXTURES = FIXTURE_ONLY_NAMES | SHARED_NAMES
 
 #: Trees that constitute shipped source — anything here is a potential pipeline path.
@@ -90,6 +102,61 @@ SENTINEL_BANNER = "FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT."
 def test_all_expected_fixtures_exist():
     present = {p.name for p in FIXTURE_DIR.iterdir() if p.is_file()}
     assert EXPECTED_FIXTURES <= present, f"missing fixtures: {EXPECTED_FIXTURES - present}"
+
+
+def test_every_present_fixture_is_registered():
+    """Closes the loop on a hand-maintained list.
+
+    `EXPECTED_FIXTURES` drives the parse, banner and digest checks below. A fixture
+    added to the directory but not to the list is therefore checked by NOTHING —
+    it silently opts out of every guarantee this module provides. This asserts the
+    reverse inclusion, so adding a fixture without registering it FAILS here.
+
+    Found by the P0.2 quality gate: tests/fixtures/snapshot/ was added with four
+    files, none registered, and the whole suite stayed green.
+    """
+    top_level = {p.name for p in FIXTURE_DIR.iterdir() if p.is_file()}
+    unregistered = top_level - EXPECTED_FIXTURES
+    assert not unregistered, (
+        f"unregistered fixture file(s): {sorted(unregistered)}. Add them to "
+        "FIXTURE_ONLY_NAMES or SHARED_NAMES so they are actually checked."
+    )
+
+    present_dirs = {p.name for p in FIXTURE_DIR.iterdir() if p.is_dir()}
+    present_dirs -= {"__pycache__"}
+    assert present_dirs == set(FIXTURE_SUBDIRS), (
+        f"fixture subdirectories out of sync: present={sorted(present_dirs)}, "
+        f"registered={sorted(FIXTURE_SUBDIRS)}"
+    )
+    for name, expected in FIXTURE_SUBDIRS.items():
+        actual = {p.name for p in (FIXTURE_DIR / name).iterdir() if p.is_file()}
+        assert actual == expected, (
+            f"tests/fixtures/{name}/ contents out of sync: "
+            f"present={sorted(actual)}, registered={sorted(expected)}"
+        )
+
+
+def test_snapshot_fixture_carries_the_sentinel_banner():
+    """TSV has no comment syntax, so the directory's README carries the banner for
+    the whole snapshot fixture set."""
+    readme = (FIXTURE_DIR / "snapshot" / "README.md").read_text()
+    assert SENTINEL_BANNER in readme
+
+
+def test_snapshot_fixture_is_not_real_drugbank_content():
+    """The one assertion that matters legally as well as scientifically: ChipSim
+    never redistributes DrugBank. Every identifier in the fixture is namespaced."""
+    import csv as _csv
+
+    for name in ("drugbank.tsv", "drugbank-slim.tsv", "proteins.tsv"):
+        with (FIXTURE_DIR / "snapshot" / name).open(newline="") as fh:
+            rows = list(_csv.DictReader(fh, delimiter="\t"))
+        assert rows, f"{name} is empty"
+        for row in rows:
+            assert row["drugbank_id"].startswith("DB9"), (
+                f"{name} carries a non-fixture drugbank_id {row['drugbank_id']!r}; "
+                "fixture ids are namespaced DB9xxxx so they cannot collide with real ones"
+            )
 
 
 def test_scanned_trees_actually_exist():
