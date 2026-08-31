@@ -1,0 +1,1 @@
+- P0.2 — T5-T19 + S11a against fixtures; CTO rulings E-1..E-5 applied and falsified; 27 QG findings fixed (commit fd945cc)
