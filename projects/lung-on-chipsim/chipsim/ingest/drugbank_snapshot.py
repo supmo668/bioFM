@@ -18,7 +18,7 @@ import json
 import re
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -115,7 +115,7 @@ def fetch_snapshot(dest: Path, commit: str) -> dict[str, str]:
 
         manifest = {
             "source_commit": commit,
-            "fetched_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "fetched_utc": datetime.now(UTC).isoformat(timespec="seconds"),
             "files": dict(digests),
         }
         (staging / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
