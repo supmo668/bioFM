@@ -2,9 +2,7 @@
 name = "chipsim"
 version = "0.1.0"
 description = "ChipSim — lung-on-chip exposure and barrier-response simulator (M0 data spine)."
-readme = "CONTEXT.md"
 requires-python = ">=3.11,<3.13"
-license = { text = "CC-BY-NC-4.0" }
 
 # Runtime dependencies. `pyarrow` is pinned (not floated) because parquet bytes
 # are not stable across pyarrow versions and T5a/T15 record a sha256 over the
@@ -14,11 +12,14 @@ dependencies = [
     "pyarrow==25.0.1",
     "PyYAML",
     "requests",
-    "rdkit",
+    # Pinned for the same reason as pyarrow, and with more at stake: rdkit performs
+    # the salt-strip -> neutralize -> tautomer-canonicalize -> InChIKey chain in T5b,
+    # and that canonical InChIKey is the join key for T10/T13/T15 and the key the
+    # sealed allocation is built on. Tautomer canonicalization and the bundled InChI
+    # toolkit both change across releases, so an unpinned rdkit can silently
+    # repartition the splits while every recorded sha256 and every test stays green.
+    "rdkit==2026.3.5",
 ]
-
-[project.optional-dependencies]
-dev = []
 
 [build-system]
 requires = ["hatchling"]
