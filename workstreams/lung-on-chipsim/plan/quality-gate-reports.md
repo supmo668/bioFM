@@ -175,3 +175,85 @@ ships `ratified: false`. The T4a/T4 legs were changed from an unconditional `ski
 to a `skipif` keyed on the artifact, so they **self-lift** when T2 lands rather than
 staying silently green. T19 confirmed all seven draft accessions resolve as human
 with matching gene symbols — mechanical groundwork for T8, **not** a ratification.
+
+---
+
+### P0.3 — pr-prep gate (2026-09-01)
+
+**Gate:** `ruff check` + `ruff format --check` clean; `pytest -m "not network"`
+**289 passed / 7 skipped**; `pytest -m network` **15 passed / 1 skipped**.
+Reviewers: code, security, design, test + scorer + own review. Threshold 80.
+Receipt: `qgr/…-qgr-pr-prep-20260901-0321-7768719.md`.
+
+Scope reviewed: the delta `b18d097..HEAD` (README, barrier panel, CONTEXT). Earlier
+commits carry the P0.1/P0.2 receipts. **Most findings were against material added in
+this cycle, not against the 29 gated tasks** — the gate caught the reviewer.
+
+#### The scorer's own finding (N1) — the one four reviewers missed
+
+`build-plan.md` T7's interface block prescribed `TFRC … face: apical`; the live
+config had been changed to `basolateral`. T8 authorizes correcting *accessions* and
+*deleting* entries — never a `face` change. The value was written **ahead of the
+plan amendment**, putting the config out of conformance with a G4-signed document,
+with nothing mechanically guarding it. Escalated (#17), ruled option (a) (#18): T7
+now prescribes `basolateral` with both caveats carried in the plan, re-signed
+`b5443bd`. Sequencing error, recorded rather than quietly corrected.
+
+#### Most consequential catches
+
+**S1 — the DVC remote fix reintroduced the failure class E-5 existed to prevent.**
+The committed absolute url named one developer's home directory and shipped to a
+public remote. Worse than disclosure: DVC's local remote *creates* the directory on
+push, so every other contributor and CI got a **silent empty success** on push and
+nothing on pull, rather than a clean misconfiguration error. Moved to the
+already-gitignored `.dvc/config.local`.
+
+**S3 — a test that blocked its own fix.** `test_s9_remote_matches_the_ruled_path`
+compared a committed constant against a value parsed from a committed file: it
+passed on every machine, verified nothing, and went red the moment anyone corrected
+the config. Deleted; the two machine-independent guards survive and now skip cleanly
+when no url is configured.
+
+**T1 — the live barrier panel had no `face` assertion of any kind.** The only
+entry-schema check read the *fixture*. `face: appical`, a dropped key, or a
+duplicated symbol passed the entire offline **and** network suite.
+
+**T4 — a single missing `face` became `NaN`, not an error.** `pd.DataFrame` over a
+list of dicts fills a partially-missing key silently; only an all-entries-missing
+key raised. Inert while `ratified: false`, live the instant T8 flips it — and a
+human editing one row is exactly who drops one key. Validation added at load.
+
+**D1 — biological numbers written into an identity-only file.** Localization ratios
+(~800:1 … ~2:1) were placed in `configs/barrier_panel.yaml` comments. AM-3 defines
+that file as carrying no numbers; comment form dodges the numeric-leaf validator but
+not the rule. Relocated to `T8-review-record.md`.
+
+**C2 — README claimed `data/` is "never in git".** False, and verbatim the
+misconception that produced F-01: `.gitignore` deliberately re-includes provenance
+files, `.dvc` pointers and `.sha256` digests.
+
+#### Reviewer conflict, resolved by the scorer
+
+Code review said update the five fixtures' TFRC face (an M1 test written against the
+fixture would bake in the reversed direction, since `load_ratified_panel` refuses the
+unratified live config and forces every offline consumer onto the fixture). Test
+review said do **not** — fixtures are independent and updating implies an attestation
+they cannot make. Ruling: **annotate now, edit later.** Fixtures gain a header saying
+`face` is schema filler; a **skipped** fixture-vs-config agreement test names T8 as
+its blocker and makes the divergence self-announcing. The fixtures currently match
+the signed plan — editing them now would turn one divergence into six.
+
+#### Rejected after verification (2)
+
+**D8** — two of three cited lines were wrong and the third uses the canonical
+glossary term. **D12** — the Layout section correctly omits directories that do not
+exist on disk; adding them would be the defect.
+
+#### Escalated, not fixed here
+
+`build-plan.md` amendments (G4 hash-locked — N1, T8 `face` scope, `ratified_panel_sha256`,
+the E-5 mechanism, D9's correction), all landed by the CTO at `bfa2c1e`/`87c74c5`.
+`config/monitor-pids.json` (framework-owned, commits live PIDs). `LICENSE` — absent, but
+licence posture is human-owned T1 and an agent authoring one would simulate a blocked task.
+
+**Human blockers — artifacts correctly ABSENT:** T2, T1, T8, T18, T14.
