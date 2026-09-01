@@ -5,11 +5,18 @@
 # comment and not per-entry. It is `false` here and MUST stay false until a human
 # ratifies the accessions in T8.
 #
-#   *** NO AGENT MAY SET `ratified: true`. ***
+#   *** NO AGENT MAY SET `ratified: true`, `ratified_by` OR `ratified_on`. ***
 #
 # T8 is human-owned: check every accession against UniProt, correct any that are
-# wrong, delete any not expressed in airway epithelium, then set ratified: true
+# wrong, delete entries per the deletion criterion below, then set ratified: true
 # and fill ratified_by / ratified_on.
+#
+#   DELETION CRITERION — read this before deleting anything. The r2 wording,
+#   "delete any not expressed in airway epithelium", is a TRAP if read against
+#   UniProt's tissue comment: five of seven entries have no lung mention there,
+#   INCLUDING ABCB1. Principal's ruling: delete ONLY on positive evidence of
+#   ABSENCE. Silence in a curated database is a curation gap, never evidence.
+#   See CONTEXT.md, "Standing rules".
 #
 # Why this matters: a wrong accession silently EMPTIES a join and yields an
 # *empty* rather than a *wrong* result — a failure that looks like success.
@@ -18,68 +25,34 @@
 #
 # The accessions below are the agent's DRAFT reading of the canonical human
 # entries. They are a starting point for T8's review, NOT a verified list.
-# tests/test_barrier_panel.py (T19) checks each against the live UniProt API.
+# tests/test_barrier_panel.py (T19) checks each against the live UniProt API;
+# it does NOT check membrane polarity or airway expression.
+#
+# IDENTITY ONLY — no numbers. AM-3 splits this file from theta_priors.yaml
+# precisely because "no agent writes a biological number" cuts here. Evidence,
+# ratios and rationale live in workstreams/lung-on-chipsim/T8-review-record.md,
+# NOT in this file.
+#
+#   REVIEW RECORD: workstreams/lung-on-chipsim/T8-review-record.md
+#   It is REVIEW INPUT, not a completed review. Its existence is NOT evidence
+#   that ratification occurred, and it confers no authority to set the three
+#   fields above. Durable refs: dispatches #15, #16, #17.
 # ============================================================================
-
-# ---------------------------------------------------------------------------
-# T8 PRE-RATIFICATION REVIEW — rationale for a human reviewer, recorded so the
-# eventual attestation is auditable rather than remembered. Written by the agent
-# while transcribing the principal's rulings; `ratified` remains false.
-#
-# Deletion criterion (principal's ruling): an entry is deleted only on POSITIVE
-# EVIDENCE OF ABSENCE from airway epithelium — never on silence in UniProt.
-# UniProt's tissue-specificity comment is a curated sample of published findings,
-# not an expression atlas, so absence there is a curation gap. This is the same
-# discipline the P-gp label enforces: absence of evidence is not evidence of
-# absence. Read literally, "delete any not expressed in airway epithelium" would
-# have cut five of seven entries INCLUDING ABCB1.
-#
-# Panel size: the A&D binding-site inventory names five (P-gp, BCRP, TfR1, FcRn,
-# PepT1). This draft carries seven — ABCC1 and SLCO2B1 are additions beyond it,
-# reported to the CTO rather than absorbed silently. Ratification attests to
-# IDENTITY AND FACE only. It does NOT endorse seven modelled carrier terms: the
-# PoC models a passive baseline plus two carriers (PVR), and that is a θ decision
-# at M1 under the 5–8 identifiable-parameter budget, not a panel decision here.
-# Panel entries beyond those two earn their place as edge-join and labelling
-# surface, which costs no parameters.
-#
-# `face` is a PoC modelling choice where the biology is two-faced. UniProt gives
-# SLCO2B1 as basal, basolateral AND apical; FcRn transcytoses bidirectionally.
-# The recorded value picks one face; M1 may widen the schema when directional
-# transport actually consumes the field.
-# ---------------------------------------------------------------------------
 
 ratified: false
 ratified_by: ""
 ratified_on: ""
 panel:
-  # Airway expression not in UniProt's tissue comment (intestine/liver/kidney/
-  # brain), but P-gp is extensively reported in bronchial epithelium — kept per
-  # the deletion criterion above. KEYSTONE: pgp_label resolves ABCB1 from here by
-  # symbol; deleting or re-accessioning it makes T10 raise (defect 4).
   - {symbol: ABCB1,   uniprot: P08183, alias: "P-gp / MDR1",  face: apical}
-  # Apical per UniProt. Airway not in the tissue comment; kept per the criterion.
   - {symbol: ABCG2,   uniprot: Q9UNQ0, alias: "BCRP",         face: apical}
-  # Beyond the A&D's five, but the BEST-evidenced entry here: UniProt lists Lung
-  # explicitly. Basolateral per UniProt.
   - {symbol: ABCC1,   uniprot: P33527, alias: "MRP1",         face: basolateral}
-  # face CORRECTED apical -> basolateral (principal's ruling, T8 review).
-  # UniProt gives no polarity for TfR1. Reported basolateral:apical ratios are
-  # basolateral-dominant in every system measured: MDCK I ~800:1 and MDCK II
-  # ~300:1 (Fuller & Simons, 1986); Caco-2 ~40:1 at day 8 post-confluence,
-  # shifting from ~1:1 during differentiation; HepG2 ~3:1 (~70% basolateral);
-  # BeWo ~2:1. CAVEAT, deliberately recorded: none of these are airway
-  # epithelium, so this is extrapolation across polarized epithelia — direction
-  # is unanimous, magnitude in airway is unmeasured, and the ratio spans ~400x,
-  # so at the low end this is a preference and not an exclusive localization.
+  # face: corrected apical -> basolateral on the principal's ruling from measured
+  # localization data. AUTHORIZED: build-plan.md T7 prescribes `basolateral` as of
+  # r2.3 (CTO ruling N1, dispatch #18), re-signed at b5443bd. Both caveats are
+  # carried in the plan and in T8-review-record.md "Ruling 2": no measured system
+  # was airway epithelium, and the ~400x ratio spread makes this a preference
+  # rather than an exclusive localization at the low end.
   - {symbol: TFRC,    uniprot: P02786, alias: "TfR1",         face: basolateral}
-  # UniProt lists lung explicitly. No polarity given; FcRn transcytoses
-  # bidirectionally and `apical` records the entry face as a PoC choice.
   - {symbol: FCGRT,   uniprot: P55899, alias: "FcRn",         face: apical}
-  # UniProt tissue comment gives small intestine only and airway PepT1 is
-  # contested in the literature — the entry most worth revisiting. Kept: contested
-  # is not positive evidence of absence.
   - {symbol: SLC15A1, uniprot: P46059, alias: "PepT1",        face: apical}
-  # Beyond the A&D's five and the WEAKEST entry: no lung in the tissue comment,
-  # and UniProt gives basal, basolateral AND apical. `basolateral` is a choice.
   - {symbol: SLCO2B1, uniprot: O94956, alias: "OATP2B1",      face: basolateral}

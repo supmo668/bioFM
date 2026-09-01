@@ -36,6 +36,12 @@ PRE_ADJUDICATION_LABELS = frozenset({"yes", "unknown"})
 
 PANEL_EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "symbol", "category", "face")
 
+#: Legal membrane faces. The binary is a PoC modelling choice, not biology: FcRn
+#: transcytoses bidirectionally and UniProt gives SLCO2B1 as basal, basolateral
+#: AND apical. M1 may widen this when directional transport actually consumes the
+#: field; until a consumer exists, widening a tested schema buys nothing.
+FACES = frozenset({"apical", "basolateral"})
+
 
 def load_ratified_panel(panel_path: Path) -> dict:
     """Parse a barrier panel and REFUSE it unless a human ratified it.
@@ -76,6 +82,49 @@ def load_ratified_panel(panel_path: Path) -> dict:
     panel = doc.get("panel") or []
     if not panel:
         raise RuntimeError(f"{panel_path} has an empty panel")
+
+    # Per-entry schema validation. Without this, a SINGLE entry missing `face`
+    # does not raise: pd.DataFrame over a list of dicts fills the missing key
+    # with NaN, and that NaN flows out through PANEL_EDGE_COLUMNS into the joined
+    # frame with no error. Only an ALL-entries-missing key raises KeyError. A
+    # human editing this file at T8 is exactly who would drop one key from one
+    # row, and the failure would surface far downstream as a missing membrane
+    # face rather than here as a malformed panel.
+    required = ("symbol", "uniprot", "alias", "face")
+    seen: dict[str, int] = {}
+    for i, entry in enumerate(panel):
+        if not isinstance(entry, dict):
+            # RuntimeError, not TypeError, for the same reason as the parse check
+            # above: every "this panel is unusable" failure in this module is one
+            # family so callers can catch one exception type.
+            raise RuntimeError(  # noqa: TRY004
+                f"{panel_path} panel[{i}] is {type(entry).__name__}, not a mapping"
+            )
+        missing = [k for k in required if not str(entry.get(k, "")).strip()]
+        if missing:
+            raise RuntimeError(
+                f"{panel_path} panel[{i}] ({entry.get('symbol', '?')}) is missing or has "
+                f"an empty {', '.join(missing)}. Every entry needs all of {required}."
+            )
+        # .get(), not [] — this check must not depend on `face` staying in
+        # `required` above. A mutation dropping it should surface as this clean
+        # RuntimeError, not as a KeyError from the domain check itself.
+        if entry.get("face") not in FACES:
+            raise RuntimeError(
+                f"{panel_path} panel[{i}] ({entry.get('symbol', '?')}) has face="
+                f"{entry.get('face')!r}; expected one of {sorted(FACES)}."
+            )
+        # Duplicate symbols make resolve_panel_accession() silently return the
+        # first match, so a second ABCB1 row would be unreachable and its
+        # accession never used — an edit that looks applied but is not.
+        if entry["symbol"] in seen:
+            raise RuntimeError(
+                f"{panel_path} has duplicate symbol {entry['symbol']!r} at panel"
+                f"[{seen[entry['symbol']]}] and panel[{i}]; symbol must be unique "
+                "because accessions are resolved by symbol."
+            )
+        seen[entry["symbol"]] = i
+
     return doc
 
 

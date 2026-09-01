@@ -1,12 +1,24 @@
 [core]
     remote = local
     analytics = false
+
+# The remote's `url` is deliberately NOT here. It is machine-specific, so it lives
+# in `.dvc/config.local`, which `.dvc/.gitignore` excludes from version control.
+#
+# Set it once per machine:
+#
+#     dvc remote modify --local local url <absolute-path>
+#
+# THE PATH MUST BE ABSOLUTE AND OUTSIDE EVERY GIT TREE. This is a data-loss guard,
+# not a style preference. An earlier value, `../../../.dvc-storage`, resolved to a
+# directory INSIDE the worktree, so the routine `git worktree remove` destroyed the
+# only copy of the snapshot. Do not "simplify" it back inside the tree.
+# Do not use a `~`-relative path either: dvc does not reliably expand `~` here.
+#
+# Keep it a LOCAL path. The snapshot is CC BY-NC 4.0 and this project never
+# redistributes DrugBank; a local remote cannot leave the machine, which a
+# misconfigured cloud bucket could.
+#
+# tests/test_scaffold.py asserts both properties (absolute, outside every git tree)
+# and skips cleanly when no url is configured yet.
 ['remote "local"']
-    # CTO ruling E-5 (dispatch #11) — DATA-LOSS FIX. This MUST be an absolute path
-    # OUTSIDE every git tree. The previous value `../../../.dvc-storage` resolved to
-    # worktrees/lung-on-chipsim/.dvc-storage — INSIDE the worktree — so the routine
-    # `git worktree remove` / `/worktree-delete` destroyed the only copy of the snapshot.
-    # Absolute, not `~`-relative: dvc does not reliably expand `~` here.
-    # Sits beside the ISCP db, per agency.yaml's iscp.db_path_template convention.
-    # Do not "simplify" this back inside the tree. See build-plan.md S9.
-    url = /Users/mo/.aiadlc/biofm/dvc-storage

@@ -70,6 +70,39 @@ The ~30 proteins scored for occupancy — MoA targets of the reference set plus 
 barrier carriers. Distinct from the **barrier panel**, which is the transporter/receptor
 set at the barrier itself.
 
+## Standing rules
+
+**No public biological database's silence is evidence of absence.**
+
+Deleting an entry, or assigning any negative value, requires **positive evidence with a
+citation**. Absence of a record means `unknown` — and `unknown` is a distinct third state
+that must survive into the schema, never collapsed into the negative.
+
+The reason this is a standing rule rather than a note is that it has already been rediscovered
+three times against three different sources:
+
+| Source | The silence | What reading it as "no" would have done |
+|---|---|---|
+| DrugBank 4.2 (2015 snapshot) | no transporter edge for a compound | labelled it a P-gp non-substrate, silently redefining the groups an entire coverage claim is conditioned on |
+| UniProt tissue-specificity comment | no lung mention for an accession | deleted five of seven **barrier panel** entries, including the P-gp keystone — a curated sample of published findings read as an expression atlas |
+| any future curated public source | — | — |
+
+These databases record what someone published and curated, not what exists. The gap between
+those two is invisible at the point of use, which is what makes the error easy to make and
+hard to see: the resulting artifact is not *wrong*, it is **empty**, and an empty join looks
+like a clean run.
+
+Practical consequences already built into the code and configs:
+
+- **P-gp substrate status** is three-valued; `no` is assignable only by human adjudication
+  carrying a citation.
+- **Barrier panel** entries are deleted only on positive evidence of *absence* from airway
+  epithelium. An optional, human-only `airway_evidence:` field records positive evidence of
+  presence; **its absence means the weaker claim** — "no positive evidence of absence" — and is
+  never silently upgraded to "present".
+- Anywhere a schema offers only a binary, ask whether the third state has been quietly
+  collapsed into one of the two.
+
 ## Flagged ambiguities
 
 **"Calibration point" was undefined and load-bearing.** §2D requires ≥30 calibration

@@ -30,7 +30,8 @@ barrier-panel layer.
 | `configs/barrier_panel.yaml` | `ratified: false` |
 
 Two quality-gate iterations are recorded in
-`workstreams/lung-on-chipsim/plan/quality-gate-reports.md`. Every test a reviewer proved
+`workstreams/lung-on-chipsim/plan/quality-gate-reports.md` (path from the repository root;
+`../../workstreams/...` from this directory). Every test a reviewer proved
 vacuous was re-run under mutation after fixing; all 7 that previously passed now fail.
 
 ---
@@ -45,14 +46,14 @@ graph TB
     subgraph active["Slice 1 — implemented"]
         ingest["<b>ingest/</b><br/>drugbank_snapshot.py<br/><i>465 lines</i>"]
         harmonize["<b>harmonize/</b><br/>ids · pgp_label · adjudication<br/>roster · contracts<br/><i>824 lines</i>"]
-        evalpkg["<b>eval/</b><br/>provenance_block.py<br/><i>112 lines</i>"]
+        evalpkg["<b>eval/</b><br/>provenance_block.py<br/><i>112 lines</i><br/><i>provenance block only;<br/>frozen evaluator is M0c</i>"]
         pipeline["<b>pipeline.py</b><br/>5-stage CLI entrypoint<br/><i>136 lines</i>"]
     end
 
     subgraph later["Later milestones — placeholders"]
         transport["transport/<br/><i>M1 · ODE core</i>"]
         occupancy["occupancy/<br/><i>M3 · binding</i>"]
-        heads["heads/<br/><i>M4 · readout</i>"]
+        heads["heads/<br/><i>M2 · ADME heads / M4 · readout</i>"]
         uncertainty["uncertainty/<br/><i>M5 · calibration</i>"]
         acquire["acquire/<br/><i>M6 · acquisition</i>"]
         misc["encoders/ · surface/"]
@@ -77,7 +78,7 @@ graph TB
 | `harmonize/pgp_label.py` | Three-way P-gp substrate label; resolves ABCB1 **from the panel config**, never hard-coded |
 | `harmonize/adjudication.py` | Load human-adjudicated labels; reject a verdict lacking an evidence DOI |
 | `harmonize/roster.py` | Validate the PoC compound roster before a human spends time filling it |
-| `harmonize/contracts.py` | Shared data-contract assertions |
+| `harmonize/contracts.py` | Provenance contract — nine keys, eight unconditional, conditional rationale |
 | `eval/provenance_block.py` | Model-card data-provenance section |
 | `pipeline.py` | `argparse` CLI; the entrypoint the n8n ETL export invokes |
 
@@ -141,7 +142,7 @@ five are absent rather than approximated.
 flowchart LR
     T2["<b>T2</b> pin commit<br/><i>2 min</i>"]:::human
     T1["<b>T1</b> licence posture<br/><i>5 min</i>"]:::human
-    T8["<b>T8</b> ratify accessions<br/><i>10 min</i>"]:::human
+    T8["<b>T8</b> ratify 7 accessions + 7 faces<br/><i>10 min</i>"]:::human
     T18["<b>T18</b> curate roster<br/><i>30–45 min</i>"]:::human
     T14["<b>T14</b> adjudicate labels<br/><i>60–90 min</i>"]:::human
 
@@ -169,7 +170,7 @@ phase, gating `T4a` and `T1` directly and `T11` transitively.
 |---|---|---|
 | `T2` | A 40-char commit SHA personally resolved from `dhimmel/drugbank` | A plausible-looking SHA is indistinguishable from a real one until fetch fails |
 | `T1` | Licence posture in your own words, incl. non-commercial commitment | It is a commitment, not a computation |
-| `T8` | Seven UniProt accessions checked by hand, then `ratified: true` | A wrong accession *empties* a join — a failure that looks like success |
+| `T8` | Seven UniProt accessions **and** seven `face` assignments checked by hand, then `ratified: true`; an entry may be deleted only on positive evidence of absence, never on silence in a database | A wrong accession or face *empties* a join — a failure that looks like success |
 | `T18` | 20–40 inhaled/lung-relevant compounds with published exposure | Curation judgement; a roster is a claim about relevance |
 | `T14` | Per-compound P-gp verdict with an evidence DOI | A fabricated DOI corrupts the M5 coverage claim invisibly |
 
@@ -181,13 +182,18 @@ guessed into one.
 
 ## Getting started
 
-Requires Python 3.11 (RDKit wheel availability is the binding constraint) and [`uv`].
+Supports Python 3.11–3.12 (`requires-python = ">=3.11,<3.13"`; RDKit wheel availability is the
+binding constraint on the upper bound). 3.11 is the recommended version and the one the
+quickstart below pins. Also needs [`uv`].
 
 ```bash
 cd projects/lung-on-chipsim
 uv venv --python 3.11
-uv sync --all-extras
+uv sync
 ```
+
+`uv sync` already installs the `dev` dependency group; there is no
+`[project.optional-dependencies]` table, so `--all-extras` would do nothing.
 
 ### Run the tests — this works today
 
@@ -220,7 +226,8 @@ projects/lung-on-chipsim/
 ├── configs/
 │   ├── barrier_panel.yaml    # 7 accessions, ratified: false
 │   └── env.yaml              # paths + source coordinates, NON-BIOLOGICAL only
-├── data/                 # raw/ interim/ processed/ — DVC-tracked, never in git
+├── data/                 # raw/ interim/ processed/ — bulk payload DVC-tracked + gitignored;
+│                         # provenance files, .dvc pointers and .sha256 digests stay git-tracked
 ├── orchestration/n8n/    # etl_drugbank.json workflow export
 ├── tests/                # 14 modules + 19 fixtures
 ├── CONTEXT.md            # domain glossary — read this before the code
@@ -266,10 +273,13 @@ as "not a substrate", and human adjudication against current literature.
   only if the sealed conformal bucket yields ≥30 points per group, otherwise report marginal
   coverage with binomial CIs and disclose the downgrade — with the threshold tested against the
   allocation *as written down before reading*, never a post-hoc re-cut.
-- **Slice 2 not started** — ChEMBL / BindingDB / TDC / LINCS ingestion is the same shape as this
-  slice repeated. The plan's own scope check rules that building more parsers first "would feel
-  productive and would move the actual completion date not at all". The real next slice is M0b
-  curation, which is human-owned.
+- **Further ingestors not scheduled** — ChEMBL / BindingDB / TDC / LINCS ingestion is the same
+  shape as this slice repeated. The plan's own scope check rules that building more parsers
+  first "would feel productive and would move the actual completion date not at all". The next
+  slice is **M0b** curation, which is human-owned, then **M0c**, the frozen evaluator.
+- **Panel integrity after ratification** — once `T8` sets the attestation fields, nothing today
+  detects a later edit to any `configs/barrier_panel.yaml` entry. The gap is being closed by a
+  `ratified_panel_sha256` seal over the ratified panel — approved, not yet implemented.
 
 [`uv`]: https://docs.astral.sh/uv/
 [`dhimmel/drugbank`]: https://github.com/dhimmel/drugbank

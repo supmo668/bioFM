@@ -89,7 +89,7 @@ Reviewers: code-correctness, test-quality (both mutation-driven), plus own revie
 | E-2 | S3 asserts against the parsed config | ✅ (the CLI form is unachievable; recorded) |
 | E-3 | `test_monotonicity` names the M1 ODE solver | ✅ each skip names its own blocker |
 | E-4 | Nested probe set | ✅ re-introduced the r2 top-level-only `.gitignore` → 4 fail |
-| E-5 | `url = /Users/mo/.aiadlc/biofm/dvc-storage` + 3 guards | ✅ re-introduced `../../../.dvc-storage` → 3 fail |
+| E-5 | absolute external `url` (machine-specific; now in gitignored `.dvc/config.local`) + 2 guards | ✅ re-introduced `../../../.dvc-storage` → guards fail |
 
 **E-5 verified empirically:** the store resolves inside **no git repository at all**
 (`git -C … rev-parse` → `fatal: not a git repository`), beside the ISCP state files.

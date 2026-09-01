@@ -13,11 +13,13 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import yaml
 
 from chipsim.harmonize.ids import add_canonical_identity
 from chipsim.harmonize.pgp_label import (
     PRE_ADJUDICATION_LABELS,
     barrier_panel_edges,
+    load_ratified_panel,
     pgp_substrate_label,
     resolve_panel_accession,
 )
@@ -174,3 +176,100 @@ def test_pgp_label_collapses_a_salt_onto_its_free_base(compounds, panel_edges, p
     key = pair["canonical_inchikey"].iloc[0]
     assert labels[key] == "yes"
     assert (labels.index == key).sum() == 1
+
+
+# --------------------------------------------------------------------------- #
+# Panel schema validation — a malformed entry must fail AT LOAD, not downstream
+# --------------------------------------------------------------------------- #
+
+
+def _panel_doc(panel_ratified_path):
+    return yaml.safe_load(Path(panel_ratified_path).read_text())
+
+
+def test_one_entry_missing_face_raises_rather_than_yielding_nan(tmp_path, panel_ratified_path):
+    """The NaN trap: pd.DataFrame over a list of dicts fills a key missing from
+    SOME rows with NaN instead of raising.
+
+    Before load_ratified_panel validated entries, dropping `face` from ONE entry
+    produced a joined frame carrying NaN in the `face` column and no error at all;
+    only an ALL-entries-missing key raised KeyError. A human editing this file at
+    T8 is precisely who drops one key from one row.
+    """
+    doc = _panel_doc(panel_ratified_path)
+    del doc["panel"][1]["face"]
+    p = tmp_path / "one_face_missing.yaml"
+    p.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(RuntimeError, match="face"):
+        load_ratified_panel(p)
+
+
+def test_an_out_of_domain_face_raises(tmp_path, panel_ratified_path):
+    doc = _panel_doc(panel_ratified_path)
+    doc["panel"][0]["face"] = "appical"
+    p = tmp_path / "typo_face.yaml"
+    p.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(RuntimeError, match="appical"):
+        load_ratified_panel(p)
+
+
+def test_a_duplicate_symbol_raises(tmp_path, panel_ratified_path):
+    """Accessions resolve BY SYMBOL, so a second row with the same symbol is
+    unreachable — an edit that looks applied but never takes effect."""
+    doc = _panel_doc(panel_ratified_path)
+    dup = dict(doc["panel"][0])
+    dup["uniprot"] = "Q00000"
+    doc["panel"].append(dup)
+    p = tmp_path / "dup_symbol.yaml"
+    p.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(RuntimeError, match="duplicate symbol"):
+        load_ratified_panel(p)
+
+
+def test_a_well_formed_panel_still_loads(panel_ratified_path):
+    """Positive control — the validation above must not reject the real fixture."""
+    doc = load_ratified_panel(panel_ratified_path)
+    assert len(doc["panel"]) >= 1
+
+
+@pytest.mark.skipif(
+    True,
+    reason=(
+        "BLOCKED on T8 ratification. The five barrier_panel_*.yaml fixtures still "
+        "carry build-plan T7's older draft faces, while configs/barrier_panel.yaml "
+        "now has TFRC basolateral (CTO ruling N1, dispatch #18). They are NOT "
+        "updated yet, deliberately: the live panel is unratified, so copying its "
+        "faces into five more files would propagate an un-attested biological "
+        "value. Once a human sets ratified/ratified_by/ratified_on, update the "
+        "fixtures to mirror the ratified panel and DELETE this skipif — the edit "
+        "is then a mechanical mirror of a human attestation, not an agent-authored "
+        "claim."
+    ),
+)
+def test_fixture_face_agreement_with_live_panel(panel_ratified_path):
+    """Fixture faces must match the ratified live panel, symbol by symbol.
+
+    Why this exists while skipped: load_ratified_panel REFUSES the live config
+    (ratified: false), so every offline consumer — including the first M1
+    transport test — is structurally forced onto this fixture. A fixture that
+    disagrees with the ratified panel would bake the reversed transport direction
+    into M1 and make the ratified config look like the wrong one. A comment in the
+    fixture header cannot stop that; a standing test naming the live config can.
+    """
+    live_path = Path(__file__).resolve().parent.parent / "configs" / "barrier_panel.yaml"
+    live_faces = {e["symbol"]: e["face"] for e in yaml.safe_load(live_path.read_text())["panel"]}
+    fixture_doc = yaml.safe_load(Path(panel_ratified_path).read_text())
+    fixture_faces = {e["symbol"]: e["face"] for e in fixture_doc["panel"]}
+
+    shared = live_faces.keys() & fixture_faces.keys()
+    assert shared, "fixture and live panel share no symbols — one of them is wrong"
+    mismatched = {
+        s: (fixture_faces[s], live_faces[s]) for s in shared if fixture_faces[s] != live_faces[s]
+    }
+    assert not mismatched, (
+        "fixture face(s) disagree with the ratified panel {symbol: (fixture, live)}: "
+        f"{mismatched}. configs/barrier_panel.yaml is authoritative."
+    )

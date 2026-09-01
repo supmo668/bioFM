@@ -12,6 +12,13 @@
 # configs/barrier_panel.yaml is ratified only by H, in T8.
 # NEGATIVE for T10/T12: ABCB1 removed -> pgp_substrate_label must raise (defect 4).
 
+# `face` VALUES ARE SCHEMA FILLER, NOT A REFERENCE. They mirror build-plan T7's
+# draft interface block and are NOT attested by anyone. configs/barrier_panel.yaml
+# is the authoritative panel once T8 ratifies it. Its TFRC face is `basolateral`
+# (CTO ruling N1, dispatch #18) while this fixture still carries the older draft
+# value; tests/test_pgp_label.py::test_fixture_face_agreement_with_live_panel is
+# skipped until T8 ratifies, then enforces agreement. Never copy a face from here
+# into a model or a test that cares about transport direction.
 ratified: true
 ratified_by: "FIXTURE - not a real ratification"
 ratified_on: "1970-01-01"
