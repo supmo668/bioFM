@@ -228,10 +228,20 @@ Nothing in r1 configured storage, so `dvc pull` could never succeed (defect 11).
 **The remote MUST live at an absolute path OUTSIDE every git tree. CTO ruling E-5 — this is a
 data-loss fix, not a preference. Do not "simplify" it back inside the tree.**
 
-- **Files:** `.dvc/config` (edit) — the remote url is exactly:
+- **Files:** `.dvc/config` (edit, committed) — declares the remote **by name only, with no url**.
+  `.dvc/config.local` (**gitignored, never committed**) carries the url, which each contributor sets
+  to their own absolute path outside every git tree:
   ```
-  url = /Users/mo/.aiadlc/biofm/dvc-storage
+  # .dvc/config.local — local only, never committed
+  ['remote "local"']
+      url = <absolute path outside every git tree, e.g. ~/.aiadlc/biofm/dvc-storage expanded>
   ```
+  **Do not commit a literal home path (CTO ruling, dispatch #18 — refines E-5).** E-5 was right that
+  the store must be absolute and external; committing *this machine's* path was the wrong mechanism.
+  It ships an account name and home layout to a public remote, and — worse — DVC's local remote
+  **creates the directory on push**, so every other contributor and CI gets a silent empty success on
+  push and nothing on pull, instead of a clean "no remote configured" error. That is the same
+  silent-success failure class E-5 exists to prevent, reintroduced one layer over.
 - **Why (do not remove this rationale):**
   1. **A relative url destroys the data.** r2 specified `../../../.dvc-storage`, which from
      `projects/lung-on-chipsim/.dvc/` resolves to **`worktrees/lung-on-chipsim/.dvc-storage`** — *inside*
@@ -434,12 +444,22 @@ accession silently empties a join and produces an *empty* rather than *wrong* re
     - {symbol: ABCB1,   uniprot: P08183, alias: "P-gp / MDR1",  face: apical}
     - {symbol: ABCG2,   uniprot: Q9UNQ0, alias: "BCRP",         face: apical}
     - {symbol: ABCC1,   uniprot: P33527, alias: "MRP1",         face: basolateral}
-    - {symbol: TFRC,    uniprot: P02786, alias: "TfR1",         face: apical}
+    - {symbol: TFRC,    uniprot: P02786, alias: "TfR1",         face: basolateral}   # was apical — see N1 note
     - {symbol: FCGRT,   uniprot: P55899, alias: "FcRn",         face: apical}
     - {symbol: SLC15A1, uniprot: P46059, alias: "PepT1",        face: apical}
     - {symbol: SLCO2B1, uniprot: O94956, alias: "OATP2B1",      face: basolateral}
   ```
-- **Done when** `yaml.safe_load(...)["ratified"] is False` (a *parsed boolean*, which the r1 comment form could never satisfy) and every entry carries `symbol`, `uniprot`, `alias`, `face`.
+- **Done when** `yaml.safe_load(...)["ratified"] is False` (a *parsed boolean*, which the r1 comment form could never satisfy) and every entry carries `symbol`, `uniprot`, `alias`, `face`, **and the file carries a `ratified_panel_sha256` key** (empty until T8 seals it).
+
+> **N1 — TFRC `face` corrected apical → basolateral (CTO ruling, dispatch #18).** r2.2 prescribed
+> `apical`. The principal ruled `basolateral` on measured basolateral:apical localization ratios —
+> MDCK I ~800:1, MDCK II ~300:1 (Fuller & Simons 1986), Caco-2 ~40:1, HepG2 ~3:1, BeWo ~2:1;
+> direction unanimous. **Two caveats travel with it and must not be dropped:** none of those systems
+> is airway epithelium, so this is extrapolation across polarized epithelia with airway magnitude
+> unmeasured; and the ratio spans ~400×, so at the low end this is a *preference*, not exclusive
+> localization. T8 authorizes correcting accessions and deleting entries — it did **not** authorize
+> a `face` change, so the live config briefly diverged from the signed plan. This amendment is what
+> makes the value authorized; the plan leads the artifact, never the reverse.
 
 ### T19 · Write the panel verification script — **CA · 4 min** *(new — defect 19)*
 T8's r1 done-condition was pure attestation ("you have personally opened seven UniProt pages"),
@@ -448,11 +468,49 @@ leaving the barrier panel's only control unverifiable. This gives T8 a checkable
 - **Interfaces:** for every entry, assert `rest.uniprot.org/uniprotkb/<acc>.json` resolves, `organism.taxonId == 9606`, and the primary gene name equals the entry's `symbol`.
 - **Done when** the test passes against `tests/fixtures/barrier_panel_ratified.yaml` and **fails** when one accession is mutated to a valid-but-wrong human accession.
 
-### T8 · Ratify the panel accessions — **H · 10 min**
-Check each accession against UniProt. Correct any that are wrong, delete any not expressed in
-airway epithelium, then set `ratified: true` and fill `ratified_by` / `ratified_on`.
-- **Done when** `ratified: true`, `ratified_by` and `ratified_on` are non-empty, **and T19 passes against the live file** (defect 19).
-- **Note for T10:** if you delete or re-accession ABCB1, T10 now raises rather than silently labelling everything `unknown` (defect 4).
+### T8 · Ratify the panel accessions and faces — **H · 15–20 min**
+Check each accession against UniProt, **and check each `face`**. Correct anything wrong, then set
+`ratified: true` and fill `ratified_by` / `ratified_on`.
+
+**Deletion criterion — CTO ruling, dispatch #16 (was a trap).** r2.1 said "delete any not expressed
+in airway epithelium". Read literally against UniProt tissue-specificity comments, **five of seven
+entries have no lung mention — including ABCB1**, the P-gp keystone the entire M5 grouping variable
+rests on. UniProt's tissue comment is a *curated sample, not an expression atlas*, so silence there
+is a curation gap, not absence of expression — the same epistemic error the three-way P-gp label
+exists to prevent, against a different source.
+
+> **Delete ONLY on positive evidence of absence from airway epithelium. Silence is not evidence.**
+
+**What ratification attests to.** Identity (`symbol`, `uniprot`, `alias`) **and `face`** — nothing
+more. It does **not** endorse seven modelled carrier terms: per AM-3 the panel holds *identity* and
+`theta_priors.yaml` holds *quantity*, and in slice 1 the panel is consumed only by T9's edge join
+and T10's ABCB1 resolution. PVR §2E's "two carrier terms" is a θ constraint at M1 under the 5–8
+identifiable-parameter budget — seven join targets cost zero parameters; seven *fitted abundances*
+would blow that budget. Nobody may later read a ratified seven-entry panel as endorsing seven
+mechanisms.
+
+**Optional `airway_evidence:` per entry (`DOI` or `PMID`).** Under the criterion above, "kept" means
+*no positive evidence of absence* — weaker than *positive evidence of presence*, and the two states
+are otherwise indistinguishable in the file. Supplying `airway_evidence` upgrades an entry to the
+strong claim. **Optional by design** so it does not inflate this task; **absent means the weak claim
+explicitly**, never the strong one. Human-only — an agent may never populate it.
+
+- **Seal the panel (CTO ruling, dispatch #18).** After setting the attestation fields, run
+  `chipsim panel seal`, which writes `ratified_panel_sha256` over the canonically-serialized panel
+  list. `load_ratified_panel` verifies it and **raises on mismatch**. Without this, `ratified: true`
+  attests to nothing checkable — after T8 any post-ratification edit (a `face` flip, an accession
+  swap, a deleted entry) is invisible, which is exactly how N1 went unnoticed until a scorer read the
+  plan text. The digest is **not a biological number**, so Global Constraint 1 does not apply; running
+  the seal is the human's act of attestation.
+- **Done when** `ratified: true`, `ratified_by` and `ratified_on` are non-empty, every `face` has
+  been checked, `ratified_panel_sha256` is populated and verifies, **and T19 passes against the live
+  file** (defect 19).
+- **Note for T10:** if you delete or re-accession ABCB1, T10 now raises rather than silently
+  labelling everything `unknown` (defect 4).
+- **Known schema limit (deferred to M1, not a T8 concern):** the `{apical, basolateral}` binary
+  cannot represent a two-faced transporter, and two of seven are (FCGRT transcytoses
+  bidirectionally; SLCO2B1 is basal/basolateral/apical). Widen the schema at M1 when directional
+  transport actually consumes the field.
 
 ### T9 · Join edges to the panel — **CA · 4 min**
 - **Interfaces:**
@@ -667,7 +725,7 @@ wording corrections and one config path. Each is recorded inline at the section 
 | **E-2** RATIFIED | S3 | Assert against the *parsed* config. The old done-condition could never fail — pytest's default `norecursedirs` already skips `.venv`. |
 | **E-3** RATIFIED | S4 | `test_monotonicity` skip reason names the **M1 ODE solver**, its actual blocker — not slice-3 splits. |
 | **E-4** RULED (defect) | S7 | Probe set extended to **nested** paths. A top-level-only probe does not test the rule that git cannot re-include a file beneath an excluded directory. |
-| **E-5** RULED (**data-loss fix**) | S9 | DVC remote relocated to the absolute external path `/Users/mo/.aiadlc/biofm/dvc-storage`. The r2 relative url resolved *inside* the worktree, so `git worktree remove` destroyed the only copy of the snapshot. |
+| **E-5** RULED (**data-loss fix**), **refined @ #18** | S9 | DVC remote must be absolute and outside every git tree — the r2 relative url resolved *inside* the worktree, so `git worktree remove` destroyed the only copy of the snapshot. **Refinement:** the url lives in gitignored `.dvc/config.local`, not committed `.dvc/config`. Committing a literal home path disclosed the account name to a public remote and gave other contributors a silent empty success on push — the same silent-success class E-5 exists to prevent. |
 
 **Approval provenance:** these amendments were dictated by the CTO's ratified rulings and re-issued
 verbatim by the principal in-session on 2026-08-31 with the instruction to apply them and continue.
