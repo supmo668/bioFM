@@ -448,11 +448,41 @@ leaving the barrier panel's only control unverifiable. This gives T8 a checkable
 - **Interfaces:** for every entry, assert `rest.uniprot.org/uniprotkb/<acc>.json` resolves, `organism.taxonId == 9606`, and the primary gene name equals the entry's `symbol`.
 - **Done when** the test passes against `tests/fixtures/barrier_panel_ratified.yaml` and **fails** when one accession is mutated to a valid-but-wrong human accession.
 
-### T8 · Ratify the panel accessions — **H · 10 min**
-Check each accession against UniProt. Correct any that are wrong, delete any not expressed in
-airway epithelium, then set `ratified: true` and fill `ratified_by` / `ratified_on`.
-- **Done when** `ratified: true`, `ratified_by` and `ratified_on` are non-empty, **and T19 passes against the live file** (defect 19).
-- **Note for T10:** if you delete or re-accession ABCB1, T10 now raises rather than silently labelling everything `unknown` (defect 4).
+### T8 · Ratify the panel accessions and faces — **H · 15–20 min**
+Check each accession against UniProt, **and check each `face`**. Correct anything wrong, then set
+`ratified: true` and fill `ratified_by` / `ratified_on`.
+
+**Deletion criterion — CTO ruling, dispatch #16 (was a trap).** r2.1 said "delete any not expressed
+in airway epithelium". Read literally against UniProt tissue-specificity comments, **five of seven
+entries have no lung mention — including ABCB1**, the P-gp keystone the entire M5 grouping variable
+rests on. UniProt's tissue comment is a *curated sample, not an expression atlas*, so silence there
+is a curation gap, not absence of expression — the same epistemic error the three-way P-gp label
+exists to prevent, against a different source.
+
+> **Delete ONLY on positive evidence of absence from airway epithelium. Silence is not evidence.**
+
+**What ratification attests to.** Identity (`symbol`, `uniprot`, `alias`) **and `face`** — nothing
+more. It does **not** endorse seven modelled carrier terms: per AM-3 the panel holds *identity* and
+`theta_priors.yaml` holds *quantity*, and in slice 1 the panel is consumed only by T9's edge join
+and T10's ABCB1 resolution. PVR §2E's "two carrier terms" is a θ constraint at M1 under the 5–8
+identifiable-parameter budget — seven join targets cost zero parameters; seven *fitted abundances*
+would blow that budget. Nobody may later read a ratified seven-entry panel as endorsing seven
+mechanisms.
+
+**Optional `airway_evidence:` per entry (`DOI` or `PMID`).** Under the criterion above, "kept" means
+*no positive evidence of absence* — weaker than *positive evidence of presence*, and the two states
+are otherwise indistinguishable in the file. Supplying `airway_evidence` upgrades an entry to the
+strong claim. **Optional by design** so it does not inflate this task; **absent means the weak claim
+explicitly**, never the strong one. Human-only — an agent may never populate it.
+
+- **Done when** `ratified: true`, `ratified_by` and `ratified_on` are non-empty, every `face` has
+  been checked, **and T19 passes against the live file** (defect 19).
+- **Note for T10:** if you delete or re-accession ABCB1, T10 now raises rather than silently
+  labelling everything `unknown` (defect 4).
+- **Known schema limit (deferred to M1, not a T8 concern):** the `{apical, basolateral}` binary
+  cannot represent a two-faced transporter, and two of seven are (FCGRT transcytoses
+  bidirectionally; SLCO2B1 is basal/basolateral/apical). Widen the schema at M1 when directional
+  transport actually consumes the field.
 
 ### T9 · Join edges to the panel — **CA · 4 min**
 - **Interfaces:**
