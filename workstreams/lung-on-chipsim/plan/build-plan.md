@@ -73,15 +73,28 @@ downstream claim.
 > **Four things a coding agent may never do, at any phase.** (1) Write a number into
 > `theta_priors.yaml` or `assumptions.yaml`. (2) Create, edit or extend a curated chip record,
 > or the curated compound roster. (3) Modify the frozen evaluator, the split definitions, or the
-> sealed allocation after signature. (4) **Run `chipsim panel seal` against the live
+> sealed allocation after signature. (4) **Run `chipsim panel-seal` against the live
 > `configs/barrier_panel.yaml`** — the agent writes the tool, the *human's invocation* writes the
-> file, because running the seal **is** the act of attestation (CTO ruling, dispatch #21).
+> file, because that file is human-only (CTO ruling, dispatch #21; corrected #27).
 >
-> Constraint (4) is a **stated rule, not a runtime guarantee** — like (1)–(3). T7a's
-> unratified-panel guard blocks the worst case mechanically (no digest without a human's
-> `ratified_by`), but nothing stops an agent sealing an *already-ratified* file, which would bind a
-> digest to a state no human verified at seal time and defeat mismatch detection permanently. The
-> quality gate checks this rule; reviewers should treat an agent-run seal as a gate failure.
+> **The seal is tamper-evidence, never proof that a human attested (CTO ruling, dispatch #27).**
+> An earlier revision of this constraint said "running the seal **is** the act of attestation."
+> That was wrong and is retracted. `ratified_panel_sha256` is an **unkeyed digest over public
+> content**: it shows the panel has not changed since sealing, and it can never show *who* sealed
+> it. The attestation is `ratified_by` plus the human's act — the digest only protects it from
+> silent edit afterwards. **Nothing in code, config, CLI help, plan or model card may describe the
+> seal as authenticating a human.**
+>
+> Constraint (4) is therefore a **stated rule with no technical enforcement** — like (1)–(3), and
+> more so. The r2.4 hardening (preimage bound to `ratified`/`ratified_by`/`ratified_on` **and the
+> panel filename**, fixture panels marked `[FIXTURE]` so they cannot coincide with the live one)
+> closes **replay**, demonstrated as a real attack: the fixture panel was byte-identical to the
+> live panel, so sealing a fixture — a sanctioned agent action — yielded the valid live seal. It
+> does **not** close **forgery**: anything that can write `ratified: true` can compute the digest
+> over what it wrote. Real signing (minisign/age/GPG against a pinned human key) is the only option
+> that would give (4) technical force; it is **with the principal, undecided**. Until then the
+> quality gate checks this rule, reviewers treat an agent-run seal as a gate failure, and the
+> limitation is stated wherever the ratification is claimed — including the model card.
 
 ## 2 · Phase ownership map (M0–M6)
 
