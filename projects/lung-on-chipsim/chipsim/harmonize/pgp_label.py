@@ -146,7 +146,7 @@ def seal_panel(panel_path: Path) -> str:
     # rewrote the file byte-identically — and still returned a digest and printed
     # "sealed". Documenting the seal key in this file's own T8 instructions is the
     # obvious next edit, and it disarmed the tool. False confirmation is the worst
-    # failure mode an attestation tool has.
+    # failure mode a sealing tool has.
     text = panel_path.read_text()
     line = f"{SEAL_KEY}: {digest}"
     lines = text.splitlines()
@@ -181,7 +181,8 @@ def load_ratified_panel(panel_path: Path) -> dict:
     Raises RuntimeError unless `ratified` is present AND True AND `ratified_by`
     is non-empty. A missing key raises — absence is not consent (defect 1).
     If a seal is present it must MATCH: a post-ratification edit to any entry
-    invalidates the attestation (T7a done-condition 1).
+    invalidates the seal (T7a done-condition 1). A matching seal shows the file
+    is unchanged since sealing — never who sealed it.
     """
     panel_path = Path(panel_path)
     doc = yaml.safe_load(panel_path.read_text())
@@ -272,8 +273,8 @@ def load_ratified_panel(panel_path: Path) -> dict:
         raise RuntimeError(
             f"{panel_path} claims ratified: true but carries no {SEAL_KEY}. "
             "A ratified panel MUST be sealed — otherwise removing the seal line is "
-            "all it takes to bypass tamper detection. A human completes the "
-            "attestation by running:\n"
+            "all it takes to bypass tamper detection. A human seals it by running "
+            "(this records tamper-evidence; it does not prove who ran it):\n"
             f"    chipsim panel-seal --panel {panel_path}"
         )
 

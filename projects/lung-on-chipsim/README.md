@@ -277,9 +277,13 @@ as "not a substrate", and human adjudication against current literature.
   shape as this slice repeated. The plan's own scope check rules that building more parsers
   first "would feel productive and would move the actual completion date not at all". The next
   slice is **M0b** curation, which is human-owned, then **M0c**, the frozen evaluator.
-- **Panel integrity after ratification** — once `T8` sets the attestation fields, nothing today
-  detects a later edit to any `configs/barrier_panel.yaml` entry. The gap is being closed by a
-  `ratified_panel_sha256` seal over the ratified panel — approved, not yet implemented.
+- **Panel integrity after ratification** — `T7a` closed this: `ratified_panel_sha256` is a
+  seal over the panel, its ratification fields and its filename, and `load_ratified_panel`
+  raises on a missing or mismatched seal. It is an **unkeyed digest over public content**, so
+  it detects a later edit to `configs/barrier_panel.yaml`; it does **not** prove a human
+  ratified the panel, and nothing in the repo does. Global Constraint (4), which reserves
+  `chipsim panel-seal` to a human, is a stated rule with no technical enforcement — closing
+  that would need real signing against a pinned human key, which is undecided.
 
 [`uv`]: https://docs.astral.sh/uv/
 [`dhimmel/drugbank`]: https://github.com/dhimmel/drugbank

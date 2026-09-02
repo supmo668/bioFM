@@ -79,8 +79,10 @@ def test_t16_every_node_names_a_real_cli_entrypoint(workflow):
     registered = available_subcommands()
     # Every registered subcommand must be declared in exactly one category. The
     # ETL list stays exact — a rename or a stale entry still fails — while
-    # panel-seal (T7a) is declared non-ETL because running it is a HUMAN
-    # attestation (Global Constraint 4), not a pipeline stage.
+    # panel-seal (T7a) is declared non-ETL because Global Constraint 4 reserves
+    # running it to a human. That is a stated rule the digest cannot enforce, so
+    # keeping it out of the exported workflow is the only mechanical support the
+    # rule gets: an unattended pipeline must not be able to invoke it.
     assert set(registered) == set(SUBCOMMANDS) | set(NON_ETL_SUBCOMMANDS), (
         f"registered subcommands {registered} do not match the declared "
         f"ETL {SUBCOMMANDS} + non-ETL {NON_ETL_SUBCOMMANDS}"
