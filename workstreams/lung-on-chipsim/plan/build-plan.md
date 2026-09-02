@@ -631,6 +631,56 @@ own allocation rule it is human-owned. An auto-filter of `drugbank-slim.tsv` is 
 - **Interfaces:** `load_poc_roster(path) -> pd.DataFrame`, rejecting a roster outside 20–40 entries, any entry with an empty `canonical_inchikey` or `evidence_doi`, and any key absent from the snapshot.
 - **Done when** each of those four rejection cases raises, verified against `tests/fixtures/poc_compounds.yaml`.
 
+### S12 · Build the run journal — **CA · 15 min** *(new — principal requirement; CTO ruling, dispatch #35)*
+**Gap-closure, not a feature.** A&D §4.4 specifies `journal/` as *"append-only run records — diff,
+seeds, scores, veto state"* and §5 requires a **replay test**: *"re-run any kept diff from journal +
+seed and reproduce the trajectory exactly."* The record spec **names no configuration**, and
+`journal/` does not exist. So a replay reading "diff + seed" picks up whatever `configs/` holds **at
+replay time**, reproduces *a* trajectory, and **reports success** — the control cannot fail for the
+reason it exists. It bites precisely here: `pyarrow` and `rdkit` are `==`-pinned because parquet
+bytes are sha256'd and rdkit computes the canonical InChIKey every join and the sealed allocation
+key on; a record omitting resolved versions cannot show two runs were the same computation.
+
+It also creates `journal/`, which AM-4's tree lists and **no task creates** — the same gap class as
+the original scaffold hole, which is why this is an S-task.
+
+- **Files:** `chipsim/journal.py` (new) · `chipsim/pipeline.py` (edit — open a run in each ETL stage) · `tests/test_journal.py` (new)
+- **Interfaces:**
+  ```python
+  def start_run(command: str, project_root: Path) -> Path:
+      """Called BEFORE any work. Creates journal/<run_id>/, COPIES every
+      configs/*.yaml into journal/<run_id>/configs/, writes manifest.json.
+      Raises if the run directory already exists.
+      """
+  def read_manifest(run_dir: Path) -> dict:
+      """Verify manifest_sha256 and return the manifest.
+      REFUSES a manifest carrying no manifest_sha256 — never loads unverified.
+      """
+  ```
+- **Manifest records:** run_id · UTC start · exact argv · git commit **and** dirty flag with the
+  dirty file list · python + platform · resolved versions of the output-determining packages
+  (`pyarrow`, `rdkit`, `pandas`, `numpy`, `PyYAML`) · per-config sha256 · `CHIPSIM_SEED` /
+  `PYTHONHASHSEED` / `SOURCE_DATE_EPOCH` where set.
+- **Copies, never references.** A config edited tomorrow must not change what yesterday's run says
+  it used. That is the whole requirement in one sentence.
+- **A dirty tree is RECORDED, never hidden or refused.** A run from a dirty tree is not reproducible
+  from its commit alone; the honest response is to say so in the record — the same posture as
+  `unknown` in the P-gp label, where the third state survives into the schema.
+- **`panel-seal` is journalled as record type `invocation`, not `run`** — argv, environment,
+  timestamp, **no digest**. Recording every invocation is what makes a Global Constraint (4)
+  violation *detectable*, which is the enforcement gap (4) otherwise leaves open. The record is an
+  audit trail, **never** the attestation.
+- **Honesty clause (carried from the seal ruling).** The manifest digest detects modification of a
+  run record; it does **not** prove who wrote it. No wording in module, docstring or CLI may imply
+  the journal authenticates anyone.
+- **Done when** (all six, fixture-testable):
+  1. a run snapshots every `configs/*.yaml` and the copies' digests match the manifest;
+  2. editing a config **after** a run does not change what that run's snapshot says it used;
+  3. re-using a run id **raises** rather than overwriting;
+  4. a tampered `manifest.json` fails `read_manifest()`;
+  5. a crashed run leaves no `outcome.json`, so it cannot read as success;
+  6. a `panel-seal` invocation record carries **no** digest field.
+
 ### T13 · Emit the adjudication worksheet — **CA · 5 min**
 - **Interfaces:**
   ```python

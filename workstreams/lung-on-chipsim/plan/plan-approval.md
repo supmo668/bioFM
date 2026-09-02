@@ -1,10 +1,10 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: a44e523
+plan_hash: 594301b
 approved: true
 approved_by: Matthew Mo
-date: 2026-09-01T20:05
+date: 2026-09-01T21:04
 ---
 
 # Plan approval: lung-on-chipsim
@@ -13,4 +13,4 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.5: retracts the claim that running the seal IS the act of attestation (my error, dispatch #21). The digest is unkeyed over public content — tamper-evidence, not authentication. Records the demonstrated fixture/live replay attack, the r2.4 hardening that closes replay but not forgery, and that real signing is with the principal. No task added or removed.
+r2.6: adds S12 (run journal, CA, ~15 min) closing the gap that made the A&D replay test unenforceable — journal/ did not exist and the record spec named no configuration, so a replay would pick up configs at replay time and report success. One CA task added; human-blocker count unchanged at five.

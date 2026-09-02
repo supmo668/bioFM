@@ -435,10 +435,33 @@ chipsim/
     acquire/       bald.py diversity.py
   configs/         theta_priors.yaml assumptions.yaml env.yaml barrier_panel.yaml
   orchestration/   n8n workflow JSON exports (versioned here), modal_app.py
-  journal/         append-only run records — diff, seeds, scores, veto state
+  journal/         append-only run records — see the record spec below
   notebooks/
   tests/           test_contracts.py test_leakage.py test_monotonicity.py
 ```
+
+> **§4.4a · What a run record must contain (CTO amendment, dispatch #35 — my omission).**
+> The original spec read *"diff, seeds, scores, veto state"* and **named no configuration**, while
+> §5 requires a replay test: *"re-run any kept diff from journal + seed and reproduce the trajectory
+> exactly."* Those two are incompatible. A replay reading only diff + seed picks up whatever
+> `configs/` holds **at replay time**, reproduces *a* trajectory, and **reports success** — so the
+> replay test could never fail for the reason it exists. It bites hardest where `pyarrow` and
+> `rdkit` are `==`-pinned, because parquet bytes are sha256'd and rdkit computes the canonical
+> InChIKey that every join and the sealed allocation key on; a record omitting resolved versions
+> cannot show two runs were the same computation.
+>
+> A run record therefore carries, at minimum: the **diff, seeds, scores and veto state** as before,
+> **plus a full copy of every config file used** (copies, never references — a config edited
+> tomorrow must not change what yesterday's run says it used), the **exact argv**, the **git commit
+> and dirty flag with the dirty file list**, **python + platform**, the **resolved versions of every
+> output-determining package**, a **per-config digest**, and the relevant **seed environment**.
+> Run directories are immutable; the manifest is digest-verified on read; the outcome is written
+> last so a crashed run is distinguishable from a silent success; and a dirty tree is **recorded,
+> never hidden or refused**.
+>
+> **Honesty clause.** The manifest digest detects *modification* of a record. It does **not** prove
+> who wrote it — the same limit as the panel seal (Global Constraint 4). Nothing may describe the
+> journal as authenticating anyone. Implemented as plan task **S12**.
 
 > **Three tests that must exist from day one.** A **data-contract** test (units, identifiers,
 > no duplicate keys), a **leakage** test (no test scaffold or target in train; no test target
