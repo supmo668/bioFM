@@ -150,6 +150,20 @@ def build_parser() -> argparse.ArgumentParser:
             "HUMAN ONLY (T8) — writes a tamper-evident digest over a ratified panel. "
             "This does not prove a human ran it."
         ),
+        # `help=` only shows in the parent listing. Without `description=`, the
+        # human who runs `chipsim panel-seal --help` at the moment of sealing —
+        # the likeliest place to read it — sees nothing at all about what the
+        # seal does or does not establish.
+        description=(
+            "Write ratified_panel_sha256 over a ratified barrier panel (T7a).\n\n"
+            "WHAT THIS DOES: records a tamper-evident digest over the panel, its "
+            "ratification fields and its filename, so a later edit is detected.\n\n"
+            "WHAT THIS DOES NOT DO: prove a human ran it. The digest is unkeyed "
+            "over public content, so anything able to write `ratified: true` can "
+            "compute it. Global Constraint (4) reserves this command to a human; "
+            "that is a stated rule with no technical enforcement."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--panel", required=True, type=Path)
 
