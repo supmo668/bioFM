@@ -45,6 +45,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import uuid
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
@@ -55,13 +56,19 @@ __all__ = [
     "ManifestVerificationError",
     "finish_run",
     "manifest_digest",
+    "outcome_digest",
     "read_manifest",
+    "read_outcome",
     "record_invocation",
     "start_run",
 ]
 
 #: The manifest field holding the digest. Excluded from its own preimage.
 DIGEST_KEY = "manifest_sha256"
+
+#: The outcome's own digest field. The outcome cannot live under the manifest
+#: digest, which is sealed at run start before any outcome exists.
+OUTCOME_DIGEST_KEY = "outcome_sha256"
 
 #: Packages whose version changes the OUTPUT, not merely the runtime. `pyarrow`
 #: and `rdkit` are `==`-pinned for exactly this reason (pyproject / defect 27); the
@@ -126,17 +133,43 @@ def _git_state(project_root: Path) -> dict:
         return out.stdout.strip() if out.returncode == 0 else None
 
     commit = _git("rev-parse", "HEAD")
-    status = _git("status", "--porcelain")
+    # `-z` because the default format C-quotes paths containing spaces or
+    # non-ASCII bytes and renders a rename as `R  old -> new`, so naive line
+    # splitting puts things in `dirty_files` that are not filenames.
+    status = _git("status", "--porcelain", "-z")
     if status is None:
         return {"commit": commit, "dirty": None, "dirty_files": [], "available": False}
 
-    dirty_files = sorted(line[3:] for line in status.splitlines() if line.strip())
+    dirty_files = _parse_porcelain_z(status)
     return {
         "commit": commit,
         "dirty": bool(dirty_files),
         "dirty_files": dirty_files,
         "available": True,
     }
+
+
+def _parse_porcelain_z(status: str) -> list[str]:
+    """Split `git status --porcelain -z` into paths.
+
+    Records are NUL-separated `XY <path>`; a rename/copy (`R`/`C`) is followed by
+    a SECOND NUL-terminated field holding the original path, which must be
+    consumed as its own record rather than read as a status line.
+    """
+    fields = [f for f in status.split("\0") if f]
+    paths: list[str] = []
+    i = 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        code, path = entry[:2], entry[3:]
+        paths.append(path)
+        if ("R" in code or "C" in code) and i < len(fields):
+            paths.append(fields[i])  # the source path of the rename/copy
+            i += 1
+    return sorted(set(paths))
 
 
 def _package_versions() -> dict:
@@ -162,12 +195,17 @@ def _environment() -> dict:
     must never be read as evidence of who ran it.
     """
     seeds = {name: os.environ.get(name) for name in SEED_ENV_VARS}
+    # CHIPSIM_PROJECT_ROOT relocates the journal itself. Recorded explicitly:
+    # a record that does not say where it was meant to live cannot show that the
+    # trail was diverted. See pipeline.main, which fails CLOSED for panel-seal.
+    override = os.environ.get("CHIPSIM_PROJECT_ROOT")
     try:
         user = getpass.getuser()
     except Exception:  # noqa: BLE001 - a container with no passwd entry is fine
         user = None
     return {
         "seeds": seeds,
+        "project_root_override": override,
         "user": user,
         "host": socket.gethostname(),
         "cwd": str(Path.cwd()),
@@ -188,6 +226,38 @@ def _new_run_id() -> str:
     return f"{stamp}-{uuid.uuid4().hex[:8]}"
 
 
+def _validate_run_id(run_id: str) -> str:
+    """A run id must be ONE safe path component.
+
+    Without this, an id containing `..` or a separator escapes `journal/` and the
+    exists()/mkdir guard below then protects the traversed location rather than a
+    journal record.
+    """
+    if not run_id or run_id in {".", ".."} or "/" in run_id or "\\" in run_id:
+        raise JournalError(f"invalid run id {run_id!r}: must be a single path component")
+    if Path(run_id).name != run_id:
+        raise JournalError(f"invalid run id {run_id!r}: must be a single path component")
+    return run_id
+
+
+def _config_sources(source_dir: Path) -> list[Path]:
+    """Every config file a run could read, at any depth.
+
+    `.yml` counts as well as `.yaml`, and subdirectories are walked: a config the
+    run reads but the journal does not snapshot makes the manifest indistinguishable
+    from a run where that file did not exist, and the replay test passes while
+    replaying against something never recorded. Silent incompleteness is the one
+    failure this module exists to prevent.
+    """
+    if not source_dir.is_dir():
+        return []
+    return sorted(
+        path
+        for path in source_dir.rglob("*")
+        if path.is_file() and path.suffix in {".yaml", ".yml"}
+    )
+
+
 def start_run(
     command: str,
     project_root: Path,
@@ -197,18 +267,27 @@ def start_run(
 ) -> Path:
     """Open a run. Called BEFORE any work.
 
-    Creates ``journal/<run_id>/``, **copies** every ``configs/*.yaml`` into
+    Creates ``journal/<run_id>/``, **copies** every ``configs/**/*.y[a]ml`` into
     ``journal/<run_id>/configs/``, and writes ``manifest.json``.
 
     Raises `JournalError` if the run directory already exists. Overwriting would
     let a second run silently inherit the first one's identity, which is the one
     thing an append-only journal must not permit.
 
+    The record is assembled in a temporary directory and moved into place, so a
+    run directory is **atomically complete-or-absent**. A crash mid-snapshot
+    therefore leaves no record-shaped directory that is missing its manifest —
+    such a directory would make every reader raise, and would permanently burn
+    its run id against the guard above.
+
     Returns the run directory.
     """
     project_root = Path(project_root)
-    run_id = run_id or _new_run_id()
-    run_dir = _journal_dir(project_root) / run_id
+    # `is not None`, not truthiness: an explicitly-passed empty id is a caller
+    # bug and must raise, not silently become a generated one.
+    run_id = _validate_run_id(run_id) if run_id is not None else _new_run_id()
+    journal = _journal_dir(project_root)
+    run_dir = journal / run_id
 
     if run_dir.exists():
         raise JournalError(
@@ -216,57 +295,77 @@ def start_run(
             "The journal is append-only; a reused id would erase a prior record."
         )
 
-    # mkdir(exist_ok=False) is the actual guard: the check above is for the
-    # message, this closes the race between the check and the create.
+    journal.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=journal))
     try:
-        run_dir.mkdir(parents=True, exist_ok=False)
-    except FileExistsError as exc:
-        raise JournalError(f"run id {run_id!r} already exists at {run_dir}") from exc
-
-    snapshot_dir = run_dir / "configs"
-    snapshot_dir.mkdir()
-    digests: dict[str, str] = {}
-    source_dir = project_root / "configs"
-    if source_dir.is_dir():
-        for config in sorted(source_dir.glob("*.yaml")):
-            target = snapshot_dir / config.name
+        snapshot_dir = staging / "configs"
+        snapshot_dir.mkdir()
+        digests: dict[str, str] = {}
+        source_dir = project_root / "configs"
+        for config in _config_sources(source_dir):
+            relative = config.relative_to(source_dir)
+            target = snapshot_dir / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(config, target)
-            digests[config.name] = hashlib.sha256(target.read_bytes()).hexdigest()
+            digests[relative.as_posix()] = hashlib.sha256(target.read_bytes()).hexdigest()
 
-    manifest = {
-        "record_type": "run",
-        "run_id": run_id,
-        "command": command,
-        "start": datetime.now(UTC).isoformat(),
-        "argv": list(argv) if argv is not None else list(sys.argv),
-        "git": _git_state(project_root),
-        "python": sys.version,
-        "platform": platform.platform(),
-        "packages": _package_versions(),
-        "configs": digests,
-        "environment": _environment(),
-    }
-    manifest[DIGEST_KEY] = manifest_digest(manifest)
-    (run_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
-    )
+        manifest = {
+            "record_type": "run",
+            "run_id": run_id,
+            "command": command,
+            "start": datetime.now(UTC).isoformat(),
+            "argv": list(argv) if argv is not None else list(sys.argv),
+            "git": _git_state(project_root),
+            "python": sys.version,
+            "platform": platform.platform(),
+            "packages": _package_versions(),
+            "configs": digests,
+            "environment": _environment(),
+        }
+        manifest[DIGEST_KEY] = manifest_digest(manifest)
+        (staging / "manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        try:
+            os.replace(staging, run_dir)
+        except OSError as exc:
+            raise JournalError(
+                f"run id {run_id!r} already exists at {run_dir}"
+            ) from exc
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     return run_dir
 
 
-def read_manifest(run_dir: Path) -> dict:
-    """Verify ``manifest_sha256`` and return the manifest.
+def read_manifest(run_dir: Path, *, verify_configs: bool = True) -> dict:
+    """Verify the record and return the manifest.
+
+    Three checks, because the manifest digest alone covers only the third:
+
+    1. **Identity** — ``run_id`` must equal the directory name. The digest covers
+       the manifest's *contents*, not the record's *identity*, so without this an
+       entire record can be copied to another id, or a good manifest dropped into
+       a different run's directory, and the composite verifies.
+    2. **Snapshot integrity** — every config copy is re-hashed against
+       ``manifest["configs"]``, and an extra or missing snapshot file is an error.
+       The snapshot is the entire point of this module; a digest map that nothing
+       checks at read time is decorative.
+    3. **Manifest integrity** — ``manifest_sha256`` over the manifest itself.
 
     REFUSES a manifest carrying no digest — absence is not consent, the same rule
     `barrier_panel_edges` applies to a missing `ratified` key. Loading an
     unverified record would make the digest optional in practice, which is the
     same as not having one.
     """
-    path = Path(run_dir) / "manifest.json"
+    run_dir = Path(run_dir)
+    path = run_dir / "manifest.json"
     if not path.is_file():
         raise ManifestVerificationError(f"no manifest.json under {run_dir}")
 
     try:
-        manifest = json.loads(path.read_text())
+        manifest = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ManifestVerificationError(f"{path} is not valid JSON: {exc}") from exc
 
@@ -287,31 +386,120 @@ def read_manifest(run_dir: Path) -> dict:
             f"{path} does not match its {DIGEST_KEY}: recorded {recorded}, computed "
             f"{actual}. The record was modified after it was written."
         )
+
+    if manifest.get("run_id") != run_dir.name:
+        raise ManifestVerificationError(
+            f"{path} records run_id {manifest.get('run_id')!r} but sits in directory "
+            f"{run_dir.name!r}. The record was copied or relocated."
+        )
+
+    if verify_configs:
+        _verify_config_snapshot(run_dir, manifest.get("configs") or {})
+
     return manifest
 
 
-def finish_run(run_dir: Path, *, status: str, detail: str | None = None) -> Path:
-    """Write ``outcome.json`` — **last**, after every other artifact.
+def _verify_config_snapshot(run_dir: Path, digests: dict) -> None:
+    """Re-hash every snapshotted config against the manifest, both directions."""
+    snapshot_dir = run_dir / "configs"
+    for name, digest in sorted(digests.items()):
+        target = snapshot_dir / name
+        if not target.is_file():
+            raise ManifestVerificationError(
+                f"{run_dir}: config snapshot {name!r} is recorded but missing."
+            )
+        actual = hashlib.sha256(target.read_bytes()).hexdigest()
+        if actual != digest:
+            raise ManifestVerificationError(
+                f"{run_dir}: config snapshot {name!r} does not match the manifest "
+                f"(recorded {digest}, computed {actual}). The snapshot was modified."
+            )
+    if snapshot_dir.is_dir():
+        present = {
+            path.relative_to(snapshot_dir).as_posix()
+            for path in snapshot_dir.rglob("*")
+            if path.is_file()
+        }
+        extra = present - set(digests)
+        if extra:
+            raise ManifestVerificationError(
+                f"{run_dir}: config snapshot holds unrecorded file(s) {sorted(extra)} "
+                "— the snapshot was added to."
+            )
 
-    Ordering is the whole point: a crashed run leaves no outcome, so absence is
-    unambiguous and a crash can never read as a silent success. The outcome is
-    deliberately NOT covered by the manifest digest — the manifest is sealed at
-    run start, before the outcome exists.
+
+def outcome_digest(outcome: dict) -> str:
+    """sha256 over the outcome, excluding its own digest field."""
+    preimage = {k: outcome[k] for k in outcome if k != OUTCOME_DIGEST_KEY}
+    blob = json.dumps(preimage, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def finish_run(run_dir: Path, *, status: str, detail: str | None = None) -> Path:
+    """Write ``outcome.json`` — **last**, after every other artifact, and **once**.
+
+    Ordering is half the point: a crashed run leaves no outcome, so absence is
+    unambiguous. **Exclusive creation is the other half.** Without it, a crashed
+    run could simply be stamped again as a success — abandoning one function away
+    the append-only rule `start_run` enforces for run ids. A second outcome RAISES.
+
+    The outcome cannot be covered by the manifest digest — the manifest is sealed
+    at run start, before the outcome exists — so it carries **its own** digest,
+    bound to the manifest's, which `read_outcome` verifies.
     """
     run_dir = Path(run_dir)
-    if not (run_dir / "manifest.json").is_file():
+    manifest_path = run_dir / "manifest.json"
+    if not manifest_path.is_file():
         raise JournalError(
             f"refusing to write an outcome for {run_dir}: it has no manifest. An "
             "outcome must never be the only record of a run."
         )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     outcome = {
+        "record_type": "outcome",
+        "run_id": manifest.get("run_id"),
+        "manifest_sha256": manifest.get(DIGEST_KEY),
         "status": status,
         "detail": detail,
         "end": datetime.now(UTC).isoformat(),
     }
+    outcome[OUTCOME_DIGEST_KEY] = outcome_digest(outcome)
+
     path = run_dir / "outcome.json"
-    path.write_text(json.dumps(outcome, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+    payload = json.dumps(outcome, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    try:
+        with open(path, "x", encoding="utf-8") as handle:
+            handle.write(payload)
+    except FileExistsError as exc:
+        raise JournalError(
+            f"refusing to overwrite {path}: this run already has an outcome. A "
+            "crashed run must not be restampable as a success."
+        ) from exc
     return path
+
+
+def read_outcome(run_dir: Path) -> dict | None:
+    """Verify and return the outcome, or ``None`` if the run never finished.
+
+    ``None`` means the run crashed or is still running. It never means success —
+    that distinction is the whole reason the outcome is written last.
+    """
+    path = Path(run_dir) / "outcome.json"
+    if not path.is_file():
+        return None
+    outcome = json.loads(path.read_text(encoding="utf-8"))
+    recorded = outcome.get(OUTCOME_DIGEST_KEY)
+    if not recorded:
+        raise ManifestVerificationError(
+            f"{path} carries no {OUTCOME_DIGEST_KEY} — refusing to load it unverified."
+        )
+    actual = outcome_digest(outcome)
+    if actual != recorded:
+        raise ManifestVerificationError(
+            f"{path} does not match its {OUTCOME_DIGEST_KEY}: recorded {recorded}, "
+            f"computed {actual}. The outcome was modified after it was written."
+        )
+    return outcome
 
 
 # --------------------------------------------------------------------------
@@ -336,13 +524,15 @@ def record_invocation(
     That is deliberate. A digest here would look like an attestation of the seal,
     and it would not be one — this record is an audit trail, **never** the
     attestation. It does not establish who ran the command.
+
+    **Scope of an invocation record.** It records that the command was *entered*
+    — not that it completed, and not what it produced. There is deliberately no
+    completion record: a seal that failed halfway is still an invocation worth
+    seeing. Read it as "this was attempted here, then", never as "this succeeded".
     """
     project_root = Path(project_root)
     invocation_dir = _journal_dir(project_root) / "invocations"
     invocation_dir.mkdir(parents=True, exist_ok=True)
-
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
-    path = invocation_dir / f"{stamp}-{command}.json"
 
     record = {
         "record_type": "invocation",
@@ -351,5 +541,20 @@ def record_invocation(
         "argv": list(argv) if argv is not None else list(sys.argv),
         "environment": _environment(),
     }
-    path.write_text(json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
-    return path
+    payload = json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+    # Exclusive create, retried on collision: `write_text` would REPLACE a prior
+    # audit record — the same append-only violation `start_run` refuses for run
+    # ids. An audit trail that can quietly lose an entry is not one.
+    for _ in range(8):
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        path = invocation_dir / f"{stamp}-{command}.json"
+        try:
+            with open(path, "x", encoding="utf-8") as handle:
+                handle.write(payload)
+            return path
+        except FileExistsError:
+            continue
+    raise JournalError(
+        f"could not allocate an invocation record filename under {invocation_dir}"
+    )

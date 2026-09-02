@@ -16,8 +16,10 @@ renamed or removed fails the test rather than failing at 3am in n8n.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from chipsim.journal import finish_run, record_invocation, start_run
@@ -184,29 +186,71 @@ def available_subcommands() -> tuple[str, ...]:
     return tuple(actions[0].choices) if actions else ()
 
 
-def _journal_best_effort(action):
-    """Run a journal write, reporting failure on stderr without killing the stage.
+def _journal_best_effort(action, *, root: Path | None = None, what: str = "record"):
+    """Run a journal write, reporting failure without killing an ETL stage.
 
-    A journal that can hard-fail an ETL stage is a journal people switch off, and a
-    switched-off journal records nothing at all. The failure is LOUD (stderr) and
-    never silent: a stage that ran without a record must not look like one that was
-    recorded.
+    A journal that hard-fails an ETL stage is a journal people switch off, and a
+    switched-off journal records nothing at all. But stderr alone is not enough:
+    under n8n or cron it is routinely discarded, and then nothing distinguishes a
+    recorded run from an unrecorded one. So a failure ALSO drops a durable
+    `UNRECORDED-<stamp>.json` marker in the journal.
+
+    This is best-effort by design and is NOT used for `panel-seal`, which fails
+    closed — see `main`.
     """
     try:
         return action()
     except Exception as exc:  # noqa: BLE001 - the journal must not break the stage
-        print(f"WARNING: run journal unavailable: {exc}", file=sys.stderr)
+        print(f"WARNING: run journal unavailable ({what}): {exc}", file=sys.stderr)
+        if root is not None:
+            try:
+                marker_dir = Path(root) / "journal"
+                marker_dir.mkdir(parents=True, exist_ok=True)
+                stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+                (marker_dir / f"UNRECORDED-{stamp}.json").write_text(
+                    json.dumps(
+                        {
+                            "record_type": "unrecorded",
+                            "what": what,
+                            "error": f"{type(exc).__name__}: {exc}",
+                            "argv": list(sys.argv),
+                            "at": datetime.now(UTC).isoformat(),
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+            except Exception as marker_exc:  # noqa: BLE001
+                # The journal root itself is unwritable. stderr already carried
+                # the primary warning; say so too rather than failing the stage.
+                print(
+                    f"WARNING: could not write an UNRECORDED marker: {marker_exc}",
+                    file=sys.stderr,
+                )
         return None
 
 
 def project_root() -> Path:
     """The project root — the module directory (AM-4), i.e. the parent of the
     installed `chipsim` package. Overridable with CHIPSIM_PROJECT_ROOT so a test
-    or a container can journal somewhere other than the source tree."""
+    or a container can journal somewhere other than the source tree.
+
+    That override RELOCATES THE AUDIT TRAIL, so it is recorded inside every record
+    (`environment.project_root_override`) and `panel-seal` fails closed if its
+    invocation record cannot be written — otherwise one environment variable would
+    silently divert the only mechanical support Global Constraint (4) has.
+    """
     override = os.environ.get("CHIPSIM_PROJECT_ROOT")
     if override:
         return Path(override)
     return Path(__file__).resolve().parent.parent
+
+
+def _normalize_exit(code) -> int:
+    """A handler returning None means success; argparse/CLI convention is 0."""
+    return 0 if code is None else int(code)
 
 
 def main(argv=None) -> int:
@@ -220,20 +264,45 @@ def main(argv=None) -> int:
     # human and has no technical force, so this trail is the only mechanical
     # support it gets. The record is an audit trail, NEVER the attestation, and it
     # does not establish who ran the command.
+    #
+    # This branch FAILS CLOSED. Everywhere else the journal is best-effort, but a
+    # seal written with no record of the attempt is precisely the case the trail
+    # exists to make visible, so an unrecordable seal does not run at all.
     if ns.command in NON_ETL_SUBCOMMANDS:
-        _journal_best_effort(
-            lambda: record_invocation(ns.command, root, argv=argv_recorded)
-        )
-        return _HANDLERS[ns.command](ns)
+        try:
+            record_invocation(ns.command, root, argv=argv_recorded)
+        except Exception as exc:  # noqa: BLE001 - refuse rather than seal unrecorded
+            print(
+                f"ERROR: refusing to run {ns.command!r}: its invocation could not be "
+                f"journalled under {root}: {exc}",
+                file=sys.stderr,
+            )
+            return 2
+        return _normalize_exit(_HANDLERS[ns.command](ns))
 
     # ETL stages open a run BEFORE any work, so the config snapshot precedes the
     # computation it describes. The outcome is written LAST: a crashed stage
     # leaves no outcome.json and therefore cannot read as a silent success.
     run_dir = _journal_best_effort(
-        lambda: start_run(ns.command, root, argv=argv_recorded)
+        lambda: start_run(ns.command, root, argv=argv_recorded),
+        root=root,
+        what=f"start_run:{ns.command}",
     )
     try:
-        code = _HANDLERS[ns.command](ns)
+        code = _normalize_exit(_HANDLERS[ns.command](ns))
+    except SystemExit as exc:
+        # A handler exiting via sys.exit(0) succeeded; recording it as a crash
+        # would make the journal contradict the process's own exit status.
+        status = "ok" if exc.code in (0, None) else "failed"
+        if run_dir is not None:
+            _journal_best_effort(
+                lambda s=status, e=exc: finish_run(
+                    run_dir, status=s, detail=f"SystemExit: {e.code}"
+                ),
+                root=root,
+                what="finish_run",
+            )
+        raise
     except BaseException as exc:
         # `exc` is bound as a lambda default: `except ... as exc` unbinds the name
         # when the block exits, so capturing it by closure would work only by
@@ -242,14 +311,18 @@ def main(argv=None) -> int:
             _journal_best_effort(
                 lambda e=exc: finish_run(
                     run_dir, status="crashed", detail=f"{type(e).__name__}: {e}"
-                )
+                ),
+                root=root,
+                what="finish_run",
             )
         raise
     if run_dir is not None:
         _journal_best_effort(
             lambda: finish_run(
                 run_dir, status="ok" if code == 0 else "failed", detail=f"exit={code}"
-            )
+            ),
+            root=root,
+            what="finish_run",
         )
     return code
 
