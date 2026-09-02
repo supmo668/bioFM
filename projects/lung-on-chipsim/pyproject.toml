@@ -21,6 +21,12 @@ dependencies = [
     "rdkit==2026.3.5",
 ]
 
+[project.scripts]
+# T8 tells the human to run `chipsim panel-seal`. Without this the documented
+# command does not exist and T8 is self-blocking — the exact failure T7a was
+# created to prevent (C4).
+chipsim = "chipsim.pipeline:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

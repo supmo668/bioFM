@@ -155,6 +155,10 @@ def test_pgp_label_resolves_accession_from_the_panel_not_a_constant(fixture_dir,
             entry["uniprot"] = "P99999"
     path = tmp_path / "repanel.yaml"
     path.write_text(yaml.safe_dump(doc))
+    # Re-seal: the edit above deliberately changes the panel, so the inherited
+    # seal is now correctly invalid. A fixture copy in tmp_path, never the live
+    # config — Global Constraint (4).
+    seal_panel(path)
 
     assert resolve_panel_accession(path, "ABCB1") == "P99999"
 
@@ -347,22 +351,88 @@ def test_t7a_sealing_a_ratified_panel_with_no_ratifier_raises(tmp_path, fixture_
         seal_panel(p)
 
 
-def test_t7a_seal_ignores_attestation_fields_and_comments(tmp_path, panel_ratified_path):
-    """The digest covers the PANEL, not the attribution or the file's comments.
+def test_t7a_seal_covers_the_attestation_fields(tmp_path, panel_ratified_path):
+    """C2 hardening: re-attributing a ratification MUST break the seal.
 
-    Re-attributing a ratification, or the comment churn that T8's human-facing
-    instructions attract, must not read as tampering with the accessions — or the
-    signal is lost in noise.
+    The preimage binds ratified/_by/_on, so a seal cannot be lifted onto a
+    different attestation or have the attribution swapped underneath it. Comments
+    still do not matter — canonical serialization sees parsed YAML only.
     """
     p, digest = _sealed_copy(tmp_path, panel_ratified_path)
-    text = p.read_text()
-    text = text.replace(
-        'ratified_by: "FIXTURE - not a real ratification"', 'ratified_by: "Someone Else"'
-    )
-    p.write_text("# a new leading comment\n" + text)
 
     doc = yaml.safe_load(p.read_text())
-    assert panel_digest(doc["panel"]) == digest
+    doc["ratified_by"] = "Someone Else"
+    assert panel_digest(doc, p) != digest, "swapping the ratifier must change the digest"
+
+    # A comment, by contrast, must NOT change it.
+    text_with_comment = "# a new leading comment\n" + p.read_text()
+    p.write_text(text_with_comment)
+    assert panel_digest(yaml.safe_load(p.read_text()), p) == digest
+
+
+def test_t7a_a_fixture_seal_is_not_valid_for_the_live_panel(tmp_path, panel_ratified_path):
+    """C2: the collision that made Global Constraint (4) bypassable.
+
+    The fixture panel list was byte-identical to the live one, so its digest WAS
+    the live panel's digest — and sealing a fixture is a sanctioned agent action.
+    An agent could seal a fixture, paste the digest beside `ratified: true`, and
+    manufacture a complete attestation with no human.
+
+    Two independent defences, both asserted here: the fixture panel differs from
+    the live panel, AND the filename is bound into the preimage, so even an
+    identical panel would not transfer.
+    """
+    live_path = PROJECT_ROOT / "configs" / "barrier_panel.yaml"
+    live = yaml.safe_load(live_path.read_text())
+    fixture = yaml.safe_load(Path(panel_ratified_path).read_text())
+
+    assert fixture["panel"] != live["panel"], (
+        "fixture and live panel lists are identical — a fixture seal would be a valid live seal"
+    )
+
+    # Filename binding: same content, different name -> different digest.
+    same_content = dict(live)
+    a = panel_digest(same_content, Path("barrier_panel.yaml"))
+    b = panel_digest(same_content, Path("barrier_panel_ratified.yaml"))
+    assert a != b, "the filename must be bound into the preimage"
+
+
+def test_t7a_a_ratified_panel_without_a_seal_is_refused(tmp_path, panel_ratified_path):
+    """C1: verification is mandatory, so deleting one line is not a bypass.
+
+    Previously a ratified panel with no seal loaded clean-and-unverified: seal,
+    delete the seal line, tamper an accession, and the tampered accession
+    resolved. Absence is not consent — same rule as the `ratified` key itself.
+    """
+    p, _ = _sealed_copy(tmp_path, panel_ratified_path)
+    kept = [ln for ln in p.read_text().splitlines() if not ln.startswith("ratified_panel_sha256:")]
+    p.write_text("\n".join(kept) + "\n")
+
+    with pytest.raises(RuntimeError, match="no ratified_panel_sha256"):
+        load_ratified_panel(p)
+
+
+def test_t7a_seal_refuses_to_report_success_on_a_write_that_did_not_land(
+    tmp_path, panel_ratified_path
+):
+    """C3: the branch test and the rewrite test must agree.
+
+    A whole-file substring check paired with a line-prefix rewrite meant a mention
+    of the key in a COMMENT took the replace branch, matched no line, rewrote the
+    file byte-identically — and still printed "sealed" and returned a digest.
+    Documenting the seal key in this file's own T8 instructions is the obvious next
+    edit, and it silently disarmed the tool.
+    """
+    p = tmp_path / "commented_key.yaml"
+    src = Path(panel_ratified_path).read_text()
+    p.write_text("# NOTE: this panel uses ratified_panel_sha256: for tamper detection\n" + src)
+
+    digest = seal_panel(p)
+    doc = yaml.safe_load(p.read_text())
+    assert doc.get("ratified_panel_sha256") == digest, (
+        "seal_panel returned a digest that is not actually in the file"
+    )
+    assert load_ratified_panel(p)
 
 
 def test_t7a_seal_is_order_independent(tmp_path, panel_ratified_path):
@@ -371,7 +441,7 @@ def test_t7a_seal_is_order_independent(tmp_path, panel_ratified_path):
     p, digest = _sealed_copy(tmp_path, panel_ratified_path)
     doc = yaml.safe_load(p.read_text())
     doc["panel"] = list(reversed(doc["panel"]))
-    assert panel_digest(doc["panel"]) == digest
+    assert panel_digest(doc, p) == digest
 
 
 def test_t7a_seal_preserves_the_human_facing_comments(tmp_path, panel_ratified_path):

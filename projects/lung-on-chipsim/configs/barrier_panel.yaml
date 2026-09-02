@@ -42,16 +42,21 @@
 ratified: false
 ratified_by: ""
 ratified_on: ""
+# Set by the HUMAN at T8, by running:  chipsim panel-seal --panel configs/barrier_panel.yaml
+# Detects modification of a sealed panel. It does NOT prove a human attested —
+# the digest is unkeyed over public content, so anything that can write
+# `ratified: true` can compute it. Tamper-evidence, not authentication.
+ratified_panel_sha256: ""
 panel:
   - {symbol: ABCB1,   uniprot: P08183, alias: "P-gp / MDR1",  face: apical}
   - {symbol: ABCG2,   uniprot: Q9UNQ0, alias: "BCRP",         face: apical}
   - {symbol: ABCC1,   uniprot: P33527, alias: "MRP1",         face: basolateral}
   # face: corrected apical -> basolateral on the principal's ruling from measured
   # localization data. AUTHORIZED: build-plan.md T7 prescribes `basolateral` as of
-  # r2.3 (CTO ruling N1, dispatch #18), re-signed at b5443bd. Both caveats are
-  # carried in the plan and in T8-review-record.md "Ruling 2": no measured system
-  # was airway epithelium, and the ~400x ratio spread makes this a preference
-  # rather than an exclusive localization at the low end.
+  # r2.3 (CTO ruling N1, dispatch #18), re-signed at b5443bd. The measured evidence
+  # and BOTH caveats live in T8-review-record.md "Ruling 2" — not here: this file is
+  # identity-only under AM-3 and carries no quantities, and the numeric-leaf
+  # validator cannot see comments, so a number in one is invisible to it.
   - {symbol: TFRC,    uniprot: P02786, alias: "TfR1",         face: basolateral}
   - {symbol: FCGRT,   uniprot: P55899, alias: "FcRn",         face: apical}
   - {symbol: SLC15A1, uniprot: P46059, alias: "PepT1",        face: apical}

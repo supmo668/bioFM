@@ -49,24 +49,54 @@ PANEL_EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "symbol", "category", "face")
 FACES = frozenset({"apical", "basolateral"})
 
 
-def panel_digest(panel: list[dict]) -> str:
-    """sha256 over the canonically-serialized panel list — build-plan T7a.
+def panel_digest(doc: dict, panel_path: Path) -> str:
+    """sha256 over the panel AND its attestation fields AND its filename — T7a.
 
-    Canonical means: entry keys sorted, entries ordered by `symbol`, compact
-    separators, UTF-8. Serialization must not depend on YAML formatting, key order
-    or comment churn, or the digest would change when nothing attested changed and
-    a human would learn to ignore the mismatch.
+    *** WHAT THIS DETECTS, AND WHAT IT DOES NOT ***
 
-    Only the panel LIST is hashed, deliberately. The attestation fields
-    (`ratified`, `ratified_by`, `ratified_on`) and the seal itself are excluded:
-    hashing them would make the digest depend on its own value, and re-attributing
-    a ratification must not read as tampering with the accessions.
+    DETECTS: modification of a sealed panel after the fact. Change an accession, a
+    face, an alias, delete an entry, or re-attribute the ratification, and
+    `load_ratified_panel` raises.
+
+    DOES **NOT** authenticate a human. This is an UNKEYED digest over public
+    content: anything able to write `ratified: true` can compute the matching
+    digest over what it wrote. **The seal is tamper-EVIDENCE, not proof a human
+    attested**, and no code, comment, plan, README or model card may describe it
+    otherwise — claiming a human attested, on evidence any agent in the loop can
+    manufacture, is precisely the overclaim this project exists to prevent. Global
+    Constraint (4) remains a stated rule, not a technical guarantee. Giving it
+    technical force requires real signing (minisign/age/GPG with a pinned public
+    key); that trade is with the principal.
+
+    The preimage binds four things, and each closes a specific replay:
+      - the panel list          — the contents being attested
+      - ratified/_by/_on        — so a seal cannot be lifted onto a DIFFERENT
+                                  attestation, or the attribution swapped under it
+      - the panel FILENAME      — so a seal computed for a fixture is not valid for
+                                  configs/barrier_panel.yaml. Sealing a fixture is a
+                                  sanctioned agent action, and the fixture's panel
+                                  list was byte-identical to the live one, so its
+                                  digest WAS the live panel's digest, obtainable
+                                  from a permitted command (C2).
+
+    The seal field itself is excluded — hashing it would make the digest depend on
+    its own value. Canonical form: entry keys sorted, entries ordered by `symbol`,
+    compact separators, UTF-8 — so reordering or reformatting does not trip a seal
+    that nothing attested changed, which would teach a human to ignore mismatches.
     """
+    panel = doc.get("panel") or []
     canonical = sorted(
         ({str(k): entry[k] for k in sorted(entry)} for entry in panel),
         key=lambda e: str(e.get("symbol", "")),
     )
-    blob = json.dumps(canonical, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+    preimage = {
+        "panel": canonical,
+        "ratified": doc.get("ratified"),
+        "ratified_by": doc.get("ratified_by"),
+        "ratified_on": doc.get("ratified_on"),
+        "filename": Path(panel_path).name,
+    }
+    blob = json.dumps(preimage, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
@@ -99,27 +129,44 @@ def seal_panel(panel_path: Path) -> str:
             "an unratified panel would bind a digest to something no human signed."
         )
 
-    digest = panel_digest(doc.get("panel") or [])
+    digest = panel_digest(doc, panel_path)
 
     # Rewrite the seal line in place rather than re-dumping the document: the file
     # carries the human-facing T8 instructions as comments, and yaml.safe_dump
     # would silently delete every one of them.
+    #
+    # C3: the branch test and the rewrite test MUST agree. A whole-file substring
+    # check (`SEAL_KEY in text`) paired with a line-prefix rewrite meant that a
+    # mention of the key in a COMMENT took the replace branch, matched no line,
+    # rewrote the file byte-identically — and still returned a digest and printed
+    # "sealed". Documenting the seal key in this file's own T8 instructions is the
+    # obvious next edit, and it disarmed the tool. False confirmation is the worst
+    # failure mode an attestation tool has.
     text = panel_path.read_text()
     line = f"{SEAL_KEY}: {digest}"
-    if f"{SEAL_KEY}:" in text:
-        out = "\n".join(line if ln.startswith(f"{SEAL_KEY}:") else ln for ln in text.splitlines())
-        out += "\n" if text.endswith("\n") else ""
+    lines = text.splitlines()
+    seal_idx = [i for i, ln in enumerate(lines) if ln.startswith(f"{SEAL_KEY}:")]
+    if seal_idx:
+        for i in seal_idx:
+            lines[i] = line
     else:
-        # Insert immediately after ratified_on so the attestation block stays together.
-        lines = text.splitlines()
         for i, ln in enumerate(lines):
             if ln.startswith("ratified_on:"):
                 lines.insert(i + 1, line)
                 break
         else:
             lines.append(line)
-        out = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
-    panel_path.write_text(out)
+    panel_path.write_text("\n".join(lines) + ("\n" if text.endswith("\n") else ""))
+
+    # Read back and confirm. Never report success on an unverified write — the
+    # whole value of this tool is that its output can be trusted.
+    written = yaml.safe_load(panel_path.read_text())
+    if str(written.get(SEAL_KEY) or "").strip() != digest:
+        raise RuntimeError(
+            f"seal write to {panel_path} did not take effect: expected "
+            f"{digest[:12]}…, file parses back as {written.get(SEAL_KEY)!r}. "
+            "Refusing to report success on a write that did not land."
+        )
     return digest
 
 
@@ -209,17 +256,32 @@ def load_ratified_panel(panel_path: Path) -> dict:
 
     # Seal check LAST: a malformed panel should report the specific malformation,
     # not a digest mismatch that says only "something changed".
+    #
+    # C1: verification is MANDATORY, not opt-in. A ratified panel with no seal
+    # previously loaded clean-and-unverified, so DELETING ONE LINE was the bypass —
+    # seal a panel, remove the seal line, tamper an accession, and the tampered
+    # accession resolved. An absent seal is now a hard failure, exactly as an absent
+    # `ratified` key is (defect 1): absence is not consent.
     sealed = str(doc.get(SEAL_KEY) or "").strip()
-    if sealed:
-        actual = panel_digest(panel)
-        if actual != sealed:
-            raise RuntimeError(
-                f"{panel_path} FAILS ITS SEAL. Recorded {sealed[:12]}…, computed "
-                f"{actual[:12]}…. The panel was edited after a human ratified it, so "
-                "the attestation no longer covers its contents. Either revert the edit "
-                "or have a human re-verify and re-run `chipsim panel seal`. An agent "
-                "must not re-seal (Global Constraint 4)."
-            )
+    if not sealed:
+        raise RuntimeError(
+            f"{panel_path} claims ratified: true but carries no {SEAL_KEY}. "
+            "A ratified panel MUST be sealed — otherwise removing the seal line is "
+            "all it takes to bypass tamper detection. A human completes the "
+            "attestation by running:\n"
+            f"    chipsim panel-seal --panel {panel_path}"
+        )
+
+    actual = panel_digest(doc, panel_path)
+    if actual != sealed:
+        raise RuntimeError(
+            f"{panel_path} FAILS ITS SEAL. Recorded {sealed[:12]}…, computed "
+            f"{actual[:12]}…. The panel, or its attestation fields, changed after it "
+            "was sealed, so the seal no longer covers the file's contents. Either "
+            "revert the change, or have a human re-verify and re-run "
+            "`chipsim panel-seal`. An agent must not re-seal (Global Constraint 4). "
+            "NOTE: this detects modification; it does not prove a human attested."
+        )
 
     return doc
 

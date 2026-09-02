@@ -20,10 +20,10 @@
 # enforces agreement with the live config. Never copy a face from here into a model
 # or a test that cares about transport direction.
 panel:
-  - {symbol: ABCB1, uniprot: P08183, alias: "P-gp / MDR1", face: apical}
-  - {symbol: ABCG2, uniprot: Q9UNQ0, alias: "BCRP", face: apical}
-  - {symbol: ABCC1, uniprot: P33527, alias: "MRP1", face: basolateral}
-  - {symbol: TFRC, uniprot: P02786, alias: "TfR1", face: basolateral}
-  - {symbol: FCGRT, uniprot: P55899, alias: "FcRn", face: apical}
-  - {symbol: SLC15A1, uniprot: P46059, alias: "PepT1", face: apical}
-  - {symbol: SLCO2B1, uniprot: O94956, alias: "OATP2B1", face: basolateral}
+  - {symbol: ABCB1, uniprot: P08183, alias: "P-gp / MDR1 [FIXTURE]", face: apical}
+  - {symbol: ABCG2, uniprot: Q9UNQ0, alias: "BCRP [FIXTURE]", face: apical}
+  - {symbol: ABCC1, uniprot: P33527, alias: "MRP1 [FIXTURE]", face: basolateral}
+  - {symbol: TFRC, uniprot: P02786, alias: "TfR1 [FIXTURE]", face: basolateral}
+  - {symbol: FCGRT, uniprot: P55899, alias: "FcRn [FIXTURE]", face: apical}
+  - {symbol: SLC15A1, uniprot: P46059, alias: "PepT1 [FIXTURE]", face: apical}
+  - {symbol: SLCO2B1, uniprot: O94956, alias: "OATP2B1 [FIXTURE]", face: basolateral}

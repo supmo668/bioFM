@@ -147,6 +147,27 @@ def verify_snapshot(dest: Path) -> dict[str, str]:
     manifest = json.loads(manifest_path.read_text())
     recorded = manifest.get("files", {})
 
+    # H6: the manifest is written by the same process it certifies, so on its own
+    # it proves only internal consistency — a wholly fabricated snapshot with a
+    # matching manifest passes. Cross-check its commit against provenance.yaml,
+    # which is HUMAN-written at T2 and is the independent claim about what was
+    # pinned. Two artifacts from different authors must agree, or the manifest is
+    # certifying itself.
+    provenance_path = dest / "provenance.yaml"
+    if provenance_path.is_file():
+        import yaml
+
+        provenance = yaml.safe_load(provenance_path.read_text()) or {}
+        pinned = str(provenance.get("source_commit") or "").strip()
+        certified = str(manifest.get("source_commit") or "").strip()
+        if pinned and certified and pinned != certified:
+            raise SnapshotFetchError(
+                f"{MANIFEST_NAME} certifies commit {certified[:12]}… but "
+                f"provenance.yaml pins {pinned[:12]}…. The snapshot on disk is not "
+                "the one the human pinned at T2. The manifest cannot vouch for this "
+                "— it was written by the process that fetched the files."
+            )
+
     recomputed: dict[str, str] = {}
     problems = []
     for basename in SNAPSHOT_FILES:
