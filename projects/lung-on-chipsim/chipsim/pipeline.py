@@ -283,13 +283,11 @@ def main(argv=None) -> int:
     # ETL stages open a run BEFORE any work, so the config snapshot precedes the
     # computation it describes. The outcome is written LAST: a crashed stage
     # leaves no outcome.json and therefore cannot read as a silent success.
-    run_dir = _journal_best_effort(
-        lambda: start_run(ns.command, root, argv=argv_recorded),
-        root=root,
-        what=f"start_run:{ns.command}",
-    )
     try:
         code = _normalize_exit(_HANDLERS[ns.command](ns))
+        run_dir = _journal_best_effort(  # MUTANT: snapshot AFTER the work
+            lambda: start_run(ns.command, root, argv=argv_recorded),
+            root=root, what=f"start_run:{ns.command}")
     except SystemExit as exc:
         # A handler exiting via sys.exit(0) succeeded; recording it as a crash
         # would make the journal contradict the process's own exit status.
