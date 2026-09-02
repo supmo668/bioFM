@@ -356,7 +356,9 @@ def test_t7a_seal_ignores_attestation_fields_and_comments(tmp_path, panel_ratifi
     """
     p, digest = _sealed_copy(tmp_path, panel_ratified_path)
     text = p.read_text()
-    text = text.replace('ratified_by: "FIXTURE - not a real ratification"', 'ratified_by: "Someone Else"')
+    text = text.replace(
+        'ratified_by: "FIXTURE - not a real ratification"', 'ratified_by: "Someone Else"'
+    )
     p.write_text("# a new leading comment\n" + text)
 
     doc = yaml.safe_load(p.read_text())

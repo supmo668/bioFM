@@ -107,9 +107,7 @@ def seal_panel(panel_path: Path) -> str:
     text = panel_path.read_text()
     line = f"{SEAL_KEY}: {digest}"
     if f"{SEAL_KEY}:" in text:
-        out = "\n".join(
-            line if ln.startswith(f"{SEAL_KEY}:") else ln for ln in text.splitlines()
-        )
+        out = "\n".join(line if ln.startswith(f"{SEAL_KEY}:") else ln for ln in text.splitlines())
         out += "\n" if text.endswith("\n") else ""
     else:
         # Insert immediately after ratified_on so the attestation block stays together.
