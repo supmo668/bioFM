@@ -118,6 +118,7 @@ def _git_state(project_root: Path) -> dict:
     checkout is unusual, not illegitimate, and refusing to journal it would mean
     the least reproducible runs are the ones with no record at all.
     """
+
     def _git(*args: str) -> str | None:
         try:
             out = subprocess.run(
@@ -330,9 +331,7 @@ def start_run(
         try:
             os.replace(staging, run_dir)
         except OSError as exc:
-            raise JournalError(
-                f"run id {run_id!r} already exists at {run_dir}"
-            ) from exc
+            raise JournalError(f"run id {run_id!r} already exists at {run_dir}") from exc
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
@@ -555,6 +554,4 @@ def record_invocation(
             return path
         except FileExistsError:
             continue
-    raise JournalError(
-        f"could not allocate an invocation record filename under {invocation_dir}"
-    )
+    raise JournalError(f"could not allocate an invocation record filename under {invocation_dir}")

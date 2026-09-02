@@ -77,7 +77,7 @@ def test_editing_a_config_after_the_run_does_not_change_the_snapshot(
 
 def test_reusing_a_run_id_raises_rather_than_overwriting(fake_project: Path) -> None:
     run_dir = start_run("chipsim parse", fake_project, run_id="fixed-id")
-    marker = (run_dir / "marker.txt")
+    marker = run_dir / "marker.txt"
     marker.write_text("original")
 
     with pytest.raises(JournalError, match="already exists"):
