@@ -16,8 +16,11 @@ renamed or removed fails the test rather than failing at 3am in n8n.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
+
+from chipsim.journal import finish_run, record_invocation, start_run
 
 #: Node name -> subcommand. The workflow export is checked against these keys.
 SUBCOMMANDS = (
@@ -181,9 +184,74 @@ def available_subcommands() -> tuple[str, ...]:
     return tuple(actions[0].choices) if actions else ()
 
 
+def _journal_best_effort(action):
+    """Run a journal write, reporting failure on stderr without killing the stage.
+
+    A journal that can hard-fail an ETL stage is a journal people switch off, and a
+    switched-off journal records nothing at all. The failure is LOUD (stderr) and
+    never silent: a stage that ran without a record must not look like one that was
+    recorded.
+    """
+    try:
+        return action()
+    except Exception as exc:  # noqa: BLE001 - the journal must not break the stage
+        print(f"WARNING: run journal unavailable: {exc}", file=sys.stderr)
+        return None
+
+
+def project_root() -> Path:
+    """The project root — the module directory (AM-4), i.e. the parent of the
+    installed `chipsim` package. Overridable with CHIPSIM_PROJECT_ROOT so a test
+    or a container can journal somewhere other than the source tree."""
+    override = os.environ.get("CHIPSIM_PROJECT_ROOT")
+    if override:
+        return Path(override)
+    return Path(__file__).resolve().parent.parent
+
+
 def main(argv=None) -> int:
     ns = build_parser().parse_args(argv)
-    return _HANDLERS[ns.command](ns)
+    argv_recorded = list(sys.argv) if argv is None else ["chipsim", *argv]
+    root = project_root()
+
+    # `panel-seal` is journalled as an INVOCATION, not a run: argv, environment,
+    # timestamp, no digest. Recording every invocation is what makes a Global
+    # Constraint (4) violation detectable — the constraint reserves sealing to a
+    # human and has no technical force, so this trail is the only mechanical
+    # support it gets. The record is an audit trail, NEVER the attestation, and it
+    # does not establish who ran the command.
+    if ns.command in NON_ETL_SUBCOMMANDS:
+        _journal_best_effort(
+            lambda: record_invocation(ns.command, root, argv=argv_recorded)
+        )
+        return _HANDLERS[ns.command](ns)
+
+    # ETL stages open a run BEFORE any work, so the config snapshot precedes the
+    # computation it describes. The outcome is written LAST: a crashed stage
+    # leaves no outcome.json and therefore cannot read as a silent success.
+    run_dir = _journal_best_effort(
+        lambda: start_run(ns.command, root, argv=argv_recorded)
+    )
+    try:
+        code = _HANDLERS[ns.command](ns)
+    except BaseException as exc:
+        # `exc` is bound as a lambda default: `except ... as exc` unbinds the name
+        # when the block exits, so capturing it by closure would work only by
+        # accident of call timing.
+        if run_dir is not None:
+            _journal_best_effort(
+                lambda e=exc: finish_run(
+                    run_dir, status="crashed", detail=f"{type(e).__name__}: {e}"
+                )
+            )
+        raise
+    if run_dir is not None:
+        _journal_best_effort(
+            lambda: finish_run(
+                run_dir, status="ok" if code == 0 else "failed", detail=f"exit={code}"
+            )
+        )
+    return code
 
 
 if __name__ == "__main__":

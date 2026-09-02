@@ -28,3 +28,11 @@ data/processed/**
 !data/raw/drugbank/PROVENANCE.md
 !data/raw/drugbank/SHA256SUMS.json
 !data/processed/*.sha256
+
+# Run journal — build-plan S12, A&D §4.4a. Run records are OUTPUTS: each one
+# snapshots configs/ and records the resolved environment for replay. They are
+# written per run and never redistributed, so the directory is tracked (.gitkeep)
+# and its contents are not.
+journal/**
+!journal/**/
+!journal/.gitkeep
