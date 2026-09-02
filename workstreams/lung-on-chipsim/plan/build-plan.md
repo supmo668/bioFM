@@ -70,10 +70,18 @@ will produce fluent, plausible values with citation-shaped strings attached. Som
 citations will not exist. That is fatal here because θ priors are load-bearing for every
 downstream claim.
 
-> **Three things a coding agent may never do, at any phase.** (1) Write a number into
+> **Four things a coding agent may never do, at any phase.** (1) Write a number into
 > `theta_priors.yaml` or `assumptions.yaml`. (2) Create, edit or extend a curated chip record,
 > or the curated compound roster. (3) Modify the frozen evaluator, the split definitions, or the
-> sealed allocation after signature.
+> sealed allocation after signature. (4) **Run `chipsim panel seal` against the live
+> `configs/barrier_panel.yaml`** — the agent writes the tool, the *human's invocation* writes the
+> file, because running the seal **is** the act of attestation (CTO ruling, dispatch #21).
+>
+> Constraint (4) is a **stated rule, not a runtime guarantee** — like (1)–(3). T7a's
+> unratified-panel guard blocks the worst case mechanically (no digest without a human's
+> `ratified_by`), but nothing stops an agent sealing an *already-ratified* file, which would bind a
+> digest to a state no human verified at seal time and defeat mismatch detection permanently. The
+> quality gate checks this rule; reviewers should treat an agent-run seal as a gate failure.
 
 ## 2 · Phase ownership map (M0–M6)
 
@@ -467,6 +475,33 @@ leaving the barrier panel's only control unverifiable. This gives T8 a checkable
 - **Files:** `tests/test_barrier_panel.py` (new, `pytest.mark.network`)
 - **Interfaces:** for every entry, assert `rest.uniprot.org/uniprotkb/<acc>.json` resolves, `organism.taxonId == 9606`, and the primary gene name equals the entry's `symbol`.
 - **Done when** the test passes against `tests/fixtures/barrier_panel_ratified.yaml` and **fails** when one accession is mutated to a valid-but-wrong human accession.
+
+### T7a · Build the panel seal tool — **CA · 5 min** *(new — CTO ruling, dispatch #21)*
+T8's attestation step invokes `chipsim panel seal`, which did not exist as a task. **Placed before
+T8 deliberately**, on the S11a-before-T18 precedent and for a sharper reason: the seal **is** the act
+of attestation, so if the tool is missing when the principal sits down to ratify, T8 cannot be
+completed at all — the plan would be self-blocking.
+
+- **Files:** `chipsim/harmonize/pgp_label.py` (edit) · `chipsim/pipeline.py` (edit — `panel seal`
+  subcommand) · `tests/test_pgp_label.py` (edit)
+- **Interfaces:**
+  ```python
+  def panel_digest(panel: list[dict]) -> str:
+      """sha256 over the canonically-serialized panel list."""
+
+  def seal_panel(panel_path: Path) -> str:
+      """Write ratified_panel_sha256 and return it.
+      Raises if the panel is not ratified — see the third done-condition.
+      """
+  ```
+  `load_ratified_panel` verifies the digest and **raises on mismatch**.
+- **Done when** (all three):
+  1. sealing a ratified fixture, then flipping one `face`, makes `load_ratified_panel` raise;
+  2. sealing is idempotent;
+  3. **sealing an UNRATIFIED panel raises rather than writing a digest.** Without (3) a digest could
+     be produced while `ratified: false` — an attestation record binding nothing a human signed.
+- **Constraint:** an agent may build and test this tool against **fixtures only**. Running it against
+  the live `configs/barrier_panel.yaml` is forbidden by Global Constraint (4).
 
 ### T8 · Ratify the panel accessions and faces — **H · 15–20 min**
 Check each accession against UniProt, **and check each `face`**. Correct anything wrong, then set
