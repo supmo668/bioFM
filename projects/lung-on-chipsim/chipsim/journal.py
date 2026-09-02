@@ -16,6 +16,27 @@ sha256'd and rdkit computes the canonical InChIKey every join and the sealed
 allocation key on, so a record omitting resolved versions cannot show that two runs
 were the same computation.
 
+*** S12 DELIVERS THE ENVIRONMENT HALF ONLY. THE REPLAY TEST REMAINS BLOCKED. ***
+
+Read the paragraphs above as diagnosing why the replay test could not fail, NOT as
+closing it. This module records the **environment** a run happened in — configs,
+resolved versions, platform, git state. §5's replay test also needs the **diff** and
+the **seed**, and this record carries neither; nothing in the codebase sets
+`CHIPSIM_SEED` today, so the seeds map is populated only if an operator happens to
+export it.
+
+So: an environment recorded here is necessary for replay and is not sufficient for
+it. Saying otherwise would repeat the seal's own corrected overclaim — a real
+mechanism described as doing more than it does. Extending the record to carry
+diff + seed is new scope and needs a plan amendment; it has not been authorized
+(CTO ruling, dispatch #43).
+
+(The honesty grep in tests/test_journal.py rejected an earlier draft of this
+paragraph because it quoted the seal's overclaim verbatim as an example. The guard
+cannot distinguish a cited claim from a made one, and tightening it to try would
+weaken it — so the wording changed instead. Worth recording that the check fired on
+its own author.)
+
 *** WHAT THIS DETECTS, AND WHAT IT DOES NOT ***
 
 DETECTS: modification of a run record after the fact. Change the manifest and
