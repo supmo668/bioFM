@@ -1,1 +1,3 @@
 - P0.2 — T5-T19 + S11a against fixtures; CTO rulings E-1..E-5 applied and falsified; 27 QG findings fixed (commit fd945cc)
+- chipsim-lbm-audit A&D r1.0 — R2 specified as TWO mechanisms (digest for unsealed edits; journalled seal invocations for re-seal-after-results ordering); honesty clause carried from the panel seal verbatim: detection is not attestation (commit b368c83)
+- S12 — run journal: config snapshot + environment capture + digest verification; six done-conditions, 13 tests (commit e8fb8c3); QG cycle fixed 12 findings incl. CRITICAL QG-1 (finish_run overwrote, so a crashed run could be restamped as success) and QG-2 (config snapshot never re-hashed on read) (commit 295a63a)
