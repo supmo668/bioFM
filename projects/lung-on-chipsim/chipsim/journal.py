@@ -617,9 +617,13 @@ def read_outcome(run_dir: Path) -> dict | None:
        says nothing about where it lives. The write path already refuses to
        restamp a crash (``finish_run`` creates exclusively), but a ``cp`` is not
        a write to that run at all, so the read path has to carry its own check.
-    4. the outcome's copy of ``manifest_sha256`` matches the run's ACTUAL
-       manifest — otherwise that field is inert decoration, and a foreign
-       outcome carrying a foreign manifest digest is accepted silently.
+    4. the outcome's copy of ``manifest_sha256`` is **present**, the manifest
+       **exists**, and the two **match** — all three unconditionally. Otherwise
+       that field is inert decoration and a foreign outcome carrying a foreign
+       manifest digest is accepted silently. Checking it only "if both are there"
+       is not a weaker check, it is no check: deleting the manifest or dropping
+       the field is exactly what a forger does, and it is cheaper than editing
+       either.
     """
     run_dir = Path(run_dir)
     path = run_dir / "outcome.json"
@@ -646,16 +650,36 @@ def read_outcome(run_dir: Path) -> dict | None:
             "copied from another run would otherwise read back as that run's result."
         )
 
+    # UNCONDITIONAL. This check used to read `if bound and manifest_path.is_file()`,
+    # which handed the forger two ways to opt out of it: drop `manifest_sha256`
+    # from the outcome, or delete the manifest. A verification that can be skipped
+    # by removing the thing it verifies is not a verification — and the outcome
+    # digest is unkeyed, so recomputing it after either edit is one step. Both
+    # absences are now failures, for the same reason check 1 refuses a record
+    # carrying no digest rather than treating it as nothing to check.
     manifest_path = run_dir / "manifest.json"
     bound = str(outcome.get("manifest_sha256") or "")
-    if bound and manifest_path.is_file():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if manifest_digest(manifest) != bound:
-            raise ManifestVerificationError(
-                f"{path} is bound to manifest digest {bound[:12]}… but "
-                f"{manifest_path} computes {manifest_digest(manifest)[:12]}…. The "
-                "outcome and the manifest describe different states."
-            )
+    if not bound:
+        raise ManifestVerificationError(
+            f"{path} carries no manifest_sha256. `finish_run` never writes an "
+            "outcome without one, so its absence means the record was edited — "
+            "refusing to read it as this run's result."
+        )
+    if not manifest_path.is_file():
+        raise ManifestVerificationError(
+            f"{path} claims manifest digest {bound[:12]}… but {manifest_path} does "
+            "not exist. An outcome must never be the only record of a run, and "
+            "deleting the manifest must not be the way to skip the check that "
+            "binds them."
+        )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    computed = manifest_digest(manifest)
+    if computed != bound:
+        raise ManifestVerificationError(
+            f"{path} is bound to manifest digest {bound[:12]}… but "
+            f"{manifest_path} computes {computed[:12]}…. The "
+            "outcome and the manifest describe different states."
+        )
 
     return outcome
 
