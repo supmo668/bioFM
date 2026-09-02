@@ -25,8 +25,9 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-#: The key holding the seal. Written ONLY by a human running `chipsim panel seal`
-#: (Global Constraint 4) — running the seal IS the act of attestation.
+#: The key holding the seal. Global Constraint (4) says only a human may run
+#: `chipsim panel-seal` — but that is a STATED RULE, not something this digest can
+#: enforce. The seal is tamper-evidence; it does not prove a human ran it.
 SEAL_KEY = "ratified_panel_sha256"
 
 #: The symbol T10 resolves out of the panel. The SYMBOL is the constant here;
@@ -103,13 +104,16 @@ def panel_digest(doc: dict, panel_path: Path) -> str:
 def seal_panel(panel_path: Path) -> str:
     """Write `ratified_panel_sha256` into a RATIFIED panel and return it — T7a.
 
-    *** A HUMAN RUNS THIS. Global Constraint (4): running the seal is the act of
-    attestation, so an agent must never invoke it against the live
-    configs/barrier_panel.yaml. Agents build and test it against fixtures only. ***
+    *** A HUMAN RUNS THIS. Global Constraint (4) reserves it to a human, so an
+    agent must never invoke it against the live configs/barrier_panel.yaml. Agents
+    build and test it against fixtures only. ***
+
+    That is a stated rule with no technical force. This writes a tamper-evident
+    digest; it does not prove a human ran it, and nothing here can.
 
     Raises RuntimeError if the panel is not ratified (done-condition 3). Without
-    that refusal a digest could be produced while `ratified: false`, yielding an
-    attestation record that binds nothing a human signed — which is worse than no
+    that refusal a digest could be produced while `ratified: false`, yielding a
+    record that binds nothing a human claimed to check — which is worse than no
     seal at all, because it LOOKS like one.
 
     Idempotent: sealing an already-sealed, unmodified panel rewrites the same
@@ -125,8 +129,9 @@ def seal_panel(panel_path: Path) -> str:
         raise RuntimeError(
             f"refusing to seal {panel_path}: it is not ratified "
             f"(ratified={doc.get('ratified')!r}, ratified_by="
-            f"{doc.get('ratified_by')!r}). The seal records an attestation; sealing "
-            "an unratified panel would bind a digest to something no human signed."
+            f"{doc.get('ratified_by')!r}). The seal binds a digest to the panel and "
+            "its ratification fields; sealing an unratified panel would bind it to a "
+            "file no human has claimed to have checked."
         )
 
     digest = panel_digest(doc, panel_path)

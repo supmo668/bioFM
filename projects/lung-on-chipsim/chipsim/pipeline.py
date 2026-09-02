@@ -29,9 +29,11 @@ SUBCOMMANDS = (
 )
 
 #: Subcommands that are NOT ETL stages and must never appear in the n8n workflow.
-#: `panel-seal` is a HUMAN attestation tool (T7a): running it is the act of
-#: attestation under Global Constraint (4), so it must not sit in an automated
-#: pipeline that could invoke it unattended.
+#: `panel-seal` (T7a) writes a tamper-evident digest over a ratified panel. Global
+#: Constraint (4) reserves running it to a human — a STATED RULE the digest cannot
+#: enforce — so it must not sit in an automated pipeline that could invoke it
+#: unattended. Keeping it out of the workflow is one of the few places that rule
+#: gets any mechanical support at all.
 #:
 #: Declared separately rather than folded into SUBCOMMANDS so the workflow-export
 #: check keeps comparing against the ETL list exactly. Every registered subcommand
@@ -96,9 +98,13 @@ def _cmd_write(ns: argparse.Namespace) -> int:
 def _cmd_panel_seal(ns) -> int:
     """Seal a ratified barrier panel — build-plan T7a.
 
-    *** THIS IS A HUMAN COMMAND. *** Global Constraint (4): running the seal IS
-    the act of attestation, so an agent must never invoke it against the live
-    configs/barrier_panel.yaml. Agents build and test it against fixtures only.
+    *** THIS IS A HUMAN COMMAND. *** Global Constraint (4) reserves it to a human,
+    so an agent must never invoke it against the live configs/barrier_panel.yaml.
+    Agents build and test it against fixtures only.
+
+    That constraint is a stated rule with no technical force: the digest is
+    unkeyed over public content, so running this proves the file has not changed
+    since — never who ran it.
     """
     from chipsim.harmonize.pgp_label import seal_panel
 
@@ -140,7 +146,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser(
         "panel-seal",
-        help="HUMAN ONLY (T8): seal a ratified barrier panel — running this IS the attestation",
+        help=(
+            "HUMAN ONLY (T8) — writes a tamper-evident digest over a ratified panel. "
+            "This does not prove a human ran it."
+        ),
     )
     p.add_argument("--panel", required=True, type=Path)
 
