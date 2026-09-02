@@ -268,7 +268,8 @@ coordination:
 
 # ── CTO coordination ──────────────────────────────────────────────────────
 cto:
-  branch: "master"               # the branch the coordination agent lives on
+  branch: "main"                 # the branch the coordination agent lives on
+                                 # (was "master" — template default; this repo's trunk is main)
   monitors: ["dispatch", "issue", "blocker"]  # background monitors the CTO starts on launch
   # protected_branches: ""       # space/comma/newline list of branches non-CTO agents cannot
                                  # write (checkout/switch/push). Default when unset: cto.branch
