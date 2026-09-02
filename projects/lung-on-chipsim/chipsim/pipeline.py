@@ -28,6 +28,16 @@ SUBCOMMANDS = (
     "write",
 )
 
+#: Subcommands that are NOT ETL stages and must never appear in the n8n workflow.
+#: `panel-seal` is a HUMAN attestation tool (T7a): running it is the act of
+#: attestation under Global Constraint (4), so it must not sit in an automated
+#: pipeline that could invoke it unattended.
+#:
+#: Declared separately rather than folded into SUBCOMMANDS so the workflow-export
+#: check keeps comparing against the ETL list exactly. Every registered subcommand
+#: must appear in exactly one of these two tuples — see test_workflow_export.
+NON_ETL_SUBCOMMANDS = ("panel-seal",)
+
 MODULE_PATH = "chipsim.pipeline"
 
 
@@ -83,12 +93,27 @@ def _cmd_write(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_panel_seal(ns) -> int:
+    """Seal a ratified barrier panel — build-plan T7a.
+
+    *** THIS IS A HUMAN COMMAND. *** Global Constraint (4): running the seal IS
+    the act of attestation, so an agent must never invoke it against the live
+    configs/barrier_panel.yaml. Agents build and test it against fixtures only.
+    """
+    from chipsim.harmonize.pgp_label import seal_panel
+
+    digest = seal_panel(ns.panel)
+    print(f"sealed {ns.panel}\n{digest}")
+    return 0
+
+
 _HANDLERS = {
     "fetch": _cmd_fetch,
     "hash-verify": _cmd_hash_verify,
     "parse": _cmd_parse,
     "provenance-tests": _cmd_provenance_tests,
     "write": _cmd_write,
+    "panel-seal": _cmd_panel_seal,
 }
 
 
@@ -112,6 +137,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("write", help="persist the compound frame")
     p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
     p.add_argument("--out", required=True, type=Path)
+
+    p = sub.add_parser(
+        "panel-seal",
+        help="HUMAN ONLY (T8): seal a ratified barrier panel — running this IS the attestation",
+    )
+    p.add_argument("--panel", required=True, type=Path)
 
     return ap
 

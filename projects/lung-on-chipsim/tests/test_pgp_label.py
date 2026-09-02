@@ -20,8 +20,10 @@ from chipsim.harmonize.pgp_label import (
     PRE_ADJUDICATION_LABELS,
     barrier_panel_edges,
     load_ratified_panel,
+    panel_digest,
     pgp_substrate_label,
     resolve_panel_accession,
+    seal_panel,
 )
 from chipsim.ingest.drugbank_snapshot import load_compounds, load_protein_edges
 
@@ -266,3 +268,114 @@ def test_fixture_face_agreement_with_live_panel(panel_ratified_path):
         "fixture face(s) disagree with the ratified panel {symbol: (fixture, live)}: "
         f"{mismatched}. configs/barrier_panel.yaml is authoritative."
     )
+
+
+# --------------------------------------------------------------------------- #
+# T7a · the panel seal — binds a ratification to the contents it attested
+# --------------------------------------------------------------------------- #
+
+
+def _sealed_copy(tmp_path, panel_ratified_path, name="sealed.yaml"):
+    """A ratified fixture, copied and sealed. Fixtures only — Global Constraint 4
+    forbids an agent sealing the live configs/barrier_panel.yaml."""
+    p = tmp_path / name
+    p.write_text(Path(panel_ratified_path).read_text())
+    digest = seal_panel(p)
+    return p, digest
+
+
+def test_t7a_sealing_then_editing_a_face_makes_the_load_raise(tmp_path, panel_ratified_path):
+    """Done-condition 1. This is the whole point: after T8, `ratified: true` must
+    stop attesting the moment any entry changes. Before the seal, a post-
+    ratification face flip was undetectable — T19 checks only accession, taxon and
+    gene symbol."""
+    p, _ = _sealed_copy(tmp_path, panel_ratified_path)
+    assert load_ratified_panel(p)  # sealed and intact -> loads
+
+    doc = yaml.safe_load(p.read_text())
+    for entry in doc["panel"]:
+        if entry["symbol"] == "TFRC":
+            entry["face"] = "apical" if entry["face"] == "basolateral" else "basolateral"
+    # Rewrite preserving the seal line, exactly as a hand-edit would.
+    p.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(RuntimeError, match="FAILS ITS SEAL"):
+        load_ratified_panel(p)
+
+
+def test_t7a_a_deleted_entry_also_breaks_the_seal(tmp_path, panel_ratified_path):
+    """Deletion is the edit T8 explicitly permits, so it must be covered too."""
+    p, _ = _sealed_copy(tmp_path, panel_ratified_path)
+    doc = yaml.safe_load(p.read_text())
+    doc["panel"] = [e for e in doc["panel"] if e["symbol"] != "ABCC1"]
+    p.write_text(yaml.safe_dump(doc))
+
+    with pytest.raises(RuntimeError, match="FAILS ITS SEAL"):
+        load_ratified_panel(p)
+
+
+def test_t7a_sealing_is_idempotent(tmp_path, panel_ratified_path):
+    """Done-condition 2. A digest that churned on re-seal would train a human to
+    ignore mismatches."""
+    p, first = _sealed_copy(tmp_path, panel_ratified_path)
+    second = seal_panel(p)
+    assert first == second
+    assert load_ratified_panel(p)
+
+
+def test_t7a_sealing_an_unratified_panel_raises(tmp_path, panel_unratified_path):
+    """Done-condition 3, and the sharpest one. A digest written while
+    `ratified: false` would be an attestation record binding nothing a human
+    signed — worse than no seal, because it LOOKS like one."""
+    p = tmp_path / "unratified.yaml"
+    p.write_text(Path(panel_unratified_path).read_text())
+
+    with pytest.raises(RuntimeError, match="not ratified"):
+        seal_panel(p)
+    assert "ratified_panel_sha256" not in p.read_text(), (
+        "seal_panel wrote a digest into an unratified panel"
+    )
+
+
+def test_t7a_sealing_a_ratified_panel_with_no_ratifier_raises(tmp_path, fixture_dir):
+    """`ratified: true` with an empty ratified_by is not an attestation, so it
+    must not be sealable either — otherwise the seal launders it into one."""
+    p = tmp_path / "no_ratifier.yaml"
+    p.write_text((fixture_dir / "barrier_panel_ratified_no_ratifier.yaml").read_text())
+
+    with pytest.raises(RuntimeError, match="not ratified"):
+        seal_panel(p)
+
+
+def test_t7a_seal_ignores_attestation_fields_and_comments(tmp_path, panel_ratified_path):
+    """The digest covers the PANEL, not the attribution or the file's comments.
+
+    Re-attributing a ratification, or the comment churn that T8's human-facing
+    instructions attract, must not read as tampering with the accessions — or the
+    signal is lost in noise.
+    """
+    p, digest = _sealed_copy(tmp_path, panel_ratified_path)
+    text = p.read_text()
+    text = text.replace('ratified_by: "FIXTURE - not a real ratification"', 'ratified_by: "Someone Else"')
+    p.write_text("# a new leading comment\n" + text)
+
+    doc = yaml.safe_load(p.read_text())
+    assert panel_digest(doc["panel"]) == digest
+
+
+def test_t7a_seal_is_order_independent(tmp_path, panel_ratified_path):
+    """Reordering entries is not a content change. Canonicalization sorts by
+    symbol, so a human tidying the file does not trip the seal."""
+    p, digest = _sealed_copy(tmp_path, panel_ratified_path)
+    doc = yaml.safe_load(p.read_text())
+    doc["panel"] = list(reversed(doc["panel"]))
+    assert panel_digest(doc["panel"]) == digest
+
+
+def test_t7a_seal_preserves_the_human_facing_comments(tmp_path, panel_ratified_path):
+    """seal_panel must not re-dump the YAML: the live panel carries T8's
+    instructions as comments, and yaml.safe_dump would delete every one."""
+    p = tmp_path / "commented.yaml"
+    p.write_text("# LOAD-BEARING COMMENT\n" + Path(panel_ratified_path).read_text())
+    seal_panel(p)
+    assert "# LOAD-BEARING COMMENT" in p.read_text()

@@ -22,7 +22,12 @@ from pathlib import Path
 
 import pytest
 
-from chipsim.pipeline import MODULE_PATH, SUBCOMMANDS, available_subcommands
+from chipsim.pipeline import (
+    MODULE_PATH,
+    NON_ETL_SUBCOMMANDS,
+    SUBCOMMANDS,
+    available_subcommands,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = PROJECT_ROOT / "orchestration" / "n8n" / "etl_drugbank.json"
@@ -72,7 +77,18 @@ def test_t16_every_node_names_a_real_cli_entrypoint(workflow):
     """T16's load-bearing done-condition. Checked against the parser's registered
     subcommands rather than a restated list, so a rename cannot pass silently."""
     registered = available_subcommands()
-    assert registered == SUBCOMMANDS
+    # Every registered subcommand must be declared in exactly one category. The
+    # ETL list stays exact — a rename or a stale entry still fails — while
+    # panel-seal (T7a) is declared non-ETL because running it is a HUMAN
+    # attestation (Global Constraint 4), not a pipeline stage.
+    assert set(registered) == set(SUBCOMMANDS) | set(NON_ETL_SUBCOMMANDS), (
+        f"registered subcommands {registered} do not match the declared "
+        f"ETL {SUBCOMMANDS} + non-ETL {NON_ETL_SUBCOMMANDS}"
+    )
+    assert not set(SUBCOMMANDS) & set(NON_ETL_SUBCOMMANDS), "a subcommand is in both categories"
+    assert tuple(c for c in registered if c in SUBCOMMANDS) == SUBCOMMANDS, (
+        "the ETL subcommands must stay registered in pipeline order"
+    )
 
     for node in workflow["nodes"]:
         command = node["parameters"]["command"]

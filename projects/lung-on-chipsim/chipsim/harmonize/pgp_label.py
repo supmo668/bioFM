@@ -18,10 +18,16 @@ is how defect 4's silent degradation survived review.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import pandas as pd
 import yaml
+
+#: The key holding the seal. Written ONLY by a human running `chipsim panel seal`
+#: (Global Constraint 4) — running the seal IS the act of attestation.
+SEAL_KEY = "ratified_panel_sha256"
 
 #: The symbol T10 resolves out of the panel. The SYMBOL is the constant here;
 #: the accession deliberately is not.
@@ -43,11 +49,89 @@ PANEL_EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "symbol", "category", "face")
 FACES = frozenset({"apical", "basolateral"})
 
 
+def panel_digest(panel: list[dict]) -> str:
+    """sha256 over the canonically-serialized panel list — build-plan T7a.
+
+    Canonical means: entry keys sorted, entries ordered by `symbol`, compact
+    separators, UTF-8. Serialization must not depend on YAML formatting, key order
+    or comment churn, or the digest would change when nothing attested changed and
+    a human would learn to ignore the mismatch.
+
+    Only the panel LIST is hashed, deliberately. The attestation fields
+    (`ratified`, `ratified_by`, `ratified_on`) and the seal itself are excluded:
+    hashing them would make the digest depend on its own value, and re-attributing
+    a ratification must not read as tampering with the accessions.
+    """
+    canonical = sorted(
+        ({str(k): entry[k] for k in sorted(entry)} for entry in panel),
+        key=lambda e: str(e.get("symbol", "")),
+    )
+    blob = json.dumps(canonical, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def seal_panel(panel_path: Path) -> str:
+    """Write `ratified_panel_sha256` into a RATIFIED panel and return it — T7a.
+
+    *** A HUMAN RUNS THIS. Global Constraint (4): running the seal is the act of
+    attestation, so an agent must never invoke it against the live
+    configs/barrier_panel.yaml. Agents build and test it against fixtures only. ***
+
+    Raises RuntimeError if the panel is not ratified (done-condition 3). Without
+    that refusal a digest could be produced while `ratified: false`, yielding an
+    attestation record that binds nothing a human signed — which is worse than no
+    seal at all, because it LOOKS like one.
+
+    Idempotent: sealing an already-sealed, unmodified panel rewrites the same
+    digest (done-condition 2).
+    """
+    panel_path = Path(panel_path)
+    doc = yaml.safe_load(panel_path.read_text())
+    if not isinstance(doc, dict):
+        raise RuntimeError(  # noqa: TRY004
+            f"{panel_path} did not parse to a mapping (got {type(doc).__name__})"
+        )
+    if doc.get("ratified") is not True or not str(doc.get("ratified_by") or "").strip():
+        raise RuntimeError(
+            f"refusing to seal {panel_path}: it is not ratified "
+            f"(ratified={doc.get('ratified')!r}, ratified_by="
+            f"{doc.get('ratified_by')!r}). The seal records an attestation; sealing "
+            "an unratified panel would bind a digest to something no human signed."
+        )
+
+    digest = panel_digest(doc.get("panel") or [])
+
+    # Rewrite the seal line in place rather than re-dumping the document: the file
+    # carries the human-facing T8 instructions as comments, and yaml.safe_dump
+    # would silently delete every one of them.
+    text = panel_path.read_text()
+    line = f"{SEAL_KEY}: {digest}"
+    if f"{SEAL_KEY}:" in text:
+        out = "\n".join(
+            line if ln.startswith(f"{SEAL_KEY}:") else ln for ln in text.splitlines()
+        )
+        out += "\n" if text.endswith("\n") else ""
+    else:
+        # Insert immediately after ratified_on so the attestation block stays together.
+        lines = text.splitlines()
+        for i, ln in enumerate(lines):
+            if ln.startswith("ratified_on:"):
+                lines.insert(i + 1, line)
+                break
+        else:
+            lines.append(line)
+        out = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+    panel_path.write_text(out)
+    return digest
+
+
 def load_ratified_panel(panel_path: Path) -> dict:
     """Parse a barrier panel and REFUSE it unless a human ratified it.
 
     Raises RuntimeError unless `ratified` is present AND True AND `ratified_by`
     is non-empty. A missing key raises — absence is not consent (defect 1).
+    If a seal is present it must MATCH: a post-ratification edit to any entry
+    invalidates the attestation (T7a done-condition 1).
     """
     panel_path = Path(panel_path)
     doc = yaml.safe_load(panel_path.read_text())
@@ -124,6 +208,20 @@ def load_ratified_panel(panel_path: Path) -> dict:
                 "because accessions are resolved by symbol."
             )
         seen[entry["symbol"]] = i
+
+    # Seal check LAST: a malformed panel should report the specific malformation,
+    # not a digest mismatch that says only "something changed".
+    sealed = str(doc.get(SEAL_KEY) or "").strip()
+    if sealed:
+        actual = panel_digest(panel)
+        if actual != sealed:
+            raise RuntimeError(
+                f"{panel_path} FAILS ITS SEAL. Recorded {sealed[:12]}…, computed "
+                f"{actual[:12]}…. The panel was edited after a human ratified it, so "
+                "the attestation no longer covers its contents. Either revert the edit "
+                "or have a human re-verify and re-run `chipsim panel seal`. An agent "
+                "must not re-seal (Global Constraint 4)."
+            )
 
     return doc
 
