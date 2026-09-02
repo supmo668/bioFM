@@ -92,6 +92,59 @@ the digest. Options (a) refuse re-sealing outright and (b) silently overwrite we
 | (b) unpaired difference of aggregate agreements | Discards the pairing that makes this study powered at n≈40 compounds. |
 | **(c) paired difference, bootstrapped over ligands** | **Chosen.** Every arm scores the **same ligand set**; the reported number is the *difference*; CI by bootstrap resampling **over ligands, not over pairs** — pairs sharing a ligand are not independent, and resampling pairs would report a confidence interval narrower than the data supports. |
 
+#### D3a · Reporting unit and thresholds — principal's 1B1 rulings, 2026-09-01
+
+r1.0 left the reporting unit implicit and (c) reads as a single pooled difference. **That is the
+aggregate the parent PVR forbids** — *"aggregate metrics hide exactly the cases the project exists
+to resolve"* — so a study whose only well-powered number were an aggregate would argue against its
+own programme. Ruled:
+
+**The statistic is per-target Δρ.** `Δρ = ρ(native, measured) − ρ(shuffled, measured)`, Spearman
+(predicted affinities are on an uncalibrated scale; the claim is about *ranking* moieties, not
+absolute Kd), computed **per target** and reported as seven numbers plus their paired distribution.
+Never one pooled ρ. (c)'s bootstrap-over-ligands survives intact and composes with this: it is how
+each **per-target** CI is built, resampling ligands within that target.
+
+**Two shuffle tiers**, because "shuffled target" is ambiguous between two different tests:
+
+| Tier | Swap to | Answers |
+|---|---|---|
+| **within-panel** | another of the seven | The decision-relevant question — ChipSim must discriminate *among these seven*. The harder test. F1 governs partner selection. |
+| **cross-family** | a protein unrelated to the panel | The sanity floor. Δρ ≈ 0 **here too** means no target sensitivity at all — a stronger and more publishable negative. |
+
+Within-panel alone yields a null ambiguous between *"the model is insensitive"* and *"these seven
+are too similar to separate."* The cross-family arm disambiguates it on the same ligand set for one
+extra target. **Both tiers use the same thresholds** — cross-family is an *easier* test, not a
+stricter one, so a failure there is stronger because the bar was equal; raising it would conflate
+"stronger conclusion" with "harder test."
+
+**Three-region verdict rule**, per tier, on the 95% bootstrap CI:
+
+| Verdict | Rule |
+|---|---|
+| **sensitive** | CI **lower bound ≥ 0.20** — present *and* at least the declared size |
+| **insensitive** | CI **entirely within [−0.10, +0.10]** — a large effect positively **ruled out** |
+| **inconclusive** | anything else, **including any CI that merely contains zero** |
+
+> **Why `insensitive` needs an equivalence test, not a significance test.** A CI containing zero
+> means *either* insensitive *or* underpowered, and those are as different as `no` and `unknown` in
+> the P-gp label. Reporting "insensitive" from a wide interval straddling zero is **absence of
+> evidence read as evidence of absence** — the standing rule in `CONTEXT.md`, and here it would kill
+> the moiety claim on a null the study was never powered to produce. So `insensitive` is reachable
+> only by a *narrow* interval: it requires precision, not the absence of a signal.
+
+**Declared power, not discovered.** With n = 7 targets a sign test across targets bottoms out at
+p = 1/2⁷ ≈ **0.008**, so a **unanimous** direction across all seven is publishable and a 5/7 split
+is not, at any threshold. This study can detect a unanimous large effect and essentially nothing
+subtler. That is what "powered for a large effect only" commits to, and it belongs in the
+pre-registration rather than in the analysis.
+
+**Pilot stops on low power.** If the measured-pair count assembled for ground truth is too small to
+place a CI inside any of the three regions, the pilot **halts and reports power** rather than
+proceeding to the confirmatory round. R3's ground truth needs measured affinities against the panel
+(ChEMBL/BindingDB), which the PVR scopes in only *"beyond the minimum needed to assemble measured
+pairs"* — so the surviving pair count, not the $30 ceiling, may be the binding constraint.
+
 ---
 
 ## Part II — Components & interfaces
@@ -222,6 +275,34 @@ disruptive regardless of any binding-site logic. **Handling:** matched on target
 and on comparable relative solvent accessibility, all drawn by one pre-registered procedure. An
 unmatched pocket mutant raises rather than being reported against a mismatched control.
 
+**F2a · The distal arm can break the control silently (principal's 1B1, 2026-09-01).** "Distal" by
+distance alone will sometimes select **buried structural residues**. Mutating those destabilises the
+fold, which moves the predicted affinity for a reason unrelated to pocket sensitivity — inflating
+the control arm, shrinking `Δ_mut`, and biasing the study toward **"insensitive."** Same direction
+as F1's bias, and equally invisible in the output: it reads as a small difference, not as a broken
+control. **Handling — four matching axes, all pre-registered:**
+
+| Axis | Declared value | Why |
+|---|---|---|
+| same target | — | F2 |
+| mutation count | equal | PVR; necessary, not sufficient |
+| **surface exposure** | **relative SASA ≥ 25%** | distal residues must be exposed, so the fold is not perturbed |
+| **substitution radicality** | comparable chemical severity | a conservative pocket swap against a radical distal one is not a control |
+
+**Pocket definition:** residues with any heavy atom within **5 Å** of the co-folded ligand pose.
+Distal residues are excluded from that shell and from any secondary-structure core. AFDB supplies
+the wild-type geometry and mutants come from sequence, so no additional structure run is needed —
+consistent with the PVR's exclusion of AlphaFold provisioning.
+
+**Count:** **3 pocket + 3 matched distal per target** = 42 mutant complexes across seven targets,
+which sits inside the ~1,200–1,500 complex budget alongside R3.
+
+**Stability sanity check, declared in advance:** if distal mutants move predictions **as much as**
+pocket mutants, that is *either* insensitivity *or* a broken comparator, and the pre-registration
+fixes which it is — a large distal shift **invalidates the control** and is reported as such, rather
+than being reported as a null. Declaring this before the run is the difference between a control and
+a decoration.
+
 **F3 · R6 compares transcript to protein.** HPA lung values are commonly transcript-level (nTPM)
 while an atlas abundance may be protein-level. An order-of-magnitude pass criterion across two
 modalities can be satisfied by unit choice alone. **Handling:** each side of the ratio declares its
@@ -284,17 +365,25 @@ failure mode with history.
 **Behavior.** Over one ligand set, compute native `f(l, t_true)`, shuffled `f(l, t_shuf)` and the
 ligand-only fallback `g(l)`. Report `Δ_shuffle = A(native) − A(shuffled)` and
 `Δ_fallback = A(native) − A(ligand-only)`, `A` = agreement with measured values, CI by bootstrap over
-ligands. F1 governs shuffle construction.
+ligands. F1 governs shuffle construction. **Per D3a:** `A` is Spearman ρ, `Δρ` is reported **per
+target** (seven values + their paired distribution, never pooled), across **two tiers** —
+within-panel and cross-family — each bootstrapped over ligands *within* that target and mapped
+through the three-region rule.
 **Tests.** a run producing only the native arm **fails**; the reported statistic is a difference; the
 two arms score an identical ligand set; a ligand with no valid shuffle partner appears in the
-report's drop list.
+report's drop list; **a report carrying only a pooled Δρ and no per-target values fails**; **a run
+producing only one shuffle tier fails**; **a CI containing zero must not render as `insensitive`**.
 
 ### R4 · Pocket-vs-distal mutation control
-**Behavior.** Per target, matched pocket and distal mutants (F2). Report
-`Δ_mut = effect(pocket) − effect(distal)`.
+**Behavior.** Per target, matched pocket and distal mutants (F2, **F2a**). Report
+`Δ_mut = effect(pocket) − effect(distal)`, per target. Pocket = within 5 Å of the co-folded ligand
+pose; distal = outside that shell, RSA ≥ 25%, matched on count and substitution radicality;
+3 pocket + 3 distal per target.
 **Tests.** every pocket mutant has a matched distal mutant of equal mutation count on the same
 target; a raw "prediction dropped" result with no distal comparator **fails**; an unmatched mutant
-raises.
+raises; **a distal mutant with RSA below the declared floor raises rather than being used as a
+control**; **a distal arm moving as much as the pocket arm is reported as an invalidated comparator,
+never as a null**.
 
 ### R5 · ESM-2 vs descriptor baseline on cliff-stratified pairs
 **Behavior.** Matched molecular pairs crossing a pre-registered potency or efflux cliff. Accuracy
