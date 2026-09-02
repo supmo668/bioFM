@@ -207,7 +207,17 @@ def _environment() -> dict:
     return {
         "seeds": seeds,
         "project_root_override": override,
-        "user": user,
+        # NOT an identity. getpass.getuser() reads $LOGNAME/$USER/$LNAME/$USERNAME
+        # before any system source, so `USER=impostor` puts "impostor" here.
+        # Named to say so in the record itself, not only in this comment: a reader
+        # of journal/invocations/*.json sees the caveat, and a plain field called
+        # `user` beside a Constraint-(4) trail is the seal's overclaim again in
+        # data form.
+        "user_claimed_by_env": user,
+        "identity_basis": (
+            "getpass.getuser(); settable via $USER — NOT authenticated, and not "
+            "evidence of who ran this"
+        ),
         "host": socket.gethostname(),
         "cwd": str(Path.cwd()),
     }
@@ -437,14 +447,25 @@ def outcome_digest(outcome: dict) -> str:
 def finish_run(run_dir: Path, *, status: str, detail: str | None = None) -> Path:
     """Write ``outcome.json`` — **last**, after every other artifact, and **once**.
 
-    Ordering is half the point: a crashed run leaves no outcome, so absence is
-    unambiguous. **Exclusive creation is the other half.** Without it, a crashed
-    run could simply be stamped again as a success — abandoning one function away
-    the append-only rule `start_run` enforces for run ids. A second outcome RAISES.
+    Ordering is half the point: an outcome never exists for work that has not
+    finished, so no run can read as `ok` before it succeeded. Note the precise
+    claim — **absence means "no completion was recorded"**, which covers a hard
+    kill, a `finish_run` that itself failed, and a run still in progress. It does
+    NOT mean "crashed": the pipeline writes an explicit `status="crashed"` outcome
+    when it catches a failure. The weaker statement is the true one, and reading
+    absence as a diagnosis is the mistake this wording now refuses to invite.
+
+    **Exclusive creation is the other half.** Without it a crashed run could
+    simply be stamped again as a success — abandoning, one function away, the
+    append-only rule `start_run` enforces for run ids. A second outcome RAISES.
 
     The outcome cannot be covered by the manifest digest — the manifest is sealed
-    at run start, before the outcome exists — so it carries **its own** digest,
-    bound to the manifest's, which `read_outcome` verifies.
+    at run start, before the outcome exists — so it carries **its own** digest and
+    a copy of the manifest's. `read_outcome` verifies all three: the outcome's own
+    digest, that the record's `run_id` matches the directory it was found in, and
+    that its bound `manifest_sha256` equals the run's actual manifest. The middle
+    check exists because a digest covers a record's contents and says nothing
+    about its location, so a copied outcome verified clean without it.
     """
     run_dir = Path(run_dir)
     manifest_path = run_dir / "manifest.json"
@@ -478,12 +499,35 @@ def finish_run(run_dir: Path, *, status: str, detail: str | None = None) -> Path
 
 
 def read_outcome(run_dir: Path) -> dict | None:
-    """Verify and return the outcome, or ``None`` if the run never finished.
+    """Verify and return the outcome, or ``None`` if no completion was recorded.
 
-    ``None`` means the run crashed or is still running. It never means success —
-    that distinction is the whole reason the outcome is written last.
+    ``None`` means **no completion record exists** — the process died before
+    finishing, `finish_run` itself failed, or the run is still going. It never
+    means success; that distinction is why the outcome is written last. It is
+    deliberately NOT read as "crashed": the pipeline writes an explicit
+    ``status="crashed"`` outcome when it catches a failure, so absence is the
+    weaker, three-way statement rather than a diagnosis.
+
+    Three things are checked, and a record failing any of them is refused rather
+    than returned:
+
+    1. the digest is present (never load unverified — deleting a line must not
+       be the bypass);
+    2. the digest matches (the record was not edited after it was written);
+    3. **the record belongs to THIS run** — an outcome names its own ``run_id``
+       and it must equal the directory it was found in. Without this, an outcome
+       copied from another run verified clean: a successful run's outcome could
+       be dropped into a crashed run's directory and read back as ``ok``, with
+       every digest intact, because the digest covers the record's contents and
+       says nothing about where it lives. The write path already refuses to
+       restamp a crash (``finish_run`` creates exclusively), but a ``cp`` is not
+       a write to that run at all, so the read path has to carry its own check.
+    4. the outcome's copy of ``manifest_sha256`` matches the run's ACTUAL
+       manifest — otherwise that field is inert decoration, and a foreign
+       outcome carrying a foreign manifest digest is accepted silently.
     """
-    path = Path(run_dir) / "outcome.json"
+    run_dir = Path(run_dir)
+    path = run_dir / "outcome.json"
     if not path.is_file():
         return None
     outcome = json.loads(path.read_text(encoding="utf-8"))
@@ -498,6 +542,26 @@ def read_outcome(run_dir: Path) -> dict | None:
             f"{path} does not match its {OUTCOME_DIGEST_KEY}: recorded {recorded}, "
             f"computed {actual}. The outcome was modified after it was written."
         )
+
+    claimed = str(outcome.get("run_id") or "")
+    if claimed != run_dir.name:
+        raise ManifestVerificationError(
+            f"{path} belongs to run {claimed!r} but was found in {run_dir.name!r}. "
+            "An outcome verifies its own contents, not its location — a record "
+            "copied from another run would otherwise read back as that run's result."
+        )
+
+    manifest_path = run_dir / "manifest.json"
+    bound = str(outcome.get("manifest_sha256") or "")
+    if bound and manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest_digest(manifest) != bound:
+            raise ManifestVerificationError(
+                f"{path} is bound to manifest digest {bound[:12]}… but "
+                f"{manifest_path} computes {manifest_digest(manifest)[:12]}…. The "
+                "outcome and the manifest describe different states."
+            )
+
     return outcome
 
 
@@ -517,7 +581,9 @@ def record_invocation(
     `panel-seal` is journalled here rather than as a run. Recording every
     invocation is what makes a Global Constraint (4) violation *detectable*: the
     constraint reserves sealing to a human and has no technical force, so the
-    trail of who-ran-what-when is the only mechanical support it gets.
+    trail of **what-was-attempted-when** is the only mechanical support it gets.
+    Not *who* — nothing in this record establishes an identity, and the
+    `user_claimed_by_env` field says so in its own name.
 
     The record carries argv, environment and timestamp, and **no digest field**.
     That is deliberate. A digest here would look like an attestation of the seal,

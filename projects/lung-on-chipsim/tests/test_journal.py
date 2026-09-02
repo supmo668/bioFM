@@ -8,6 +8,7 @@ real `journal/`, so the suite cannot pollute a real run history.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -69,7 +70,9 @@ def test_editing_a_config_after_the_run_does_not_change_the_snapshot(
     after = read_manifest(run_dir)["configs"]["env.yaml"]
     assert after == before
     assert (run_dir / "configs" / "env.yaml").read_text() == snapshot_text
-    assert "EDITED" not in snapshot_text
+    # Re-READ from disk. Asserting against `snapshot_text` — captured before the
+    # edit — is tautologically true and cannot fail whatever the implementation does.
+    assert "EDITED" not in (run_dir / "configs" / "env.yaml").read_text()
 
 
 # --- done-condition 3 ------------------------------------------------------
@@ -150,11 +153,36 @@ def test_panel_seal_invocation_record_carries_no_digest(fake_project: Path) -> N
     assert record["record_type"] == "invocation"
     assert record["argv"] == ["chipsim", "panel-seal", "--panel", "x.yaml"]
     assert "start" in record and record["environment"] is not None
-    for forbidden in ("manifest_sha256", "configs", "digest", "sha256"):
-        assert forbidden not in record, (
-            f"an invocation record must carry no digest field; found {forbidden!r}. "
-            "The record is an audit trail, never the attestation."
-        )
+    # ALLOWLIST, not a blocklist. A blocklist of four names passes any digest
+    # field called something else — verified: adding `record_sha256` survived the
+    # blocklist form. An invocation record is an audit trail, never the
+    # attestation, so its shape is closed rather than merely filtered.
+    assert set(record) == {"record_type", "command", "start", "argv", "environment"}, (
+        f"unexpected invocation record shape: {sorted(record)}. The record is "
+        "closed by design — a new field must be justified, not merely not-forbidden."
+    )
+
+    # And nothing digest-shaped anywhere in the structure, including nested.
+    def _walk(node, path=""):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                # Digest tokens with boundaries, so PYTHONHASHSEED — a seed env
+                # var, legitimately recorded — is not mistaken for a digest.
+                assert not re.search(
+                    r"(?:^|_)(?:sha\d*|digest|signature|checksum)(?:$|_)|\bhash\b",
+                    str(k),
+                    re.IGNORECASE,
+                ), (
+                    f"invocation record carries a digest-shaped key at {path}.{k}. "
+                    "A digest here would read as an attestation of the seal, and "
+                    "it would not be one."
+                )
+                _walk(v, f"{path}.{k}")
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                _walk(v, f"{path}[{i}]")
+
+    _walk(record)
 
 
 # --- the dirty tree is RECORDED, never hidden or refused -------------------
@@ -183,24 +211,58 @@ def test_no_wording_claims_the_journal_authenticates_anyone() -> None:
     against has recurred."""
     import re
 
-    source = Path(__file__).resolve().parent.parent / "chipsim" / "journal.py"
-    text = source.read_text().lower()
+    pkg = Path(__file__).resolve().parent.parent / "chipsim"
+    # Scope: every file where a human might read such a claim. journal.py alone
+    # left pipeline.py's `panel-seal` --help text — the string an operator reads at
+    # the moment of sealing — ungoverned, which is where the last overclaim of this
+    # class survived two rounds of "reframe complete".
+    sources = [
+        pkg / "journal.py",
+        pkg / "pipeline.py",
+        pkg / "harmonize" / "pgp_label.py",
+    ]
 
     forbidden = [
         r"proves? (?:the |that )?(?:a )?human",
         r"authenticat(?:e|es|ing|ion)\b(?!\w)",
         r"proves? who",
         r"attests? that a human",
+        r"establish(?:es)? who",
+        r"identif(?:y|ies) who",
+        r"who[- ]ran",
     ]
-    for pattern in forbidden:
-        for match in re.finditer(pattern, text):
-            line = text[: match.start()].count("\n") + 1
-            snippet = text.splitlines()[line - 1].strip()
-            # A negated statement ("does NOT prove a human ran it") is the point.
-            assert re.search(r"\bnot\b|\bnever\b|\bcannot\b|\bno\b", snippet), (
-                f"{source.name}:{line} appears to claim the journal authenticates "
-                f"someone: {snippet!r}"
-            )
+    inspected = 0
+    for source in sources:
+        # Collapse newlines so a claim wrapped across two lines cannot slip the
+        # adjacency the patterns require.
+        raw = source.read_text()
+        text = re.sub(r"\s+", " ", raw.lower())
+        for pattern in forbidden:
+            for match in re.finditer(pattern, text):
+                inspected += 1
+                # The negation must appear BEFORE the claim, within the same
+                # sentence. The previous form searched the whole line, so
+                # "authenticates the operator who wrote it, no question" passed —
+                # the guard against the overclaim was itself bypassable by using
+                # the word "no" AFTER the claim. Verified: that exact sentence
+                # survived the old check and fails this one.
+                sentence_start = max(text.rfind(". ", 0, match.start()) + 1, 0)
+                window = text[max(sentence_start, match.start() - 160) : match.start()]
+                assert re.search(
+                    r"\b(?:not|never|cannot|no|nothing|neither)\b",
+                    window,
+                ), (
+                    f"{source.name} appears to claim the journal or seal "
+                    f"authenticates someone: …{text[max(0, match.start() - 90) : match.start() + 60]}…"
+                )
+
+    # The loop must not pass by matching nothing. If the honest disclaimers are
+    # ever deleted wholesale, `inspected == 0` and this test would otherwise go
+    # quietly green on a module that says nothing at all about the limitation.
+    assert inspected > 0, (
+        "no honesty-clause language found in any scanned source — the disclaimers "
+        "that state the digest does not prove authorship appear to have been removed"
+    )
 
 
 # --- pipeline wiring (S12's second file) -----------------------------------

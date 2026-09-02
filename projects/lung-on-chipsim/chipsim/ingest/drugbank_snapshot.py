@@ -17,6 +17,7 @@ import hashlib
 import json
 import re
 import shutil
+import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -465,8 +466,28 @@ def read_digest_sidecar(target: Path) -> str:
 
 
 def _main(argv=None) -> int:
-    """CLI entrypoint — T4a runs this. Named in the T16 workflow export."""
+    """Deprecated entrypoint — delegates to the journalled pipeline.
+
+    This module used to run `fetch_snapshot` directly, which meant
+    `python -m chipsim.ingest.drugbank_snapshot` executed an ETL stage with **no
+    run journal at all**: no config snapshot, no resolved package versions, no git
+    state, and not even an UNRECORDED marker. An unjournalled fetch is
+    indistinguishable on disk from a journalled one, which defeats S12's whole
+    purpose — the A&D replay test cannot be run against an artifact whose inputs
+    were never recorded.
+
+    The docstring also claimed this was "Named in the T16 workflow export"; it was
+    not. Every node in `orchestration/n8n/etl_drugbank.json` names
+    `python -m chipsim.pipeline <stage>`, so the workflow already used the
+    journalled path and this was a bypass with no remaining caller.
+
+    Kept as a delegating shim rather than deleted so an operator with the old
+    command in their shell history gets a journalled run instead of a silent
+    bypass.
+    """
     import argparse
+
+    from chipsim.pipeline import main as pipeline_main
 
     ap = argparse.ArgumentParser(prog="python -m chipsim.ingest.drugbank_snapshot")
     ap.add_argument("--dest", required=True, type=Path)
@@ -476,10 +497,11 @@ def _main(argv=None) -> int:
         help="40-hex source_commit from data/raw/drugbank/provenance.yaml (pinned by H in T2)",
     )
     ns = ap.parse_args(argv)
-    digests = fetch_snapshot(ns.dest, ns.commit)
-    for name, digest in sorted(digests.items()):
-        print(f"{digest}  {name}")
-    return 0
+    print(
+        "note: delegating to `python -m chipsim.pipeline fetch` so the run is journalled",
+        file=sys.stderr,
+    )
+    return pipeline_main(["fetch", "--dest", str(ns.dest), "--commit", ns.commit])
 
 
 if __name__ == "__main__":
