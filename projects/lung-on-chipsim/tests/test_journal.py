@@ -202,6 +202,189 @@ def test_manifest_records_git_state_and_environment(fake_project: Path) -> None:
     assert "environment" in m
 
 
+# --- B3: the git/environment block is asserted BY VALUE ---------------------
+#
+# The tests above assert KEY PRESENCE. Key presence is satisfied by a field that
+# is always wrong, so four separate mutants of `_git_state`/`_environment` left
+# the suite fully green — including `dirty_files -> []`, which HIDES A DIRTY TREE,
+# the one posture A&D §4.4a states in bold ("a dirty tree is recorded, never
+# hidden or refused"). A record whose git block is never checked against a known
+# repository is decoration.
+#
+# The four mutants these tests exist to kill, each a one-line lie the old suite
+# accepted:
+#
+#   M1  dirty_files -> []          hides a dirty tree              (A&D §4.4a bold)
+#   M2  dirty -> False             hides the dirty FLAG
+#   M3  commit -> None             drops the identity of the code that ran
+#   M4  project_root_override      hides that the audit trail was diverted
+#         -> None
+#
+# Asserted against a repository built here, whose state is known exactly, rather
+# than against the repository the suite happens to be running in.
+
+
+def _run_git(repo: Path, *args: str) -> str:
+    """git, for BUILDING the fixture. Deliberately not the module's own probe —
+    a test that used `_git_state` to compute its own expected value would pass
+    against every one of the four mutants."""
+    import subprocess
+
+    out = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=True)
+    return out.stdout.strip()
+
+
+@pytest.fixture
+def tmp_git_repo(tmp_path: Path) -> Path:
+    """A real repository with exactly one commit and a clean tree."""
+    repo = tmp_path / "repo"
+    (repo / "configs").mkdir(parents=True)
+    (repo / "tracked.txt").write_text("original\n")
+    (repo / "configs" / "env.yaml").write_text(yaml.safe_dump({"stage": "test"}))
+    _run_git(repo, "init", "-q", "-b", "main")
+    _run_git(repo, "config", "user.email", "t@example.invalid")
+    _run_git(repo, "config", "user.name", "Test")
+    _run_git(repo, "add", "-A")
+    _run_git(repo, "commit", "-q", "-m", "initial")
+    return repo
+
+
+def test_git_state_reports_the_actual_commit_by_value(tmp_git_repo: Path) -> None:
+    """Kills M3 (`commit -> None`)."""
+    from chipsim.journal import _git_state
+
+    expected = _run_git(tmp_git_repo, "rev-parse", "HEAD")
+    state = _git_state(tmp_git_repo)
+
+    assert state["available"] is True
+    assert state["commit"] == expected, (
+        "the recorded commit must be the repository's actual HEAD — a record that "
+        "cannot say which code ran cannot identify the computation"
+    )
+    assert len(expected) == 40
+
+
+def test_git_state_reports_a_clean_tree_by_value(tmp_git_repo: Path) -> None:
+    """The clean baseline. Without it, M1/M2 could be 'killed' by a test that
+    only ever looks at a dirty tree."""
+    from chipsim.journal import _git_state
+
+    state = _git_state(tmp_git_repo)
+    assert state["dirty"] is False
+    assert state["dirty_files"] == []
+
+
+def test_git_state_records_a_dirty_tree_and_never_hides_it(tmp_git_repo: Path) -> None:
+    """Kills M1 (`dirty_files -> []`) and M2 (`dirty -> False`).
+
+    A&D §4.4a: a dirty tree is **recorded, never hidden or refused**. Both the
+    flag and the file list are asserted, because either one alone leaves the
+    other free to lie.
+    """
+    from chipsim.journal import _git_state
+
+    (tmp_git_repo / "tracked.txt").write_text("modified\n")
+    (tmp_git_repo / "untracked.txt").write_text("new\n")
+
+    state = _git_state(tmp_git_repo)
+
+    assert state["available"] is True
+    assert state["dirty"] is True, "a dirty tree must not be recorded as clean"
+    assert set(state["dirty_files"]) == {"tracked.txt", "untracked.txt"}, (
+        f"the dirty FILE LIST must be recorded, not merely the flag; got "
+        f"{state['dirty_files']!r}. An empty list beside a dirty tree is the "
+        "mutant A&D §4.4a is written in bold to forbid."
+    )
+
+
+def test_git_state_outside_a_checkout_is_recorded_as_unavailable(
+    tmp_path: Path,
+) -> None:
+    """`available: False` must be distinguishable from `clean`."""
+    from chipsim.journal import _git_state
+
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+    state = _git_state(outside)
+    # Either unavailable, or — if tmp_path sits inside some outer checkout —
+    # at minimum not silently claiming a clean tree it never inspected.
+    assert state["available"] in (True, False)
+    if state["available"] is False:
+        assert state["commit"] is None
+        assert state["dirty"] is None
+
+
+def test_environment_records_the_journal_relocation_by_value(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Kills M4 (`project_root_override -> None`).
+
+    The override relocates the audit trail. A record that does not say where it
+    was meant to live cannot show the trail was diverted — which is the whole
+    reason the field exists.
+    """
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(fake_project))
+    run_dir = start_run("chipsim parse", fake_project)
+    env = read_manifest(run_dir)["environment"]
+
+    assert env["project_root_override"] == str(fake_project), (
+        "the relocation must be recorded by value; None here would mean a "
+        "diverted trail is indistinguishable from a default one"
+    )
+
+    monkeypatch.delenv("CHIPSIM_PROJECT_ROOT")
+    run_dir2 = start_run("chipsim parse", fake_project, run_id="no-override")
+    env2 = read_manifest(run_dir2)["environment"]
+    assert env2["project_root_override"] is None, (
+        "and absence must be recorded as absence, so the two cases differ"
+    )
+
+
+def test_environment_records_seed_vars_by_value(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A seed that is set must appear with its VALUE; one that is not must appear
+    as None rather than be omitted — "not set" and "we forgot to look" must not
+    be the same record."""
+    from chipsim.journal import SEED_ENV_VARS
+
+    name = SEED_ENV_VARS[0]
+    monkeypatch.setenv(name, "424242")
+    run_dir = start_run("chipsim parse", fake_project)
+    seeds = read_manifest(run_dir)["environment"]["seeds"]
+
+    assert seeds[name] == "424242"
+    for other in SEED_ENV_VARS:
+        assert other in seeds, f"{other} must be recorded even when unset"
+
+
+def test_git_state_is_read_from_the_source_tree_not_the_journal_override(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch, tmp_git_repo: Path
+) -> None:
+    """B2 regression, at the manifest level.
+
+    `CHIPSIM_PROJECT_ROOT` says where the journal is WRITTEN. It must not select
+    the tree git is read from — that conflation both executed a planted
+    repository's `core.fsmonitor` and wrote that repository's git state into a
+    manifest describing our run.
+    """
+    from chipsim.journal import source_root
+
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_git_repo))
+    run_dir = start_run("chipsim parse", tmp_git_repo)
+    recorded = read_manifest(run_dir)["git"]
+
+    planted_head = _run_git(tmp_git_repo, "rev-parse", "HEAD")
+    assert recorded["commit"] != planted_head, (
+        "the manifest recorded the OVERRIDE's git state — the run's git block is "
+        "steerable by an environment variable"
+    )
+
+    from chipsim.journal import _git_state
+
+    assert recorded["commit"] == _git_state(source_root())["commit"]
+
+
 # --- honesty clause --------------------------------------------------------
 
 
@@ -540,3 +723,135 @@ def test_a_handler_returning_none_is_recorded_as_success(
     assert pipeline.main(["hash-verify", "--dest", str(fake_project)]) == 0
     runs = [d for d in (fake_project / "journal").iterdir() if d.name != "invocations"]
     assert read_outcome(runs[0])["status"] == "ok"
+
+
+# --- B1: the outcome<->manifest binding is UNCONDITIONAL --------------------
+#
+# Done-condition 5: a crashed run cannot read as success. The binding check was
+# written `if bound and manifest_path.is_file()`, which is not a weaker check but
+# no check — it hands the forger two one-step opt-outs. The outcome digest is
+# unkeyed, so recomputing it after either edit is free.
+
+
+def _forge_outcome_into(run_dir: Path, donor: Path, *, drop_binding: bool) -> None:
+    """Copy a successful run's outcome into `run_dir`, repaired to pass every
+    check that came before the binding check."""
+    from chipsim.journal import outcome_digest
+
+    o = json.loads((donor / "outcome.json").read_text())
+    o["run_id"] = run_dir.name  # defeats the location check
+    if drop_binding:
+        o.pop("manifest_sha256", None)
+    o.pop("outcome_sha256", None)
+    o["outcome_sha256"] = outcome_digest(o)  # unkeyed: recomputed for free
+    (run_dir / "outcome.json").write_text(json.dumps(o))
+
+
+def test_a_crashed_run_cannot_read_as_success_via_a_copied_outcome(
+    fake_project: Path,
+) -> None:
+    good = start_run("good", fake_project, run_id="good")
+    finish_run(good, status="ok")
+    crashed = start_run("crashed", fake_project, run_id="crashed")
+
+    _forge_outcome_into(crashed, good, drop_binding=False)
+
+    with pytest.raises(ManifestVerificationError):
+        read_outcome(crashed)
+
+
+def test_deleting_the_manifest_does_not_skip_the_binding_check(
+    fake_project: Path,
+) -> None:
+    """The bypass: the check only ran `if manifest_path.is_file()`, so removing
+    the manifest opted straight out of it. A verification that can be skipped by
+    deleting the thing it verifies is not a verification."""
+    good = start_run("good", fake_project, run_id="good")
+    finish_run(good, status="ok")
+    crashed = start_run("crashed", fake_project, run_id="crashed")
+
+    _forge_outcome_into(crashed, good, drop_binding=False)
+    (crashed / "manifest.json").unlink()
+
+    with pytest.raises(ManifestVerificationError):
+        read_outcome(crashed)
+
+
+def test_dropping_manifest_sha256_does_not_skip_the_binding_check(
+    fake_project: Path,
+) -> None:
+    """The other bypass: the check only ran `if bound`, so an outcome that simply
+    omits the field was accepted."""
+    good = start_run("good", fake_project, run_id="good")
+    finish_run(good, status="ok")
+    crashed = start_run("crashed", fake_project, run_id="crashed")
+
+    _forge_outcome_into(crashed, good, drop_binding=True)
+
+    with pytest.raises(ManifestVerificationError):
+        read_outcome(crashed)
+
+
+def test_an_honest_outcome_still_reads_back(fake_project: Path) -> None:
+    """The binding must reject forgeries without rejecting the real thing."""
+    run_dir = start_run("real", fake_project, run_id="real")
+    finish_run(run_dir, status="ok")
+    assert read_outcome(run_dir)["status"] == "ok"
+
+
+# --- B2: the state probe never executes the inspected repo's config ---------
+
+
+def test_git_state_does_not_execute_repo_local_fsmonitor(
+    tmp_git_repo: Path, tmp_path: Path
+) -> None:
+    """ARBITRARY COMMAND EXECUTION regression test.
+
+    `git status` RUNS `core.fsmonitor`. `project_root()` returned
+    `$CHIPSIM_PROJECT_ROOT` verbatim and the probe used it as `cwd`, so pointing
+    that variable at a planted repository executed its config as the pipeline
+    user — reproduced, `touch PWNED`. Under n8n/cron that variable comes from
+    workflow config, i.e. it is untrusted input.
+    """
+    canary = tmp_path / "PWNED"
+    _run_git(tmp_git_repo, "config", "core.fsmonitor", f"touch {canary}")
+
+    from chipsim.journal import _git_state
+
+    state = _git_state(tmp_git_repo)
+
+    assert not canary.exists(), (
+        "the inspected repository's core.fsmonitor EXECUTED — the state probe "
+        "is an arbitrary command execution path"
+    )
+    assert state["available"] is True  # and it still did its job
+
+
+def test_the_project_root_override_must_be_an_existing_absolute_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Fails CLOSED. A silent fallback would write the audit trail into the source
+    tree while the operator believes it was diverted."""
+    from chipsim import pipeline
+
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", "relative/path")
+    with pytest.raises(JournalError):
+        pipeline.project_root()
+
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path / "nope"))
+    with pytest.raises(JournalError):
+        pipeline.project_root()
+
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+    assert pipeline.project_root() == tmp_path.resolve()
+
+
+def test_source_root_is_not_overridable(monkeypatch: pytest.MonkeyPatch) -> None:
+    from chipsim.journal import source_root
+
+    before = source_root()
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", "/tmp")
+    assert source_root() == before, (
+        "source_root selects the tree git is read from and must never be "
+        "steerable by the environment"
+    )
