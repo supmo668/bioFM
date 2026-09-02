@@ -235,29 +235,22 @@ def test_a_well_formed_panel_still_loads(panel_ratified_path):
     assert len(doc["panel"]) >= 1
 
 
-@pytest.mark.skipif(
-    True,
-    reason=(
-        "BLOCKED on T8 ratification. The five barrier_panel_*.yaml fixtures still "
-        "carry build-plan T7's older draft faces, while configs/barrier_panel.yaml "
-        "now has TFRC basolateral (CTO ruling N1, dispatch #18). They are NOT "
-        "updated yet, deliberately: the live panel is unratified, so copying its "
-        "faces into five more files would propagate an un-attested biological "
-        "value. Once a human sets ratified/ratified_by/ratified_on, update the "
-        "fixtures to mirror the ratified panel and DELETE this skipif — the edit "
-        "is then a mechanical mirror of a human attestation, not an agent-authored "
-        "claim."
-    ),
-)
 def test_fixture_face_agreement_with_live_panel(panel_ratified_path):
-    """Fixture faces must match the ratified live panel, symbol by symbol.
+    """Fixture faces must match the live panel, symbol by symbol.
 
-    Why this exists while skipped: load_ratified_panel REFUSES the live config
-    (ratified: false), so every offline consumer — including the first M1
-    transport test — is structurally forced onto this fixture. A fixture that
-    disagrees with the ratified panel would bake the reversed transport direction
-    into M1 and make the ratified config look like the wrong one. A comment in the
-    fixture header cannot stop that; a standing test naming the live config can.
+    load_ratified_panel REFUSES the live config while `ratified: false`, so every
+    offline consumer — including the first M1 transport test — is structurally
+    forced onto this fixture. A fixture disagreeing with the authoritative panel
+    would bake the wrong transport direction into M1 and make the real config look
+    like the mistaken one. A comment in the fixture header cannot prevent that; a
+    standing test that names the live config can.
+
+    This was briefly skipped while T7 prescribed `apical` and the live config had
+    already moved to `basolateral` — updating the fixtures then would have spread
+    an un-authorized value into five more files. r2.3 amended T7 (CTO ruling N1),
+    so the fixtures now mirror the plan and this enforces rather than announces.
+    If T8's ratification changes any face, this goes red until the fixtures are
+    re-synced — which is the point.
     """
     live_path = Path(__file__).resolve().parent.parent / "configs" / "barrier_panel.yaml"
     live_faces = {e["symbol"]: e["face"] for e in yaml.safe_load(live_path.read_text())["panel"]}
