@@ -81,6 +81,7 @@ __all__ = [
     "read_manifest",
     "read_outcome",
     "record_invocation",
+    "source_root",
     "start_run",
 ]
 
@@ -132,19 +133,81 @@ def manifest_digest(manifest: dict) -> str:
 # --------------------------------------------------------------------------
 
 
+def source_root() -> Path:
+    """The tree holding the `chipsim` package that is ACTUALLY RUNNING.
+
+    Deliberately NOT overridable. This is the only path git is ever invoked in.
+
+    `project_root()` says where the journal is WRITTEN and is relocatable by
+    `CHIPSIM_PROJECT_ROOT`; this says which source tree the run's code came from.
+    Conflating the two was an arbitrary-command-execution bug: git state was read
+    from the relocation target, so pointing that variable at a planted repository
+    both executed its `core.fsmonitor` as the pipeline user AND wrote that
+    repository's (clean) git state into a manifest describing our run. A record is
+    supposed to identify the computation, and the computation is this package.
+    """
+    return Path(__file__).resolve().parent.parent
+
+
+# git is invoked to READ STATE, never to act. Every one of these exists because
+# a repository can carry executable configuration, and `CHIPSIM_PROJECT_ROOT`
+# arrives from n8n/cron workflow config — i.e. it is untrusted input.
+#
+# Command-line `-c` outranks repo-local `.git/config`, including anything pulled
+# in by `include.path`, so these cannot be overridden by the tree being read.
+_GIT_SAFE_CONFIG = (
+    # THE arbitrary-execution sink: `git status` RUNS core.fsmonitor.
+    "-c",
+    "core.fsmonitor=false",
+    # Not used by rev-parse/status today; pinned so that stays true.
+    "-c",
+    "core.hooksPath=/dev/null",
+    "-c",
+    "core.pager=cat",
+    "-c",
+    "core.sshCommand=/bin/false",
+    "-c",
+    "diff.external=",
+)
+
+
+def _git_env() -> dict:
+    """Environment for the state probe: no config we did not choose.
+
+    Every `GIT_*` variable is dropped rather than filtered. `GIT_DIR`,
+    `GIT_WORK_TREE`, `GIT_INDEX_FILE` and friends redirect git away from `cwd`
+    entirely, so an allowlist here would be a blocklist wearing a better name —
+    the same mistake the invocation-record shape test calls out.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env["GIT_CONFIG_NOSYSTEM"] = "1"  # ignore /etc/gitconfig
+    env["GIT_CONFIG_GLOBAL"] = os.devnull  # ignore ~/.gitconfig
+    env["GIT_PAGER"] = "cat"
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return env
+
+
 def _git_state(project_root: Path) -> dict:
-    """Commit, dirty flag, and the dirty file list.
+    """Commit, dirty flag, and the dirty file list of `project_root`.
+
+    Callers pass `source_root()`. The parameter is kept so the probe can be
+    tested by value against a controlled repository, NOT so an override can
+    choose the tree — see `source_root`.
 
     Every failure mode is recorded rather than raised: a run outside a git
     checkout is unusual, not illegitimate, and refusing to journal it would mean
     the least reproducible runs are the ones with no record at all.
     """
+    env = _git_env()
 
-    def _git(*args: str) -> str | None:
+    def _git(*args: str, raw: bool = False) -> str | None:
         try:
             out = subprocess.run(
-                ["git", *args],
+                # --no-optional-locks: a state probe must not write to the index
+                # of the tree it is reading.
+                ["git", "--no-optional-locks", *_GIT_SAFE_CONFIG, *args],
                 cwd=project_root,
+                env=env,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -152,13 +215,22 @@ def _git_state(project_root: Path) -> dict:
             )
         except (OSError, subprocess.SubprocessError):
             return None
-        return out.stdout.strip() if out.returncode == 0 else None
+        if out.returncode != 0:
+            return None
+        # `raw=True` for `-z` output, which MUST NOT be stripped. A porcelain
+        # status field legitimately begins with a space — ` M path` is
+        # "modified, not staged", the single most common dirty state — so
+        # `.strip()` deletes that space, shifts the `entry[3:]` slice by one and
+        # silently truncates the first character of the FIRST dirty path
+        # ("tracked.txt" -> "racked.txt"). The record still looked well-formed,
+        # which is why key-presence assertions never saw it.
+        return out.stdout if raw else out.stdout.strip()
 
     commit = _git("rev-parse", "HEAD")
     # `-z` because the default format C-quotes paths containing spaces or
     # non-ASCII bytes and renders a rename as `R  old -> new`, so naive line
     # splitting puts things in `dirty_files` that are not filenames.
-    status = _git("status", "--porcelain", "-z")
+    status = _git("status", "--porcelain", "-z", raw=True)
     if status is None:
         return {"commit": commit, "dirty": None, "dirty_files": [], "available": False}
 
@@ -347,7 +419,9 @@ def start_run(
             "command": command,
             "start": datetime.now(UTC).isoformat(),
             "argv": list(argv) if argv is not None else list(sys.argv),
-            "git": _git_state(project_root),
+            # source_root(), NOT project_root: the git block describes the code
+            # that ran, and must never be steerable by CHIPSIM_PROJECT_ROOT.
+            "git": _git_state(source_root()),
             "python": sys.version,
             "platform": platform.platform(),
             "packages": _package_versions(),

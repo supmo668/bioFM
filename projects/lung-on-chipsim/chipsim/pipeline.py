@@ -22,7 +22,13 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from chipsim.journal import finish_run, record_invocation, start_run
+from chipsim.journal import (
+    JournalError,
+    finish_run,
+    record_invocation,
+    source_root,
+    start_run,
+)
 
 #: Node name -> subcommand. The workflow export is checked against these keys.
 SUBCOMMANDS = (
@@ -233,19 +239,47 @@ def _journal_best_effort(action, *, root: Path | None = None, what: str = "recor
 
 
 def project_root() -> Path:
-    """The project root — the module directory (AM-4), i.e. the parent of the
-    installed `chipsim` package. Overridable with CHIPSIM_PROJECT_ROOT so a test
-    or a container can journal somewhere other than the source tree.
+    """WHERE THE JOURNAL IS WRITTEN — the module directory (AM-4) by default,
+    i.e. the parent of the installed `chipsim` package. Overridable with
+    CHIPSIM_PROJECT_ROOT so a test or a container can journal somewhere other
+    than the source tree.
 
     That override RELOCATES THE AUDIT TRAIL, so it is recorded inside every record
     (`environment.project_root_override`) and `panel-seal` fails closed if its
     invocation record cannot be written — otherwise one environment variable would
     silently divert the only mechanical support Global Constraint (4) has.
+
+    It is a JOURNAL DESTINATION AND NOTHING ELSE. It does not select the tree git
+    is read from — see `journal.source_root`, which is not overridable. It used to,
+    and pointing this variable at a planted repository executed that repository's
+    `core.fsmonitor` as the pipeline user.
+
+    Treated as untrusted input, because under n8n/cron it arrives from workflow
+    config. An override that does not name an existing absolute directory FAILS
+    CLOSED rather than falling back: a silent fallback would write the trail into
+    the source tree while the operator believes it was diverted, and the one thing
+    an audit trail may not do is be somewhere other than where it says.
     """
     override = os.environ.get("CHIPSIM_PROJECT_ROOT")
-    if override:
-        return Path(override)
-    return Path(__file__).resolve().parent.parent
+    if not override:
+        return source_root()
+
+    candidate = Path(override)
+    if not candidate.is_absolute():
+        raise JournalError(
+            f"CHIPSIM_PROJECT_ROOT={override!r} is not absolute. The journal "
+            "destination must not depend on the working directory."
+        )
+    # resolve() AFTER the absolute check so symlinks and `..` cannot smuggle the
+    # trail somewhere the literal value does not name.
+    candidate = candidate.resolve()
+    if not candidate.is_dir():
+        raise JournalError(
+            f"CHIPSIM_PROJECT_ROOT={override!r} is not an existing directory "
+            f"(resolved to {candidate}). Refusing to journal to a path that "
+            "does not exist rather than silently journalling elsewhere."
+        )
+    return candidate
 
 
 def _normalize_exit(code) -> int:
