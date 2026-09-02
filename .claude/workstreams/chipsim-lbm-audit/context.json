@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "workstream": "chipsim-lbm-audit",
+  "updated_at": "2026-09-02T01:42:32.379315+00:00",
+  "linear": {
+    "initiative_url": "",
+    "initiative_id": ""
+  },
+  "github": {
+    "repo": ""
+  },
+  "phases": {
+    "pvr": {
+      "status": "approved",
+      "artifact": "workstreams/chipsim-lbm-audit/PVR.md",
+      "linear": "",
+      "gh": "",
+      "commit": "",
+      "qgr": "",
+      "summary": "",
+      "pr": "",
+      "updated_at": "2026-09-02T01:42:32.379154+00:00"
+    }
+  }
+}
