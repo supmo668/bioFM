@@ -5,7 +5,7 @@ plan_hash: bc61506
 approved: true
 approved_by: Matthew Mo
 approval_route: principal-directed, cto-invoked
-invoked_by: biofm/matthew-mo/cto
+invoked_by: biofm/matthew-mo/lung-on-chipsim
 human_approved_hash: 737a8d9
 human_approved_date: 2026-08-30
 tasks_added_since_human_g4: [T7a, S12]
@@ -38,7 +38,7 @@ the defect.** These fields exist so it can. Read them before trusting `approved:
 | Field | Means |
 |---|---|
 | `human_approved_hash: 737a8d9` | The plan the principal approved directly at G4 (`1132fda`, 2026-08-30). |
-| `approval_route` | `principal-directed, cto-invoked` — the principal approved the content in a `/grill-with-docs` 1B1 on 2026-09-02 and instructed the signature on 2026-09-03; the CTO ran `plan-gate sign`. **The decision is the principal's; the invocation is not.** |
+| `approval_route` | `principal-directed, cto-invoked` — the principal approved the content in a `/grill-with-docs` 1B1 on 2026-09-02 and instructed the signature on 2026-09-03 ("sign and kick off design"). **The decision is the principal's; the invocation is not.** The invoker was the **worktree agent**, not the CTO — see `invoked_by`. Corrected because a provenance block that misnames the invoker fails at the one job it has. |
 | `tasks_added_since_human_g4` | `T7a` (panel seal tool, `9f27781`) and `S12` (run journal, `b0273e8`) entered the plan **after** `737a8d9`. Both were ratified by the principal on 2026-09-02. |
 
 **What this signature does and does not attest.** It attests that the principal approved the
