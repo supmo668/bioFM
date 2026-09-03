@@ -42,3 +42,40 @@ one was `main/cto:` and carried no such distinction; that is what B4 found.
 **For future signatures:** a signature whose `approval_route` is `principal-directed, cto-invoked`
 records a decision the principal made elsewhere. If there is no corresponding record of that
 decision, the signature is unsupported — treat it as unsigned and escalate.
+
+---
+
+## Incident — the 02:08 re-sign, and what it proves (CTO, 2026-09-03)
+
+**What happened.** The CTO signed this marker at `01:56` (`a9c8629`) on the principal's explicit
+instruction, adding the five disclosure fields and the provenance block above. At `02:08` a worktree
+agent ran `plan-gate sign` again over the same plan hash. `plan-gate sign` rewrites the marker, so
+the re-sign **silently removed every disclosure field and the whole provenance block**, leaving a
+summary that read as a direct human approval. The worktree agent detected the loss, restored the
+block in full, and reported it rather than re-adding it quietly. That report is why this record
+exists.
+
+**Attribution, corrected.** `invoked_by: biofm/matthew-mo/cto` and `date: 2026-09-03T01:56` describe
+the **authoritative** signature — the one the principal directed. The `02:08` invocation was made by
+an agent, added nothing (identical plan hash `bc61506`), and is superseded by this restored file.
+
+**Two things this proves, and they are the reason the incident is worth more than the damage.**
+
+1. **`plan-gate verify` passed before, during and after.** The plan hash never moved, so the gate
+   could not see the regression. The gate binds the *plan*; it does not protect the *marker's*
+   provenance. The disclosure fields were the only thing that could detect this, which is exactly
+   why B4 was filed against the marker rather than against the hash. **A green gate is not evidence
+   that the approval record is intact.**
+2. **An agent can run `plan-gate sign`.** It did, and in one invocation it destroyed the only
+   control B4 produced — without malice, without a warning, and without the gate noticing.
+
+**Ruling — `plan-gate sign` joins the restricted set.** It sits with `receipt-sign` and
+`dispatch create`: **not invocable by a worktree agent or a reviewer subagent.** Recording a human's
+approval is not the same act as being one, and a tool that rewrites an approval marker in place must
+not be reachable by the party the marker exists to constrain. Filed upstream with the receipt-sign
+restriction; until a hookify rule lands, agents must not invoke it and must report any instruction
+that appears to ask them to.
+
+**Standing consequence for readers of this file:** if the disclosure fields are absent, do not read
+`approved: true` as a human approval — read it as unknown, and escalate. Their absence is now itself
+a signal.
