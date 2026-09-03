@@ -346,63 +346,35 @@ def test_environment_records_seed_vars_by_value(
 def test_no_wording_claims_the_journal_authenticates_anyone() -> None:
     """A&D §4.4a honesty clause. The digest detects modification; it does not
     prove authorship. This is a grep-level test because the conflation it guards
-    against has recurred."""
-    import re
+    against has recurred.
+
+    The matching logic now lives in `tests/honesty_scan.py` and is shared with the
+    CARD test. It was duplicated in spirit and not in fact: this test had the
+    polarity check, the card test had only presence checks, and each docstring
+    pointed at the other as the place the real work happened.
+    """
+    from honesty_scan import assert_no_unqualified_claims
 
     pkg = Path(__file__).resolve().parent.parent / "chipsim"
     # Scope: every file where a human might read such a claim. journal.py alone
     # left pipeline.py's `panel-seal` --help text — the string an operator reads at
     # the moment of sealing — ungoverned, which is where the last overclaim of this
     # class survived two rounds of "reframe complete".
+    #
+    # provenance_block.py was ADDED after review: it is the module that renders the
+    # seal into the model card, i.e. the surface its own docstring calls "where an
+    # overclaim would do the most damage" — and it was the one file this list did
+    # not read.
     sources = [
         pkg / "journal.py",
         pkg / "pipeline.py",
         pkg / "harmonize" / "pgp_label.py",
+        pkg / "eval" / "provenance_block.py",
     ]
 
-    forbidden = [
-        r"proves? (?:the |that )?(?:a )?human",
-        r"authenticat(?:e|es|ing|ion)\b(?!\w)",
-        r"proves? who",
-        r"attests? that a human",
-        r"establish(?:es)? who",
-        r"identif(?:y|ies) who",
-        r"who[- ]ran",
-        # TTY-gate paraphrases. The gate checks that stdin is a terminal; it does
-        # not establish a human is present, and a pty defeats it. These forms all
-        # slipped a literal-string blocklist in test_panel_seal_tty.py, which is
-        # why the negative check was consolidated here — this guard has the
-        # negation window and the anti-vacuity check.
-        r"ensures? (?:a|the) human",
-        r"impossible for an agent",
-        r"prevents? an agent",
-        r"guarantees? (?:a )?human",
-        r"requires? a human to be present",
-    ]
     inspected = 0
     for source in sources:
-        # Collapse newlines so a claim wrapped across two lines cannot slip the
-        # adjacency the patterns require.
-        raw = source.read_text()
-        text = re.sub(r"\s+", " ", raw.lower())
-        for pattern in forbidden:
-            for match in re.finditer(pattern, text):
-                inspected += 1
-                # The negation must appear BEFORE the claim, within the same
-                # sentence. The previous form searched the whole line, so
-                # "authenticates the operator who wrote it, no question" passed —
-                # the guard against the overclaim was itself bypassable by using
-                # the word "no" AFTER the claim. Verified: that exact sentence
-                # survived the old check and fails this one.
-                sentence_start = max(text.rfind(". ", 0, match.start()) + 1, 0)
-                window = text[max(sentence_start, match.start() - 160) : match.start()]
-                assert re.search(
-                    r"\b(?:not|never|cannot|no|nothing|neither)\b",
-                    window,
-                ), (
-                    f"{source.name} appears to claim the journal or seal "
-                    f"authenticates someone: …{text[max(0, match.start() - 90) : match.start() + 60]}…"
-                )
+        inspected += assert_no_unqualified_claims(source.read_text(), source.name)
 
     # The loop must not pass by matching nothing. If the honest disclaimers are
     # ever deleted wholesale, `inspected == 0` and this test would otherwise go
@@ -1245,22 +1217,23 @@ def test_configs_itself_a_symlink_out_of_the_tree_is_refused(tmp_path):
 
     *** THIS TEST DOES NOT PROVE HALF (b) IS LOAD-BEARING. Read before relying on it. ***
 
-    The half-(b) guard exists because bounding entries to `configs/`.resolve()
-    is tighter for things beneath it, but would admit a whole directory if
-    `configs` were itself a link out of the tree. A peer agent raised that before
-    either of us shipped it, and the guard went in.
+    Half (b) IS load-bearing. Deleting the guard leaks the outside file's content
+    into the published record — verified by review, not asserted here.
 
-    But mutating the guard out (`if False:`) leaves this test PASSING — the case
-    is still refused, by half (a), with a message naming the resolved directory
-    rather than the file. So on the current implementation half (b) appears
-    REDUNDANT, and I do not yet know which upstream check fires or why the
-    resolved path is the directory.
+    An earlier version of this test claimed the guard might be redundant, because
+    mutating it out left the test passing. That conclusion was wrong and the
+    reason is worth keeping: the fixture named the outside file `env.yaml`, which
+    is the one filename `_resolve_seed` independently opens, and that call site
+    was still bounded by the OLD project-root bound. So the mutant DID leak the
+    snapshot — and a different check, further down, raised a message that happened
+    to contain the substring this test was matching on. **The test passed on a
+    coincidence of wording between two unrelated guards.**
 
-    It is kept as defence-in-depth, not because this test compels it. Recorded
-    this way rather than deleted or quietly left green because a test whose
-    docstring claims a property its mutation does not support is exactly the
-    false reassurance that stops the next reviewer looking — the failure the CTO
-    named as worse than the gap itself.
+    Two consequences, both applied: the fixture no longer uses a filename any
+    other reader opens, and the assertion matches the half-(b) message
+    SPECIFICALLY rather than a phrase several refusals share. A `match=` loose
+    enough to be satisfied by an unrelated guard is not a test of the guard it
+    names.
     """
     from chipsim.journal import ConfigIntegrityError, start_run
 
@@ -1268,10 +1241,54 @@ def test_configs_itself_a_symlink_out_of_the_tree_is_refused(tmp_path):
     proj.mkdir()
     outside = tmp_path / "outside"
     outside.mkdir()
-    (outside / "env.yaml").write_text("AWS_SECRET_ACCESS_KEY: hunter2\n")
+    # NOT `env.yaml`: that name is opened independently by `_resolve_seed`, and a
+    # refusal from there would mask a leak from here.
+    (outside / "exfiltrated.yaml").write_text("AWS_SECRET_ACCESS_KEY: hunter2\n")
     (proj / "configs").symlink_to(outside, target_is_directory=True)
 
-    with pytest.raises(ConfigIntegrityError, match="outside the project root"):
+    # Match the half-(b) message specifically.
+    with pytest.raises(ConfigIntegrityError, match="not strictly inside"):
+        start_run("parse", proj)
+
+
+def test_configs_symlinked_to_the_project_root_itself_is_refused(tmp_path):
+    """`ln -s . configs` — the case an "inside or equal" bound exempted.
+
+    Allowing `configs_real == root_real` restored the exact pre-E-3 bound: the
+    snapshot would walk the project root, including `.venv/`, `data/` and
+    `journal/`, and copy every `*.y[a]ml` in the tree into a published record.
+    Plausible as a "flatten the layout" accident, and the equality branch reads
+    natural because it was borrowed from a check where equality IS meaningful.
+    """
+    from chipsim.journal import ConfigIntegrityError, start_run
+
+    proj = tmp_path / "proj"
+    (proj / "deploy").mkdir(parents=True)
+    (proj / "deploy" / "prod-credentials.yaml").write_text("AWS_SECRET: hunter2\n")
+    (proj / "configs").symlink_to(proj, target_is_directory=True)
+
+    with pytest.raises(ConfigIntegrityError, match="not strictly inside"):
+        start_run("parse", proj)
+
+
+def test_a_fifo_named_like_a_config_is_refused_not_skipped(tmp_path):
+    """A FIFO under `configs/` was SILENTLY SKIPPED — the one failure the walk
+    exists to prevent, occurring inside the walk itself.
+
+    `is_dir()`, `is_file()` and `is_symlink()` are all False for a FIFO, so it
+    fell off the end of the loop. The record then claimed a complete snapshot it
+    did not have.
+    """
+    import os as _os
+
+    from chipsim.journal import ConfigIntegrityError, start_run
+
+    proj = tmp_path / "proj"
+    (proj / "configs").mkdir(parents=True)
+    (proj / "configs" / "real.yaml").write_text("stage: test\n")
+    _os.mkfifo(proj / "configs" / "pipe.yaml")
+
+    with pytest.raises(ConfigIntegrityError, match="neither a regular file nor a directory"):
         start_run("parse", proj)
 
 
@@ -1287,3 +1304,42 @@ def test_an_ordinary_configs_directory_still_snapshots(tmp_path):
 
     run_dir = start_run("parse", proj)
     assert read_manifest(run_dir)["configs"], "an ordinary configs/ must snapshot"
+
+
+def test_an_escaping_linked_subdirectory_is_refused_by_the_WALK_not_the_file_gate(
+    tmp_path,
+) -> None:
+    """Bound (a) applied to DIRECTORIES, asserted by the path the refusal names.
+
+    `_config_sources` is passed `configs_real`, and reverting that argument to
+    `project_root.resolve()` — the pre-E-3 bound — survived every other test in
+    this suite. The case is still refused, but by the per-FILE gate as each file
+    is copied, rather than by the walk's refuse-before-descending check. Both
+    raise `ConfigIntegrityError`, so a pass/fail assertion cannot tell them apart
+    and neither can a `match=` on the shared wording — both messages come from
+    `_refuse_escaping_config`.
+
+    What DOES distinguish them is the path each names. The walk passes the
+    offending DIRECTORY (`'linked'`); the per-file gate passes the FILE beneath
+    it (`'linked/creds.yaml'`). So this asserts on `'linked'` specifically.
+
+    The discriminating case is a link that escapes `configs/` while staying
+    INSIDE the project root — `configs/linked -> proj/deploy`. A link that leaves
+    the project root entirely is refused under either bound, which is why the
+    first version of this test passed against the mutant it was written to kill.
+    """
+    from chipsim.journal import ConfigIntegrityError, start_run
+
+    proj = tmp_path / "proj"
+    (proj / "configs").mkdir(parents=True)
+    (proj / "configs" / "real.yaml").write_text("stage: test\n")
+
+    # Inside the project root, outside configs/ — deployment credentials are the
+    # realistic occupant of such a directory and exactly what must not be copied
+    # into a published record.
+    (proj / "deploy").mkdir()
+    (proj / "deploy" / "creds.yaml").write_text("AWS_SECRET_ACCESS_KEY: hunter2\n")
+    (proj / "configs" / "linked").symlink_to(proj / "deploy", target_is_directory=True)
+
+    with pytest.raises(ConfigIntegrityError, match=r"config 'linked'"):
+        start_run("parse", proj)

@@ -292,7 +292,14 @@ def _resolve_seed(project_root: Path) -> dict:
             # ordering. `start_run` happened to gate this file first;
             # `record_invocation` does not, so `panel-seal` would otherwise open
             # and parse a `configs/env.yaml` symlinked outside the root.
-            fd = _open_verified_config(config_path, Path(config_path.name), project_root.resolve())
+            # The SAME boundary as the snapshot loop. This previously passed
+            # `project_root.resolve()` — the pre-E-3 bound — so `panel-seal`
+            # would open and YAML-parse an in-project file the snapshot
+            # boundary refuses, and record a seed sourced from it as
+            # `config:env.yaml`.
+            fd = _open_verified_config(
+                config_path, Path(config_path.name), _configs_boundary(project_root)
+            )
             try:
                 raw = _read_all(fd)
             finally:
@@ -513,18 +520,93 @@ def _config_sources(source_dir: Path, root_real: Path) -> list[Path]:
                 # silence — inside a walk whose whole premise is that nothing is.
                 # A run reading it would fail; a run recording it as absent would
                 # be indistinguishable from one where it never existed.
+                rel = entry.relative_to(source_dir).as_posix()
+                # Distinguish "target missing" from "target exists but is not a
+                # regular file". Both used to report a broken link, so an
+                # operator reading the refusal during a possible exfiltration
+                # attempt was sent to fix the wrong thing — a `configs/x.yaml`
+                # pointing at `/dev/null` or a FIFO is not dangling.
+                if not entry.exists():
+                    raise ConfigIntegrityError(
+                        f"config {rel!r} is a broken symlink — it names a config "
+                        "that does not exist. Refusing rather than passing over it "
+                        "in silence."
+                    )
                 raise ConfigIntegrityError(
-                    f"config {entry.relative_to(source_dir).as_posix()!r} is a "
-                    "broken symlink — it names a config that does not exist. "
-                    "Refusing rather than passing over it in silence."
+                    f"config {rel!r} is a symlink to something that is not a "
+                    "regular file. Refusing to snapshot it: reading a fifo or a "
+                    "device is not a config read, and passing over it would leave "
+                    "the record claiming a complete snapshot it does not have."
+                )
+            elif entry.suffix in {".yaml", ".yml"}:
+                # ANYTHING ELSE named like a config: a FIFO, a unix socket, a
+                # device node. `is_dir()`, `is_file()` and `is_symlink()` are all
+                # False for these, so the entry fell off the end of the loop and
+                # was skipped IN SILENCE — the one failure this walk exists to
+                # prevent, occurring inside the walk itself.
+                raise ConfigIntegrityError(
+                    f"config {entry.relative_to(source_dir).as_posix()!r} is neither "
+                    "a regular file nor a directory. Refusing to snapshot it rather "
+                    "than passing over it in silence."
                 )
 
     walk(source_dir, frozenset())
     return sorted(found)
 
 
+def _configs_boundary(project_root: Path) -> Path:
+    """The ONE boundary every reader of `configs/` must use — E-3.
+
+    Two halves, and each alone is a regression in the other's direction:
+
+      (a) entries must resolve under `configs/` — tighter than the old
+          project-root bound, which admitted a config symlinked at anything else
+          inside the repository;
+      (b) `configs/` must itself resolve STRICTLY INSIDE the project root —
+          otherwise (a) silently loosens: `ln -s /etc configs` makes every entry
+          resolve under the bound computed from it, admitting a whole directory.
+
+    **Strictly inside, not "inside or equal".** An earlier form allowed
+    `configs_real == root_real`, which exempted `ln -s . configs` — a plausible
+    "flatten the layout" accident — and thereby restored the exact pre-E-3 bound
+    half (a) was written to tighten: the snapshot would walk the project root,
+    including `.venv/`, `data/` and `journal/`, and copy every `*.y[a]ml` in the
+    tree into a published record. `configs/` resolving TO the root is never
+    legitimate. The equality case reads natural because it was borrowed from
+    `_refuse_escaping_config`, where it IS meaningful; here it is only ever
+    satisfied by the pathological self-link.
+
+    Factored into one function because it had drifted: the snapshot loop used the
+    tightened bound while `_resolve_seed` still passed `project_root.resolve()`,
+    so `panel-seal` would open and YAML-parse an in-project file the snapshot
+    boundary declares out of bounds. Two boundaries for one directory in one
+    module is the condition under which one of them stops being maintained.
+    """
+    project_root = Path(project_root)
+    root_real = project_root.resolve()
+    configs_real = (project_root / "configs").resolve()
+    if root_real not in configs_real.parents:
+        raise ConfigIntegrityError(
+            f"refusing to read configs: {project_root / 'configs'} resolves to "
+            f"{configs_real}, which is not strictly inside the project root "
+            f"{root_real}. A `configs/` that links out of the tree — or back to the "
+            "root itself — would let every entry beneath it pass a bound computed "
+            "from it."
+        )
+    return configs_real
+
+
 def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> Path:
-    """Refuse a config whose REAL path lies outside the project root.
+    """Refuse a config whose REAL path lies outside `root_real`.
+
+    `root_real` is the CONFIG boundary — `configs/` — not the project root, and
+    the message used to say "outside the project root {root_real}" regardless.
+    Since E-3 tightened the bound, that rendered as "outside the project root
+    /…/proj/configs", telling an operator that `configs/` is the project root.
+    The wording was accurate when the bound was the project root and was not
+    updated when the bound moved. An error message is the only thing a person has
+    at the moment something is refused; one that misnames the boundary it just
+    enforced sends them looking in the wrong place.
 
     `shutil.copy2` follows symlinks, so without this a config symlinked at a
     target outside the project has its *content* copied into the record and
@@ -558,10 +640,10 @@ def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> Pa
 
     raise ConfigIntegrityError(
         f"config {relative.as_posix()!r} resolves to {real}, which is outside the "
-        f"project root {root_real}. Refusing to snapshot it: copying would follow "
-        "the link and hash outside content into this record, and skipping it would "
-        "leave the record claiming a complete snapshot it does not have. "
-        "Remove the link or move the file inside the project."
+        f"permitted config boundary {root_real}. Refusing to snapshot it: copying "
+        "would follow the link and hash outside content into this record, and "
+        "skipping it would leave the record claiming a complete snapshot it does "
+        "not have. Remove the link or move the file inside the boundary."
     )
 
 
@@ -606,7 +688,15 @@ def _open_verified_config(config: Path, relative: Path, root_real: Path) -> int:
     """
     real = _refuse_escaping_config(config, relative, root_real)
     try:
-        fd = os.open(real, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        # O_NONBLOCK so `fstat` can run BEFORE any blocking wait. Without it,
+        # opening a FIFO under `configs/` blocks indefinitely waiting for a
+        # writer, so the S_ISREG guard below — the check that exists to reject
+        # exactly that file — is never reached. A guard placed after a blocking
+        # call is not a guard; the process simply hangs instead of refusing.
+        fd = os.open(
+            real,
+            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0),
+        )
     except OSError as exc:
         raise JournalError(
             f"config {relative.as_posix()!r} could not be opened for snapshotting: "
@@ -697,15 +787,7 @@ def start_run(
         # the regression before either of us shipped it. Reasoning about the two
         # halves separately is how a boundary ends up looking obviously correct
         # and not being.
-        root_real = project_root.resolve()
-        configs_real = source_dir.resolve()
-        if configs_real != root_real and root_real not in configs_real.parents:
-            raise ConfigIntegrityError(
-                f"refusing to snapshot: {source_dir} resolves to {configs_real}, "
-                f"which is outside the project root {root_real}. A `configs/` that "
-                "is itself a link out of the tree would let every entry beneath it "
-                "pass a bound computed from it."
-            )
+        configs_real = _configs_boundary(project_root)
 
         for config in _config_sources(source_dir, configs_real):
             relative = config.relative_to(source_dir)
