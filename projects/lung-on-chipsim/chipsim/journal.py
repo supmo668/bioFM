@@ -20,7 +20,7 @@ were the same computation.
 
 Read the paragraphs above as diagnosing why the replay test could not fail, NOT as
 closing it. This module records the **environment** a run happened in — configs,
-resolved versions, platform, git state. §5's replay test also needs the **diff** and
+resolved versions, platform. §5's replay test also needs the **diff** and
 the **seed**, and this record carries neither; nothing in the codebase sets
 `CHIPSIM_SEED` today, so the seeds map is populated only if an operator happens to
 export it.
@@ -49,10 +49,25 @@ No module, docstring or CLI text may describe the journal as authenticating anyo
 — detection is not attestation. Giving it real force requires signing
 (minisign/age/GPG with a pinned public key); that trade is with the principal.
 
-**A dirty tree is RECORDED, never hidden or refused.** A run from a dirty tree is
-not reproducible from its commit alone; the honest response is to say so in the
-record, the same posture as `unknown` in the P-gp label, where the third state
-survives into the schema rather than being rounded to a convenient answer.
+*** NO GIT STATE. A RECORD CANNOT SHOW THE TREE WAS CLEAN WHEN IT RAN. ***
+
+A&D §4.4a puts "a dirty tree is RECORDED, never hidden or refused" in bold, and
+this module **no longer delivers it**. Say so rather than let a reader assume the
+record covers it.
+
+Capturing it meant running `git status` in a directory arriving from workflow
+config — untrusted input — and `git status` executes `core.fsmonitor`. The
+mitigations for that (pinned `-c` overrides, a scrubbed `GIT_*` environment, a
+separate source-root so the probe could not be redirected) were real and worked,
+but they were code that existed *only* because the journal shelled out at all. A
+PoC run journal does not need to run git: deleting the sub-feature takes the
+attack surface to zero, where hardening only reduced it, and removes the code
+rather than adding more to review. (CTO ruling, dispatch #44.)
+
+The partial substitute is the installed package version, recorded with the other
+resolved versions — which says what code ran without asking a working tree. It is
+strictly weaker: it cannot distinguish a clean checkout from a dirty one at the
+same version, and nothing here claims otherwise.
 """
 
 from __future__ import annotations
@@ -64,7 +79,6 @@ import os
 import platform
 import shutil
 import socket
-import subprocess
 import sys
 import tempfile
 import uuid
@@ -136,134 +150,18 @@ def manifest_digest(manifest: dict) -> str:
 def source_root() -> Path:
     """The tree holding the `chipsim` package that is ACTUALLY RUNNING.
 
-    Deliberately NOT overridable. This is the only path git is ever invoked in.
+    A pure path computation — it starts no subprocess and reads no repository.
+    It is the default journal DESTINATION, used by `pipeline.project_root()`
+    when `CHIPSIM_PROJECT_ROOT` is unset.
 
-    `project_root()` says where the journal is WRITTEN and is relocatable by
-    `CHIPSIM_PROJECT_ROOT`; this says which source tree the run's code came from.
-    Conflating the two was an arbitrary-command-execution bug: git state was read
-    from the relocation target, so pointing that variable at a planted repository
-    both executed its `core.fsmonitor` as the pipeline user AND wrote that
-    repository's (clean) git state into a manifest describing our run. A record is
-    supposed to identify the computation, and the computation is this package.
+    It is deliberately NOT overridable. It previously also selected the tree git
+    state was read from, which made the relocation variable an
+    arbitrary-execution sink; git state is no longer captured at all (CTO ruling,
+    dispatch #44), so that sink is gone rather than guarded. The non-overridable
+    property is kept regardless: an audit trail whose default location can be
+    redirected by an environment variable is one an operator cannot reason about.
     """
     return Path(__file__).resolve().parent.parent
-
-
-# git is invoked to READ STATE, never to act. Every one of these exists because
-# a repository can carry executable configuration, and `CHIPSIM_PROJECT_ROOT`
-# arrives from n8n/cron workflow config — i.e. it is untrusted input.
-#
-# Command-line `-c` outranks repo-local `.git/config`, including anything pulled
-# in by `include.path`, so these cannot be overridden by the tree being read.
-_GIT_SAFE_CONFIG = (
-    # THE arbitrary-execution sink: `git status` RUNS core.fsmonitor.
-    "-c",
-    "core.fsmonitor=false",
-    # Not used by rev-parse/status today; pinned so that stays true.
-    "-c",
-    "core.hooksPath=/dev/null",
-    "-c",
-    "core.pager=cat",
-    "-c",
-    "core.sshCommand=/bin/false",
-    "-c",
-    "diff.external=",
-)
-
-
-def _git_env() -> dict:
-    """Environment for the state probe: no config we did not choose.
-
-    Every `GIT_*` variable is dropped rather than filtered. `GIT_DIR`,
-    `GIT_WORK_TREE`, `GIT_INDEX_FILE` and friends redirect git away from `cwd`
-    entirely, so an allowlist here would be a blocklist wearing a better name —
-    the same mistake the invocation-record shape test calls out.
-    """
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env["GIT_CONFIG_NOSYSTEM"] = "1"  # ignore /etc/gitconfig
-    env["GIT_CONFIG_GLOBAL"] = os.devnull  # ignore ~/.gitconfig
-    env["GIT_PAGER"] = "cat"
-    env["GIT_TERMINAL_PROMPT"] = "0"
-    return env
-
-
-def _git_state(project_root: Path) -> dict:
-    """Commit, dirty flag, and the dirty file list of `project_root`.
-
-    Callers pass `source_root()`. The parameter is kept so the probe can be
-    tested by value against a controlled repository, NOT so an override can
-    choose the tree — see `source_root`.
-
-    Every failure mode is recorded rather than raised: a run outside a git
-    checkout is unusual, not illegitimate, and refusing to journal it would mean
-    the least reproducible runs are the ones with no record at all.
-    """
-    env = _git_env()
-
-    def _git(*args: str, raw: bool = False) -> str | None:
-        try:
-            out = subprocess.run(
-                # --no-optional-locks: a state probe must not write to the index
-                # of the tree it is reading.
-                ["git", "--no-optional-locks", *_GIT_SAFE_CONFIG, *args],
-                cwd=project_root,
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError):
-            return None
-        if out.returncode != 0:
-            return None
-        # `raw=True` for `-z` output, which MUST NOT be stripped. A porcelain
-        # status field legitimately begins with a space — ` M path` is
-        # "modified, not staged", the single most common dirty state — so
-        # `.strip()` deletes that space, shifts the `entry[3:]` slice by one and
-        # silently truncates the first character of the FIRST dirty path
-        # ("tracked.txt" -> "racked.txt"). The record still looked well-formed,
-        # which is why key-presence assertions never saw it.
-        return out.stdout if raw else out.stdout.strip()
-
-    commit = _git("rev-parse", "HEAD")
-    # `-z` because the default format C-quotes paths containing spaces or
-    # non-ASCII bytes and renders a rename as `R  old -> new`, so naive line
-    # splitting puts things in `dirty_files` that are not filenames.
-    status = _git("status", "--porcelain", "-z", raw=True)
-    if status is None:
-        return {"commit": commit, "dirty": None, "dirty_files": [], "available": False}
-
-    dirty_files = _parse_porcelain_z(status)
-    return {
-        "commit": commit,
-        "dirty": bool(dirty_files),
-        "dirty_files": dirty_files,
-        "available": True,
-    }
-
-
-def _parse_porcelain_z(status: str) -> list[str]:
-    """Split `git status --porcelain -z` into paths.
-
-    Records are NUL-separated `XY <path>`; a rename/copy (`R`/`C`) is followed by
-    a SECOND NUL-terminated field holding the original path, which must be
-    consumed as its own record rather than read as a status line.
-    """
-    fields = [f for f in status.split("\0") if f]
-    paths: list[str] = []
-    i = 0
-    while i < len(fields):
-        entry = fields[i]
-        i += 1
-        if len(entry) < 4:
-            continue
-        code, path = entry[:2], entry[3:]
-        paths.append(path)
-        if ("R" in code or "C" in code) and i < len(fields):
-            paths.append(fields[i])  # the source path of the rename/copy
-            i += 1
-    return sorted(set(paths))
 
 
 def _package_versions() -> dict:
@@ -419,9 +317,6 @@ def start_run(
             "command": command,
             "start": datetime.now(UTC).isoformat(),
             "argv": list(argv) if argv is not None else list(sys.argv),
-            # source_root(), NOT project_root: the git block describes the code
-            # that ran, and must never be steerable by CHIPSIM_PROJECT_ROOT.
-            "git": _git_state(source_root()),
             "python": sys.version,
             "platform": platform.platform(),
             "packages": _package_versions(),

@@ -188,14 +188,19 @@ def test_panel_seal_invocation_record_carries_no_digest(fake_project: Path) -> N
 # --- the dirty tree is RECORDED, never hidden or refused -------------------
 
 
-def test_manifest_records_git_state_and_environment(fake_project: Path) -> None:
+def test_manifest_records_environment_by_value(fake_project: Path) -> None:
     run_dir = start_run("chipsim parse", fake_project)
     m = read_manifest(run_dir)
 
     assert m["record_type"] == "run"
     assert m["argv"]
-    assert "git" in m and "commit" in m["git"] and "dirty" in m["git"]
-    assert isinstance(m["git"]["dirty_files"], list)
+    # git state is deliberately NOT recorded — see the module docstring.
+    assert "git" not in m, (
+        "git state was removed from the run record (CTO ruling #44): capturing it "
+        "meant running `git status` in a directory arriving from workflow config, "
+        "and `git status` executes core.fsmonitor. Its reappearance would restore "
+        "that sink."
+    )
     assert m["python"] and m["platform"]
     for pkg in ("pyarrow", "rdkit", "pandas", "numpy", "PyYAML"):
         assert pkg in m["packages"], f"{pkg} is output-determining and must be recorded"
@@ -232,86 +237,6 @@ def _run_git(repo: Path, *args: str) -> str:
 
     out = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=True)
     return out.stdout.strip()
-
-
-@pytest.fixture
-def tmp_git_repo(tmp_path: Path) -> Path:
-    """A real repository with exactly one commit and a clean tree."""
-    repo = tmp_path / "repo"
-    (repo / "configs").mkdir(parents=True)
-    (repo / "tracked.txt").write_text("original\n")
-    (repo / "configs" / "env.yaml").write_text(yaml.safe_dump({"stage": "test"}))
-    _run_git(repo, "init", "-q", "-b", "main")
-    _run_git(repo, "config", "user.email", "t@example.invalid")
-    _run_git(repo, "config", "user.name", "Test")
-    _run_git(repo, "add", "-A")
-    _run_git(repo, "commit", "-q", "-m", "initial")
-    return repo
-
-
-def test_git_state_reports_the_actual_commit_by_value(tmp_git_repo: Path) -> None:
-    """Kills M3 (`commit -> None`)."""
-    from chipsim.journal import _git_state
-
-    expected = _run_git(tmp_git_repo, "rev-parse", "HEAD")
-    state = _git_state(tmp_git_repo)
-
-    assert state["available"] is True
-    assert state["commit"] == expected, (
-        "the recorded commit must be the repository's actual HEAD — a record that "
-        "cannot say which code ran cannot identify the computation"
-    )
-    assert len(expected) == 40
-
-
-def test_git_state_reports_a_clean_tree_by_value(tmp_git_repo: Path) -> None:
-    """The clean baseline. Without it, M1/M2 could be 'killed' by a test that
-    only ever looks at a dirty tree."""
-    from chipsim.journal import _git_state
-
-    state = _git_state(tmp_git_repo)
-    assert state["dirty"] is False
-    assert state["dirty_files"] == []
-
-
-def test_git_state_records_a_dirty_tree_and_never_hides_it(tmp_git_repo: Path) -> None:
-    """Kills M1 (`dirty_files -> []`) and M2 (`dirty -> False`).
-
-    A&D §4.4a: a dirty tree is **recorded, never hidden or refused**. Both the
-    flag and the file list are asserted, because either one alone leaves the
-    other free to lie.
-    """
-    from chipsim.journal import _git_state
-
-    (tmp_git_repo / "tracked.txt").write_text("modified\n")
-    (tmp_git_repo / "untracked.txt").write_text("new\n")
-
-    state = _git_state(tmp_git_repo)
-
-    assert state["available"] is True
-    assert state["dirty"] is True, "a dirty tree must not be recorded as clean"
-    assert set(state["dirty_files"]) == {"tracked.txt", "untracked.txt"}, (
-        f"the dirty FILE LIST must be recorded, not merely the flag; got "
-        f"{state['dirty_files']!r}. An empty list beside a dirty tree is the "
-        "mutant A&D §4.4a is written in bold to forbid."
-    )
-
-
-def test_git_state_outside_a_checkout_is_recorded_as_unavailable(
-    tmp_path: Path,
-) -> None:
-    """`available: False` must be distinguishable from `clean`."""
-    from chipsim.journal import _git_state
-
-    outside = tmp_path / "not-a-repo"
-    outside.mkdir()
-    state = _git_state(outside)
-    # Either unavailable, or — if tmp_path sits inside some outer checkout —
-    # at minimum not silently claiming a clean tree it never inspected.
-    assert state["available"] in (True, False)
-    if state["available"] is False:
-        assert state["commit"] is None
-        assert state["dirty"] is None
 
 
 def test_environment_records_the_journal_relocation_by_value(
@@ -356,33 +281,6 @@ def test_environment_records_seed_vars_by_value(
     assert seeds[name] == "424242"
     for other in SEED_ENV_VARS:
         assert other in seeds, f"{other} must be recorded even when unset"
-
-
-def test_git_state_is_read_from_the_source_tree_not_the_journal_override(
-    fake_project: Path, monkeypatch: pytest.MonkeyPatch, tmp_git_repo: Path
-) -> None:
-    """B2 regression, at the manifest level.
-
-    `CHIPSIM_PROJECT_ROOT` says where the journal is WRITTEN. It must not select
-    the tree git is read from — that conflation both executed a planted
-    repository's `core.fsmonitor` and wrote that repository's git state into a
-    manifest describing our run.
-    """
-    from chipsim.journal import source_root
-
-    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_git_repo))
-    run_dir = start_run("chipsim parse", tmp_git_repo)
-    recorded = read_manifest(run_dir)["git"]
-
-    planted_head = _run_git(tmp_git_repo, "rev-parse", "HEAD")
-    assert recorded["commit"] != planted_head, (
-        "the manifest recorded the OVERRIDE's git state — the run's git block is "
-        "steerable by an environment variable"
-    )
-
-    from chipsim.journal import _git_state
-
-    assert recorded["commit"] == _git_state(source_root())["commit"]
 
 
 # --- honesty clause --------------------------------------------------------
@@ -644,14 +542,6 @@ def test_invocation_records_never_overwrite_each_other(fake_project: Path) -> No
     assert len(records) == 4
 
 
-def test_git_state_parses_renames_and_quoted_paths(fake_project: Path) -> None:
-    """QG-12. `line[3:]` turned `R  old -> new` into one pseudo-path."""
-    from chipsim.journal import _parse_porcelain_z
-
-    parsed = _parse_porcelain_z("R  new name.txt\x00old name.txt\x00 M plain.txt\x00")
-    assert parsed == ["new name.txt", "old name.txt", "plain.txt"]
-
-
 def test_panel_seal_fails_closed_when_it_cannot_be_journalled(
     fake_project: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -800,31 +690,6 @@ def test_an_honest_outcome_still_reads_back(fake_project: Path) -> None:
 
 
 # --- B2: the state probe never executes the inspected repo's config ---------
-
-
-def test_git_state_does_not_execute_repo_local_fsmonitor(
-    tmp_git_repo: Path, tmp_path: Path
-) -> None:
-    """ARBITRARY COMMAND EXECUTION regression test.
-
-    `git status` RUNS `core.fsmonitor`. `project_root()` returned
-    `$CHIPSIM_PROJECT_ROOT` verbatim and the probe used it as `cwd`, so pointing
-    that variable at a planted repository executed its config as the pipeline
-    user — reproduced, `touch PWNED`. Under n8n/cron that variable comes from
-    workflow config, i.e. it is untrusted input.
-    """
-    canary = tmp_path / "PWNED"
-    _run_git(tmp_git_repo, "config", "core.fsmonitor", f"touch {canary}")
-
-    from chipsim.journal import _git_state
-
-    state = _git_state(tmp_git_repo)
-
-    assert not canary.exists(), (
-        "the inspected repository's core.fsmonitor EXECUTED — the state probe "
-        "is an arbitrary command execution path"
-    )
-    assert state["available"] is True  # and it still did its job
 
 
 def test_the_project_root_override_must_be_an_existing_absolute_directory(
