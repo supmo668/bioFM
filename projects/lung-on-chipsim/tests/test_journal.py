@@ -208,6 +208,7 @@ def test_manifest_records_environment_by_value(fake_project: Path) -> None:
     # pyarrow and rdkit are ==-pinned is so the record can show two runs were the
     # same computation, and a record of `None` shows nothing.
     import platform as _platform
+    import os as _os
     import sys as _sys
     from importlib.metadata import version as _version
 
@@ -229,15 +230,22 @@ def test_manifest_records_environment_by_value(fake_project: Path) -> None:
             "that two runs were the same computation."
         )
 
-    # argv by value, not merely truthy. The record keeps argv[0], so this asserts
-    # against full sys.argv.
+    # argv by value, not merely truthy — with argv[0] trimmed to its basename.
     #
-    # NOTE, raised rather than accommodated: argv[0] is an absolute interpreter
-    # path, and `journal/` is git-tracked. That commits local filesystem paths —
-    # the same disclosure class as the DVC remote url that had to be moved to a
-    # gitignored config.local. Flagged to the CTO; not silently trimmed here,
-    # because dropping argv[0] would also weaken the record's account of what ran.
-    assert m["argv"] == _sys.argv, f"recorded argv {m['argv']!r} != the invocation's {_sys.argv!r}"
+    # RESOLVED (principal ruling, 2026-09-03), superseding the note that stood
+    # here. Two corrections to what this comment used to say:
+    #   1. The premise was WRONG. `journal/**` is gitignored and only `.gitkeep`
+    #      is tracked, so no absolute path ever reached git. The exposure is at
+    #      PUBLICATION time — records shipped alongside results — not commit time.
+    #   2. The trade it asserted was false. Dropping argv[0] does not weaken the
+    #      record's account of what ran: `python`, `platform` and `packages`
+    #      identify the interpreter more precisely than its path does. So the
+    #      absolute path was pure disclosure and the basename is kept.
+    # argv[1:] stays verbatim; those are the run's real inputs.
+    expected_argv = [_os.path.basename(_sys.argv[0]), *_sys.argv[1:]] if _sys.argv else []
+    assert m["argv"] == expected_argv, (
+        f"recorded argv {m['argv']!r} != expected {expected_argv!r}"
+    )
 
     # Config digests by value against the snapshot bytes on disk.
     import hashlib as _hashlib
@@ -763,3 +771,165 @@ def test_source_root_is_not_overridable(monkeypatch: pytest.MonkeyPatch) -> None
         "source_root selects the tree git is read from and must never be "
         "steerable by the environment"
     )
+
+
+# --- B1: config symlink escape (principal ruling, 2026-09-03) --------------
+
+
+def test_a_config_symlinked_outside_the_project_is_refused_loudly(
+    fake_project: Path, tmp_path: Path
+) -> None:
+    """B1. `shutil.copy2` follows symlinks, so a config symlinked at a target
+    outside the project had its CONTENT copied into the record and hashed into
+    the manifest — exfiltrating whatever the link pointed at.
+
+    The refusal must be LOUD. Silently skipping the file is the worse bug: the
+    record would then claim a complete snapshot it does not have, which is
+    exactly the indistinguishability this module exists to prevent.
+    """
+    outside = tmp_path.parent / "outside-secret.yaml"
+    outside.write_text("private_key: SHOULD-NEVER-BE-COPIED\n")
+    (fake_project / "configs" / "leak.yaml").symlink_to(outside)
+
+    with pytest.raises(JournalError) as excinfo:
+        start_run("chipsim parse", fake_project)
+
+    message = str(excinfo.value)
+    assert "leak.yaml" in message
+    # The refusal names the escape; it does not leak the secret's contents.
+    assert "SHOULD-NEVER-BE-COPIED" not in message
+
+
+def test_a_refused_symlink_config_leaves_no_record_at_all(
+    fake_project: Path, tmp_path: Path
+) -> None:
+    """B1. Fail loudly means fail COMPLETELY — no partial record survives, so
+    there is never a run directory claiming a snapshot that omitted a config."""
+    outside = tmp_path.parent / "outside-secret2.yaml"
+    outside.write_text("secret: 1\n")
+    (fake_project / "configs" / "leak.yaml").symlink_to(outside)
+
+    with pytest.raises(JournalError):
+        start_run("chipsim parse", fake_project, run_id="run-refused")
+
+    journal = fake_project / "journal"
+    assert not (journal / "run-refused").exists()
+    # and no staging leftovers
+    assert list(journal.glob(".staging-*")) == []
+
+
+def test_a_symlink_resolving_back_inside_the_project_is_still_snapshotted(
+    fake_project: Path,
+) -> None:
+    """B1 must gate on the RESOLVED path escaping the root, not on being a
+    symlink. An in-project symlink is legitimate and its content is genuinely
+    part of the project, so refusing it would be a false positive."""
+    real = fake_project / "configs" / "real.yaml"
+    real.write_text("inside: true\n")
+    (fake_project / "configs" / "alias.yaml").symlink_to(real)
+
+    run_dir = start_run("chipsim parse", fake_project)
+    recorded = read_manifest(run_dir)["configs"]
+
+    assert "alias.yaml" in recorded
+    assert (run_dir / "configs" / "alias.yaml").read_text() == "inside: true\n"
+
+
+def test_a_config_directory_symlinked_outside_the_project_is_refused(
+    fake_project: Path, tmp_path: Path
+) -> None:
+    """B1. The escape works through a linked DIRECTORY too, since rglob walks
+    into it — the per-file resolved-path check must catch that as well."""
+    outside_dir = tmp_path.parent / "outside-configs"
+    outside_dir.mkdir(exist_ok=True)
+    (outside_dir / "secret.yaml").write_text("token: nope\n")
+    (fake_project / "configs" / "linked").symlink_to(outside_dir)
+
+    with pytest.raises(JournalError):
+        start_run("chipsim parse", fake_project)
+
+
+def test_an_in_project_symlinked_directory_is_walked_not_silently_skipped(
+    fake_project: Path,
+) -> None:
+    """B1, second half. `rglob` does not recurse into symlinked directories, so
+    configs beneath an in-project linked dir were absent from the snapshot while
+    an ordinary `open()` in the run still read them — a silent skip. The walk now
+    follows them."""
+    real_dir = fake_project / "configs" / "panels"
+    real_dir.mkdir()
+    (real_dir / "lung.yaml").write_text("b: 2\n")
+    (fake_project / "configs" / "linked").symlink_to(real_dir)
+
+    recorded = set(read_manifest(start_run("chipsim parse", fake_project))["configs"])
+
+    assert "linked/lung.yaml" in recorded, "linked dir was silently skipped"
+    assert "panels/lung.yaml" in recorded
+
+
+def test_a_symlink_cycle_in_configs_terminates(fake_project: Path) -> None:
+    """Following linked dirs introduces the possibility of a cycle; the walk
+    must terminate rather than recurse until the stack blows."""
+    nested = fake_project / "configs" / "nested"
+    nested.mkdir()
+    (nested / "a.yaml").write_text("a: 1\n")
+    (nested / "loop").symlink_to(fake_project / "configs")
+
+    recorded = set(read_manifest(start_run("chipsim parse", fake_project))["configs"])
+    assert "nested/a.yaml" in recorded
+
+
+# --- B2: argv[0] disclosure (principal ruling, 2026-09-03) -----------------
+
+
+def test_argv0_is_recorded_as_a_basename_not_an_absolute_path(
+    fake_project: Path,
+) -> None:
+    """B2. argv[0] arrives as an absolute interpreter/script path, which
+    discloses the operator's directory layout (home dir, usernames, checkout
+    location) in a record published with results. python/platform/packages
+    already identify the interpreter, so the absolute path adds no replay value
+    — it is pure disclosure."""
+    run_dir = start_run(
+        "chipsim parse",
+        fake_project,
+        argv=["/Users/someone/private/checkouts/bio/.venv/bin/chipsim", "parse"],
+    )
+    argv = read_manifest(run_dir)["argv"]
+
+    assert argv[0] == "chipsim"
+    assert "/Users/someone" not in argv[0]
+
+
+def test_argv_tail_is_recorded_verbatim(fake_project: Path) -> None:
+    """B2 trims argv[0] ONLY. The arguments are the run's actual inputs — pathes
+    among them are replay-relevant and must survive untouched."""
+    run_dir = start_run(
+        "chipsim parse",
+        fake_project,
+        argv=["/opt/venv/bin/chipsim", "parse", "--config", "/data/in/env.yaml", "-v"],
+    )
+    argv = read_manifest(run_dir)["argv"]
+
+    assert argv == ["chipsim", "parse", "--config", "/data/in/env.yaml", "-v"]
+
+
+def test_invocation_records_also_trim_argv0(fake_project: Path) -> None:
+    """B2 applies to `panel-seal` invocation records too — same disclosure, same
+    publication path."""
+    record_invocation(
+        "chipsim panel-seal",
+        fake_project,
+        argv=["/Users/someone/.venv/bin/chipsim", "panel-seal"],
+    )
+    records = sorted((fake_project / "journal" / "invocations").glob("*.json"))
+    assert records, "no invocation record written"
+    argv = json.loads(records[-1].read_text())["argv"]
+    assert argv[0] == "chipsim"
+
+
+def test_an_empty_argv_is_recorded_without_raising(fake_project: Path) -> None:
+    """Trimming must not assume argv is non-empty; an embedded interpreter can
+    present an empty argv and the run must still record."""
+    run_dir = start_run("chipsim parse", fake_project, argv=[])
+    assert read_manifest(run_dir)["argv"] == []

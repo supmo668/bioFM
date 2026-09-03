@@ -125,6 +125,28 @@ OUTPUT_DETERMINING_PACKAGES = ("pyarrow", "rdkit", "pandas", "numpy", "PyYAML")
 SEED_ENV_VARS = ("CHIPSIM_SEED", "PYTHONHASHSEED", "SOURCE_DATE_EPOCH")
 
 
+def _recorded_argv(argv: list[str] | None) -> list[str]:
+    """argv as recorded: ``argv[0]`` reduced to its basename, the rest verbatim.
+
+    ``argv[0]`` arrives as an absolute interpreter or console-script path, so it
+    carries the operator's directory layout — home directory, username, checkout
+    location — into a record that is published alongside results. It buys
+    nothing at replay: ``python``, ``platform`` and ``packages`` already identify
+    the interpreter far more precisely than its path does. So it is pure
+    disclosure, and only the basename is kept.
+
+    ``argv[1:]`` is recorded VERBATIM and must stay that way. Those are the run's
+    actual inputs; a path among them is replay-relevant, and trimming it would
+    damage the record to no benefit. This is a disclosure trim, not a
+    sanitizer — it does not make argv safe to trust, and nothing downstream
+    should read it as though it had.
+    """
+    values = list(argv) if argv is not None else list(sys.argv)
+    if not values:
+        return values
+    return [os.path.basename(values[0]), *values[1:]]
+
+
 class JournalError(RuntimeError):
     """A run could not be opened — e.g. its run id is already taken."""
 
@@ -251,7 +273,7 @@ def _validate_run_id(run_id: str) -> str:
     return run_id
 
 
-def _config_sources(source_dir: Path) -> list[Path]:
+def _config_sources(source_dir: Path, root_real: Path) -> list[Path]:
     """Every config file a run could read, at any depth.
 
     `.yml` counts as well as `.yaml`, and subdirectories are walked: a config the
@@ -259,13 +281,83 @@ def _config_sources(source_dir: Path) -> list[Path]:
     from a run where that file did not exist, and the replay test passes while
     replaying against something never recorded. Silent incompleteness is the one
     failure this module exists to prevent.
+
+    **Symlinked directories are walked explicitly rather than left to `rglob`.**
+    `rglob` does not recurse into them, so a `configs/linked -> /elsewhere` dir
+    made every config beneath it invisible to the snapshot while an ordinary
+    `open()` in the run still read it — a silent skip of exactly the kind above.
+    A linked directory that resolves back inside the project is legitimate and is
+    followed; one that escapes the root is refused loudly by the caller's check.
+    Cycles are guarded per-branch, against the chain of ANCESTORS currently being
+    walked — not against a global set of everything already seen. A global set
+    looks equivalent and is not: two distinct logical paths may resolve to the
+    same real directory (`configs/panels` and a `configs/linked -> panels`), and
+    a global set would walk whichever sorts first and silently drop the other —
+    reintroducing precisely the silent skip this function exists to prevent.
+    Only a genuine loop revisits a directory that is its own ancestor.
     """
     if not source_dir.is_dir():
         return []
-    return sorted(
-        path
-        for path in source_dir.rglob("*")
-        if path.is_file() and path.suffix in {".yaml", ".yml"}
+
+    found: list[Path] = []
+
+    def walk(directory: Path, ancestors: frozenset[Path]) -> None:
+        try:
+            real = directory.resolve()
+        except OSError:
+            real = directory
+        if real in ancestors:
+            return
+        ancestors = ancestors | {real}
+        for entry in sorted(directory.iterdir()):
+            if entry.is_dir():
+                # Refuse before descending: an escaping linked dir must raise,
+                # never be quietly passed over.
+                _refuse_escaping_config(entry, entry.relative_to(source_dir), root_real)
+                walk(entry, ancestors)
+            elif entry.is_file() and entry.suffix in {".yaml", ".yml"}:
+                found.append(entry)
+
+    walk(source_dir, frozenset())
+    return sorted(found)
+
+
+def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> None:
+    """Refuse a config whose REAL path lies outside the project root.
+
+    `shutil.copy2` follows symlinks, so without this a config symlinked at a
+    target outside the project has its *content* copied into the record and
+    hashed into the manifest. The journal is published alongside results, so
+    that is an exfiltration path: anything readable by the process can be
+    linked into `configs/` and carried out inside a record that looks routine.
+
+    **This raises rather than skipping, deliberately.** Silently omitting the
+    file would be the worse failure: the record would then assert a complete
+    snapshot it does not have, and a replay against it would be
+    indistinguishable from a replay against a run where the config never
+    existed — the exact silent incompleteness `_config_sources` exists to
+    prevent. A run that cannot be recorded honestly must not proceed.
+
+    The message names the offending path but never its contents, so the refusal
+    does not itself leak what the link pointed at.
+    """
+    try:
+        real = config.resolve()
+    except OSError as exc:  # pragma: no cover - broken link, unreadable parent
+        raise JournalError(
+            f"config {relative.as_posix()!r} could not be resolved: {exc}. "
+            "Refusing to snapshot a config whose real path cannot be established."
+        ) from exc
+
+    if real == root_real or root_real in real.parents:
+        return
+
+    raise JournalError(
+        f"config {relative.as_posix()!r} resolves to {real}, which is outside the "
+        f"project root {root_real}. Refusing to snapshot it: copying would follow "
+        "the link and hash outside content into this record, and skipping it would "
+        "leave the record claiming a complete snapshot it does not have. "
+        "Remove the link or move the file inside the project."
     )
 
 
@@ -313,8 +405,10 @@ def start_run(
         snapshot_dir.mkdir()
         digests: dict[str, str] = {}
         source_dir = project_root / "configs"
-        for config in _config_sources(source_dir):
+        root_real = project_root.resolve()
+        for config in _config_sources(source_dir, root_real):
             relative = config.relative_to(source_dir)
+            _refuse_escaping_config(config, relative, root_real)
             target = snapshot_dir / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(config, target)
@@ -325,7 +419,7 @@ def start_run(
             "run_id": run_id,
             "command": command,
             "start": datetime.now(UTC).isoformat(),
-            "argv": list(argv) if argv is not None else list(sys.argv),
+            "argv": _recorded_argv(argv),
             "python": sys.version,
             "platform": platform.platform(),
             "packages": _package_versions(),
@@ -626,7 +720,7 @@ def record_invocation(
         "record_type": "invocation",
         "command": command,
         "start": datetime.now(UTC).isoformat(),
-        "argv": list(argv) if argv is not None else list(sys.argv),
+        "argv": _recorded_argv(argv),
         "environment": _environment(),
     }
     payload = json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
