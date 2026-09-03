@@ -23,8 +23,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from chipsim.journal import (
+    ConfigIntegrityError,
     JournalError,
     finish_run,
+    _recorded_argv,
     record_invocation,
     source_root,
     start_run,
@@ -138,8 +140,10 @@ def _cmd_panel_seal(ns) -> int:
     into a DELIBERATE CIRCUMVENTION. It does not prove who ran the command, it
     does not make the seal an attestation, and an agent that deliberately
     allocates a pty defeats it entirely — which is neither hard nor exotic. The
-    digest stays unkeyed over public content, so it shows the file is unmodified
-    and never who ratified it. Real signing with a human-held key is a v2
+    digest stays unkeyed over public content, so it DETECTS a later edit — the
+    repo's sanctioned verb — and never says who ratified it. It does not certify
+    an untouched file: anything able to write the panel can recompute the digest,
+    and removing the seal line bypasses the check entirely (see pgp_label.py). Real signing with a human-held key is a v2
     decision, deferred. Do not let any wording here grow past that.
     """
     if not _stdin_is_interactive():
@@ -195,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser(
         "panel-seal",
         help=(
-            "HUMAN ONLY (T8) — writes a tamper-evident digest over a ratified panel. "
+            "HUMAN ONLY (T7a) — writes a tamper-evident digest over a ratified panel. "
             "This does not prove a human ran it."
         ),
         # `help=` only shows in the parent listing. Without `description=`, the
@@ -208,8 +212,14 @@ def build_parser() -> argparse.ArgumentParser:
             "ratification fields and its filename, so a later edit is detected.\n\n"
             "WHAT THIS DOES NOT DO: prove a human ran it. The digest is unkeyed "
             "over public content, so anything able to write `ratified: true` can "
-            "compute it. Global Constraint (4) reserves this command to a human; "
-            "that is a stated rule with no technical enforcement."
+            "compute it.\n\n"
+            "REQUIRES AN INTERACTIVE TERMINAL: this command refuses to run when "
+            "stdin is not a TTY, so the headless path fails instead of quietly "
+            "producing a seal. That makes an accidental agent seal into a "
+            "deliberate circumvention — it does NOT establish that a human ran "
+            "this, and allocating a pty defeats it. Global Constraint (4) "
+            "reserves this command to a human; the TTY check is its only "
+            "technical support and is not proof of authorship."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -243,6 +253,15 @@ def _journal_best_effort(action, *, root: Path | None = None, what: str = "recor
     """
     try:
         return action()
+    except ConfigIntegrityError:
+        # NOT best-effort. A config that escapes the project root, a hard link, or
+        # a non-regular file under `configs/` is an operator-SECURITY event, not
+        # the transient journal outage this wrapper was written for. Swallowing it
+        # ran the stage anyway and exited 0, so an attempted exfiltration and a
+        # clean run were indistinguishable from the exit status — and under
+        # n8n/cron, where stderr is discarded, the marker was the only trace.
+        # The B1 ruling is "FAIL LOUDLY"; this is where loud has to mean non-zero.
+        raise
     except Exception as exc:  # noqa: BLE001 - the journal must not break the stage
         print(f"WARNING: run journal unavailable ({what}): {exc}", file=sys.stderr)
         if root is not None:
@@ -256,7 +275,7 @@ def _journal_best_effort(action, *, root: Path | None = None, what: str = "recor
                             "record_type": "unrecorded",
                             "what": what,
                             "error": f"{type(exc).__name__}: {exc}",
-                            "argv": list(sys.argv),
+                            "argv": _recorded_argv(None),
                             "at": datetime.now(UTC).isoformat(),
                         },
                         indent=2,
@@ -354,11 +373,19 @@ def main(argv=None) -> int:
     # ETL stages open a run BEFORE any work, so the config snapshot precedes the
     # computation it describes. The outcome is written LAST: a crashed stage
     # leaves no outcome.json and therefore cannot read as a silent success.
-    run_dir = _journal_best_effort(
-        lambda: start_run(ns.command, root, argv=argv_recorded),
-        root=root,
-        what=f"start_run:{ns.command}",
-    )
+    try:
+        run_dir = _journal_best_effort(
+            lambda: start_run(ns.command, root, argv=argv_recorded),
+            root=root,
+            what=f"start_run:{ns.command}",
+        )
+    except ConfigIntegrityError as exc:
+        # Fail the stage, loudly and non-zero, WITHOUT running it. A `configs/`
+        # tree holding an escaping link, a hard link or a non-regular file is an
+        # operator-security event; running the stage anyway and exiting 0 made an
+        # attempted exfiltration indistinguishable from a clean run.
+        print(f"ERROR: refusing to run {ns.command!r}: {exc}", file=sys.stderr)
+        return 2
     try:
         code = _normalize_exit(_HANDLERS[ns.command](ns))
     except SystemExit as exc:

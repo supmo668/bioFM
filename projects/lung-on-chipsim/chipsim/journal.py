@@ -97,6 +97,7 @@ import platform
 import re
 import shutil
 import socket
+import stat
 import sys
 import tempfile
 import uuid
@@ -105,6 +106,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 __all__ = [
+    "ConfigIntegrityError",
     "JournalError",
     "ManifestVerificationError",
     "finish_run",
@@ -169,6 +171,16 @@ def _recorded_argv(argv: list[str] | None) -> list[str]:
 
 class JournalError(RuntimeError):
     """A run could not be opened — e.g. its run id is already taken."""
+
+
+class ConfigIntegrityError(JournalError):
+    """A config could not be snapshotted safely — it escapes the project root,
+    is a hard link, or is not a regular file.
+
+    A distinct type because callers must treat it differently from an ordinary
+    journal outage: this is an operator-security event and must fail the run,
+    never degrade to a warning. See `pipeline._journal_best_effort`.
+    """
 
 
 class ManifestVerificationError(JournalError):
@@ -252,12 +264,29 @@ def _resolve_seed(project_root: Path | None) -> dict:
 
     config_seed = None
     if project_root is not None:
-        config_path = project_root / "configs" / "env.yaml"
+        # `.yml` counts as well as `.yaml` — `_config_sources` accepts both and
+        # snapshots them, so a seed in `env.yml` would otherwise be recorded as
+        # `source: "unset"` while the record's own config copy carries it: a
+        # positive false statement, the class this module refuses everywhere.
+        candidates = [
+            project_root / "configs" / "env.yaml",
+            project_root / "configs" / "env.yml",
+        ]
+        config_path = next((c for c in candidates if c.is_file()), candidates[0])
         if config_path.is_file():
             import yaml
 
+            # The escape check belongs on the READ, not on one caller's loop
+            # ordering. `start_run` happened to gate this file first;
+            # `record_invocation` does not, so `panel-seal` would otherwise open
+            # and parse a `configs/env.yaml` symlinked outside the root.
+            fd = _open_verified_config(config_path, Path(config_path.name), project_root.resolve())
             try:
-                doc = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+                raw = _read_all(fd)
+            finally:
+                os.close(fd)
+            try:
+                doc = yaml.safe_load(raw.decode("utf-8"))
             except (yaml.YAMLError, OSError, UnicodeDecodeError) as exc:
                 # RAISE rather than fall through to `source: "unset"`. A config
                 # that cannot be parsed may well carry a seed, so recording
@@ -265,7 +294,7 @@ def _resolve_seed(project_root: Path | None) -> dict:
                 # worse than recording nothing, and the same class of silent
                 # dishonesty as a snapshot claiming completeness it lacks.
                 raise JournalError(
-                    f"cannot resolve the seed: {config_path} could not be parsed "
+                    f"cannot resolve the seed: {config_path.name} could not be parsed "
                     f"({exc.__class__.__name__}). Refusing to record the seed as "
                     "unset when the config may define one."
                 ) from exc
@@ -275,7 +304,12 @@ def _resolve_seed(project_root: Path | None) -> dict:
     if config_seed is not None:
         resolved, source = _coerce_seed(config_seed, "configs/env.yaml:seed"), "config:env.yaml"
 
+    # An exported-but-empty var reads as UNSET, by POSIX convention. Otherwise
+    # `export CHIPSIM_SEED=$SEED` with SEED unset — an ordinary shell accident —
+    # hard-fails every run and bricks `panel-seal`.
     env_seed = raw_env.get("CHIPSIM_SEED")
+    if env_seed is not None and env_seed.strip() == "":
+        env_seed = None
     if env_seed is not None:
         resolved, source = _coerce_seed(env_seed, "$CHIPSIM_SEED"), "env:CHIPSIM_SEED"
 
@@ -286,23 +320,26 @@ def _coerce_seed(value: object, origin: str) -> int:
     """A seed must be an integer. Anything else is refused, loudly."""
     if isinstance(value, bool) or not isinstance(value, (int, str)):
         raise JournalError(
-            f"seed from {origin} is {value!r} ({type(value).__name__}), which cannot "
-            "seed anything. Refusing to record a seed no replay could use."
+            f"seed from {origin} is a {type(value).__name__}, which cannot seed "
+            "anything. Refusing to record a seed no replay could use. (The value "
+            "is not echoed here: it is config-sourced data and this message is "
+            "written durably.)"
         )
     # A plain decimal integer only. `int()` also accepts underscore separators, so
     # `1_0` would silently become 10 — a recorded seed that differs from the one a
     # human reads in the config is exactly the trust this record exists to carry.
     if isinstance(value, str) and not re.fullmatch(r"[+-]?[0-9]+", value.strip()):
         raise JournalError(
-            f"seed from {origin} is {value!r}, which is not a plain decimal integer. "
-            "Refusing to record a seed that does not read as the value it is."
+            f"seed from {origin} is not a plain decimal integer. Refusing to record "
+            "a seed that does not read as the value it is. (The value is not echoed "
+            "here: it is config-sourced data and this message is written durably.)"
         )
     try:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise JournalError(
-            f"seed from {origin} is {value!r}, which is not an integer. Refusing to "
-            "record a seed no replay could use."
+            f"seed from {origin} is not an integer. Refusing to record a seed no "
+            "replay could use."
         ) from exc
 
 
@@ -383,7 +420,8 @@ def _config_sources(source_dir: Path, root_real: Path) -> list[Path]:
     made every config beneath it invisible to the snapshot while an ordinary
     `open()` in the run still read it — a silent skip of exactly the kind above.
     A linked directory that resolves back inside the project is legitimate and is
-    followed; one that escapes the root is refused loudly by the caller's check.
+    followed; one that escapes the root is refused loudly by the walk itself, before
+    descending. Escaping *files* are refused by ``start_run``.
     Cycles are guarded per-branch, against the chain of ANCESTORS currently being
     walked — not against a global set of everything already seen. A global set
     looks equivalent and is not: two distinct logical paths may resolve to the
@@ -428,14 +466,47 @@ def _config_sources(source_dir: Path, root_real: Path) -> list[Path]:
         if real in ancestors:
             return
         ancestors = ancestors | {real}
-        for entry in sorted(directory.iterdir()):
+        try:
+            entries = sorted(directory.iterdir())
+        except OSError as exc:
+            raise ConfigIntegrityError(
+                f"config directory {directory.name!r} could not be listed "
+                f"({exc.__class__.__name__}). Refusing: an unlistable directory "
+                "may hold configs the record would silently omit."
+            ) from exc
+        for entry in entries:
             if entry.is_dir():
                 # Refuse before descending: an escaping linked dir must raise,
                 # never be quietly passed over.
                 _refuse_escaping_config(entry, entry.relative_to(source_dir), root_real)
+                # Descend into the LOGICAL path, deliberately — not the resolved
+                # one. Walking the resolved directory collapses distinct aliases
+                # (`configs/linked` and `configs/panels` for the same real dir)
+                # into one relative path and drops a config from the snapshot,
+                # which is the silent skip this walk exists to prevent.
+                #
+                # That means the directory check is NOT verify-then-use, unlike
+                # the file check, and it does not need to be: nothing is read
+                # from a directory. Every FILE found beneath is independently
+                # re-verified against the root immediately before it is copied
+                # (see `start_run`), so repointing this link after the check
+                # cannot smuggle outside content into the record — the file gate
+                # is the one that carries that guarantee.
                 walk(entry, ancestors)
             elif entry.is_file() and entry.suffix in {".yaml", ".yml"}:
                 found.append(entry)
+            elif entry.is_symlink() and entry.suffix in {".yaml", ".yml"}:
+                # A DANGLING config link. `is_dir()` and `is_file()` both follow
+                # the link and both return False, so without this branch the
+                # entry fell off the end of the loop and was passed over in
+                # silence — inside a walk whose whole premise is that nothing is.
+                # A run reading it would fail; a run recording it as absent would
+                # be indistinguishable from one where it never existed.
+                raise ConfigIntegrityError(
+                    f"config {entry.relative_to(source_dir).as_posix()!r} is a "
+                    "broken symlink — it names a config that does not exist. "
+                    "Refusing rather than passing over it in silence."
+                )
 
     walk(source_dir, frozenset())
     return sorted(found)
@@ -460,11 +531,8 @@ def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> Pa
     The message names the offending path but never its contents, so the refusal
     does not itself leak what the link pointed at.
 
-    Returns the RESOLVED path, and the caller copies from that rather than from
-    the link. Checking one path and then copying another re-follows the link a
-    second time, leaving a window in which it can be repointed between the two —
-    small, but free to close, and the whole point here is that what was verified
-    is what gets recorded.
+    Returns the RESOLVED path. Use `_open_verified_config` for files — this
+    function alone is a PATH check, and a path is not an object.
     """
     try:
         real = config.resolve()
@@ -477,13 +545,82 @@ def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> Pa
     if real == root_real or root_real in real.parents:
         return real
 
-    raise JournalError(
+    raise ConfigIntegrityError(
         f"config {relative.as_posix()!r} resolves to {real}, which is outside the "
         f"project root {root_real}. Refusing to snapshot it: copying would follow "
         "the link and hash outside content into this record, and skipping it would "
         "leave the record claiming a complete snapshot it does not have. "
         "Remove the link or move the file inside the project."
     )
+
+
+def _read_all(fd: int) -> bytes:
+    """Read a descriptor to EOF. Copies bytes from the OBJECT already verified,
+    so the config's name is never resolved a second time."""
+    chunks: list[bytes] = []
+    while True:
+        block = os.read(fd, 1 << 20)
+        if not block:
+            return b"".join(chunks)
+        chunks.append(block)
+
+
+def _open_verified_config(config: Path, relative: Path, root_real: Path) -> int:
+    """Open a config for snapshotting, verified as an OBJECT rather than a name.
+
+    Three checks a path comparison cannot make:
+
+    1. **In-root** — the resolved path must lie under the project root
+       (`_refuse_escaping_config`). Closes the symlink escape.
+    2. **Not a hard link** — ``st_nlink`` must be 1. ``Path.resolve()`` has
+       nothing to resolve for a hard link: a second directory entry for an
+       outside inode reports its own in-``configs/`` path and passes every path
+       check. Without this, ``ln`` (no ``-s``) reaches the same exfiltration the
+       symlink guard closes, with identical preconditions.
+    3. **A regular file** — a fifo or device under ``configs/`` would otherwise
+       be opened and read.
+
+    The file is opened ``O_NOFOLLOW`` on the ALREADY-RESOLVED path and the caller
+    copies from the returned descriptor, so the name is never resolved twice.
+
+    **Residual limit, stated rather than glossed.** This narrows the
+    check-to-use window; it does not eliminate it. The resolved path could still
+    be replaced by another regular in-root file between ``resolve()`` and
+    ``open()``, and only an ``openat`` walk holding a descriptor for every path
+    component would close that. On a single-operator PoC that is out of
+    proportion; the honest claim is "narrowed and type-checked", not "closed".
+    An earlier version of this code claimed the window was shut when it was not,
+    which is worse than the gap — a false assurance stops the next reader
+    looking.
+    """
+    real = _refuse_escaping_config(config, relative, root_real)
+    try:
+        fd = os.open(real, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError as exc:
+        raise JournalError(
+            f"config {relative.as_posix()!r} could not be opened for snapshotting: "
+            f"{exc.__class__.__name__}. Refusing to record a config it cannot read."
+        ) from exc
+
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise ConfigIntegrityError(
+                f"config {relative.as_posix()!r} is not a regular file. Refusing to "
+                "read it into the record."
+            )
+        if info.st_nlink > 1:
+            raise ConfigIntegrityError(
+                f"config {relative.as_posix()!r} has {info.st_nlink} hard links, so "
+                "its content may live outside the project root — a hard link is "
+                "invisible to a path check. Refusing to snapshot it: copying would "
+                "hash outside content into this published record. Replace the link "
+                "with a copy."
+            )
+    except BaseException:
+        os.close(fd)
+        raise
+    return fd
 
 
 def start_run(
@@ -533,12 +670,15 @@ def start_run(
         root_real = project_root.resolve()
         for config in _config_sources(source_dir, root_real):
             relative = config.relative_to(source_dir)
-            verified = _refuse_escaping_config(config, relative, root_real)
+            fd = _open_verified_config(config, relative, root_real)
+            try:
+                payload = _read_all(fd)
+            finally:
+                os.close(fd)
             target = snapshot_dir / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            # Copy the path that was VERIFIED, not the link that was checked.
-            shutil.copy2(verified, target)
-            digests[relative.as_posix()] = hashlib.sha256(target.read_bytes()).hexdigest()
+            target.write_bytes(payload)
+            digests[relative.as_posix()] = hashlib.sha256(payload).hexdigest()
 
         manifest = {
             "record_type": "run",
@@ -643,11 +783,32 @@ def _verify_config_snapshot(run_dir: Path, digests: dict) -> None:
                 f"(recorded {digest}, computed {actual}). The snapshot was modified."
             )
     if snapshot_dir.is_dir():
-        present = {
-            path.relative_to(snapshot_dir).as_posix()
-            for path in snapshot_dir.rglob("*")
-            if path.is_file()
-        }
+        # A snapshot directory has NO legitimate reason to contain a symlink —
+        # `start_run` only ever writes plain files into it. So refuse links
+        # outright rather than trying to follow them safely.
+        #
+        # This previously used `rglob`, which is the exact bug fixed on the write
+        # path: `rglob` does not descend into symlinked directories, so files
+        # planted under `journal/<run>/configs/more -> /elsewhere/` were invisible
+        # to this extra-file check and a tampered snapshot verified clean. The
+        # write-path reasoning was not carried to the read path.
+        present: set[str] = set()
+
+        def _scan(directory: Path) -> None:
+            for entry in sorted(directory.iterdir()):
+                if entry.is_symlink():
+                    raise ManifestVerificationError(
+                        f"{run_dir}: config snapshot holds a symlink "
+                        f"{entry.relative_to(snapshot_dir).as_posix()!r}. The "
+                        "snapshot is written as plain files only, so this was "
+                        "added after the fact."
+                    )
+                if entry.is_dir():
+                    _scan(entry)
+                elif entry.is_file():
+                    present.add(entry.relative_to(snapshot_dir).as_posix())
+
+        _scan(snapshot_dir)
         extra = present - set(digests)
         if extra:
             raise ManifestVerificationError(

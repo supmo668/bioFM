@@ -289,7 +289,8 @@ as "not a substrate", and human adjudication against current literature.
   gate converts an *accident* into a *deliberate circumvention* — that is the entire claim.
   It does not establish who ran the command, it is not evidence a human sealed anything, and
   an agent that deliberately allocates a pty defeats it completely. The digest remains unkeyed
-  over public content: it shows the file is unmodified, never who ratified it. Closing that
+  over public content: it **detects a later edit**, never who ratified it — and an editor who
+  removes the seal line bypasses the detection entirely. Closing that
   gap needs real signing against a pinned human-held key, which is a **v2 decision, deferred**.
 
 [`uv`]: https://docs.astral.sh/uv/

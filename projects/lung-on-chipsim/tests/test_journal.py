@@ -8,6 +8,7 @@ real `journal/`, so the suite cannot pollute a real run history.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -369,6 +370,16 @@ def test_no_wording_claims_the_journal_authenticates_anyone() -> None:
         r"establish(?:es)? who",
         r"identif(?:y|ies) who",
         r"who[- ]ran",
+        # TTY-gate paraphrases. The gate checks that stdin is a terminal; it does
+        # not establish a human is present, and a pty defeats it. These forms all
+        # slipped a literal-string blocklist in test_panel_seal_tty.py, which is
+        # why the negative check was consolidated here — this guard has the
+        # negation window and the anti-vacuity check.
+        r"ensures? (?:a|the) human",
+        r"impossible for an agent",
+        r"prevents? an agent",
+        r"guarantees? (?:a )?human",
+        r"requires? a human to be present",
     ]
     inspected = 0
     for source in sources:
@@ -1096,3 +1107,103 @@ def test_an_ordinary_nested_config_tree_is_well_within_the_bound(
 
     recorded = read_manifest(start_run("chipsim parse", fake_project))["configs"]
     assert len([k for k in recorded if k.startswith("group")]) == 8
+
+
+def test_a_boolean_seed_is_refused(fake_project: Path) -> None:
+    """The bool guard had ZERO coverage — deleting `isinstance(value, bool) or`
+    left all tests green while `seed: true` recorded as `resolved: 1`. Same class
+    as the `1_0` -> 10 defect: a recorded seed differing from what a human reads.
+    YAML `true`/`yes` both parse to bool."""
+    (fake_project / "configs" / "env.yaml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": True})
+    )
+    with pytest.raises(JournalError, match="cannot seed anything"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_a_float_seed_is_refused(fake_project: Path) -> None:
+    """The non-int/str branch was likewise uncovered."""
+    (fake_project / "configs" / "env.yaml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": 1.5})
+    )
+    with pytest.raises(JournalError, match="cannot seed anything"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_a_seed_in_env_yml_is_not_recorded_as_unset(fake_project: Path) -> None:
+    """`_config_sources` accepts `.yml` and snapshots it, so a seed there was
+    recorded as `source: "unset"` while the record's OWN config copy carried the
+    seed — a positive false statement by a different route."""
+    (fake_project / "configs" / "env.yaml").unlink()
+    (fake_project / "configs" / "env.yml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": 999})
+    )
+
+    seeds = read_manifest(start_run("chipsim parse", fake_project))["environment"]["seeds"]
+    assert seeds["resolved"] == 999, "a seed in env.yml read as unset"
+
+
+def test_an_exported_but_empty_seed_reads_as_unset(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`export CHIPSIM_SEED=$SEED` with SEED unset is an ordinary shell accident.
+    Treating "" as a present-but-invalid seed hard-failed every run and bricked
+    panel-seal outright."""
+    monkeypatch.setenv("CHIPSIM_SEED", "")
+
+    seeds = read_manifest(start_run("chipsim parse", fake_project))["environment"]["seeds"]
+    assert seeds["source"] == "unset"
+
+
+def test_a_non_integer_env_seed_is_refused(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the config refusal path was covered; the env path was not."""
+    monkeypatch.setenv("CHIPSIM_SEED", "not-a-number")
+    with pytest.raises(JournalError, match="CHIPSIM_SEED"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_a_hard_linked_config_is_refused(fake_project: Path, tmp_path: Path) -> None:
+    """B1, third route. `Path.resolve()` has nothing to resolve for a hard link:
+    a second directory entry for an OUTSIDE inode reports its own in-configs/
+    path and passes every path check. `ln` (no -s) reached the same exfiltration
+    the symlink guard closes, with identical preconditions."""
+    outside = tmp_path.parent / "hardlink-secret.yaml"
+    outside.write_text("api_key: TOPSECRET\n")
+    os.link(outside, fake_project / "configs" / "leak.yaml")
+
+    with pytest.raises(JournalError, match="hard link"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_a_broken_symlink_config_is_not_silently_skipped(
+    fake_project: Path,
+) -> None:
+    """`is_dir()` and `is_file()` both follow the link and both return False, so
+    a dangling `*.yaml` fell off the end of the loop with no branch — a silent
+    skip inside a walk whose whole premise is that nothing is passed over
+    quietly."""
+    (fake_project / "configs" / "dangling.yaml").symlink_to(
+        fake_project / "configs" / "nonexistent.yaml"
+    )
+
+    with pytest.raises(JournalError, match="dangling.yaml"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_a_file_planted_under_a_symlinked_snapshot_dir_is_detected(
+    fake_project: Path, tmp_path: Path
+) -> None:
+    """The read path used `rglob`, which does not descend into symlinked dirs —
+    the exact bug fixed on the write path, not carried across. Files planted
+    under a linked directory inside the snapshot were invisible to the
+    extra-file check and the tampered record verified CLEAN."""
+    run_dir = start_run("chipsim parse", fake_project)
+    planted = tmp_path.parent / "planted-configs"
+    planted.mkdir(exist_ok=True)
+    (planted / "extra.yaml").write_text("injected: true\n")
+    (run_dir / "configs" / "more").symlink_to(planted)
+
+    with pytest.raises(ManifestVerificationError):
+        read_manifest(run_dir)

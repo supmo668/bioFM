@@ -63,10 +63,16 @@ def _seeded_project(tmp_path: Path, seed: int) -> Path:
 
 
 def _run_once(project_root: Path, run_id: str) -> tuple[str, dict]:
-    """One full run: open a journal record, compute, persist, digest the bytes."""
+    """One full run: open a journal record, compute, persist, digest the bytes.
+
+    The artifact is written OUTSIDE the run directory. Run directories are
+    immutable and atomically complete-or-absent (A&D §4.4a-ii, `start_run`), so
+    dropping outputs into the audit record would both contradict that model and
+    model the wrong pattern for whoever writes the next pipeline stage.
+    """
     run_dir = start_run("chipsim write", project_root, run_id=run_id)
     frame = add_canonical_identity(load_compounds(SNAPSHOT_DIR, min_rows=0))
-    out = run_dir / "compounds.parquet"
+    out = project_root / f"{run_id}-compounds.parquet"
     write_compounds(frame, out)
     return hashlib.sha256(out.read_bytes()).hexdigest(), read_manifest(run_dir)
 
@@ -114,9 +120,9 @@ def test_the_determinism_control_can_actually_fail(tmp_path: Path) -> None:
 
     baseline, _ = _run_once(project, "run-a")
 
-    run_dir = start_run("chipsim write", project, run_id="run-mutated")
+    start_run("chipsim write", project, run_id="run-mutated")
     frame = add_canonical_identity(load_compounds(SNAPSHOT_DIR, min_rows=0)).iloc[:-1]
-    out = run_dir / "compounds.parquet"
+    out = project / "run-mutated-compounds.parquet"
     write_compounds(frame, out)
     mutated = hashlib.sha256(out.read_bytes()).hexdigest()
 

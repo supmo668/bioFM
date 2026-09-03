@@ -74,3 +74,18 @@ PATH_FIXTURE_NAMES = (
     "adjudication_blank_path",
     "adjudication_filled_path",
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_seed_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clear the seed env vars for EVERY test.
+
+    Verified failure without this: `CHIPSIM_SEED=99 pytest` failed four seed
+    tests, because `_resolve_seed` lets the env var override the config and the
+    config-source tests inherited ambient state. A suite whose result depends on
+    the operator's exported environment cannot be evidence of anything.
+    """
+    from chipsim.journal import SEED_ENV_VARS
+
+    for name in SEED_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
