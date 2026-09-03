@@ -1061,3 +1061,38 @@ def test_an_underscored_seed_string_is_refused(fake_project: Path) -> None:
     )
     with pytest.raises(JournalError, match="decimal integer"):
         start_run("chipsim parse", fake_project)
+
+
+def test_a_symlink_diamond_is_refused_rather_than_enumerated(
+    fake_project: Path,
+) -> None:
+    """Self-review finding. Per-branch cycle detection stops a directory being
+    its own ancestor but NOT a diamond: N nested dirs each linking twice to the
+    level above enumerate 2^N distinct acyclic paths. Measured at 12 levels:
+    8,178 files in 5 seconds. Refused loudly, never truncated."""
+    configs = fake_project / "configs"
+    prev = configs
+    for i in range(14):
+        level = configs / f"l{i}"
+        level.mkdir()
+        (level / "a.yaml").write_text("a: 1\n")
+        (level / "x").symlink_to(prev)
+        (level / "y").symlink_to(prev)
+        prev = level
+
+    with pytest.raises(JournalError, match="Refusing rather than truncating"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_an_ordinary_nested_config_tree_is_well_within_the_bound(
+    fake_project: Path,
+) -> None:
+    """The bound must not fire on anything real, or it becomes the defect."""
+    configs = fake_project / "configs"
+    for i in range(8):
+        nested = configs / f"group{i}" / "sub"
+        nested.mkdir(parents=True)
+        (nested / f"c{i}.yaml").write_text(f"i: {i}\n")
+
+    recorded = read_manifest(start_run("chipsim parse", fake_project))["configs"]
+    assert len([k for k in recorded if k.startswith("group")]) == 8

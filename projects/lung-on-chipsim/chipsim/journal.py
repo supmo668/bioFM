@@ -133,6 +133,11 @@ OUTPUT_DETERMINING_PACKAGES = ("pyarrow", "rdkit", "pandas", "numpy", "PyYAML")
 #: not, because "unset" and "unrecorded" must not look the same at replay.
 SEED_ENV_VARS = ("CHIPSIM_SEED", "PYTHONHASHSEED", "SOURCE_DATE_EPOCH")
 
+#: Bounds on the config walk. Generous for any real `configs/` tree and small
+#: enough that a symlink diamond is refused in well under a second.
+MAX_CONFIG_DIRS = 512
+MAX_CONFIG_DEPTH = 32
+
 
 def _recorded_argv(argv: list[str] | None) -> list[str]:
     """argv as recorded: ``argv[0]`` reduced to its basename, the rest verbatim.
@@ -386,13 +391,36 @@ def _config_sources(source_dir: Path, root_real: Path) -> list[Path]:
     a global set would walk whichever sorts first and silently drop the other —
     reintroducing precisely the silent skip this function exists to prevent.
     Only a genuine loop revisits a directory that is its own ancestor.
+
+    The walk is BOUNDED and overruns raise. Per-branch cycle detection stops a
+    directory being its own ancestor, but it does not stop a *diamond*: N nested
+    directories each linking twice to the level above enumerate 2^N distinct
+    logical paths, all of them acyclic. Measured: 12 levels produced 8,178 files
+    in 5 seconds, so a slightly deeper tree hangs the run and inflates the
+    manifest with thousands of aliased duplicates. The bound is a loud refusal
+    rather than a silent truncation, for the usual reason — a truncated snapshot
+    is a record claiming completeness it does not have.
     """
     if not source_dir.is_dir():
         return []
 
     found: list[Path] = []
+    budget = {"dirs": 0}
 
     def walk(directory: Path, ancestors: frozenset[Path]) -> None:
+        budget["dirs"] += 1
+        if budget["dirs"] > MAX_CONFIG_DIRS:
+            raise JournalError(
+                f"config tree under {source_dir} expands past {MAX_CONFIG_DIRS} "
+                "directories — almost certainly a symlink diamond, which enumerates "
+                "exponentially many aliased paths. Refusing rather than truncating: "
+                "a partial snapshot would claim a completeness it does not have."
+            )
+        if len(ancestors) > MAX_CONFIG_DEPTH:
+            raise JournalError(
+                f"config tree under {source_dir} nests deeper than "
+                f"{MAX_CONFIG_DEPTH} levels. Refusing rather than truncating."
+            )
         try:
             real = directory.resolve()
         except OSError:
