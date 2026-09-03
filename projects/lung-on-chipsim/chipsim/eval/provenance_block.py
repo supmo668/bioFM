@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
 from chipsim.harmonize.adjudication import ADJUDICATED_LABELS
 from chipsim.harmonize.contracts import check_provenance, load_provenance
@@ -67,7 +68,7 @@ def pgp_groups_usable(counts: dict[str, int]) -> bool:
     return counts.get("yes", 0) > 0 and counts.get("no", 0) > 0
 
 
-def render_data_provenance(provenance: Path, labels: pd.Series) -> str:
+def render_data_provenance(provenance: Path, labels: pd.Series, panel: Path | None = None) -> str:
     """Composes the display string FROM upstream_version + snapshot_date —
     never hard-coded (defect 14). Renders source, commit, licence, the three
     label counts, and pgp_groups_usable computed from those counts (defect 24).
@@ -109,4 +110,75 @@ def render_data_provenance(provenance: Path, labels: pd.Series) -> str:
             "- _Both the 'yes' and 'no' groups must be populated for the M5 "
             "grouping variable to be usable._"
         )
+
+    if panel is not None:
+        lines += ["", *render_panel_ratification(Path(panel))]
+
     return "\n".join(lines)
+
+
+def render_panel_ratification(panel: Path) -> list[str]:
+    """The barrier panel's ratification status **and the exact limits of its seal**.
+
+    This section exists because the card is where an overclaim would do the most
+    damage: a reader meets the seal here, not in the source, and "ratified" plus a
+    digest reads as proof a human checked the accessions unless the card says
+    otherwise. It does not prove that, and every sentence here is bounded on
+    purpose. **Do not let this wording grow.**
+
+    What the seal does: detects modification of the panel or its ratification
+    fields after sealing.
+
+    What it does not do, and cannot: establish WHO ratified or sealed. The digest
+    is unkeyed over public content, so anything able to write the panel can
+    recompute it. Removing the seal line is refused by `load_ratified_panel`, but
+    that is a check on the reader's side, not evidence about the writer's.
+
+    The TTY gate and the confirmation read raise the floor from *accidentally
+    reachable* to *deliberately circumvented* — an agent that allocates a pty and
+    writes to it defeats both, which is neither hard nor exotic. That is the whole
+    claim; real signing with a human-held key is a v2 decision and is not in force.
+    """
+    doc = yaml.safe_load(Path(panel).read_text(encoding="utf-8")) or {}
+    ratified = doc.get("ratified") is True
+    by = str(doc.get("ratified_by") or "").strip()
+    sealed = str(doc.get("ratified_panel_sha256") or "").strip()
+
+    out = ["### Barrier panel ratification", ""]
+    if not ratified:
+        out += [
+            (
+                "- **Status: NOT RATIFIED.** The panel ships `ratified: false`; "
+                "no human has verified the accessions or the membrane faces."
+            ),
+            (
+                "- Downstream joins refuse to run against it, so no result in this "
+                "card depends on the panel's contents."
+            ),
+        ]
+        return out
+
+    out += [
+        f"- **Status: ratified** by `{by}`"
+        if by
+        else "- **Status: ratified** (no ratifier recorded)",
+        f"- **Seal:** `{sealed[:16]}…`"
+        if sealed
+        else "- **Seal: ABSENT** — a ratified panel must be sealed.",
+        "",
+        (
+            "**What the seal establishes, exactly.** It detects modification of the "
+            "panel or its ratification fields after sealing. It does **not** establish "
+            "who ratified or sealed it: the digest is unkeyed over public content, so "
+            "anything able to write the panel can recompute it."
+        ),
+        "",
+        (
+            "**The sealing command requires an interactive terminal and a typed "
+            "confirmation.** This raises the floor from accidentally reachable to "
+            "deliberately circumvented — an agent that allocates a pty and writes to "
+            "it defeats both. It is not authentication and is not evidence a human "
+            "sealed anything. Signing with a human-held key is deferred."
+        ),
+    ]
+    return out

@@ -288,3 +288,57 @@ def test_dvc_pointer_is_tracked():
             check=False,
         )
         assert tracked.returncode == 0, "pointer exists but is untracked"
+
+
+# --- the card states the seal's limits, and cannot overstate them -----------
+
+
+def test_card_reports_an_unratified_panel_as_not_ratified(tmp_path):
+    """The live panel ships `ratified: false`. The card must say so plainly —
+    silence would let a reader assume a human checked the accessions."""
+    import yaml as _yaml
+
+    from chipsim.eval.provenance_block import render_panel_ratification
+
+    panel = tmp_path / "panel.yaml"
+    panel.write_text(_yaml.safe_dump({"ratified": False, "ratified_by": "", "panel": []}))
+
+    text = "\n".join(render_panel_ratification(panel))
+    assert "NOT RATIFIED" in text
+    assert "no human" in text.lower()
+
+
+def test_card_never_claims_the_seal_proves_authorship(tmp_path):
+    """The card is where an overclaim does the most damage: a reader meets the
+    seal here, not in the source. `ratified` plus a digest reads as proof a human
+    checked the accessions unless the text says otherwise.
+
+    Asserts the DISCLAIMERS are present rather than merely that forbidden words
+    are absent — an empty section would satisfy an absence-only check.
+    """
+    import yaml as _yaml
+
+    from chipsim.eval.provenance_block import render_panel_ratification
+
+    panel = tmp_path / "panel.yaml"
+    panel.write_text(
+        _yaml.safe_dump(
+            {
+                "ratified": True,
+                "ratified_by": "A Human",
+                "ratified_on": "2026-09-03",
+                "ratified_panel_sha256": "a" * 64,
+                "panel": [{"symbol": "ABCB1", "uniprot": "P08183", "alias": "x", "face": "apical"}],
+            }
+        )
+    )
+
+    text = "\n".join(render_panel_ratification(panel)).lower()
+
+    # The limits must be STATED, not merely not-contradicted.
+    assert "establish who" in text, "the card must say authorship is not established"
+    assert "unkeyed" in text, "the card must say WHY authorship cannot be established"
+    assert "deliberately circumvented" in text, (
+        "the card must bound the TTY/confirmation gate rather than implying it authenticates"
+    )
+    assert "not authentication" in text
