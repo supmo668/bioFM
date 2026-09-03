@@ -122,6 +122,68 @@ def _stdin_is_interactive() -> bool:
         return False
 
 
+#: The word a human must type to seal. Named so the prompt and the comparison
+#: cannot drift apart — they were two separate literals, and a prompt that asks
+#: for one word while the check tests another is a lock with no key.
+_SEAL_CONFIRMATION = "seal"
+
+#: How long to wait for that word. A bare `readline()` waits FOREVER, which turns
+#: an unattended invocation (a cron entry, a CI step with a pty, a wrapper that
+#: forgot to close stdin) into a hung process holding the panel open rather than
+#: a clean refusal. Timing out fails closed: no answer is not consent.
+_SEAL_CONFIRM_TIMEOUT_S = 120.0
+
+
+def _read_confirmation(timeout_s: float) -> str:
+    """One line from stdin, or "" if it does not arrive in time.
+
+    Returns "" on timeout, EOF, interrupt, or a read error — every non-answer
+    collapses to the same not-confirmed value, so the caller has no branch in
+    which an unanswered prompt can be mistaken for a typed one.
+    """
+    import select
+
+    try:
+        ready, _, _ = select.select([sys.stdin], [], [], timeout_s)
+    except (OSError, ValueError, TypeError):
+        # stdin has no pollable file descriptor — an in-memory buffer, or a test
+        # double. All three exception types mean the same thing and all three do
+        # occur: ValueError for a closed file, OSError (io.UnsupportedOperation)
+        # for a StringIO, TypeError for an object with no `fileno` at ALL.
+        # Catching only the first two left the third crashing the command with a
+        # traceback at the moment a human was being asked to confirm.
+        #
+        # Read it directly. This is NOT a weakening: the unbounded wait the
+        # timeout exists to prevent is a kernel read on a real fd, and an object
+        # with no fd is not one. Failing closed here instead would refuse every
+        # non-fd stdin while protecting against a block that cannot occur.
+        return _readline_or_empty()
+    if not ready:
+        print(
+            f"\nERROR: no confirmation within {timeout_s:.0f}s.",
+            file=sys.stderr,
+        )
+        return ""
+    return _readline_or_empty()
+
+
+def _readline_or_empty() -> str:
+    """Read one line, mapping every read failure to "" — i.e. to NOT CONFIRMED.
+
+    ONE handler, called from both arms of `_read_confirmation`. It was written
+    out twice, and the duplication was not cosmetic: a mutation making the
+    interrupt path return "seal" — Ctrl-C at the prompt meaning CONSENT — was
+    killed on one copy and survived on the other, because the test that covers
+    this reaches only the non-selectable arm. Two copies of a fail-closed rule
+    are two places it can independently stop being fail-closed, and a suite that
+    exercises one of them reports full coverage of neither.
+    """
+    try:
+        return sys.stdin.readline()
+    except (OSError, KeyboardInterrupt):
+        return ""
+
+
 def _cmd_panel_seal(ns) -> int:
     """Seal a ratified barrier panel — build-plan T7a.
 
@@ -142,9 +204,17 @@ def _cmd_panel_seal(ns) -> int:
     allocates a pty defeats it entirely — which is neither hard nor exotic. The
     digest stays unkeyed over public content, so it DETECTS a later edit — the
     repo's sanctioned verb — and never says who ratified it. It does not certify
-    an untouched file: anything able to write the panel can recompute the digest,
-    and removing the seal line bypasses the check entirely (see pgp_label.py). Real signing with a human-held key is a v2
-    decision, deferred. Do not let any wording here grow past that.
+    an untouched file: anything able to write the panel can recompute the digest.
+
+    (This paragraph used to end by calling deletion of the seal line a bypass.
+    That was true when written and is now FALSE: `load_ratified_panel`
+    refuses a ratified panel carrying no seal, so deletion is a refusal, not a
+    bypass. Left visible rather than quietly deleted because a stale caveat that
+    UNDERSTATES a protection is still a false statement about the system, and the
+    next reader would have had no way to tell which half to believe.)
+
+    Real signing with a human-held key is a v2 decision, deferred. Do not let any
+    wording here grow past that.
     """
     if not _stdin_is_interactive():
         print(
@@ -171,21 +241,30 @@ def _cmd_panel_seal(ns) -> int:
     # that allocates a pty can also write to it. It raises the floor from
     # "accidentally reachable" to "deliberately circumvented" — the same bound as
     # the TTY gate, for the same reason.
+    # The prompt goes to STDERR, not stdout. On stdout, `chipsim panel-seal >
+    # log.txt` swallows the question while the command sits waiting on a read the
+    # human cannot see they owe it — which reads as a hang, and a hang is exactly
+    # the thing someone works around by piping `yes seal` into it.
     print(
         f"About to seal {ns.panel}.\n"
         "This records a tamper-evident digest over the panel and its ratification "
         "fields. It does NOT prove who ran it.\n"
-        "Type 'seal' to continue, anything else to abort: ",
+        f"Type '{_SEAL_CONFIRMATION}' to continue, anything else to abort "
+        f"(waiting up to {_SEAL_CONFIRM_TIMEOUT_S:.0f}s): ",
         end="",
+        file=sys.stderr,
         flush=True,
     )
-    try:
-        answer = sys.stdin.readline()
-    except (OSError, KeyboardInterrupt):
-        answer = ""
-    if answer.strip().lower() != "seal":
+    answer = _read_confirmation(_SEAL_CONFIRM_TIMEOUT_S)
+    if answer.strip().lower() != _SEAL_CONFIRMATION:
+        # NOT "nothing was written". The invocation was journalled before this
+        # function was reached, deliberately — an abandoned seal attempt is
+        # precisely what the trail exists to show. Claiming otherwise would have
+        # the command lie about the one record that outlives it.
         print(
-            "ERROR: refusing to seal — confirmation not given. Nothing was written.",
+            "ERROR: refusing to seal — confirmation not given. The panel was NOT "
+            "modified. The attempt itself is recorded in the run journal, as every "
+            "invocation is.",
             file=sys.stderr,
         )
         return 2
