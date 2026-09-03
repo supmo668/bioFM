@@ -57,3 +57,59 @@ work.
 | Tests | **419 passed, 7 skipped, 0 failed** |
 | Mutation sweep | 9 mutants, 9 killed, 0 survivors (2 survived on first attempt and were fixed — see #12 and T8) |
 | Journal pollution | 0 records after a full suite run |
+
+---
+
+## Re-gate over the bumped tip (`f0bb4c1`) — what this second signature does and does not attest
+
+The CTO landed `framework.version` 0.2.0 → 0.3.0 **ahead** of the gate this time,
+to break a documented deadlock: `pr-create` requires both a bumped version and a
+receipt matching current code, while the skill's own Step 4 → Step 5 order bumps
+*after* the gate and so invalidates the receipt it then demands. With the bump
+behind the gate, nothing mutates between signing and landing.
+
+**No new review was run, and this receipt does not claim one.** The delta from
+the gated tip is a single line of `agency.yaml`, verified by `git diff efb5c93
+f0bb4c1`:
+
+    -  version: "0.2.0"
+    +  version: "0.3.0"
+
+No Python changed. Re-dispatching four reviewers over a byte-identical codebase
+would produce findings indistinguishable from the ones already in this file while
+consuming a full review cycle, and a second identical Stage-1 pass reported as
+new work would inflate what the receipt appears to cover.
+
+So **Hash B is unchanged, deliberately.** The findings document is the same
+document because the findings are the same findings. Rewriting it to obtain a
+fresh digest would be manufacturing distinctness, which is the specific
+dishonesty the A/B/C/E format exists to prevent — a receipt is worth exactly what
+its hashes are computed over, and a hash that moved because I edited prose is a
+hash that attests to nothing.
+
+**Hash C moves, legitimately**, because this section is real new content: it
+records a decision (not to re-review) and the verification below.
+
+**What WAS re-run, on the bumped tip, in this session:**
+
+| Check | Result on `f0bb4c1` |
+|---|---|
+| `ruff format --check` | 39 files already formatted |
+| `ruff check` | All checks passed |
+| `pytest` | **419 passed, 7 skipped, 0 failed** |
+| `diff-hash --base origin/main` | `679ee2c`, 178 files — matches the CTO's `pr-create` reading exactly |
+
+One note on that last row, because it nearly went wrong: the first attempt
+returned `92b37f0` over 81 files. The shell was still inside
+`projects/lung-on-chipsim` from the test run, so `diff-hash` scoped the diff to
+that subdirectory. A hash computed from the wrong working directory looks exactly
+like a legitimate hash — same shape, same tool, no error — and would have been
+signed into a receipt attesting to a subset of the change. It was caught only
+because the file count moved. Re-run from the repository root it returns
+`679ee2c`, independently matching the value the CTO's blocked `pr-create`
+reported, which is what makes it a cross-check rather than my own arithmetic
+agreeing with itself.
+
+**Hash A for this receipt is `cd36fc0`** — the previously gated state. That is
+literally the artifact entering this re-gate, and the A→E diff is the one-line
+bump above: auditable in a single command, by anyone, without trusting this file.
