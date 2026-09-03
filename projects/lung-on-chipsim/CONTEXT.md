@@ -24,21 +24,33 @@ _Avoid_: chip run, data point, sample, observation
 **Calibration point**:
 One **curated chip record** that has been allocated to the conformal-calibration bucket.
 Never a **compound**. Coverage requirements expressed in calibration points are
-requirements on records, not on chemistry.
+requirements on records, not on chemistry. The PoC requires **~20 per pre-registered
+group**, two groups (see AM-6, resolved).
 _Avoid_: calibration sample, calibration compound
 
 ### Evaluation
 
 **Sealed allocation**:
-The disjoint, written-down assignment of every **curated chip record** to exactly one of
-four buckets — δ-calibration, conformal calibration, locked test, active-learning pool —
-fixed before any record is read. Records are never double-used across buckets.
+The disjoint, written-down assignment of every **curated chip record** to exactly one
+bucket, fixed before any record is read. Records are never double-used across buckets.
+**In the PoC the allocation is three-way** — δ-calibration, conformal calibration, locked
+test. The **active-learning pool** is a fourth bucket that belongs to v3; the PoC runs no
+exploration loop, so it allocates no records to it.
 _Avoid_: split (reserve "split" for the four §1.3 generalization splits)
 
 **Split**:
 One of the four §1.3 generalization partitions — scaffold, target cold-start,
 θ-extrapolation, temporal — each answering a different question about generalization.
 Distinct from the **sealed allocation**, which is about record reuse, not chemistry.
+
+**Replay test**:
+Names **two different tests** at two different rungs, and they must not be conflated.
+The **PoC form** (v0+v1): *same config + same seed reproduces the same scores exactly.*
+The **v3 form** (A&D "four tests that keep it thin"): *re-run any kept diff from journal +
+seed and reproduce the trajectory exactly* — a test of the agent exploration loop, which
+requires a kept **diff** and a **veto state** that only v3 produces. The PoC cannot run the
+v3 form because it has no exploration loop, and its absence is not a defect in the PoC.
+_Avoid_: using "the replay test" unqualified
 
 **Frozen evaluator**:
 The immutable, versioned scorer that is itself the project deliverable. Outside the
@@ -78,7 +90,17 @@ against a set of 20–40 and fails outright. Read as **curated chip records** �
 adopted here — a four-way sealed allocation of 60–100 records leaves roughly 8–15 per
 group, so reaching 2×30 in the conformal bucket alone needs ~200–240 records, two to four
 times the M0 target at its ceiling. **Resolved: a calibration point is a curated chip
-record.** The consequence for the two-group veto is tracked as AM-6.
+record.**
+
+**AM-6 RESOLVED (principal, 2026-09-02).** The arithmetic closes by removing a bucket, not
+by weakening the claim. The **active-learning pool** is v3 machinery and leaves the PoC's
+sealed allocation, making it three-way; the per-group requirement drops to **~20**, giving
+~40 conformal points against ~20 δ-calibration and 20–40 locked test — **80–100 records**,
+inside the M0 target. The claim stays **conditional** (Mondrian), because §5E forbids
+marginal coverage in terms. Conformal coverage is distribution-free and **valid at n=20**;
+what degrades is the precision of the coverage estimate, not the guarantee — so every
+coverage figure is reported **with its confidence interval, per group**. A coverage number
+without its CI at this n is the same error as reading a wide interval as a clean result.
 
 **"Panel" named four different objects** across the plan, A&D and PVR — the barrier
 transporter set, the binding-site inventory in θ, the ~30-protein target panel, and the
