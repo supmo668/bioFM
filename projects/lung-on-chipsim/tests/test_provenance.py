@@ -303,9 +303,12 @@ def test_card_reports_an_unratified_panel_as_not_ratified(tmp_path):
     panel = tmp_path / "panel.yaml"
     panel.write_text(_yaml.safe_dump({"ratified": False, "ratified_by": "", "panel": []}))
 
-    text = "\n".join(render_panel_ratification(panel))
-    assert "NOT RATIFIED" in text
-    assert "no human" in text.lower()
+    # Case-insensitive: the status must be reported, and rewording the emphasis
+    # to "Not ratified." is a harmless edit that must not fail the suite. The
+    # SEMANTIC pair is what matters — the status token plus the reason.
+    text = "\n".join(render_panel_ratification(panel)).lower()
+    assert "not ratified" in text
+    assert "no human has verified" in text
 
 
 def test_card_never_claims_the_seal_proves_authorship(tmp_path):
@@ -313,8 +316,115 @@ def test_card_never_claims_the_seal_proves_authorship(tmp_path):
     seal here, not in the source. `ratified` plus a digest reads as proof a human
     checked the accessions unless the text says otherwise.
 
-    Asserts the DISCLAIMERS are present rather than merely that forbidden words
-    are absent — an empty section would satisfy an absence-only check.
+    THE PREVIOUS VERSION OF THIS TEST DID NOT DETECT OVERCLAIMING. It asserted
+    four disclaimer substrings were PRESENT, and a card asserting the exact
+    opposite contains all four: "it **does** establish who ratified it" contains
+    `establish who`; "**not authentication** in the pedantic sense" contains
+    `not authentication`; "cannot be **deliberately circumvented**" — the precise
+    inversion of the bound — contains `deliberately circumvented`. A reviewer
+    rewrote the card to claim the seal proves a human checked every accession and
+    the whole suite stayed green.
+
+    Its docstring defended this by delegating the negative half to the source
+    scan in test_journal.py. That scan's file list did not include this module.
+    Each half was documented as covered by the other; neither covered it.
+
+    So: presence AND polarity, both on the RENDERED text, sharing one scanner
+    with the source test.
+    """
+    import yaml as _yaml
+    from honesty_scan import assert_no_unqualified_claims, normalize
+
+    from chipsim.eval.provenance_block import render_panel_ratification
+    from chipsim.harmonize.pgp_label import seal_panel
+
+    panel = tmp_path / "panel.yaml"
+    panel.write_text(
+        _yaml.safe_dump(
+            {
+                "ratified": True,
+                "ratified_by": "A Human",
+                "ratified_on": "2026-09-03",
+                "ratified_panel_sha256": "",
+                "panel": [{"symbol": "ABCB1", "uniprot": "P08183", "alias": "x", "face": "apical"}],
+            }
+        )
+    )
+    # Seal it for real, so this exercises the ratified-AND-verified branch — the
+    # one that renders the most confident wording and therefore needs the check
+    # most. A placeholder digest renders the FAILS-VERIFICATION branch instead,
+    # which is not the text under test.
+    seal_panel(panel)
+
+    rendered = "\n".join(render_panel_ratification(panel))
+
+    # 1. POLARITY: no forbidden claim without a negation preceding it. This is
+    #    what the old assertions could not do.
+    inspected = assert_no_unqualified_claims(rendered, "the rendered card")
+    assert inspected > 0, (
+        "the card no longer discusses authorship at all — the limits it is "
+        "required to state appear to have been dropped rather than qualified"
+    )
+
+    # 2. PRESENCE: the limits must be STATED, not merely not-contradicted, or an
+    #    empty section would pass the polarity check trivially.
+    text = normalize(rendered)
+    assert "establish who" in text, "the card must say authorship is not established"
+    assert "unkeyed" in text, "the card must say WHY authorship cannot be established"
+    assert "deliberately circumvented" in text, (
+        "the card must bound the TTY/confirmation gate rather than implying it authenticates"
+    )
+    assert "not authentication" in text
+
+
+def test_omitting_the_panel_renders_a_visible_gap_not_a_silent_one(provenance_fixture_path):
+    """`panel=None` must SAY the panel is missing, not quietly render nothing.
+
+    The argument lost its `None` default so a caller has to decide — but that
+    alone is not enough, and a mutation proved it: replacing the not-supplied
+    notice with an empty string left every test green. A card that simply omits
+    the ratification heading is not read as "incomplete"; it is read as a card
+    about a system where ratification is not a concern. That is the more
+    dangerous of the two failures, because it looks finished.
+
+    There is still no production caller of `render_data_provenance` with a panel
+    (build-plan M0c owns the wiring). This test is what stands in for that
+    absence: whichever way M0c goes, the card cannot end up silent about it.
+    """
+    import pandas as pd
+
+    from chipsim.eval.provenance_block import render_data_provenance
+
+    labels = pd.Series(["yes", "no", "unknown"])
+    text = render_data_provenance(provenance_fixture_path, labels, panel=None)
+
+    assert "Barrier panel ratification" in text, (
+        "the heading vanished — a reader cannot notice a section that is not there"
+    )
+    assert "Not supplied" in text
+    assert "the card is wrong" in text, (
+        "the notice must say what it means for the card, not merely note an absence"
+    )
+
+
+@pytest.mark.parametrize(
+    ("seal", "why"),
+    [
+        (True, "a YAML boolean renders as `True…`, which reads as a truncated digest"),
+        ("abc", "a 3-character value renders as `abc…` — the ellipsis invents 61 characters"),
+        ("Z" * 64, "right length, not hex"),
+        ("a" * 63, "one character short of a digest"),
+    ],
+)
+def test_a_malformed_seal_is_named_malformed_not_dressed_as_a_digest(tmp_path, seal, why):
+    """A value that is not a sha256 must not be rendered in digest costume.
+
+    The trailing ellipsis is the specific harm: ``abc…`` announces the truncation
+    of a 64-hex digest that was never there, so a reader who knows what a digest
+    looks like sees one and stops checking. Verification alone does not fix this
+    — a malformed seal fails verification and the failure branch STILL printed
+    `sealed[:16]…`, so the card reported a mismatch between two things only one
+    of which existed.
     """
     import yaml as _yaml
 
@@ -326,19 +436,14 @@ def test_card_never_claims_the_seal_proves_authorship(tmp_path):
             {
                 "ratified": True,
                 "ratified_by": "A Human",
-                "ratified_on": "2026-09-03",
-                "ratified_panel_sha256": "a" * 64,
+                "ratified_panel_sha256": seal,
                 "panel": [{"symbol": "ABCB1", "uniprot": "P08183", "alias": "x", "face": "apical"}],
             }
         )
     )
 
-    text = "\n".join(render_panel_ratification(panel)).lower()
+    text = "\n".join(render_panel_ratification(panel))
 
-    # The limits must be STATED, not merely not-contradicted.
-    assert "establish who" in text, "the card must say authorship is not established"
-    assert "unkeyed" in text, "the card must say WHY authorship cannot be established"
-    assert "deliberately circumvented" in text, (
-        "the card must bound the TTY/confirmation gate rather than implying it authenticates"
-    )
-    assert "not authentication" in text
+    assert "MALFORMED" in text, why
+    assert "…" not in text, "a malformed seal must not be rendered with a truncation ellipsis"
+    assert "treat this panel as unsealed" in text

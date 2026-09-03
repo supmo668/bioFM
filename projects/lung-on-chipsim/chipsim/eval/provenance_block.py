@@ -13,6 +13,7 @@ a confident false statement. T17's done-condition falsifies exactly that: changi
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -68,10 +69,22 @@ def pgp_groups_usable(counts: dict[str, int]) -> bool:
     return counts.get("yes", 0) > 0 and counts.get("no", 0) > 0
 
 
-def render_data_provenance(provenance: Path, labels: pd.Series, panel: Path | None = None) -> str:
+def render_data_provenance(provenance: Path, labels: pd.Series, panel: Path | None) -> str:
     """Composes the display string FROM upstream_version + snapshot_date —
     never hard-coded (defect 14). Renders source, commit, licence, the three
     label counts, and pgp_groups_usable computed from those counts (defect 24).
+
+    `panel` has **no default, on purpose.** It used to default to None, which
+    dropped the entire ratification section from the card — heading included —
+    whenever a caller simply forgot it. The resulting card was not merely
+    incomplete: it was a card with nothing to say about ratification, which is
+    indistinguishable to a reader from a card about a system that has no such
+    concern. There is no production caller yet, so the first one is still to be
+    written; a default that makes forgetting invisible is worst precisely then.
+
+    Passing None is still allowed and now RENDERS — as an explicit statement that
+    no panel was supplied. Omission has to be visible in the output, or the
+    argument is back to being optional in everything but name.
     """
     doc = load_provenance(Path(provenance))
     check_provenance(doc)
@@ -113,8 +126,46 @@ def render_data_provenance(provenance: Path, labels: pd.Series, panel: Path | No
 
     if panel is not None:
         lines += ["", *render_panel_ratification(Path(panel))]
+    else:
+        lines += [
+            "",
+            "### Barrier panel ratification",
+            "",
+            _PANEL_NOT_SUPPLIED,
+        ]
 
     return "\n".join(lines)
+
+
+# The three NOT-RATIFIED headlines and their shared consequence line. Named
+# rather than repeated inline: the consequence sentence was previously written
+# out three times, and a sentence maintained in triplicate is a sentence that
+# will eventually disagree with itself in one of the three branches.
+_NOT_RATIFIED_ABSENT = (
+    "- **Status: NOT RATIFIED.** The panel states no ratification at all — the "
+    "`ratified` key is absent, which is treated exactly like `false`."
+)
+_NOT_RATIFIED_UNATTRIBUTED = (
+    "- **Status: NOT RATIFIED.** The panel claims `ratified: true` but records no "
+    "ratifier. An unattributable ratification is not a ratification, and every "
+    "other component refuses it."
+)
+_NOT_RATIFIED_FALSE = (
+    "- **Status: NOT RATIFIED.** The panel ships `ratified: false`; no human has "
+    "verified the accessions or the membrane faces."
+)
+#: A sha256 digest, rendered lowercase-hex by `panel_digest`.
+_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
+
+_PANEL_NOT_SUPPLIED = (
+    "- **Not supplied.** This card was rendered without a barrier panel, so it "
+    "makes no claim about ratification either way. If the analysis behind this "
+    "card used a panel, this section is missing and the card is wrong."
+)
+_DOWNSTREAM_REFUSES = (
+    "- Downstream joins refuse to run against it, so no result in this card "
+    "depends on the panel's contents."
+)
 
 
 def render_panel_ratification(panel: Path) -> list[str]:
@@ -139,32 +190,91 @@ def render_panel_ratification(panel: Path) -> list[str]:
     writes to it defeats both, which is neither hard nor exotic. That is the whole
     claim; real signing with a human-held key is a v2 decision and is not in force.
     """
-    doc = yaml.safe_load(Path(panel).read_text(encoding="utf-8")) or {}
-    ratified = doc.get("ratified") is True
+    from chipsim.harmonize.pgp_label import load_ratified_panel
+
+    panel = Path(panel)
+    try:
+        doc = yaml.safe_load(panel.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise RuntimeError(f"panel {panel} could not be read: {exc}") from exc
+    if not isinstance(doc, dict):
+        # RuntimeError, matching load_ratified_panel's family, so a caller can
+        # catch one exception type for "this panel is unusable".
+        raise RuntimeError(  # noqa: TRY004
+            f"panel {panel} did not parse to a mapping (got {type(doc).__name__})"
+        )
+
+    states_ratification = "ratified" in doc
     by = str(doc.get("ratified_by") or "").strip()
     sealed = str(doc.get("ratified_panel_sha256") or "").strip()
 
+    # An unattributable ratification is not a ratification — `load_ratified_panel`
+    # refuses one and `seal_panel` will not seal one, so the card must not print
+    # the word "ratified" for a panel every other component rejects. Rendering it
+    # as ratified-with-a-caveat put the strongest word in the section on the
+    # weakest evidence.
+    ratified = doc.get("ratified") is True and bool(by)
+
     out = ["### Barrier panel ratification", ""]
     if not ratified:
-        out += [
-            (
-                "- **Status: NOT RATIFIED.** The panel ships `ratified: false`; "
-                "no human has verified the accessions or the membrane faces."
-            ),
-            (
-                "- Downstream joins refuse to run against it, so no result in this "
-                "card depends on the panel's contents."
-            ),
+        if not states_ratification:
+            # Absence is not consent: report what the file does, rather than
+            # asserting it "ships ratified: false" when it ships no such key.
+            return out + [
+                _NOT_RATIFIED_ABSENT,
+                _DOWNSTREAM_REFUSES,
+            ]
+        if doc.get("ratified") is True and not by:
+            return out + [
+                _NOT_RATIFIED_UNATTRIBUTED,
+                _DOWNSTREAM_REFUSES,
+            ]
+        return out + [
+            _NOT_RATIFIED_FALSE,
+            _DOWNSTREAM_REFUSES,
         ]
-        return out
 
+    # *** VERIFY THE SEAL. DO NOT MERELY PRINT IT. ***
+    #
+    # This section previously read `ratified_panel_sha256` as a string and
+    # truncated it for display without ever checking it. A panel with one `face`
+    # flipped AFTER sealing — precisely the tamper the seal exists to detect —
+    # rendered a BYTE-IDENTICAL card, four lines above the sentence claiming the
+    # seal detects modification. The loader refused that same file. A rendered
+    # digest under a heading promising detection is a claim; printing one you have
+    # not checked makes the section most misleading exactly where it is most
+    # emphatic.
+    safe_by = by.replace("`", "'")
+    out += [f"- **Status: ratified** by `{safe_by}`"]
+
+    if not sealed:
+        out.append(
+            "- **Seal: ABSENT** — a ratified panel must be sealed; treat this as unratified."
+        )
+    elif not _SHA256_HEX.fullmatch(sealed):
+        # A seal that is not a sha256 digest is not a digest, and must not be
+        # rendered as one. `str(doc.get(...))` on `ratified_panel_sha256: true`
+        # produced `- **Seal:** \`True…\``, and on a 3-character value `\`abc…\`` —
+        # the trailing ellipsis is the tell, because it announces the truncation
+        # of a 64-hex digest that was never there. A reader who sees a plausible
+        # digest stops checking. Show the value's SHAPE instead of dressing it up
+        # as the thing it failed to be.
+        out.append(
+            f"- **Seal: MALFORMED** — `ratified_panel_sha256` is not a 64-character "
+            f"hex digest (got {len(sealed)} characters). Nothing was verified; treat "
+            "this panel as unsealed."
+        )
+    else:
+        try:
+            load_ratified_panel(panel)
+            out.append(f"- **Seal: verified** — `{sealed[:16]}…`")
+        except RuntimeError:
+            out.append(
+                f"- **Seal: PRESENT BUT FAILS VERIFICATION** — recorded `{sealed[:16]}…`, "
+                "which does not match the panel's current contents. The panel was edited "
+                "after it was sealed; do not rely on anything below that depends on it."
+            )
     out += [
-        f"- **Status: ratified** by `{by}`"
-        if by
-        else "- **Status: ratified** (no ratifier recorded)",
-        f"- **Seal:** `{sealed[:16]}…`"
-        if sealed
-        else "- **Seal: ABSENT** — a ratified panel must be sealed.",
         "",
         (
             "**What the seal establishes, exactly.** It detects modification of the "

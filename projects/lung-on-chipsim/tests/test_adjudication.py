@@ -426,7 +426,7 @@ def fixture_labels() -> pd.Series:
 
 
 def test_t17_renders_the_composed_version_string(provenance_fixture_path, fixture_labels):
-    block = render_data_provenance(provenance_fixture_path, fixture_labels)
+    block = render_data_provenance(provenance_fixture_path, fixture_labels, panel=None)
     assert "DrugBank 4.2 (2015-03-19 snapshot)" in block
 
 
@@ -444,7 +444,7 @@ def test_t17_label_counts_are_not_permutable():
 
 def test_t17_renders_the_counts_it_was_given(provenance_fixture_path):
     labels = pd.Series(["yes", "yes", "yes", "no", "unknown", "unknown"], index=list("abcdef"))
-    block = render_data_provenance(provenance_fixture_path, labels)
+    block = render_data_provenance(provenance_fixture_path, labels, panel=None)
     assert "- yes: 3" in block
     assert "- no: 1" in block
     assert "- unknown: 2" in block
@@ -461,7 +461,7 @@ def test_t17_label_counts_rejects_nulls():
 
 
 def test_t17_renders_three_integer_counts(provenance_fixture_path, fixture_labels):
-    block = render_data_provenance(provenance_fixture_path, fixture_labels)
+    block = render_data_provenance(provenance_fixture_path, fixture_labels, panel=None)
     counts = label_counts(fixture_labels)
     assert f"- yes: {counts['yes']}" in block
     assert f"- no: {counts['no']}" in block
@@ -478,7 +478,7 @@ def test_t17_version_is_composed_not_hard_coded(provenance_fixture_path, fixture
     path = tmp_path / "p.yaml"
     path.write_text(yaml.safe_dump(doc))
 
-    changed = render_data_provenance(path, fixture_labels)
+    changed = render_data_provenance(path, fixture_labels, panel=None)
     assert "DrugBank 5.1 (2015-03-19 snapshot)" in changed
     assert "DrugBank 4.2" not in changed
 
@@ -488,11 +488,13 @@ def test_t17_snapshot_date_is_composed_too(provenance_fixture_path, fixture_labe
     doc["snapshot_date"] = "2020-01-01"
     path = tmp_path / "p.yaml"
     path.write_text(yaml.safe_dump(doc))
-    assert "DrugBank 4.2 (2020-01-01 snapshot)" in render_data_provenance(path, fixture_labels)
+    assert "DrugBank 4.2 (2020-01-01 snapshot)" in render_data_provenance(
+        path, fixture_labels, panel=None
+    )
 
 
 def test_t17_reports_groups_usable_from_the_counts(provenance_fixture_path, fixture_labels):
-    block = render_data_provenance(provenance_fixture_path, fixture_labels)
+    block = render_data_provenance(provenance_fixture_path, fixture_labels, panel=None)
     assert "- pgp_groups_usable: true" in block
 
 
@@ -500,19 +502,21 @@ def test_t17_groups_unusable_when_a_group_is_empty(provenance_fixture_path):
     """Computed from the counts, so the flag can never disagree with the numbers
     it is printed beside (defect 24)."""
     labels = pd.Series(["yes", "yes", "unknown"], index=["a", "b", "c"])
-    block = render_data_provenance(provenance_fixture_path, labels)
+    block = render_data_provenance(provenance_fixture_path, labels, panel=None)
     assert "- pgp_groups_usable: false" in block
     assert not pgp_groups_usable(label_counts(labels))
 
 
 def test_t17_renders_the_substitution_rationale_when_commits_differ(fixture_labels):
-    block = render_data_provenance(FIXTURES / "provenance_justified_swap.yaml", fixture_labels)
+    block = render_data_provenance(
+        FIXTURES / "provenance_justified_swap.yaml", fixture_labels, panel=None
+    )
     assert "Audited commit" in block
     assert "Commit substitution rationale" in block
 
 
 def test_t17_omits_the_rationale_when_commits_match(provenance_fixture_path, fixture_labels):
-    block = render_data_provenance(provenance_fixture_path, fixture_labels)
+    block = render_data_provenance(provenance_fixture_path, fixture_labels, panel=None)
     assert "Commit substitution rationale" not in block
 
 
@@ -522,7 +526,9 @@ def test_t17_rejects_a_provenance_file_that_violates_the_contract(fixture_labels
     from chipsim.harmonize.contracts import ProvenanceContractError
 
     with pytest.raises(ProvenanceContractError):
-        render_data_provenance(FIXTURES / "provenance_unjustified_swap.yaml", fixture_labels)
+        render_data_provenance(
+            FIXTURES / "provenance_unjustified_swap.yaml", fixture_labels, panel=None
+        )
 
 
 def test_t17_format_source_version_is_a_pure_composition():
