@@ -678,10 +678,38 @@ def start_run(
         snapshot_dir.mkdir()
         digests: dict[str, str] = {}
         source_dir = project_root / "configs"
+
+        # E-3: the snapshot boundary is `configs/`, not the project root.
+        #
+        # The bound has TWO halves and they must land together, because each
+        # alone is a regression in the other's direction:
+        #
+        #   (a) entries must resolve under `configs/` — tighter than the old
+        #       project-root bound, which admitted a config symlinked to
+        #       anything else inside the repository;
+        #   (b) `configs/` must ITSELF resolve inside the project root —
+        #       otherwise (a) silently LOOSENS the one case the old bound caught:
+        #       `ln -s /etc configs` makes every entry resolve under
+        #       `configs_real` and pass, admitting a whole directory rather than
+        #       a single file.
+        #
+        # Half (a) came from the ruling; half (b) from a peer agent that spotted
+        # the regression before either of us shipped it. Reasoning about the two
+        # halves separately is how a boundary ends up looking obviously correct
+        # and not being.
         root_real = project_root.resolve()
-        for config in _config_sources(source_dir, root_real):
+        configs_real = source_dir.resolve()
+        if configs_real != root_real and root_real not in configs_real.parents:
+            raise ConfigIntegrityError(
+                f"refusing to snapshot: {source_dir} resolves to {configs_real}, "
+                f"which is outside the project root {root_real}. A `configs/` that "
+                "is itself a link out of the tree would let every entry beneath it "
+                "pass a bound computed from it."
+            )
+
+        for config in _config_sources(source_dir, configs_real):
             relative = config.relative_to(source_dir)
-            fd = _open_verified_config(config, relative, root_real)
+            fd = _open_verified_config(config, relative, configs_real)
             try:
                 payload = _read_all(fd)
             finally:

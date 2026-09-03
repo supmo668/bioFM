@@ -1218,3 +1218,72 @@ def test_the_manifest_declares_its_record_schema(fake_project: Path) -> None:
     assert manifest["record_schema"] == RECORD_SCHEMA
     # and it is covered by the digest, not bolted on outside it
     assert "record_schema" in {k for k in manifest if k != "manifest_sha256"}
+
+
+# --- E-3: the config snapshot boundary has TWO halves -----------------------
+
+
+def test_a_config_linked_inside_the_repo_but_outside_configs_is_refused(tmp_path):
+    """Half (a). The old bound was the PROJECT ROOT, which admitted a config
+    symlinked at anything else inside the repository — a `.env`, a token file, a
+    key checked in by accident. `copy2` follows the link, so its CONTENT lands in
+    a record that is published alongside results."""
+    from chipsim.journal import ConfigIntegrityError, start_run
+
+    proj = tmp_path / "proj"
+    (proj / "configs").mkdir(parents=True)
+    inside_but_not_a_config = proj / "not_a_config.yaml"
+    inside_but_not_a_config.write_text("INTERNAL_TOKEN: abc123\n")
+    (proj / "configs" / "innocent.yaml").symlink_to(inside_but_not_a_config)
+
+    with pytest.raises(ConfigIntegrityError, match="resolves to"):
+        start_run("parse", proj)
+
+
+def test_configs_itself_a_symlink_out_of_the_tree_is_refused(tmp_path):
+    """A `configs/` that is itself a link out of the tree must be refused.
+
+    *** THIS TEST DOES NOT PROVE HALF (b) IS LOAD-BEARING. Read before relying on it. ***
+
+    The half-(b) guard exists because bounding entries to `configs/`.resolve()
+    is tighter for things beneath it, but would admit a whole directory if
+    `configs` were itself a link out of the tree. A peer agent raised that before
+    either of us shipped it, and the guard went in.
+
+    But mutating the guard out (`if False:`) leaves this test PASSING — the case
+    is still refused, by half (a), with a message naming the resolved directory
+    rather than the file. So on the current implementation half (b) appears
+    REDUNDANT, and I do not yet know which upstream check fires or why the
+    resolved path is the directory.
+
+    It is kept as defence-in-depth, not because this test compels it. Recorded
+    this way rather than deleted or quietly left green because a test whose
+    docstring claims a property its mutation does not support is exactly the
+    false reassurance that stops the next reviewer looking — the failure the CTO
+    named as worse than the gap itself.
+    """
+    from chipsim.journal import ConfigIntegrityError, start_run
+
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "env.yaml").write_text("AWS_SECRET_ACCESS_KEY: hunter2\n")
+    (proj / "configs").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ConfigIntegrityError, match="outside the project root"):
+        start_run("parse", proj)
+
+
+def test_an_ordinary_configs_directory_still_snapshots(tmp_path):
+    """Positive control: the boundary must be a gate, not a wall. Without this
+    the two refusals above would pass against a snapshotter that refused
+    everything."""
+    from chipsim.journal import read_manifest, start_run
+
+    proj = tmp_path / "proj"
+    (proj / "configs").mkdir(parents=True)
+    (proj / "configs" / "env.yaml").write_text("stage: test\n")
+
+    run_dir = start_run("parse", proj)
+    assert read_manifest(run_dir)["configs"], "an ordinary configs/ must snapshot"
