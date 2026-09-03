@@ -1,4 +1,10 @@
-"""The PoC form of the replay test — build-plan S12 (r2.7).
+"""Determinism over the persisted ETL artifact — build-plan S12 (r2.7).
+
+**This file is NOT the PoC replay test.** It is the strongest executable
+stand-in for it: the PoC form is specified over *scores*, which this build does
+not have (see below). The title previously read "The PoC form of the replay
+test", which was the one dishonest line in an otherwise careful file — and a
+title is what a reader, a QGR sweep or a plan-status grep sees first.
 
 *** WHICH REPLAY TEST THIS IS. SAY IT, DO NOT ASSUME IT. ***
 
@@ -39,9 +45,9 @@ replay test as "closed" would be an overclaim.
 from __future__ import annotations
 
 import hashlib
+import sys
 from pathlib import Path
 
-import pytest
 import yaml
 
 from chipsim.harmonize.ids import add_canonical_identity
@@ -56,9 +62,7 @@ def _seeded_project(tmp_path: Path, seed: int) -> Path:
     """A project root whose config carries `seed`."""
     root = tmp_path / f"project-{seed}"
     (root / "configs").mkdir(parents=True)
-    (root / "configs" / "env.yaml").write_text(
-        yaml.safe_dump({"stage": "test", "seed": seed})
-    )
+    (root / "configs" / "env.yaml").write_text(yaml.safe_dump({"stage": "test", "seed": seed}))
     return root
 
 
@@ -72,14 +76,18 @@ def _run_once(project_root: Path, run_id: str) -> tuple[str, dict]:
     """
     run_dir = start_run("chipsim write", project_root, run_id=run_id)
     frame = add_canonical_identity(load_compounds(SNAPSHOT_DIR, min_rows=0))
+    assert len(frame) > 0, (
+        "the fixture produced an empty frame — two empty parquets compare equal, "
+        "so the determinism assertion would pass on nothing"
+    )
     out = project_root / f"{run_id}-compounds.parquet"
     write_compounds(frame, out)
     return hashlib.sha256(out.read_bytes()).hexdigest(), read_manifest(run_dir)
 
 
 def test_same_config_and_seed_reproduce_byte_identical_output(tmp_path: Path) -> None:
-    """The PoC form, at the scope that exists: two runs of ONE config and ONE
-    seed produce a byte-identical artifact.
+    """Two runs of ONE config and ONE seed produce a byte-identical artifact.
+    This is the determinism control, not the PoC replay test.
 
     Byte-identical, not merely equal-valued: everything downstream is sha256'd
     against these bytes, so a frame that compares equal while serializing
@@ -156,7 +164,47 @@ def test_this_file_does_not_claim_to_close_the_v3_replay_test() -> None:
         assert claim not in lowered, f"this file claims the v3 replay form: {claim!r}"
 
     # It must keep saying, out loud, that scores do not exist yet.
+    assert "not yet executable" in lowered, (
+        "the caveat that the literal PoC form cannot run yet was removed"
+    )
     assert "this build has no scores" in lowered, (
         "the no-scores limit was removed from the module docstring; if scores "
         "now exist, re-point the PoC form at them rather than deleting the caveat"
+    )
+
+
+def test_determinism_holds_across_processes_not_just_within_one(tmp_path: Path) -> None:
+    """The in-process pair shares an interpreter, so PYTHONHASHSEED, rdkit global
+    state and dict-iteration order are identical BY CONSTRUCTION — that pair
+    cannot fail for hash-seed-dependent nondeterminism, which is exactly what
+    PYTHONHASHSEED / SOURCE_DATE_EPOCH are recorded in the manifest for.
+
+    Running it again in a fresh interpreter under a different PYTHONHASHSEED
+    makes this file's stated claim ("through parse -> rdkit canonicalization ->
+    parquet") actually load-bearing.
+    """
+    import os
+    import subprocess
+
+    script = (
+        "import hashlib,sys;"
+        "from chipsim.harmonize.ids import add_canonical_identity;"
+        "from chipsim.ingest.drugbank_snapshot import load_compounds, write_compounds;"
+        f"f=add_canonical_identity(load_compounds(r'{SNAPSHOT_DIR}', min_rows=0));"
+        f"o=r'{tmp_path}'+'/x.parquet';"
+        "write_compounds(f,o);"
+        "sys.stdout.write(hashlib.sha256(open(o,'rb').read()).hexdigest())"
+    )
+
+    digests = set()
+    for hashseed in ("0", "12345"):
+        env = {**os.environ, "PYTHONHASHSEED": hashseed}
+        out = subprocess.run(
+            [sys.executable, "-c", script], capture_output=True, text=True, env=env, check=True
+        )
+        digests.add(out.stdout.strip())
+
+    assert len(digests) == 1, (
+        f"the artifact differs across PYTHONHASHSEED values: {digests} — the "
+        "determinism claim does not survive a fresh interpreter"
     )

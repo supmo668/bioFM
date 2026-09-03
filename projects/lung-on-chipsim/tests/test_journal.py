@@ -208,8 +208,8 @@ def test_manifest_records_environment_by_value(fake_project: Path) -> None:
     # `pkg in m["packages"]` exactly as well as the truth does. The whole reason
     # pyarrow and rdkit are ==-pinned is so the record can show two runs were the
     # same computation, and a record of `None` shows nothing.
-    import platform as _platform
     import os as _os
+    import platform as _platform
     import sys as _sys
     from importlib.metadata import version as _version
 
@@ -244,9 +244,7 @@ def test_manifest_records_environment_by_value(fake_project: Path) -> None:
     #      absolute path was pure disclosure and the basename is kept.
     # argv[1:] stays verbatim; those are the run's real inputs.
     expected_argv = [_os.path.basename(_sys.argv[0]), *_sys.argv[1:]] if _sys.argv else []
-    assert m["argv"] == expected_argv, (
-        f"recorded argv {m['argv']!r} != expected {expected_argv!r}"
-    )
+    assert m["argv"] == expected_argv, f"recorded argv {m['argv']!r} != expected {expected_argv!r}"
 
     # Config digests by value against the snapshot bytes on disk.
     import hashlib as _hashlib
@@ -1207,3 +1205,16 @@ def test_a_file_planted_under_a_symlinked_snapshot_dir_is_detected(
 
     with pytest.raises(ManifestVerificationError):
         read_manifest(run_dir)
+
+
+def test_the_manifest_declares_its_record_schema(fake_project: Path) -> None:
+    """r2.7 changed `environment.seeds` from a flat map to {resolved, source,
+    env}. Both shapes verify clean against their own digest, so without a
+    declared schema an old record and a new one are indistinguishable except by
+    probing for a key — the same 'must not look alike' rule the seeds follow."""
+    from chipsim.journal import RECORD_SCHEMA
+
+    manifest = read_manifest(start_run("chipsim parse", fake_project))
+    assert manifest["record_schema"] == RECORD_SCHEMA
+    # and it is covered by the digest, not bolted on outside it
+    assert "record_schema" in {k for k in manifest if k != "manifest_sha256"}

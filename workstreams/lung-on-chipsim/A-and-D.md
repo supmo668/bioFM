@@ -70,7 +70,7 @@ Three rings:
 | **run** | **Modal** serverless GPU functions (Boltz-2 affinity, ESM-2 embeddings, Chai-1 poses), spawned with a call id |
 | **poll** | n8n **Wait + HTTP poll** on the Modal call, with a timeout that *fails* the run rather than hanging it |
 | **gate** | the frozen evaluator, exposed as a **versioned HTTP service** that n8n may call and nobody may edit |
-| **journal** | n8n appends the run record to the journal store and the git log. **v3 record:** diff, seeds, scores, veto state. **PoC (v0+v1) record: seeds, scores, config snapshot and environment — diff and veto state are NOT recorded** (§4.4a-ii); they are v3 exploration-loop artifacts and would be structurally null for the PoC's whole life |
+| **journal** | n8n appends the run record to the journal store and the git log. **v3 record:** diff, seeds, scores, veto state. **PoC (v0+v1): the run record per §4.4a — diff and veto state are NOT recorded** (§4.4a-ii); they are v3 exploration-loop artifacts and would be structurally null for the PoC's whole life. §4.4a stays the single source for what a record contains |
 | **escalate** | the agent reads the journal; the human ratifies |
 
 > **What n8n is not.** n8n is **not a second brain**. It computes no metric, weighs no veto
@@ -134,7 +134,7 @@ s_t = ( C_a, C_b, C_free, φ_barrier, θ_target, z_ctx )
 | **propose** | emit one mechanism diff from the declared hypothesis space | inventing a numeric biological constant |
 | **dispatch** | instantiate the environment, run the evaluation contract | reaching into environment internals mid-run |
 | **gate** | read `score()`, keep or revert | computing its own metric, or reweighting vetoes |
-| **journal** | record finding, seeds, and the config snapshot + environment; **diff and veto state at v3 only** (§4.4a-ii — the PoC records neither) | summarising away a veto, or narrating a result the state does not support |
+| **journal** | record finding + the run record per §4.4a; **diff and veto state at v3 only** (§4.4a-ii — the PoC records neither) | summarising away a veto, or narrating a result the state does not support |
 | **escalate** | nominate ≤8 wet conditions by expected information gain | choosing the acceptance criteria those runs are judged by |
 
 #### Four tests that keep it thin
@@ -480,9 +480,12 @@ chipsim/
 > the exploration loop and is **not applicable to the PoC**; its absence here is not a defect. The
 > **PoC form** is: *same config + same seed reproduces the same scores exactly.* That form is
 > enforceable against this record and is the one the PoC must pass.
-> Run directories are immutable; the manifest is digest-verified on read; the outcome is written
-> last so a crashed run is distinguishable from a silent success; and a dirty tree is **recorded,
-> never hidden or refused**.
+> Run directories are immutable; the manifest is digest-verified on read; and the outcome is written
+> last so a crashed run is distinguishable from a silent success. **The dirty-tree clause that stood
+> here is struck** (ADR-0001): git state is no longer captured at all, so a run record **cannot show
+> the working tree was clean when it ran**. The installed package version is the weaker substitute —
+> it says what code ran without asking a working tree, and cannot distinguish a clean checkout from a
+> dirty one at the same version.
 >
 > **Honesty clause.** The manifest digest detects *modification* of a record. It does **not** prove
 > who wrote it — the same limit as the panel seal (Global Constraint 4). Nothing may describe the

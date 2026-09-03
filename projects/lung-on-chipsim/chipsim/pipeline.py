@@ -25,8 +25,8 @@ from pathlib import Path
 from chipsim.journal import (
     ConfigIntegrityError,
     JournalError,
-    finish_run,
     _recorded_argv,
+    finish_run,
     record_invocation,
     source_root,
     start_run,

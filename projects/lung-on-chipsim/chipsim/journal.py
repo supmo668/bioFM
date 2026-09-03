@@ -137,6 +137,14 @@ SEED_ENV_VARS = ("CHIPSIM_SEED", "PYTHONHASHSEED", "SOURCE_DATE_EPOCH")
 
 #: Bounds on the config walk. Generous for any real `configs/` tree and small
 #: enough that a symlink diamond is refused in well under a second.
+#: Record format version. Bumped when the manifest's SHAPE changes, so an old
+#: record and a new one are distinguishable by inspection rather than by probing
+#: for a key. r2.7 moved `environment.seeds` from a flat `{VAR: value}` map to
+#: `{resolved, source, env}`; without this, both shapes verify clean against
+#: their own digest and nothing says which is which — the same "must not look
+#: alike" rule the seeds themselves follow. Inside the digest preimage for free.
+RECORD_SCHEMA = 2
+
 MAX_CONFIG_DIRS = 512
 MAX_CONFIG_DEPTH = 32
 
@@ -242,7 +250,7 @@ def _package_versions() -> dict:
     return resolved
 
 
-def _resolve_seed(project_root: Path | None) -> dict:
+def _resolve_seed(project_root: Path) -> dict:
     """Resolve the run's seed and record WHICH source supplied it.
 
     Precedence: ``CHIPSIM_SEED`` (the operator's explicit override) beats
@@ -262,8 +270,12 @@ def _resolve_seed(project_root: Path | None) -> dict:
     resolved: int | None = None
     source = "unset"
 
+    # `project_root` is REQUIRED, deliberately. An optional root made the easy
+    # path for a future caller `{"resolved": None, "source": "unset"}` without
+    # ever consulting the config — a positive false statement indistinguishable
+    # from a genuinely absent seed, which is the confusion this module refuses.
     config_seed = None
-    if project_root is not None:
+    if True:
         # `.yml` counts as well as `.yaml` — `_config_sources` accepts both and
         # snapshots them, so a seed in `env.yml` would otherwise be recorded as
         # `source: "unset"` while the record's own config copy carries it: a
@@ -338,12 +350,11 @@ def _coerce_seed(value: object, origin: str) -> int:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise JournalError(
-            f"seed from {origin} is not an integer. Refusing to record a seed no "
-            "replay could use."
+            f"seed from {origin} is not an integer. Refusing to record a seed no replay could use."
         ) from exc
 
 
-def _environment(project_root: Path | None = None) -> dict:
+def _environment(project_root: Path) -> dict:
     """Seed environment plus the coarse host identity.
 
     `user`/`host` are provenance breadcrumbs, NOT identity claims — see the module
@@ -682,6 +693,7 @@ def start_run(
 
         manifest = {
             "record_type": "run",
+            "record_schema": RECORD_SCHEMA,
             "run_id": run_id,
             "command": command,
             "start": datetime.now(UTC).isoformat(),
