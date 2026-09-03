@@ -201,9 +201,52 @@ def test_manifest_records_environment_by_value(fake_project: Path) -> None:
         "and `git status` executes core.fsmonitor. Its reappearance would restore "
         "that sink."
     )
-    assert m["python"] and m["platform"]
+    # B3 — BY VALUE, not key presence. Key-presence assertions are why four
+    # separate mutants of the environment block left the suite fully green: a
+    # manifest recording None for every package, or a constant platform, satisfies
+    # `pkg in m["packages"]` exactly as well as the truth does. The whole reason
+    # pyarrow and rdkit are ==-pinned is so the record can show two runs were the
+    # same computation, and a record of `None` shows nothing.
+    import platform as _platform
+    import sys as _sys
+    from importlib.metadata import version as _version
+
+    # sys.version, not platform.python_version(): the manifest records the FULL
+    # build string, which distinguishes two 3.11.15 builds from different
+    # compilers — a real source of numeric difference in wheels.
+    assert m["python"] == _sys.version, (
+        f"recorded python {m['python']!r} != running {_sys.version!r}"
+    )
+    assert m["platform"] == _platform.platform(), (
+        f"recorded platform {m['platform']!r} != running {_platform.platform()!r}"
+    )
+
     for pkg in ("pyarrow", "rdkit", "pandas", "numpy", "PyYAML"):
         assert pkg in m["packages"], f"{pkg} is output-determining and must be recorded"
+        assert m["packages"][pkg] == _version(pkg), (
+            f"recorded {pkg}=={m['packages'][pkg]!r} but the installed version is "
+            f"{_version(pkg)!r}. A version recorded as None or stale cannot show "
+            "that two runs were the same computation."
+        )
+
+    # argv by value, not merely truthy. The record keeps argv[0], so this asserts
+    # against full sys.argv.
+    #
+    # NOTE, raised rather than accommodated: argv[0] is an absolute interpreter
+    # path, and `journal/` is git-tracked. That commits local filesystem paths —
+    # the same disclosure class as the DVC remote url that had to be moved to a
+    # gitignored config.local. Flagged to the CTO; not silently trimmed here,
+    # because dropping argv[0] would also weaken the record's account of what ran.
+    assert m["argv"] == _sys.argv, f"recorded argv {m['argv']!r} != the invocation's {_sys.argv!r}"
+
+    # Config digests by value against the snapshot bytes on disk.
+    import hashlib as _hashlib
+
+    assert m["configs"], "a project with configs/ must record them"
+    for name, digest in m["configs"].items():
+        actual = _hashlib.sha256((run_dir / "configs" / name).read_bytes()).hexdigest()
+        assert digest == actual, f"recorded digest for {name} does not match the snapshot"
+
     assert "environment" in m
 
 
