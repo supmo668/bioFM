@@ -16,20 +16,29 @@ sha256'd and rdkit computes the canonical InChIKey every join and the sealed
 allocation key on, so a record omitting resolved versions cannot show that two runs
 were the same computation.
 
-*** S12 DELIVERS THE ENVIRONMENT HALF ONLY. THE REPLAY TEST REMAINS BLOCKED. ***
+*** "REPLAY TEST" NAMES TWO TESTS. SAY WHICH. ***
 
-Read the paragraphs above as diagnosing why the replay test could not fail, NOT as
-closing it. This module records the **environment** a run happened in — configs,
-resolved versions, platform. §5's replay test also needs the **diff** and
-the **seed**, and this record carries neither; nothing in the codebase sets
-`CHIPSIM_SEED` today, so the seeds map is populated only if an operator happens to
-export it.
+Never write "the replay test" unqualified — see CONTEXT.md, where the term is
+defined as carrying two meanings at two rungs:
 
-So: an environment recorded here is necessary for replay and is not sufficient for
-it. Saying otherwise would repeat the seal's own corrected overclaim — a real
-mechanism described as doing more than it does. Extending the record to carry
-diff + seed is new scope and needs a plan amendment; it has not been authorized
-(CTO ruling, dispatch #43).
+  PoC form (v0+v1)  same config + same seed reproduces the same scores exactly.
+  v3 form           re-run a kept diff from the journal + seed and reproduce the
+                    trajectory exactly — a test OF THE AGENT EXPLORATION LOOP.
+
+The quotation at the top of this docstring is the **v3 form**. The PoC has no
+exploration loop, so it produces no kept diff and no veto state, and **cannot run
+the v3 form at all. That absence is not a defect in the PoC** and this module is
+not failing to deliver it.
+
+What S12 delivers toward the **PoC form**: the environment half — configs,
+resolved versions, platform. The remaining half is the resolved **seed**, which
+this record does not yet carry; nothing in the codebase sets `CHIPSIM_SEED`, so
+the seeds map is populated only if an operator happens to export one. Until seed
+capture lands, an environment recorded here is necessary for the PoC replay form
+and not sufficient for it.
+
+Describing this module as closing either form would repeat the seal's own
+corrected overclaim — a real mechanism described as doing more than it does.
 
 (The honesty grep in tests/test_journal.py rejected an earlier draft of this
 paragraph because it quoted the seal's overclaim verbatim as an example. The guard
