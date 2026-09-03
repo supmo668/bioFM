@@ -329,9 +329,16 @@ def test_environment_records_seed_vars_by_value(
     run_dir = start_run("chipsim parse", fake_project)
     seeds = read_manifest(run_dir)["environment"]["seeds"]
 
-    assert seeds[name] == "424242"
+    # The raw env capture moved under `seeds["env"]` when seed RESOLUTION landed
+    # (S12 r2.7); the by-value / absence-is-recorded rule this test exists for is
+    # unchanged and still applies to the raw map.
+    assert seeds["env"][name] == "424242"
     for other in SEED_ENV_VARS:
-        assert other in seeds, f"{other} must be recorded even when unset"
+        assert other in seeds["env"], f"{other} must be recorded even when unset"
+
+    # And the resolution itself is present, naming which source won.
+    assert seeds["resolved"] == 424242
+    assert seeds["source"] == "env:CHIPSIM_SEED"
 
 
 # --- honesty clause --------------------------------------------------------
@@ -933,3 +940,77 @@ def test_an_empty_argv_is_recorded_without_raising(fake_project: Path) -> None:
     present an empty argv and the run must still record."""
     run_dir = start_run("chipsim parse", fake_project, argv=[])
     assert read_manifest(run_dir)["argv"] == []
+
+
+# --- B3/S12: seed capture (principal ruling, 2026-09-03) -------------------
+
+
+def test_the_seed_is_resolved_from_the_run_config_and_recorded(
+    fake_project: Path,
+) -> None:
+    """S12 r2.7. Previously `environment.seeds` held only env vars, so the map
+    was populated only if an operator happened to export one — no replay claim
+    was supportable. The seed now resolves from the run config."""
+    (fake_project / "configs" / "env.yaml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": 20260903})
+    )
+
+    manifest = read_manifest(start_run("chipsim parse", fake_project))
+    seeds = manifest["environment"]["seeds"]
+
+    assert seeds["resolved"] == 20260903
+    assert seeds["source"] == "config:env.yaml"
+
+
+def test_an_absent_seed_is_recorded_as_absent_not_omitted(
+    fake_project: Path,
+) -> None:
+    """'Unset' and 'unrecorded' must not look the same at replay — the same rule
+    the env-var seeds already follow."""
+    seeds = read_manifest(start_run("chipsim parse", fake_project))["environment"]["seeds"]
+
+    assert "resolved" in seeds, "an absent seed must still be recorded, as absent"
+    assert seeds["resolved"] is None
+    assert seeds["source"] == "unset"
+
+
+def test_the_env_var_seed_overrides_the_config_seed_and_the_record_says_so(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CHIPSIM_SEED is the operator's override. The record must name which one
+    actually took effect, or a replay cannot tell which value was in force."""
+    (fake_project / "configs" / "env.yaml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": 111})
+    )
+    monkeypatch.setenv("CHIPSIM_SEED", "222")
+
+    seeds = read_manifest(start_run("chipsim parse", fake_project))["environment"]["seeds"]
+
+    assert seeds["resolved"] == 222
+    assert seeds["source"] == "env:CHIPSIM_SEED"
+
+
+def test_the_raw_seed_env_vars_are_still_recorded_alongside_the_resolution(
+    fake_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Adding the resolution must not drop the raw capture — PYTHONHASHSEED and
+    SOURCE_DATE_EPOCH still move results and are still part of the record."""
+    monkeypatch.setenv("PYTHONHASHSEED", "0")
+    seeds = read_manifest(start_run("chipsim parse", fake_project))["environment"]["seeds"]
+
+    assert seeds["env"]["PYTHONHASHSEED"] == "0"
+    assert "SOURCE_DATE_EPOCH" in seeds["env"]
+
+
+def test_a_non_integer_config_seed_is_refused_rather_than_recorded_as_junk(
+    fake_project: Path,
+) -> None:
+    """A seed that is not an integer cannot seed anything. Recording it anyway
+    would put a value in the record that no replay can use, while the record
+    claims a seed was in force."""
+    (fake_project / "configs" / "env.yaml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": "not-a-number"})
+    )
+
+    with pytest.raises(JournalError, match="seed"):
+        start_run("chipsim parse", fake_project)

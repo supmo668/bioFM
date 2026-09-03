@@ -106,6 +106,20 @@ def _cmd_write(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _stdin_is_interactive() -> bool:
+    """True only if stdin is demonstrably a terminal.
+
+    Fails CLOSED. A stdin that has been replaced or detached may not answer
+    `isatty` at all; the honest reading of "cannot tell" is "not interactive",
+    because the alternative silently restores the headless sealing path this
+    gate exists to close.
+    """
+    try:
+        return bool(sys.stdin.isatty())
+    except Exception:  # noqa: BLE001 - unanswerable means not interactive
+        return False
+
+
 def _cmd_panel_seal(ns) -> int:
     """Seal a ratified barrier panel — build-plan T7a.
 
@@ -113,10 +127,33 @@ def _cmd_panel_seal(ns) -> int:
     so an agent must never invoke it against the live configs/barrier_panel.yaml.
     Agents build and test it against fixtures only.
 
-    That constraint is a stated rule with no technical force: the digest is
-    unkeyed over public content, so running this proves the file has not changed
-    since — never who ran it.
+    *** THE TTY GATE (r2.7 amendment) — WHAT IT IS WORTH, EXACTLY. ***
+
+    Sealing requires an interactive terminal on stdin. A headless agent session
+    has no TTY, so the path that until now yielded a perfectly valid live seal
+    simply fails. This is Global Constraint (4)'s FIRST technical enforcement;
+    before it, the constraint had none at all.
+
+    Its value is bounded and the bound is the point: it converts an ACCIDENT
+    into a DELIBERATE CIRCUMVENTION. It does not prove who ran the command, it
+    does not make the seal an attestation, and an agent that deliberately
+    allocates a pty defeats it entirely — which is neither hard nor exotic. The
+    digest stays unkeyed over public content, so it shows the file is unmodified
+    and never who ratified it. Real signing with a human-held key is a v2
+    decision, deferred. Do not let any wording here grow past that.
     """
+    if not _stdin_is_interactive():
+        print(
+            "ERROR: refusing to seal — `panel-seal` requires an interactive "
+            "terminal on stdin and none is attached.\n"
+            "Sealing is a human action reserved by Global Constraint (4). This "
+            "check makes the headless path fail instead of silently succeeding; "
+            "it does NOT establish who is running the command, and it is not "
+            "evidence that a human sealed anything.",
+            file=sys.stderr,
+        )
+        return 2
+
     from chipsim.harmonize.pgp_label import seal_panel
 
     digest = seal_panel(ns.panel)

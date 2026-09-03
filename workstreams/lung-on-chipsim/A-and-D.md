@@ -70,7 +70,7 @@ Three rings:
 | **run** | **Modal** serverless GPU functions (Boltz-2 affinity, ESM-2 embeddings, Chai-1 poses), spawned with a call id |
 | **poll** | n8n **Wait + HTTP poll** on the Modal call, with a timeout that *fails* the run rather than hanging it |
 | **gate** | the frozen evaluator, exposed as a **versioned HTTP service** that n8n may call and nobody may edit |
-| **journal** | n8n appends the run record — diff, seeds, scores, veto state — to the journal store and the git log |
+| **journal** | n8n appends the run record to the journal store and the git log. **v3 record:** diff, seeds, scores, veto state. **PoC (v0+v1) record: seeds, scores, config snapshot and environment — diff and veto state are NOT recorded** (§4.4a-ii); they are v3 exploration-loop artifacts and would be structurally null for the PoC's whole life |
 | **escalate** | the agent reads the journal; the human ratifies |
 
 > **What n8n is not.** n8n is **not a second brain**. It computes no metric, weighs no veto
@@ -134,7 +134,7 @@ s_t = ( C_a, C_b, C_free, φ_barrier, θ_target, z_ctx )
 | **propose** | emit one mechanism diff from the declared hypothesis space | inventing a numeric biological constant |
 | **dispatch** | instantiate the environment, run the evaluation contract | reaching into environment internals mid-run |
 | **gate** | read `score()`, keep or revert | computing its own metric, or reweighting vetoes |
-| **journal** | record finding, diff, seeds, veto state | summarising away a veto, or narrating a result the state does not support |
+| **journal** | record finding, seeds, and the config snapshot + environment; **diff and veto state at v3 only** (§4.4a-ii — the PoC records neither) | summarising away a veto, or narrating a result the state does not support |
 | **escalate** | nominate ≤8 wet conditions by expected information gain | choosing the acceptance criteria those runs are judged by |
 
 #### Four tests that keep it thin

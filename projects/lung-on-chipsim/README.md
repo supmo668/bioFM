@@ -281,9 +281,16 @@ as "not a substrate", and human adjudication against current literature.
   seal over the panel, its ratification fields and its filename, and `load_ratified_panel`
   raises on a missing or mismatched seal. It is an **unkeyed digest over public content**, so
   it detects a later edit to `configs/barrier_panel.yaml`; it does **not** prove a human
-  ratified the panel, and nothing in the repo does. Global Constraint (4), which reserves
-  `chipsim panel-seal` to a human, is a stated rule with no technical enforcement — closing
-  that would need real signing against a pinned human key, which is undecided.
+  ratified the panel, and nothing in the repo does.
+- **Global Constraint (4) — how much the TTY gate actually buys.** The constraint reserves
+  `chipsim panel-seal` to a human. It now has its **first** technical enforcement: sealing
+  refuses to run without an interactive terminal on stdin, so a headless agent session fails
+  instead of producing a valid live seal. **State the residual limit at its real size.** The
+  gate converts an *accident* into a *deliberate circumvention* — that is the entire claim.
+  It does not establish who ran the command, it is not evidence a human sealed anything, and
+  an agent that deliberately allocates a pty defeats it completely. The digest remains unkeyed
+  over public content: it shows the file is unmodified, never who ratified it. Closing that
+  gap needs real signing against a pinned human-held key, which is a **v2 decision, deferred**.
 
 [`uv`]: https://docs.astral.sh/uv/
 [`dhimmel/drugbank`]: https://github.com/dhimmel/drugbank

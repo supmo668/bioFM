@@ -31,11 +31,19 @@ the v3 form at all. That absence is not a defect in the PoC** and this module is
 not failing to deliver it.
 
 What S12 delivers toward the **PoC form**: the environment half — configs,
-resolved versions, platform. The remaining half is the resolved **seed**, which
-this record does not yet carry; nothing in the codebase sets `CHIPSIM_SEED`, so
-the seeds map is populated only if an operator happens to export one. Until seed
-capture lands, an environment recorded here is necessary for the PoC replay form
-and not sufficient for it.
+resolved versions, platform — and now the resolved **seed**. The seed is read
+from `configs/env.yaml:seed`, overridable by `$CHIPSIM_SEED`, and the record
+names WHICH source won, because a bare number cannot tell a replay which of two
+possible values was in force.
+
+**That still does not close the PoC form, and this module does not claim to.**
+The PoC form is specified over *scores*, and this build has none — there is no
+model, head or scorer in the M0 slice, and no task in the build plan produces a
+score. So the seed is recorded but nothing in the code path consumes it yet: the
+record is necessary for the PoC replay form and still not sufficient for it. The
+determinism control that IS executable today lives in
+`tests/test_replay_determinism.py`, over the persisted ETL artifact, and states
+that same limit at its head.
 
 Describing this module as closing either form would repeat the seal's own
 corrected overclaim — a real mechanism described as doing more than it does.
@@ -210,14 +218,73 @@ def _package_versions() -> dict:
     return resolved
 
 
-def _environment() -> dict:
+def _resolve_seed(project_root: Path | None) -> dict:
+    """Resolve the run's seed and record WHICH source supplied it.
+
+    Precedence: ``CHIPSIM_SEED`` (the operator's explicit override) beats
+    ``configs/env.yaml:seed``. The record names the winning source, because a
+    bare number cannot tell a replay which of two possible values was in force —
+    and a replay that seeds from the wrong one reproduces *a* result and reports
+    success, the same failure mode the config snapshot exists to close.
+
+    An absent seed is recorded AS absent (``resolved: None``, ``source:
+    "unset"``), never omitted: "unset" and "unrecorded" must not look alike.
+
+    A non-integer seed RAISES rather than being recorded. A string cannot seed
+    anything, so recording it would leave the record asserting a seed was in
+    force when nothing could have used it.
+    """
+    raw_env = {name: os.environ.get(name) for name in SEED_ENV_VARS}
+    resolved: int | None = None
+    source = "unset"
+
+    config_seed = None
+    if project_root is not None:
+        config_path = project_root / "configs" / "env.yaml"
+        if config_path.is_file():
+            try:
+                import yaml
+
+                doc = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001 - a malformed config is not the journal's to judge
+                doc = None
+            if isinstance(doc, dict) and doc.get("seed") is not None:
+                config_seed = doc["seed"]
+
+    if config_seed is not None:
+        resolved, source = _coerce_seed(config_seed, "configs/env.yaml:seed"), "config:env.yaml"
+
+    env_seed = raw_env.get("CHIPSIM_SEED")
+    if env_seed is not None:
+        resolved, source = _coerce_seed(env_seed, "$CHIPSIM_SEED"), "env:CHIPSIM_SEED"
+
+    return {"resolved": resolved, "source": source, "env": raw_env}
+
+
+def _coerce_seed(value: object, origin: str) -> int:
+    """A seed must be an integer. Anything else is refused, loudly."""
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise JournalError(
+            f"seed from {origin} is {value!r} ({type(value).__name__}), which cannot "
+            "seed anything. Refusing to record a seed no replay could use."
+        )
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise JournalError(
+            f"seed from {origin} is {value!r}, which is not an integer. Refusing to "
+            "record a seed no replay could use."
+        ) from exc
+
+
+def _environment(project_root: Path | None = None) -> dict:
     """Seed environment plus the coarse host identity.
 
     `user`/`host` are provenance breadcrumbs, NOT identity claims — see the module
     docstring. Anything able to write the record can write these fields, so they
     must never be read as evidence of who ran it.
     """
-    seeds = {name: os.environ.get(name) for name in SEED_ENV_VARS}
+    seeds = _resolve_seed(project_root)
     # CHIPSIM_PROJECT_ROOT relocates the journal itself. Recorded explicitly:
     # a record that does not say where it was meant to live cannot show that the
     # trail was diverted. See pipeline.main, which fails CLOSED for panel-seal.
@@ -424,7 +491,7 @@ def start_run(
             "platform": platform.platform(),
             "packages": _package_versions(),
             "configs": digests,
-            "environment": _environment(),
+            "environment": _environment(project_root),
         }
         manifest[DIGEST_KEY] = manifest_digest(manifest)
         (staging / "manifest.json").write_text(
@@ -721,7 +788,7 @@ def record_invocation(
         "command": command,
         "start": datetime.now(UTC).isoformat(),
         "argv": _recorded_argv(argv),
-        "environment": _environment(),
+        "environment": _environment(project_root),
     }
     payload = json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
