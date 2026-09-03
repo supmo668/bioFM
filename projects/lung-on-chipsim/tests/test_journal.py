@@ -1014,3 +1014,50 @@ def test_a_non_integer_config_seed_is_refused_rather_than_recorded_as_junk(
 
     with pytest.raises(JournalError, match="seed"):
         start_run("chipsim parse", fake_project)
+
+
+def test_an_unparseable_config_refuses_rather_than_claiming_the_seed_is_unset(
+    fake_project: Path,
+) -> None:
+    """Self-review finding. A malformed `configs/env.yaml` that plainly carries
+    `seed: 42` previously produced `source: "unset"` — a POSITIVE FALSE
+    STATEMENT in the record, worse than recording nothing and the same class of
+    silent dishonesty as a snapshot claiming completeness it lacks."""
+    (fake_project / "configs" / "env.yaml").write_text("seed: 42\n  bad: [unclosed\n")
+
+    with pytest.raises(JournalError, match="seed"):
+        start_run("chipsim parse", fake_project)
+
+
+def test_the_snapshot_copies_the_path_that_was_verified(fake_project: Path) -> None:
+    """Self-review finding (TOCTOU). The escape check resolves the config, and
+    the copy must use THAT resolved path — checking one path and copying another
+    re-follows the link and leaves a window to repoint it in between."""
+    real = fake_project / "configs" / "real.yaml"
+    real.write_text("inside: true\n")
+    (fake_project / "configs" / "alias.yaml").symlink_to(real)
+
+    run_dir = start_run("chipsim parse", fake_project)
+
+    assert (run_dir / "configs" / "alias.yaml").read_text() == "inside: true\n"
+
+
+def test_an_argv0_ending_in_a_separator_still_records_a_name(
+    fake_project: Path,
+) -> None:
+    """Self-review finding. `os.path.basename` returns "" for a path ending in a
+    separator, which would replace the record of what ran with nothing — worse
+    than the disclosure it was trimming."""
+    run_dir = start_run("chipsim parse", fake_project, argv=["/opt/venv/bin/", "parse"])
+    assert read_manifest(run_dir)["argv"][0] != ""
+
+
+def test_an_underscored_seed_string_is_refused(fake_project: Path) -> None:
+    """Self-review finding. `int("1_0")` is 10 in Python, so a config reading
+    `seed: "1_0"` would be recorded as 10 — a recorded seed that differs from the
+    one a human reads is precisely the trust this record carries."""
+    (fake_project / "configs" / "env.yaml").write_text(
+        yaml.safe_dump({"stage": "test", "seed": "1_0"})
+    )
+    with pytest.raises(JournalError, match="decimal integer"):
+        start_run("chipsim parse", fake_project)

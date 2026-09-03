@@ -94,6 +94,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import socket
 import sys
@@ -152,7 +153,13 @@ def _recorded_argv(argv: list[str] | None) -> list[str]:
     values = list(argv) if argv is not None else list(sys.argv)
     if not values:
         return values
-    return [os.path.basename(values[0]), *values[1:]]
+    # `os.path.basename` returns "" for a path ending in a separator, which would
+    # replace the record of what ran with nothing at all — strictly worse than the
+    # disclosure being trimmed. Strip trailing separators first and fall back to
+    # the original if there is genuinely no name to keep.
+    head = values[0]
+    name = os.path.basename(head.rstrip("/\\")) or head
+    return [name, *values[1:]]
 
 
 class JournalError(RuntimeError):
@@ -242,12 +249,21 @@ def _resolve_seed(project_root: Path | None) -> dict:
     if project_root is not None:
         config_path = project_root / "configs" / "env.yaml"
         if config_path.is_file():
-            try:
-                import yaml
+            import yaml
 
+            try:
                 doc = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-            except Exception:  # noqa: BLE001 - a malformed config is not the journal's to judge
-                doc = None
+            except (yaml.YAMLError, OSError, UnicodeDecodeError) as exc:
+                # RAISE rather than fall through to `source: "unset"`. A config
+                # that cannot be parsed may well carry a seed, so recording
+                # "unset" would put a POSITIVE FALSE STATEMENT in the record —
+                # worse than recording nothing, and the same class of silent
+                # dishonesty as a snapshot claiming completeness it lacks.
+                raise JournalError(
+                    f"cannot resolve the seed: {config_path} could not be parsed "
+                    f"({exc.__class__.__name__}). Refusing to record the seed as "
+                    "unset when the config may define one."
+                ) from exc
             if isinstance(doc, dict) and doc.get("seed") is not None:
                 config_seed = doc["seed"]
 
@@ -267,6 +283,14 @@ def _coerce_seed(value: object, origin: str) -> int:
         raise JournalError(
             f"seed from {origin} is {value!r} ({type(value).__name__}), which cannot "
             "seed anything. Refusing to record a seed no replay could use."
+        )
+    # A plain decimal integer only. `int()` also accepts underscore separators, so
+    # `1_0` would silently become 10 — a recorded seed that differs from the one a
+    # human reads in the config is exactly the trust this record exists to carry.
+    if isinstance(value, str) and not re.fullmatch(r"[+-]?[0-9]+", value.strip()):
+        raise JournalError(
+            f"seed from {origin} is {value!r}, which is not a plain decimal integer. "
+            "Refusing to record a seed that does not read as the value it is."
         )
     try:
         return int(value)
@@ -389,7 +413,7 @@ def _config_sources(source_dir: Path, root_real: Path) -> list[Path]:
     return sorted(found)
 
 
-def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> None:
+def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> Path:
     """Refuse a config whose REAL path lies outside the project root.
 
     `shutil.copy2` follows symlinks, so without this a config symlinked at a
@@ -407,6 +431,12 @@ def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> No
 
     The message names the offending path but never its contents, so the refusal
     does not itself leak what the link pointed at.
+
+    Returns the RESOLVED path, and the caller copies from that rather than from
+    the link. Checking one path and then copying another re-follows the link a
+    second time, leaving a window in which it can be repointed between the two —
+    small, but free to close, and the whole point here is that what was verified
+    is what gets recorded.
     """
     try:
         real = config.resolve()
@@ -417,7 +447,7 @@ def _refuse_escaping_config(config: Path, relative: Path, root_real: Path) -> No
         ) from exc
 
     if real == root_real or root_real in real.parents:
-        return
+        return real
 
     raise JournalError(
         f"config {relative.as_posix()!r} resolves to {real}, which is outside the "
@@ -475,10 +505,11 @@ def start_run(
         root_real = project_root.resolve()
         for config in _config_sources(source_dir, root_real):
             relative = config.relative_to(source_dir)
-            _refuse_escaping_config(config, relative, root_real)
+            verified = _refuse_escaping_config(config, relative, root_real)
             target = snapshot_dir / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(config, target)
+            # Copy the path that was VERIFIED, not the link that was checked.
+            shutil.copy2(verified, target)
             digests[relative.as_posix()] = hashlib.sha256(target.read_bytes()).hexdigest()
 
         manifest = {
