@@ -101,7 +101,7 @@ downstream claim.
 | Phase | What gets built | CA builds | H owns | XB |
 |---|---|---|---|---|
 | **M0a** Data spine | ingest, harmonize, identity, barrier panel | all parsers, contracts, tests, n8n ETL workflow | licence ruling, UniProt panel ratification, compound roster, P-gp adjudication | — |
-| **M0b** Chip-record curation | 60–100 on-domain records, sealed allocation | the schema, the sealing tool, the hash ledger | **every record, every seal** | — |
+| **M0b** Chip-record curation | **80–100** on-domain records, sealed **three-way** allocation (AM-6 resolved) | the schema, the sealing tool, the hash ledger | **every record, every seal** | — |
 | **M0c** Frozen evaluator | splits, metrics, three controls | all of it | **ratifies and signs the freeze** | — |
 | **M1** ODE core | solver, θ plumbing, fit routine | solver and fit code | the priors, with citations | — |
 | **M2** ADME heads | P1–P3, CV harness | all of it | accepts/rejects the ρ ≥ 0.6 gate | — |
@@ -490,6 +490,16 @@ leaving the barrier panel's only control unverifiable. This gives T8 a checkable
 - **Done when** the test passes against `tests/fixtures/barrier_panel_ratified.yaml` and **fails** when one accession is mutated to a valid-but-wrong human accession.
 
 ### T7a · Build the panel seal tool — **CA · 5 min** *(new — CTO ruling, dispatch #21)*
+> **AMENDMENT r2.7 (principal, 2026-09-02) — the seal gets its first actual enforcement.**
+> `chipsim panel-seal` **must refuse to run without an interactive terminal** (no TTY on stdin →
+> exit non-zero, write nothing). A headless agent session has no TTY, so the sanctioned-action path
+> that currently yields a valid live seal simply fails. Until now Global Constraint (4) had **zero**
+> technical enforcement; this is the first.
+> **State the residual limit on the model card and do not overstate it:** the seal proves the file
+> is unmodified, never who ratified it, and an agent that deliberately allocates a pty defeats this
+> guard. It converts an accident into a deliberate circumvention — that is the honest claim, and it
+> is the whole claim. Real signing with a human-held key is a v2 decision, deferred.
+
 T8's attestation step invokes `chipsim panel seal`, which did not exist as a task. **Placed before
 T8 deliberately**, on the S11a-before-T18 precedent and for a sharper reason: the seal **is** the act
 of attestation, so if the tool is missing when the principal sits down to ratify, T8 cannot be
@@ -631,8 +641,31 @@ own allocation rule it is human-owned. An auto-filter of `drugbank-slim.tsv` is 
 - **Interfaces:** `load_poc_roster(path) -> pd.DataFrame`, rejecting a roster outside 20–40 entries, any entry with an empty `canonical_inchikey` or `evidence_doi`, and any key absent from the snapshot.
 - **Done when** each of those four rejection cases raises, verified against `tests/fixtures/poc_compounds.yaml`.
 
-### S12 · Build the run journal — **CA · 15 min** *(new — principal requirement; CTO ruling, dispatch #35)*
-**Gap-closure, not a feature.** A&D §4.4 specifies `journal/` as *"append-only run records — diff,
+### S12 · Build the run journal (environment + seeds) — **CA · 15 min** *(new — principal requirement; CTO ruling, dispatch #35; rescoped by principal 2026-09-02)*
+> **SCOPE AMENDMENT r2.7 (principal, 2026-09-02).** Two removals, one addition. See A&D 4.4a-ii.
+>
+> **REMOVED — git state.** No `_git_state()`, no shelling out to `git` at runtime. Capturing the
+> commit and dirty flag required running `git` with a caller-supplied cwd, and `git` honours
+> repo-local config — an arbitrary command execution path (QG blocker B2, reproduced three times).
+> **The feature is deleted, not hardened**: a PoC run journal has no need to run `git`, and removal
+> takes the attack surface to zero where a defence only shrinks it. Record the code version from
+> what the installed package reports. **Accepted cost, stated plainly: a run record can no longer
+> prove the tree was clean when it ran.** Do not paper over this in the record's documentation.
+>
+> **REMOVED — diff and veto state.** Both are v3 exploration-loop artifacts. v0+v1 runs no loop, so
+> they would be structurally null for the PoC's whole life — the 'key present, value meaningless'
+> shape QG blocker B3 showed is untestable.
+>
+> **ADDED — seeds.** The seed is resolved from the run config and its resolved value recorded.
+> Previously `environment.seeds` was null and nothing ever set a seed, so no replay claim was
+> supportable at all.
+>
+> **The replay test splits in two and the two must never be conflated.** The **v3 form** — 're-run
+> any kept diff from journal + seed' — tests the exploration loop and is **not applicable to the
+> PoC**; its absence here is not a defect, and S12 never claimed to close it. The **PoC form**,
+> which S12 does close: *same config + same seed reproduces the same scores exactly.*
+
+**Partial gap-closure, not a feature.** A&D §4.4 specifies `journal/` as *"append-only run records — diff,
 seeds, scores, veto state"* and §5 requires a **replay test**: *"re-run any kept diff from journal +
 seed and reproduce the trajectory exactly."* The record spec **names no configuration**, and
 `journal/` does not exist. So a replay reading "diff + seed" picks up whatever `configs/` holds **at
@@ -839,7 +872,11 @@ This plan stops at the identity and barrier-panel layer: **29 CA tasks and 5 hum
 
 Three adjacent things are **deliberately not here**:
 
-1. **M0b — curation of 60–100 chip records.** Human-only, needs a protocol document rather than a task list, and it is the project's critical path. Its own plan.
+1. **M0b — curation of 80–100 chip records** *(range narrowed by principal 2026-09-02, AM-6 resolved:
+   the active-learning pool is v3 and leaves the PoC's sealed allocation, making it three-way —
+   δ-calibration / conformal calibration / locked test — at ~20 conformal points per group, two
+   groups. The Mondrian claim stays conditional; §5E forbids marginal coverage in terms. Every
+   coverage figure is reported **with its confidence interval, per group**.)** Human-only, needs a protocol document rather than a task list, and it is the project's critical path. Its own plan.
 2. **M0c — the frozen evaluator**, and the model card that T17's block plugs into. Cannot be specified until the splits exist. Its own plan.
 3. **ChEMBL, BindingDB, TDC, LINCS ingestion**, plus the §1.2 *data*-contract test and `mapping.tsv.gz`. One plan covering all four, after this one proves the pattern.
 

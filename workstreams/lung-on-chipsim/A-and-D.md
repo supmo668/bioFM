@@ -450,11 +450,36 @@ chipsim/
 > InChIKey that every join and the sealed allocation key on; a record omitting resolved versions
 > cannot show two runs were the same computation.
 >
-> A run record therefore carries, at minimum: the **diff, seeds, scores and veto state** as before,
+> A run record therefore carries, at minimum: **seeds and scores**,
 > **plus a full copy of every config file used** (copies, never references — a config edited
-> tomorrow must not change what yesterday's run says it used), the **exact argv**, the **git commit
-> and dirty flag with the dirty file list**, **python + platform**, the **resolved versions of every
+> tomorrow must not change what yesterday's run says it used), the **exact argv**,
+> **python + platform**, the **resolved versions of every
 > output-determining package**, a **per-config digest**, and the relevant **seed environment**.
+>
+> **AMENDMENT 4.4a-ii (principal, 2026-09-02) — two removals and one addition.**
+>
+> *Removed: git commit, dirty flag and dirty file list.* Capturing these required shelling out to
+> `git` with a caller-supplied working directory, and `git` honours repo-local configuration — an
+> arbitrary command execution path, reproduced three times independently (QG blocker B2). The
+> feature is **deleted, not hardened**: a PoC run journal has no need to run `git` at runtime, and
+> removing the sub-feature takes the attack surface to zero where a defence would only shrink it.
+> **Accepted cost, stated plainly and not papered over: a run record can no longer prove the working
+> tree was clean when it ran.** The code version is recorded from what the installed package
+> reports. Dirty-tree detection returns when there is a reason to run `git` at all.
+>
+> *Removed: diff and veto state.* Both are artifacts of the **v3 exploration loop**. The PoC (v0+v1)
+> runs no loop, so these fields would be structurally null for its entire life — the "key present,
+> value meaningless" shape that QG blocker B3 showed is untestable. They return with v3.
+>
+> *Added: the seed is resolved from the run config and its resolved value recorded.* Previously
+> `environment.seeds` was null and nothing in the codebase ever set a seed, so the record could not
+> support any replay claim at all.
+>
+> **Consequently the replay test splits in two, and the two must never be conflated.** The **v3
+> form** — "re-run any kept diff from journal + seed and reproduce the trajectory exactly" — tests
+> the exploration loop and is **not applicable to the PoC**; its absence here is not a defect. The
+> **PoC form** is: *same config + same seed reproduces the same scores exactly.* That form is
+> enforceable against this record and is the one the PoC must pass.
 > Run directories are immutable; the manifest is digest-verified on read; the outcome is written
 > last so a crashed run is distinguishable from a silent success; and a dirty tree is **recorded,
 > never hidden or refused**.
@@ -489,7 +514,7 @@ burden; the agent carries only the science.**
 
 | Milestone | Contents | Gate to pass |
 |---|---|---|
-| **M0** | ETL + harmonization + splits + three tests + **literature chip-run curation** | contracts green; splits reproducible from a seed; **60–100 curated on-domain records** with a sealed, disjoint allocation (δ-calibration / conformal calibration / locked test / active-learning pool) written down **before any are read** |
+| **M0** | ETL + harmonization + splits + three tests + **literature chip-run curation** | contracts green; splits reproducible from a seed; **80–100 curated on-domain records** with a sealed, disjoint **three-way** allocation (δ-calibration / conformal calibration / locked test — the active-learning pool is v3, see AM-6 resolved) written down **before any are read** |
 | **M1** | ODE core with literature θ, reference compounds | published on-chip ordering reproduced **within 3-fold** |
 | **M2** | P1–P3 heads replace all hand-set constants | **Spearman ρ ≥ 0.6** on held-out scaffolds for exposure AUC |
 | **M3** | Occupancy engine with Boltz-2 gap filling | known mechanism-of-action targets in **top-10 occupancy** |
@@ -633,6 +658,53 @@ double-used, so only a quarter of the corpus is ever available to the coverage c
    veto for the PoC and recording the downgrade on the model card. This is the exit the A&D already
    contemplates elsewhere for the under-curation case ("drop the L2 discrepancy layer and the
    two-group veto and say so on the model card"), so it is precedented rather than novel.
+
+---
+
+### AM-6 — RESOLVED (principal, 2026-09-02). A fourth exit: remove a bucket, not a claim.
+
+**None of the three exits above was taken.** Each pays in the wrong currency — exit 1 in schedule,
+exits 2 and 3 in what the PoC may claim. Exit 3 is additionally **not available**: §5E states in
+terms that *"marginal coverage alone does not satisfy this bar"*, so rescoping to marginal would
+have contradicted the PVR's own success bar.
+
+**Two corrections to the framing above, both material.**
+
+*First, the scoping sentence "no M0 task depends on the answer … it must be closed before M5
+pre-registration" is **wrong**, and it was mine.* Mondrian subgroup coverage is the **third leg of
+the one claim the PoC exists to test** (PVR §4: ρ ≥ 0.6 ordering, MoA in top-10, **and** 90%
+Mondrian subgroup coverage). **M5 is deferred from the PoC; the coverage bar is not.** AM-6 gates
+the PoC threshold directly.
+
+*Second, the damage is not done by the four-way split as such — it is done by allocating records to
+a bucket the PoC never reads from.* The **active-learning pool** feeds the v3 exploration loop.
+**v3 is deferred from the PoC.** Reserving a quarter of the scarcest artifact in the project for
+machinery that will not run is the actual defect.
+
+**The resolution.** For the PoC the sealed allocation is **three-way** — δ-calibration, conformal
+calibration, locked test — and the per-group requirement is **~20**, not ≥30:
+
+| Bucket | Records |
+|---|---|
+| conformal calibration | **~40** (2 groups × ~20) |
+| δ-calibration | ~20 |
+| locked test | 20–40 |
+| **total** | **80–100** — inside the M0 target |
+
+M0's record target therefore moves to the **upper half of its existing range, 80–100**. No new
+curation task is created and no bar is weakened: the claim stays **conditional**, so §5E is
+satisfied.
+
+**Why ~20 is honest and not a quiet downgrade.** Conformal coverage is **distribution-free and valid
+at any n** — the guarantee does not depend on sample size. What degrades at n=20 is the **precision
+of the coverage estimate**, not the validity of the coverage claim. The obligation that makes this
+honest is therefore a reporting one, and it is binding: **every coverage figure is reported with its
+confidence interval, per group.** A coverage number quoted without its CI at this n commits exactly
+the error the audit workstream's equivalence-test ruling exists to prevent — reading a wide interval
+as a clean result.
+
+**The active-learning pool returns with v3**, at which point the allocation becomes four-way again
+and the corpus will have grown past the PoC target anyway.
 
 Exit 3 is the one the documents are already structured to absorb; exit 2 preserves the most
 machinery; exit 1 preserves the claim but not the timeline. **Principal's call.**
