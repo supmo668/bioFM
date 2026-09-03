@@ -1,0 +1,112 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/__init__.py", "language": "python", "sizeLines": 34, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/__main__.py", "language": "python", "sizeLines": 4, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/bayesian.py", "language": "python", "sizeLines": 171, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/calibration.py", "language": "python", "sizeLines": 85, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/cli.py", "language": "python", "sizeLines": 54, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py", "language": "python", "sizeLines": 27, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py", "language": "python", "sizeLines": 68, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py", "language": "python", "sizeLines": 294, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py", "language": "python", "sizeLines": 57, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py", "language": "python", "sizeLines": 192, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py", "language": "python", "sizeLines": 102, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py", "language": "python", "sizeLines": 71, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/metrics.py", "language": "python", "sizeLines": 340, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py", "language": "python", "sizeLines": 48, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py", "language": "python", "sizeLines": 55, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py", "language": "python", "sizeLines": 78, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py", "language": "python", "sizeLines": 118, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py", "language": "python", "sizeLines": 20, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/probe.py", "language": "python", "sizeLines": 61, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/src/perturb_eval/types.py", "language": "python", "sizeLines": 93, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+ "projects/perturb-seq-eval/src/perturb_eval/__init__.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+  "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+  "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/__main__.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/cli.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/bayesian.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/calibration.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/cli.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+  "projects/perturb-seq-eval/src/perturb_eval/probe.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+  "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+  "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/metrics.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/probe.py": [
+  "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+  "projects/perturb-seq-eval/src/perturb_eval/types.py"
+ ],
+ "projects/perturb-seq-eval/src/perturb_eval/types.py": []
+}
+}

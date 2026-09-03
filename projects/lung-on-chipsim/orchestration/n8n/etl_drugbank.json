@@ -1,0 +1,129 @@
+{
+  "name": "chipsim-etl-drugbank",
+  "nodes": [
+    {
+      "parameters": {
+        "command": "python -m chipsim.pipeline fetch --dest data/raw/drugbank --commit ${{ $json.source_commit }}",
+        "executeOnce": true
+      },
+      "id": "chipsim-fetch",
+      "name": "fetch",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python -m chipsim.pipeline hash-verify --dest data/raw/drugbank",
+        "executeOnce": true
+      },
+      "id": "chipsim-hash-verify",
+      "name": "hash-verify",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python -m chipsim.pipeline parse --raw-dir data/raw/drugbank",
+        "executeOnce": true
+      },
+      "id": "chipsim-parse",
+      "name": "parse",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python -m chipsim.pipeline provenance-tests --tests tests/test_provenance.py",
+        "executeOnce": true
+      },
+      "id": "chipsim-provenance-tests",
+      "name": "provenance-tests",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python -m chipsim.pipeline write --raw-dir data/raw/drugbank --out data/processed/drugbank_compounds.parquet",
+        "executeOnce": true
+      },
+      "id": "chipsim-write",
+      "name": "write",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "fetch": {
+      "main": [
+        [
+          {
+            "node": "hash-verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "hash-verify": {
+      "main": [
+        [
+          {
+            "node": "parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse": {
+      "main": [
+        [
+          {
+            "node": "provenance-tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "provenance-tests": {
+      "main": [
+        [
+          {
+            "node": "write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "m0-slice1",
+  "meta": {
+    "description": "ChipSim M0 slice-1 DrugBank ETL: fetch -> hash-verify -> parse -> provenance-tests -> write. Each node names a CLI entrypoint in chipsim.pipeline. DESCOPED per build-plan section 7: provisioning n8n and executing end-to-end is T16a, deferred. The node is named 'provenance-tests', not 'contract tests' \u2014 section 4.5 sanctions DATA-contract tests, which arrive with the ChEMBL plan (defect 29)."
+  }
+}

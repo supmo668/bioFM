@@ -1,0 +1,13 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "libs/test-time-compute/README.md", "language": "markdown", "sizeLines": 85, "fileCategory": "docs"},
+    {"path": "libs/test-time-compute/pyproject.toml", "language": "toml", "sizeLines": 44, "fileCategory": "config"},
+    {"path": "libs/test-time-compute/requirements.txt", "language": "txt", "sizeLines": 7, "fileCategory": "docs"}
+  ],
+  "batchImportData": {
+    "libs/test-time-compute/README.md": [],
+    "libs/test-time-compute/pyproject.toml": [],
+    "libs/test-time-compute/requirements.txt": []
+  }
+}

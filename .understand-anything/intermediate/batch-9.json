@@ -1,0 +1,140 @@
+{
+  "nodes": [
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "summary": "Package barrel for the MassGen skill handlers, re-exporting the preflight and evaluate entry points as run_preflight and run_evaluate.",
+      "tags": ["entry-point", "barrel", "massgen", "skill-handlers"],
+      "complexity": "simple",
+      "languageNotes": "Python package __init__ that aliases two same-named `run` functions via `import ... as` and pins the public surface with __all__."
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "type": "file",
+      "name": "evaluate.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "summary": "MassGen on_session_end handler that delegates to perturb_eval.massgen_adapter.evaluate_skill to roll up round traces into run metrics, then writes a run_metrics.json artifact to the payload's output_dir.",
+      "tags": ["event-handler", "massgen", "evaluation", "artifact-writer", "adapter"],
+      "complexity": "simple",
+      "languageNotes": "Imports perturb_eval.massgen_adapter lazily inside run() so the handler module loads without the full perturb_eval package on the path."
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "lineRange": [15, 22],
+      "summary": "Dict-in/dict-out handler that calls evaluate_skill on the session payload, persists the result as run_metrics.json under output_dir, and returns the result merged with run_metrics_path.",
+      "tags": ["event-handler", "evaluation", "serialization", "massgen"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "type": "file",
+      "name": "preflight.py",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "summary": "MassGen on_session_start handler that delegates to perturb_eval.massgen_adapter.preflight_skill to derive a probe signature from the round-0 snapshot and query the Bayesian recommender, then writes a recommendation.json artifact.",
+      "tags": ["event-handler", "massgen", "recommender", "artifact-writer", "adapter"],
+      "complexity": "simple",
+      "languageNotes": "Draft integration: the docstring notes the final run() signature is owned by the MassGen skill host; the lazy in-function import keeps the module import-safe."
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "lineRange": [19, 26],
+      "summary": "Dict-in/dict-out handler that calls preflight_skill on the session payload, persists the recommendation as recommendation.json under output_dir, and returns the result merged with recommendation_path.",
+      "tags": ["event-handler", "recommender", "serialization", "massgen"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "target": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py:run",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:evaluate_skill",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "target": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py:run",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py:preflight_skill",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

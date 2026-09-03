@@ -1,0 +1,34 @@
+# ============================================================================
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# Exists only so agent-owned done-conditions can fail honestly while the
+# human-gated tasks (T1/T2/T8/T14/T18) are outstanding. Build-plan S5 /
+# defect 33. No pipeline path may read this file; tests/test_fixtures.py
+# asserts that.
+# ============================================================================
+# HAPPY PATH: 24 entries, inside S11a's 20-40 bound.
+
+compounds:
+  - {canonical_inchikey: FIXTURECMPDAAA-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-00", evidence_doi: "10.0000/chipsim.fixture.000"}
+  - {canonical_inchikey: FIXTURECMPDAAB-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-01", evidence_doi: "10.0000/chipsim.fixture.001"}
+  - {canonical_inchikey: FIXTURECMPDAAC-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-02", evidence_doi: "10.0000/chipsim.fixture.002"}
+  - {canonical_inchikey: FIXTURECMPDAAD-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-03", evidence_doi: "10.0000/chipsim.fixture.003"}
+  - {canonical_inchikey: FIXTURECMPDAAE-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-04", evidence_doi: "10.0000/chipsim.fixture.004"}
+  - {canonical_inchikey: FIXTURECMPDAAF-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-05", evidence_doi: "10.0000/chipsim.fixture.005"}
+  - {canonical_inchikey: FIXTURECMPDAAG-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-06", evidence_doi: "10.0000/chipsim.fixture.006"}
+  - {canonical_inchikey: FIXTURECMPDAAH-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-07", evidence_doi: "10.0000/chipsim.fixture.007"}
+  - {canonical_inchikey: FIXTURECMPDAAI-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-08", evidence_doi: "10.0000/chipsim.fixture.008"}
+  - {canonical_inchikey: FIXTURECMPDAAJ-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-09", evidence_doi: "10.0000/chipsim.fixture.009"}
+  - {canonical_inchikey: FIXTURECMPDAAK-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-10", evidence_doi: "10.0000/chipsim.fixture.010"}
+  - {canonical_inchikey: FIXTURECMPDAAL-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-11", evidence_doi: "10.0000/chipsim.fixture.011"}
+  - {canonical_inchikey: FIXTURECMPDAAM-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-12", evidence_doi: "10.0000/chipsim.fixture.012"}
+  - {canonical_inchikey: FIXTURECMPDAAN-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-13", evidence_doi: "10.0000/chipsim.fixture.013"}
+  - {canonical_inchikey: FIXTURECMPDAAO-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-14", evidence_doi: "10.0000/chipsim.fixture.014"}
+  - {canonical_inchikey: FIXTURECMPDAAP-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-15", evidence_doi: "10.0000/chipsim.fixture.015"}
+  - {canonical_inchikey: FIXTURECMPDAAQ-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-16", evidence_doi: "10.0000/chipsim.fixture.016"}
+  - {canonical_inchikey: FIXTURECMPDAAR-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-17", evidence_doi: "10.0000/chipsim.fixture.017"}
+  - {canonical_inchikey: FIXTURECMPDAAS-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-18", evidence_doi: "10.0000/chipsim.fixture.018"}
+  - {canonical_inchikey: FIXTURECMPDAAT-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-19", evidence_doi: "10.0000/chipsim.fixture.019"}
+  - {canonical_inchikey: FIXTURECMPDAAU-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-20", evidence_doi: "10.0000/chipsim.fixture.020"}
+  - {canonical_inchikey: FIXTURECMPDAAV-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-21", evidence_doi: "10.0000/chipsim.fixture.021"}
+  - {canonical_inchikey: FIXTURECMPDAAW-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-22", evidence_doi: "10.0000/chipsim.fixture.022"}
+  - {canonical_inchikey: FIXTURECMPDAAX-FIXTUREKEY-N, name: "FIXTURE-COMPOUND-23", evidence_doi: "10.0000/chipsim.fixture.023"}

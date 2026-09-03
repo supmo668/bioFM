@@ -1,0 +1,1452 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 18,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "libs/cellforge-agents/src/cellforge/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 12,
+      "nonEmptyLines": 10,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/__main__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 4,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 26,
+      "nonEmptyLines": 23,
+      "functions": [
+        {
+          "name": "build_default_team",
+          "startLine": 18,
+          "endLine": 26,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "build_default_team",
+          "line": 18,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "build_default_team",
+          "callee": "DataCuratorAgent",
+          "lineNumber": 21
+        },
+        {
+          "caller": "build_default_team",
+          "callee": "LiteratureAgent",
+          "lineNumber": 22
+        },
+        {
+          "caller": "build_default_team",
+          "callee": "ArchitectAgent",
+          "lineNumber": 23
+        },
+        {
+          "caller": "build_default_team",
+          "callee": "TrainerAgent",
+          "lineNumber": 24
+        },
+        {
+          "caller": "build_default_team",
+          "callee": "ValidatorAgent",
+          "lineNumber": 25
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/architect.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 41,
+      "nonEmptyLines": 35,
+      "classes": [
+        {
+          "name": "ArchitectAgent",
+          "startLine": 10,
+          "endLine": 41,
+          "methods": [
+            "__init__",
+            "propose"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ArchitectAgent",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "BioFMCatalog",
+          "lineNumber": 14
+        },
+        {
+          "caller": "propose",
+          "callee": "self.catalog.suggest",
+          "lineNumber": 17
+        },
+        {
+          "caller": "propose",
+          "callee": "Proposal",
+          "lineNumber": 19
+        },
+        {
+          "caller": "propose",
+          "callee": "Proposal",
+          "lineNumber": 29
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 29,
+      "nonEmptyLines": 20,
+      "classes": [
+        {
+          "name": "BaseAgent",
+          "startLine": 10,
+          "endLine": 29,
+          "methods": [
+            "propose",
+            "critique"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BaseAgent",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "critique",
+          "callee": "Critique",
+          "lineNumber": 24
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 52,
+      "nonEmptyLines": 45,
+      "classes": [
+        {
+          "name": "DataCuratorAgent",
+          "startLine": 10,
+          "endLine": 52,
+          "methods": [
+            "__init__",
+            "propose",
+            "critique"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DataCuratorAgent",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "OmicsTool",
+          "lineNumber": 14
+        },
+        {
+          "caller": "propose",
+          "callee": "self.tool.fetch",
+          "lineNumber": 17
+        },
+        {
+          "caller": "propose",
+          "callee": "self.tool.qc",
+          "lineNumber": 18
+        },
+        {
+          "caller": "propose",
+          "callee": "Proposal",
+          "lineNumber": 20
+        },
+        {
+          "caller": "critique",
+          "callee": "Critique",
+          "lineNumber": 46
+        },
+        {
+          "caller": "critique",
+          "callee": "super().critique",
+          "lineNumber": 52
+        },
+        {
+          "caller": "critique",
+          "callee": "super",
+          "lineNumber": 52
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/literature.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 53,
+      "nonEmptyLines": 45,
+      "classes": [
+        {
+          "name": "LiteratureAgent",
+          "startLine": 10,
+          "endLine": 53,
+          "methods": [
+            "__init__",
+            "propose",
+            "critique",
+            "_expected_genes"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "LiteratureAgent",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "LiteratureTool",
+          "lineNumber": 14
+        },
+        {
+          "caller": "propose",
+          "callee": "self.tool.mechanism",
+          "lineNumber": 17
+        },
+        {
+          "caller": "propose",
+          "callee": "self.tool.search",
+          "lineNumber": 18
+        },
+        {
+          "caller": "propose",
+          "callee": "mech.get",
+          "lineNumber": 19
+        },
+        {
+          "caller": "propose",
+          "callee": "Proposal",
+          "lineNumber": 20
+        },
+        {
+          "caller": "propose",
+          "callee": "mech.get",
+          "lineNumber": 24
+        },
+        {
+          "caller": "propose",
+          "callee": "mech.get",
+          "lineNumber": 25
+        },
+        {
+          "caller": "propose",
+          "callee": "len",
+          "lineNumber": 30
+        },
+        {
+          "caller": "propose",
+          "callee": "mech.get",
+          "lineNumber": 30
+        },
+        {
+          "caller": "propose",
+          "callee": "len",
+          "lineNumber": 30
+        },
+        {
+          "caller": "propose",
+          "callee": "mech.get",
+          "lineNumber": 30
+        },
+        {
+          "caller": "critique",
+          "callee": "set",
+          "lineNumber": 39
+        },
+        {
+          "caller": "critique",
+          "callee": "self._expected_genes",
+          "lineNumber": 39
+        },
+        {
+          "caller": "critique",
+          "callee": "set",
+          "lineNumber": 40
+        },
+        {
+          "caller": "critique",
+          "callee": "other.content.get",
+          "lineNumber": 40
+        },
+        {
+          "caller": "critique",
+          "callee": "expected.issubset",
+          "lineNumber": 41
+        },
+        {
+          "caller": "critique",
+          "callee": "Critique",
+          "lineNumber": 43
+        },
+        {
+          "caller": "critique",
+          "callee": "sorted",
+          "lineNumber": 47
+        },
+        {
+          "caller": "critique",
+          "callee": "super().critique",
+          "lineNumber": 49
+        },
+        {
+          "caller": "critique",
+          "callee": "super",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_expected_genes",
+          "callee": "self.tool.mechanism",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_expected_genes",
+          "callee": "list",
+          "lineNumber": 53
+        },
+        {
+          "caller": "_expected_genes",
+          "callee": "mech.get",
+          "lineNumber": 53
+        },
+        {
+          "caller": "_expected_genes",
+          "callee": "list",
+          "lineNumber": 53
+        },
+        {
+          "caller": "_expected_genes",
+          "callee": "mech.get",
+          "lineNumber": 53
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/trainer.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 57,
+      "nonEmptyLines": 49,
+      "classes": [
+        {
+          "name": "TrainerAgent",
+          "startLine": 10,
+          "endLine": 57,
+          "methods": [
+            "__init__",
+            "propose",
+            "critique"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "TrainerAgent",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "TrainerTool",
+          "lineNumber": 14
+        },
+        {
+          "caller": "propose",
+          "callee": "int",
+          "lineNumber": 23
+        },
+        {
+          "caller": "propose",
+          "callee": "p.content.get",
+          "lineNumber": 23
+        },
+        {
+          "caller": "propose",
+          "callee": "str",
+          "lineNumber": 25
+        },
+        {
+          "caller": "propose",
+          "callee": "p.content.get",
+          "lineNumber": 25
+        },
+        {
+          "caller": "propose",
+          "callee": "self.tool.build",
+          "lineNumber": 27
+        },
+        {
+          "caller": "propose",
+          "callee": "Proposal",
+          "lineNumber": 28
+        },
+        {
+          "caller": "critique",
+          "callee": "other.content.get",
+          "lineNumber": 50
+        },
+        {
+          "caller": "critique",
+          "callee": "Critique",
+          "lineNumber": 51
+        },
+        {
+          "caller": "critique",
+          "callee": "super().critique",
+          "lineNumber": 57
+        },
+        {
+          "caller": "critique",
+          "callee": "super",
+          "lineNumber": 57
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/agents/validator.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 49,
+      "nonEmptyLines": 41,
+      "classes": [
+        {
+          "name": "ValidatorAgent",
+          "startLine": 10,
+          "endLine": 49,
+          "methods": [
+            "__init__",
+            "propose"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ValidatorAgent",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "PathwayTool",
+          "lineNumber": 14
+        },
+        {
+          "caller": "propose",
+          "callee": "list",
+          "lineNumber": 21
+        },
+        {
+          "caller": "propose",
+          "callee": "p.content.get",
+          "lineNumber": 21
+        },
+        {
+          "caller": "propose",
+          "callee": "list",
+          "lineNumber": 22
+        },
+        {
+          "caller": "propose",
+          "callee": "p.content.get",
+          "lineNumber": 22
+        },
+        {
+          "caller": "propose",
+          "callee": "self.tool.validate",
+          "lineNumber": 30
+        },
+        {
+          "caller": "propose",
+          "callee": "Proposal",
+          "lineNumber": 32
+        },
+        {
+          "caller": "propose",
+          "callee": "list",
+          "lineNumber": 37
+        },
+        {
+          "caller": "propose",
+          "callee": "min",
+          "lineNumber": 47
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/cli.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 47,
+      "nonEmptyLines": 38,
+      "functions": [
+        {
+          "name": "cmd_run",
+          "startLine": 18,
+          "endLine": 43,
+          "params": [
+            "perturbation",
+            "modality",
+            "cell_type_hint",
+            "max_rounds",
+            "verbose"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "cmd_run",
+          "line": 17,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "cmd_run",
+          "callee": "typer.Option",
+          "lineNumber": 19
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "typer.Option",
+          "lineNumber": 20
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "typer.Option",
+          "lineNumber": 21
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "typer.Option",
+          "lineNumber": 22
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "typer.Option",
+          "lineNumber": 23
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "logging.basicConfig",
+          "lineNumber": 25
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "Problem",
+          "lineNumber": 26
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "Orchestrator",
+          "lineNumber": 31
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "build_default_team",
+          "lineNumber": 31
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "orch.run",
+          "lineNumber": 32
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "round",
+          "lineNumber": 35
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "len",
+          "lineNumber": 39
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "len",
+          "lineNumber": 40
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "len",
+          "lineNumber": 41
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "typer.echo",
+          "lineNumber": 43
+        },
+        {
+          "caller": "cmd_run",
+          "callee": "json.dumps",
+          "lineNumber": 43
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/orchestrator.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 121,
+      "nonEmptyLines": 100,
+      "classes": [
+        {
+          "name": "RoundResult",
+          "startLine": 20,
+          "endLine": 23,
+          "methods": [],
+          "properties": [
+            "round_index",
+            "proposals",
+            "critiques"
+          ]
+        },
+        {
+          "name": "ConsensusResult",
+          "startLine": 27,
+          "endLine": 33,
+          "methods": [],
+          "properties": [
+            "winner",
+            "all_proposals",
+            "all_critiques",
+            "rounds",
+            "converged",
+            "consensus_score"
+          ]
+        },
+        {
+          "name": "Orchestrator",
+          "startLine": 36,
+          "endLine": 121,
+          "methods": [
+            "__init__",
+            "run",
+            "_score_round"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "RoundResult",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "ConsensusResult",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "Orchestrator",
+          "line": 36,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "ValueError",
+          "lineNumber": 47
+        },
+        {
+          "caller": "run",
+          "callee": "range",
+          "lineNumber": 58
+        },
+        {
+          "caller": "run",
+          "callee": "Context",
+          "lineNumber": 59
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 61
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 62
+        },
+        {
+          "caller": "run",
+          "callee": "agent.propose",
+          "lineNumber": 69
+        },
+        {
+          "caller": "run",
+          "callee": "round_proposals.append",
+          "lineNumber": 70
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 71
+        },
+        {
+          "caller": "run",
+          "callee": "round_critiques.append",
+          "lineNumber": 79
+        },
+        {
+          "caller": "run",
+          "callee": "agent.critique",
+          "lineNumber": 79
+        },
+        {
+          "caller": "run",
+          "callee": "rounds.append",
+          "lineNumber": 81
+        },
+        {
+          "caller": "run",
+          "callee": "RoundResult",
+          "lineNumber": 81
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 81
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 82
+        },
+        {
+          "caller": "run",
+          "callee": "all_proposals.extend",
+          "lineNumber": 83
+        },
+        {
+          "caller": "run",
+          "callee": "all_critiques.extend",
+          "lineNumber": 84
+        },
+        {
+          "caller": "run",
+          "callee": "self._score_round",
+          "lineNumber": 87
+        },
+        {
+          "caller": "run",
+          "callee": "max",
+          "lineNumber": 88
+        },
+        {
+          "caller": "run",
+          "callee": "range",
+          "lineNumber": 88
+        },
+        {
+          "caller": "run",
+          "callee": "len",
+          "lineNumber": 88
+        },
+        {
+          "caller": "run",
+          "callee": "ConsensusResult",
+          "lineNumber": 92
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 94
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 95
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 96
+        },
+        {
+          "caller": "run",
+          "callee": "self._score_round",
+          "lineNumber": 103
+        },
+        {
+          "caller": "run",
+          "callee": "list",
+          "lineNumber": 103
+        },
+        {
+          "caller": "run",
+          "callee": "list",
+          "lineNumber": 103
+        },
+        {
+          "caller": "run",
+          "callee": "max",
+          "lineNumber": 104
+        },
+        {
+          "caller": "run",
+          "callee": "range",
+          "lineNumber": 104
+        },
+        {
+          "caller": "run",
+          "callee": "len",
+          "lineNumber": 104
+        },
+        {
+          "caller": "run",
+          "callee": "ConsensusResult",
+          "lineNumber": 105
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 107
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 108
+        },
+        {
+          "caller": "run",
+          "callee": "tuple",
+          "lineNumber": 109
+        },
+        {
+          "caller": "_score_round",
+          "callee": "sum",
+          "lineNumber": 119
+        },
+        {
+          "caller": "_score_round",
+          "callee": "len",
+          "lineNumber": 119
+        },
+        {
+          "caller": "_score_round",
+          "callee": "scores.append",
+          "lineNumber": 120
+        },
+        {
+          "caller": "_score_round",
+          "callee": "max",
+          "lineNumber": 120
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 3,
+        "functionCount": 0,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/problem.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 56,
+      "nonEmptyLines": 40,
+      "classes": [
+        {
+          "name": "Modality",
+          "startLine": 10,
+          "endLine": 13,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "Problem",
+          "startLine": 17,
+          "endLine": 25,
+          "methods": [],
+          "properties": [
+            "perturbation",
+            "modality",
+            "organism",
+            "cell_type_hint",
+            "target_deg_count",
+            "budget_seconds"
+          ]
+        },
+        {
+          "name": "Proposal",
+          "startLine": 29,
+          "endLine": 36,
+          "methods": [],
+          "properties": [
+            "agent",
+            "content",
+            "rationale",
+            "confidence",
+            "tools_used"
+          ]
+        },
+        {
+          "name": "Critique",
+          "startLine": 40,
+          "endLine": 46,
+          "methods": [],
+          "properties": [
+            "from_agent",
+            "on_agent",
+            "severity",
+            "comment"
+          ]
+        },
+        {
+          "name": "Context",
+          "startLine": 50,
+          "endLine": 56,
+          "methods": [],
+          "properties": [
+            "problem",
+            "prior_proposals",
+            "prior_critiques",
+            "round_index"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Modality",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "Problem",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "Proposal",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "Critique",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "Context",
+          "line": 49,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 0,
+        "classCount": 5
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/tools/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 13,
+      "nonEmptyLines": 12,
+      "metrics": {
+        "importCount": 5,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 57,
+      "nonEmptyLines": 46,
+      "classes": [
+        {
+          "name": "BackboneSuggestion",
+          "startLine": 10,
+          "endLine": 13,
+          "methods": [],
+          "properties": [
+            "name",
+            "modality",
+            "note"
+          ]
+        },
+        {
+          "name": "BioFMCatalog",
+          "startLine": 16,
+          "endLine": 57,
+          "methods": [
+            "suggest",
+            "read_markdown"
+          ],
+          "properties": [
+            "_CATALOG"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BackboneSuggestion",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "BioFMCatalog",
+          "line": 16,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "suggest",
+          "callee": "list",
+          "lineNumber": 54
+        },
+        {
+          "caller": "suggest",
+          "callee": "self._CATALOG.get",
+          "lineNumber": 54
+        },
+        {
+          "caller": "read_markdown",
+          "callee": "path.read_text",
+          "lineNumber": 57
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/tools/literature.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 61,
+      "nonEmptyLines": 50,
+      "classes": [
+        {
+          "name": "LiteratureHit",
+          "startLine": 12,
+          "endLine": 16,
+          "methods": [],
+          "properties": [
+            "pmid",
+            "title",
+            "year",
+            "gene_mentions"
+          ]
+        },
+        {
+          "name": "LiteratureTool",
+          "startLine": 19,
+          "endLine": 61,
+          "methods": [
+            "search",
+            "mechanism",
+            "_mechanism_for"
+          ],
+          "properties": [
+            "_MECHANISMS"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "LiteratureHit",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "LiteratureTool",
+          "line": 19,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "search",
+          "callee": "LiteratureHit",
+          "lineNumber": 43
+        },
+        {
+          "caller": "search",
+          "callee": "tuple",
+          "lineNumber": 47
+        },
+        {
+          "caller": "search",
+          "callee": "self._mechanism_for(query).get",
+          "lineNumber": 47
+        },
+        {
+          "caller": "search",
+          "callee": "self._mechanism_for",
+          "lineNumber": 47
+        },
+        {
+          "caller": "search",
+          "callee": "range",
+          "lineNumber": 49
+        },
+        {
+          "caller": "mechanism",
+          "callee": "self._mechanism_for",
+          "lineNumber": 53
+        },
+        {
+          "caller": "_mechanism_for",
+          "callee": "perturbation.lower",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_mechanism_for",
+          "callee": "self._MECHANISMS.items",
+          "lineNumber": 58
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/tools/omics.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 43,
+      "nonEmptyLines": 34,
+      "classes": [
+        {
+          "name": "QCReport",
+          "startLine": 13,
+          "endLine": 20,
+          "methods": [],
+          "properties": [
+            "n_cells",
+            "n_genes",
+            "pct_mito_max",
+            "pct_ribo_max",
+            "hvgs",
+            "doublet_rate",
+            "dataset_id"
+          ]
+        },
+        {
+          "name": "OmicsTool",
+          "startLine": 23,
+          "endLine": 43,
+          "methods": [
+            "fetch",
+            "qc"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "QCReport",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "OmicsTool",
+          "line": 23,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "qc",
+          "callee": "QCReport",
+          "lineNumber": 35
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 48,
+      "nonEmptyLines": 38,
+      "functions": [
+        {
+          "name": "_jaccard",
+          "startLine": 42,
+          "endLine": 48,
+          "params": [
+            "a",
+            "b"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "ValidationReport",
+          "startLine": 12,
+          "endLine": 17,
+          "methods": [],
+          "properties": [
+            "deg_overlap_at_k",
+            "enriched_pathways",
+            "held_out_auroc",
+            "calibration",
+            "negative_control_auroc"
+          ]
+        },
+        {
+          "name": "PathwayTool",
+          "startLine": 20,
+          "endLine": 39,
+          "methods": [
+            "validate"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ValidationReport",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "PathwayTool",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "_jaccard",
+          "line": 42,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "validate",
+          "callee": "_jaccard",
+          "lineNumber": 30
+        },
+        {
+          "caller": "validate",
+          "callee": "_jaccard",
+          "lineNumber": 31
+        },
+        {
+          "caller": "validate",
+          "callee": "ValidationReport",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_jaccard",
+          "callee": "set",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_jaccard",
+          "callee": "set",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_jaccard",
+          "callee": "len",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_jaccard",
+          "callee": "len",
+          "lineNumber": 48
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 1,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/tools/trainer.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 33,
+      "nonEmptyLines": 26,
+      "classes": [
+        {
+          "name": "TrainingRecipe",
+          "startLine": 9,
+          "endLine": 16,
+          "methods": [],
+          "properties": [
+            "optimizer",
+            "lr",
+            "epochs",
+            "batch_size",
+            "cv_split",
+            "early_stop_rule",
+            "grad_accum"
+          ]
+        },
+        {
+          "name": "TrainerTool",
+          "startLine": 19,
+          "endLine": 33,
+          "methods": [
+            "build"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "TrainingRecipe",
+          "line": 8,
+          "isDefault": false
+        },
+        {
+          "name": "TrainerTool",
+          "line": 19,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "build",
+          "callee": "TrainingRecipe",
+          "lineNumber": 25
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    }
+  ]
+}

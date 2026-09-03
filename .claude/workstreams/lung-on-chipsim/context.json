@@ -1,0 +1,80 @@
+{
+  "workstream": "lung-on-chipsim",
+  "module": "lung-on-chipsim",
+  "agent": "lung-on-chipsim",
+  "branch": "lung-on-chipsim",
+  "worktree": "worktrees/lung-on-chipsim",
+  "title": "ChipSim \u2014 Lung-on-a-Chip In Silico Validation",
+  "artifacts": {
+    "pvr": "workstreams/lung-on-chipsim/PVR.md",
+    "and": "workstreams/lung-on-chipsim/A-and-D.md",
+    "plan": "workstreams/lung-on-chipsim/plan/build-plan.md",
+    "knowledge": "workstreams/lung-on-chipsim/KNOWLEDGE.md"
+  },
+  "sources": {
+    "notion_index": "https://app.notion.com/p/d419cffbca33420a9a7d39abbe3eb67b",
+    "notion_prd": "https://app.notion.com/p/8c73e759a0a046659e00da96898ca394",
+    "notion_spec": "https://app.notion.com/p/e166e53b327b43fe93301c976ab704f1",
+    "notion_design": "https://app.notion.com/p/2608314aaab14913a76ba509c08a1940",
+    "notion_open_questions": "https://app.notion.com/p/8e0482407f574bc6ac0f508f906183ac",
+    "notion_plan_m0": "https://app.notion.com/p/2be47ffc30a34400ab31077cc57b3ffd"
+  },
+  "linear": {
+    "team": "Syntropyhealth",
+    "project": "bioFM \u00b7 ChipSim \u2014 Lung-on-a-Chip In Silico Validation",
+    "project_url": "https://linear.app/syntropyhealth/project/biofm-chipsim-lung-on-a-chip-in-silico-validation-b40af105a741",
+    "issues": {
+      "M0-slice-1": {
+        "id": "SYN-271",
+        "url": "https://linear.app/syntropyhealth/issue/SYN-271/m0-slice-1-chipsim-data-spine-drugbank-snapshot-identity-barrier-panel",
+        "title": "M0 slice 1 \u2014 ChipSim data spine: DrugBank snapshot \u2192 identity + barrier panel"
+      }
+    }
+  },
+  "phases": {
+    "define": {
+      "status": "imported",
+      "note": "PVR imported from Notion PRD 2026-08-26; not re-derived via /define"
+    },
+    "design": {
+      "status": "imported",
+      "note": "A&D imported from Notion Spec + Design 2026-08-26; not re-derived via /design"
+    },
+    "plan": {
+      "status": "imported",
+      "note": "M0 slice-1 build plan imported from Notion Plan doc; 17 tasks, 14 CA / 4 H"
+    },
+    "build": {
+      "status": "dispatched",
+      "note": "M0 slice 1 dispatched to the lung-on-chipsim worktree agent 2026-08-26"
+    },
+    "P0.1": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "52d2f9b",
+      "qgr": "workstreams/lung-on-chipsim/qgr/bioFM-matthew-mo-lung-on-chipsim-lung-on-chipsim-bioFM-qgr-iteration-complete-20260831-1059-0653839.md",
+      "summary": "S1-S11 scaffold complete; P0 gate passed; 20 QG findings fixed; 5 human blockers outstanding",
+      "pr": "",
+      "updated_at": "2026-08-31T17:59:39.738302+00:00"
+    },
+    "P0.2": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "fd945cc",
+      "qgr": "workstreams/lung-on-chipsim/qgr/bioFM-matthew-mo-lung-on-chipsim-lung-on-chipsim-bioFM-qgr-iteration-complete-20260831-1148-b7d4221.md",
+      "summary": "T5-T19 + S11a against fixtures; E-1..E-5 applied+falsified; 27 QG findings fixed; 5 human blockers still absent",
+      "pr": "",
+      "updated_at": "2026-08-31T18:49:13.935237+00:00"
+    }
+  },
+  "notes": [
+    "Notion remains the authoritative source for PVR/A&D; in-repo copies are mirrors.",
+    "Human-owned tasks T1, T2, T8, T14 are blockers the agent must escalate, never simulate.",
+    "No coding agent may write a biological number, create a curated chip record, or edit the frozen evaluator."
+  ],
+  "updated_at": "2026-08-31T18:49:13.935363+00:00"
+}

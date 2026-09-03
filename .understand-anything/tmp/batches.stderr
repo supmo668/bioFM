@@ -1,0 +1,3 @@
+Loaded 294 files (216 code).
+Info: compute-batches: merged 132 small batches (145 files) into 6 misc batches — singletons and orphans consolidated
+Wrote 28 batches (sizes: max=25, min=3) to /Users/mo/github/personal/bioFM/.understand-anything/intermediate/batches.json

@@ -1,0 +1,516 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/data/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 32,
+      "nonEmptyLines": 29,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/data/download.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 232,
+      "nonEmptyLines": 197,
+      "functions": [
+        {
+          "name": "_download",
+          "startLine": 87,
+          "endLine": 91,
+          "params": [
+            "url",
+            "dest"
+          ]
+        },
+        {
+          "name": "_sha256_of",
+          "startLine": 94,
+          "endLine": 99,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "_verify_sha256",
+          "startLine": 102,
+          "endLine": 109,
+          "params": [
+            "path",
+            "expected"
+          ]
+        },
+        {
+          "name": "_looks_truncated",
+          "startLine": 112,
+          "endLine": 119,
+          "params": [
+            "path",
+            "min_bytes"
+          ]
+        },
+        {
+          "name": "_fetch",
+          "startLine": 122,
+          "endLine": 169,
+          "params": [
+            "spec",
+            "dest_dir",
+            "sha256",
+            "min_bytes"
+          ]
+        },
+        {
+          "name": "fetch_adamson",
+          "startLine": 172,
+          "endLine": 205,
+          "params": [
+            "dest_dir",
+            "sha256",
+            "subset",
+            "min_bytes"
+          ]
+        },
+        {
+          "name": "fetch_adamson_all",
+          "startLine": 208,
+          "endLine": 216,
+          "params": [
+            "dest_dir"
+          ]
+        },
+        {
+          "name": "fetch_norman",
+          "startLine": 219,
+          "endLine": 232,
+          "params": [
+            "dest_dir",
+            "sha256",
+            "min_bytes"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "DatasetSpec",
+          "startLine": 24,
+          "endLine": 38,
+          "methods": [],
+          "properties": [
+            "name",
+            "remote_filename",
+            "local_filename",
+            "url",
+            "sha256",
+            "min_bytes"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DatasetSpec",
+          "line": 23,
+          "isDefault": false
+        },
+        {
+          "name": "_download",
+          "line": 87,
+          "isDefault": false
+        },
+        {
+          "name": "_sha256_of",
+          "line": 94,
+          "isDefault": false
+        },
+        {
+          "name": "_verify_sha256",
+          "line": 102,
+          "isDefault": false
+        },
+        {
+          "name": "_looks_truncated",
+          "line": 112,
+          "isDefault": false
+        },
+        {
+          "name": "_fetch",
+          "line": 122,
+          "isDefault": false
+        },
+        {
+          "name": "fetch_adamson",
+          "line": 172,
+          "isDefault": false
+        },
+        {
+          "name": "fetch_adamson_all",
+          "line": 208,
+          "isDefault": false
+        },
+        {
+          "name": "fetch_norman",
+          "line": 219,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_download",
+          "callee": "dest.parent.mkdir",
+          "lineNumber": 89
+        },
+        {
+          "caller": "_download",
+          "callee": "logger.info",
+          "lineNumber": 90
+        },
+        {
+          "caller": "_download",
+          "callee": "urllib.request.urlretrieve",
+          "lineNumber": 91
+        },
+        {
+          "caller": "_sha256_of",
+          "callee": "hashlib.sha256",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_sha256_of",
+          "callee": "path.open",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_sha256_of",
+          "callee": "iter",
+          "lineNumber": 97
+        },
+        {
+          "caller": "_sha256_of",
+          "callee": "fh.read",
+          "lineNumber": 97
+        },
+        {
+          "caller": "_sha256_of",
+          "callee": "h.update",
+          "lineNumber": 98
+        },
+        {
+          "caller": "_sha256_of",
+          "callee": "h.hexdigest",
+          "lineNumber": 99
+        },
+        {
+          "caller": "_verify_sha256",
+          "callee": "path.exists",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_verify_sha256",
+          "callee": "FileNotFoundError",
+          "lineNumber": 104
+        },
+        {
+          "caller": "_verify_sha256",
+          "callee": "_sha256_of",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_verify_sha256",
+          "callee": "ValueError",
+          "lineNumber": 107
+        },
+        {
+          "caller": "_looks_truncated",
+          "callee": "path.stat",
+          "lineNumber": 117
+        },
+        {
+          "caller": "_fetch",
+          "callee": "Path",
+          "lineNumber": 135
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest_dir.mkdir",
+          "lineNumber": 136
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.exists",
+          "lineNumber": 141
+        },
+        {
+          "caller": "_fetch",
+          "callee": "_looks_truncated",
+          "lineNumber": 141
+        },
+        {
+          "caller": "_fetch",
+          "callee": "logger.warning",
+          "lineNumber": 142
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.stat",
+          "lineNumber": 144
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.unlink",
+          "lineNumber": 146
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.exists",
+          "lineNumber": 148
+        },
+        {
+          "caller": "_fetch",
+          "callee": "_verify_sha256",
+          "lineNumber": 150
+        },
+        {
+          "caller": "_fetch",
+          "callee": "logger.info",
+          "lineNumber": 151
+        },
+        {
+          "caller": "_fetch",
+          "callee": "logger.warning",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.unlink",
+          "lineNumber": 155
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.exists",
+          "lineNumber": 156
+        },
+        {
+          "caller": "_fetch",
+          "callee": "logger.info",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_fetch",
+          "callee": "_download",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_fetch",
+          "callee": "_looks_truncated",
+          "lineNumber": 162
+        },
+        {
+          "caller": "_fetch",
+          "callee": "ValueError",
+          "lineNumber": 163
+        },
+        {
+          "caller": "_fetch",
+          "callee": "dest.stat",
+          "lineNumber": 165
+        },
+        {
+          "caller": "_fetch",
+          "callee": "_verify_sha256",
+          "lineNumber": 168
+        },
+        {
+          "caller": "fetch_adamson",
+          "callee": "ValueError",
+          "lineNumber": 201
+        },
+        {
+          "caller": "fetch_adamson",
+          "callee": "_fetch",
+          "lineNumber": 205
+        },
+        {
+          "caller": "fetch_adamson_all",
+          "callee": "_fetch",
+          "lineNumber": 214
+        },
+        {
+          "caller": "fetch_norman",
+          "callee": "_fetch",
+          "lineNumber": 232
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 9,
+        "functionCount": 8,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "projects/perturb-seq-eval/src/perturb_eval/data/subsample.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 89,
+      "nonEmptyLines": 76,
+      "functions": [
+        {
+          "name": "mean_abs_logfc_per_target",
+          "startLine": 14,
+          "endLine": 34,
+          "params": [
+            "X",
+            "labels",
+            "control_mask",
+            "target_gene_idx"
+          ]
+        },
+        {
+          "name": "stratified_subsample",
+          "startLine": 37,
+          "endLine": 89,
+          "params": [
+            "labels",
+            "strata",
+            "n_per_stratum",
+            "seed"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "mean_abs_logfc_per_target",
+          "line": 14,
+          "isDefault": false
+        },
+        {
+          "name": "stratified_subsample",
+          "line": 37,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "mean_abs_logfc_per_target",
+          "callee": "X[control_mask].mean",
+          "lineNumber": 26
+        },
+        {
+          "caller": "mean_abs_logfc_per_target",
+          "callee": "target_gene_idx.items",
+          "lineNumber": 28
+        },
+        {
+          "caller": "mean_abs_logfc_per_target",
+          "callee": "mask_p.any",
+          "lineNumber": 30
+        },
+        {
+          "caller": "mean_abs_logfc_per_target",
+          "callee": "X[mask_p].mean",
+          "lineNumber": 32
+        },
+        {
+          "caller": "mean_abs_logfc_per_target",
+          "callee": "float",
+          "lineNumber": 33
+        },
+        {
+          "caller": "mean_abs_logfc_per_target",
+          "callee": "abs",
+          "lineNumber": 33
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "np.asarray",
+          "lineNumber": 69
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "np.asarray",
+          "lineNumber": 70
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "ValueError",
+          "lineNumber": 72
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "ValueError",
+          "lineNumber": 76
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "np.random.default_rng",
+          "lineNumber": 78
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "np.unique",
+          "lineNumber": 80
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "np.where",
+          "lineNumber": 81
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "len",
+          "lineNumber": 82
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "keep.extend",
+          "lineNumber": 83
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "labels[idx].tolist",
+          "lineNumber": 83
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "rng.choice",
+          "lineNumber": 85
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "keep.extend",
+          "lineNumber": 86
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "labels[choice].tolist",
+          "lineNumber": 86
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "np.array",
+          "lineNumber": 88
+        },
+        {
+          "caller": "stratified_subsample",
+          "callee": "sorted",
+          "lineNumber": 88
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -43,10 +43,25 @@ projects/**/*.png
 
 # Claude Code machine-local runtime state (skill caches, schedule lock files,
 # per-machine tool configs). Not part of the project — ignore everywhere.
-.claude/
+.claude/*
+!.claude/agents/
+!.claude/workstreams/
+# Dispatch payloads are coordination artifacts — the dispatch tool keeps them in git
+# for traceability (the rest of the per-principal sandbox stays local).
+!.claude/usr/
+.claude/usr/*/*/*
+!.claude/usr/*/*/dispatches/
+
+# DVC content-addressed store. The default remote resolves here, so after any
+# `dvc push` this directory holds the DrugBank-derived snapshot as extensionless
+# md5-named blobs. A single `git add -A` would vendor them — the one thing the
+# ChipSim data plan forbids ("ChipSim never redistributes DrugBank"). Note that
+# T11's test_drugbank_not_vendored matches *.tsv and would NOT catch these.
+.dvc-storage/
 
 # Git worktrees — isolated dev branches live here; each is its own checkout.
 .worktrees/
+worktrees/
 
 # Scratch directory used by scripts/publish/submit_to_venues.py to zip
 # upload bundles. Build artefacts, not source.
@@ -54,3 +69,8 @@ projects/perturb-seq-eval/.publish_work/
 projects/*/.publish_work/
 .publish_work/
 
+
+# understand-anything scratch (keep knowledge-graph.json, drop working files)
+.understand-anything/tmp/
+.understand-anything/intermediate/
+.understand-anything/.trash-*/

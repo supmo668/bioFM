@@ -1,0 +1,21 @@
+{
+  "projectRoot": "/Users/mo/github/personal/bioFM",
+  "batchFiles": [
+    {"path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py", "language": "python", "sizeLines": 4, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py", "language": "python", "sizeLines": 48, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py", "language": "python", "sizeLines": 78, "fileCategory": "code"},
+    {"path": "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py", "language": "python", "sizeLines": 85, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py": [
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py"
+    ],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py": [
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py"
+    ]
+  }
+}

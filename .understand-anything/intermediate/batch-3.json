@@ -1,0 +1,1327 @@
+{
+  "nodes": [
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py",
+      "summary": "Package entry point for the end-to-end agentic perturb-seq lifecycle; re-exports the frozen DTOs (ExecutedProposal, ExecutedValidation, LifecycleRun, LifecycleStep) from types.py.",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "type-definition",
+        "agentic-lifecycle"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "type": "file",
+      "name": "architect_dispatch.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "summary": "Translates the Architect agent's proposed configuration into a concrete backbone choice plus fully-populated hyperparameter dict, canonicalising backbone aliases and applying the Validator's critique delta from the previous round.",
+      "tags": [
+        "agentic-lifecycle",
+        "config-resolution",
+        "factory",
+        "backbone"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:resolve_architect_config",
+      "type": "function",
+      "name": "resolve_architect_config",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "lineRange": [
+        31,
+        81
+      ],
+      "summary": "Merges a raw Architect proposal with module defaults and an optional validator critique delta, returning a config dict with backbone, hvg_count, learning_rate, ridge_lambda, epochs, n_agents and n_rounds; unknown backbones fall back to linear.",
+      "tags": [
+        "config-resolution",
+        "agentic-lifecycle",
+        "defaults"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:dispatch_architect",
+      "type": "function",
+      "name": "dispatch_architect",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "lineRange": [
+        84,
+        91
+      ],
+      "summary": "Backward-compatible wrapper that resolves the Architect config and instantiates the chosen backbone, returning a (backbone, name) tuple.",
+      "tags": [
+        "factory",
+        "backbone",
+        "compatibility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "type": "file",
+      "name": "data_curator_exec.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "summary": "Executes the DataCurator agent's QC recipe by applying Seurat-style top-N highly-variable-gene selection to the expression matrix and recording the applied HVG count and mito threshold for reporting.",
+      "tags": [
+        "agentic-lifecycle",
+        "data-preprocessing",
+        "feature-selection",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py:execute_data_curator",
+      "type": "function",
+      "name": "execute_data_curator",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "lineRange": [
+        14,
+        40
+      ],
+      "summary": "Selects the n_top_hvg highest-variance gene columns from X (or passes through if fewer genes exist) and returns the filtered matrix, labels, kept gene indices, and execution metadata.",
+      "tags": [
+        "feature-selection",
+        "data-preprocessing",
+        "hvg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "type": "file",
+      "name": "literature_exec.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "summary": "Pass-through executor for the Literature agent that extracts expected up/down-regulated gene lists and pathways from its structured proposal for downstream Validator use.",
+      "tags": [
+        "agentic-lifecycle",
+        "utility",
+        "literature",
+        "gene-sets"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py:extract_expected_genes",
+      "type": "function",
+      "name": "extract_expected_genes",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "lineRange": [
+        11,
+        16
+      ],
+      "summary": "Normalises a Literature proposal into a dict of up, down, and pathways lists with empty defaults.",
+      "tags": [
+        "utility",
+        "gene-sets",
+        "normalization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "type": "file",
+      "name": "loop.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "summary": "Orchestrates the multi-round propose-execute-critique-refine agentic lifecycle over a perturbation task, dispatching each agent role (DataCurator, Literature, Architect, Trainer, Validator) through its executor and threading the Validator's critique into the next round until acceptance or max_rounds.",
+      "tags": [
+        "agentic-lifecycle",
+        "orchestrator",
+        "entry-point",
+        "multi-agent",
+        "protocol"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses a typing.Protocol (AgentPool) for structural subtyping so the production CellForgeAgentPool and the offline MockAgentPool are interchangeable without inheritance."
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:AgentPool",
+      "type": "class",
+      "name": "AgentPool",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "lineRange": [
+        33,
+        42
+      ],
+      "summary": "Protocol describing any agent pool that can produce a structured proposal for a given role, round, task and refinement context.",
+      "tags": [
+        "protocol",
+        "interface",
+        "multi-agent"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:MockAgentPool",
+      "type": "class",
+      "name": "MockAgentPool",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "lineRange": [
+        46,
+        93
+      ],
+      "summary": "Deterministic offline AgentPool used in unit tests; returns seeded stub proposals for each of the five agent roles.",
+      "tags": [
+        "test",
+        "mock",
+        "multi-agent",
+        "deterministic"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "type": "function",
+      "name": "run_agentic_lifecycle",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "lineRange": [
+        99,
+        283
+      ],
+      "summary": "Runs up to max_rounds of the five-role agentic loop on one task: curates data, resolves the Architect config, builds and trains a backbone, scores it with the Validator gate, records LifecycleSteps, and returns a LifecycleRun with final MSD and agreement.",
+      "tags": [
+        "orchestrator",
+        "multi-agent",
+        "training-loop",
+        "validation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "type": "file",
+      "name": "trainer_exec.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "summary": "Executes the Trainer agent's recipe by translating its proposal into a BackboneTrainConfig, fitting the chosen backbone, and reporting success, error message, wall time and the applied config.",
+      "tags": [
+        "agentic-lifecycle",
+        "training",
+        "executor",
+        "backbone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py:execute_trainer",
+      "type": "function",
+      "name": "execute_trainer",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "lineRange": [
+        13,
+        48
+      ],
+      "summary": "Builds a BackboneTrainConfig from the Trainer proposal (top_k_genes, seed, epochs, lr, ridge_lambda), calls backbone.fit inside a try/except, and returns a result dict with timing and applied config.",
+      "tags": [
+        "training",
+        "executor",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "type": "file",
+      "name": "types.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "summary": "Defines the frozen dataclass DTOs that record one complete lifecycle run: executed proposals, structured validator critiques, validation reports, per-round steps and the aggregate LifecycleRun.",
+      "tags": [
+        "type-definition",
+        "data-model",
+        "dataclass",
+        "agentic-lifecycle"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "All carriers are frozen dataclasses (immutable, hashable) rather than Pydantic models so they serialise trivially; the Pydantic mirror lives in proposal_schema."
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedProposal",
+      "type": "class",
+      "name": "ExecutedProposal",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "lineRange": [
+        13,
+        22
+      ],
+      "summary": "Frozen record of an agent's proposal after execution: content, rationale, LLM confidence, artifact path, wall time and success flag.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "proposal"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:StructuredCritiqueDTO",
+      "type": "class",
+      "name": "StructuredCritiqueDTO",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "lineRange": [
+        26,
+        36
+      ],
+      "summary": "Validator critique payload (failed genes, suggested next config delta, accept reason) consumed by the next round's Architect.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "critique"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedValidation",
+      "type": "class",
+      "name": "ExecutedValidation",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "lineRange": [
+        40,
+        48
+      ],
+      "summary": "Validator's scoring report for a trained model: MSD top-k, BioFM agreement, DEG overlap, acceptance flag, rationale and optional critique.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:LifecycleStep",
+      "type": "class",
+      "name": "LifecycleStep",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "lineRange": [
+        52,
+        62
+      ],
+      "summary": "One agent's contribution within one round, including round index, proposal content, rationale, confidence and execution outcome.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "lifecycle"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:LifecycleRun",
+      "type": "class",
+      "name": "LifecycleRun",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "lineRange": [
+        66,
+        75
+      ],
+      "summary": "Aggregate record of a full multi-round run on one perturbation task with its steps, final MSD, validator agreement, round/agent counts and backbone used.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "lifecycle"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "type": "file",
+      "name": "validator_gate.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "summary": "Implements the Validator agent step: scores a trained backbone on the held-out perturbation via MSD, gates acceptance against a threshold, and emits a heuristic config delta (backbone rotation, lower LR, higher ridge) for the next round's Architect.",
+      "tags": [
+        "agentic-lifecycle",
+        "validation",
+        "critique",
+        "heuristic"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:suggest_config_delta",
+      "type": "function",
+      "name": "suggest_config_delta",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "lineRange": [
+        22,
+        54
+      ],
+      "summary": "Heuristic troubleshooting prior: returns an empty delta when accepted, rotates the backbone when DEG sign agreement is below 0.5, otherwise lowers the learning rate and, on catastrophic MSD, raises ridge and cuts epochs.",
+      "tags": [
+        "heuristic",
+        "critique",
+        "config-resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "type": "function",
+      "name": "score_and_gate",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "lineRange": [
+        57,
+        129
+      ],
+      "summary": "Predicts the held-out log-FC with the backbone, computes MSD and DEG sign agreement against observed data, decides acceptance against threshold_msd, and packages an ExecutedValidation with a StructuredCritiqueDTO.",
+      "tags": [
+        "validation",
+        "scoring",
+        "gate"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "summary": "Backbone-predictor registry and package barrel: re-exports the base Protocol, config types and metric helpers, and provides available_backbones()/build_backbone() to instantiate linear, mlp, or scgpt_small backbones by name (the latter only when PyTorch is installed).",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "factory",
+        "registry",
+        "backbone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:available_backbones",
+      "type": "function",
+      "name": "available_backbones",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "lineRange": [
+        24,
+        29
+      ],
+      "summary": "Returns the tuple of backbone names instantiable in the current environment, adding scgpt_small only when torch is importable.",
+      "tags": [
+        "registry",
+        "feature-detection",
+        "backbone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "type": "function",
+      "name": "build_backbone",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "lineRange": [
+        32,
+        43
+      ],
+      "summary": "Factory that instantiates a registered backbone by name, raising ValueError for unknown names and ImportError for scgpt_small without PyTorch.",
+      "tags": [
+        "factory",
+        "registry",
+        "backbone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "type": "file",
+      "name": "base.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "summary": "Shared contract for backbone predictors: the BackbonePredictor Protocol, the BackboneTrainConfig/BackboneFitArtifacts dataclasses, and numpy helpers for per-perturbation means, log fold change and top-k mean squared deviation.",
+      "tags": [
+        "type-definition",
+        "protocol",
+        "metrics",
+        "backbone",
+        "numpy"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "BackbonePredictor is a typing.Protocol so experiment runners depend on structural typing rather than a base class; concrete backbones never subclass it."
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneTrainConfig",
+      "type": "class",
+      "name": "BackboneTrainConfig",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "lineRange": [
+        17,
+        28
+      ],
+      "summary": "Frozen dataclass of per-fit training knobs: top_k_genes, seed, max_iter, learning_rate, ridge_lambda.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneFitArtifacts",
+      "type": "class",
+      "name": "BackboneFitArtifacts",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "lineRange": [
+        32,
+        36
+      ],
+      "summary": "Frozen dataclass describing a completed fit: backbone name, number of training perturbations, train seconds and extra metadata.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "artifacts"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackbonePredictor",
+      "type": "class",
+      "name": "BackbonePredictor",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "lineRange": [
+        39,
+        63
+      ],
+      "summary": "Protocol every backbone must satisfy: a name attribute, fit() over log-normalised expression with perturbation labels and control mask, and predict_logfc() returning the per-gene log-FC vector for a held-out perturbation.",
+      "tags": [
+        "protocol",
+        "interface",
+        "backbone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:mean_squared_deviation",
+      "type": "function",
+      "name": "mean_squared_deviation",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "lineRange": [
+        66,
+        83
+      ],
+      "summary": "Computes mean squared deviation between predicted and observed log-FC, optionally restricted to top-k gene indices.",
+      "tags": [
+        "metrics",
+        "evaluation",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:per_perturbation_mean",
+      "type": "function",
+      "name": "per_perturbation_mean",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "lineRange": [
+        91,
+        102
+      ],
+      "summary": "Averages expression across cells for each perturbation label, returning a label-to-mean-vector mapping.",
+      "tags": [
+        "utility",
+        "aggregation",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:log_fold_change",
+      "type": "function",
+      "name": "log_fold_change",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "lineRange": [
+        105,
+        121
+      ],
+      "summary": "Computes pseudocount-stabilised log fold change between perturbed and control mean expression vectors.",
+      "tags": [
+        "utility",
+        "metrics",
+        "numpy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "type": "file",
+      "name": "linear.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "summary": "Pure-numpy ridge-style linear backbone, the cheapest member of the backbone family: predicts a held-out perturbation's log-FC as the training-mean log-FC pattern plus a target-gene-specific dip learned from training knockdowns.",
+      "tags": [
+        "backbone",
+        "data-model",
+        "baseline",
+        "numpy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "type": "class",
+      "name": "LinearBackbone",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "lineRange": [
+        24,
+        86
+      ],
+      "summary": "Fits the mean log-FC pattern and target-gene dip from training perturbations in under 100 ms and returns that pattern (with the dip applied at the target index) for any held-out perturbation.",
+      "tags": [
+        "backbone",
+        "baseline",
+        "linear-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "type": "file",
+      "name": "mlp.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "summary": "Minimal numpy-only two-layer tanh MLP backbone trained with momentum SGD; featurises each perturbation by gene-context one-hots and target-gene mean expression to predict per-gene log-FC as a non-linear step up from the linear baseline.",
+      "tags": [
+        "backbone",
+        "data-model",
+        "neural-network",
+        "numpy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "type": "class",
+      "name": "MLPBackbone",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "lineRange": [
+        30,
+        129
+      ],
+      "summary": "Two-layer MLP (hidden_dim default 16) with hand-written forward/backward passes; fit() builds features via _featurize and trains with SGD+momentum, predict_logfc() returns the network output for a target gene.",
+      "tags": [
+        "backbone",
+        "neural-network",
+        "sgd"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "type": "file",
+      "name": "scgpt_small.py",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "summary": "From-scratch small scGPT-like transformer backbone (gene-as-token embedding, rank-value bins, 4x128-dim encoder, ~2.1M params) with masked-expression pretraining and a LoRA perturbation head; imports lazily so the module loads without PyTorch.",
+      "tags": [
+        "backbone",
+        "transformer",
+        "pytorch",
+        "foundation-model",
+        "lazy-import"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Guards PyTorch with importlib.util.find_spec at import time (HAS_TORCH) and only imports torch inside fit(), so the registry can be imported in torch-free environments."
+    },
+    {
+      "id": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "type": "class",
+      "name": "SCGPTSmallBackbone",
+      "filePath": "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "lineRange": [
+        45,
+        190
+      ],
+      "summary": "Transformer backbone that bins expression into rank buckets, builds a MicroTransformer on the fly in fit(), learns target-gene embeddings from training perturbations, and pads predictions back to the full gene space in predict_logfc().",
+      "tags": [
+        "backbone",
+        "transformer",
+        "pytorch",
+        "lora"
+      ],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:resolve_architect_config",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:resolve_architect_config",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:dispatch_architect",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:dispatch_architect",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:dispatch_architect",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:resolve_architect_config",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:dispatch_architect",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:resolve_architect_config",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:available_backbones",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py:execute_data_curator",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py:execute_data_curator",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py:extract_expected_genes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py:extract_expected_genes",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:AgentPool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:AgentPool",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:MockAgentPool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:MockAgentPool",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:MockAgentPool",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:AgentPool",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py:resolve_architect_config",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py:execute_data_curator",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py:execute_trainer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py:extract_expected_genes",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py:run_agentic_lifecycle",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py:execute_trainer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py:execute_trainer",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py:execute_trainer",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneTrainConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedProposal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedProposal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:StructuredCritiqueDTO",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:StructuredCritiqueDTO",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedValidation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedValidation",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:LifecycleStep",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:LifecycleStep",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:LifecycleRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:LifecycleRun",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:suggest_config_delta",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:suggest_config_delta",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:suggest_config_delta",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:mean_squared_deviation",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:ExecutedValidation",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py:score_and_gate",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py:StructuredCritiqueDTO",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:available_backbones",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:available_backbones",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py:build_backbone",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneTrainConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneTrainConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneFitArtifacts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackboneFitArtifacts",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackbonePredictor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackbonePredictor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:mean_squared_deviation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:mean_squared_deviation",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:per_perturbation_mean",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:per_perturbation_mean",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:log_fold_change",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:log_fold_change",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackbonePredictor",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:log_fold_change",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py:LinearBackbone",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:per_perturbation_mean",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackbonePredictor",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:log_fold_change",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py:MLPBackbone",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:per_perturbation_mean",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "target": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:BackbonePredictor",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:log_fold_change",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py:SCGPTSmallBackbone",
+      "target": "function:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py:per_perturbation_mean",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py",
+      "target": "file:projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}

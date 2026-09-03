@@ -1,0 +1,551 @@
+{
+  "scriptCompleted": true,
+  "stats": {
+    "filesScanned": 294,
+    "filesWithImports": 78,
+    "totalEdges": 169
+  },
+  "importMap": {
+    ".env.example": [],
+    ".gitmodules": [],
+    ".understand-anything/.understandignore": [],
+    ".understand-anything/config.json": [],
+    ".understand-anything/tmp/ua-scan-stderr.txt": [],
+    "docs/superpowers/plans/2026-05-15-scilab-virtual-lab.md": [],
+    "libs/cellforge-agents/examples/perturbation_run.py": [],
+    "libs/cellforge-agents/pyproject.toml": [],
+    "libs/cellforge-agents/README.md": [],
+    "libs/cellforge-agents/requirements.txt": [],
+    "libs/cellforge-agents/src/cellforge/__init__.py": [
+      "libs/cellforge-agents/src/cellforge/orchestrator.py",
+      "libs/cellforge-agents/src/cellforge/problem.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/__main__.py": [
+      "libs/cellforge-agents/src/cellforge/cli.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/__init__.py": [
+      "libs/cellforge-agents/src/cellforge/agents/architect.py",
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
+      "libs/cellforge-agents/src/cellforge/agents/literature.py",
+      "libs/cellforge-agents/src/cellforge/agents/trainer.py",
+      "libs/cellforge-agents/src/cellforge/agents/validator.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/architect.py": [
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/problem.py",
+      "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/base.py": [
+      "libs/cellforge-agents/src/cellforge/problem.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/data_curator.py": [
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/problem.py",
+      "libs/cellforge-agents/src/cellforge/tools/omics.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/literature.py": [
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/problem.py",
+      "libs/cellforge-agents/src/cellforge/tools/literature.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/trainer.py": [
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/problem.py",
+      "libs/cellforge-agents/src/cellforge/tools/trainer.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/agents/validator.py": [
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/problem.py",
+      "libs/cellforge-agents/src/cellforge/tools/pathway.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/backends/__init__.py": [
+      "libs/cellforge-agents/src/cellforge/backends/base.py",
+      "libs/cellforge-agents/src/cellforge/backends/mock.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/backends/base.py": [],
+    "libs/cellforge-agents/src/cellforge/backends/mock.py": [],
+    "libs/cellforge-agents/src/cellforge/cli.py": [
+      "libs/cellforge-agents/src/cellforge/agents/__init__.py",
+      "libs/cellforge-agents/src/cellforge/orchestrator.py",
+      "libs/cellforge-agents/src/cellforge/problem.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/orchestrator.py": [
+      "libs/cellforge-agents/src/cellforge/agents/base.py",
+      "libs/cellforge-agents/src/cellforge/problem.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/problem.py": [],
+    "libs/cellforge-agents/src/cellforge/tools/__init__.py": [
+      "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+      "libs/cellforge-agents/src/cellforge/tools/literature.py",
+      "libs/cellforge-agents/src/cellforge/tools/omics.py",
+      "libs/cellforge-agents/src/cellforge/tools/pathway.py",
+      "libs/cellforge-agents/src/cellforge/tools/trainer.py"
+    ],
+    "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py": [],
+    "libs/cellforge-agents/src/cellforge/tools/literature.py": [],
+    "libs/cellforge-agents/src/cellforge/tools/omics.py": [],
+    "libs/cellforge-agents/src/cellforge/tools/pathway.py": [],
+    "libs/cellforge-agents/src/cellforge/tools/trainer.py": [],
+    "libs/cellforge-agents/tests/test_agents.py": [],
+    "libs/cellforge-agents/tests/test_orchestrator.py": [],
+    "libs/cellforge-agents/tests/test_tools.py": [],
+    "libs/test-time-compute/examples/ttc_sweep.py": [],
+    "libs/test-time-compute/pyproject.toml": [],
+    "libs/test-time-compute/README.md": [],
+    "libs/test-time-compute/requirements.txt": [],
+    "libs/test-time-compute/src/ttc/__init__.py": [
+      "libs/test-time-compute/src/ttc/config.py",
+      "libs/test-time-compute/src/ttc/runner.py"
+    ],
+    "libs/test-time-compute/src/ttc/__main__.py": [
+      "libs/test-time-compute/src/ttc/cli.py"
+    ],
+    "libs/test-time-compute/src/ttc/cli.py": [
+      "libs/test-time-compute/src/ttc/config.py",
+      "libs/test-time-compute/src/ttc/runner.py"
+    ],
+    "libs/test-time-compute/src/ttc/config.py": [],
+    "libs/test-time-compute/src/ttc/model_loader.py": [],
+    "libs/test-time-compute/src/ttc/runner.py": [
+      "libs/test-time-compute/src/ttc/config.py",
+      "libs/test-time-compute/src/ttc/scoring.py",
+      "libs/test-time-compute/src/ttc/strategies.py"
+    ],
+    "libs/test-time-compute/src/ttc/scoring.py": [],
+    "libs/test-time-compute/src/ttc/strategies.py": [
+      "libs/test-time-compute/src/ttc/config.py",
+      "libs/test-time-compute/src/ttc/scoring.py"
+    ],
+    "libs/test-time-compute/tests/conftest.py": [],
+    "libs/test-time-compute/tests/test_runner_smoke.py": [],
+    "libs/test-time-compute/tests/test_scoring.py": [],
+    "libs/test-time-compute/tests/test_strategies.py": [],
+    "paper_standalone/.github/workflows/latex.yml": [],
+    "paper_standalone/experiments/generate_tables.py": [],
+    "paper_standalone/experiments/plot.py": [],
+    "paper_standalone/experiments/simulate.py": [],
+    "paper_standalone/Makefile": [],
+    "paper_standalone/paper.tex": [],
+    "paper_standalone/README.md": [],
+    "paper_standalone/references.bib": [],
+    "paper_standalone/src/perturb_eval/__init__.py": [
+      "paper_standalone/src/perturb_eval/bayesian.py",
+      "paper_standalone/src/perturb_eval/metrics.py",
+      "paper_standalone/src/perturb_eval/probe.py",
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/__main__.py": [
+      "paper_standalone/src/perturb_eval/cli.py"
+    ],
+    "paper_standalone/src/perturb_eval/_env.py": [],
+    "paper_standalone/src/perturb_eval/adamson_loader.py": [
+      "paper_standalone/src/perturb_eval/data.py"
+    ],
+    "paper_standalone/src/perturb_eval/backends/__init__.py": [
+      "paper_standalone/src/perturb_eval/backends/openrouter.py"
+    ],
+    "paper_standalone/src/perturb_eval/backends/openrouter.py": [],
+    "paper_standalone/src/perturb_eval/bayesian.py": [
+      "paper_standalone/src/perturb_eval/probe.py",
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/calibration.py": [
+      "paper_standalone/src/perturb_eval/metrics.py",
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/cli.py": [
+      "paper_standalone/src/perturb_eval/bayesian.py",
+      "paper_standalone/src/perturb_eval/probe.py"
+    ],
+    "paper_standalone/src/perturb_eval/data.py": [],
+    "paper_standalone/src/perturb_eval/instrumentation.py": [
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/massgen_adapter.py": [
+      "paper_standalone/src/perturb_eval/bayesian.py",
+      "paper_standalone/src/perturb_eval/metrics.py",
+      "paper_standalone/src/perturb_eval/probe.py",
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/metrics.py": [
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/model.py": [],
+    "paper_standalone/src/perturb_eval/probe.py": [
+      "paper_standalone/src/perturb_eval/metrics.py",
+      "paper_standalone/src/perturb_eval/types.py"
+    ],
+    "paper_standalone/src/perturb_eval/types.py": [],
+    "paper_standalone/tables/tab1_metric_correlations.tex": [],
+    "paper_standalone/tables/tab2_calibration_improvement.tex": [],
+    "paper_standalone/tables/tab3_probe_to_target.tex": [],
+    "paper_standalone/tables/tab4_agent_scaling.tex": [],
+    "paper_standalone/tables/tab5_pareto_samples.tex": [],
+    "projects/perturb-seq-eval/artifacts/dry_run/e1_overlap.json": [],
+    "projects/perturb-seq-eval/artifacts/dry_run/e2_grid.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/dry_run/e3_trajectories.json": [],
+    "projects/perturb-seq-eval/artifacts/dry_run/e3b_task_conditional.json": [],
+    "projects/perturb-seq-eval/artifacts/dry_run/summary.json": [],
+    "projects/perturb-seq-eval/artifacts/lifecycle_dryrun/dryrun_runs.json": [],
+    "projects/perturb-seq-eval/artifacts/lifecycle/adamson_lifecycle_runs.json": [],
+    "projects/perturb-seq-eval/artifacts/lifecycle/adamson_live_optimizer.json": [],
+    "projects/perturb-seq-eval/artifacts/live/last_run.json": [],
+    "projects/perturb-seq-eval/artifacts/live/llm_calls.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/local/e1_overlap.json": [],
+    "projects/perturb-seq-eval/artifacts/local/e2_grid.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/local/e3_trajectories.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/figures/fig1_metric_heatmap.html": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/figures/fig2_e3_synthetic.html": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/figures/fig3_e3_adamson.html": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/figures/fig4_e3b_task_conditional.html": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/figures/fig5_backbone_msd.html": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/figures/fig6_lifecycle_optimizer.html": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/results/e1_overlap.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/results/e2_grid_adamson.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/results/e2_grid_synthetic.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/results/e3_adamson.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/results/e3_synthetic.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/results/e3b_task_conditional.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/revision/revision_stats_lifecycle.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/revision/revision_stats_real_probes_biofm.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/revision/revision_stats_real_probes.json": [],
+    "projects/perturb-seq-eval/artifacts/modal_run/revision/revision_stats.json": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_audit.json": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_probes_biofm.json": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_probes.json": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_raw_rounds_biofm.json": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_raw_rounds.json": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_traces_biofm.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/real_probes/adamson_traces.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/v0.5.0/dry_run_summary.json": [],
+    "projects/perturb-seq-eval/artifacts/v0.5.0/lifecycle_runs.jsonl": [],
+    "projects/perturb-seq-eval/artifacts/v0.5.0/provenance.json": [],
+    "projects/perturb-seq-eval/artifacts/v0.5.0/summary.json": [],
+    "projects/perturb-seq-eval/artifacts/v0.5.0/trainer_runs.jsonl": [],
+    "projects/perturb-seq-eval/CHANGELOG.md": [],
+    "projects/perturb-seq-eval/CITATION.cff": [],
+    "projects/perturb-seq-eval/configs/live.yaml": [],
+    "projects/perturb-seq-eval/docs/DESIGN.md": [],
+    "projects/perturb-seq-eval/docs/INTERNAL_FOLLOWUP.md": [],
+    "projects/perturb-seq-eval/docs/MODAL.md": [],
+    "projects/perturb-seq-eval/docs/plans/2026-04-22-end-to-end-agentic-lifecycle.md": [],
+    "projects/perturb-seq-eval/docs/PUBLICATION_CHECKLIST.md": [],
+    "projects/perturb-seq-eval/docs/REVIEWER_CRITIQUE.md": [],
+    "projects/perturb-seq-eval/docs/SUPPLEMENT_DESIGN.md": [],
+    "projects/perturb-seq-eval/docs/SUPPLEMENT.md": [],
+    "projects/perturb-seq-eval/docs/THESIS.md": [],
+    "projects/perturb-seq-eval/examples/end_to_end.py": [],
+    "projects/perturb-seq-eval/LIVE_RUN.md": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/__init__.py": [
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py"
+    ],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/extractors/test_extractors_skeleton.py": [
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/confidence.py",
+      "projects/perturb-seq-eval/massgen_skill_draft/extractors/severity.py"
+    ],
+    "projects/perturb-seq-eval/massgen_skill_draft/handlers/__init__.py": [
+      "projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py",
+      "projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py"
+    ],
+    "projects/perturb-seq-eval/massgen_skill_draft/handlers/evaluate.py": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/handlers/preflight.py": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/patches/add-difficulty-metrics.patch": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/patches/PR_DESCRIPTION.md": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/prompts/severity_rater.md": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/README.md": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/SKILL.md": [],
+    "projects/perturb-seq-eval/massgen_skill_draft/skill.yaml": [],
+    "projects/perturb-seq-eval/paper/paper.aux": [],
+    "projects/perturb-seq-eval/paper/paper.bbl": [],
+    "projects/perturb-seq-eval/paper/paper.blg": [],
+    "projects/perturb-seq-eval/paper/paper.out": [],
+    "projects/perturb-seq-eval/paper/paper.tex": [],
+    "projects/perturb-seq-eval/paper/README.md": [],
+    "projects/perturb-seq-eval/paper/references.bib": [],
+    "projects/perturb-seq-eval/paper/sections/v050_experimental_setup.tex": [],
+    "projects/perturb-seq-eval/paper/sections/v050_results_filled.tex": [],
+    "projects/perturb-seq-eval/paper/sections/v050_results.tex": [],
+    "projects/perturb-seq-eval/paper/tables/tab1_metric_correlations.tex": [],
+    "projects/perturb-seq-eval/paper/tables/tab2_calibration_improvement.tex": [],
+    "projects/perturb-seq-eval/paper/tables/tab3_probe_to_target.tex": [],
+    "projects/perturb-seq-eval/paper/tables/tab4_agent_scaling.tex": [],
+    "projects/perturb-seq-eval/paper/tables/tab5_pareto_samples.tex": [],
+    "projects/perturb-seq-eval/publish.state.json": [],
+    "projects/perturb-seq-eval/publish.yml": [],
+    "projects/perturb-seq-eval/pyproject.toml": [],
+    "projects/perturb-seq-eval/README.md": [],
+    "projects/perturb-seq-eval/requirements.txt": [],
+    "projects/perturb-seq-eval/scripts/fetch_adamson.py": [],
+    "projects/perturb-seq-eval/scripts/live_smoke.py": [],
+    "projects/perturb-seq-eval/scripts/local/analyze_lifecycle_results.py": [],
+    "projects/perturb-seq-eval/scripts/local/bootstrap_and_analyze.py": [],
+    "projects/perturb-seq-eval/scripts/local/collect_real_probes.py": [],
+    "projects/perturb-seq-eval/scripts/local/e3b_task_conditional.py": [],
+    "projects/perturb-seq-eval/scripts/local/full_local_dry_run.py": [],
+    "projects/perturb-seq-eval/scripts/local/pull_v05_artifacts.py": [],
+    "projects/perturb-seq-eval/scripts/local/render_fig6_lifecycle.py": [],
+    "projects/perturb-seq-eval/scripts/local/render_figures_png.py": [],
+    "projects/perturb-seq-eval/scripts/local/render_figures_revised.py": [],
+    "projects/perturb-seq-eval/scripts/local/rerun_e3_with_real_probes.py": [],
+    "projects/perturb-seq-eval/scripts/local/run_lifecycle_dryrun.py": [],
+    "projects/perturb-seq-eval/scripts/local/v05_dry_run.py": [],
+    "projects/perturb-seq-eval/scripts/modal/app_biofm.py": [],
+    "projects/perturb-seq-eval/scripts/modal/app_lifecycle_optimizer.py": [],
+    "projects/perturb-seq-eval/scripts/modal/app_lifecycle.py": [],
+    "projects/perturb-seq-eval/scripts/modal/app_v05_lifecycle_only.py": [],
+    "projects/perturb-seq-eval/scripts/modal/app_v05.py": [],
+    "projects/perturb-seq-eval/scripts/modal/collect_traces.py": [],
+    "projects/perturb-seq-eval/scripts/paper/fill_v050_numbers.py": [],
+    "projects/perturb-seq-eval/scripts/publish/submit_to_venues.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+      "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+      "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/__main__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/cli.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/_env.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/adamson_loader.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/data.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/cellforge_pool.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/freedom_probe.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/llm_agent_pool.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/proposal_schema.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/data_curator_exec.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/literature_exec.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/proposal_schema.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/validator_gate.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py",
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/linear.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/mlp.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/base.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backends/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backends/openrouter.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/backends/openrouter.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/bayesian.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/biofm_tools/__init__.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/biofm_tools/biogpt_literature.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/biofm_tools/geneformer_validator.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/calibration.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/cli.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+      "projects/perturb-seq-eval/src/perturb_eval/probe.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/data.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/data/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/data/download.py",
+      "projects/perturb-seq-eval/src/perturb_eval/data/subsample.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/data/download.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/data/subsample.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/freedom_probe.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/e2_grid_fill.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/backbones/__init__.py",
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/e3_optimizer_comparison.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/experiments/common.py",
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/experiments/norman.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/instrumentation.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/llm/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/llm/openrouter_client.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/llm/openrouter_client.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/massgen_adapter.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/bayesian.py",
+      "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+      "projects/perturb-seq-eval/src/perturb_eval/probe.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/metrics.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/model.py": [],
+    "projects/perturb-seq-eval/src/perturb_eval/optimizers/__init__.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py",
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py",
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/optimizers/cma_es.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/optimizers/contextual_gp.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/optimizers/random_baseline.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/optimizers/base.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/probe.py": [
+      "projects/perturb-seq-eval/src/perturb_eval/metrics.py",
+      "projects/perturb-seq-eval/src/perturb_eval/types.py"
+    ],
+    "projects/perturb-seq-eval/src/perturb_eval/types.py": [],
+    "projects/perturb-seq-eval/tests/conftest.py": [],
+    "projects/perturb-seq-eval/tests/test_adamson_combined.py": [],
+    "projects/perturb-seq-eval/tests/test_agentic_lifecycle.py": [],
+    "projects/perturb-seq-eval/tests/test_architect_dispatch_v05.py": [],
+    "projects/perturb-seq-eval/tests/test_backbones.py": [],
+    "projects/perturb-seq-eval/tests/test_bayesian.py": [],
+    "projects/perturb-seq-eval/tests/test_calibration.py": [],
+    "projects/perturb-seq-eval/tests/test_data_download.py": [],
+    "projects/perturb-seq-eval/tests/test_data_subsample.py": [],
+    "projects/perturb-seq-eval/tests/test_experiments.py": [],
+    "projects/perturb-seq-eval/tests/test_fill_v050_numbers.py": [],
+    "projects/perturb-seq-eval/tests/test_freedom_e2e.py": [],
+    "projects/perturb-seq-eval/tests/test_freedom_probe.py": [],
+    "projects/perturb-seq-eval/tests/test_instrumentation.py": [],
+    "projects/perturb-seq-eval/tests/test_llm_agent_pool.py": [],
+    "projects/perturb-seq-eval/tests/test_metrics_extended.py": [],
+    "projects/perturb-seq-eval/tests/test_metrics.py": [],
+    "projects/perturb-seq-eval/tests/test_model.py": [],
+    "projects/perturb-seq-eval/tests/test_no_synthetic_generators.py": [],
+    "projects/perturb-seq-eval/tests/test_norman_loader.py": [],
+    "projects/perturb-seq-eval/tests/test_openrouter_client.py": [],
+    "projects/perturb-seq-eval/tests/test_optimizers.py": [],
+    "projects/perturb-seq-eval/tests/test_probe.py": [],
+    "projects/perturb-seq-eval/tests/test_proposal_schema.py": [],
+    "projects/perturb-seq-eval/tests/test_v05_analysis.py": [],
+    "projects/perturb-seq-eval/tests/test_validator_critique.py": [],
+    "README.md": [],
+    "research/MODELS.md": [],
+    "research/pr_drafts/cellforge_preflight_hook.md": [],
+    "research/pr_drafts/massgen_skill_contribution.md": [],
+    "research/PUBLICATION_EVIDENCE.md": [],
+    "research/PUBLISHING_RUNBOOK.md": [],
+    "research/PUBLISHING_VENUES.md": [],
+    "research/RELEASE_SOCIAL.md": [],
+    "research/test-time-compute-guide/GUIDE.md": [],
+    "research/test-time-compute-guide/README.md": [],
+    "research/test-time-compute-guide/ref_impl/__init__.py": [
+      "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "research/test-time-compute-guide/ref_impl/majority_vote.py",
+      "research/test-time-compute-guide/ref_impl/types.py",
+      "research/test-time-compute-guide/ref_impl/weighted_majority.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/adaptive_budget.py": [
+      "research/test-time-compute-guide/ref_impl/best_of_n.py",
+      "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "research/test-time-compute-guide/ref_impl/types.py",
+      "research/test-time-compute-guide/ref_impl/weighted_majority.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/best_of_n.py": [
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/iterative_revision.py": [
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/majority_vote.py": [
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/tests/__init__.py": [],
+    "research/test-time-compute-guide/ref_impl/tests/conftest.py": [
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py": [
+      "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py": [
+      "research/test-time-compute-guide/ref_impl/best_of_n.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py": [
+      "research/test-time-compute-guide/ref_impl/iterative_revision.py",
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py": [
+      "research/test-time-compute-guide/ref_impl/majority_vote.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py": [
+      "research/test-time-compute-guide/ref_impl/types.py",
+      "research/test-time-compute-guide/ref_impl/weighted_majority.py"
+    ],
+    "research/test-time-compute-guide/ref_impl/types.py": [],
+    "research/test-time-compute-guide/ref_impl/weighted_majority.py": [
+      "research/test-time-compute-guide/ref_impl/types.py"
+    ],
+    "scripts/publish/publish.yml.template": [],
+    "scripts/publish/submit.py": []
+  }
+}

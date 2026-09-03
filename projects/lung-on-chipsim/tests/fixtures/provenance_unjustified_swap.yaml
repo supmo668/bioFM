@@ -1,0 +1,21 @@
+# ============================================================================
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# Exists only so agent-owned done-conditions can fail honestly while the
+# human-gated tasks (T1/T2/T8/T14/T18) are outstanding. Build-plan S5 /
+# defect 33. No pipeline path may read this file; tests/test_fixtures.py
+# asserts that.
+# ============================================================================
+# NEGATIVE. Commit swapped with NO rationale -> T11 must FAIL this (defect 17).
+
+source_commit:            feedfacefeedfacefeedfacefeedfacefeedface
+audited_commit:           deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+commit_change_rationale:  ""
+source_repo:      https://github.com/dhimmel/drugbank
+upstream_version: "4.2"
+snapshot_date:    "2015-03-19"
+licence:          CC BY-NC 4.0 (DrugBank content and derivatives)
+attribution:
+  - Wishart et al., Nucleic Acids Res (2014), doi:10.1093/nar/gkt1068
+  - Himmelstein et al., Zenodo, doi:10.5281/zenodo.45579
+  - "Licence discussion: doi:10.15363/thinklab.d213"
+non_commercial_commitment: "FIXTURE SENTINEL - the real commitment is written by H in T1, in H's own words."

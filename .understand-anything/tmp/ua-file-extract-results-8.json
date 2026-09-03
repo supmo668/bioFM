@@ -1,0 +1,93 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "libs/cellforge-agents/src/cellforge/backends/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 4,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/backends/base.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 17,
+      "nonEmptyLines": 10,
+      "classes": [
+        {
+          "name": "LLMBackend",
+          "startLine": 8,
+          "endLine": 17,
+          "methods": [
+            "complete"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "LLMBackend",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 49,
+      "nonEmptyLines": 43,
+      "classes": [
+        {
+          "name": "MockBackend",
+          "startLine": 14,
+          "endLine": 49,
+          "methods": [
+            "complete"
+          ],
+          "properties": [
+            "name"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "MockBackend",
+          "line": 13,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "complete",
+          "callee": "user.lower",
+          "lineNumber": 18
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    }
+  ]
+}
