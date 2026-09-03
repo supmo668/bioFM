@@ -24,6 +24,7 @@ already had to have corrected once.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import sys
@@ -35,11 +36,23 @@ from chipsim import pipeline
 
 
 class _FakeStdin:
-    def __init__(self, tty: bool) -> None:
+    """A stdin that can claim to be a terminal and can answer the E-4 prompt.
+
+    `answer` defaults to the confirmation, because tests that predate the
+    confirmation read are asserting the TTY gate, not the prompt — they should
+    keep testing what they were written to test. A test that wants to exercise a
+    REFUSAL passes something else and asserts nothing was written.
+    """
+
+    def __init__(self, tty: bool, answer: str = "seal\n") -> None:
         self._tty = tty
+        self._answer = answer
 
     def isatty(self) -> bool:
         return self._tty
+
+    def readline(self) -> str:
+        return self._answer
 
 
 @pytest.fixture
@@ -185,3 +198,66 @@ def test_the_fixture_redirects_the_journal_away_from_the_real_tree(
         "panel-seal would journal into the REAL project tree — Constraint (4)'s "
         "audit trail must not carry test-authored entries"
     )
+
+
+# --- E-4: the confirmation read -------------------------------------------
+
+
+def _sealed_fixture(tmp_path, fixture_dir):
+    """A ratified panel copy in tmp_path. Fixtures only — Constraint (4)."""
+    import shutil
+
+    p = tmp_path / "panel.yaml"
+    shutil.copy2(fixture_dir / "barrier_panel_ratified.yaml", p)
+    return p
+
+
+def test_confirmation_refusal_writes_nothing(tmp_path, fixture_dir, monkeypatch, capsys):
+    """A TTY proves a terminal is attached, never that anyone is at it.
+
+    A pty allocated by a wrapper satisfies isatty() with nobody present, so the
+    read is what makes the act deliberate. On refusal the panel must be
+    BYTE-IDENTICAL — a seal that half-happens is worse than one that did not.
+    """
+    from chipsim import pipeline
+
+    panel = _sealed_fixture(tmp_path, fixture_dir)
+    before = panel.read_bytes()
+
+    monkeypatch.setattr(pipeline, "_stdin_is_interactive", lambda: True)
+    monkeypatch.setattr("sys.stdin", io.StringIO("no thanks\n"))
+
+    rc = pipeline.main(["panel-seal", "--panel", str(panel)])
+
+    assert rc == 2, "a refused confirmation must exit non-zero"
+    assert panel.read_bytes() == before, "refusing to seal must write nothing at all"
+
+
+def test_confirmation_accepted_seals(tmp_path, fixture_dir, monkeypatch):
+    """Positive control — the gate must not block the sanctioned path."""
+    from chipsim import pipeline
+
+    panel = _sealed_fixture(tmp_path, fixture_dir)
+    monkeypatch.setattr(pipeline, "_stdin_is_interactive", lambda: True)
+    monkeypatch.setattr("sys.stdin", io.StringIO("seal\n"))
+
+    rc = pipeline.main(["panel-seal", "--panel", str(panel)])
+
+    assert rc == 0
+    assert "ratified_panel_sha256" in panel.read_text()
+
+
+def test_empty_stdin_is_a_refusal_not_a_seal(tmp_path, fixture_dir, monkeypatch):
+    """EOF on stdin — a closed pipe, a killed parent — must refuse.
+
+    Reading '' and treating it as consent is the fail-open form of this gate.
+    """
+    from chipsim import pipeline
+
+    panel = _sealed_fixture(tmp_path, fixture_dir)
+    before = panel.read_bytes()
+    monkeypatch.setattr(pipeline, "_stdin_is_interactive", lambda: True)
+    monkeypatch.setattr("sys.stdin", io.StringIO(""))
+
+    assert pipeline.main(["panel-seal", "--panel", str(panel)]) == 2
+    assert panel.read_bytes() == before

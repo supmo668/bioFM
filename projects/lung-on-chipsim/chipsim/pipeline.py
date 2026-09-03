@@ -158,6 +158,38 @@ def _cmd_panel_seal(ns) -> int:
         )
         return 2
 
+    # E-4: a confirmation READ, not merely a TTY check.
+    #
+    # `isatty()` proves a terminal is attached. It does not prove anyone is at it
+    # — a pty allocated by a wrapper, a CI runner with a pseudo-terminal, or a
+    # session left open all satisfy it while nobody is present. Requiring an
+    # actual line from stdin is what makes the act deliberate, and deliberateness
+    # is the exact property the seal is meant to assert.
+    #
+    # One keystroke is proportionate. It is NOT authentication and nothing here
+    # may be described as such: whoever types it is unidentified, and an agent
+    # that allocates a pty can also write to it. It raises the floor from
+    # "accidentally reachable" to "deliberately circumvented" — the same bound as
+    # the TTY gate, for the same reason.
+    print(
+        f"About to seal {ns.panel}.\n"
+        "This records a tamper-evident digest over the panel and its ratification "
+        "fields. It does NOT prove who ran it.\n"
+        "Type 'seal' to continue, anything else to abort: ",
+        end="",
+        flush=True,
+    )
+    try:
+        answer = sys.stdin.readline()
+    except (OSError, KeyboardInterrupt):
+        answer = ""
+    if answer.strip().lower() != "seal":
+        print(
+            "ERROR: refusing to seal — confirmation not given. Nothing was written.",
+            file=sys.stderr,
+        )
+        return 2
+
     from chipsim.harmonize.pgp_label import seal_panel
 
     digest = seal_panel(ns.panel)
