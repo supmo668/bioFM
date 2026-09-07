@@ -185,7 +185,8 @@ projects/lung-on-chipsim/
     shuffle.py      R3 · target-shuffle construction
     mutants.py      R4 · matched pocket/distal mutant construction
     cliffs.py       R5 · matched-molecular-pair cliff stratification
-    abundance.py    R6 · atlas-vs-HPA per-protein ratio
+    abundance.py    R6 · atlas-vs-HPA per-protein ratio; AbundanceOutcome (3 members,
+                    distinct from verdict.py's Verdict — see R6)
     budget.py       R9 · Modal spend ledger + halt
     verdict.py      R8 · the three-valued verdict
     report.py       R7 + R8 · report generation
@@ -489,9 +490,36 @@ pre-registration, not from code.
 
 ### R6 · Atlas abundances vs HPA
 **Behavior.** Per-protein ratio; pass evaluated per protein at one order of magnitude; modality
-declared and cross-modality flagged (F3).
-**Tests.** the criterion is evaluated per protein, never on an average; a cross-modality ratio is
-flagged; an `hpa_reference.yaml` entry without a citation is rejected by the validator.
+declared. **A cross-modality pair (nTPM transcript vs HPA protein) renders `NOT_COMPARABLE` and
+scores nothing** — it is neither a pass nor a fail and contributes to no verdict.
+
+**Principal's ruling, 2026-09-06 (1B1): refuse, not flag.** r1.2 left this open between
+permitted-and-flagged and refused. Refused, for the reason that decided R4's units one section
+earlier: **an order-of-magnitude criterion between transcript and protein can be satisfied or
+broken by normalisation choice alone, so it is not a criterion.** Transcript and protein abundance
+are different quantities — their correlation is weak enough in general that "agrees within 10×"
+carries little evidential weight either way — and a flag on a rendered *pass* is read as a caveat on
+a result rather than as the absence of one.
+
+This costs coverage, and the cost is the point: fewer proteins receive a verdict, and the report
+says so in the verdict column instead of showing a green a unit change could have manufactured.
+`NOT_COMPARABLE` is a rendered outcome, not a silent omission — F7's rule (an absent result must
+never read as a pass) applies here exactly as it does to `inconclusive`.
+
+**`NOT_COMPARABLE` is NOT a fourth `Verdict` member.** R8 requires `len(Verdict) == 3` and that
+stands unchanged: `Verdict` is the D3a partition over CIs in `verdict.py`, and R6 is a separate
+check in `abundance.py` over abundance ratios. Written out because "renders `NOT_COMPARABLE`" reads
+naturally as a new `Verdict` case, and a sealed test author who added it there would break R8's
+totality test while apparently implementing this section.
+
+R6 therefore gets its **own** three-member outcome type — `AbundanceOutcome` = `{PASS, FAIL,
+NOT_COMPARABLE}` — rather than a boolean plus a flag. Same reasoning as F7: a two-valued result has
+nowhere to put "no comparison was possible" except into one of the two answers, and it lands in
+whichever one the caller defaults to.
+
+**Tests.** the criterion is evaluated per protein, never on an average; **a cross-modality pair
+renders `NOT_COMPARABLE` and appears in no pass/fail tally**; **a cross-modality pair that renders
+as a pass fails**; an `hpa_reference.yaml` entry without a citation is rejected by the validator.
 
 ### R7 · Both arms always reported
 **Behavior.** `arms.yaml` gives every LBM arm a `fallback:` pointer. The report generator raises if
@@ -543,31 +571,92 @@ money. These are the standing 1B1 agenda with the principal.
 1. **R1 · preflight floors.** The *mechanism* is now fixed and consistent with R9 (local ledger,
    never the remote figure). The **floor values** — free RAM, free disk, minimum remaining
    allowance — are not set. A floor is a claim about what this study needs to run honestly.
-2. **R3/R4 · the pre-registered thresholds.** D3a fixes the *shape* (closed bounds, a partition) and
-   the ρ-unit numbers are provisional at `+0.20` / `±0.10`. **R4 now needs its own pair in
-   predicted-affinity units** — new in r1.2, and there is no defensible way for me to invent them.
+2. **R3/R4 · the pre-registered thresholds.** ρ-units settled at `+0.20` / `±0.10`. **R4's
+   affinity-unit pair is DEFERRED TO THE PILOT** — see the sourcing ruling below.
 3. **R5 · what counts as a cliff.** "A pre-registered potency or efflux cliff" names no magnitude.
-   Until it does, the cliff stratum is undefined and R5 is untestable — the same defect r1.2 just
-   fixed in R4.
-4. **R6 · modality handling.** F3 permits a cross-modality comparison if flagged. The open question
-   is whether nTPM-vs-protein should be **permitted-and-flagged** or **refused**: an
-   order-of-magnitude criterion can be satisfied by unit choice alone, so "flagged" may be too weak.
+   **DEFERRED TO THE PILOT** — same sourcing ruling.
+4. ~~**R6 · modality handling.**~~ **DECIDED 2026-09-06 — refused.** A cross-modality pair renders
+   `NOT_COMPARABLE` and scores nothing. See R6.
 5. **R9/R10 · the ceiling and the replay bar.** R9's dollar ceiling is unset. R10 now demands a
    six-part key; whether replay must reproduce **bit-identically** or **within a declared
    tolerance** is unresolved, and Boltz-2 on GPU is not obviously bit-reproducible across runs.
+6. **G1 · "substitution radicality" has no metric** — F2a's fourth matching axis, on which R4's
+   control depends. See *Named but unspecified* below. **Human-owned** (a claim about chemical
+   severity).
+7. **G2 · the cost estimate `batch_cost_usd` has no estimator** — R9's guard is unfalsifiable
+   without one. See *Named but unspecified* below. **Mine to specify**, not a routing.
+
+> **This list is the complete blocking set.** Items 6 and 7 come from the r1.3 sweep and are stated
+> here rather than only in their own section, because a reader who trusts a list headed *"blocking
+> the seal"* will not go looking for two more blockers three sections further down. A list that
+> looks exhaustive and is not is the same defect as a test whose docstring overstates it.
+
+### Threshold sourcing — principal's ruling, 2026-09-06 (1B1)
+
+**Pilot first, then seal.** R4's affinity-unit band and R5's cliff magnitude describe a scale nobody
+has measured on this system: no pilot has run, and no measured effect-size or resource figure exists
+anywhere in the repository. A pre-registered threshold chosen without knowing the statistic's spread
+is a guess in the costume of rigor, and it is the number a skeptic attacks first when the study
+returns a null — precisely the attack the OpenTimestamps proof exists to survive. So the numbers are
+measured, then sealed.
+
+**The condition that makes this legitimate, and it is not optional.** A threshold set from data you
+have *seen* is not pre-registered. The pilot therefore runs on a **held-out target set that never
+enters the confirmatory analysis**, and **the split itself is sealed with the thresholds** — the
+allocation is part of the pre-registration, not a decision taken afterwards. Without that, "pilot
+first" is indistinguishable from tuning the band until the result clears it, and the seal would
+notarise the tuning.
+
+R1's RAM and disk floors are measured in the same pass (G3's power rule folds in here too). R1's
+**allowance floor** and R9's **ceiling** are value judgments, not measurements, and remain open.
 
 ### Scope
 
-6. **Chai-1 geometry arm — admission conditions.** In only if Modal credit remains. **Chai-1 is
+8. **Chai-1 geometry arm — admission conditions.** In only if Modal credit remains. **Chai-1 is
    geometry only and never scores.** It produces no affinity, enters no arm under R7, and
    contributes to no verdict; it would exist to check whether the co-folded pose R4's 5 Å pocket
    definition depends on is stable. Stated here so the line is held at specification time rather
    than argued at analysis time: **if Chai-1 output ever reaches a statistic, that is a defect.**
-7. **T8 completion** — decides lung-barrier vs generic. Not a blocker: §R2.4 narrows the claim
+9. **T8 completion** — decides lung-barrier vs generic. Not a blocker: §R2.4 narrows the claim
    automatically, so the study runs today at the narrower claim. Note r1.2's correction — widening
    is **human-gated**, not mechanical.
-8. **Rounds beyond pilot + confirmatory** — assumed two; budget caps it.
-9. **AM-6** — open upstream, unrelated to this study.
+10. **Rounds beyond pilot + confirmatory** — assumed two; budget caps it.
+11. **AM-6** — open upstream, unrelated to this study.
+
+### Named but unspecified — the R4 defect class, swept systematically (r1.3)
+
+r1.2 fixed `effect` (R4) and the `inconclusive` overlap (D3a) **as individual defects**, both
+surfaced by review rather than by search. They share one shape: *an operation the document names,
+that a test must check, and that the document never defines.* A sealed test author meets these as a
+blank, and the failure mode is uniform — the test gets written to whatever the author assumed, and
+the assumption is never visible again.
+
+So the class was swept for directly, rather than waiting for review to surface the rest one at a
+time. Four more sites, each verified against the full document before being listed here.
+
+| # | Site | Named | Missing | Why it bites |
+|---|---|---|---|---|
+| G1 | F2a axis 4, R4 tests | **"substitution radicality"** — *"comparable chemical severity"* | any **metric**. Grantham distance? BLOSUM? Δhydrophobicity? A cutoff? | R4's test asserts mutants are *"matched on count and substitution radicality."* "Comparable" is not measurable, so this test cannot be implemented as written — and F2a exists precisely because matching on count alone is insufficient. The axis that carries the control's validity is the one axis with no metric. |
+| G2 | F4 / R9 `authorize(batch_cost_usd, …)` | **the cost estimate** | how `batch_cost_usd` is **computed** | The ledger "charges the estimate at dispatch", and the guard's entire correctness rests on that number. The *interface* is airtight and the *estimator* is undefined; against a $30 ceiling an estimate wrong by 3× overruns the budget while every test still passes. Same shape as R4: rigorous mechanism, undefined input. |
+| G3 | D3 pilot halt rule | **"halts and reports power"** | the **power computation** and its threshold — what "too small to place a CI inside any region" is, *before* the CIs exist | Stated qualitatively and it reads as specified. But the rule must fire **pre-hoc**, and the document gives no way to evaluate it pre-hoc. A halt criterion that can only be evaluated after the thing it was meant to prevent is not a guard. |
+| G4 | Scope 6, Chai-1 | **pose "stability"** | any criterion | Lowest severity — Chai-1 scores nothing, so a vague criterion contaminates no verdict. Listed because R4's pocket definition **depends on the co-folded pose**, so "stable" is doing real work for a definition that does reach a statistic. |
+
+**Checked and NOT a gap** — recorded so the next reviewer does not re-derive it: *"a ligand with no
+valid shuffle partner appears in the report's drop list"* looks like the same defect, and is not. F1
+defines partner validity exactly (*"drawn only from panel targets with no measured and no annotated
+interaction with that ligand"*) and mandates the drop record (*"never silently retained, never
+silently dropped"*). A negative result is worth writing down: an unrecorded check gets repeated, and
+the second reviewer has no way to tell "verified fine" from "nobody looked."
+
+**Consequence for the seal.** G1 and G2 are **blockers**, and neither was on the blocking list
+before this sweep. G1 makes R4's control untestable — the same defect r1.2 closed in R4's statistic,
+still open one line below it in R4's matching. G2 makes R9's guard unfalsifiable. Sealing over
+either notarises a pre-registration whose tests cannot be written, which is the failure the seal
+exists to prevent rather than a cost of delaying it.
+
+G1 is **human-owned** (a claim about chemical severity — Global Constraint 1). G2 is **mine**: a cost
+model is an engineering artifact, and I will specify it rather than route it. G3 folds into the pilot
+decision already taken. G4 is contingent on Chai-1 admission.
 
 ---
 
