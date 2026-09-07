@@ -323,7 +323,37 @@ control. **Handling — four matching axes, all pre-registered:**
 | same target | — | F2 |
 | mutation count | equal | PVR; necessary, not sufficient |
 | **surface exposure** | **relative SASA ≥ 25%** | distal residues must be exposed, so the fold is not perturbed |
-| **substitution radicality** | comparable chemical severity | a conservative pocket swap against a radical distal one is not a control |
+| **substitution radicality** | **same Grantham band** — conservative `<60`, moderate `60–100`, radical `>100` | a conservative pocket swap against a radical distal one is not a control |
+
+**G1 · the radicality metric — principal's ruling, 2026-09-06 (1B1).** r1.1 and r1.2 both said
+*"comparable chemical severity"* and named no scale, so this axis could not be tested: R4's control
+test asserts mutants are *"matched on count and substitution radicality"*, and "comparable" is not
+measurable. **Grantham distance, banded** — conservative `<60`, moderate `60–100`, radical `>100`;
+a matched pair must fall in the **same band**. Grantham composites composition, polarity and volume
+into one citable number, which is what makes "comparable" checkable rather than arguable.
+
+**Its limit, stated because the axis exists to protect against a specific failure.** Grantham is a
+1974 scale derived from observed sequence conservation, **not** from structural destabilisation —
+so it does not by itself answer F2a's actual worry, which is a buried distal residue whose mutation
+perturbs the fold. **The `RSA ≥ 25%` axis is what carries that**, and the two axes are load-bearing
+in different directions: RSA keeps the distal mutant *exposed*, Grantham keeps it *chemically
+comparable*. Either alone leaves F2a's failure mode open, which is why both are declared and both
+are matched. A predicted-ΔΔG metric would target destabilisation directly and was rejected here on
+a separate ground — it would control this audit with a predictor as unvalidated, for these targets,
+as the model under audit.
+
+**Matching may fail, and that is a refusal, not a relaxation.** With 3 + 3 per target across seven
+targets, banding on Grantham *and* RSA can leave a pocket mutant with no legal distal partner. F2a
+already rules this: *"an unmatched pocket mutant raises rather than being reported against a
+mismatched control."* Widening a band to find a partner is the one repair that must not happen
+silently, because it converts the control into the thing it was written to exclude — so band edges
+come from the **sealed** `prereg.yaml` and a run that cannot match **raises**.
+
+**Tests.** (1) a pair spanning two Grantham bands is refused; (2) a pocket mutant with no
+band-and-RSA-matched distal partner **raises** rather than pairing with the nearest available; (3)
+band edges are read from the sealed pre-registration, and a `prereg.yaml` without them raises;
+(4) the boundary values `60` and `100` are pinned — the bands are **closed at the lower edge**, the
+same convention D3a declares, so a distance of exactly `60` is moderate and never both.
 
 **Pocket definition:** residues with any heavy atom within **5 Å** of the co-folded ligand pose.
 Distal residues are excluded from that shell and from any secondary-structure core. AFDB supplies
@@ -377,6 +407,21 @@ without seeing the implementation.
 ### R1 · Preflight gate
 **Behavior.** `preflight()` checks free RAM, free disk and the **remaining local budget
 allowance** against floors declared in `prereg.yaml`.
+
+**Allowance floor — principal's ruling, 2026-09-06 (1B1): one full batch's estimate**, computed by
+the G2 estimator at the slow throughput bound, for the **largest batch this run will dispatch**. It
+is **derived, not picked**: the rule is *never start work you cannot finish*, which is what a
+preflight is for, and there is no magic number to defend. It also moves correctly on its own when
+batch size or rate changes — a fixed reserve silently becomes wrong the first time either does.
+
+Deliberately **one** batch, not two: a two-batch floor reserves retry headroom, but on a $30 ceiling
+a large batch could fence off a third of the envelope and halt a study that would have completed.
+The failure this floor prevents is a run that dies mid-batch having already spent the money; a
+failed batch that cannot be retried is a worse outcome than one that was never started, but it is a
+*recoverable* one, and the ceiling is the harder constraint here.
+
+**RAM and disk floors are pilot-measured** (see the sourcing ruling), not guessed — the same rule as
+R4 and R5, for the same reason.
 **Consistency with F4/R9 — r1.1 contradicted them.** r1.1 had preflight check *"remaining Modal
 credit"*, a **remote** figure, while F4 requires that *"authorization reads the local ledger only"*
 and R9 tests that *"authorization never reads the remote figure."* Both gates are now specified on
@@ -568,9 +613,9 @@ money. These are the standing 1B1 agenda with the principal.
 
 ### Blocking the seal — human-owned numbers
 
-1. **R1 · preflight floors.** The *mechanism* is now fixed and consistent with R9 (local ledger,
-   never the remote figure). The **floor values** — free RAM, free disk, minimum remaining
-   allowance — are not set. A floor is a claim about what this study needs to run honestly.
+1. ~~**R1 · preflight floors.**~~ **DECIDED 2026-09-06.** The allowance floor is **one full
+   batch's estimate** at the slow throughput bound — derived, not picked. RAM and disk floors are
+   **pilot-measured**. See R1.
 2. **R3/R4 · the pre-registered thresholds.** ρ-units settled at `+0.20` / `±0.10`. **R4's
    affinity-unit pair is DEFERRED TO THE PILOT** — see the sourcing ruling below.
 3. **R5 · what counts as a cliff.** "A pre-registered potency or efflux cliff" names no magnitude.
@@ -590,9 +635,9 @@ money. These are the standing 1B1 agenda with the principal.
      mismatch. A sealed tolerance is falsifiable; an unmeetable one gets negotiated away.
      **The tolerance VALUE needs run-to-run variance to set honestly, so it joins the pilot list**
      rather than being invented — same ruling as R4 and R5.
-6. **G1 · "substitution radicality" has no metric** — F2a's fourth matching axis, on which R4's
-   control depends. See *Named but unspecified* below. **Human-owned** (a claim about chemical
-   severity).
+6. ~~**G1 · "substitution radicality" has no metric.**~~ **DECIDED 2026-09-06 — Grantham
+   distance, banded** (`<60` / `60–100` / `>100`, matched pair shares a band, edges closed at the
+   lower bound and sealed). See F2a.
 7. ~~**G2 · the cost estimate `batch_cost_usd` has no estimator.**~~ **CLOSED — specified below,
    from the PVR rather than invented.**
 
@@ -622,11 +667,37 @@ R1's RAM and disk floors are measured in the same pass (G3's power rule folds in
 
 ### Scope
 
-8. **Chai-1 geometry arm — admission conditions.** In only if Modal credit remains. **Chai-1 is
-   geometry only and never scores.** It produces no affinity, enters no arm under R7, and
-   contributes to no verdict; it would exist to check whether the co-folded pose R4's 5 Å pocket
-   definition depends on is stable. Stated here so the line is held at specification time rather
-   than argued at analysis time: **if Chai-1 output ever reaches a statistic, that is a defect.**
+8. ~~**Chai-1 geometry arm.**~~ **DECIDED 2026-09-06 — EXCLUDED from this study.** Recorded as
+   future work.
+
+   Three reasons, and the third is the one that settled it. It scores nothing, so it buys no
+   verdict. **R7 requires every LBM arm to name a non-LBM fallback and Chai-1 has none** — admitting
+   it would have needed R7's first exemption, and an exemption is the crack through which a later
+   arm argues that it too is "not really scoring". And it spends from a $30 ceiling where the PVR
+   already warns the binding constraint may be the measured-pair count rather than the money.
+
+   Excluding it is also the cheapest way to hold the line that a geometry arm never reaches a
+   statistic: by not having one. The line itself stands for any future admission — **if Chai-1
+   output ever reaches a statistic, that is a defect.**
+
+   **This adopts the PVR's default; it does not narrow it.** Checked before deciding, after R9's
+   ceiling turned out to have been settled upstream all along: the parent PVR lists *"Chai-1
+   geometry as a fourth arm"* under **Out of scope**, readmitted only *"unless Modal credit remains
+   after the three admission arms."* Out-of-scope is therefore the PVR's baseline and admission was
+   the conditional — so resolving the condition against admission is the A&D doing its job, not
+   overriding a requirement. Had it read the other way round, this would have been the R9 error
+   repeated one section later.
+
+   > **What this costs, stated rather than dropped.** Chai-1 existed to check whether the co-folded
+   > pose is **stable** — and R4's pocket definition (*heavy atom within 5 Å of the co-folded ligand
+   > pose*) rests on that pose. Excluding the arm does not remove the concern; it converts it from a
+   > mitigated risk into an **unmitigated limitation**, and one this study cannot detect from the
+   > inside: an unstable pose silently mis-assigns which residues are "pocket", which corrupts the
+   > pocket/distal contrast that R4 *is*. It therefore belongs in the report's limitations section
+   > as a named threat to validity, not in a list of things that were considered and skipped. **F2a
+   > is the partial mitigation that remains** — matching on RSA and Grantham band constrains how
+   > badly a mis-assigned distal residue can differ from its pocket counterpart, but it does not
+   > detect a wrong pose.
 9. **T8 completion** — decides lung-barrier vs generic. Not a blocker: §R2.4 narrows the claim
    automatically, so the study runs today at the narrower claim. Note r1.2's correction — widening
    is **human-gated**, not mechanical.
@@ -646,10 +717,10 @@ time. Four more sites, each verified against the full document before being list
 
 | # | Site | Named | Missing | Why it bites |
 |---|---|---|---|---|
-| G1 | F2a axis 4, R4 tests | **"substitution radicality"** — *"comparable chemical severity"* | any **metric**. Grantham distance? BLOSUM? Δhydrophobicity? A cutoff? | R4's test asserts mutants are *"matched on count and substitution radicality."* "Comparable" is not measurable, so this test cannot be implemented as written — and F2a exists precisely because matching on count alone is insufficient. The axis that carries the control's validity is the one axis with no metric. |
+| G1 | F2a axis 4, R4 tests | **"substitution radicality"** — *"comparable chemical severity"* | any **metric** — **now CLOSED: Grantham, banded (see F2a)** | R4's test asserts mutants are *"matched on count and substitution radicality."* "Comparable" is not measurable, so this test cannot be implemented as written — and F2a exists precisely because matching on count alone is insufficient. The axis that carries the control's validity is the one axis with no metric. |
 | G2 | F4 / R9 `authorize(batch_cost_usd, …)` | **the cost estimate** | how `batch_cost_usd` is **computed** — **now CLOSED, see below** | The ledger "charges the estimate at dispatch", and the guard's entire correctness rests on that number. The *interface* is airtight and the *estimator* is undefined; against a $30 ceiling an estimate wrong by 3× overruns the budget while every test still passes. Same shape as R4: rigorous mechanism, undefined input. |
 | G3 | D3 pilot halt rule | **"halts and reports power"** | the **power computation** and its threshold — what "too small to place a CI inside any region" is, *before* the CIs exist | Stated qualitatively and it reads as specified. But the rule must fire **pre-hoc**, and the document gives no way to evaluate it pre-hoc. A halt criterion that can only be evaluated after the thing it was meant to prevent is not a guard. |
-| G4 | Scope 6, Chai-1 | **pose "stability"** | any criterion | Lowest severity — Chai-1 scores nothing, so a vague criterion contaminates no verdict. Listed because R4's pocket definition **depends on the co-folded pose**, so "stable" is doing real work for a definition that does reach a statistic. |
+| G4 | Scope 8, Chai-1 | **pose "stability"** | any criterion | Lowest severity — Chai-1 scores nothing, so a vague criterion contaminates no verdict. Listed because R4's pocket definition **depends on the co-folded pose**, so "stable" is doing real work for a definition that does reach a statistic. |
 
 **Checked and NOT a gap** — recorded so the next reviewer does not re-derive it: *"a ligand with no
 valid shuffle partner appears in the report's drop list"* looks like the same defect, and is not. F1
@@ -689,9 +760,10 @@ still open one line below it in R4's matching. G2 makes R9's guard unfalsifiable
 either notarises a pre-registration whose tests cannot be written, which is the failure the seal
 exists to prevent rather than a cost of delaying it.
 
-G1 is **human-owned** (a claim about chemical severity — Global Constraint 1) and is **the last
-blocker of this class still open**. G2 is **closed above**, from the PVR's own rate figures. G3
-folds into the pilot ruling. G4 is contingent on Chai-1 admission.
+**All four are now closed.** G1 by the principal's Grantham ruling (see F2a), G2 from the PVR's own
+rate figures (above), G3 into the pilot ruling, and **G4 is moot — Chai-1 is excluded**, so there is
+no pose-stability criterion left to specify (the limitation that creates is recorded under Scope 8,
+not dropped). What blocks the seal is now only the **pilot-measured numbers**.
 
 ---
 
