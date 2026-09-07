@@ -577,14 +577,24 @@ money. These are the standing 1B1 agenda with the principal.
    **DEFERRED TO THE PILOT** — same sourcing ruling.
 4. ~~**R6 · modality handling.**~~ **DECIDED 2026-09-06 — refused.** A cross-modality pair renders
    `NOT_COMPARABLE` and scores nothing. See R6.
-5. **R9/R10 · the ceiling and the replay bar.** R9's dollar ceiling is unset. R10 now demands a
-   six-part key; whether replay must reproduce **bit-identically** or **within a declared
-   tolerance** is unresolved, and Boltz-2 on GPU is not obviously bit-reproducible across runs.
+5. ~~**R9/R10 · the ceiling and the replay bar.**~~ **BOTH CLOSED.**
+   - **R9's ceiling was never open.** The parent **PVR G4** fixes it: *"≤ $30 Modal spend; local
+     arms on the M5 Max; no overrun."* r1.2 listed it as a human-owned decision, which was an
+     error of the kind `/design` exists to prevent — an A&D restates the PVR's *what*, it does not
+     re-decide it. Routing a settled requirement back to the principal invites re-opening a
+     commitment the PVR already made, and the wrong answer would have been binding.
+   - **R10 · DECIDED 2026-09-06 — a declared tolerance, sealed**, not bit-identical. Boltz-2 on GPU
+     is not reliably bit-reproducible (kernel selection, atomics, TF32), so a bit-identical bar
+     would fail honest replays — and the realistic consequence is not a caught defect but a bar
+     quietly relaxed at analysis time, when relaxing it is indistinguishable from excusing a real
+     mismatch. A sealed tolerance is falsifiable; an unmeetable one gets negotiated away.
+     **The tolerance VALUE needs run-to-run variance to set honestly, so it joins the pilot list**
+     rather than being invented — same ruling as R4 and R5.
 6. **G1 · "substitution radicality" has no metric** — F2a's fourth matching axis, on which R4's
    control depends. See *Named but unspecified* below. **Human-owned** (a claim about chemical
    severity).
-7. **G2 · the cost estimate `batch_cost_usd` has no estimator** — R9's guard is unfalsifiable
-   without one. See *Named but unspecified* below. **Mine to specify**, not a routing.
+7. ~~**G2 · the cost estimate `batch_cost_usd` has no estimator.**~~ **CLOSED — specified below,
+   from the PVR rather than invented.**
 
 > **This list is the complete blocking set.** Items 6 and 7 come from the r1.3 sweep and are stated
 > here rather than only in their own section, because a reader who trusts a list headed *"blocking
@@ -637,7 +647,7 @@ time. Four more sites, each verified against the full document before being list
 | # | Site | Named | Missing | Why it bites |
 |---|---|---|---|---|
 | G1 | F2a axis 4, R4 tests | **"substitution radicality"** — *"comparable chemical severity"* | any **metric**. Grantham distance? BLOSUM? Δhydrophobicity? A cutoff? | R4's test asserts mutants are *"matched on count and substitution radicality."* "Comparable" is not measurable, so this test cannot be implemented as written — and F2a exists precisely because matching on count alone is insufficient. The axis that carries the control's validity is the one axis with no metric. |
-| G2 | F4 / R9 `authorize(batch_cost_usd, …)` | **the cost estimate** | how `batch_cost_usd` is **computed** | The ledger "charges the estimate at dispatch", and the guard's entire correctness rests on that number. The *interface* is airtight and the *estimator* is undefined; against a $30 ceiling an estimate wrong by 3× overruns the budget while every test still passes. Same shape as R4: rigorous mechanism, undefined input. |
+| G2 | F4 / R9 `authorize(batch_cost_usd, …)` | **the cost estimate** | how `batch_cost_usd` is **computed** — **now CLOSED, see below** | The ledger "charges the estimate at dispatch", and the guard's entire correctness rests on that number. The *interface* is airtight and the *estimator* is undefined; against a $30 ceiling an estimate wrong by 3× overruns the budget while every test still passes. Same shape as R4: rigorous mechanism, undefined input. |
 | G3 | D3 pilot halt rule | **"halts and reports power"** | the **power computation** and its threshold — what "too small to place a CI inside any region" is, *before* the CIs exist | Stated qualitatively and it reads as specified. But the rule must fire **pre-hoc**, and the document gives no way to evaluate it pre-hoc. A halt criterion that can only be evaluated after the thing it was meant to prevent is not a guard. |
 | G4 | Scope 6, Chai-1 | **pose "stability"** | any criterion | Lowest severity — Chai-1 scores nothing, so a vague criterion contaminates no verdict. Listed because R4's pocket definition **depends on the co-folded pose**, so "stable" is doing real work for a definition that does reach a statistic. |
 
@@ -648,15 +658,40 @@ interaction with that ligand"*) and mandates the drop record (*"never silently r
 silently dropped"*). A negative result is worth writing down: an unrecorded check gets repeated, and
 the second reviewer has no way to tell "verified fine" from "nobody looked."
 
+**G2 · closed, from the PVR — the estimator.** The figures already exist upstream and did not
+need a ruling. PVR *Constraints* declares the L40S rate at **~$1.95/GPU-hour** and Boltz-2
+throughput at **80–100 complexes/GPU-hour**; PVR **G4** caps spend at **$30**. So:
+
+    batch_cost_usd = n_complexes / THROUGHPUT_COMPLEXES_PER_GPU_HOUR * RATE_USD_PER_GPU_HOUR
+
+**The throughput constant takes the SLOW end of the published range — 80, never 100.** This is the
+whole design decision, and it is a fail-closed choice rather than a conservative habit: throughput
+appears in the *denominator*, so an optimistic value **understates** cost. Estimating at 100 when
+the true rate is 80 understates every batch by 25%, and the ledger charges the estimate at dispatch
+— so the guard authorizes its way past a $30 ceiling while `ceiling − spent` reads healthy the
+entire time and every existing R9 test passes. The direction of the error is what matters, not its
+size: overestimating halts a run that could have continued, which is recoverable; underestimating
+overruns the budget the guard exists to protect, which is not.
+
+Both constants live in the **sealed `prereg.yaml`**, never in code — the same rule D3a's bands
+follow, for the same reason. The pilot **measures actual throughput** and the measured value is
+sealed with the other pilot-derived numbers; until then the published slow bound stands.
+
+**Tests.** (1) the estimator uses the slow throughput bound — a test pins the constant and **fails
+if it rises**, because that single edit is what silently converts the guard into a rubber stamp;
+(2) a batch whose estimate would breach `ceiling − spent` is refused **before** dispatch, not
+reconciled after; (3) estimator constants are read from the sealed pre-registration, and a run
+whose `prereg.yaml` lacks them **raises** rather than defaulting.
+
 **Consequence for the seal.** G1 and G2 are **blockers**, and neither was on the blocking list
 before this sweep. G1 makes R4's control untestable — the same defect r1.2 closed in R4's statistic,
 still open one line below it in R4's matching. G2 makes R9's guard unfalsifiable. Sealing over
 either notarises a pre-registration whose tests cannot be written, which is the failure the seal
 exists to prevent rather than a cost of delaying it.
 
-G1 is **human-owned** (a claim about chemical severity — Global Constraint 1). G2 is **mine**: a cost
-model is an engineering artifact, and I will specify it rather than route it. G3 folds into the pilot
-decision already taken. G4 is contingent on Chai-1 admission.
+G1 is **human-owned** (a claim about chemical severity — Global Constraint 1) and is **the last
+blocker of this class still open**. G2 is **closed above**, from the PVR's own rate figures. G3
+folds into the pilot ruling. G4 is contingent on Chai-1 admission.
 
 ---
 
