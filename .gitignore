@@ -74,3 +74,9 @@ projects/*/.publish_work/
 .understand-anything/tmp/
 .understand-anything/intermediate/
 .understand-anything/.trash-*/
+
+# Per-worktree agent identity — must NEVER be tracked: one tracked file cannot
+# hold per-worktree identities, and committing it made the CTO checkout resolve
+# as the lung-on-chipsim agent. Absent, agent-identity resolves correctly:
+# main checkout -> cto, worktree -> its branch name.
+.aiadlc-agent
