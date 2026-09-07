@@ -110,7 +110,7 @@ each **per-target** CI is built, resampling ligands within that target.
 | Tier | Swap to | Answers |
 |---|---|---|
 | **within-panel** | another of the seven | The decision-relevant question — ChipSim must discriminate *among these seven*. The harder test. F1 governs partner selection. |
-| **cross-family** | a protein unrelated to the panel | The sanity floor. `insensitive` on **this** tier too means no target sensitivity at all — a stronger and more publishable negative. (Stated in the three-region language deliberately: *"Δρ ≈ 0"* is not a verdict this design can render.) |
+| **cross-family** (**20 ligands**, r1.4) | a protein unrelated to the panel | The sanity floor. `insensitive` on **this** tier too means no target sensitivity at all — a stronger and more publishable negative. (Stated in the three-region language deliberately: *"Δρ ≈ 0"* is not a verdict this design can render.) |
 
 Within-panel alone yields a null ambiguous between *"the model is insensitive"* and *"these seven
 are too similar to separate."* The cross-family arm disambiguates it on the same ligand set for one
@@ -360,8 +360,16 @@ Distal residues are excluded from that shell and from any secondary-structure co
 the wild-type geometry and mutants come from sequence, so no additional structure run is needed —
 consistent with the PVR's exclusion of AlphaFold provisioning.
 
-**Count:** **3 pocket + 3 matched distal per target** = 42 mutant complexes across seven targets,
-which sits inside the ~1,200–1,500 complex budget alongside R3.
+**Count (r1.4):** **2 pocket + 2 matched distal per target**, against a ligand set of
+**|L| = 15**, = **7 × 4 × 15 = 420 complexes**.
+
+> **r1.2's count was wrong and its budget sentence concealed it.** It read *"3 pocket + 3 matched
+> distal per target = 42 mutant complexes … sits inside the ~1,200–1,500 complex budget"*. But
+> `effect(M)` is a mean **over ligands**, so every mutant runs against every ligand in `L`: R4 costs
+> `7 × mutants × |L|`, and **42 = 7 × 6 counts variants, not complexes**. At `|L| = 40` R4 alone is
+> 1,680 complexes and the study needed ~2,520 — about **$54 against a $30 ceiling**. At `|L| = 1`,
+> which "42 complexes" literally implies, the bootstrap over ligands is impossible. The arm was over
+> budget and under-specified at once. See the pilot specification for the full ledger.
 
 **Stability sanity check, declared in advance:** if distal mutants move predictions **as much as**
 pocket mutants, that is *either* insensitivity *or* a broken comparator, and the pre-registration
@@ -516,8 +524,13 @@ independent draws. Seven values plus their paired distribution; **never pooled**
 `+0.20` and `±0.10` are **Spearman-ρ** units. Carrying one set of thresholds across both statistics
 is a unit error that would look entirely reasonable in a report. R4 therefore carries its **own**
 sensitive floor and equivalence band, in affinity units, sealed alongside D3a's. The three-region
-*shape*, the closed boundaries and the totality rule are inherited; **only the numbers differ, and
-those numbers are human-owned** (Global Constraint 1 — see open question 1).
+*shape*, the closed boundaries and the totality rule are inherited; **only the numbers differ.**
+
+**The numbers come from a formula sealed BEFORE the pilot runs** (r1.4) — `equivalence = ±1 SD of
+effect(distal)`, `sensitive floor = +2 SD`, the distal arm being the empirical null. Sealing the
+*rule* rather than the *number* is what makes "measure then seal" rigorous instead of "look, then
+choose". Cross-checked against Boltz-2's published pairwise error (PMAE 0.85–1.20 log₁₀ units). See
+the pilot specification.
 
 Pocket = within 5 Å of the co-folded ligand pose; distal = outside that shell, RSA ≥ 25%, matched on
 count and substitution radicality; 3 pocket + 3 distal per target.
@@ -528,6 +541,21 @@ control**; **a distal arm moving as much as the pocket arm is reported as an inv
 never as a null**.
 
 ### R5 · ESM-2 vs descriptor baseline on cliff-stratified pairs
+
+**Cliff, defined (r1.4) — from the literature, not the pilot.** A **matched molecular pair**
+(single-site, size-restricted transformation) with a **≥100-fold (2 log) measured potency
+difference**. The ≥100-fold criterion is the field's long-standing standard and MMP-restricted
+similarity is its preferred modern form, superseding a raw Tanimoto cutoff, which admits pairs
+differing at several sites.
+
+**Why R5 is not on the pilot list and R4 is.** R4's threshold is in **model-internal units** with no
+external convention, so it must be measured. R5's is in **experimental potency units**, where a
+settled standard exists — measuring our own would spend pilot budget re-deriving an agreed number,
+and a bespoke threshold is *harder* to defend than the standard one. Computed locally with
+RDKit/mmpdb at no Modal cost.
+
+**Cost, recorded:** MMP restricts the pair pool, so at ~40 compounds the cliff stratum may be small.
+R5 then **reports low power**; it does not loosen the criterion to fill the stratum.
 **Behavior.** Matched molecular pairs crossing a pre-registered potency or efflux cliff. Accuracy
 reported **separately on the cliff stratum**.
 **Tests.** a pooled-only report **fails**; the cliff threshold is read from the sealed
@@ -616,10 +644,11 @@ money. These are the standing 1B1 agenda with the principal.
 1. ~~**R1 · preflight floors.**~~ **DECIDED 2026-09-06.** The allowance floor is **one full
    batch's estimate** at the slow throughput bound — derived, not picked. RAM and disk floors are
    **pilot-measured**. See R1.
-2. **R3/R4 · the pre-registered thresholds.** ρ-units settled at `+0.20` / `±0.10`. **R4's
-   affinity-unit pair is DEFERRED TO THE PILOT** — see the sourcing ruling below.
-3. **R5 · what counts as a cliff.** "A pre-registered potency or efflux cliff" names no magnitude.
-   **DEFERRED TO THE PILOT** — same sourcing ruling.
+2. ~~**R3/R4 · the pre-registered thresholds.**~~ **RESOLVED 2026-09-07.** ρ-units settled a
+   priori; R4's band comes from a **formula sealed before the pilot** (`±1 SD` / `+2 SD` of the
+   distal null). The number is measured; the rule is pre-registered.
+3. ~~**R5 · what counts as a cliff.**~~ **DECIDED 2026-09-07 — MMP + ≥100-fold**, from the
+   literature. Off the pilot list entirely; sealable today.
 4. ~~**R6 · modality handling.**~~ **DECIDED 2026-09-06 — refused.** A cross-modality pair renders
    `NOT_COMPARABLE` and scores nothing. See R6.
 5. ~~**R9/R10 · the ceiling and the replay bar.**~~ **BOTH CLOSED.**
@@ -719,7 +748,8 @@ time. Four more sites, each verified against the full document before being list
 |---|---|---|---|---|
 | G1 | F2a axis 4, R4 tests | **"substitution radicality"** — *"comparable chemical severity"* | any **metric** — **now CLOSED: Grantham, banded (see F2a)** | R4's test asserts mutants are *"matched on count and substitution radicality."* "Comparable" is not measurable, so this test cannot be implemented as written — and F2a exists precisely because matching on count alone is insufficient. The axis that carries the control's validity is the one axis with no metric. |
 | G2 | F4 / R9 `authorize(batch_cost_usd, …)` | **the cost estimate** | how `batch_cost_usd` is **computed** — **now CLOSED, see below** | The ledger "charges the estimate at dispatch", and the guard's entire correctness rests on that number. The *interface* is airtight and the *estimator* is undefined; against a $30 ceiling an estimate wrong by 3× overruns the budget while every test still passes. Same shape as R4: rigorous mechanism, undefined input. |
-| G3 | D3 pilot halt rule | **"halts and reports power"** | the **power computation** and its threshold — what "too small to place a CI inside any region" is, *before* the CIs exist | Stated qualitatively and it reads as specified. But the rule must fire **pre-hoc**, and the document gives no way to evaluate it pre-hoc. A halt criterion that can only be evaluated after the thing it was meant to prevent is not a guard. |
+| G3 | D3 pilot halt rule | **"halts and reports power"** | the **power computation** and its threshold — **now CLOSED: P0's simulation IS the criterion** | Stated qualitatively and it reads as specified. But the rule must fire **pre-hoc**, and the document gave no way to evaluate it pre-hoc. A halt criterion that can only be evaluated after the thing it was meant to prevent is not a guard. |
+| G5 | D3a, R3, R4 — 11 sites | **"95% bootstrap CI"** | **which bootstrap** — **now CLOSED: BCa, calibrated** | Found by literature review, not by the r1.3 sweep, because the term *looks* fully specified. Percentile/basic/BCa/studentized diverge materially at n≈20–40, and percentile intervals are **too narrow** there. That error raises `lo` and lowers `hi`, so it makes **both** `sensitive` and `insensitive` easier to reach — systematically suppressing **`inconclusive`**, the verdict R8 and F7 exist to make renderable. An unnamed variant was biasing the study against its own honesty mechanism. |
 | G4 | Scope 8, Chai-1 | **pose "stability"** | any criterion | Lowest severity — Chai-1 scores nothing, so a vague criterion contaminates no verdict. Listed because R4's pocket definition **depends on the co-folded pose**, so "stable" is doing real work for a definition that does reach a statistic. |
 
 **Checked and NOT a gap** — recorded so the next reviewer does not re-derive it: *"a ligand with no
@@ -764,6 +794,180 @@ exists to prevent rather than a cost of delaying it.
 rate figures (above), G3 into the pilot ruling, and **G4 is moot — Chai-1 is excluded**, so there is
 no pose-stability criterion left to specify (the limitation that creates is recorded under Scope 8,
 not dropped). What blocks the seal is now only the **pilot-measured numbers**.
+
+---
+
+
+---
+
+## The pilot — specification (r1.4, principal's 1B1 of 2026-09-07)
+
+Literature-driven throughout. Every number below is either measured, taken from a cited source, or
+derived from one — none is chosen.
+
+### P0 · The power simulation gates everything, and costs nothing
+
+**The first deliverable is a local simulation, before any GPU batch is authorized.** It runs on the
+M5 Max at **zero Modal spend**, and it exists because a pre-hoc calculation says the study may not be
+able to render the verdict it was built around.
+
+**The finding that forces it.** `insensitive` requires the whole 95% CI inside `±0.10`. Using
+Fisher-z (`SE ≈ 1.06/√(n−3)`), at n≈40 ligands a single Spearman ρ has a 95% half-width of about
+**0.33**. For the *difference* `Δρ`, the half-width depends on how correlated the native and shuffled
+ρ estimates are across ligand resamples:
+
+| corr(ρ_native, ρ_shuf) | Δρ 95% half-width | inside ±0.10? |
+|---|---|---|
+| 0.0 | ~0.48 | no |
+| 0.5 | ~0.34 | no |
+| 0.8 | ~0.22 | no |
+| 0.95 | ~0.11 | marginal |
+
+Fitting the band needs `r ≳ 0.96` — and **shuffling is designed to destroy the signal**, so that
+correlation should be *low*. The realistic half-width is 3–5× the band. If that holds, D3a's
+three-region partition collapses to two in practice and the PVR's *"publishable whether positive or
+negative"* is unachievable on the negative side.
+
+These are analytic approximations. **P0 replaces them with the measured answer** at the realised
+per-target pair count, and its output **is** G3's pre-hoc halt criterion — the thing r1.2 named and
+could not evaluate:
+
+> **G3 · halt rule, now computable.** If no achievable CI at the assembled pair count fits the
+> equivalence band, the pilot **halts and reports power**, and no GPU batch is authorized. Halting
+> before spending is the entire point: a study that spends $27 to return `inconclusive` seven times
+> has bought nothing that P0 could not have told it for free.
+
+P0 also calibrates the CI method (below) by measuring realised coverage at the realised n.
+
+### P1 · Statistic method — BCa, calibrated
+
+**G5 (new gap, found by literature review).** r1.2 said *"95% bootstrap CI"* **eleven times and never
+named the variant.** Percentile, basic, BCa and studentized bootstraps diverge materially at n≈20–40,
+and the simulation literature is unambiguous that percentile intervals are **too narrow** at small n
+— 81–83% actual coverage for a nominal 95% at n=5, and still optimistic at n=20; for Spearman at
+n=10 with ρ≤0.5, intervals can exceed unity in length.
+
+**The direction of that error is what makes it a defect and not a detail.** A too-narrow CI raises
+`lo` and lowers `hi`, so it makes **both** `sensitive` (`lo ≥ +0.20`) and `insensitive` (fits inside
+`±0.10`) easier to reach — it systematically suppresses **`inconclusive`**, the verdict R8 and F7
+exist specifically to make renderable. An unnamed bootstrap variant was quietly biasing the study
+against its own honesty mechanism.
+
+**Sealed: BCa**, plus P0's coverage calibration. If measured coverage falls below nominal, the
+interval is widened by a calibrated (double) bootstrap and *that* is sealed. Coverage becomes a
+measured property rather than an assumed one.
+
+### P2 · What is held out, and what is not
+
+**Ligands, not targets.** The panel is seven proteins across three families (ABCB1/ABCG2/ABCC1;
+TFRC/FCGRT; SLC15A1/SLCO2B1). Holding out *targets* — the reading *"held-out target set"* invites —
+breaks two things: the confirmatory study drops to 5–6 targets, so *"unanimous across all seven is
+publishable"* no longer applies as written; and F1 draws shuffle partners from panel targets, so
+removing targets shrinks the within-panel pool and changes the harder tier's difficulty. **Ligands
+are also the correct unit on the design's own terms** — the CI is bootstrapped *over ligands*, so
+ligands are the resampling unit and a ligand split is the statistically coherent independent draw.
+
+**The holdout is scoped to R4 alone.** Pre-registration integrity is a property of *each threshold's
+provenance*, not a blanket rule:
+
+- **R3 needs no holdout.** Its `+0.20`/`±0.10` band was fixed *a priori* by principal ruling,
+  independent of any data from this system. Nothing about R3 is circular, so it keeps the full
+  ligand set and its CIs stay as tight as the data allows.
+- **R5 needs no holdout either** — see P4; its threshold is a literature convention, not a
+  measurement.
+- **R4 does**, because its band is derived from observed spread.
+
+### P3 · R4 — the band formula, sealed BEFORE the pilot runs
+
+**This is what makes "pilot first" rigorous rather than theatre.** The rule mapping observations to
+thresholds is sealed *before* the pilot executes, so no judgement is applied after seeing data:
+
+    equivalence band = ± 1 SD of effect(distal) across ligands
+    sensitive floor  = + 2 SD of effect(distal) across ligands
+
+**The distal arm IS the empirical null** — matched mutations that should not move binding — so it
+measures how much this model moves for reasons unrelated to pocket engagement. The band therefore
+describes *this system* instead of importing a convention.
+
+**Mandatory cross-check against the literature.** Boltz-2's published **pairwise** error (PMAE) is
+**0.85–1.20 log₁₀ units** on FEP+ and hit-to-lead benchmarks. PMAE is error on *differences between
+compounds*, which is exactly `Δ_mut`'s shape, so it is the correct reference — not MAE. **If 2 SD
+lands below that range, R4 is claiming resolution finer than Boltz-2 has ever demonstrated on
+differences, and the report must say so.** (The comparison is not decisive on its own: PMAE is error
+against *experiment* on other targets, while R4 compares model to model on ours, where systematic
+error partly cancels. It is a sanity bound, and it is recorded as one.)
+
+### P4 · R5 — off the pilot list, sealed from the literature today
+
+**Cliff = a matched molecular pair (single-site, size-restricted transformation) with a ≥100-fold
+(2 log) measured potency difference.** This is the field's preferred definition; the ≥100-fold
+criterion is the long-standing standard, and MMP-restricted similarity supersedes a raw Tanimoto
+cutoff because a Tanimoto threshold admits pairs differing at several sites.
+
+**Why R5 differs from R4, stated because the two look alike and are not.** R4's threshold is in
+**model-internal units** with no external convention, so it must be measured. R5's is in
+**experimental potency units**, where the field has a settled standard — measuring our own would
+spend pilot budget to re-derive a number already agreed on, and a bespoke threshold is *harder* to
+defend than the standard one. Computable locally with RDKit/mmpdb at no Modal cost.
+
+**The cost, recorded:** MMP restricts the pair pool, so at ~40 compounds the cliff stratum may be
+small. R5 then **reports low power** — it does not quietly loosen the criterion to fill the stratum.
+
+### P5 · Budget — the design did not fit, and now does
+
+**r1.2's complex count was wrong.** It read *"3 pocket + 3 matched distal per target = 42 mutant
+complexes … sits inside the ~1,200–1,500 complex budget."* But `effect(M) = mean over ligands l in L
+of [f(l,t_wt) − f(l,t_M)]` requires **every mutant against every ligand in L**, so R4 costs
+`7 × mutants × |L|` complexes. **42 = 7 × 6 counts variants, not complexes.** At `|L| = 40` that is
+1,680 complexes for R4 alone; with R3 the study needed ~2,520 — roughly **$54 against a $30
+ceiling**. At `|L| = 1`, which "42 complexes" literally implies, bootstrap-over-ligands is impossible.
+The arm was simultaneously over budget and under-specified, and the budget sentence concealed it.
+
+**Resolved** — `2 pocket + 2 distal` per target, `|L| = 15`:
+
+| Item | Complexes |
+|---|---|
+| R3 native (40 ligands × 7) | 280 |
+| R3 within-panel shuffle (40 × 7) | 280 |
+| R3 cross-family shuffle (**20** × 7) | 140 |
+| R4 confirmatory (7 × 4 × 15) | 420 |
+| R4 pilot (3 targets × 4 × **10 held-out** ligands) | 120 |
+| **Total** | **1,240** |
+
+At the PVR's own rates (~90 complexes/GPU-h on L40S, $1.95/GPU-h) → **13.8 GPU-h ≈ $26.87**, leaving
+room for R1's one-batch floor inside the $30 ceiling. Wild-type predictions are shared with R3's
+native arm, so R4 adds no separate WT cost.
+
+**Two costs, both deliberate and both stated.** `2+2` shrinks the Grantham/RSA matching pool, so
+F2a's *"an unmatched pocket mutant raises rather than being reported against a mismatched control"*
+will fire more often — which is the correct failure, loudly. And thinning the cross-family tier to 20
+ligands widens its CI, making `insensitive` harder to establish on the tier that would give the
+**stronger** negative; it is the sanity floor rather than the decision-relevant question, which is
+why it was the one thinned.
+
+### P6 · What the pilot returns
+
+1. **P0's power simulation** — the halt decision, before any spend.
+2. **Realised BCa coverage** at the achieved n, and the calibration if needed.
+3. **`effect(distal)` SD per target** → R4's band by the P3 formula.
+4. **Run-to-run σ on identical input** → R10's replay tolerance. Boltz-2's affinity head is a
+   **two-model ensemble** and the paper states no determinism guarantee — *"deterministic"* does not
+   appear in it — so this cannot be taken from the literature and must be measured.
+5. **Measured throughput on L40S** → replaces the published bound in G2's estimator. The paper's
+   **20 GPU-sec/complex** on H100 (~180/GPU-h) independently corroborates the PVR's 80–100/GPU-h for
+   the slower L40S, which is why the estimator's slow bound is defensible until measured.
+6. **RAM and disk high-water marks** → R1's floors.
+
+### Sources
+
+- Boltz-2 (Passaro, Corso, Wohlwend et al.) — affinity units *"standardized to log 10 scale derived
+  from values measured in µM"*; PMAE/MAE tables on FEP+ and hit-to-lead; *"20 GPU sec"* per complex;
+  two-model affinity ensemble. <https://jeremywohlwend.com/assets/boltz2.pdf>
+- Bishara & Hittner, *Confidence intervals for correlations when data are not normal*, Behavior
+  Research Methods. <https://link.springer.com/article/10.3758/s13428-016-0702-8>
+- Activity-cliff definition (≥100-fold potency difference; MMP-restricted similarity) — Stumpfe &
+  Bajorath, *Evolving Concept of Activity Cliffs*, ACS Omega.
+  <https://pubs.acs.org/doi/10.1021/acsomega.9b02221>
 
 ---
 
