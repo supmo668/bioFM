@@ -48,6 +48,7 @@ Status: `LIVE` (in force), `RETIRED` (measured, replaced by a fact), `OPEN`
 | "bootstrap CI" | **BCa**, coverage 0.930 at n=40 (nominal 0.95) | P0 test suite |
 | "percentile is too narrow here" | **False for this statistic.** percentile 0.943 / half-width 0.386 vs BCa 0.930 / 0.384 — equivalent. G5's general argument stands; its specific claim did not survive measurement | P0, 300 trials |
 | "`insensitive` may be unreachable" | **Unreachable.** `P(insensitive) = 0.000` in all 36 scanned cells, n ≤ 160 | P0 scan |
+| "is the study three-region?" | **Two-region in practice**, declared in advance by principal's ruling 2026-09-08. Band NOT widened; `Verdict` keeps 3 members; the card states unreachability beside every `inconclusive` | 1B1 |
 | "the study may be underpowered" | **92% power at Δρ=0.5, n=40**, for the primary sign test | P0 scan |
 | affinity units | `log₁₀` of µM | Boltz-2 paper |
 | error on *differences* | PMAE **0.85–1.20** log₁₀ | Boltz-2 paper |

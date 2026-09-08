@@ -127,6 +127,41 @@ stricter one, so a failure there is stronger because the bar was equal; raising 
 | **insensitive** | `lo >= -0.10` **and** `hi <= +0.10` | **closed** at both bounds |
 | **inconclusive** | neither of the above | — |
 
+> ### Principal's ruling, 2026-09-08 (1B1): the study is TWO-REGION in practice, declared in advance
+>
+> P0 measured `P(insensitive) = 0.000` in all 36 cells, at every n up to 160 (median half-width
+> 0.36–0.42 at n=40 against a `±0.10` band; 0.17–0.21 even at n=160). **`insensitive` is not
+> renderable at any ligand count this study can reach.**
+>
+> **The band is NOT widened.** Widening it after seeing P0 would be setting a threshold from data —
+> precisely what the sealed-formula discipline exists to prevent — and a band near the measured
+> half-width would make `insensitive` mean *"Δρ is somewhere within ±0.35"*, which is not evidence of
+> target-insensitivity in any useful sense. The three regions, the closed bounds and `classify`'s
+> totality all stand exactly as specified: if a CI ever did fit the band, it would be rendered
+> correctly. `Verdict` keeps three members and R8's `len(Verdict) == 3` is unchanged.
+>
+> **What changes is what the pre-registration promises.** It declares, before the run, that this
+> study reports **`sensitive` or `inconclusive`**, and that `insensitive` is unreachable at its
+> power. Consistent with the PVR, which already accepts *"a defensible 'inconclusive at this
+> power'"* as success — the publishable negative is that, not a demonstrated insensitivity.
+>
+> **The reading that must not be allowed, and why the card carries it.** In a three-region study
+> `inconclusive` means *"the data did not separate sensitive from insensitive."* Here it means
+> *"the data did not reach the sensitive floor, and insensitive was never available."* Those are
+> different claims, and the second is weaker. A reader who assumes the first will read every
+> `inconclusive` as evidence against target sensitivity when it is evidence of nothing at all in
+> that direction. **The model card states the unreachability next to every `inconclusive` it
+> renders**, not once in a limitations section — the same rule as `NOT_COMPARABLE` in R6 and
+> `**Seal: MALFORMED**` in the panel block: an absent result must be visible where the result would
+> have been.
+>
+> **Tests.** (1) a report containing any `inconclusive` verdict and no unreachability statement
+> **fails**; (2) `len(Verdict) == 3` still holds and `classify` is still total — the region is
+> unreachable in practice, not deleted; (3) the pre-registration's declared verdict set is
+> `{sensitive, inconclusive}` and a run that renders `insensitive` without the seal having been
+> re-issued **raises**, because that would mean the power assumption changed without anyone saying
+> so.
+
 **Why this is a partition, stated so a test can check it.** `sensitive` and `insensitive` are
 disjoint by arithmetic, not by convention: `sensitive` forces `hi >= lo >= +0.20 > +0.10`, which
 violates `insensitive`'s upper bound, so no CI can satisfy both. `inconclusive` is defined as the
@@ -566,9 +601,18 @@ pre-registration, not from code.
 declared. **A cross-modality pair (nTPM transcript vs HPA protein) renders `NOT_COMPARABLE` and
 scores nothing** — it is neither a pass nor a fail and contributes to no verdict.
 
-**Principal's ruling, 2026-09-06 (1B1): refuse, not flag.** r1.2 left this open between
-permitted-and-flagged and refused. Refused, for the reason that decided R4's units one section
-earlier: **an order-of-magnitude criterion between transcript and protein can be satisfied or
+**Principal's ruling, 2026-09-06 (1B1): refuse, not flag** — **on the CTO's argument.** The
+*decision* is the principal's: r1.2 left this open between permitted-and-flagged and refused, and he
+chose refused in the 1B1. The *argument* that persuaded him is the CTO's, raised when it routed the
+question — *"an order-of-magnitude criterion can be satisfied by unit choice alone, so 'flagged' may
+be too weak."* I carried it into the options without saying whose it was.
+
+> **Why the distinction is recorded rather than smoothed over.** A ruling attributed to the
+> principal cannot be argued with; a CTO argument or an agent's inference can. Collapsing the two
+> makes a judgement unfalsifiable by relabelling it — the same defect as a plan-approval marker that
+> cannot distinguish a re-sign from an approval. The CTO caught this and it was right to.
+
+Refused, for the reason that decided R4's units one section earlier: **an order-of-magnitude criterion between transcript and protein can be satisfied or
 broken by normalisation choice alone, so it is not a criterion.** Transcript and protein abundance
 are different quantities — their correlation is weak enough in general that "agrees within 10×"
 carries little evidential weight either way — and a flag on a rendered *pass* is read as a caveat on
@@ -639,6 +683,18 @@ r1.2 closed every **internal** contradiction it could close alone. What remains 
 must not decide: biological and statistical claims (Global Constraint 1), and scope calls that cost
 money. These are the standing 1B1 agenda with the principal.
 
+### Provenance convention for every ruling below
+
+Three labels, kept distinct because collapsing them is how a judgement becomes unfalsifiable:
+
+- **Principal's ruling** — he chose it, in a 1B1, from options put to him. Only he can revise it.
+- **From the PVR / from the literature** — it was already settled upstream and merely *found*. R9's
+  ceiling and R5's cliff are these; neither needed a decision, and r1.2 wrongly routed R9's as one.
+- **Mine** — an engineering call I made and am accountable for. G2's cost estimator is the example.
+
+Where an argument came from someone other than the decider, the argument is credited separately —
+see R6.
+
 ### Blocking the seal — human-owned numbers
 
 1. ~~**R1 · preflight floors.**~~ **DECIDED 2026-09-06.** The allowance floor is **one full
@@ -647,8 +703,10 @@ money. These are the standing 1B1 agenda with the principal.
 2. ~~**R3/R4 · the pre-registered thresholds.**~~ **RESOLVED 2026-09-07.** ρ-units settled a
    priori; R4's band comes from a **formula sealed before the pilot** (`±1 SD` / `+2 SD` of the
    distal null). The number is measured; the rule is pre-registered.
-3. ~~**R5 · what counts as a cliff.**~~ **DECIDED 2026-09-07 — MMP + ≥100-fold**, from the
-   literature. Off the pilot list entirely; sealable today.
+3. ~~**R5 · what counts as a cliff.**~~ **Principal's ruling, 2026-09-07 — MMP + ≥100-fold**,
+   chosen from options I derived from the literature. The *threshold* was found upstream, not
+   invented; the *choice* to adopt it over a Tanimoto form was his. Off the pilot list; sealable
+   today.
 4. ~~**R6 · modality handling.**~~ **DECIDED 2026-09-06 — refused.** A cross-modality pair renders
    `NOT_COMPARABLE` and scores nothing. See R6.
 5. ~~**R9/R10 · the ceiling and the replay bar.**~~ **BOTH CLOSED.**
