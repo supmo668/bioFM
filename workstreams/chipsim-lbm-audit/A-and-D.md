@@ -791,6 +791,22 @@ R1's RAM and disk floors are measured in the same pass (G3's power rule folds in
 10. **Rounds beyond pilot + confirmatory** — assumed two; budget caps it.
 11. **AM-6** — open upstream, unrelated to this study.
 
+### Standing check — "machinery correct, quantity wrong"
+
+Three defects in this design share one shape, and the third was found only because
+the first two had been named:
+
+| # | Machinery | Quantity it was pointed at | Should have been |
+|---|---|---|---|
+| R4 | the three-region rule | D3a's ρ-units | predicted-affinity units |
+| r1.4 halt rule | a go/no-go gate | the equivalence band (secondary) | the sign test (primary) |
+| G5 | a small-n bootstrap result | this statistic, unchecked | a statistic it had been measured on |
+
+In each case the mechanism was correct and would pass every test written for it.
+**So the check is not "is this value right" but "what quantity is this measured in,
+and which statistic does it govern"** — asked before the value is discussed at all.
+Two of the three were caught by measuring rather than by review.
+
 ### Named but unspecified — the R4 defect class, swept systematically (r1.3)
 
 r1.2 fixed `effect` (R4) and the `inconclusive` overlap (D3a) **as individual defects**, both
@@ -1060,6 +1076,53 @@ will fire more often — which is the correct failure, loudly. And thinning the 
 ligands widens its CI, making `insensitive` harder to establish on the tier that would give the
 **stronger** negative; it is the sanity floor rather than the decision-relevant question, which is
 why it was the one thinned.
+
+### P7 · A7 measured — analog series are the largest single threat to power
+
+**A7 was the assumption most likely to be quietly optimistic, and it is.** Measured
+(`clustered_sign_test_power`), n=40, 7 targets, true `Δρ = 0.5`:
+
+| series size | icc | n_eff | sign-test power |
+|---|---|---|---|
+| 1 (none) | 0.0 | 40.0 | **0.95** |
+| 2 | 0.5 | 26.7 | 0.88 |
+| 3 | 0.5 | 20.0 | 0.83 |
+| 5 | 0.3 | 18.2 | 0.86 |
+| 5 | 0.5 | 13.3 | **0.75** |
+| 5 | 0.8 | 9.5 | **0.46** |
+| 8 | 0.8 | 6.1 | 0.34 |
+
+**P0's headline 92% assumes exchangeable ligands.** Under analog-series structure
+that is entirely ordinary for a ChEMBL set — a handful of med-chem campaigns,
+series of five, members correlated at 0.5–0.8 — the study sits at **0.46–0.75**.
+Forty compounds in eight series of five carry about **thirteen** compounds' worth
+of independent information, and at `icc = 0.8` about **nine**.
+
+**The design consequence, which did not exist before this was measured:
+composition matters as much as count.** Adding compounds from a series already
+represented buys almost nothing; adding a structurally distinct compound buys a
+full unit of n. So:
+
+- **Compound selection maximises structural diversity**, and diversity is a
+  selection criterion in the pre-registration rather than an afterthought. A
+  40-compound set assembled by taking whatever has measured values against the
+  panel will be *worse* than a 25-compound set chosen for distinctness.
+- **The pilot measures the realised clustering** — series membership is computable
+  locally from SMILES with the same RDKit/MMP machinery R5 already needs, at zero
+  Modal cost — and **P0 is re-run on the measured `icc` and series-size
+  distribution**. The power statement that reaches the model card is the one
+  computed from the actual compound set, not the exchangeable idealisation.
+- **Every reported power figure carries which assumption it rests on.** "92%" and
+  "46%" are the same study under different ligand sets, and a number quoted
+  without that qualifier is not interpretable.
+
+> **How this model was nearly wrong, recorded because the number is load-bearing.**
+> The first implementation clustered only the *prediction noise* and left the
+> latent independent. It reduced no information — measured power came out
+> *higher* under clustering (0.94 vs 0.92) — and would have argued A7 was free.
+> The effect is not correlated errors; it is that the **(y, f) pairs within a
+> series are near-duplicates**. Caught by the monotonicity test, which is now
+> written to fail loudly with both numbers in its message.
 
 ### P6 · What the pilot returns
 

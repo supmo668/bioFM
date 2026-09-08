@@ -225,3 +225,71 @@ def test_sign_test_does_not_depend_on_the_equivalence_band() -> None:
     assert not params & {"equivalence", "sensitive_floor"}, (
         f"sign_test_power takes band parameters {params & {'equivalence', 'sensitive_floor'}}"
     )
+
+
+def test_clustering_at_icc_zero_reduces_to_the_unclustered_case() -> None:
+    """A knob that does not vanish at zero is measuring something other than clustering.
+
+    Asserted **in distribution**, not bit-for-bit. The clustered path draws from the
+    rng in a different order, so identical streams were never the property worth
+    testing — and demanding them would have coupled this test to an implementation
+    detail while saying nothing about behaviour.
+
+    This matters because the discount this model produces is about to be used to
+    argue P0's headline is optimistic. A first version of the clustering model
+    clustered only the prediction noise, left the latent independent, and therefore
+    reduced no information at all — it measured power *higher* under clustering.
+    Zero-equivalence plus the monotonicity test below are what stand between that
+    bug and a published number.
+    """
+    from chipsim.audit.power import simulate_clustered_ligand_set
+
+    rng_a = np.random.default_rng(7)
+    rng_b = np.random.default_rng(8)
+    plain = [spearman(*simulate_ligand_set(400, 0.5, 0.0, rng_a)[1::-1]) for _ in range(60)]
+    zero_icc = [
+        spearman(
+            *simulate_clustered_ligand_set(400, 0.5, 0.0, rng_b, cluster_size=5, icc=0.0)[1::-1]
+        )
+        for _ in range(60)
+    ]
+    assert np.mean(zero_icc) == pytest.approx(np.mean(plain), abs=0.03)
+    assert np.std(zero_icc) == pytest.approx(np.std(plain), abs=0.02)
+
+
+def test_effective_n_matches_the_design_effect() -> None:
+    from chipsim.audit.power import effective_n
+
+    assert effective_n(40, 1, 0.9) == pytest.approx(40.0)  # singletons: no discount
+    assert effective_n(40, 5, 0.0) == pytest.approx(40.0)  # no correlation: no discount
+    assert effective_n(40, 5, 0.5) == pytest.approx(40 / 3.0)
+
+
+def test_clustering_reduces_sign_test_power() -> None:
+    """A7 costs power. If this ever inverts, the discount argument is wrong."""
+    from chipsim.audit.power import clustered_sign_test_power
+
+    kw = {
+        "n": 40,
+        "n_targets": 7,
+        "rho_native": 0.5,
+        "rho_shuffled": 0.0,
+        "trials": 150,
+        "seed": 41,
+    }
+    unclustered = clustered_sign_test_power(cluster_size=1, icc=0.0, **kw)
+    clustered = clustered_sign_test_power(cluster_size=5, icc=0.8, **kw)
+    assert clustered < unclustered, (
+        f"clustering did not cost power ({clustered:.2f} vs {unclustered:.2f}) — the "
+        "model is not reducing information, which is how the first version of it failed"
+    )
+
+
+def test_clustering_rejects_impossible_parameters() -> None:
+    from chipsim.audit.power import simulate_clustered_ligand_set
+
+    rng = np.random.default_rng(0)
+    with pytest.raises(ValueError, match="icc"):
+        simulate_clustered_ligand_set(10, 0.5, 0.0, rng, cluster_size=2, icc=1.5)
+    with pytest.raises(ValueError, match="cluster_size"):
+        simulate_clustered_ligand_set(10, 0.5, 0.0, rng, cluster_size=0, icc=0.5)

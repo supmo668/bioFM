@@ -300,3 +300,95 @@ def sign_test_power(
             signs.append(delta_rho(y, f_nat, f_shuf) > 0.0)
         wins += int(all(signs))
     return wins / trials
+
+
+def simulate_clustered_ligand_set(
+    n: int,
+    rho_native: float,
+    rho_shuffled: float,
+    rng: np.random.Generator,
+    *,
+    cluster_size: int,
+    icc: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """A ligand set containing **analog series** — A7, made measurable.
+
+    `simulate_ligand_set` assumes ligands are exchangeable independent draws. A
+    ~40-compound set assembled from ChEMBL against transporters is not: it arrives
+    as **analog series** — groups of near-identical structures from one
+    medicinal-chemistry campaign, with similar potencies and similar predictions.
+
+    **What clustering has to do, and what a first version got wrong.** The initial
+    implementation clustered only the *prediction noise* and left the latent `z_y`
+    independent. That reduced no information at all: `ρ(f, y)` is driven by `z_y`,
+    so the measured power came out marginally *higher* than the unclustered case
+    (0.94 vs 0.92) and the model would have argued A7 is free. The effect is not
+    correlated errors — it is that **the (y, f) pairs within a series are near
+    duplicates**, so a set of `n` compounds carries roughly `n_clusters` independent
+    observations.
+
+    Modelled accordingly: each series draws a prototype, and its members are that
+    prototype plus a shrinking perturbation. At `icc → 1` a series collapses to one
+    repeated point; at `icc = 0` the members are independent and this reduces to
+    `simulate_ligand_set` in distribution. The design effect
+    `n_eff ≈ n / (1 + (cluster_size − 1)·icc)` then applies — at
+    `cluster_size=5, icc=0.5`, forty compounds behave like about thirteen.
+    """
+    if not 0.0 <= icc <= 1.0:
+        raise ValueError(f"icc must be in [0, 1], got {icc}")
+    if cluster_size < 1:
+        raise ValueError(f"cluster_size must be >= 1, got {cluster_size}")
+
+    r_nat = _spearman_to_pearson(rho_native)
+    r_shuf = _spearman_to_pearson(rho_shuffled)
+
+    n_clusters = math.ceil(n / cluster_size)
+    labels = np.repeat(np.arange(n_clusters), cluster_size)[:n]
+    w_shared, w_own = math.sqrt(icc), math.sqrt(1.0 - icc)
+
+    def _clustered() -> np.ndarray:
+        """Prototype per series + per-member perturbation; unit variance overall."""
+        return w_shared * rng.standard_normal(n_clusters)[labels] + w_own * rng.standard_normal(n)
+
+    # The LATENT is clustered — this is the correction. Members of a series share
+    # most of their position in affinity space, which is precisely why they carry
+    # less independent information than their count suggests.
+    z_y = _clustered()
+    z_nat = r_nat * z_y + math.sqrt(max(0.0, 1.0 - r_nat**2)) * _clustered()
+    z_shuf = r_shuf * z_y + math.sqrt(max(0.0, 1.0 - r_shuf**2)) * _clustered()
+    return z_y, z_nat, z_shuf
+
+
+def effective_n(n: int, cluster_size: int, icc: float) -> float:
+    """`n / (1 + (cluster_size − 1)·icc)` — the design effect.
+
+    Reported alongside power so the discount is legible as a sample size rather
+    than only as a probability. A reader who sees "power fell from 0.92 to 0.61"
+    learns less than one who sees "40 compounds behaved like 13".
+    """
+    return n / (1.0 + (cluster_size - 1) * icc)
+
+
+def clustered_sign_test_power(
+    *,
+    n: int,
+    n_targets: int,
+    rho_native: float,
+    rho_shuffled: float,
+    cluster_size: int,
+    icc: float,
+    trials: int = 300,
+    seed: int = 0,
+) -> float:
+    """Sign-test power when the ligand set contains analog series (A7)."""
+    rng = np.random.default_rng(seed)
+    wins = 0
+    for _ in range(trials):
+        signs = []
+        for _ in range(n_targets):
+            y, f_nat, f_shuf = simulate_clustered_ligand_set(
+                n, rho_native, rho_shuffled, rng, cluster_size=cluster_size, icc=icc
+            )
+            signs.append(delta_rho(y, f_nat, f_shuf) > 0.0)
+        wins += int(all(signs))
+    return wins / trials
