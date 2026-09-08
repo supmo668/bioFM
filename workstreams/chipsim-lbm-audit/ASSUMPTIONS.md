@@ -48,6 +48,30 @@ Status: `LIVE` (in force), `RETIRED` (measured, replaced by a fact), `OPEN`
 | **A14** | Every commit on this branch was authored by the agent whose identity signs it. | **FALSE, established 2026-09-08.** `c0b3d24`, `83e80ad` and `7cacb7c` were not written in the session that reports as their author; `b4598aa` was. Two writers published under `biofm/matthew-mo/lung-on-chipsim` three seconds apart (#67 at 16:08:43, #68 at 16:08:46), each accurately reporting its own work, producing a dispatch record that reads as self-contradiction while containing no false statement. **The mechanism is not established** — the CTO's subagent hypothesis is plausible and unconfirmed from inside the session. | **REFUTED** |
 | **A15** | *"The CTO checked it and I checked it"* is equivalent to gated. | **FALSE, and load-bearing here.** By the CTO's standing rule (2026-09-08) any commit this session did not author is **unreviewed until a gate covers it**. That currently covers `series.py` (167 lines + tests) and r1.6b's withdrawal of the diversity pre-registration — work heading for an OpenTimestamps seal. Tests passing and lint clean are **not** a quality gate. | **OPEN — needs a gate before any seal** |
 
+**Attribution reconstruction — recorded for the gate, contested finding.** The CTO
+ruled authorship *"not determinable"* on the grounds that #70 and #79 contradict.
+They do not: #70 **disclaims** `c0b3d24`/`83e80ad`/`7cacb7c` and #79 **claims**
+them. A claim and a disclaimer of the same fact by different parties is
+corroboration, not contradiction — the same structure the CTO itself resolved
+correctly for #67/#68. One genuine discrepancy existed (`b4598aa`, which #70
+claimed) and it was already superseded by the 2-of-22 audit, which showed that
+commit carrying a stolen payload rather than being this session's.
+
+What the evidence supports, independent of the shared address, the git author, and
+the subject convention — none of which work:
+
+| commit | attribution | basis |
+|---|---|---|
+| `17db8b0` (15:47:06), `8beb9ea` (15:52:24) | this session | **predate the peer process start (15:52:43)** — machine evidence, not self-report |
+| `2cbb178`, `c0b3d24`, `83e80ad`, `7cacb7c`, `b4598aa` | peer session | peer claims, this session disclaims, timestamps consistent |
+| `8645a91`, `f42b5bc`, `e9a0e59` | this session | committed in-session, HEAD-moved guard observed |
+
+**The receipt should say the address is not an authorship signal — NOT that
+authorship is unknown.** The second is false in the direction of claiming less
+knowledge than exists, which is the mirror of the overclaiming removed everywhere
+else in this document. Raise at signing; not dispatched, per the CTO's instruction
+to stop coordinating about coordination.
+
 **Standing constraint, adopted 2026-09-08:** subagents do not commit and do not
 push. They report; this session commits. Alongside the existing prohibitions on
 `receipt-sign`, `dispatch create` and `plan-gate sign`, which were restricted after
