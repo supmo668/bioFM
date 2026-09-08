@@ -80,3 +80,9 @@ projects/*/.publish_work/
 # as the lung-on-chipsim agent. Absent, agent-identity resolves correctly:
 # main checkout -> cto, worktree -> its branch name.
 .aiadlc-agent
+
+# Plugin feedback reports are deliberately tracked — without this negation
+# .claude/* silently swallows new ones, git-safe add stages nothing, and
+# git-safe-commit then exits 0 having committed nothing (see 2026-09-08 report).
+!.claude/aiadlc-feedback/
+!.claude/aiadlc-feedback/*.md
