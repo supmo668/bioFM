@@ -110,7 +110,30 @@ each **per-target** CI is built, resampling ligands within that target.
 | Tier | Swap to | Answers |
 |---|---|---|
 | **within-panel** | another of the seven | The decision-relevant question — ChipSim must discriminate *among these seven*. The harder test. F1 governs partner selection. |
-| **cross-family** (**20 ligands**, r1.4) | a protein unrelated to the panel | The sanity floor. `insensitive` on **this** tier too means no target sensitivity at all — a stronger and more publishable negative. (Stated in the three-region language deliberately: *"Δρ ≈ 0"* is not a verdict this design can render.) |
+| **cross-family** (**20 ligands**, r1.4) | a protein unrelated to the panel | The sanity floor. A null on **this** tier too means no target sensitivity at all — a stronger and more publishable negative. **Read via the sign test over targets, NOT via an `insensitive` render — see r1.6 below.** |
+
+> **r1.6 · the cross-family tier's designed outcome was UNREACHABLE, and r1.5's vacuity
+> sweep missed it.** This row previously read *"`insensitive` on this tier too"* — the
+> C12 restatement, adopted precisely because *"Δρ ≈ 0"* is not a renderable verdict. But
+> P0 measured `P(insensitive) = 0.000` at every feasible n, and this tier runs on **20**
+> ligands, so its CI is **wider** than the one that already cannot fit the band. The
+> study's negative control was specified to confirm itself through a verdict it can never
+> render — the sanity floor could not report that the sanity check passed.
+>
+> **Why the r1.5 sweep did not catch it.** That sweep asked which **test assertions** had
+> an `insensitive` render as their subject, and correctly found two. This is not an
+> assertion; it is a **design expectation** — the stated reason the tier exists. Scoping a
+> vacuity sweep to the test suite misses every unreachable expectation living in the
+> rationale, and the rationale is what the tests get written from. **The sweep is
+> re-scoped: any claim of the form "X confirms the design" is checked against whether X is
+> reachable, wherever it appears — table cell, prose, or assertion.**
+>
+> **The fix is the same shape as the halt rule's.** The tier's conclusion is carried by the
+> **one-sided sign test over targets on point estimates**, which needs no CI to fit the
+> band and is exactly why that statistic survived the width that killed `insensitive`. A
+> cross-family tier failing to clear the sensitive floor across seven targets is the
+> negative this arm was built to deliver; it was only ever the *equivalence framing* of it
+> that was unreachable.
 
 Within-panel alone yields a null ambiguous between *"the model is insensitive"* and *"these seven
 are too similar to separate."* The cross-family arm disambiguates it on the same ligand set for one
@@ -576,9 +599,19 @@ have written the contradiction straight into the suite.
 > **Swept for siblings.** R8's assertions — the pinned boundary cases (`lo = +0.20` → `SENSITIVE`;
 > `hi = +0.10, lo = −0.10` → `INSENSITIVE`), disjointness by property test over random CIs,
 > `len(Verdict) == 3` — are **already** synthetic-input unit tests on `classify` and are **not**
-> affected. The two above were the only assertions in the document whose subject was an
-> `insensitive` render reachable only through study data. Recorded so the next reader does not
-> re-derive the sweep.
+> affected. The two above were the only **assertions** in the document whose subject was an
+> `insensitive` render reachable only through study data.
+>
+> > **r1.6 — this sweep was INCOMPLETE, and its own wording is why.** It scoped itself to
+> > *assertions*, then reported closure as though it had swept the document. It had not: the
+> > **cross-family tier's designed outcome** (D3, tier table) was specified as an `insensitive`
+> > render and is equally unreachable — the study's negative control could not report that it
+> > passed. A design expectation is not an assertion, so a suite-scoped sweep cannot see it,
+> > yet it is what the assertions get written *from*. **Re-scoped: any claim that some result
+> > confirms the design is checked for reachability wherever it lives — table cell, prose, or
+> > test.** The sentence *"recorded so the next reader does not re-derive the sweep"* was the
+> > active harm — it invited exactly the trust that let the gap survive a full review cycle. A
+> > completeness claim is only as wide as its stated scope, and this one did not state it.
 
 ### R4 · Pocket-vs-distal mutation control
 **Behavior.** Per target, matched pocket and distal mutants (F2, **F2a**).
@@ -838,14 +871,22 @@ R1's RAM and disk floors are measured in the same pass (G3's power rule folds in
 
 ### Standing check — "machinery correct, quantity wrong"
 
-Three defects in this design share one shape, and the third was found only because
-the first two had been named:
+**Four** defects in this design share one shape, and each after the first was found
+only because its predecessors had been named:
 
 | # | Machinery | Quantity it was pointed at | Should have been |
 |---|---|---|---|
 | R4 | the three-region rule | D3a's ρ-units | predicted-affinity units |
 | r1.4 halt rule | a go/no-go gate | the equivalence band (secondary) | the sign test (primary) |
 | G5 | a small-n bootstrap result | this statistic, unchecked | a statistic it had been measured on |
+| **r1.5 halt rule (r1.6 fix)** | **the corrected go/no-go gate** | **power under A7-exchangeable ligands (0.92)** | **power under the roster's MEASURED clustering (0.46–0.95)** |
+
+The fourth is the sharpest, because it was introduced *by the correction to the
+second* and survived the r1.5 review that wrote the standing check down. Fixing a
+rule's **statistic** left its **assumption** unexamined: the gate now keys on the
+right quantity and still reads it off the one ligand-set idealisation that cannot
+hold. A number carried across an assumption boundary is the same error as a number
+carried across a units boundary.
 
 In each case the mechanism was correct and would pass every test written for it.
 **So the check is not "is this value right" but "what quantity is this measured in,
@@ -998,8 +1039,32 @@ The halt criterion this feeds — the thing r1.2 named and could not evaluate:
 >
 > **The rule, restated:** the pilot halts if the **sign test** is underpowered at the
 > effect size the study declares it targets. The A&D declares *"powered for a large
-> effect only"*; P0 quantifies *large* as `Δρ ≳ 0.5`, where power at n=40 is **0.92**.
-> **Verdict: PROCEED.**
+> effect only"*; P0 quantifies *large* as `Δρ ≳ 0.5`, where power at n=40 is **0.92 —
+> an UPPER BOUND (A2), and the exchangeable case (A7)**.
+> **Verdict: PROCEED — PROVISIONALLY.** The qualifier is part of the rule, not a caveat
+> appended to it.
+>
+> **r1.6 · the halt rule inherited a number computed under an assumption it does not
+> state — the FOURTH instance of this document's own standing defect.** P7 measured that
+> under analog-series structure entirely ordinary for a ChEMBL set the same study sits at
+> **0.46–0.75**; at `icc = 0.8`, series of five, power is **0.46**. A rule that halts on
+> *"underpowered at the declared effect size"* evaluates to **PROCEED at 0.92** and to
+> **HALT at 0.46**. The gate exists to fire **pre-hoc**, and it was being evaluated on the
+> single ligand-set assumption guaranteed not to hold: no real compound set is
+> exchangeable. Same shape as R4 inheriting D3a's units, the r1.4 halt rule inheriting the
+> equivalence band's authority, and G5 inheriting a general result's conclusion — the
+> machinery was right and was pointed at the wrong quantity.
+>
+> **PROCEED is therefore conditional, and its condition is now named.** The halt rule is
+> evaluated on the power computed from the **measured** `icc` and series-size distribution
+> of the actual compound roster (P7), never on the exchangeable idealisation. Until that
+> roster exists (**T18 — absent**), realised power is **UNKNOWN, not 0.92**, and PROCEED
+> stays provisional. **No batch is authorized on a provisional PROCEED.**
+>
+> **Ordering consequence, which is the operative part.** The realised-clustering
+> measurement is a **precondition of the halt decision**, not a refinement reported
+> beside it. It is free — RDKit/MMP, local, zero Modal cost — and it gates spend, so it
+> runs **before** the halt rule is evaluated, not after.
 
 P0 also calibrates the CI method (below) by measuring realised coverage at the realised n.
 
@@ -1124,9 +1189,13 @@ native arm, so R4 adds no separate WT cost.
 **Two costs, both deliberate and both stated.** `2+2` shrinks the Grantham/RSA matching pool, so
 F2a's *"an unmatched pocket mutant raises rather than being reported against a mismatched control"*
 will fire more often — which is the correct failure, loudly. And thinning the cross-family tier to 20
-ligands widens its CI, making `insensitive` harder to establish on the tier that would give the
-**stronger** negative; it is the sanity floor rather than the decision-relevant question, which is
-why it was the one thinned.
+ligands widens its CI further on the tier that would give the **stronger** negative; it is the
+sanity floor rather than the decision-relevant question, which is why it was the one thinned.
+**Per r1.6 this cost is smaller than r1.4 believed, and for an uncomfortable reason:** the CI on
+this tier was never going to fit the equivalence band at *any* feasible width, so thinning it to 20
+costs nothing that was reachable at 40. The tier's conclusion rests on the sign test over point
+estimates, which loses precision from the cut but does not lose a verdict it could otherwise have
+rendered.
 
 ### P7 · A7 measured — analog series are the largest single threat to power
 
@@ -1160,9 +1229,44 @@ full unit of n. So:
   panel will be *worse* than a 25-compound set chosen for distinctness.
 - **The pilot measures the realised clustering** — series membership is computable
   locally from SMILES with the same RDKit/MMP machinery R5 already needs, at zero
-  Modal cost — and **P0 is re-run on the measured `icc` and series-size
-  distribution**. The power statement that reaches the model card is the one
-  computed from the actual compound set, not the exchangeable idealisation.
+  Modal cost — and **P0 is re-run on the measured series-size distribution**. The
+  power statement that reaches the model card is the one computed from the actual
+  compound set, not the exchangeable idealisation.
+
+> **r1.6 · `icc` is NOT measurable from SMILES, and r1.5 said it was.** The clause
+> above previously read *"P0 is re-run on the measured `icc` and series-size
+> distribution"*, having opened by correctly noting that **series membership** is what
+> SMILES gives you for free. It slid from a quantity that IS free to one that is NOT,
+> inside one sentence, and the word *"measured"* carried across the join.
+>
+> Structure says **which** compounds are analogs. `icc` says how correlated their
+> `(y, f)` contributions are — and `f` is a Boltz-2 prediction that **does not exist
+> until the batch has been spent**. So a pre-spend `icc` cannot be measured; it can only
+> be assumed. A halt rule fed an assumed `icc` labelled *"measured"* is the failure this
+> gate exists to prevent, reproduced one level up.
+>
+> **So `icc` is a sensitivity RANGE, not an input.** `series.power_over_icc_range`
+> reports `(icc, deff, n_eff)` across the plausible band and refuses to return a point
+> estimate. **The halt rule holds across the band or it does not hold** — PROCEED at
+> `icc = 0.3` and HALT at `icc = 0.8` is not a PROCEED. What the roster genuinely
+> supplies pre-spend is the **series-size distribution**, and that alone is a real
+> tightening: it converts A7 from unbounded to bounded.
+
+> **r1.6 · `power.effective_n` assumes EQUAL cluster sizes, and real rosters are not.**
+> The design effect is `1 + (m_A − 1)·icc` where `m_A = Σmᵢ²/Σmᵢ` — the **size-weighted**
+> mean. `effective_n(n, cluster_size, icc)` takes one scalar size, so applied to a real
+> roster it is reached through the **arithmetic** mean. By Cauchy–Schwarz `m_A ≥ mean(m)`
+> for every size vector, equality only when all clusters are identical — so the
+> arithmetic form **always** understates the discount, and never in the safe direction.
+>
+> **Measured:** one series of 12 among 28 singletons at `icc = 0.5` — arithmetic mean
+> reads `n_eff = 33.6`, size-weighted reads **15.1**. A **2.2× overstatement** of the
+> independent information in the roster, on a shape that is entirely ordinary. P7's
+> table is unaffected (it used equal sizes of 5, and `effective_n_unequal([5]*8, 0.5)`
+> reproduces its `13.3` exactly — the new path is cross-checked against the old on the
+> case where both are valid), but any application to an actual roster would have
+> inherited the optimistic form. `design_effect`/`effective_n_unequal` in
+> `chipsim/audit/series.py` are now the path for unequal sizes.
 - **Every reported power figure carries which assumption it rests on.** "92%" and
   "46%" are the same study under different ligand sets, and a number quoted
   without that qualifier is not interpretable.
