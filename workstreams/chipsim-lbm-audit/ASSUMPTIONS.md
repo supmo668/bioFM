@@ -41,6 +41,18 @@ Status: `LIVE` (in force), `RETIRED` (measured, replaced by a fact), `OPEN`
 
 ---
 
+## Provenance of the work itself
+
+| id | Assumption | Direction of error | Status |
+|---|---|---|---|
+| **A14** | Every commit on this branch was authored by the agent whose identity signs it. | **FALSE, established 2026-09-08.** `c0b3d24`, `83e80ad` and `7cacb7c` were not written in the session that reports as their author; `b4598aa` was. Two writers published under `biofm/matthew-mo/lung-on-chipsim` three seconds apart (#67 at 16:08:43, #68 at 16:08:46), each accurately reporting its own work, producing a dispatch record that reads as self-contradiction while containing no false statement. **The mechanism is not established** — the CTO's subagent hypothesis is plausible and unconfirmed from inside the session. | **REFUTED** |
+| **A15** | *"The CTO checked it and I checked it"* is equivalent to gated. | **FALSE, and load-bearing here.** By the CTO's standing rule (2026-09-08) any commit this session did not author is **unreviewed until a gate covers it**. That currently covers `series.py` (167 lines + tests) and r1.6b's withdrawal of the diversity pre-registration — work heading for an OpenTimestamps seal. Tests passing and lint clean are **not** a quality gate. | **OPEN — needs a gate before any seal** |
+
+**Standing constraint, adopted 2026-09-08:** subagents do not commit and do not
+push. They report; this session commits. Alongside the existing prohibitions on
+`receipt-sign`, `dispatch create` and `plan-gate sign`, which were restricted after
+two forged receipts. Ordinary commits were the gap.
+
 ## Facts established (no longer assumptions)
 
 | was | now | source |
