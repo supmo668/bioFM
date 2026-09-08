@@ -1066,6 +1066,37 @@ The halt criterion this feeds — the thing r1.2 named and could not evaluate:
 > beside it. It is free — RDKit/MMP, local, zero Modal cost — and it gates spend, so it
 > runs **before** the halt rule is evaluated, not after.
 
+#### Why the sign test is the PRIMARY inference — stated, not coincidental (r1.6)
+
+The sign test has now been the statistic that still works **twice**, in two unrelated
+rescues, and the CTO is right that leaving that as coincidence wastes the finding:
+
+1. **`insensitive` became unreachable** — no feasible `n` brings a CI inside `±0.10`
+   (half-widths 0.34–0.42 at `n=40`, 0.17–0.21 at `n=160`). The equivalence band died.
+   The sign test did not.
+2. **The cross-family negative control became unreachable** for the same reason, on a
+   *wider* CI still (20 ligands). Its conclusion was re-based on the sign test.
+
+**The reason is structural, and it is one sentence:** the sign test consumes only the
+**direction** of `Δρ` per target, so its precision requirement is a *comparison*, not an
+*interval*. Everything that killed the other two — CI half-width at small `n`, the
+bootstrap variant (G5), the equivalence band's absolute scale — acts on **interval width**.
+A statistic that never forms an interval is immune to all of it by construction.
+
+**What that buys, and what it does not.** It buys robustness: seven independent directional
+calls at `p = 1/2⁷ ≈ 0.008` one-sided need no CI to be narrow. It does **not** buy immunity
+to `n` — P7 showed the sign test degrading 0.95 → 0.46 under clustering, because effective
+`n` still governs whether each *direction* is called correctly. So the correct reading is
+**not** "the sign test is robust, therefore power is fine": it is immune to *width* and
+fully exposed to *effective n*. That is exactly why A7, not the band, is the live threat to
+this study, and why the halt rule keys on the sign test while the realised-clustering
+measurement gates the halt rule.
+
+**Design consequence:** any future statistic proposed as primary must be checked against the
+same question — does its inference require an interval, or only a comparison? Interval-based
+primaries are not viable at this `n`, and that is now a known property of the design rather
+than a lesson re-learned per statistic.
+
 P0 also calibrates the CI method (below) by measuring realised coverage at the realised n.
 
 ### P1 · Statistic method — BCa, calibrated
@@ -1223,10 +1254,54 @@ composition matters as much as count.** Adding compounds from a series already
 represented buys almost nothing; adding a structurally distinct compound buys a
 full unit of n. So:
 
-- **Compound selection maximises structural diversity**, and diversity is a
-  selection criterion in the pre-registration rather than an afterthought. A
-  40-compound set assembled by taking whatever has measured values against the
-  panel will be *worse* than a 25-compound set chosen for distinctness.
+- **Structural diversity buys power.** A 40-compound set assembled by taking whatever
+  has measured values against the panel will be *worse* than a 25-compound set chosen
+  for distinctness. **This is a measured consequence, NOT a pre-registered selection
+  criterion — see the open item below.**
+
+> **r1.6 · OPEN ITEM — diversity and matched pairs pull the roster in opposite
+> directions. NOT RESOLVED HERE, and deliberately so.**
+>
+> r1.5 wrote the line above as *"diversity is a selection criterion in the
+> pre-registration rather than an afterthought."* **That pre-registration is
+> withdrawn.** Two reasons, and the second is the substantive one.
+>
+> **First, it is not this document's to set.** The roster is `configs/poc_compounds.yaml`
+> (**T18**), a human artifact. An A&D that pre-registers its selection criterion has
+> written a human decision on the human's behalf — the same class of over-reach the
+> five absent artifacts exist to prevent.
+>
+> **Second, and worse: it collides with R5.** **`R5` requires matched molecular pairs
+> crossing a potency or efflux cliff, reported cliff-stratified** (audit PVR, R5). **An
+> MMP is an analog series by construction** — a pair differing by one moiety *is* the
+> cliff test's unit and *is* the clustering that destroys effective `n`. So on a single
+> shared ligand set:
+>
+> | Pulls toward | Requirement | Source |
+> |---|---|---|
+> | **diversity** | structurally distinct compounds, so the sign test and `Δρ` keep their `n` | A7 / P7, measured |
+> | **analog pairs** | MMPs across a cliff, or R5 has no test | **audit PVR · R5** |
+>
+> Following either alone damages the other test. r1.5 saw only the first and pre-registered it.
+>
+> **Provenance note, because it changes who owns this.** The CTO put the tension against
+> *"PVR §2E — 20–40 … plus matched molecular pairs … pair count matters more than compound
+> count."* That sentence is **verbatim accurate but belongs to a different document**:
+> `workstreams/lung-on-chipsim/PVR.md`, the *"minimum viable chip"* table for the **ChipSim
+> PoC simulator**, and there is no §2E. It does not govern this workstream. The audit's own
+> PVR sets its own design — *"~7 barrier proteins × ~40 compounds"* — and its MMP
+> requirement enters through **R5**, not through a roster rule. The tension is therefore
+> **internal to the audit**, not inherited from the product PVR, which makes it ours to
+> surface and the principal's to settle. Recorded under the r15 provenance convention.
+>
+> **The CTO's proposed resolution, recorded as a PROPOSAL and not adopted:** stratify the
+> roster — a **diversity stratum** carrying the sign test and `Δρ`, and a **pair stratum**
+> of MMPs carrying the cliff and disambiguation tests, **excluded from the power
+> calculation rather than discounted into it**. It has the merit of extending to
+> *construction* the stratification the design already requires for *analysis* (R5 reports
+> cliff pairs separately because *"aggregate metrics hide exactly the cases the project
+> exists to resolve"*). **Whoever curates T18 must be shown both numbers before choosing;
+> no criterion is pre-registered until they do.**
 - **The pilot measures the realised clustering** — series membership is computable
   locally from SMILES with the same RDKit/MMP machinery R5 already needs, at zero
   Modal cost — and **P0 is re-run on the measured series-size distribution**. The
