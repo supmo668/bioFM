@@ -828,14 +828,53 @@ correlation should be *low*. The realistic half-width is 3–5× the band. If th
 three-region partition collapses to two in practice and the PVR's *"publishable whether positive or
 negative"* is unachievable on the negative side.
 
-These are analytic approximations. **P0 replaces them with the measured answer** at the realised
-per-target pair count, and its output **is** G3's pre-hoc halt criterion — the thing r1.2 named and
-could not evaluate:
+These were analytic approximations. **P0 has now run** (`chipsim/audit/power.py`, zero Modal spend)
+and the measured answer is worse than the estimate on one axis and much better on another.
 
-> **G3 · halt rule, now computable.** If no achievable CI at the assembled pair count fits the
-> equivalence band, the pilot **halts and reports power**, and no GPU batch is authorized. Halting
-> before spending is the entire point: a study that spends $27 to return `inconclusive` seven times
-> has bought nothing that P0 could not have told it for free.
+**Result 1 — `insensitive` is unreachable, confirmed.** `P(insensitive) = 0.000` in **all 36 cells**:
+ρ_native ∈ {0.3, 0.5, 0.7} × ρ_shuffled ∈ {0.0, 0.2} × n ∈ {20, 30, 40, 60, 100, 160}. Median
+half-width at n=40 is **0.36–0.42** against a band of `±0.10`; even at **n=160** it is 0.17–0.21.
+No feasible ligand count brings a CI inside the equivalence band. **D3a's three-region partition is
+two-region in practice**, and the pre-registration must say so rather than let a reader infer a
+three-way outcome.
+
+**Result 2 — the primary inference is well powered.** The study's actual inference is the one-sided
+**sign test** (`p = 1/2⁷ ≈ 0.008`), which uses point estimates and never touches the band:
+
+| true Δρ | n=20 | n=40 | n=60 | n=100 |
+|---|---|---|---|---|
+| 0.1 | 0.03 | 0.05 | 0.09 | 0.13 |
+| 0.2 | 0.09 | 0.17 | 0.35 | 0.56 |
+| 0.3 | 0.22 | 0.50 | 0.71 | 0.91 |
+| **0.5** | 0.67 | **0.92** | 0.99 | 1.00 |
+| 0.7 | 0.97 | 1.00 | 1.00 | 1.00 |
+
+At the planned n≈40 the study has **92% power for a large effect** and 50% at Δρ=0.3. The A&D's
+existing claim — *"can detect a unanimous large effect and essentially nothing subtler"* — is
+**confirmed and now quantified**: *large* means `Δρ ≳ 0.5`.
+
+**Both results are upper bounds.** A2 (measured affinities treated as noise-free) and A4 (equal n and
+equal effect across targets) both err optimistic; see `ASSUMPTIONS.md`. Real assay noise attenuates
+`ρ_native`, and per-target heterogeneity weakens a unanimity criterion that is only as strong as its
+weakest target.
+
+The halt criterion this feeds — the thing r1.2 named and could not evaluate:
+
+> **G3 · halt rule — CORRECTED after P0 ran (r1.5).** The r1.4 wording was:
+> *"if no achievable CI fits the equivalence band, halt and authorize no batch."*
+> **That rule was wrong and would have killed the study.** P0 measured
+> `P(insensitive) = 0.000` in all 36 cells, so it fires unconditionally — while the
+> PVR explicitly accepts *"a defensible 'inconclusive at this power'"* as success.
+> It keyed a go/no-go on a **secondary** statistic: the study's primary inference is
+> the one-sided **sign test** over seven targets (`p = 1/2⁷ ≈ 0.008`), which uses
+> point estimates only and never touches the equivalence band. Same defect class as
+> R4 inheriting D3a's units — the machinery was right and was pointed at the wrong
+> quantity.
+>
+> **The rule, restated:** the pilot halts if the **sign test** is underpowered at the
+> effect size the study declares it targets. The A&D declares *"powered for a large
+> effect only"*; P0 quantifies *large* as `Δρ ≳ 0.5`, where power at n=40 is **0.92**.
+> **Verdict: PROCEED.**
 
 P0 also calibrates the CI method (below) by measuring realised coverage at the realised n.
 
@@ -847,11 +886,30 @@ and the simulation literature is unambiguous that percentile intervals are **too
 — 81–83% actual coverage for a nominal 95% at n=5, and still optimistic at n=20; for Spearman at
 n=10 with ρ≤0.5, intervals can exceed unity in length.
 
-**The direction of that error is what makes it a defect and not a detail.** A too-narrow CI raises
-`lo` and lowers `hi`, so it makes **both** `sensitive` (`lo ≥ +0.20`) and `insensitive` (fits inside
-`±0.10`) easier to reach — it systematically suppresses **`inconclusive`**, the verdict R8 and F7
-exist specifically to make renderable. An unnamed bootstrap variant was quietly biasing the study
-against its own honesty mechanism.
+**The direction of such an error would make it a defect and not a detail.** A too-narrow CI raises
+`lo` and lowers `hi`, so it makes **both** `sensitive` and `insensitive` easier to reach — it would
+systematically suppress **`inconclusive`**, the verdict R8 and F7 exist to make renderable.
+
+> **Correction (r1.5) — this harm was claimed and then measured, and the measurement does not
+> support it.** r1.4 asserted that "an unnamed bootstrap variant was quietly biasing the study
+> against its own honesty mechanism." For **this** statistic at **this** n, that is false. Measured
+> over 300 trials at n=40:
+>
+> | method | coverage (nominal 0.95) | median half-width |
+> |---|---|---|
+> | BCa | 0.930 | 0.384 |
+> | percentile | 0.943 | 0.386 |
+>
+> They are equivalent, and percentile is marginally closer to nominal. The r1.4 claim was imported
+> from the general small-n literature and asserted about a specific statistic it had not been checked
+> against — the same defect class as R4 inheriting D3a's units, committed while documenting that
+> defect class.
+>
+> **BCa is still what gets sealed**, for the reasons that survive: its acceleration term tracks skew,
+> and `Δρ` is a bounded difference that is skewed near the ends of the ρ range; and a named variant
+> is reproducible where an unnamed one is not. It is **not** sealed because percentile was shown to
+> fail. No test in this suite discriminates the two, and that is now stated where a reader will find
+> it rather than left to be re-derived.
 
 **Sealed: BCa**, plus P0's coverage calibration. If measured coverage falls below nominal, the
 interval is widened by a calibrated (double) bootstrap and *that* is sealed. Coverage becomes a
