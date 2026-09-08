@@ -871,7 +871,7 @@ R1's RAM and disk floors are measured in the same pass (G3's power rule folds in
 
 ### Standing check — "machinery correct, quantity wrong"
 
-**Four** defects in this design share one shape, and each after the first was found
+**Five** defects in this design share one shape, and each after the first was found
 only because its predecessors had been named:
 
 | # | Machinery | Quantity it was pointed at | Should have been |
@@ -879,14 +879,22 @@ only because its predecessors had been named:
 | R4 | the three-region rule | D3a's ρ-units | predicted-affinity units |
 | r1.4 halt rule | a go/no-go gate | the equivalence band (secondary) | the sign test (primary) |
 | G5 | a small-n bootstrap result | this statistic, unchecked | a statistic it had been measured on |
-| **r1.5 halt rule (r1.6 fix)** | **the corrected go/no-go gate** | **power under A7-exchangeable ligands (0.92)** | **power under the roster's MEASURED clustering (0.46–0.95)** |
+| **r1.5 halt rule (r1.6 fix)** | **the corrected go/no-go gate** | **power under A7-exchangeable ligands (0.935)** | **power under the roster's realised clustering — UNKNOWN, T18 absent** |
+| **r1.6b cross-family fix (r1.6c)** | **the sign test, as that tier's conclusion** | **power at n=40 (0.935 / 0.470)** | **power at the tier's own n=20 (0.664 / 0.232)** |
 
-The fourth is the sharpest, because it was introduced *by the correction to the
-second* and survived the r1.5 review that wrote the standing check down. Fixing a
-rule's **statistic** left its **assumption** unexamined: the gate now keys on the
-right quantity and still reads it off the one ligand-set idealisation that cannot
-hold. A number carried across an assumption boundary is the same error as a number
-carried across a units boundary.
+The fourth was introduced *by the correction to the second*, and the fifth *by the
+correction to the fourth*. That is no longer a run of bad luck; it is a property of
+corrections. Fixing a rule's **statistic** left its **assumption** unexamined (fourth);
+fixing the tier's **statistic** left its **`n`** unexamined (fifth). A number carried
+across an assumption boundary is the same error as a number carried across a units
+boundary — and a number carried across a **sample-size** boundary is the same error
+again.
+
+> **Standing rule, adopted r1.6c: when you correct a threshold, re-derive every figure
+> that governs it, not only the one you changed.** Each of these corrections was right
+> about the thing it changed and silent about what that thing depended on. The review
+> that writes the standing check down is not exempt — the fourth survived exactly that
+> review, and the fifth survived the review that catalogued the fourth.
 
 In each case the mechanism was correct and would pass every test written for it.
 **So the check is not "is this value right" but "what quantity is this measured in,
@@ -1056,8 +1064,18 @@ The halt criterion this feeds — the thing r1.2 named and could not evaluate:
 > machinery was right and was pointed at the wrong quantity.
 >
 > **PROCEED is therefore conditional, and its condition is now named.** The halt rule is
-> evaluated on the power computed from the **measured** `icc` and series-size distribution
-> of the actual compound roster (P7), never on the exchangeable idealisation. Until that
+> evaluated on the power computed **across the `icc` sensitivity band** at the roster's
+> **measured series-size distribution** (P7), never on the exchangeable idealisation, and
+> PROCEED requires it to hold **across the whole band**.
+>
+> > **r1.6c — this sentence previously read *"the power computed from the measured `icc`"*,
+> > which is the identical construction r1.6 excised 250 lines below, reproduced inside the
+> > halt rule itself.** `icc` is not measurable pre-spend; only the size distribution is.
+> > The r1.6 sweep corrected the P7 clause and did not sweep the G3 block above it — the
+> > same partial-sweep-declared-complete this document has now committed **three** times
+> > (r1.5's vacuity sweep, r1.6b's A&D-but-not-ledger sweep, and this one). **A sweep is
+> > not complete until it has been run against the load-bearing site, and the load-bearing
+> > site is the one defining the precondition of spend.** Until that
 > roster exists (**T18 — absent**), realised power is **UNKNOWN, not 0.92**, and PROCEED
 > stays provisional. **No batch is authorized on a provisional PROCEED.**
 >
@@ -1085,7 +1103,7 @@ A statistic that never forms an interval is immune to all of it by construction.
 
 **What that buys, and what it does not.** It buys robustness: seven independent directional
 calls at `p = 1/2⁷ ≈ 0.008` one-sided need no CI to be narrow. It does **not** buy immunity
-to `n` — P7 showed the sign test degrading 0.95 → 0.46 under clustering, because effective
+to `n` — P7 showed the sign test degrading 0.935 → 0.470 under clustering, because effective
 `n` still governs whether each *direction* is called correctly. So the correct reading is
 **not** "the sign test is robust, therefore power is fine": it is immune to *width* and
 fully exposed to *effective n*. That is exactly why A7, not the band, is the live threat to
@@ -1224,24 +1242,86 @@ ligands widens its CI further on the tier that would give the **stronger** negat
 sanity floor rather than the decision-relevant question, which is why it was the one thinned.
 **Per r1.6 this cost is smaller than r1.4 believed, and for an uncomfortable reason:** the CI on
 this tier was never going to fit the equivalence band at *any* feasible width, so thinning it to 20
-costs nothing that was reachable at 40. The tier's conclusion rests on the sign test over point
-estimates, which loses precision from the cut but does not lose a verdict it could otherwise have
-rendered.
+costs nothing that was reachable at 40 **for the CI**.
+
+> **r1.6c — the second half of that sentence was FALSE, and it was mine.** r1.6b continued
+> *"the tier's conclusion rests on the sign test over point estimates, which loses precision
+> from the cut but does not lose a verdict it could otherwise have rendered."* Measured at
+> the tier's own `n = 20`: the sign test reaches **0.664** under full exchangeability and
+> **0.232** at `icc = 0.8`, against 0.935 / 0.470 at n=40. A tier at 0.23 power **does** lose
+> verdicts it would otherwise have rendered — that is what low power means.
+>
+> The error is exact and it is instructive: r1.6b re-based this tier's conclusion onto the
+> sign test **because** the sign test is immune to interval width, and then reasoned about
+> the ligand cut as though the tier were still CI-limited. But this document's own
+> §*"Why the sign test is PRIMARY"* states the sign test is **immune to width and fully
+> exposed to effective `n`** — and the cut is a cut in `n`. The rhetorical split between
+> "width" and "effective n" is precisely what concealed it: a reader who accepts "immune to
+> width" stops asking about the tier whose `n` was halved to save budget.
+>
+> **Consequence, unresolved here:** the cross-family tier is underpowered *before* clustering
+> is considered. Either it returns to 40 ligands, or its power is stated beside its verdict
+> every time that verdict is reported. **The halt rule is evaluated per tier, at each tier's
+> own `n`, across the `icc` band** — not once at n=40 for a design that runs two tiers at two
+> different ligand counts.
 
 ### P7 · A7 measured — analog series are the largest single threat to power
 
-**A7 was the assumption most likely to be quietly optimistic, and it is.** Measured
-(`clustered_sign_test_power`), n=40, 7 targets, true `Δρ = 0.5`:
+**A7 was the assumption most likely to be quietly optimistic, and it is.**
 
-| series size | icc | n_eff | sign-test power |
-|---|---|---|---|
-| 1 (none) | 0.0 | 40.0 | **0.95** |
-| 2 | 0.5 | 26.7 | 0.88 |
-| 3 | 0.5 | 20.0 | 0.83 |
-| 5 | 0.3 | 18.2 | 0.86 |
-| 5 | 0.5 | 13.3 | **0.75** |
-| 5 | 0.8 | 9.5 | **0.46** |
-| 8 | 0.8 | 6.1 | 0.34 |
+> **r1.6c · regenerated from a committed, seeded driver.** The r1.6 table carried no
+> seed, no trial count and no driver anywhere in the repo, and its power column did not
+> reproduce — `(5, 0.8)` returned 0.497 / 0.467 / 0.477 / 0.520 across seeds against a
+> recorded `0.46`. That spread is Monte-Carlo noise at 300 trials (SE ≈ 0.029), so the
+> recorded values were noise-consistent and **not fabricated** — but `0.46` is the single
+> number that flips the halt rule from PROCEED to HALT, in a repository whose S12
+> machinery exists so that a run can be regenerated from its recorded config and seed. A
+> go/no-go figure that cannot be regenerated fails this project's own standard.
+>
+> **Driver:** `workstreams/chipsim-lbm-audit/verification/p7-power-table.py`,
+> `seed = 0`, `trials = 20000`, run from `projects/lung-on-chipsim`. Trials raised from
+> 300 so the Monte-Carlo SE (~0.0035) sits in the **third** decimal rather than the
+> second — at 300 trials the SE was the entire discrepancy. **The seed was fixed before
+> running and the output is reported as it came**; no seed was selected to reproduce the
+> previously recorded values.
+
+`clustered_sign_test_power`, 7 targets, true `Δρ = 0.5`, seed 0, 20000 trials:
+
+**n = 40 ligands — within-panel arm, and the headline.**
+
+| series size | icc | n_eff | sign-test power | MC SE |
+|---|---|---|---|---|
+| 1 (none) | 0.0 | 40.0 | **0.935** | 0.0017 |
+| 2 | 0.5 | 26.7 | 0.886 | 0.0022 |
+| 3 | 0.5 | 20.3 | 0.845 | 0.0026 |
+| 5 | 0.3 | 18.2 | 0.873 | 0.0024 |
+| 5 | 0.5 | 13.3 | **0.746** | 0.0031 |
+| 5 | 0.8 | 9.5 | **0.470** | 0.0035 |
+| 8 | 0.8 | 6.1 | 0.318 | 0.0033 |
+
+**n = 20 ligands — the CROSS-FAMILY tier. Never previously computed.**
+
+| series size | icc | n_eff | sign-test power | MC SE |
+|---|---|---|---|---|
+| 1 (none) | 0.0 | 20.0 | **0.664** | 0.0033 |
+| 2 | 0.5 | 13.3 | 0.579 | 0.0035 |
+| 3 | 0.5 | 10.3 | 0.532 | 0.0035 |
+| 5 | 0.3 | 9.1 | 0.583 | 0.0035 |
+| 5 | 0.5 | 6.7 | **0.447** | 0.0035 |
+| 5 | 0.8 | 4.8 | **0.232** | 0.0030 |
+| 8 | 0.8 | 3.4 | 0.208 | 0.0029 |
+
+> **What regeneration changed.** Every previously recorded value sits within ~2 MC SE of
+> the regenerated one, so nothing here overturns r1.6's conclusion. Three things do move:
+> the exchangeable baseline is **0.935**, which retires the 0.92 / 0.94 / 0.95
+> multiplicity (all three were the same quantity under different estimator runs); the
+> clustered range is **0.47–0.75**, not 0.46–0.75; and the `(3, 0.5)` `n_eff` is **20.3**,
+> not 20.0, because 40 does not divide by 3 — the old column assumed exact divisibility
+> and the remainder cluster was dropped.
+>
+> **The cross-family tier is underpowered before clustering is considered at all.** At
+> `n = 20` the sign test reaches only **0.664** even under full exchangeability, against
+> 0.935 at n=40, and falls to **0.232** at `icc = 0.8`. See the fifth instance below.
 
 **P0's headline 92% assumes exchangeable ligands.** Under analog-series structure
 that is entirely ordinary for a ChEMBL set — a handful of med-chem campaigns,
