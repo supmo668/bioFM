@@ -48,7 +48,8 @@ Status: `LIVE` (in force), `RETIRED` (measured, replaced by a fact), `OPEN`
 | "bootstrap CI" | **BCa**, coverage 0.930 at n=40 (nominal 0.95) | P0 test suite |
 | "percentile is too narrow here" | **False for this statistic.** percentile 0.943 / half-width 0.386 vs BCa 0.930 / 0.384 — equivalent. G5's general argument stands; its specific claim did not survive measurement | P0, 300 trials |
 | "`insensitive` may be unreachable" | **Unreachable.** `P(insensitive) = 0.000` in all 36 scanned cells, n ≤ 160 | P0 scan |
-| "is the study three-region?" | **Two-region in practice**, declared in advance by principal's ruling 2026-09-08. Band NOT widened; `Verdict` keeps 3 members; the card states unreachability beside every `inconclusive` | 1B1 |
+| "is the study three-region?" | **Two-region in practice**, declared in advance by principal's ruling 2026-09-08. Band NOT widened; `insensitive` NOT deleted; the card must say the study *can demonstrate moiety-sensitivity but never its absence* | 1B1 |
+| "does P0 replicate?" | **Yes.** CTO re-ran on seed 4242 with its own cells: half-widths 0.342–0.421 at n=40, 0.167–0.206 at n=160, `P(insensitive)=0.000` throughout — third-decimal agreement | CTO cross-check |
 | "the study may be underpowered" | **92% power at Δρ=0.5, n=40** *for exchangeable ligands*; **0.46–0.75 under realistic analog-series clustering** | P0 scan, P7 |
 | affinity units | `log₁₀` of µM | Boltz-2 paper |
 | error on *differences* | PMAE **0.85–1.20** log₁₀ | Boltz-2 paper |

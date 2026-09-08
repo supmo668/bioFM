@@ -145,6 +145,30 @@ stricter one, so a failure there is stronger because the bar was equal; raising 
 > power. Consistent with the PVR, which already accepts *"a defensible 'inconclusive at this
 > power'"* as success — the publishable negative is that, not a demonstrated insensitivity.
 >
+> **The card sentence, binding and not to be softened (principal, via CTO, 2026-09-08).** The model
+> card must state that the study **can demonstrate moiety-sensitivity but can never demonstrate its
+> absence**, and that **`inconclusive` is not weak evidence of insensitivity.** Plainly, in those
+> terms — *not* softened to "limited power to detect insensitivity", which a reader discounts as
+> routine hedging.
+>
+> Without it, a reader converts every `inconclusive` into "probably insensitive": **absence of
+> evidence read as evidence of absence.** That is this programme's standing invariant — it is why
+> ABCB1 survived T8, why `unknown` is a distinct P-gp label rather than folded into `no`, and why
+> this design required an equivalence test rather than a significance test in the first place. Here
+> it applies to the study's **own output** rather than to its inputs.
+>
+> **`insensitive` is NOT deleted from D3a.** The sealed three-region definition stands exactly as
+> written and the unreachability is recorded beside it as a **measured empirical fact**. Deleting
+> the region would erase the finding and re-open the partition r1.2 spent fourteen corrections
+> making exhaustive and disjoint; a future study at higher n, or on a lower-variance statistic,
+> inherits a specification that is already precise. **The seal is unaffected because the rule did
+> not change** — only what is now known about its reachability.
+>
+> **Why the alternatives were rejected, on their own terms:** widening collides with the `sensitive`
+> floor at `+0.20` and is threshold-choosing-from-data; `n ≈ 500` is infeasible against a 20–40
+> compound target with A10 naming pair assembly as the binding constraint; re-specifying the
+> statistic risks selecting one for the verdict it yields.
+>
 > **The reading that must not be allowed, and why the card carries it.** In a three-region study
 > `inconclusive` means *"the data did not separate sensitive from insensitive."* Here it means
 > *"the data did not reach the sensitive floor, and insensitive was never available."* Those are
@@ -535,6 +559,27 @@ necessary companion, **a narrow CI that contains zero but stays inside the band 
 render as insensitive"*, which would have failed the correct behaviour; a sealed test author would
 have written the contradiction straight into the suite.
 
+> **Both assertions are UNIT tests over SYNTHETIC CIs, and that is now binding (r1.5).** P0 measured
+> `P(insensitive) = 0.000` at every feasible n, so written against study output — or against
+> simulated study output — **these two assertions become vacuously true**. They would pass against
+> any implementation, including one that never renders `insensitive` at all, because the branch they
+> guard is never taken. That is the same defect as the invocation-collision test that passed on an
+> untouched fixture, sitting on the exact rule the whole equivalence argument rests on.
+>
+> So they are specified against **hand-constructed intervals** — `classify` is a pure total function
+> and must be tested over its **domain**, not over the subset this study happens to reach. A
+> `[-0.02, +0.06]` renders `INSENSITIVE` whether or not any run will ever produce one.
+>
+> Each carries an **anti-vacuity assertion**: the test fails if the branch it names was not
+> exercised. A test that cannot fail is not protecting the property it names.
+>
+> **Swept for siblings.** R8's assertions — the pinned boundary cases (`lo = +0.20` → `SENSITIVE`;
+> `hi = +0.10, lo = −0.10` → `INSENSITIVE`), disjointness by property test over random CIs,
+> `len(Verdict) == 3` — are **already** synthetic-input unit tests on `classify` and are **not**
+> affected. The two above were the only assertions in the document whose subject was an
+> `insensitive` render reachable only through study data. Recorded so the next reader does not
+> re-derive the sweep.
+
 ### R4 · Pocket-vs-distal mutation control
 **Behavior.** Per target, matched pocket and distal mutants (F2, **F2a**).
 
@@ -911,6 +956,12 @@ half-width at n=40 is **0.36–0.42** against a band of `±0.10`; even at **n=16
 No feasible ligand count brings a CI inside the equivalence band. **D3a's three-region partition is
 two-region in practice**, and the pre-registration must say so rather than let a reader infer a
 three-way outcome.
+
+**Independently reproduced.** The CTO re-ran the scan on a different seed (4242) with its own cell
+choices: half-widths 0.342–0.421 at n=40 and 0.167–0.206 at n=160, `P(insensitive) = 0.000`
+throughout — matching to the third decimal. Two implementations of the arithmetic agree, rather than
+one agreeing with itself. That mattered here because the number changed what the study claims it can
+conclude.
 
 **Result 2 — the primary inference is well powered.** The study's actual inference is the one-sided
 **sign test** (`p = 1/2⁷ ≈ 0.008`), which uses point estimates and never touches the band:
