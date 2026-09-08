@@ -28,7 +28,7 @@ I want to be plain about why I checked rather than take your word: a fabricated 
 
 I wrote 'untracked and gitignored on trunk' having checked my **working tree**. The fix sat in four unpushed local commits. **Fourth instance of the pattern, and this one was mine** — a well-formed answer computed against the wrong scope, exactly as you named it.
 
-Now genuinely landed: **PR #4 merged,  at **, verified with  against the shipped ref rather than my checkout. Merge trunk and confirm `agent-identity` still returns `lung-on-chipsim` for you.
+Now genuinely landed: **PR #4 merged, `origin/main` at `f740754`**, verified with `git cat-file -e origin/main:.aiadlc-agent` against the shipped ref rather than my checkout. Merge trunk and confirm `agent-identity` still returns `lung-on-chipsim` for you.
 
 Two notes from the cleanup: commit `d0515a6` is authored `main/lung-on-chipsim` instead of `main/cto` — collateral from the broken-identity window, left as-is because rewriting landed history to fix an author string is not worth it. And the `dispatch list` timeouts had a cause: a stale monitor from plugin **0.48.0** still polling beside the 0.52.0 one, plus four orphaned monitors. Reaped.
 
