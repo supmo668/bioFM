@@ -41,6 +41,37 @@ Status: `LIVE` (in force), `RETIRED` (measured, replaced by a fact), `OPEN`
 
 ---
 
+| **A16** | The seven per-target sign-test trials are **independent**, which is what `p = 1/2⁷ ≈ 0.008` requires. | **OPTIMISTIC, and it is the headline number.** The design mandates **one shared ligand roster** across all seven targets (*"~7 barrier proteins × ~40 compounds"*; *"the ligand set is identical across the arms of a comparison"*). Shared ligands correlate the seven `Δρ` estimates, and positive correlation inflates `P(unanimous \| null)` **above** 0.008 — so the study's reported significance is **anti-conservative**. Every power figure (0.92, 0.95, 0.83, 0.75, 0.46) was computed by `sign_test_power`, which draws a **fresh ligand set per target** and therefore assumes exactly the independence the design contradicts. P7 measured clustering *within* a target and never touched cross-target dependence. **Unmeasured; `p = 1/2⁷` should be read as a LOWER BOUND on the achieved α until it is.** | **MEASURED — largely refuted, see below** |
+
+**A16 · measured, and the concern does not survive.** 20,000 trials per cell,
+7 targets, pure null (`rho_native == rho_shuffled`, so true `Δρ = 0`):
+
+| n | ρ | independent rosters | SHARED roster | inflation |
+|---|---|---|---|---|
+| 30 | 0.3 | 0.0080 | 0.0080 | 1.00× |
+| 30 | 0.6 | 0.0075 | 0.0075 | 1.00× |
+| 40 | 0.3 | 0.0067 | 0.0078 | 1.16× |
+| 40 | 0.6 | 0.0059 | 0.0071 | 1.20× |
+
+Independence predicts `2⁻⁷ = 0.0078`. **The shared-roster rates are 0.0071–0.0080
+— indistinguishable from nominal**, and the 1.16–1.20× at n=40 sits inside Monte
+Carlo error (SE ≈ 0.0006 at this rate, so ~1.8 SE).
+
+**Why the theoretical concern does not bite.** Under the null both arms carry the
+*same* true correlation with `y`, so the shared roster's contribution **cancels in
+the difference** `ρ(f_nat, y) − ρ(f_shuf, y)`. What drives the sign is per-target
+*prediction* noise, and that is not shared. The reviewer's argument — shared
+ligands correlate the trials — is correct about the inputs and wrong about the
+statistic, because `Δρ` is a within-target difference. **Seventh instance of
+"machinery correct, quantity wrong", this time in a finding against us.**
+
+**The residual, and it is genuinely unmeasured.** This model shares only `y`. It
+does **not** model a ligand being predicted similarly *across targets* — a
+promiscuous binder that every target scores alike would correlate the arms
+through `f`, not through `y`, and that dependence is not captured here. So
+`p = 1/2⁷` is supported against roster-sharing and **still unverified against
+cross-target prediction correlation**. Narrower than the original A16, still open.
+
 ## Provenance of the work itself
 
 | id | Assumption | Direction of error | Status |
