@@ -370,3 +370,59 @@ def test_halt_reason_always_names_the_upper_bound_caveat() -> None:
     d = evaluate_halt(cluster_size=1, n=40, icc_band=(0.0, 0.3), trials=60, seed=4242)
     assert "UPPER BOUND" in d.reason()
     assert "A2" in d.reason()
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match", "why"),
+    [
+        (
+            {"n_targets": 0},
+            "vacuous",
+            "all([]) is True, so zero targets gave every trial a vacuous win: "
+            "power 1.0 and PROCEED on a study with no targets",
+        ),
+        (
+            {"n_targets": 1},
+            "vacuous",
+            "all([x]) is just x — a unanimity criterion over one target is not one",
+        ),
+        (
+            {"icc_band": (0.5, 0.5)},
+            "distinct",
+            "two identical values pass a LENGTH check while being a point estimate; "
+            "this returned PROCEED",
+        ),
+        ({"n": 0}, "cannot support", "no ligands cannot support a rank statistic"),
+        ({"trials": 0}, "no trials", "raised ZeroDivisionError rather than saying why"),
+    ],
+)
+def test_halt_rule_refuses_input_it_cannot_evaluate(kwargs, match, why) -> None:
+    """Each of these was REACHABLE and returned a plausible number, not an error.
+
+    This module's documented failure mode is a well-formed answer with no exception
+    — a one-shot iterable giving a design effect below 1, NaN passing a domain
+    guard so that `nan < floor` is False and the spend is authorised, an empty grid
+    satisfying `all([])`.
+
+    Two of the cases below are that same defect in the gate itself, and the
+    `n_targets` one is the `all([])` vacuity reintroduced ONE FUNCTION AWAY from
+    the guard that fixed it, in the same commit. Found by probing the gate's own
+    boundaries rather than by reading it.
+    """
+    from chipsim.audit.power import evaluate_halt
+
+    base = {"cluster_size": 5, "n": 40, "icc_band": (0.3, 0.8), "trials": 40}
+    with pytest.raises(ValueError, match=match):
+        evaluate_halt(**{**base, **kwargs})
+
+
+def test_halt_rule_accepts_the_neighbouring_VALID_input() -> None:
+    """Positive control, so the guards above cannot widen into the valid domain.
+
+    A guard that refuses everything passes every refusal test ever written.
+    """
+    from chipsim.audit.power import evaluate_halt
+
+    d = evaluate_halt(cluster_size=5, n=40, n_targets=2, icc_band=(0.3, 0.8), trials=40)
+    assert isinstance(d.proceed, bool)
+    assert len(d.rows) == 2

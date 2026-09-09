@@ -462,13 +462,34 @@ def evaluate_halt(
     the correlation of `(y, f)` contributions is not, since `f` does not exist until
     the batch runs. The decision is taken on the worst cell in the band.
     """
+    # Every guard below refuses input this gate cannot evaluate. The module's
+    # documented failure mode is a PLAUSIBLE NUMBER WITH NO EXCEPTION, and each of
+    # these was reachable and returned exactly that.
     if not icc_band:
         raise ValueError("icc_band is empty; an empty band satisfies any floor vacuously")
-    if len(icc_band) < 2:
+    if len(set(icc_band)) < 2:
+        # Counting entries is not the property. `(0.5, 0.5)` passes a length check
+        # while being a point estimate, and it returned PROCEED. The rule cares
+        # about DISTINCT values, so that is what is checked.
         raise ValueError(
-            f"icc_band has {len(icc_band)} entry; icc is unmeasurable pre-spend, so the "
-            "floor must hold across a band rather than at a point estimate"
+            f"icc_band {tuple(icc_band)} has fewer than 2 distinct values; icc is "
+            "unmeasurable pre-spend, so the floor must hold across a band rather "
+            "than at a point estimate"
         )
+    if n_targets < 2:
+        # `all([])` is True, so n_targets=0 gave every trial a vacuous win: power
+        # 1.0 and PROCEED, on a study with no targets. This is the SAME all([])
+        # vacuity guarded above for icc_band, reintroduced one function away in
+        # `clustered_sign_test_power`, in the commit that fixed the first one.
+        # A unanimity criterion over fewer than two targets is not a criterion.
+        raise ValueError(
+            f"n_targets={n_targets}; a unanimous sign across fewer than 2 targets is "
+            "vacuous — all([]) is True and all([x]) is just x"
+        )
+    if n < 4:
+        raise ValueError(f"n={n} ligands cannot support a bootstrap or a rank statistic")
+    if trials < 1:
+        raise ValueError(f"trials={trials}; power cannot be estimated from no trials")
 
     rows = tuple(
         (
