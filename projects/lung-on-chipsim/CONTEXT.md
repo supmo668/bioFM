@@ -115,6 +115,36 @@ Practical consequences already built into the code and configs:
 - Anywhere a schema offers only a binary, ask whether the third state has been quietly
   collapsed into one of the two.
 
+### Roster
+
+**Diversity stratum**:
+The subset of the compound roster chosen for **structural distinctness**, which carries the
+sign test and the `Δρ` inference. Its size is set by the **power floor**, not by a compound
+target: ~30 structurally distinct compounds reach 0.85 where 40 clustered ones reach 0.71.
+_Avoid_: "the compound set" (the roster is two strata, and they are not interchangeable)
+
+**Pair stratum**:
+The matched molecular pairs required by **R5**'s cliff-stratified test. Analog series **by
+construction** — a pair differing by one moiety is both the cliff test's unit and the
+clustering that reduces effective `n`. Reported separately and **excluded from the power
+calculation**, rather than discounted into it.
+_Avoid_: counting pair members toward the diversity stratum
+
+**Power floor**:
+The pre-hoc threshold the halt rule enforces: **simulated power ≥ 0.80 at `Δρ = 0.5` over
+seven targets**. Evaluated on the **realised roster's directly-simulated clustered power**,
+never on `n_eff` (below). Every figure is an **upper bound** — A2 treats measured affinities
+as noise-free, and real assay error attenuates `ρ_native`.
+_Avoid_: quoting a power figure without naming the ligand-set assumption it rests on
+
+**Effective n (`n_eff`)**:
+The clustering-discounted sample size, `n / deff`. **Not a sufficient statistic for
+sign-test power** — at equal `n_eff = 20`, a diverse roster measured 0.69 and a clustered
+one 0.92, because the design effect is derived for estimating a *mean* while the sign test
+consumes only the *direction* of `Δρ` per target. `n_eff` is therefore **conservative** for
+this statistic, and a halt rule keyed to it would halt studies that are in fact powered.
+_Avoid_: using `n_eff` as the gate quantity
+
 ## Flagged ambiguities
 
 **"Calibration point" was undefined and load-bearing.** §2D requires ≥30 calibration
