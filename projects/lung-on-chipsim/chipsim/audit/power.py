@@ -155,6 +155,11 @@ def _spearman_to_pearson(rho_s: float) -> float:
     simulation must hit the ρ it claims to be simulating; getting this wrong would
     make every reported half-width describe a different correlation than the label.
     """
+    if not -1.0 <= rho_s <= 1.0:
+        # NaN fails this test too, which is the point: `max(0.0, nan)` returns 0.0
+        # (Python keeps the first operand because `nan > 0.0` is False), so a NaN
+        # rho silently produced an all-NaN arm and a confident power of 0.00.
+        raise ValueError(f"rho must lie in [-1, 1] and be non-NaN; got {rho_s}")
     return 2.0 * math.sin(math.pi * rho_s / 6.0)
 
 
@@ -182,8 +187,11 @@ def simulate_ligand_set(
     r_shuf = _spearman_to_pearson(rho_shuffled)
 
     z_y = rng.standard_normal(n)
-    z_nat = r_nat * z_y + math.sqrt(max(0.0, 1.0 - r_nat**2)) * rng.standard_normal(n)
-    z_shuf = r_shuf * z_y + math.sqrt(max(0.0, 1.0 - r_shuf**2)) * rng.standard_normal(n)
+    # NO max(0.0, ...) clamp: an impossible variance must raise, not become a
+    # perfect correlation. The clamp turned rho=1.5 into a deterministic arm and
+    # reported power 1.00 -> PROCEED.
+    z_nat = r_nat * z_y + math.sqrt(1.0 - r_nat**2) * rng.standard_normal(n)
+    z_shuf = r_shuf * z_y + math.sqrt(1.0 - r_shuf**2) * rng.standard_normal(n)
     return z_y, z_nat, z_shuf
 
 
@@ -260,6 +268,52 @@ def power_scan(
     return out
 
 
+def _validate_power_domain(*, n: int, n_targets: int, trials: int) -> None:
+    """Guards for the power functions themselves — not only their callers.
+
+    These were first written into `evaluate_halt` alone. Both public power
+    functions stayed reachable and silent: `n_targets=0` returned **1.0**, because
+    `all([])` is True, so a study with no targets scored full power. A second
+    caller — a notebook, the P0 table driver — reproduced the defect verbatim.
+
+    **A guard belongs where the vacuity is, not where the vacuity was noticed.**
+    """
+    if n_targets < 2:
+        raise ValueError(
+            f"n_targets={n_targets}; a unanimous sign across fewer than 2 targets is "
+            "vacuous — all([]) is True and all([x]) is just x"
+        )
+    if n < 4:
+        raise ValueError(f"n={n} ligands cannot support a rank statistic")
+    if trials < 1:
+        raise ValueError(f"trials={trials}; power cannot be estimated from no trials")
+
+
+def wilson_lower_bound(successes: int, trials: int, *, z: float = 1.645) -> float:
+    """One-sided 95% Wilson lower bound on a binomial proportion.
+
+    **The gate compares THIS to the floor, not the point estimate.** At p=0.80 with
+    300 trials the binomial SE is 0.023, so the 95% interval is about ±0.045 — it
+    straddles the 0.80 floor. Measured over 20 seeds on one fixed design, the point
+    estimate authorised the spend on **8 of 20**: the same study, the same roster,
+    and the seed decided whether ~$27 was spent.
+
+    A gate whose verdict is a coin flip near its own threshold is not a gate. The
+    lower bound makes the comparison answer the right question — *"is power
+    demonstrably at least the floor?"* rather than *"did this sample land above
+    it?"* — and errs toward HALT, which is the direction a spending gate should err.
+    """
+    if trials < 1:
+        raise ValueError(f"trials={trials}; no proportion to bound")
+    if not 0 <= successes <= trials:
+        raise ValueError(f"successes={successes} outside [0, {trials}]")
+    phat = successes / trials
+    denom = 1.0 + z * z / trials
+    centre = phat + z * z / (2 * trials)
+    margin = z * math.sqrt(phat * (1 - phat) / trials + z * z / (4 * trials * trials))
+    return max(0.0, (centre - margin) / denom)
+
+
 def sign_test_power(
     *,
     n: int,
@@ -291,6 +345,7 @@ def sign_test_power(
     strictly positive. No bootstrap: the sign test uses point estimates only,
     which is also why it survives the CI width that kills `insensitive`.
     """
+    _validate_power_domain(n=n, n_targets=n_targets, trials=trials)
     rng = np.random.default_rng(seed)
     wins = 0
     for _ in range(trials):
@@ -338,6 +393,22 @@ def simulate_clustered_ligand_set(
         raise ValueError(f"icc must be in [0, 1], got {icc}")
     if cluster_size < 1:
         raise ValueError(f"cluster_size must be >= 1, got {cluster_size}")
+    if math.ceil(n / cluster_size) < 2:
+        # *** THE WORST ROSTER SCORED BEST. ***
+        # With one cluster the shared component is a single scalar added
+        # identically to every member, and A CONSTANT OFFSET CANCELS OUT OF EVERY
+        # RANK STATISTIC. So maximal clustering degenerated to NO clustering:
+        # power was non-monotonic in cluster_size and inverted at the boundary —
+        # cluster_size=20 gave 0.240 (HALT) and cluster_size=40 gave 0.945
+        # (PROCEED) on the same 40 compounds. "All 40 from one med-chem campaign"
+        # is a realistic ChEMBL-transporter roster, is the single worst case for
+        # A7, and was the case this model scored best.
+        raise ValueError(
+            f"cluster_size={cluster_size} with n={n} yields a single cluster; a "
+            "one-cluster roster carries one independent observation and cannot be "
+            "represented by this construction (the shared term becomes a constant "
+            "offset, which cancels out of a rank statistic)"
+        )
 
     r_nat = _spearman_to_pearson(rho_native)
     r_shuf = _spearman_to_pearson(rho_shuffled)
@@ -354,8 +425,8 @@ def simulate_clustered_ligand_set(
     # most of their position in affinity space, which is precisely why they carry
     # less independent information than their count suggests.
     z_y = _clustered()
-    z_nat = r_nat * z_y + math.sqrt(max(0.0, 1.0 - r_nat**2)) * _clustered()
-    z_shuf = r_shuf * z_y + math.sqrt(max(0.0, 1.0 - r_shuf**2)) * _clustered()
+    z_nat = r_nat * z_y + math.sqrt(1.0 - r_nat**2) * _clustered()
+    z_shuf = r_shuf * z_y + math.sqrt(1.0 - r_shuf**2) * _clustered()
     return z_y, z_nat, z_shuf
 
 
@@ -381,6 +452,7 @@ def clustered_sign_test_power(
     seed: int = 0,
 ) -> float:
     """Sign-test power when the ligand set contains analog series (A7)."""
+    _validate_power_domain(n=n, n_targets=n_targets, trials=trials)
     rng = np.random.default_rng(seed)
     wins = 0
     for _ in range(trials):
@@ -415,17 +487,39 @@ DEFAULT_ICC_BAND = (0.3, 0.5, 0.8)
 class HaltDecision:
     """The pre-hoc gate. `proceed` is the only field a caller may branch on."""
 
-    proceed: bool
     worst_icc: float
     worst_power: float
+    worst_power_lcb: float
     floor: float
+    trials: int
     rows: tuple[tuple[float, float], ...]
+
+    def __post_init__(self) -> None:
+        if not self.rows:
+            raise ValueError("a HaltDecision over no rows attests to nothing")
+
+    @property
+    def proceed(self) -> bool:
+        """DERIVED, never stored.
+
+        This was a plain field, so nothing tied the verdict to the numbers printed
+        to justify it — `HaltDecision(proceed=True, worst_power=0.11, floor=0.80)`
+        constructed cleanly and its own `reason()` announced PROCEED. The docstring
+        called `proceed` "the only field a caller may branch on", which made the
+        invariant load-bearing while leaving it enforced by exactly one call site.
+
+        Compares the LOWER BOUND, not the point estimate — see `wilson_lower_bound`.
+        """
+        return self.worst_power_lcb >= self.floor
 
     def reason(self) -> str:
         verdict = "PROCEED" if self.proceed else "HALT"
+        # :.3f, not :.2f — at :.2f a HALT on 0.7961 printed as "power 0.80 against a
+        # floor of 0.80", so the audit log contradicted the verdict beside it.
         return (
-            f"{verdict}: worst-case simulated power {self.worst_power:.2f} at "
-            f"icc={self.worst_icc} against a floor of {self.floor:.2f}. "
+            f"{verdict}: worst-case simulated power {self.worst_power:.3f} "
+            f"(95% lower bound {self.worst_power_lcb:.3f}, {self.trials} trials) at "
+            f"icc={self.worst_icc} against a floor of {self.floor:.3f}. "
             "Simulated power is an UPPER BOUND (A2: measured affinities are treated "
             "as noise-free; real assay error attenuates rho_native), so the true "
             "value is lower than every figure here."
@@ -491,6 +585,11 @@ def evaluate_halt(
     if trials < 1:
         raise ValueError(f"trials={trials}; power cannot be estimated from no trials")
 
+    if not 0.0 < floor <= 1.0:
+        # NaN fails this too. An unvalidated floor authorised rather than raised:
+        # floor=0.0 gave PROCEED on power 0.47, floor=-1.0 gave PROCEED always.
+        raise ValueError(f"floor must lie in (0, 1] and be non-NaN; got {floor}")
+
     rows = tuple(
         (
             icc,
@@ -502,16 +601,24 @@ def evaluate_halt(
                 cluster_size=cluster_size,
                 icc=icc,
                 trials=trials,
-                seed=seed,
+                # PER-CELL seed. With one shared seed every cell drew the same
+                # shapes, so the band was common random numbers — one Monte Carlo
+                # sample presented as three, and an unlucky seed shifted all rows
+                # together. `min` over the band then bought none of the robustness
+                # the "worst cell" language implies.
+                seed=seed + i,
             ),
         )
-        for icc in icc_band
+        for i, icc in enumerate(icc_band)
     )
-    worst_icc, worst_power = min(rows, key=lambda r: r[1])
+    # Ties resolve to the HARSHER icc: `min` returns the first row on a tie, so the
+    # reported worst_icc could name a milder cell than the one that set the bound.
+    worst_icc, worst_power = min(rows, key=lambda r: (r[1], -r[0]))
     return HaltDecision(
-        proceed=worst_power >= floor,
         worst_icc=worst_icc,
         worst_power=worst_power,
+        worst_power_lcb=wilson_lower_bound(round(worst_power * trials), trials),
         floor=floor,
+        trials=trials,
         rows=rows,
     )
