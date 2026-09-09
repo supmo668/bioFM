@@ -293,3 +293,80 @@ def test_clustering_rejects_impossible_parameters() -> None:
         simulate_clustered_ligand_set(10, 0.5, 0.0, rng, cluster_size=2, icc=1.5)
     with pytest.raises(ValueError, match="cluster_size"):
         simulate_clustered_ligand_set(10, 0.5, 0.0, rng, cluster_size=0, icc=0.5)
+
+
+# --- G3's halt rule (ADR-0003) ------------------------------------------------
+
+
+def test_n_eff_is_NOT_the_gate_quantity() -> None:
+    """The finding that inverted the gate — pinned so it cannot be re-introduced.
+
+    At an EQUAL effective n of 20, a diverse roster and a clustered one give very
+    different sign-test power. The design effect is derived for estimating a MEAN;
+    the sign test consumes only the DIRECTION of Delta-rho per target, and
+    clustering costs less information about a direction than about a mean.
+
+    So `n_eff` is CONSERVATIVE for this statistic, and a halt rule keyed to it
+    refuses to spend on studies that are adequately powered. `series.py` computes
+    `n_eff` correctly — it is simply the wrong input to this decision. Sixth
+    instance of the standing check, and the first where the wrong quantity was
+    more PESSIMISTIC rather than less.
+    """
+    from chipsim.audit.power import clustered_sign_test_power
+    from chipsim.audit.series import effective_n_unequal
+
+    assert effective_n_unequal([1] * 20, 0.0) == pytest.approx(20.0)
+    assert effective_n_unequal([5] * 12, 0.5) == pytest.approx(20.0)
+
+    kw = {"n_targets": 7, "rho_native": 0.5, "rho_shuffled": 0.0, "trials": 300, "seed": 4242}
+    diverse = clustered_sign_test_power(n=20, cluster_size=1, icc=0.0, **kw)
+    clustered = clustered_sign_test_power(n=60, cluster_size=5, icc=0.5, **kw)
+
+    assert clustered > diverse + 0.15, (
+        f"equal n_eff=20 gave diverse={diverse:.3f} clustered={clustered:.3f}; if these "
+        "converge, n_eff has become a valid gate quantity and ADR-0003's central "
+        "argument needs re-deriving"
+    )
+
+
+def test_halt_rule_decides_on_the_WORST_cell_in_the_icc_band() -> None:
+    """icc is unmeasurable pre-spend, so the floor holds across a band or not at all.
+
+    Deciding on the mean or the best cell would let a roster pass on optimistic
+    clustering assumptions that cannot be checked until after the money is spent —
+    the one direction this gate exists to refuse.
+    """
+    from chipsim.audit.power import evaluate_halt
+
+    d = evaluate_halt(cluster_size=5, n=40, icc_band=(0.3, 0.8), trials=120, seed=4242)
+    powers = [p for _, p in d.rows]
+    assert d.worst_power == min(powers)
+    assert d.proceed == (min(powers) >= d.floor)
+
+
+def test_halt_rule_refuses_a_band_that_cannot_constrain_it() -> None:
+    """An empty or single-point band satisfies any floor vacuously.
+
+    `all([])` is True and a point estimate is not a sensitivity range. Same vacuity
+    that let an empty icc_grid through in `series.py`, refused here in the CODE
+    rather than only in a test.
+    """
+    from chipsim.audit.power import evaluate_halt
+
+    with pytest.raises(ValueError, match="empty"):
+        evaluate_halt(cluster_size=5, n=40, icc_band=(), trials=20)
+    with pytest.raises(ValueError, match="point estimate"):
+        evaluate_halt(cluster_size=5, n=40, icc_band=(0.5,), trials=20)
+
+
+def test_halt_reason_always_names_the_upper_bound_caveat() -> None:
+    """A2 makes every power figure an upper bound; the verdict must carry it.
+
+    A PROCEED quoted without that qualifier reads as a floor cleared, when it is a
+    ceiling that clears a floor — and the true value is lower.
+    """
+    from chipsim.audit.power import evaluate_halt
+
+    d = evaluate_halt(cluster_size=1, n=40, icc_band=(0.0, 0.3), trials=60, seed=4242)
+    assert "UPPER BOUND" in d.reason()
+    assert "A2" in d.reason()

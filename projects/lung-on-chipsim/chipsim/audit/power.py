@@ -392,3 +392,105 @@ def clustered_sign_test_power(
             signs.append(delta_rho(y, f_nat, f_shuf) > 0.0)
         wins += int(all(signs))
     return wins / trials
+
+
+#: The pre-registered power floor — ADR-0003, principal's ruling 2026-09-08.
+#: Simulated power at `Δρ = 0.5` over seven targets. A 0.70 floor was rejected:
+#: a 30% miss rate, and a missed effect reads as `insensitive` — the verdict this
+#: study cannot render, so a miss is not merely a null, it is unpublishable.
+POWER_FLOOR = 0.80
+
+#: `Δρ` at which the floor is evaluated. The A&D declares the study "powered for a
+#: large effect only"; P0 quantified *large* as `Δρ ≳ 0.5`.
+FLOOR_EFFECT = 0.5
+
+#: `icc` is NOT measurable before the spend — series membership is computable from
+#: SMILES, but the correlation of `(y, f)` contributions is not, because `f` does
+#: not exist until the batch runs. So the floor is required to hold across a
+#: sensitivity band rather than at a point estimate.
+DEFAULT_ICC_BAND = (0.3, 0.5, 0.8)
+
+
+@dataclass(frozen=True)
+class HaltDecision:
+    """The pre-hoc gate. `proceed` is the only field a caller may branch on."""
+
+    proceed: bool
+    worst_icc: float
+    worst_power: float
+    floor: float
+    rows: tuple[tuple[float, float], ...]
+
+    def reason(self) -> str:
+        verdict = "PROCEED" if self.proceed else "HALT"
+        return (
+            f"{verdict}: worst-case simulated power {self.worst_power:.2f} at "
+            f"icc={self.worst_icc} against a floor of {self.floor:.2f}. "
+            "Simulated power is an UPPER BOUND (A2: measured affinities are treated "
+            "as noise-free; real assay error attenuates rho_native), so the true "
+            "value is lower than every figure here."
+        )
+
+
+def evaluate_halt(
+    *,
+    cluster_size: int,
+    n: int,
+    n_targets: int = 7,
+    icc_band: tuple[float, ...] = DEFAULT_ICC_BAND,
+    floor: float = POWER_FLOOR,
+    effect: float = FLOOR_EFFECT,
+    trials: int = 300,
+    seed: int = 4242,
+) -> HaltDecision:
+    """G3's halt rule, keyed on DIRECTLY SIMULATED power — never on `n_eff`.
+
+    **`n_eff` is not the gate quantity, and keying on it halts powered studies.**
+    Measured: at an equal `n_eff = 20`, a diverse roster of 20 gives **0.683** and a
+    clustered roster of 60 (series of 5, icc 0.5) gives **0.923**. The design effect
+    is derived for estimating a *mean*; the sign test consumes only the *direction*
+    of `Δρ` per target, and clustering costs less information about a direction than
+    about a mean. So `n_eff` is **conservative** for this statistic — `series.py`
+    computes it correctly and it is the wrong input to this decision.
+
+    That is the sixth instance of this design's standing check, and the first in
+    which the wrong quantity was *more* pessimistic rather than less: the gate would
+    have refused to spend on a study that was adequately powered.
+
+    The floor must hold across `icc_band`, not at a point, because **`icc` cannot be
+    measured before the spend** — series membership is computable from SMILES, but
+    the correlation of `(y, f)` contributions is not, since `f` does not exist until
+    the batch runs. The decision is taken on the worst cell in the band.
+    """
+    if not icc_band:
+        raise ValueError("icc_band is empty; an empty band satisfies any floor vacuously")
+    if len(icc_band) < 2:
+        raise ValueError(
+            f"icc_band has {len(icc_band)} entry; icc is unmeasurable pre-spend, so the "
+            "floor must hold across a band rather than at a point estimate"
+        )
+
+    rows = tuple(
+        (
+            icc,
+            clustered_sign_test_power(
+                n=n,
+                n_targets=n_targets,
+                rho_native=effect,
+                rho_shuffled=0.0,
+                cluster_size=cluster_size,
+                icc=icc,
+                trials=trials,
+                seed=seed,
+            ),
+        )
+        for icc in icc_band
+    )
+    worst_icc, worst_power = min(rows, key=lambda r: r[1])
+    return HaltDecision(
+        proceed=worst_power >= floor,
+        worst_icc=worst_icc,
+        worst_power=worst_power,
+        floor=floor,
+        rows=rows,
+    )
