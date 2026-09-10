@@ -1,0 +1,61 @@
+R5 · power vs PAIR COUNT — one-sided exact McNemar on discordant pairs
+seed=4242  trials=2000  alpha=0.05  descriptor baseline p=0.55
+
+CONSERVATIVE by construction: concordance=0 (arms err independently).
+Shared pair difficulty RAISES power (measured 0.70 -> 0.98 at n=40), so a
+real study sits ABOVE these rows. A2 pushes the other way; do not net them.
+
+=== 1. power vs pair count, by LBM accuracy (concordance=0, no clustering) ===
+ pairs  p_lbm=0.65   p_lbm=0.7   p_lbm=0.8   p_lbm=0.9
+------------------------------------------------------
+    10       0.032       0.056       0.127       0.258
+    15       0.063       0.102       0.258       0.522
+    20       0.086       0.156       0.365       0.691
+    25       0.119       0.201       0.488       0.813
+    30       0.146       0.254       0.570       0.897
+    40       0.157       0.308       0.709       0.966
+    60       0.240       0.460       0.869       0.996
+
+=== 2. median DISCORDANT pairs — the quantity the test actually consumes ===
+   (fewer than 5 discordant can NEVER reach alpha=0.05: 1/2^4 = 0.0625)
+ pairs  p_lbm=0.65   p_lbm=0.8
+------------------------------
+    10         5.0         5.0
+    15         7.0         7.0
+    20        10.0         9.0
+    25        12.0        12.0
+    30        15.0        14.0
+    40        19.0        19.0
+    60        29.0        28.0
+
+=== 3. BETWEEN-pair clustering (A7 at the correct unit), p_lbm=0.80, series of 5 ===
+   Within-pair similarity is the SIGNAL and is NOT discounted — the unit is
+   the pair. A7 applies BETWEEN pairs: several pairs from one med-chem
+   campaign are not independent of EACH OTHER.
+
+   NOTE, and it is why this sweeps concordance too: clustering correlates
+   pair DIFFICULTY, and difficulty reaches the outcome only through the
+   concordance channel. At concordance=0 it is PROVABLY INERT — a sweep
+   there would report a column of identical numbers and measure nothing.
+
+ pairs   conc   icc0.0   icc0.5   icc0.8    delta
+-------------------------------------------------
+    20    0.0    0.374    0.374    0.374    0.000  INERT
+    20    0.3    0.414    0.415    0.421    0.007
+    20    0.6    0.494    0.469    0.461    0.033
+    40    0.0    0.725    0.725    0.725    0.000  INERT
+    40    0.3    0.785    0.786    0.786    0.001
+    40    0.6    0.868    0.858    0.857    0.011
+    60    0.0    0.880    0.880    0.880    0.000  INERT
+    60    0.3    0.928    0.924    0.933    0.009
+    60    0.6    0.978    0.979    0.978    0.001
+
+   READ THIS ROW-WISE: the delta column is the cost of clustering. It is
+   at most a few points, against A7's 0.95 -> 0.46 for the SIGN test.
+   Structural reason: McNemar consumes the SPLIT of discordant pairs;
+   clustering perturbs their COUNT without biasing the split.
+
+=== 4. type-I error control (p_lbm == p_base), must sit at or below alpha ===
+   n_pairs=20   type-I = 0.0250   (exact test is conservative)
+   n_pairs=40   type-I = 0.0265   (exact test is conservative)
+   n_pairs=60   type-I = 0.0305   (exact test is conservative)
