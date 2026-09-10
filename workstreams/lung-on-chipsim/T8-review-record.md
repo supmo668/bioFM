@@ -129,3 +129,75 @@ Ratification scope covering `face` was approved by the CTO in dispatch #16 but *
 - **Post-ratification drift.** Once `ratified: true` is set, nothing detects an edit to any entry
   field; T19 catches only accession and gene-symbol mismatch. A `ratified_panel_sha256` was
   proposed to the CTO (a digest, not a biological number).
+
+---
+
+## Addendum — CTO review, 2026-09-09 (principal's PoC-stringency ruling)
+
+### Independent re-verification, live API
+
+Every accession re-queried against `rest.uniprot.org` today, independently of T19:
+**7/7 resolve, gene symbol matches, `Homo sapiens`, Swiss-Prot reviewed.** The subcellular
+table above was re-derived from the live API without reading it first, and **matched in every
+row**. Two independent derivations now agree; this record is accurate as of today.
+
+### New: `face` is a PASSENGER COLUMN in slice 1 — verified in code
+
+Ruling 3 says the panel is consumed "only for the T9 edge join and T10's ABCB1 resolution."
+That is confirmed at code level, and it is sharper than the prose implies:
+
+- `pgp_label.py:306` — the join carries `face` into the output frame:
+  `panel.loc[:, ["uniprot_id", "symbol", "face"]]`
+- `pgp_label.py:247` — `face` is *validated* against `FACES`, a schema check on the value's
+  membership, not a use of the value
+- the join keys on `uniprot_id`; `resolve_panel_accession` resolves by `symbol`
+
+**Nothing in slice 1 branches on `face`.** It is present in slice-1 output and affects no
+slice-1 decision. It becomes load-bearing at M1, when directional transport first consumes it.
+
+This is why the principal's ruling below is not a weakening of evidence standards: the part
+slice 1 consumes — identity — is the part that is 7/7 verified.
+
+### Principal's ruling, 2026-09-09: ratify at PoC stringency
+
+> *"PoC panel need not be stringent, we'd like to derive results of using the methodology on
+> known existing results."*
+
+**Ratify all seven. Delete nothing. Record the three unconfirmed faces as provisional.**
+
+The three fail in **different** ways and must not be collapsed into one note:
+
+| Symbol | Face | Why it is provisional |
+|---|---|---|
+| TFRC | basolateral | **No UniProt polarity annotation at all.** Rests entirely on Ruling 2's measured ratios — all from **non-airway** systems, spanning ~400×. Silence, not contradiction. |
+| FCGRT | apical | **No polarity annotation.** Additionally known to transcytose **bidirectionally**, so the binary loses information the entry actually has. |
+| SLCO2B1 | basolateral | **Not silence — a CHOICE.** UniProt annotates basal, basolateral *and* apical. One of three annotated options was selected; the other two are not thereby excluded. |
+
+**Re-check all three at M1**, where `face` first affects a result. Until then the file records a
+direction, not an established localization.
+
+### Correction to this review
+
+The CTO initially reported Ruling 2's `apical → basolateral` correction as applying to **ABCC1**
+and as "independently confirmed by UniProt." Both halves were wrong: Ruling 2 concerns **TFRC**,
+and UniProt gives TFRC **no polarity annotation**, so it is not independently confirmed by that
+source. ABCC1's basolateral face *is* UniProt-confirmed — it was simply never the corrected entry.
+Recorded because a review that misattributes a ruling is the failure this record exists to prevent.
+
+### Two open items above have LANDED and are no longer open
+
+- **D2** — "*ratification scope covering `face` … has not landed in `build-plan.md` T8, which
+  still contains no occurrence of `face`*". It has landed: T8 now contains **6** occurrences of
+  `face`, including "check each `face`" and the attestation scope. **D2 is closed.**
+- **`ratified_panel_sha256`** — recorded above as "proposed to the CTO". It landed (dispatch #18)
+  and the key is present in the live panel. **Closed.**
+
+Both were true when written on 2026-09-03 and stale by 2026-09-09. Flagged because this record is
+the *input* to a task about to be performed, and a stale open item reads as outstanding work.
+
+### One thing this record should no longer say
+
+`ratified_panel_sha256` is **tamper-evidence, never attestation**. A survivor of that reframe was
+found today in `build-plan.md` T8 itself — it read "running the seal is the human's act of
+attestation", contradicting the Global Constraints block 480 lines above. Corrected in r2.8. If any
+line here implies the digest establishes *who* sealed, it is wrong for the same reason.
