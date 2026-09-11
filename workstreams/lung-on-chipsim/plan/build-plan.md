@@ -558,8 +558,14 @@ explicitly**, never the strong one. Human-only — an agent may never populate i
   list. `load_ratified_panel` verifies it and **raises on mismatch**. Without this, `ratified: true`
   attests to nothing checkable — after T8 any post-ratification edit (a `face` flip, an accession
   swap, a deleted entry) is invisible, which is exactly how N1 went unnoticed until a scorer read the
-  plan text. The digest is **not a biological number**, so Global Constraint 1 does not apply; running
-  the seal is the human's act of attestation.
+  plan text. The digest is **not a biological number**, so Global Constraint 1 does not apply.
+  **The seal is tamper-evidence, NOT attestation** (CTO ruling, dispatch #27; this line was a
+  survivor of that reframe, found 2026-09-09 while preparing T8). `ratified_panel_sha256` is an
+  unkeyed digest over public content: it shows the panel has not changed since sealing and can
+  **never** show *who* sealed it. The attestation is `ratified_by` plus your act; the digest only
+  protects that from silent edit afterwards. Sealing is reserved to you because the **file** is
+  human-only — not because the digest establishes identity. Read the Global Constraints block
+  above before you seal; it governs, and this task previously contradicted it.
 - **Done when** `ratified: true`, `ratified_by` and `ratified_on` are non-empty, every `face` has
   been checked, `ratified_panel_sha256` is populated and verifies, **and T19 passes against the live
   file** (defect 19).

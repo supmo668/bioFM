@@ -115,6 +115,54 @@ Practical consequences already built into the code and configs:
 - Anywhere a schema offers only a binary, ask whether the third state has been quietly
   collapsed into one of the two.
 
+### Roster
+
+**Diversity stratum**:
+The subset of the compound roster chosen for **structural distinctness**, which carries the
+sign test and the `Δρ` inference. Its size is set by the **power floor**, not by a compound
+target: ~30 structurally distinct compounds reach 0.85 where 40 clustered ones reach 0.71.
+_Avoid_: "the compound set" (the roster is two strata, and they are not interchangeable)
+
+**Pair stratum**:
+The matched molecular pairs required by **R5**'s cliff-stratified test — **deliberately curated
+as pairs**, targeting ~50, not discovered from the diversity stratum. Analog series **by
+construction**: a pair differing by one moiety is the cliff test's unit. Reported separately and
+**excluded from the diversity stratum's power calculation**, rather than discounted into it.
+_Avoid_: counting pair members toward the diversity stratum; treating it as the A&D's discovered
+"cliff stratum"
+
+**Cliff stratum** *(deprecated as a distinct object)*:
+The A&D's earlier name for the pairs that *fall out of* a ~40-compound roster once MMP and the
+≥100-fold criterion are applied. Superseded: the roster's diversity stratum is selected **for
+structural distinctness**, which is the direct opposite of what yields matched pairs, so
+discovery from it is close to the worst available source. **Use "pair stratum" and curate it.**
+The A&D's commitment survives unchanged and is now the *fallback*: if the data yields fewer
+pairs, R5 **reports the achieved count and its power** and never loosens the cliff to fill the
+stratum.
+
+**Discordant pair**:
+A pair on which the LBM arm and the descriptor baseline disagree. **The only pairs the R5 test
+consumes** — exact McNemar reads their *split*, not the total pair count. **Fewer than five
+discordant pairs can never reach α = 0.05** (1/2⁴ = 0.0625), a floor independent of effect size.
+This is also why between-pair clustering barely moves R5 while it halves the sign test's power:
+clustering perturbs the discordant *count* without biasing the *split*.
+_Avoid_: reasoning about R5's power from total pairs without the discordant count
+
+**Power floor**:
+The pre-hoc threshold the halt rule enforces: **simulated power ≥ 0.80 at `Δρ = 0.5` over
+seven targets**. Evaluated on the **realised roster's directly-simulated clustered power**,
+never on `n_eff` (below). Every figure is an **upper bound** — A2 treats measured affinities
+as noise-free, and real assay error attenuates `ρ_native`.
+_Avoid_: quoting a power figure without naming the ligand-set assumption it rests on
+
+**Effective n (`n_eff`)**:
+The clustering-discounted sample size, `n / deff`. **Not a sufficient statistic for
+sign-test power** — at equal `n_eff = 20`, a diverse roster measured 0.69 and a clustered
+one 0.92, because the design effect is derived for estimating a *mean* while the sign test
+consumes only the *direction* of `Δρ` per target. `n_eff` is therefore **conservative** for
+this statistic, and a halt rule keyed to it would halt studies that are in fact powered.
+_Avoid_: using `n_eff` as the gate quantity
+
 ## Flagged ambiguities
 
 **"Calibration point" was undefined and load-bearing.** §2D requires ≥30 calibration

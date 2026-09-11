@@ -1,0 +1,35 @@
+# T2 + T1 — the structured half of the provenance artifact.
+#
+# DECIDED BY the principal in a /grill-me 1B1 on 2026-09-09; TRANSCRIBED by the CTO.
+# The decisions are his; the typing is not. Recorded this way because this file's
+# whole purpose is provenance, and a provenance record that cannot say who decided
+# its contents is the defect it exists to prevent.
+#
+# T2's commit choice was re-put after the CTO's first recommendation (pin the 2019
+# gh-pages HEAD, 6b9ae386…) was found to contradict build-plan §3, which had already
+# ruled the snapshot. Pinning 2019 would have broken the staleness ruling, T17's
+# asserted display string, `upstream_version`, and the Zenodo DOI below. Retracted.
+#
+# STILL OWED BY THE HUMAN: PROVENANCE.md — the prose half. The plan requires it be
+# hand-written "in your own words"; the CTO has deliberately not drafted it.
+
+source_commit:  3e87872db5fca5ac427ce27464ab945c0ceb4ec6
+audited_commit: 3e87872db5fca5ac427ce27464ab945c0ceb4ec6
+
+# EMPTY, and that emptiness is an ASSERTION, not an exemption: the contract requires
+# this key non-empty IFF source_commit != audited_commit. They match, so empty is the
+# checked outcome (CTO ruling E-1).
+commit_change_rationale: ""
+
+source_repo:      https://github.com/dhimmel/drugbank
+upstream_version: "4.2"
+snapshot_date:    "2015-03-19"
+
+licence: CC BY-NC 4.0 (DrugBank content and derivatives)
+
+attribution:
+  - Wishart et al., Nucleic Acids Res (2014), doi:10.1093/nar/gkt1068
+  - Himmelstein et al., Zenodo, doi:10.5281/zenodo.45579
+  - "Licence discussion: doi:10.15363/thinklab.d213"
+
+non_commercial_commitment: "DrugBank-derived data and anything computed from it are used solely for non-commercial research; academic publication and preprints are permitted, and no DrugBank-derived artifact may enter a product, service, or customer-facing deliverable — any commercial use requires rebuilding the DrugBank leg from a licensed source first."
