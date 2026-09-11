@@ -1097,6 +1097,28 @@ The halt criterion this feeds — the thing r1.2 named and could not evaluate:
 > R4 inheriting D3a's units — the machinery was right and was pointed at the wrong
 > quantity.
 >
+> ### THE FLOOR HAS A SCOPE — CTO ruling 2026-09-11, correcting its own omission
+>
+> The 0.80 floor governs the **PRIMARY INFERENCE ONLY**: the sign test over seven
+> targets on the **within-panel** tier.
+>
+> **Control tiers report their power beside their verdict and never gate on it.**
+> Cross-family is a **negative control** — its designed outcome is that the effect
+> *vanishes* when the target is swapped. **Requiring a detection-power floor of an
+> arm built not to detect anything is a category error**, and it is what made the
+> gate fire unconditionally: cross-family at n=20 tops out at **0.664** and no
+> feasible thinning reaches 0.80, so applied per tier the floor HALTS the study
+> whatever the data say.
+>
+> That is the r1.4 halt-rule defect one rung up — there, a go/no-go keyed on a
+> *secondary statistic*; here, a floor applied to a *secondary arm*. Same shape:
+> **a gate pointed at something it was not built to measure.** Ninth instance of
+> the standing check.
+>
+> **So cross-family reports 0.664 next to its verdict, disclosed and not gating.**
+> A floor without a stated scope is what produced this, so the scope is now part of
+> the floor wherever it appears.
+
 > **The rule, restated:** the pilot halts if the **sign test** is underpowered at the
 > effect size the study declares it targets. The A&D declares *"powered for a large
 > effect only"*; P0 quantifies *large* as `Δρ ≳ 0.5`, where power at n=40 is **0.92 —
@@ -1286,8 +1308,27 @@ The arm was simultaneously over budget and under-specified, and the budget sente
 | R4 pilot (3 targets × 4 × **10 held-out** ligands) | 120 |
 | **Total** | **1,240** |
 
-At the PVR's own rates (~90 complexes/GPU-h on L40S, $1.95/GPU-h) → **13.8 GPU-h ≈ $26.87**, leaving
-room for R1's one-batch floor inside the $30 ceiling. Wild-type predictions are shared with R3's
+At **90 complexes/GPU-h** on L40S ($1.95/GPU-h) → **13.8 GPU-h ≈ $26.87**.
+
+> **The principal ruled to keep 90, with the risk in front of him. Recorded plainly.**
+> 90 sits inside the PVR's stated 80–100, so it is a legitimate reading and not a
+> fabricated number. But the design's own estimator constant is the **slow** bound,
+> and at 80 the same 1,240 complexes cost **$30.22 — a breach of the $30 ceiling**.
+> **The apparent $3.13 of headroom is an artefact of the assumption, not margin.**
+>
+> **So the assumption is MEASURED, not merely disclosed.** `chipsim/audit/budget.py`
+> re-projects the total from **realised** throughput after batch 1 and **halts
+> pre-emptively if the projection breaches $30** — before the remaining work is
+> dispatched, not after. A ledger that compares only *spent-so-far* against the
+> ceiling discovers a breach at the moment it is too late to avoid: every batch is
+> individually affordable while the total is not.
+>
+> This matches the rest of the design rather than being a special case — P0 measures
+> before any spend, G3 halts before the batch, R9 now projects before the remainder.
+> Realised throughput is reported beside the cost in the run record, so **90 is
+> auditable against what actually happened** (the A9 shape: a planning number a
+> single early measurement can replace). **Treat 90 as provisional until batch 1
+> measures it.** Wild-type predictions are shared with R3's
 native arm, so R4 adds no separate WT cost.
 
 **Two costs, both deliberate and both stated.** `2+2` shrinks the Grantham/RSA matching pool, so

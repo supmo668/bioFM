@@ -62,3 +62,25 @@ It must be set before the pair stratum can be curated.
   ruling exists to prevent.
 - **No floor, disclosure only**: honest, but G3 exists to decide *before* the spend, and a
   gate that fires afterwards is not a gate.
+
+---
+
+## Amendment, 2026-09-11 — the floor's SCOPE
+
+The decision above set *"simulated power ≥ 0.80 at Δρ = 0.5"* and did not say what
+it governs. Applied per tier it **halts the study unconditionally**: cross-family
+runs at n=20, tops out at **0.664**, and no feasible thinning reaches 0.80.
+
+**The floor governs the PRIMARY INFERENCE ONLY** — the sign test over seven targets
+on the within-panel tier. **Control tiers report their power beside their verdict
+and never gate on it.**
+
+Cross-family is a **negative control**: its designed outcome is that the effect
+vanishes when the target is swapped. Requiring a *detection-power* floor of an arm
+built not to detect anything is a category error, and it is exactly what made the
+gate unsatisfiable. Cross-family therefore reports **0.664** next to its verdict,
+disclosed and not gating.
+
+Recorded here as well as in the A&D's G3 because **a floor without a stated scope
+is what produced the defect**, so the scope now travels with the floor wherever it
+appears.
