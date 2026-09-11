@@ -124,11 +124,29 @@ target: ~30 structurally distinct compounds reach 0.85 where 40 clustered ones r
 _Avoid_: "the compound set" (the roster is two strata, and they are not interchangeable)
 
 **Pair stratum**:
-The matched molecular pairs required by **R5**'s cliff-stratified test. Analog series **by
-construction** — a pair differing by one moiety is both the cliff test's unit and the
-clustering that reduces effective `n`. Reported separately and **excluded from the power
-calculation**, rather than discounted into it.
-_Avoid_: counting pair members toward the diversity stratum
+The matched molecular pairs required by **R5**'s cliff-stratified test — **deliberately curated
+as pairs**, targeting ~50, not discovered from the diversity stratum. Analog series **by
+construction**: a pair differing by one moiety is the cliff test's unit. Reported separately and
+**excluded from the diversity stratum's power calculation**, rather than discounted into it.
+_Avoid_: counting pair members toward the diversity stratum; treating it as the A&D's discovered
+"cliff stratum"
+
+**Cliff stratum** *(deprecated as a distinct object)*:
+The A&D's earlier name for the pairs that *fall out of* a ~40-compound roster once MMP and the
+≥100-fold criterion are applied. Superseded: the roster's diversity stratum is selected **for
+structural distinctness**, which is the direct opposite of what yields matched pairs, so
+discovery from it is close to the worst available source. **Use "pair stratum" and curate it.**
+The A&D's commitment survives unchanged and is now the *fallback*: if the data yields fewer
+pairs, R5 **reports the achieved count and its power** and never loosens the cliff to fill the
+stratum.
+
+**Discordant pair**:
+A pair on which the LBM arm and the descriptor baseline disagree. **The only pairs the R5 test
+consumes** — exact McNemar reads their *split*, not the total pair count. **Fewer than five
+discordant pairs can never reach α = 0.05** (1/2⁴ = 0.0625), a floor independent of effect size.
+This is also why between-pair clustering barely moves R5 while it halves the sign test's power:
+clustering perturbs the discordant *count* without biasing the *split*.
+_Avoid_: reasoning about R5's power from total pairs without the discordant count
 
 **Power floor**:
 The pre-hoc threshold the halt rule enforces: **simulated power ≥ 0.80 at `Δρ = 0.5` over
