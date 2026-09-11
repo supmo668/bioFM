@@ -378,8 +378,10 @@ def test_halt_reason_always_names_the_upper_bound_caveat() -> None:
         (
             {"n_targets": 0},
             "vacuous",
-            "all([]) is True, so zero targets gave every trial a vacuous win: "
-            "power 1.0 and PROCEED on a study with no targets",
+            (
+                "all([]) is True, so zero targets gave every trial a vacuous win: "
+                "power 1.0 and PROCEED on a study with no targets"
+            ),
         ),
         (
             {"n_targets": 1},
@@ -389,8 +391,10 @@ def test_halt_reason_always_names_the_upper_bound_caveat() -> None:
         (
             {"icc_band": (0.5, 0.5)},
             "distinct",
-            "two identical values pass a LENGTH check while being a point estimate; "
-            "this returned PROCEED",
+            (
+                "two identical values pass a LENGTH check while being a point "
+                "estimate; this returned PROCEED"
+            ),
         ),
         ({"n": 0}, "cannot support", "no ligands cannot support a rank statistic"),
         ({"trials": 0}, "no trials", "raised ZeroDivisionError rather than saying why"),

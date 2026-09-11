@@ -168,6 +168,18 @@ stricter one, so a failure there is stronger because the bar was equal; raising 
 > power. Consistent with the PVR, which already accepts *"a defensible 'inconclusive at this
 > power'"* as success — the publishable negative is that, not a demonstrated insensitivity.
 >
+> **R5's limit goes on the card beside this one (ADR-0004).** Both arms of this study say the same
+> thing about what it cannot detect, and separating them lets a reader assume one covers the other:
+>
+> - **R3 / the sign test** can demonstrate moiety-sensitivity but **never its absence**.
+> - **R5 / the cliff test detects only a LARGE effect.** At a 15-point accuracy gain it sits at
+>   **0.46 with 60 pairs**, and **no feasible pair count rescues it**.
+> - **R5 additionally carries a limit that more data cannot fix:** fewer than **five discordant**
+>   pairs can never reach `α = 0.05`. That is structural, not statistical — a reader told
+>   "underpowered" will assume a bigger roster fixes it, and here it does not.
+>
+> **The card must not report a null from either arm without the matching limit beside it.**
+
 > **The card sentence, binding and not to be softened (principal, via CTO, 2026-09-08).** The model
 > card must state that the study **can demonstrate moiety-sensitivity but can never demonstrate its
 > absence**, and that **`inconclusive` is not weak evidence of insensitivity.** Plainly, in those
@@ -667,8 +679,48 @@ settled standard exists — measuring our own would spend pilot budget re-derivi
 and a bespoke threshold is *harder* to defend than the standard one. Computed locally with
 RDKit/mmpdb at no Modal cost.
 
-**Cost, recorded:** MMP restricts the pair pool, so at ~40 compounds the cliff stratum may be small.
-R5 then **reports low power**; it does not loosen the criterion to fill the stratum.
+**The pair stratum is CURATED toward ~50 pairs, not discovered** — principal's ruling, ADR-0004.
+
+r1.4 described the pairs as whatever *falls out of* a ~40-compound roster. ADR-0003 had already
+created a deliberately curated *pair stratum*. The two documents assumed opposite things about the
+same object, and the R5 power curve made the difference decisive.
+
+**Why discovery was rejected, and it is the reasoning worth keeping.** The diversity stratum is
+selected *for structural distinctness*; an MMP is a *near-duplicate by construction*. The two
+selection criteria are in direct opposition, so harvesting pairs from the diversity roster is close
+to the **worst available source**. R5 would then report low power **by construction rather than by
+discovery** — a different and less honest claim than the sentence below is making.
+
+**Target: ~50 pairs**, giving **0.87** power at a 25-point LBM gain over the descriptor baseline —
+the same 0.80 floor the sign test clears (`verification/r5-pair-count-curve.py`, seed 4242,
+2000 trials).
+
+**Pre-registered fallback, promoted from an expectation to a commitment:** if fewer pairs are
+assembled, R5 **reports the achieved count and its power**, and **it does not loosen the criterion
+to fill the stratum**. The ≥100-fold cliff is fixed.
+
+> **A STRUCTURAL LIMIT THAT MORE DATA CANNOT FIX, and it must be stated wherever R5's power is
+> reported.** McNemar consumes only **discordant** pairs, and **fewer than five discordant pairs can
+> never reach `α = 0.05`** — 4–0 gives `1/2⁴ = 0.0625`. That is an impossibility, not low power.
+> Median discordance runs at roughly half the pair count, so at 10 pairs the median sits *exactly*
+> on the floor. A reader told "underpowered" will assume more data fixes it; this does not fix.
+
+**R5 detects only a LARGE effect.** At a 15-point gain (0.70 vs 0.55) power is **0.46 even at 60
+pairs**, and no feasible count rescues it — 0.65-vs-0.55 reaches only 0.24 at 60. This is the same
+limit the sign test carries and it belongs beside it on the model card.
+
+**Every figure is an upper bound *and* a lower bound from different directions, which do not
+cancel.** The curve is computed with the arms erring **independently**, which is conservative:
+shared pair difficulty *raises* power (measured 0.70 → 0.98 at 40 pairs) by stripping the symmetric
+noise out of the discordant split. A2 pushes the other way — predicted affinities treated as
+noise-free flatter the LBM arm. **Two errors in opposite directions widen the interval; they do not
+net.**
+
+**Between-pair clustering barely moves R5**, unlike A7's 0.95 → 0.46 for the sign test: the largest
+measured delta across `icc` 0.0–0.8 is **0.033**. The mechanism is why, and it generalises —
+**McNemar consumes the *split* of the discordant pairs, and clustering perturbs their *count*
+without biasing the split.** Within-pair similarity is the **signal**, never a discount: the unit is
+the pair, so twenty pairs are twenty units and not forty correlated compounds.
 **Behavior.** Matched molecular pairs crossing a pre-registered potency or efflux cliff. Accuracy
 reported **separately on the cliff stratum**.
 **Tests.** a pooled-only report **fails**; the cliff threshold is read from the sealed
@@ -1208,7 +1260,10 @@ spend pilot budget to re-derive a number already agreed on, and a bespoke thresh
 defend than the standard one. Computable locally with RDKit/mmpdb at no Modal cost.
 
 **The cost, recorded:** MMP restricts the pair pool, so at ~40 compounds the cliff stratum may be
-small. R5 then **reports low power** — it does not quietly loosen the criterion to fill the stratum.
+small **if discovered** — but ADR-0004 rules the stratum is **curated toward ~50 pairs**, precisely
+because discovery from a diversity-selected roster is the worst available source. R5 reports the
+achieved count and its power, and **it does not quietly loosen the criterion to fill the stratum**.
+See R5 for the curve and the five-discordant structural floor.
 
 ### P5 · Budget — the design did not fit, and now does
 

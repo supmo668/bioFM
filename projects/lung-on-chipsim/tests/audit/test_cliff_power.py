@@ -17,7 +17,6 @@ import pytest
 
 from chipsim.audit.cliff_power import cliff_power, mcnemar_exact_p, simulate_cliff_trial
 
-
 # --- the test statistic, against hand-computed values -------------------------
 
 
