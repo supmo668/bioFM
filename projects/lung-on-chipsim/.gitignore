@@ -25,6 +25,10 @@ data/processed/**
 !data/**/*.dvc
 !data/**/.gitkeep
 !data/raw/drugbank/provenance.yaml
+# Source provenance for the NON-git sources (UniProt, ChEMBL, BindingDB, TDC...).
+# Separate from drugbank/provenance.yaml because that file is bound to a contract
+# written for a git-pinned snapshot and these sources have no commit to pin.
+!data/raw/sources.yaml
 !data/raw/drugbank/PROVENANCE.md
 !data/raw/drugbank/SHA256SUMS.json
 !data/processed/*.sha256
