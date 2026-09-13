@@ -1,14 +1,37 @@
-# /build-loop — requirement-to-function build-out
+# /v2r-loop — requirement-to-function build-out
 
 **Status:** design approved 2026-09-12
-**Glossary:** [`docs/build-loop/CONTEXT.md`](../../build-loop/CONTEXT.md) — terms in **bold** below are defined there
-**Decisions:** [`docs/build-loop/adr/`](../../build-loop/adr/)
+**Glossary:** [`docs/v2r-loop/CONTEXT.md`](../../v2r-loop/CONTEXT.md) — terms in **bold** below are defined there
+**Decisions:** [`docs/v2r-loop/adr/`](../../v2r-loop/adr/)
 
 ## Goal
 
-One prompt states an objective. The loop turns it into a reviewed branch of working,
-individually-tested code, and improves at doing so across successive attempts — without a
-human present for anything except a single approval at the start.
+One prompt states a vision. The loop aligns that vision into a bounded specification through
+research and adversarial interview, plans it, then builds it out one independently-testable
+behaviour at a time — improving at that across successive attempts, with no human present
+after the alignment phase closes.
+
+## Tool description
+
+> **`/v2r-loop`** — Vision to reality. Takes a single free-text vision and carries it all the
+> way to a reviewed branch of working, individually-tested code.
+>
+> The loop has an **attended head** and an **unattended body**. The head aligns the vision:
+> it researches open questions, grills the vision adversarially until its boundary is decided,
+> fixes the domain language, writes the specification, plans the implementation, and emits a
+> committed interface skeleton. You read that once and approve it, declaring the ceilings the
+> run may spend. The body then drains unattended — one build unit at a time, each written by
+> an implementer that never sees its test and tested by an author that never sees the
+> implementation, each close earned by a gate that re-runs the test itself. Failed units are
+> reverted out of the tree and preserved on a branch; the drain never leaves broken code
+> behind. Between drains it reads its own execution traces, captures what it learned, and
+> retries only what failed — stopping when it stops improving.
+>
+> It never writes the trunk and never lands its own PR. Scope is fixed at approval and cannot
+> widen.
+>
+> **Takes exactly one argument: the vision.** Everything else is derived or declared at the
+> single approval gate.
 
 ## Why this shape
 
@@ -26,10 +49,12 @@ altitude down:
 ### Input
 
 ```
-/build-loop "<objective>"
+/v2r-loop "<vision>"
 ```
 
-The objective is the only thing the user authors.
+The vision is the only parameter. There are no flags, no config arguments and no second
+prompt. Everything the run needs is either derived during alignment or declared once at the
+gate.
 
 ### Stage 0 — Preflight and unblock (unattended)
 
@@ -65,31 +90,58 @@ small ceiling returns `content: null` with `finish_reason: "length"`. Every call
 for reasoning separately. This is the loop's inference path for any model call it makes
 directly; Claude Code subagents remain the implementers and test-authors.
 
-### Stage 1 — Preamble (attended)
+### Stage 1 — Vision alignment (attended)
 
-Produces the **approved artifact**, three files, then stops:
+A vision is not a specification, and the gap between them is where autonomous builds fail
+silently. This stage closes that gap using skills that already exist, in order. It is a
+conversation, not a single approval — the loop's autonomy begins after it, not before.
 
-- `spec.md` — standing **requirements** `R<n>`. Each is a claim about the system that holds
-  for the life of the project. Never closed.
-- `register.yaml` — **build units** `U-nnn`, each atomic, independently testable, carrying
-  `satisfies: R<n>`. One requirement yields one-to-many units.
-- `skeleton/` — real modules, real signatures, `NotImplementedError` bodies, one stub per
-  unit, committed before any drain starts.
+**1a · Ground it — `/research`**
+The MARFI fan-out. Draft the research questions the vision leaves open, fan out one
+researcher per question, synthesize a research brief. Runs only when the vision depends on
+facts nobody in the room has; a vision over well-understood ground skips it.
+
+**1b · Bound it — `/grill-with-docs`**
+Adversarial interview until the vision's boundary is decided: one question at a time, each
+branch of the decision tree resolved, every fuzzy term sharpened against the existing
+glossary. Terminology collisions are caught *here* — where they cost a sentence — rather than
+in the register, where they cost a drain. Updates `CONTEXT.md` inline as terms resolve and
+writes an ADR when a decision is hard to reverse, surprising, and a real trade-off.
+
+**1c · State it — `spec.md`**
+Standing **requirements** `R<n>`. Each is a claim about the system that holds for the life of
+the project. Never closed.
+
+**1d · Plan it — `/writing-plans`**
+The spec becomes an ordered implementation plan: what gets built, in what order, against what
+existing patterns. This is the human-readable artifact — the one you actually review to judge
+whether the loop understood the vision.
+
+**1e · Make it executable — `register.yaml` + `skeleton/`**
+The plan decomposes into **build units** `U-nnn`, each atomic, independently testable, and
+carrying `satisfies: R<n>`. The **interface skeleton** is emitted alongside: real modules,
+real signatures, `NotImplementedError` bodies, one stub per unit, committed before any drain
+starts.
 
 The skeleton exists so the sealed **test-author** and the implementer bind to symbols neither
 of them authored. Without it, both produce reasonable but incompatible readings of the same
 unit text and the unit parks on `ImportError` forever.
 
-### Stage 2 — The gate (the only human checkpoint)
+### Stage 2 — The gate (the last human checkpoint)
 
-The user reads the three artifacts once. Approval:
+The user reads the aligned artifact set once — research brief, glossary and ADR changes,
+`spec.md`, the plan, `register.yaml`, `skeleton/`. Approval:
 
 1. **Fixes scope permanently.** No later drain may introduce a unit absent from this register.
 2. **Declares ceilings** — `max_drains`, `max_attempts` per unit, `max_wall_clock`, `max_spend`.
 3. **Grants standing authorization** to push the worktree branch and open a PR at drain end.
 
 Approving the skeleton means approving the API shape, which is the artifact where human
-review most outperforms an agent and where a mistake is most expensive to find late.
+review most outperforms an agent and where a mistake is most expensive to find late. The plan
+is what you read to judge *comprehension*; the skeleton is what you read to judge *design*.
+
+This is the last point at which a human is involved. Everything after it is unattended until
+the loop reports.
 
 ### Stage 3 — Drain (unattended)
 
@@ -146,10 +198,11 @@ units are reported for human triage.
 | Component | Owns | Never |
 |---|---|---|
 | `register.py` | every state transition; re-running sealed tests; ceiling checks; run record | judging whether work is good |
-| preamble stage | spec, register, skeleton | running any unit |
+| alignment stage (1a–1e) | research brief, glossary/ADR updates, spec, plan, register, skeleton | running any unit |
 | test-author subagent | the sealed test, from unit text + skeleton | seeing the implementation |
 | implementer subagent | filling one stub | seeing the sealed test; editing `tests/sealed/` |
 | drain driver (`SKILL.md`) | claiming, dispatching subagents, drain sequencing | asserting a close |
+| `/research`, `/grill-with-docs`, `/writing-plans` | invoked by 1a/1b/1d as-is | modified or forked by this design |
 
 `register.py` is the only component whose correctness the rest of the system trusts. It is
 small, has no LLM in it, and every transition it performs is independently verifiable.
@@ -229,5 +282,5 @@ asserting the parked list and the green-commit invariant.
 - Dependency graphs, `blocked_by`, cascade — priced and declined; see ADR-0004.
 - A headless `--detach` runtime — the register is already the state file, so this is a later
   addition rather than a rewrite.
-- The aviary drug-discovery environment itself. `/build-loop`'s first real target, and its
+- The aviary drug-discovery environment itself. `/v2r-loop`'s first real target, and its
   own spec. Target repo: `3m-m/Aviary-BioSim`.
