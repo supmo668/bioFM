@@ -71,6 +71,35 @@ floor / survives a process restart, each closed by an independent sealed test). 
 right shape to port into `tools/spend` rather than writing the same component twice, and
 we will offer it upstream once its sealed tests close.
 
+### Port specification (conventions checked against `tools/instinct`)
+
+This is a re-expression, not a copy — `tools/instinct` is **stdlib-only, zero-pip**, so the
+ported tool must be too. What transfers is the behaviour set and the sealed tests that pin
+it; the implementation is rewritten to match house style:
+
+- `#!/usr/bin/env python3`, stdlib only, `TOOL_VERSION` constant
+- `cfg("spend.store_path", ".aiadlc/spend.json")` via the existing config helper
+- `main(argv)` dispatch with `--help` / `--version`, matching `tools/instinct`
+- Header block stating what / why / lifecycle / store / provenance
+
+| Behaviour (sealed-tested in Aviary-BioSim) | `tools/spend` surface |
+|---|---|
+| records per-call cost, accumulating | `spend record --usd <n> --label "<what>"` |
+| totals what was recorded | `spend total` |
+| declared floor loads from config | `cfg("spend.default_cap_usd", 25)` |
+| refuses above the declared floor | `spend check --cap <usd>` → non-zero over |
+| survives a process restart | the JSON store itself |
+| new window when a loop arms | `spend reset --window <arm-id>` |
+
+**Does NOT port:** the aviary `Tool.from_function` exposure. That is environment-specific
+and stays in Aviary-BioSim.
+
+**Call sites to wire once the tool exists:**
+- `skills/ceo-loop/SKILL.md:86` — the `spend<=<cap>` authorization becomes a real cap
+- `skills/ceo-loop/SKILL.md:92` — the ⛔ SPEND rule gains an enforcement path
+- `skills/ceo-loop/SKILL.md:159` — the ledger's "spend-to-date" becomes `spend total`
+- `skills/cto-loop/SKILL.md` — same halt-on-breach check per iteration
+
 **Status:** open — implementation available to port
 
 ## 🟠 2. `worktree-create --coordinator` is documented but not implemented
