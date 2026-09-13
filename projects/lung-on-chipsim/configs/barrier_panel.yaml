@@ -46,7 +46,7 @@ ratified_on: "2026-09-12"
 # Detects modification of a sealed panel. It does NOT prove a human attested —
 # the digest is unkeyed over public content, so anything that can write
 # `ratified: true` can compute it. Tamper-evidence, not authentication.
-ratified_panel_sha256: ""
+ratified_panel_sha256: 1aba18e62b017b0cf415375ca57b42b3ef5beeb63bed9cab21c9c48255743050
 panel:
   - {symbol: ABCB1,   uniprot: P08183, alias: "P-gp / MDR1",  face: apical}
   - {symbol: ABCG2,   uniprot: Q9UNQ0, alias: "BCRP",         face: apical}
