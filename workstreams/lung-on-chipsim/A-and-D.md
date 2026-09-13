@@ -299,7 +299,8 @@ is **lead time** — a resource that needs a human to approve you is a schedule 
 
 | Resource | Access mode | Lead time | Mitigation / substitute |
 |---|---|---|---|
-| ChEMBL | open SQLite dump, no account | none | — |
+| **UniProt** | **open REST API, no account** — release `2026_03` verified from the API's own `x-uniprot-release` header | none | **Licence NOT verified** — the licence page is JS-rendered and returned no terms to curl or a renderer on 2026-09-12. Recorded as `NEEDS_HUMAN_CONFIRMATION` in `data/raw/sources.yaml` rather than assumed. Supplies every panel accession and the UniProt side of every affinity row; queried live by T19 |
+| ChEMBL | open SQLite dump, no account — **CC BY-SA 3.0 Unported**, verified at source 2026-09-12 | none | **ShareAlike propagates** to ChEMBL-derived content, including BindingDB's ChEMBL-sourced portion |
 | PubChem | open PUG-REST + FTP bulk, rate-limited (~5 req/s) | none | batch via FTP, never scrape interactively |
 | BindingDB | free account for TSV/SDF dumps (CC-BY; ChEMBL-sourced portion CC-BY-SA) | minutes | UCSD Library publishes dated public mirrors |
 | Papyrus | open via GitHub/Zenodo | none | — |
