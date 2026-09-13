@@ -122,3 +122,39 @@ from the skill's Step 2 and rely on the auto-assignment the tool already perform
 **Effect:** The documented happy path works first time instead of silently printing help.
 
 **Status:** open
+
+## 🟠 3. `instinct capture` on an existing name reinforces it and silently keeps the stale body
+
+**File:** `tools/instinct` (`capture`); `skills/instinct-capture/SKILL.md`
+
+**Symptom:** An agent that learns its earlier instinct was wrong re-runs `instinct capture`
+with the same `--name` and a corrected `--body`, sees the command succeed, and believes the
+lesson is updated. It is not. Confidence is bumped, the body is unchanged, and the stale
+text is what surfaces at the next SessionStart — with *higher* confidence than before,
+because the correction registered as a recurrence of the thing it was correcting.
+
+**Root cause:** `capture` on an existing name takes the reinforce path. That is correct for
+its designed use — the Stop hook reinforcing a recurring pattern — but `capture` is also the
+only documented way an agent records a lesson, so it is what an agent reaches for when the
+lesson has *changed*. The skill does not say the two cases diverge, and nothing in the output
+distinguishes "reinforced, body kept" from "captured".
+
+Observed live: a stage-4 instinct written during drain 1 said the drain's spans were
+unreadable. When the underlying defect was fixed, re-capturing under the same name left the
+"until then, unreadable" text in place, now carrying more confidence. It was caught only
+because the agent opened the file.
+
+**Fix:** Smallest version — make the outcome legible and the update path documented:
+
+- `capture` on an existing name prints `reinforced <name> (body unchanged; edit the file or
+  pass --replace to update it)` rather than reporting a plain capture.
+- Add `--replace` to overwrite the body while preserving confidence and history.
+- One line in `skills/instinct-capture/SKILL.md` stating that re-capturing an existing name
+  reinforces rather than replaces, and naming the update path.
+
+**Effect:** A corrected lesson actually corrects. Today the failure is silent and
+self-reinforcing, which is the worst shape for a memory layer: the more often an agent tries
+to fix a wrong instinct, the more confident the wrong instinct becomes.
+
+**Status:** open
+
