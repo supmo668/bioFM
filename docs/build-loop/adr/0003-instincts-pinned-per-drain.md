@@ -2,7 +2,19 @@
 
 The loop improves across **drains** and refuses to improve during one. The instinct set is
 hashed at drain start, written to the **run record**, and does not change until the drain
-ends — even though `continuous-learning-v2` accumulates observations continuously via hooks.
+ends — even though aiadlc's Stop hook keeps reinforcing instincts throughout.
+
+The learning substrate is **aiadlc's existing instinct layer**, not a second system. It
+stores at `.aiadlc/instincts`, surfaces via the SessionStart hook, reinforces via the Stop
+hook against touched-file triggers, and is configured under `agency.yaml instincts.*`. A
+parallel store would mean two sets of instincts, two confidence semantics and two SessionStart
+surfaces, with neither authoritative.
+
+Because that store is in-repo and not gitignored, the **pin needs no new machinery at all**:
+
+    instinct_pin = $(git rev-parse HEAD:.aiadlc/instincts)
+
+an exact tree SHA, already versioned, already replayable.
 
 A reader will assume continuous learning is the entire point of a self-improving loop and try
 to remove this. The reason it is here: ChipSim's **replay test** in its PoC form requires that

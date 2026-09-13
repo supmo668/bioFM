@@ -127,9 +127,16 @@ writes `main` and never lands its own PR.**
 
 1. `query_weave_traces_tool` over the drain's spans — which units parked, at which attempt,
    on what failure.
-2. `continuous-learning-v2 evolve` — cluster observations into instincts.
-3. New **instinct pin**.
+2. `instinct capture` per durable lesson, via aiadlc's `tools/instinct`, with the drain's
+   touched paths as `--triggers` so the Stop hook reinforces them on recurrence.
+3. Commit `.aiadlc/instincts`; the new **instinct pin** is `git rev-parse HEAD:.aiadlc/instincts`.
 4. Drain *n+1* retries **only parked units**.
+
+The learning substrate is aiadlc's instinct layer — store `.aiadlc/instincts`, SessionStart
+surface, Stop-hook reinforcement, `agency.yaml instincts.*` (already `enabled: true`).
+`continuous-learning-v2` is deliberately **not** installed here: it would run a second store
+with different confidence semantics and its own SessionStart surface, leaving neither
+authoritative.
 
 Terminates when a drain closes zero new units, or `max_drains` is reached. Remaining parked
 units are reported for human triage.
@@ -206,8 +213,11 @@ asserting the parked list and the green-commit invariant.
 2. ~~The W&B MCP server is not installed.~~ **Resolved 2026-09-12** — connected at user
    scope; `WANDB_API_KEY` and `WANDB_PROJECT` stored in Infisical project `biofm`, env `dev`.
    The key was pasted in plaintext and should be rotated.
-3. **`continuous-learning-v2` hooks are not installed** for this repo; no instinct store
-   exists yet. Drain 1 runs against an empty pin.
+3. **No instinct discovery without a human.** aiadlc reinforces instincts someone already
+   captured; it never discovers one. During an unattended drain nobody runs
+   `/instinct-capture`, so stage 4 must capture explicitly from trace evidence. Automatic
+   observation is filed as upstream feedback to aiadlc. `.aiadlc/instincts` does not exist
+   yet, so drain 1 runs against an empty pin — which is correct, not a defect.
 4. **Two trace backends.** Logfire is already wired as the session-tracing sink. W&B for
    iteration analysis and Logfire for sessions is defensible, but it should be a decision
    rather than an accident.
