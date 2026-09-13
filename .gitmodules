@@ -13,3 +13,6 @@
 [submodule "tools/MassGen"]
 	path = tools/MassGen
 	url = https://github.com/Leezekun/MassGen.git
+[submodule "projects/aviary-biosim"]
+	path = projects/aviary-biosim
+	url = git@github.com:supmo668/Aviary-BioSim.git
