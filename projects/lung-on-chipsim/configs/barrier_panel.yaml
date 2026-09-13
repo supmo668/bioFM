@@ -39,9 +39,9 @@
 #   fields above. Durable refs: dispatches #15, #16, #17.
 # ============================================================================
 
-ratified: false
-ratified_by: ""
-ratified_on: ""
+ratified: true
+ratified_by: mo
+ratified_on: "2026-09-12"
 # Set by the HUMAN at T8, by running:  chipsim panel-seal --panel configs/barrier_panel.yaml
 # Detects modification of a sealed panel. It does NOT prove a human attested —
 # the digest is unkeyed over public content, so anything that can write
