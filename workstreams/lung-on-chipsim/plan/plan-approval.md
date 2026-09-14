@@ -1,16 +1,16 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: db3d10b
+plan_hash: de4b812
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-initiated, standing-delegation
 invoked_by: biofm/matthew-mo/cto
-authorising_rulings: [dispatch #27 (seal reframe), principal 2026-09-12 "proceed" on the C4 uv-run fix]
+authorising_rulings: [dispatch #27 (seal reframe), principal 2026-09-12 "proceed" on the C4 uv-run fix, principal 2026-09-14 ruling on the organism label]
 human_approved_hash: 737a8d9
 human_approved_date: 2026-08-30
 tasks_added_since_human_g4: [T7a, S12]
-date: 2026-09-14T13:28
+date: 2026-09-14T15:24
 ---
 
 # Plan approval: lung-on-chipsim
@@ -19,21 +19,25 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.9 (wording only, truth-reducing, NO scope change) — CTO-INITIATED under the standing delegation; the principal did not author or review this text. Two corrections, each implementing a ruling he already made. (1) TENTH survivor of the dispatch-#27 reframe, at build-plan:503 — 'the seal is the act of attestation', the exact retracted claim, missed for two weeks because the phrase is SPLIT ACROSS A HARD LINE BREAK and line-oriented grep cannot see wrapped phrases. Found by a wrap-aware sweep. (2) C4 recurrence: T8's documented command is now 'uv run chipsim panel-seal' from projects/lung-on-chipsim — the bare form fails with 'command not found' because chipsim is a console script inside the project venv, which the principal hit on 2026-09-12. No task added, removed or altered.
+r2.10 (defect fix, NO scope change) — CTO-invoked under the standing delegation, on the principal's explicit ruling of 2026-09-14. T4's edge loader specified organism == 'Homo sapiens'. The pinned 2015 snapshot carries 16,299 rows saying 'Human' and ZERO saying 'Homo sapiens' (verified against the fetched TSV), so the loader as specified returned an EMPTY FRAME on the only data the study is permitted to use. Every fixture said 'Homo sapiens', so no test could have caught it. Principal ruled: accept BOTH labels rather than swapping — the fixtures are legitimately 'Homo sapiens' and preferring either silently would leave the next reader unable to tell which vocabulary the code trusts. Defect class: a done-condition evaluated against a fixture that does not share the real snapshot's vocabulary. No task added, removed or altered.
 
 ---
 
 ## Provenance — how to read this signature
 
-**`approval_route: cto-initiated, standing-delegation` is NOT the same as `principal-directed,
-cto-invoked`, and the difference is the point.** The principal neither authored nor reviewed the
-r2.9 text. He delegated *invocation*; this signature exercises that delegation on two corrections
-that each implement a ruling he had already made — dispatch #27's retraction, and his "proceed" on
-the C4 `uv run` fix he personally hit. Both are listed in `authorising_rulings`.
+**`approval_route: cto-initiated, standing-delegation` is NOT `principal-directed, cto-invoked`.**
+The principal did not author this text. He delegated *invocation*; each signature exercises that
+delegation only on corrections implementing rulings he already made, listed in
+`authorising_rulings`.
 
-Per the delegation's own terms: **a signature with no traceable decision behind it is unsupported —
-treat the plan as unsigned and escalate.** These two are traceable. A future `cto-initiated`
-signature whose `authorising_rulings` are empty or unverifiable should be treated as unsigned.
+**r2.10 was held back until he ruled.** The organism correction was drafted, the gate left blocked,
+and the signature withheld — because accepting *both* labels rather than swapping to `Human` is a
+judgement, not a typo fix, and the delegation's own terms forbid signing without a traceable
+decision. He ruled on 2026-09-14; the signature followed.
+
+Per those terms: **a signature with no traceable decision behind it is unsupported — treat the plan
+as unsigned and escalate.** A future `cto-initiated` signature with empty or unverifiable
+`authorising_rulings` should be treated as unsigned.
 
 `human_approved_hash: 737a8d9` remains the only plan the principal approved *directly*, at G4 on
 2026-08-30. `T7a` and `S12` entered after it and were ratified by him on 2026-09-02.
@@ -58,20 +62,24 @@ delegation of *typing*, not of *judgement*.
    TTY + confirmation gate. That is not merely a rule — `load_ratified_panel` makes
    ratification-without-seal a hard failure, so the two acts are atomically coupled.
 
-## Incident — `plan-gate sign` strips this disclosure, CONFIRMED TWICE
+## Incident — `plan-gate sign` destroys this disclosure. THREE occurrences.
 
-**2026-09-03, 02:08.** An agent-run re-sign rewrote this marker and silently removed every
-disclosure field. `plan-gate verify` passed before, during and after — the hash never moved, so the
-gate could not see it. That is why `plan-gate sign` was restricted to the gate owner.
+**2026-09-03 02:08** — an agent re-sign silently removed every disclosure field. `plan-gate verify`
+passed throughout; the hash never moved, so the gate could not see it. This prompted restricting
+`plan-gate sign` to the gate owner.
 
-**2026-09-14, 13:28 — it happened again, to the CTO.** Signing r2.9 stripped all four blocks a
-second time. **This is not an incident, it is the tool's normal behaviour:** `plan-gate sign`
-regenerates the marker wholesale and preserves nothing below the frontmatter.
+**2026-09-14 13:28** — happened again, to the CTO, signing r2.9.
 
-**Standing consequence.** Anyone invoking `plan-gate sign` on this workstream must capture this file
-first and restore these blocks afterwards, and verify the restoration. **A green
-`plan-gate verify` is not evidence the approval record is intact** — the gate binds the *plan*, not
-the *marker*. Filed upstream.
+**2026-09-14 (r2.10)** — happened a third time, to the CTO, *having captured this file beforehand
+specifically because of the first two*.
+
+**This is the tool's normal behaviour, not misbehaviour by any actor.** `plan-gate sign` regenerates
+the marker wholesale and preserves nothing below the frontmatter. Restricting *who* may invoke it
+does not address it. Filed upstream.
+
+**Standing procedure:** capture this file before every `plan-gate sign`; restore these blocks after;
+verify the restoration. **A green `plan-gate verify` is not evidence the approval record is intact**
+— the gate binds the *plan*, not the *marker*.
 
 **For readers:** if the disclosure fields are absent, do not read `approved: true` as a human
-approval. Read it as unknown, and escalate. Their absence is itself a signal.
+approval. Read it as unknown, and escalate. Their absence is itself the signal.
