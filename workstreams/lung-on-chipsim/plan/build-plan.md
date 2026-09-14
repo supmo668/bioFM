@@ -500,10 +500,12 @@ leaving the barrier panel's only control unverifiable. This gives T8 a checkable
 > guard. It converts an accident into a deliberate circumvention — that is the honest claim, and it
 > is the whole claim. Real signing with a human-held key is a v2 decision, deferred.
 
-T8's attestation step invokes `chipsim panel seal`, which did not exist as a task. **Placed before
-T8 deliberately**, on the S11a-before-T18 precedent and for a sharper reason: the seal **is** the act
-of attestation, so if the tool is missing when the principal sits down to ratify, T8 cannot be
-completed at all — the plan would be self-blocking.
+T8's attestation step invokes `uv run chipsim panel-seal`, which did not exist as a task. **Placed
+before T8 deliberately**, on the S11a-before-T18 precedent and for a sharper reason: the seal is the
+**tamper-evidence the human's ratification depends on** — it is *not itself* the attestation
+(dispatch #27; this sentence was the **tenth** survivor of that reframe, found 2026-09-14 by a
+wrap-aware sweep after line-oriented greps missed it for two weeks). If the tool is missing when the
+principal sits down to ratify, T8 cannot be completed at all — the plan would be self-blocking.
 
 - **Files:** `chipsim/harmonize/pgp_label.py` (edit) · `chipsim/pipeline.py` (edit — `panel seal`
   subcommand) · `tests/test_pgp_label.py` (edit)
@@ -554,7 +556,11 @@ strong claim. **Optional by design** so it does not inflate this task; **absent 
 explicitly**, never the strong one. Human-only — an agent may never populate it.
 
 - **Seal the panel (CTO ruling, dispatch #18).** After setting the attestation fields, run
-  `chipsim panel seal`, which writes `ratified_panel_sha256` over the canonically-serialized panel
+  `uv run chipsim panel-seal` **from `projects/lung-on-chipsim`** — `uv run`, because `chipsim` is a
+  console script inside the project venv and is never on a system PATH; the principal hit
+  `zsh: command not found: chipsim` running the bare form on 2026-09-12, which is the **C4
+  self-blocking defect recurring one layer down** after the entry point itself was added. It writes
+  `ratified_panel_sha256` over the canonically-serialized panel
   list. `load_ratified_panel` verifies it and **raises on mismatch**. Without this, `ratified: true`
   attests to nothing checkable — after T8 any post-ratification edit (a `face` flip, an accession
   swap, a deleted entry) is invisible, which is exactly how N1 went unnoticed until a scorer read the
