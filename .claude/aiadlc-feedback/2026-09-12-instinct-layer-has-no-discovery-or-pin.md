@@ -9,7 +9,7 @@ scope: plugin / operating-system behavior — NOT repo/app work
 
 # Instinct layer: reinforcement without discovery, and no pin primitive
 
-Surfaced while designing `/build-loop` (see `docs/superpowers/specs/2026-09-12-build-loop-design.md`),
+Surfaced while designing `/v2r-loop` (see `docs/superpowers/specs/2026-09-12-v2r-loop-design.md`),
 an unattended requirement-to-function loop whose whole improvement story depends on the
 instinct layer. Both findings are about the same subsystem and were proven against
 `tools/instinct` and `hooks/hooks.json`, not inferred.
@@ -86,7 +86,7 @@ instinct surface --as-of <tree-sha>   # read the set as it stood
 `pin` is three lines over `git rev-parse`. `--as-of` is the genuinely useful half, since it
 makes a recorded pin *resolvable* rather than merely recorded.
 
-**Workaround in use:** `/build-loop` computes `git rev-parse HEAD:.aiadlc/instincts` itself
+**Workaround in use:** `/v2r-loop` computes `git rev-parse HEAD:.aiadlc/instincts` itself
 and writes it to the drain's run record. This works today and needs nothing from the plugin
 — but every consumer wanting attribution will re-derive it, and none will get `--as-of`.
 

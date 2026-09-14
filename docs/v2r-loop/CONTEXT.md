@@ -1,13 +1,25 @@
-# Build Loop
+# V2R Loop
 
-The loop that turns a written specification into working code, one independently-testable
-behaviour at a time. This glossary fixes the language of the register and its gate, where
+The loop that turns one stated vision into working code — aligning the vision into a
+bounded specification, then discharging it one independently-testable behaviour at a time. This glossary fixes the language of the register and its gate, where
 several terms are already spoken for by the ChipSim context and must not be borrowed
 loosely.
 
 ## Language
 
 ### The work
+
+**Vision**:
+The single free-text statement the user authors, and the loop's only parameter. Not yet a
+specification: it states an intent whose boundary, vocabulary and open questions are all
+still undecided.
+_Avoid_: objective, goal, prompt (each suggests something already bounded)
+
+**Alignment**:
+The attended phase that turns a **vision** into a bounded specification — research, then
+adversarial interview, then requirements, then a plan. It is a conversation and it is the
+only place a human is involved besides the approval gate.
+_Avoid_: preamble, planning (the first understates it, the second names one of its four moves)
 
 **Requirement**:
 A standing claim about what the system must do, authored by a human in a PVR or A&D and
@@ -127,7 +139,7 @@ incoherence would have no recoverable cause. This is the same discipline as the 
 
 **"Ratchet" names two different mechanisms.** ChipSim's ratchet is *keep-if-better on a gate
 scalar* — the same goal re-attempted, the attempt retained only when the scalar improves. The
-Build Loop's register is *monotonic state progression* — a unit moves open → closed or
+V2R Loop's register is *monotonic state progression* — a unit moves open → closed or
 open → parked and never moves back, with no comparison and no scalar. Both are called
 ratchets in ordinary speech and they share no mechanism. **Use "the register is monotonic"
 for this context and reserve "ratchet" for ChipSim.**
