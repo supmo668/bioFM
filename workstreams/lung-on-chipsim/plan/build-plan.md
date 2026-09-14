@@ -447,10 +447,21 @@ done-conditions passed.
   def load_protein_edges(raw_dir: Path) -> pd.DataFrame:
       """Columns: drugbank_id, uniprot_id, category, organism.
       `category` is one of target, enzyme, transporter, carrier.
-      Filters to organism == 'Homo sapiens'.
+      Filters to organism in {'Human', 'Homo sapiens'} — BOTH, deliberately.
       """
   ```
 - **Done when** `len(df) > 0`, `set(df.category) == {target, enzyme, transporter, carrier}` (**equality, not subset** — defect 9), and a golden-row assertion holds: a named reference drug with a known ABCB1 transporter edge is present. The golden row is what catches a silent species-filter mismatch that empties the frame.
+
+> **r2.10 — the mismatch was real, and the golden row is why we know.** The spec said
+> `organism == 'Homo sapiens'`. The pinned 2015 snapshot says **`Human`: 16,299 rows, and
+> exactly zero saying `Homo sapiens`** (verified against the fetched TSV, 2026-09-14). As
+> written the loader returned an **empty frame on the only data the study is permitted to
+> use** — and every fixture said `Homo sapiens`, so no test could have caught it. **Accept
+> both labels**, rather than swapping one for the other: the fixtures are legitimately
+> `Homo sapiens`, and silently preferring either would leave the next reader unable to tell
+> which vocabulary the code trusts. The class is *a done-condition evaluated against a
+> fixture that does not share the real snapshot's vocabulary* — green tests, correct about
+> the fixture, wrong about the world.
 
 ### T7 · Draft the barrier panel accession list — **CA · 3 min**
 `ratified` is a **real, file-level** key — not a comment, not per-entry (defects 1, 18). A wrong
