@@ -201,3 +201,31 @@ the *input* to a task about to be performed, and a stale open item reads as outs
 found today in `build-plan.md` T8 itself — it read "running the seal is the human's act of
 attestation", contradicting the Global Constraints block 480 lines above. Corrected in r2.8. If any
 line here implies the digest establishes *who* sealed, it is wrong for the same reason.
+
+---
+
+## Post-ratification note, 2026-09-14 — a stale command inside the sealed file
+
+`configs/barrier_panel.yaml:45` still instructs a human to run bare
+`chipsim panel-seal …`. That command **does not work**: `chipsim` is a console
+script inside `projects/lung-on-chipsim/.venv` and is never on a system PATH, so
+it fails with `command not found` — which is exactly what happened to the
+principal when running T8's documented command from the directory T8 names.
+
+**The file is deliberately NOT edited.** It is now a human-ratified, sealed
+artifact. The digest covers the panel list and the attestation fields rather than
+the comments, so an edit would *probably* still verify — and *probably* is not a
+standard to apply to an attestation the principal performed himself. The staleness
+is recorded here instead, per the CTO's instruction.
+
+Corrected in code, where the same text is read at the moment sealing fails:
+
+- `chipsim/harmonize/pgp_label.py` seal-missing message → `cd projects/lung-on-chipsim`
+  then `uv run chipsim panel-seal --panel …`
+- `chipsim/harmonize/pgp_label.py` seal-mismatch guidance → same correction
+
+This is the third site in the C4 class (a documented command that does not exist
+as documented). The first was the missing `[project.scripts]` entry point; the
+second was the entry point existing but not being on PATH. The pattern: **a
+recovery instruction is only as good as the shell it is pasted into**, and the one
+place it gets pasted is the moment something has already gone wrong.

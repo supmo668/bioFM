@@ -275,7 +275,13 @@ def load_ratified_panel(panel_path: Path) -> dict:
             "A ratified panel MUST be sealed — otherwise removing the seal line is "
             "all it takes to bypass tamper detection. A human seals it by running "
             "(this records tamper-evidence; it does not prove who ran it):\n"
-            f"    chipsim panel-seal --panel {panel_path}"
+            "    cd projects/lung-on-chipsim\n"
+            f"    uv run chipsim panel-seal --panel {panel_path}\n"
+            "`uv run` and the directory are both load-bearing: `chipsim` is a console "
+            "script inside that project's venv and is NOT on PATH, so the bare command "
+            "fails with `command not found`. This text is read at the exact moment "
+            "sealing has failed — a recovery instruction that does not work is worse "
+            "than none (C4 recurrence)."
         )
 
     actual = panel_digest(doc, panel_path)
@@ -285,7 +291,8 @@ def load_ratified_panel(panel_path: Path) -> dict:
             f"{actual[:12]}…. The panel, or its attestation fields, changed after it "
             "was sealed, so the seal no longer covers the file's contents. Either "
             "revert the change, or have a human re-verify and re-run "
-            "`chipsim panel-seal`. An agent must not re-seal (Global Constraint 4). "
+            "`uv run chipsim panel-seal` from projects/lung-on-chipsim (the bare "
+            "`chipsim` is not on PATH). An agent must not re-seal (Global Constraint 4). "
             "NOTE: this detects modification; it does not prove a human attested."
         )
 

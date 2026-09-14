@@ -265,20 +265,38 @@ def test_s6_live_panel_entries_are_well_formed():
         seen[e["symbol"]] = i
 
 
-def test_s6_live_panel_stays_unratified_until_a_human_signs():
-    """The three attestation fields are human-owned. No agent may set them.
+def test_s6_live_panel_is_ratified_and_attributed_and_sealed():
+    """T8 COMPLETE (human, 2026-09-12) — this test is the successor its predecessor
+    specified.
 
-    This is the mechanical form of the file's own banner. It fails the moment an
-    agent flips the flag, which is the failure the whole T8 gate exists to prevent.
-    Delete this test only when a human has genuinely ratified — and then it should
-    be replaced by a check that ratified_by is non-empty, not simply removed.
+    The predecessor asserted `ratified is False` and carried its own instruction:
+    *"Delete this test only when a human has genuinely ratified — and then it should
+    be replaced by a check that ratified_by is non-empty, not simply removed."*
+    A human has, so this is that replacement rather than a deletion.
+
+    It is now the stronger check, because the risk has inverted. Before T8 the
+    danger was an agent flipping the flag; now it is the attestation silently
+    DECAYING — a ratified panel whose attribution was blanked, or whose seal no
+    longer matches its contents, while `ratified: true` still reads fine. So all
+    three fields are asserted together, and the seal is VERIFIED rather than merely
+    present: an unverified digest under a `ratified` flag is the overclaim the T7a
+    work existed to remove.
     """
-    doc = yaml.safe_load((PROJECT_ROOT / "configs" / "barrier_panel.yaml").read_text())
+    from chipsim.harmonize.pgp_label import load_ratified_panel
+
+    panel_path = PROJECT_ROOT / "configs" / "barrier_panel.yaml"
+    doc = yaml.safe_load(panel_path.read_text())
+
     assert "ratified" in doc, "the `ratified` key must exist — absence is not consent"
-    assert doc["ratified"] is False, (
-        "configs/barrier_panel.yaml is ratified — if a human did this, update this test; "
-        "if an agent did, revert it: T8 is human-owned"
+    assert doc["ratified"] is True, "T8 is complete; the live panel must read ratified"
+    assert str(doc.get("ratified_by", "")).strip(), (
+        "ratified_by is empty — an unattributable ratification is not a ratification, "
+        "and every other component in this package refuses one"
     )
+    assert str(doc.get("ratified_on", "")).strip(), "ratified_on is empty"
+
+    # Raises unless the digest matches the panel and its attestation fields.
+    load_ratified_panel(panel_path)
 
 
 # --------------------------------------------------------------------------- #

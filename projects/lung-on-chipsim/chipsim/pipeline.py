@@ -74,16 +74,30 @@ def _cmd_hash_verify(ns: argparse.Namespace) -> int:
 
 
 def _cmd_parse(ns: argparse.Namespace) -> int:
-    from chipsim.harmonize.ids import add_canonical_identity, canonicalization_disagreements
+    from chipsim.harmonize.ids import (
+        add_canonical_identity_excluding,
+        canonicalization_disagreements,
+        load_preregistered_exclusions,
+    )
     from chipsim.ingest.drugbank_snapshot import load_compounds, load_protein_edges
 
-    compounds = add_canonical_identity(load_compounds(ns.raw_dir))
+    roster = Path(ns.exclusions)
+    compounds, excluded = add_canonical_identity_excluding(
+        load_compounds(ns.raw_dir),
+        preregistered=load_preregistered_exclusions(roster),
+    )
     edges = load_protein_edges(ns.raw_dir)
     disagreements = len(canonicalization_disagreements(compounds))
     print(
         f"compounds={len(compounds)} edges={len(edges)} "
         f"raw_vs_canonical_disagreements={disagreements}"
     )
+    # The exclusion is printed EVERY run, by ID, not only when it changes. A
+    # dropped record that is mentioned once at pre-registration and never again is
+    # a record a later reader has no way to notice.
+    print(f"excluded_unparseable={len(excluded)} roster={roster}")
+    for cid in excluded["drugbank_id"]:
+        print(f"  excluded {cid}")
     return 0
 
 
@@ -99,12 +113,18 @@ def _cmd_provenance_tests(ns: argparse.Namespace) -> int:
 
 
 def _cmd_write(ns: argparse.Namespace) -> int:
-    from chipsim.harmonize.ids import add_canonical_identity
+    from chipsim.harmonize.ids import (
+        add_canonical_identity_excluding,
+        load_preregistered_exclusions,
+    )
     from chipsim.ingest.drugbank_snapshot import load_compounds, write_compounds
 
-    compounds = add_canonical_identity(load_compounds(ns.raw_dir))
+    compounds, excluded = add_canonical_identity_excluding(
+        load_compounds(ns.raw_dir),
+        preregistered=load_preregistered_exclusions(Path(ns.exclusions)),
+    )
     write_compounds(compounds, ns.out)
-    print(f"wrote {ns.out}")
+    print(f"wrote {ns.out} (excluded_unparseable={len(excluded)})")
     return 0
 
 
@@ -299,6 +319,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("parse", help="parse compounds + protein edges")
     p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
+    # Defaulted rather than required, which is safe ONLY because the loader raises
+    # on a missing or malformed roster. If it returned an empty set instead, a
+    # default would let the pipeline run with no exclusions and report success.
+    p.add_argument(
+        "--exclusions",
+        type=Path,
+        default=Path("configs/unparseable_compounds.yaml"),
+        help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
+    )
 
     p = sub.add_parser("provenance-tests", help="run the provenance contract suite")
     p.add_argument("--tests", default=Path("tests/test_provenance.py"), type=Path)
@@ -306,6 +335,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("write", help="persist the compound frame")
     p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
     p.add_argument("--out", required=True, type=Path)
+    p.add_argument(
+        "--exclusions",
+        type=Path,
+        default=Path("configs/unparseable_compounds.yaml"),
+        help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
+    )
 
     p = sub.add_parser(
         "panel-seal",

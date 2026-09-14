@@ -191,7 +191,19 @@ def verify_snapshot(dest: Path) -> dict[str, str]:
 #: What may legitimately be git-tracked under data/raw/: DVC pointers, directory
 #: anchors, the integrity manifest, and T1/T2's human provenance artifacts.
 VENDORING_ALLOWED_SUFFIXES = (".dvc",)
-VENDORING_ALLOWED_NAMES = frozenset({".gitkeep", MANIFEST_NAME, "provenance.yaml", "PROVENANCE.md"})
+VENDORING_ALLOWED_NAMES = frozenset(
+    {
+        ".gitkeep",
+        MANIFEST_NAME,
+        "provenance.yaml",
+        "PROVENANCE.md",
+        # Added 2026-09-14: the CTO's extended source-provenance file, landed on
+        # trunk under data/raw/. It is provenance ABOUT the payload, exactly like
+        # provenance.yaml, and carries no redistributed content — so allowing it
+        # widens the allow-list by a metadata file rather than by a data class.
+        "sources.yaml",
+    }
+)
 
 
 def vendored_offenders(tracked_paths) -> list[str]:
@@ -305,6 +317,22 @@ def load_compounds(raw_dir: Path, min_rows: int = MIN_COMPOUND_ROWS) -> pd.DataF
 EDGE_CATEGORIES = frozenset({"target", "enzyme", "transporter", "carrier"})
 
 #: Only human edges are in scope.
+#:
+#: *** PLAN DEVIATION, flagged for re-sign. ***
+#: build-plan.md:450 and every fixture say `Homo sapiens`. The audited 2015
+#: snapshot this study PINS says `Human` — 16,299 rows, and zero saying
+#: `Homo sapiens`. So the loader as specified returns an empty frame on the only
+#: data the study is allowed to use.
+#:
+#: Both labels are accepted, rather than swapping one for the other, because the
+#: fixtures are legitimately `Homo sapiens` and silently preferring either
+#: vocabulary would leave the next reader unable to tell which the code trusts.
+#: The floor guard below caught this exactly as its author predicted in the
+#: comment naming this precise drift — the guard worked; the fixture was wrong.
+HUMAN_ORGANISM_LABELS = frozenset({"Homo sapiens", "Human"})
+
+#: The canonical label, retained for messages and for callers that assert on one
+#: spelling. NOT the filter — see above.
 HUMAN_ORGANISM = "Homo sapiens"
 
 EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "category", "organism")
@@ -348,7 +376,8 @@ def load_protein_edges(
             f"expected a subset of {sorted(EDGE_CATEGORIES)}"
         )
 
-    frame = frame[frame["organism"] == HUMAN_ORGANISM].reset_index(drop=True)
+    observed = sorted(frame["organism"].dropna().unique())
+    frame = frame[frame["organism"].isin(HUMAN_ORGANISM_LABELS)].reset_index(drop=True)
 
     # The floor mirrors load_compounds. Without it an organism-label drift
     # ("Human" vs "Homo sapiens") silently yields ZERO edges, every compound then
@@ -357,8 +386,12 @@ def load_protein_edges(
     if len(frame) < min_rows:
         raise ValueError(
             f"parsed only {len(frame)} human protein edges from {path}, below the floor "
-            f"of {min_rows}. Check the organism filter: values must read exactly "
-            f"{HUMAN_ORGANISM!r}."
+            f"of {min_rows}. The filter accepts {sorted(HUMAN_ORGANISM_LABELS)!r}; the "
+            f"file's organism column actually contains {observed[:8]!r}"
+            f"{' ...' if len(observed) > 8 else ''}. "
+            "Naming the OBSERVED values rather than only the expected one: the first "
+            "time this fired, the message sent the reader looking for a filter bug "
+            "when the answer was a vocabulary difference visible in one column."
         )
 
     # EQUALITY, asserted here rather than only in tests (defect 9). Restricting it

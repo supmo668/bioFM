@@ -153,10 +153,53 @@ def test_t5b_canonical_key_is_non_null_on_every_row(canonical):
 
 def test_t5b_reports_a_disagreement_count(canonical):
     """A nonzero count is the HEALTHY case — it is the salts collapsing. Zero on a
-    real snapshot would mean canonicalization is a no-op."""
+    real snapshot would mean canonicalization is a no-op.
+
+    This count stays 2 because the FIXTURE stores bare InChIKeys. The real snapshot
+    stores them prefixed, and that difference hid a defect for the life of the
+    project — see the prefix test below.
+    """
     disagreements = canonicalization_disagreements(canonical)
     assert len(disagreements) == 2
     assert set(disagreements["drugbank_id"]) == {"DB90005", "DB90008"}
+
+
+def test_t5b_disagreement_ignores_the_inchikey_prefix():
+    """A row differing ONLY by the `InChIKey=` prefix is NOT a disagreement.
+
+    The real DrugBank snapshot writes `InChIKey=ABC…`; RDKit returns `ABC…`. A
+    naive `!=` therefore reported 6,802 of 6,802 real compounds as disagreeing,
+    when the substantive count is 2,251 — a metric that was 100% by construction
+    and so carried no information, while T5b's done-condition asked for it to be
+    reported.
+
+    It survived because the fixture uses bare keys, so the fixture-based test above
+    reads a correct 2 and can never fail on this. Pinned here with a PREFIXED row,
+    which is the shape the real data actually has.
+    """
+    import pandas as pd
+
+    frame = pd.DataFrame(
+        [
+            # identical apart from the prefix -> NOT a disagreement
+            {
+                "drugbank_id": "DB1",
+                "inchikey": "InChIKey=AAAAAAAAAAAAAA-BBBBBBBBBB-N",
+                "canonical_inchikey": "AAAAAAAAAAAAAA-BBBBBBBBBB-N",
+            },
+            # genuinely different second block -> IS a disagreement
+            {
+                "drugbank_id": "DB2",
+                "inchikey": "InChIKey=CCCCCCCCCCCCCC-DDDDDDDDDD-N",
+                "canonical_inchikey": "CCCCCCCCCCCCCC-UHFFFAOYSA-N",
+            },
+        ]
+    )
+    out = canonicalization_disagreements(frame)
+    assert list(out["drugbank_id"]) == ["DB2"], (
+        "a prefix-only difference must not count as a disagreement, and a real "
+        "stereo-block difference must"
+    )
 
 
 def test_t5b_unparseable_inchi_raises(compounds):

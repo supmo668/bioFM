@@ -195,10 +195,19 @@ def test_snapshot_hashes_match_manifest():
     assert manifest_path.is_file(), f"{MANIFEST_NAME} missing beside the snapshot"
     recorded = json.loads(manifest_path.read_text())
 
+    # `recorded["files"]`, not `recorded`. T3's spec requires the manifest to carry
+    # `source_commit` and `fetched_utc` ALONGSIDE the file hashes, so comparing
+    # against the whole document could never pass on a real manifest — and the
+    # loop below would then try to sha256 a file named "source_commit".
+    #
+    # This test had never been exercised: no fetch had ever run, so it was skipped
+    # or green-by-absence for the life of the project. The first real T4a run is
+    # what surfaced it. Same class as the InChI and organism gaps — written against
+    # an assumption and never executed against reality.
     verified = verify_snapshot(RAW_DIR)
-    assert verified == recorded
+    assert verified == recorded["files"]
 
-    for name, digest in recorded.items():
+    for name, digest in recorded["files"].items():
         actual = hashlib.sha256((RAW_DIR / name).read_bytes()).hexdigest()
         assert actual == digest, f"{name} mutated after fetch"
 

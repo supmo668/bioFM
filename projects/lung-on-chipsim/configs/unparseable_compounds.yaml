@@ -1,0 +1,57 @@
+# PRE-REGISTERED exclusion roster — compounds the pinned RDKit cannot canonicalize.
+#
+# Principal's ruling, 2026-09-14: exclude these, recorded by ID, with the count and
+# reason on the model card. The alternatives were rejected on their own terms —
+# refusing the whole snapshot converts a 0.117% data-quality issue into a total
+# block on the data the study deliberately pinned, and retaining them with a null
+# key would surface them as `unknown`, overloading the one P-gp label whose
+# distinctness this programme has defended repeatedly (`unknown` means "no
+# evidence of interaction", never "we could not parse the structure").
+#
+# *** THIS ROSTER IS CLOSED. ***
+# `add_canonical_identity_excluding` RAISES if a compound fails that is not listed
+# here — a ninth failure is new information and needs adjudication, not silent
+# absorption. It also RAISES if a listed compound now parses, because that means
+# the snapshot or the toolchain moved and this pre-registration is stale. An
+# exclusion list that can quietly grow or rot is not a pre-registration; it is a
+# place to hide data loss.
+#
+# Verified at the point of exclusion: the InChI strings are COMPLETE in the source
+# TSV. The truncation visible in the raw error message is an artefact of the
+# message formatting, not of the data. DB02377's full string, for instance, is
+# `InChI=1S/C5H4N5O/c6-5-9-3-2(4(11)10-5)7-1-8-3/h1H,(H3,6,8,9,10,11)` — intact,
+# and refused by the pinned toolchain.
+
+# COUNTS LIVE HERE, IN COMMENTS, FOR TWO REASONS.
+# S6 forbids bare numeric leaves in `configs/` because biological numbers are
+# human-owned, and these would have tripped it. But the better reason is that a
+# stored count can disagree with the list it counts — exactly the defect class
+# this workstream keeps finding. The authoritative count is `len(compounds)`
+# below, and the test asserts against that rather than against a duplicate.
+#
+#   compounds carrying an InChIKey in this snapshot : 6810
+#   excluded                                        : 8
+#   rate                                            : 0.117%
+
+provenance:
+  source_commit: 3e87872db5fca5ac427ce27464ab945c0ceb4ec6  # the audited 2015 pin
+  rdkit_version: "2026.3.5"                                 # pinned in pyproject
+  determined_on: "2026-09-14"
+  determined_by: biofm/matthew-mo/lung-on-chipsim
+
+# Why the toolchain version is part of the provenance: these are RDKit refusals,
+# not malformed source data, so the roster is only meaningful against a stated
+# RDKit. Unpin RDKit and this list must be re-derived.
+reason: >-
+  The pinned RDKit 2026.3.5 refuses these InChI strings. The strings are complete
+  in the source snapshot; the failure is in parsing, not in transmission.
+
+compounds:
+  - DB01929
+  - DB02177
+  - DB02223
+  - DB02377
+  - DB02912
+  - DB03245
+  - DB03304
+  - DB03907
