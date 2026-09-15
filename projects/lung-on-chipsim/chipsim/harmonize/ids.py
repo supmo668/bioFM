@@ -631,3 +631,25 @@ def relative_stereo_effect(compounds: pd.DataFrame) -> RelativeStereoEffect:
         merged_members=tuple(m for _, m in merged),
         split_members=tuple(m for _, m in split),
     )
+
+
+def relative_stereo_keys(compounds: pd.DataFrame) -> frozenset[str]:
+    """Canonical keys carrying at least one relative-stereo (/s2) member (CTO #122 §0).
+
+    A key is flagged when ANY member is: after the re-key, a stereo-free key may pool a
+    relative compound with absolute or unspecified ones, and the pooled identity is only
+    as specific as its least specific member.
+
+    Raises when the frame lacks `stereo_is_relative`. A frame built before the re-key
+    must not read as "no relative-stereo compounds" — that is exactly how a dropped
+    flag would pass every downstream check.
+    """
+    missing = [c for c in ("canonical_inchikey", "stereo_is_relative") if c not in compounds.columns]
+    if missing:
+        raise ValueError(
+            f"compounds frame lacks {missing}: run add_canonical_identity() (T5b) after the "
+            "relative-stereo re-key. A frame without `stereo_is_relative` cannot be read as "
+            "'nothing flagged'."
+        )
+    flagged = compounds.loc[compounds["stereo_is_relative"].astype(bool), "canonical_inchikey"]
+    return frozenset(str(k) for k in flagged)
