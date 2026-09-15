@@ -25,6 +25,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from chipsim.ingest.drugbank_snapshot import DVC_POINTERS
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 #: A&D §4.4 layer set, in order.
@@ -306,7 +308,13 @@ def test_s6_live_panel_is_ratified_and_attributed_and_sealed():
 
 def _check_ignore(rel: str) -> bool:
     r = subprocess.run(
-        ["git", "check-ignore", "-q", rel], cwd=PROJECT_ROOT, capture_output=True, check=False
+        # --no-index: without it git answers from the INDEX, so every tracked path
+        # reports "not ignored" whatever the rules say — the expected-False rows
+        # below would then be tautologies (QG-3).
+        ["git", "check-ignore", "-q", "--no-index", rel],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        check=False,
     )
     return r.returncode == 0
 
@@ -320,9 +328,11 @@ def _check_ignore(rel: str) -> bool:
         ("data/raw/drugbank/drugbank.tsv", True),
         ("data/processed/drugbank_compounds.parquet", True),
         # ...but everything that makes it recoverable and auditable must stay tracked
-        ("data/raw/drugbank/drugbank.tsv.dvc", False),  # r2.11: one pointer per TSV
-        ("data/raw/drugbank/drugbank-slim.tsv.dvc", False),
-        ("data/raw/drugbank/proteins.tsv.dvc", False),
+        *[(rel, False) for rel in DVC_POINTERS],  # r2.11: one pointer per TSV
+        (
+            "data/raw/drugbank/future.tsv.dvc",
+            False,
+        ),  # untracked: exercises `!data/**/*.dvc` for real
         ("data/raw/drugbank/SHA256SUMS.json", False),  # T4 done-condition (d)
         ("data/raw/drugbank/provenance.yaml", False),  # T2/T1 human artifact
         ("data/raw/drugbank/PROVENANCE.md", False),  # T1 human artifact
