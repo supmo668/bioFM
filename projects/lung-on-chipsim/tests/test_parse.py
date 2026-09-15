@@ -381,18 +381,29 @@ def test_t5b_stereo_free_tautomer_pair_still_merges():
     assert canonical_inchikey(NITISINONE_KETO) == canonical_inchikey(NITISINONE_ENOL)
 
 
-#: 2-(2-Hydroxy-Phenyl)-1H-benzimidazole-5-carboxamidine, its 3H tautomer, and
-#: CRA_1144 (the same structure without the /p+1 protonation). The 1H form carries
-#: `/b14-9-` — a double-bond geometry layer that the tautomer step removes.
-BENZIMIDAZOLE_1H = (
+#: 2-(2-hydroxyphenyl)-3H-benzimidazole-5-carboximidamide in three forms: the
+#: protonated 1H tautomer, the protonated 3H tautomer, and the NEUTRAL species.
+#: The 1H form carries `/b14-9-` — a double-bond geometry layer the tautomer step
+#: removes, which is why this trio is the regression test for excluding /b.
+#:
+#: Sources (PubChem, retrieved 2026-09-15): the protonated forms are CID 1505,
+#: `URJKRCBBKTXOHS-UHFFFAOYSA-O`; the neutral form is CID 1506,
+#: `URJKRCBBKTXOHS-UHFFFAOYSA-N`, IUPAC name
+#: `2-(2-hydroxyphenyl)-3H-benzimidazole-5-carboximidamide`.
+#:
+#: The neutral constant was named `CRA_1144` here, after the snapshot's title for it
+#: (CTO #122 §1: DrugBank-coined titles are record content). PubChem's own Title for
+#: CID 1506 is also "Cra_1144" — a depositor code echoed by the database, not a
+#: chemical name — so the IUPAC name is used instead.
+BENZIMIDAZOLE_1H_PROTONATED = (
     "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
     "/h1-7,17-18H,(H3,15,16)/p+1/b14-9-"
 )
-BENZIMIDAZOLE_3H = (
+BENZIMIDAZOLE_3H_PROTONATED = (
     "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
     "/h1-7,19H,(H3,15,16)(H,17,18)/p+1"
 )
-CRA_1144 = (
+BENZIMIDAZOLE_NEUTRAL = (
     "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
     "/h1-7,19H,(H3,15,16)(H,17,18)"
 )
@@ -404,34 +415,42 @@ def test_t5b_benzimidazole_tautomers_still_merge_because_b_is_not_compared():
     compared /b would fire here and split three forms of one compound; the ruled
     {t,m,s} guard does not, and the trio stays one canonical key."""
     keys = {
-        canonical_inchikey(BENZIMIDAZOLE_1H),
-        canonical_inchikey(BENZIMIDAZOLE_3H),
-        canonical_inchikey(CRA_1144),
+        canonical_inchikey(BENZIMIDAZOLE_1H_PROTONATED),
+        canonical_inchikey(BENZIMIDAZOLE_3H_PROTONATED),
+        canonical_inchikey(BENZIMIDAZOLE_NEUTRAL),
     }
     assert len(keys) == 1, keys
 
 
-#: Malate Ion and the "Malate Like Intermediate" — tautomers of one compound, both
-#: carrying `/t2-/m1/s1` that the tautomer step erases.
-MALATE_ION = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h2,5H,1H2,(H,6,7)(H,8,9)/p-1/t2-/m1/s1"
-MALATE_LIKE_INTERMEDIATE = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h1-2,5-7H,(H,8,9)/p-2/t2-/m1/s1"
+#: Two charged malate species from the snapshot: the MONOANION (`/p-1`) and a DIANION
+#: tautomer (`/p-2`) whose hydrogen layer differs at source. Both carry `/t2-/m1/s1`,
+#: which the tautomer step erases.
+#:
+#: Named by charge state and identified by InChIKey, not by the snapshot's titles for
+#: them (CTO #122 §1 — DrugBank-coined titles are record content). Neither exact
+#: structure has a PubChem record (checked by exact-InChI lookup, 2026-09-15), so there
+#: is no public name to cite: the pre-tautomer keys below are the identification.
+MALATE_MONOANION = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h2,5H,1H2,(H,6,7)(H,8,9)/p-1/t2-/m1/s1"
+MALATE_DIANION_TAUTOMER = (
+    "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h1-2,5-7H,(H,8,9)/p-2/t2-/m1/s1"
+)
 
 
 def test_malate_pair_splits_known_accepted_loss():
     """DELIBERATE and ACCEPTED (principal ruling 2026-09-15, CTO #106): this pair
     SPLITS under the guard, and that is a recorded limit, not a bug to fix.
 
-    They are tautomers of one compound whose pre-tautomer skeletons already differ
-    (first InChIKey blocks BJEPYKJPYRNKOW vs QFBHYOKSQPPXHZ — the H layer and the
-    protonation differ at source). Both carry `/t2-/m1/s1`; the tautomer step
-    erases it; the guard fires for each and returns two different pre-tautomer
-    keys. The guard cannot keep them together without also re-merging true
-    stereoisomers. A known loss with a test is a recorded limit; a known loss
-    without one is a latent surprise.
+    The monoanion (`/p-1`) and the dianion tautomer (`/p-2`) are two charge states of
+    one compound whose pre-tautomer skeletons already differ (first InChIKey blocks
+    BJEPYKJPYRNKOW vs QFBHYOKSQPPXHZ — the H layer and the protonation differ at
+    source). Both carry `/t2-/m1/s1`; the tautomer step erases it; the guard fires for
+    each and returns two different pre-tautomer keys. The guard cannot keep them
+    together without also re-merging true stereoisomers. A known loss with a test is a
+    recorded limit; a known loss without one is a latent surprise.
     """
-    assert canonical_inchikey(MALATE_ION) != canonical_inchikey(MALATE_LIKE_INTERMEDIATE)
-    assert canonical_inchikey(MALATE_ION).startswith("BJEPYKJPYRNKOW-")
-    assert canonical_inchikey(MALATE_LIKE_INTERMEDIATE).startswith("QFBHYOKSQPPXHZ-")
+    assert canonical_inchikey(MALATE_MONOANION) != canonical_inchikey(MALATE_DIANION_TAUTOMER)
+    assert canonical_inchikey(MALATE_MONOANION).startswith("BJEPYKJPYRNKOW-")
+    assert canonical_inchikey(MALATE_DIANION_TAUTOMER).startswith("QFBHYOKSQPPXHZ-")
 
 
 # --------------------------------------------------------------------------- #
