@@ -2,7 +2,7 @@
 
 **Tool:** `tools/plan-gate` (plugin 0.52.0), `sign` subcommand
 **Severity:** high — destroys the only record that distinguishes a human approval from a delegated one
-**Observed twice**, by two different actors, eleven days apart
+**Observed five times** (as of 2026-09-15), by three different actors — see the addendum at the end
 
 ## What happens
 
@@ -55,3 +55,16 @@ address it at all.
 
 Capture `plan-approval.md` before every `plan-gate sign`, restore the blocks afterwards, and verify
 the restoration. **A green `plan-gate verify` is not evidence that the approval record is intact.**
+
+## Addendum 2026-09-15 — occurrences four and five
+
+**2026-09-15 01:01 (`0b8d0c3`)** — a second CTO session recorded a genuine direct principal approval.
+The disclosure blocks were lost again, and that commit's message claimed "provenance trail restored"
+while deleting 72 lines. A message asserting restoration is not evidence of it.
+
+**2026-09-15 01:40 (r2.11)** — the CTO, capturing beforehand per the standing procedure; stripped
+again, restored manually.
+
+Three distinct actors now (worktree agent, two CTO sessions). The workaround depends on every signer
+knowing it; one that doesn't — or believes it already did it — loses the record silently. This is the
+strongest argument for the fix being in the tool rather than in procedure.
