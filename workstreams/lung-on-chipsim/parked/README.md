@@ -1,6 +1,6 @@
 # Parked work — lung-on-chipsim
 
-## 2026-09-15-stereo-guard-red-tests.patch — §2 stereo guard, RED tests only (HELD by CTO #102)
+## 2026-09-15-stereo-guard-red-tests.patch — §2 stereo guard, RED tests only — **APPLIED 2026-09-15 at `7592f56`** (ruling CTO #106: {t,m,s}, /b excluded); patch file removed, content lives in `tests/test_parse.py` + `tests/test_merge_report.py`
 
 Dispatch #98 §2 ruled a stereo guard on `canonical_inchikey`; CTO #102 §2 put the
 **implementation on HOLD** pending the principal's ruling on which InChI stereo layers

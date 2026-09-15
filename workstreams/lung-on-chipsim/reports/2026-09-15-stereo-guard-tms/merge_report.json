@@ -1,0 +1,1001 @@
+{
+  "after_breakdown": {
+    "parse": 3,
+    "salt": 19,
+    "tautomer": 7,
+    "uncharge": 26,
+    "upstream-duplicate": 101
+  },
+  "after_rollup": {
+    "salt_or_uncharge": 48,
+    "source_identical": 101,
+    "tautomer": 7
+  },
+  "before_breakdown": {
+    "parse": 2,
+    "salt": 19,
+    "tautomer": 48,
+    "uncharge": 22,
+    "upstream-duplicate": 100
+  },
+  "before_rollup": {
+    "salt_or_uncharge": 43,
+    "source_identical": 100,
+    "tautomer": 48
+  },
+  "compounds": 6802,
+  "excluded_unparseable": 8,
+  "guard_fired": 1599,
+  "journal_run": "/Users/mo/github/personal/bioFM/worktrees/lung-on-chipsim/projects/lung-on-chipsim/journal/20260915T094806Z-2fe6fafa",
+  "merge_groups_after": 156,
+  "merge_groups_before": 191,
+  "new_merges": [],
+  "raw_dir": "data/raw/drugbank",
+  "reclassified": [],
+  "split_groups": [
+    {
+      "key_before": "AANFHDFOMFRLLR-UHFFFAOYSA-N",
+      "keys_after": [
+        "AANFHDFOMFRLLR-IBGZPJMESA-N",
+        "AANFHDFOMFRLLR-LJQANCHMSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB07031",
+          "R-3-FLUORO-4-[2-HYDROXY-2-(5,5,8,8-TETRAMETHYL-5,6,7,8,-TETRAHYDRO-NAPHTALEN-2-YL)-ACETYLAMINO]-BENZOIC ACID"
+        ],
+        [
+          "DB07294",
+          "3-FLUORO-4-[2-HYDROXY-2-(5,5,8,8-TETRAMETHYL-5,6,7,8,-TETRAHYDRO-NAPHTALEN-2-YL)-ACETYLAMINO]-BENZOIC ACID"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "ADEBPBSSDYVVLD-UHFFFAOYSA-N",
+      "keys_after": [
+        "ADEBPBSSDYVVLD-HXUWFJFHSA-N",
+        "ADEBPBSSDYVVLD-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00843",
+          "Donepezil"
+        ],
+        [
+          "DB07701",
+          "1-BENZYL-4-[(5,6-DIMETHOXY-1-INDANON-2-YL)METHYL]PIPERIDINE"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "AGPKZVBTJJNPAG-UHFFFAOYSA-N",
+      "keys_after": [
+        "AGPKZVBTJJNPAG-UHNVWZDZSA-N",
+        "AGPKZVBTJJNPAG-WHFBIAKZSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00167",
+          "L-Isoleucine"
+        ],
+        [
+          "DB01739",
+          "Allo-Isoleucine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "AYFVYJQAPQTCCC-UHFFFAOYSA-N",
+      "keys_after": [
+        "AYFVYJQAPQTCCC-PWNYCUMCSA-N",
+        "AYFVYJQAPQTCCC-STHAYSLISA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00156",
+          "L-Threonine"
+        ],
+        [
+          "DB03700",
+          "D-Threonine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "BIRSGZKFKXLSJQ-UHFFFAOYSA-N",
+      "keys_after": [
+        "BIRSGZKFKXLSJQ-MGCNEYSASA-N",
+        "BIRSGZKFKXLSJQ-QTBDOELSSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01655",
+          "L-Guluronic Acid 6-Phosphate"
+        ],
+        [
+          "DB02076",
+          "6-Phosphogluconic Acid"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "BJEPYKJPYRNKOW-UHFFFAOYSA-N",
+      "keys_after": [
+        "BJEPYKJPYRNKOW-UWTATZPHSA-N",
+        "QFBHYOKSQPPXHZ-UWTATZPHSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB03343",
+          "Malate Like Intermediate"
+        ],
+        [
+          "DB03499",
+          "Malate Ion"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "CKLJMWTZIZZHCS-UHFFFAOYSA-N",
+      "keys_after": [
+        "CKLJMWTZIZZHCS-REOHCLBHSA-N",
+        "CKLJMWTZIZZHCS-UWTATZPHSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00128",
+          "L-Aspartic Acid"
+        ],
+        [
+          "DB02655",
+          "D-Aspartic Acid"
+        ],
+        [
+          "DB03089",
+          "L-Iso-Aspartate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "COLNVLDHVKWLRT-UHFFFAOYSA-N",
+      "keys_after": [
+        "COLNVLDHVKWLRT-MRVPVSSYSA-N",
+        "COLNVLDHVKWLRT-QMMMGPOBSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00120",
+          "L-Phenylalanine"
+        ],
+        [
+          "DB02556",
+          "D-Phenylalanine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "DAOQLLQRJAXMGY-UHFFFAOYSA-N",
+      "keys_after": [
+        "DAOQLLQRJAXMGY-PBHICJAKSA-N",
+        "DAOQLLQRJAXMGY-RHSMWYFYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB02540",
+          "(10S)-10-Formyl-5,8,10-Trideazafolic Acid"
+        ],
+        [
+          "DB04264",
+          "(10R)-10-Formyl-5,8,10-Trideazafolic Acid"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "DCXYFEDJOCDNAF-UHFFFAOYSA-N",
+      "keys_after": [
+        "DCXYFEDJOCDNAF-REOHCLBHSA-N",
+        "DCXYFEDJOCDNAF-UWTATZPHSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00174",
+          "L-Asparagine"
+        ],
+        [
+          "DB03943",
+          "D-Asparagine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "DWJZKGYQNOQQEZ-UHFFFAOYSA-N",
+      "keys_after": [
+        "BJHIKXHVCXFQLS-PQLUHFTBSA-N",
+        "GZCGUPFRVQAUEE-FSIIMWSLSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01914",
+          "D-Glucose in Linear Form"
+        ],
+        [
+          "DB04936",
+          "Tagatose"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "FAKRSMQSSFJEIM-UHFFFAOYSA-N",
+      "keys_after": [
+        "FAKRSMQSSFJEIM-BQBZGAKWSA-N",
+        "FAKRSMQSSFJEIM-RQJHMYQMSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01197",
+          "Captopril"
+        ],
+        [
+          "DB02032",
+          "1-(3-Mercapto-2-Methyl-Propionyl)-Pyrrolidine-2-Carboxylic Acid"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "FFEARJCKVFRZRR-UHFFFAOYSA-N",
+      "keys_after": [
+        "FFEARJCKVFRZRR-BYPYZUCNSA-N",
+        "FFEARJCKVFRZRR-SCSAIBSYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00134",
+          "L-Methionine"
+        ],
+        [
+          "DB02893",
+          "D-Methionine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "GNGACRATGGDKBX-UHFFFAOYSA-N",
+      "keys_after": [
+        "GNGACRATGGDKBX-UHFFFAOYSA-N",
+        "LXJXRIRHZLFYRP-VKHMYHEASA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB02263",
+          "Glyceraldehyde-3-Phosphate"
+        ],
+        [
+          "DB04326",
+          "1,3-Dihydroxyacetonephosphate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "IOFPEOPOAMOMBE-UHFFFAOYSA-N",
+      "keys_after": [
+        "IOFPEOPOAMOMBE-MRVPVSSYSA-N",
+        "IOFPEOPOAMOMBE-QMMMGPOBSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB02652",
+          "L-[(N-Hydroxyamino)Carbonyl]Phenylalanine"
+        ],
+        [
+          "DB04316",
+          "D-[(N-Hydroxyamino)Carbonyl]Phenylalanine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "JAPHQRWPEGVNBT-VOMCLLRMSA-N",
+      "keys_after": [
+        "JAPHQRWPEGVNBT-IJLUTSLNSA-N",
+        "JAPHQRWPEGVNBT-UTUOFQBUSA-N"
+      ],
+      "layers": [
+        "t"
+      ],
+      "members": [
+        [
+          "DB00447",
+          "Loracarbef"
+        ],
+        [
+          "DB04293",
+          "7-(2-Amino-2-Phenyl-Acetylamino)-3-Chloro-8-Oxo-1-Aza-Bicyclo[4.2.0]Oct-2-Ene-2-Carboxylic Acid"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "JVTAAEKCZFNVCJ-UHFFFAOYSA-N",
+      "keys_after": [
+        "JVTAAEKCZFNVCJ-UHFFFAOYSA-N",
+        "JVTAAEKCZFNVCJ-UWTATZPHSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB03066",
+          "D-Lactic Acid"
+        ],
+        [
+          "DB04398",
+          "Lactic Acid"
+        ],
+        [
+          "DB06768",
+          "Ammonium lactate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "JWCSIUVGFCSJCK-CAVRMKNVSA-N",
+      "keys_after": [
+        "JWCSIUVGFCSJCK-CAVRMKNVSA-N",
+        "JWCSIUVGFCSJCK-LIUKBUMOSA-N"
+      ],
+      "layers": [
+        "t"
+      ],
+      "members": [
+        [
+          "DB04342",
+          "7-((Carboxy(4-Hydroxyphenyl)Acetyl)Amino)-7-Methoxy-(3-((1-Methyl-1h-Tetrazol-5-Yl)Thio)Methyl)-8-Oxo-5-Oxa-1-Azabicyclo[4.2.0]Oct-2-Ene-2-Carboxylic Acid"
+        ],
+        [
+          "DB04570",
+          "Latamoxef"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "JXJRJDNSPWNZOK-UHFFFAOYSA-N",
+      "keys_after": [
+        "JXJRJDNSPWNZOK-PJEZACDQSA-N",
+        "JXJRJDNSPWNZOK-YSFYHYPLSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB03436",
+          "Gallichrome"
+        ],
+        [
+          "DB03574",
+          "Ferricrocin-Iron"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "KSKRYQVHJQRUNC-UHFFFAOYSA-N",
+      "keys_after": [
+        "HIZKPJUTKKJDGA-BETUJISGSA-N",
+        "KSKRYQVHJQRUNC-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "t"
+      ],
+      "members": [
+        [
+          "DB00266",
+          "Dicoumarol"
+        ],
+        [
+          "DB04392",
+          "Bishydroxy[2h-1-Benzopyran-2-One,1,2-Benzopyrone]"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "KVZMXOVSHIMGNA-UHFFFAOYSA-N",
+      "keys_after": [
+        "KVZMXOVSHIMGNA-CVEARBPZSA-N",
+        "KVZMXOVSHIMGNA-HOTGVXAUSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB03573",
+          "WRR-99"
+        ],
+        [
+          "DB03691",
+          "WRR-112"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "LEBVLXFERQHONN-UHFFFAOYSA-N",
+      "keys_after": [
+        "LEBVLXFERQHONN-INIZCTEOSA-N",
+        "LEBVLXFERQHONN-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00297",
+          "Bupivacaine"
+        ],
+        [
+          "DB01002",
+          "Levobupivacaine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "MTCFGRXMJLQNBG-UHFFFAOYSA-N",
+      "keys_after": [
+        "MTCFGRXMJLQNBG-REOHCLBHSA-N",
+        "MTCFGRXMJLQNBG-UWTATZPHSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00133",
+          "L-Serine"
+        ],
+        [
+          "DB03929",
+          "D-Serine"
+        ],
+        [
+          "DB04031",
+          "Serine Vanadate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "ODBLHEXUDAPZAU-UHFFFAOYSA-N",
+      "keys_after": [
+        "ODBLHEXUDAPZAU-OKKQSCSOSA-N",
+        "ODBLHEXUDAPZAU-ZAFYKAAXSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01727",
+          "Isocitric Acid"
+        ],
+        [
+          "DB01848",
+          "Isocitrate Calcium Complex"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "PHOQVHQSTUBQQK-UHFFFAOYSA-N",
+      "keys_after": [
+        "PHOQVHQSTUBQQK-MBMOQRBOSA-N",
+        "PHOQVHQSTUBQQK-SQOUGZDYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01885",
+          "D-Galctopyranosyl-1-On"
+        ],
+        [
+          "DB04564",
+          "Gluconolactone"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "PIUSLWSYOYFRFR-UHFFFAOYSA-N",
+      "keys_after": [
+        "PIUSLWSYOYFRFR-NKWVEPMBSA-N",
+        "PIUSLWSYOYFRFR-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB04153",
+          "S-Hydroxymethyl Glutathione"
+        ],
+        [
+          "DB05446",
+          "LJP 1082"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "PPSSYXOFPICMQD-UHFFFAOYSA-N",
+      "keys_after": [
+        "PPSSYXOFPICMQD-CYBMUJFWSA-N",
+        "PPSSYXOFPICMQD-ZDUSSCGKSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB06887",
+          "3(S)-METHYLCARBAMOYL-7-SULFOAMINO-3,4-DIHYDRO-1H-ISOQUINOLINE-2-CARBOXYLIC ACID TERT-BUTYL ESTER"
+        ],
+        [
+          "DB07719",
+          "3(R)-METHYLCARBAMOYL-7-SULFOAMINO-3,4-DIHYDRO-1H-ISOQUINOLINE-2-CARBOXYLIC ACID TERT-BUTYL ESTER"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "PZNQZSRPDOEBMS-UHFFFAOYSA-N",
+      "keys_after": [
+        "PZNQZSRPDOEBMS-MRVPVSSYSA-N",
+        "PZNQZSRPDOEBMS-QMMMGPOBSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB03660",
+          "Iodo-Phenylalanine"
+        ],
+        [
+          "DB04713",
+          "4-IODOPHENYLALANINE"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "RGHNJXZEOKUKBD-UHFFFAOYSA-N",
+      "keys_after": [
+        "RGHNJXZEOKUKBD-QTBDOELSSA-N",
+        "RGHNJXZEOKUKBD-SQOUGZDYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB04304",
+          "Gluconic Acid"
+        ],
+        [
+          "DB05630",
+          "Sodium stibogluconate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "RKUNBYITZUJHSG-SPUOUPEWSA-N",
+      "keys_after": [
+        "RKUNBYITZUJHSG-FXUDXRNXSA-N",
+        "RKUNBYITZUJHSG-SPUOUPEWSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00424",
+          "Hyoscyamine"
+        ],
+        [
+          "DB00572",
+          "Atropine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "RQVLGLPAZTUBKX-UHFFFAOYSA-N",
+      "keys_after": [
+        "RQVLGLPAZTUBKX-GSVOUGTGSA-N",
+        "RQVLGLPAZTUBKX-VKHMYHEASA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01804",
+          "2-Ammoniobut-3-Enoate, 2-Amino-3-Butenoate"
+        ],
+        [
+          "DB03214",
+          "Vinylglycine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "RXKJFZQQPQGTFL-UHFFFAOYSA-N",
+      "keys_after": [
+        "MNQZXJOMYWMBOU-VKHMYHEASA-N",
+        "RXKJFZQQPQGTFL-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01775",
+          "Dihydroxyacetone"
+        ],
+        [
+          "DB02536",
+          "(2r)-2,3-Dihydroxypropanal"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "SYTBZMRGLBWNTM-UHFFFAOYSA-N",
+      "keys_after": [
+        "SYTBZMRGLBWNTM-SNVBAGLBSA-N",
+        "SYTBZMRGLBWNTM-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00712",
+          "Flurbiprofen"
+        ],
+        [
+          "DB05289",
+          "MPC-7869"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "UAGYXJBYAFGRFR-UHFFFAOYSA-N",
+      "keys_after": [
+        "UAGYXJBYAFGRFR-KRWDZBQOSA-N",
+        "UAGYXJBYAFGRFR-QGZVFWFLSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB08105",
+          "N-[(6-BUTOXYNAPHTHALEN-2-YL)SULFONYL]-L-GLUTAMIC ACID"
+        ],
+        [
+          "DB08106",
+          "N-[(6-BUTOXYNAPHTHALEN-2-YL)SULFONYL]-D-GLUTAMIC ACID"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "UFSCUAXLTRFIDC-UHFFFAOYSA-N",
+      "keys_after": [
+        "UFSCUAXLTRFIDC-UWTATZPHSA-N",
+        "WUUVSJBKHXDKBS-XDSMRRFISA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB02190",
+          "2-Oxalosuccinic Acid"
+        ],
+        [
+          "DB03964",
+          "4-Hydroxy-Aconitate Ion"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "UURFNJWEJXZQIN-UHFFFAOYSA-N",
+      "keys_after": [
+        "HPEUEJRPDGMIMY-CRGLPSSASA-N",
+        "HPEUEJRPDGMIMY-QRZNPKQDSA-N",
+        "UURFNJWEJXZQIN-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB01794",
+          "bis(molybdopterin)tungsten cofactor"
+        ],
+        [
+          "DB02137",
+          "Molybdenum Cofactor"
+        ],
+        [
+          "DB03983",
+          "(Molybdopterin-S,S)-Dioxo-Thio-Molybdenum(V)"
+        ],
+        [
+          "DB04428",
+          "Tungstopterin Cofactor"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "UZYFNQCWJLIAKE-UHFFFAOYSA-N",
+      "keys_after": [
+        "GSXOAOHZAIYLCY-PBXRRBTRSA-N",
+        "VFRROHXSMXFLSN-KCDKBNATSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB03581",
+          "Glucose-6-Phosphate"
+        ],
+        [
+          "DB04277",
+          "Fructose -6-Phosphate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "VVIAGPKUTFNRDU-UEWDXFNNSA-N",
+      "keys_after": [
+        "VVIAGPKUTFNRDU-QWHCGFSZSA-N",
+        "VVIAGPKUTFNRDU-STQMWFEESA-N"
+      ],
+      "layers": [
+        "t"
+      ],
+      "members": [
+        [
+          "DB00650",
+          "Leucovorin"
+        ],
+        [
+          "DB03256",
+          "5-Formyl-5,6,7,8-Tetrahydrofolate"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "XUIIKFGFIJCVMT-UHFFFAOYSA-N",
+      "keys_after": [
+        "XUIIKFGFIJCVMT-GFCCVEGCSA-N",
+        "XUIIKFGFIJCVMT-LBPRGKRZSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00451",
+          "Levothyroxine"
+        ],
+        [
+          "DB00509",
+          "Dextrothyroxine"
+        ],
+        [
+          "DB01583",
+          "Liotrix"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "XUJNEKJLAYXESH-UHFFFAOYSA-N",
+      "keys_after": [
+        "XUJNEKJLAYXESH-REOHCLBHSA-N",
+        "XUJNEKJLAYXESH-UWTATZPHSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00151",
+          "L-Cysteine"
+        ],
+        [
+          "DB02750",
+          "S-(Methylmercury)-L-Cysteine"
+        ],
+        [
+          "DB03201",
+          "D-Cysteine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    },
+    {
+      "key_before": "ZDIGNSYAACHWNL-UHFFFAOYSA-N",
+      "keys_after": [
+        "ZDIGNSYAACHWNL-HNNXBMFYSA-N",
+        "ZDIGNSYAACHWNL-UHFFFAOYSA-N"
+      ],
+      "layers": [
+        "m",
+        "s",
+        "t"
+      ],
+      "members": [
+        [
+          "DB00405",
+          "Dexbrompheniramine"
+        ],
+        [
+          "DB00835",
+          "Brompheniramine"
+        ]
+      ],
+      "stage_before": "tautomer"
+    }
+  ]
+}

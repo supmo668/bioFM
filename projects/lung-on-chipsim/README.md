@@ -74,7 +74,7 @@ graph TB
 | Module | Responsibility |
 |---|---|
 | `ingest/drugbank_snapshot.py` | Fetch the pinned snapshot by 40-hex commit; write `SHA256SUMS.json`; verify hashes; parse compound and protein-edge tables |
-| `harmonize/ids.py` | Canonical InChIKey — salt strip, neutralize, tautomer canonicalize |
+| `harmonize/ids.py` | Canonical InChIKey — salt strip, neutralize, tautomer canonicalize, **stereo guard** ({/t,/m,/s}: if the tautomer step alters or erases them, the pre-tautomer key is kept); merge-stage report |
 | `harmonize/pgp_label.py` | Three-way P-gp substrate label; resolves ABCB1 **from the panel config**, never hard-coded |
 | `harmonize/adjudication.py` | Load human-adjudicated labels; reject a verdict lacking an evidence DOI |
 | `harmonize/roster.py` | Validate the PoC compound roster before a human spends time filling it |
@@ -261,6 +261,43 @@ conditioned on. Hence the three-way label, the rule that absence of an edge is *
 as "not a substrate", and human adjudication against current literature.
 
 ---
+
+## Known limits (measured)
+
+**Stereo guard — principal ruling 2026-09-15.** RDKit's tautomer canonicalization erases
+stereocentres wholesale (`tautomerRemoveSp3Stereo` defaults on), so without a guard every
+L/D amino-acid pair, bupivacaine/levobupivacaine, hyoscyamine/atropine and levo/dextrothyroxine
+collapsed to one canonical key. `canonical_inchikey` now compares the pre-tautomer InChI's
+**/t, /m, /s** layers with the post-tautomer ones and keeps the pre-tautomer key when any
+changed or vanished. **/b (double-bond geometry) is deliberately not compared**: measured, a
+/b-inclusive guard split true tautomers that share no stereocentre. Measured on the DrugBank 4.2
+snapshot (`workstreams/lung-on-chipsim/reports/2026-09-15-stereo-guard-tms/`, run
+`journal/20260915T094806Z-2fe6fafa`): the guard fires on 1,599 of 6,802 compounds (23.5%);
+merge groups 191 → 156; 41 groups split, 0 newly merged; tautomer-stage groups 48 → 7;
+source-identical groups 100 → 101 (reclassification of a residual pair, not a new merge).
+`python -m chipsim.harmonize.merge_report` regenerates the report and lists every split
+group by name — that list, not the counts, is the record of reference.
+
+- **Accepted known loss — malate.** *Malate Ion* and *Malate Like Intermediate* are tautomers of
+  one compound whose pre-tautomer skeletons already differ (first InChIKey blocks
+  `BJEPYKJPYRNKOW` vs `QFBHYOKSQPPXHZ`); both carry `/t2-/m1/s1`, the tautomer step erases
+  it, the guard fires for each and they **split**. The guard cannot keep them together
+  without also re-merging true stereoisomers. Pinned by
+  `test_malate_pair_splits_known_accepted_loss` so the loss is a recorded limit, not a
+  latent surprise.
+- **Ambiguous — two keto/enol pairs whose stereo does not correspond.** *Dicoumarol* |
+  *Bishydroxy[2H-1-benzopyran-2-one,1,2-benzopyrone]* (the diketo form carries `/t12-,13+`,
+  the bis-enol none) and *2-Oxalosuccinic Acid* | *4-Hydroxy-Aconitate Ion* (keto `/t2-/m1`,
+  enol `/b2-1-` + `/t4-/m0`). Both split under the ruled guard. They are recorded here as
+  **ambiguous** — neither "stereoisomers rightly separated" nor "tautomers wrongly split" —
+  and are not argued onto either side.
+- **Aldose/ketose — out of scope, open.** The ruled guard separates both known pairs
+  (*Dihydroxyacetone* | *(2R)-glyceraldehyde*; *Glyceraldehyde-3-phosphate* |
+  *Dihydroxyacetone phosphate*), but **only because one member carries a stereocentre the
+  other lacks — a pair with no stereocentre would stay merged. The separation is a
+  coincidence, not a rule.** Whether aldose/ketose interconversion should count as a
+  tautomeric merge at all is a separate question that this ruling does not decide; no
+  measurement of it is authorised, and it is recorded here as a limit only.
 
 ## Known open items
 
