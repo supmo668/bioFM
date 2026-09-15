@@ -1,0 +1,163 @@
+# ============================================================================
+# Source provenance — every external data source the PoC reads.
+#
+# WHY THIS FILE EXISTS SEPARATELY FROM data/raw/drugbank/provenance.yaml:
+# that file is bound to a CONTRACT (nine keys, git commit pinning) written for
+# a git-distributed snapshot. UniProt, ChEMBL and the rest are not git repos
+# and have no commit to pin, so forcing them into that schema would mean
+# writing empty or invented values into the fields the contract checks. This
+# file carries the sources whose provenance is a RELEASE, not a commit.
+#
+# APPROVED by the principal 2026-09-12 ("data structure provenance approved,
+# with more coverage of data source including uniprot and molecule db").
+# TRANSCRIBED by the CTO; licence values are marked `verified` or
+# `NEEDS_HUMAN_CONFIRMATION` individually — never assumed.
+#
+#   *** A licence recorded here that says NEEDS_HUMAN_CONFIRMATION has NOT
+#       been checked against the source. Do not cite it until it has. ***
+#
+# The gap this file closed: UniProt supplies every target accession in
+# barrier_panel.yaml and the UniProt column of affinity.parquet, and is queried
+# live by T19 — and it had NO row in the A&D §1.4 access audit and no licence
+# record anywhere. Found 2026-09-12 while extending coverage.
+# ============================================================================
+
+schema_version: 1
+recorded_on: "2026-09-12"
+recorded_by: "biofm/matthew-mo/cto (transcribed; approved by the principal)"
+
+sources:
+
+  # ---- TARGET IDENTITY -----------------------------------------------------
+  - id: uniprot
+    role: Target identity — the accession behind every panel entry and every
+      affinity row's protein side.
+    supplies:
+      - barrier_panel.yaml accessions (7 entries, all human, all Swiss-Prot reviewed)
+      - the UniProt column of affinity.parquet
+      - canonical-isoform collapse, with the original mapping kept in a side column
+    access_mode: open REST API, no account
+    endpoint: https://rest.uniprot.org
+    upstream_version: "2026_03"        # verified from the API's x-uniprot-release header
+    version_verified: true
+    licence: NEEDS_HUMAN_CONFIRMATION
+    licence_note: >-
+      UniProt's licence page is JavaScript-rendered and returned no licence text to
+      either curl or a page renderer on 2026-09-12, so the terms could NOT be read
+      from source. It is widely distributed under a Creative Commons attribution
+      licence, but this file does not record a licence it has not verified — that is
+      the failure mode a provenance file exists to prevent. Confirm from
+      https://www.uniprot.org/help/license and replace this key.
+    attribution: NEEDS_HUMAN_CONFIRMATION
+    what_we_take: identity only — accession, gene symbol, organism, review status,
+      and the subcellular-location comment used for the T8 face review.
+    what_we_never_take: UniProt carries no affinity data; nothing quantitative is
+      read from it.
+    audit_status: >-
+      ADDED 2026-09-12. Was absent from the A&D §1.4 access audit despite being
+      queried live by T19 and supplying every panel accession.
+
+  # ---- CHEMISTRY / MOLECULE DATABASES --------------------------------------
+  - id: chembl
+    role: Molecule database — compound identity and measured activities.
+    supplies:
+      - compounds.parquet (InChIKey, SMILES, logP, pKa, MW, TPSA)
+      - a portion of affinity.parquet activities
+    access_mode: open SQLite dump, no account
+    upstream_version: NEEDS_HUMAN_CONFIRMATION   # pin the release at download time
+    version_verified: false
+    licence: "CC BY-SA 3.0 Unported"
+    licence_verified: true
+    licence_note: >-
+      Verified from ebi.ac.uk/chembl on 2026-09-12. NOTE THE SHARE-ALIKE: this is
+      the only ShareAlike licence in the stack, and it propagates to derivatives of
+      ChEMBL-derived content. It also reaches BindingDB, whose ChEMBL-sourced portion
+      inherits CC BY-SA.
+    attribution: NEEDS_HUMAN_CONFIRMATION
+    what_we_take: compound identity, physicochemical descriptors, measured activities.
+    what_we_never_take: nothing withheld.
+
+  - id: pubchem
+    role: Molecule database — identity resolution and descriptor fallback.
+    supplies: compound identity cross-references
+    access_mode: open PUG-REST + FTP bulk, rate-limited (~5 req/s)
+    upstream_version: NEEDS_HUMAN_CONFIRMATION
+    version_verified: false
+    licence: NEEDS_HUMAN_CONFIRMATION
+    attribution: NEEDS_HUMAN_CONFIRMATION
+    what_we_take: identity cross-references only.
+    operational_note: batch via FTP, never scrape interactively (A&D §1.4).
+
+  - id: drugbank
+    role: Molecule database — compound identity and drug→transporter/carrier edges.
+    supplies: compounds and protein edges, via the pinned public snapshot
+    access_mode: pinned public snapshot (dhimmel/drugbank)
+    upstream_version: "4.2"
+    version_verified: false
+    version_note: >-
+      "4.2" is sourced from our own A&D §1.4 access audit, NOT from the upstream
+      repository — no version string exists in the repo at either the audited or the
+      current gh-pages commit (searched README, notebooks and file tree 2026-09-09).
+    licence: "CC BY-NC 4.0 (DrugBank content and derivatives)"
+    licence_verified: true
+    what_we_take: compound identity and drug→transporter/carrier edges.
+    what_we_never_take: >-
+      AFFINITIES — never. The 2015 vintage also forbids any coverage claim.
+    full_record: data/raw/drugbank/provenance.yaml   # the contract-bound record
+
+  # ---- AFFINITY ------------------------------------------------------------
+  - id: bindingdb
+    role: Affinity — measured binding data.
+    supplies: a portion of affinity.parquet (InChIKey, UniProt, pAct, type, censor flag)
+    access_mode: free account for TSV/SDF dumps; UCSD Library publishes dated public mirrors
+    upstream_version: NEEDS_HUMAN_CONFIRMATION
+    version_verified: false
+    licence: "CC-BY; the ChEMBL-sourced portion is CC BY-SA"
+    licence_verified: false
+    licence_note: >-
+      Recorded from the A&D §1.4 audit, not re-verified at source. The split licence
+      matters: the ChEMBL-sourced portion carries ShareAlike, so a derivative mixing
+      both inherits the stricter term.
+    what_we_take: measured affinity pairs with assay type and censoring preserved.
+
+  - id: papyrus
+    role: Affinity — curated bioactivity collection.
+    access_mode: open via GitHub/Zenodo
+    upstream_version: NEEDS_HUMAN_CONFIRMATION
+    licence: NEEDS_HUMAN_CONFIRMATION
+    version_verified: false
+
+  # ---- PERMEABILITY / ADME -------------------------------------------------
+  - id: tdc
+    role: Permeability and ADME labels.
+    supplies: Caco2_Wang (906), PAMPA, HIA, PPBR, VDss — with official scaffold splits
+    access_mode: pip package, pulls from Harvard Dataverse
+    upstream_version: NEEDS_HUMAN_CONFIRMATION
+    licence: NEEDS_HUMAN_CONFIRMATION
+    version_verified: false
+    operational_note: >-
+      A&D §1.4 records a known leakage trap — only 3 of 22 top TDC ADMET leaderboard
+      methods passed all checks. Use the official scaffold splits, never a random one.
+
+  - id: cycpeptmpdb
+    role: Permeability — cyclic peptide membrane permeability.
+    access_mode: free download
+    upstream_version: NEEDS_HUMAN_CONFIRMATION
+    licence: "CC-BY 4.0"
+    licence_verified: false
+    licence_note: recorded from the A&D §1.4 audit, not re-verified at source.
+
+# ---------------------------------------------------------------------------
+# LICENCE POSTURE ACROSS THE STACK
+#
+# The binding constraint is DrugBank's CC BY-NC: non-commercial. ChEMBL's
+# CC BY-SA adds a ShareAlike obligation on ChEMBL-derived content, and reaches
+# BindingDB's ChEMBL-sourced portion. Both are compatible with the posture
+# recorded in data/raw/drugbank/provenance.yaml: research only, publication
+# permitted, no product/service/customer-facing deliverable.
+#
+# SHARE-ALIKE IS THE ONE TO WATCH. Non-commercial restricts *who may use* the
+# output; ShareAlike restricts *how it may be licensed*. They are different
+# obligations and a single "non-commercial research" sentence does not discharge
+# both. Flagged for the human's PROVENANCE.md prose.
+# ---------------------------------------------------------------------------

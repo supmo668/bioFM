@@ -46,7 +46,7 @@ project:
 # /cto-release). Leave empty if you don't maintain the plugin — `/feedback` then
 # just logs locally. Prompted at `/cto-init`.
 plugin:
-  source_path: ""              # e.g. "/Users/you/github/aiadlc" (an editable git checkout)
+  source_path: "/Users/mo/github/aiadlc"   # editable checkout — /feedback can now dispatch, not just log
 
 # ── Paths (externalized — no hardcoded usr/ assumption) ─────────────────────
 paths:
