@@ -78,14 +78,44 @@ sources:
     what_we_never_take: nothing withheld.
 
   - id: pubchem
-    role: Molecule database — identity resolution and descriptor fallback.
-    supplies: compound identity cross-references
+    role: Molecule database — identity resolution, descriptor fallback, and the
+      public source of record for every structure string in tracked test code.
+    supplies:
+      - compound identity cross-references
+      - >-
+        the cited source (CID + retrieval date) for each structure in the §2
+        stereo-guard tests — QG-12 principal ruling, restated by CTO #120: every
+        structure in a tracked file cites a public source
     access_mode: open PUG-REST + FTP bulk, rate-limited (~5 req/s)
     upstream_version: NEEDS_HUMAN_CONFIRMATION
     version_verified: false
-    licence: NEEDS_HUMAN_CONFIRMATION
+    licence: >-
+      NCBI molecular-data policy — "NCBI itself places no restrictions on the use
+      or distribution of the data contained therein."
+    licence_verified: true
+    licence_note: >-
+      Read from source 2026-09-15 at https://www.ncbi.nlm.nih.gov/home/about/policies/
+      (verified: the quoted statement only). The same page adds that "some submitters
+      of the original data (or the country of origin of such data) may claim patent,
+      copyright, or other intellectual property rights in all or a portion of the data"
+      and that "NCBI cannot provide comment or unrestricted permission concerning the use,
+      copying, or distribution of the information contained in the molecular databases."
+      This file therefore does NOT record PubChem as "public domain" — the page does not
+      say so, and submitter rights are expressly reserved.
     attribution: NEEDS_HUMAN_CONFIRMATION
-    what_we_take: identity cross-references only.
+    what_we_take: >-
+      identity cross-references, and standard InChI strings looked up BY EXACT InChI
+      (PUG REST POST /compound/inchi/cids) so each citation provably matches the string
+      beside it. A bare canonical structure identifier is not DrugBank record content
+      (principal re-ruling, CTO #120 §1).
+    citation_lookups:
+      retrieved_on: "2026-09-15"
+      method: PUG REST POST /compound/inchi/cids/TXT, one exact standard InChI per request
+    what_we_never_take: >-
+      a substituted species — where a tested string has no PubChem record (a non-standard
+      InChI, or a charged species PubChem does not index), the test cites the pinned
+      snapshot as its source of record and says so (CTO #120 §7); it is never swapped
+      for a different public structure to make a citation exist.
     operational_note: batch via FTP, never scrape interactively (A&D §1.4).
 
   - id: drugbank
