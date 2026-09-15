@@ -320,7 +320,8 @@ def _check_ignore(rel: str) -> bool:
         ("data/raw/drugbank/drugbank.tsv", True),
         ("data/processed/drugbank_compounds.parquet", True),
         # ...but everything that makes it recoverable and auditable must stay tracked
-        ("data/raw/drugbank.dvc", False),
+        ("data/raw/drugbank/drugbank.tsv.dvc", False),  # r2.11: one pointer per TSV
+        ("data/raw/drugbank/drugbank-slim.tsv.dvc", False),
         ("data/raw/drugbank/proteins.tsv.dvc", False),
         ("data/raw/drugbank/SHA256SUMS.json", False),  # T4 done-condition (d)
         ("data/raw/drugbank/provenance.yaml", False),  # T2/T1 human artifact

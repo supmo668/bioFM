@@ -282,13 +282,26 @@ def test_live_fetch_against_the_pinned_commit(tmp_path):
     assert ds.verify_snapshot(tmp_path) == digests
 
 
+#: r2.11 — the three per-file DVC pointers T4 produces (one `dvc add` per TSV).
+DVC_POINTERS = (
+    "data/raw/drugbank/drugbank.tsv.dvc",
+    "data/raw/drugbank/drugbank-slim.tsv.dvc",
+    "data/raw/drugbank/proteins.tsv.dvc",
+)
+
+
 @pytest.mark.integration
 @_blocked_on_t2
 def test_t4_dvc_pointer_tracks_the_snapshot():
     """T4's four done-conditions (defects 5, 10):
-    (a) git status lists no .tsv; (b) drugbank.dvc exists, is git-tracked, and
-    parses as YAML with a non-empty outs[0].md5; (c) dvc status is up-to-date;
-    (d) SHA256SUMS.json is git-tracked.
+    (a) git status lists no .tsv; (b) EACH of the three per-file pointers
+    data/raw/drugbank/{drugbank,drugbank-slim,proteins}.tsv.dvc exists, is
+    git-tracked, and parses as YAML with a non-empty outs[0].md5; (c) dvc status on
+    all three is up-to-date; (d) SHA256SUMS.json is git-tracked.
+
+    (b)/(c) amended r2.11 (principal ruling 2026-09-15): a single directory pointer
+    `data/raw/drugbank.dvc` is unsatisfiable while provenance.yaml / PROVENANCE.md /
+    SHA256SUMS.json are git-tracked inside the directory (dvc/output.py:670).
     """
     import subprocess
 
@@ -304,24 +317,23 @@ def test_t4_dvc_pointer_tracks_the_snapshot():
     ).stdout
     assert not [line for line in porcelain.splitlines() if line.endswith(".tsv")]
 
-    # (b)
-    pointer = PROJECT_ROOT / "data" / "raw" / "drugbank.dvc"
-    assert pointer.is_file(), "T4 has not run: data/raw/drugbank.dvc is absent"
-    doc = yaml.safe_load(pointer.read_text())
-    assert doc["outs"][0]["md5"]
-    assert (
-        subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "data/raw/drugbank.dvc"],
+    # (b) — one pointer per TSV; EACH must exist, parse, and be tracked.
+    for rel in DVC_POINTERS:
+        pointer = PROJECT_ROOT / rel
+        assert pointer.is_file(), f"T4 has not run: {rel} is absent"
+        doc = yaml.safe_load(pointer.read_text())
+        assert doc["outs"][0]["md5"], f"{rel} has an empty outs[0].md5"
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", rel],
             cwd=PROJECT_ROOT,
             capture_output=True,
             check=False,
-        ).returncode
-        == 0
-    )
+        )
+        assert tracked.returncode == 0, f"{rel} exists but is untracked"
 
-    # (c)
+    # (c) — all three pointers up-to-date in one status call.
     status = subprocess.run(
-        ["dvc", "status", "data/raw/drugbank.dvc"],
+        ["dvc", "status", *DVC_POINTERS],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,

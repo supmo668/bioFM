@@ -256,7 +256,8 @@ def test_drugbank_not_vendored_catches_payload(path):
 @pytest.mark.parametrize(
     "path",
     [
-        "data/raw/drugbank.dvc",
+        "data/raw/drugbank/drugbank.tsv.dvc",
+        "data/raw/drugbank/drugbank-slim.tsv.dvc",
         "data/raw/drugbank/proteins.tsv.dvc",
         "data/raw/.gitkeep",
         "data/raw/drugbank/SHA256SUMS.json",
@@ -270,33 +271,43 @@ def test_vendoring_rule_allows_what_must_stay_tracked(path):
     assert vendored_offenders([path]) == []
 
 
-def test_dvc_pointer_is_tracked():
-    """data/raw/drugbank.dvc IS tracked by git — the blanket ignore must not
-    swallow the one file that makes the snapshot recoverable (defect 10c).
+#: r2.11 — one pointer per TSV. T11 must fail if ANY ONE of these is untracked.
+DVC_POINTERS = (
+    "data/raw/drugbank/drugbank.tsv.dvc",
+    "data/raw/drugbank/drugbank-slim.tsv.dvc",
+    "data/raw/drugbank/proteins.tsv.dvc",
+)
 
-    T4 has not generated the pointer yet (blocked on T2), so this asserts the
-    reachable half: git must not IGNORE the path. An ignored path could never be
-    tracked once it does exist, which is the failure mode defect 10c describes.
+
+@pytest.mark.parametrize("rel", DVC_POINTERS)
+def test_dvc_pointer_is_tracked(rel):
+    """Each of the three data/raw/drugbank/*.tsv.dvc pointers IS tracked by git
+    (r2.11) — the blanket ignore must not swallow the files that make the
+    snapshot recoverable (defect 10c).
+
+    Parametrized per pointer so that ANY ONE untracked pointer fails on its own
+    row — three pointers folded into one assertion would let two tracked ones
+    hide a third. The reachable half holds before T4 runs: git must not IGNORE the
+    path, and git cannot re-include a file beneath an excluded directory (ruling
+    E-4), so this probes with `check-ignore`, never by reading .gitignore.
     """
     ignored = subprocess.run(
-        ["git", "check-ignore", "-q", "data/raw/drugbank.dvc"],
+        ["git", "check-ignore", "-q", rel],
         cwd=PROJECT_ROOT,
         capture_output=True,
         check=False,
     )
-    assert ignored.returncode == 1, (
-        "data/raw/drugbank.dvc is git-ignored — the pointer could never be tracked"
-    )
+    assert ignored.returncode == 1, f"{rel} is git-ignored — the pointer could never be tracked"
 
-    pointer = PROJECT_ROOT / "data" / "raw" / "drugbank.dvc"
+    pointer = PROJECT_ROOT / rel
     if pointer.exists():
         tracked = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "data/raw/drugbank.dvc"],
+            ["git", "ls-files", "--error-unmatch", rel],
             cwd=PROJECT_ROOT,
             capture_output=True,
             check=False,
         )
-        assert tracked.returncode == 0, "pointer exists but is untracked"
+        assert tracked.returncode == 0, f"{rel} exists but is untracked"
 
 
 # --- the card states the seal's limits, and cannot overstate them -----------
