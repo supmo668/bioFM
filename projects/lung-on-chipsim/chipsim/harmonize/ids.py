@@ -18,6 +18,9 @@ halves an apparent label count without erroring.
 
 from __future__ import annotations
 
+import re
+from collections import Counter
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
@@ -68,13 +71,61 @@ def _tautomer_enumerator() -> rdMolStandardize.TautomerEnumerator:
     return rdMolStandardize.TautomerEnumerator()
 
 
-@lru_cache(maxsize=4096)
-def canonical_inchikey(inchi: str) -> str:
-    """RDKit: salt strip -> neutralize -> tautomer canonicalize -> InChIKey.
+#: The InChI stereo layers the guard compares — principal ruling 2026-09-15 (CTO
+#: #106): /t (tetrahedral parity), /m (enantiomer flag), /s (stereo type). **/b
+#: (double-bond geometry) is deliberately NOT here**: measured on the real
+#: snapshot, a /b-inclusive guard split true tautomers (benzimidazole 1H/3H, an
+#: E/Z-only keto/enol trio) that share no stereocentre. #106 supersedes #98's
+#: four-layer wording.
+STEREO_LAYERS = ("t", "m", "s")
+
+_LAYER_PREFIX = re.compile(r"^([a-z])")
+
+
+def _stereo_layers(inchi: str) -> tuple[str, ...]:
+    """The /t, /m, /s layers of an InChI, in order, prefix included (e.g. `t2-`,
+    `m1`, `s1`). Compared as InChI LAYERS, never as InChIKey blocks: the tautomer
+    step legitimately moves the H-layer, which lives in the first key block, so a
+    block comparison could not isolate stereo."""
+    layers = []
+    for layer in inchi.split("/")[1:]:
+        m = _LAYER_PREFIX.match(layer)
+        if m and m.group(1) in STEREO_LAYERS:
+            layers.append(layer)
+    return tuple(layers)
+
+
+@dataclass(frozen=True)
+class Canonicalization:
+    """Every stage of one structure's canonicalization, so a merge can be
+    attributed to the stage that produced it and the stereo guard's decision is
+    inspectable rather than inferred."""
+
+    inchikey: str  # the canonical key — the guard's choice
+    parsed: str  # InChI after RDKit re-standardisation
+    parent: str  # after salt strip
+    neutral: str  # after uncharge — the PRE-tautomer structure
+    tautomer: str  # after tautomer canonicalization
+    guard_fired: bool  # True when the key is the pre-tautomer key
+
+
+@lru_cache(maxsize=8192)
+def canonicalize(inchi: str, *, stereo_guard: bool = True) -> Canonicalization:
+    """RDKit: salt strip -> neutralize -> tautomer canonicalize -> stereo guard -> InChIKey.
 
     The order is load-bearing. Salt stripping first, so the counter-ion cannot
     influence neutralization; neutralization before tautomer canonicalization, so
     the enumerator sees a neutral species.
+
+    **Stereo guard (principal ruling 2026-09-15, CTO #106).** RDKit's tautomer
+    canonicalization erases stereocentres wholesale (`tautomerRemoveSp3Stereo`
+    defaults on): on the real snapshot 46 of 48 tautomer-stage merge groups had
+    stereo before that step — every L/D amino acid pair, bupivacaine/levobupivacaine,
+    hyoscyamine/atropine. So: record the pre-tautomer InChI's /t, /m, /s layers;
+    canonicalize; if ANY of the three changed or vanished, return the PRE-tautomer
+    InChIKey. `/b` is not compared (see STEREO_LAYERS). `stereo_guard=False` is the
+    unguarded pipeline, kept so the guard's effect can be measured, never for
+    production identity.
     """
     if not isinstance(inchi, str) or not inchi.strip():
         raise CanonicalizationError(f"empty or non-string InChI: {inchi!r}")
@@ -82,22 +133,44 @@ def canonical_inchikey(inchi: str) -> str:
     mol = Chem.MolFromInchi(inchi.strip())
     if mol is None:
         raise CanonicalizationError(f"RDKit could not parse InChI: {_excerpt(inchi)}")
+    parsed = Chem.MolToInchi(mol)
 
     # 1. Salt strip — drops counter-ions, keeping the parent fragment.
     mol = rdMolStandardize.FragmentParent(mol)
     if mol is None or mol.GetNumAtoms() == 0:
         raise CanonicalizationError(f"salt stripping left no parent fragment: {_excerpt(inchi)}")
+    parent = Chem.MolToInchi(mol)
 
     # 2. Neutralize.
     mol = _uncharger().uncharge(mol)
+    neutral = Chem.MolToInchi(mol)
+    neutral_key = Chem.MolToInchiKey(mol)
 
     # 3. Canonical tautomer.
     mol = _tautomer_enumerator().Canonicalize(mol)
-
+    tautomer = Chem.MolToInchi(mol)
     key = Chem.MolToInchiKey(mol)
+
+    # 4. Stereo guard.
+    fired = False
+    if stereo_guard and _stereo_layers(neutral) != _stereo_layers(tautomer):
+        key, fired = neutral_key, True
+
     if not key:
         raise CanonicalizationError(f"no InChIKey produced for: {_excerpt(inchi)}")
-    return key
+    return Canonicalization(
+        inchikey=key,
+        parsed=parsed,
+        parent=parent,
+        neutral=neutral,
+        tautomer=tautomer,
+        guard_fired=fired,
+    )
+
+
+def canonical_inchikey(inchi: str) -> str:
+    """The canonical InChIKey — `canonicalize(inchi).inchikey`, guard on."""
+    return canonicalize(inchi).inchikey
 
 
 def add_canonical_identity(compounds: pd.DataFrame) -> pd.DataFrame:
@@ -273,3 +346,164 @@ def canonicalization_disagreements(compounds: pd.DataFrame) -> pd.DataFrame:
     # fixture count; it only stops the real count being meaningless.
     raw = compounds["inchikey"].astype(str).str.removeprefix("InChIKey=")
     return compounds[raw != compounds["canonical_inchikey"].astype(str)]
+
+
+# --------------------------------------------------------------------------- #
+# Merge-stage report and the guard's measured effect (CTO #106 §4, #108)
+# --------------------------------------------------------------------------- #
+
+#: The stage at which the members of a merge group first coincide. The first is
+#: NOT ours: byte-identical SOURCE InChIs are an upstream DrugBank limitation no
+#: pipeline change can recover (100 of 191 groups on the real snapshot, #97).
+MERGE_STAGES = ("upstream-duplicate", "parse", "salt", "uncharge", "tautomer")
+
+_STAGE_FIELD = {"parse": "parsed", "salt": "parent", "uncharge": "neutral", "tautomer": "tautomer"}
+
+
+def _group_stage(inchis: list[str], stages: list[Canonicalization]) -> str:
+    if len(set(inchis)) == 1:
+        return "upstream-duplicate"
+    for stage in MERGE_STAGES[1:]:
+        if len({getattr(c, _STAGE_FIELD[stage]) for c in stages}) == 1:
+            return stage
+    return "tautomer"
+
+
+def merge_stage_report(compounds: pd.DataFrame, *, stereo_guard: bool = True) -> pd.DataFrame:
+    """One row per merge group (>1 compound on one canonical key): the key, its
+    size, the STAGE at which the members first coincide, and the member IDs.
+
+    Without the stage, "191 merge groups" reads as 191 pipeline collapses. With
+    it, 100 are upstream duplicates and only the rest are the pipeline's doing —
+    the framing the CTO retracted in #97 depended on exactly this distinction.
+    """
+    if "canonical_inchikey" not in compounds.columns:
+        raise ValueError("call add_canonical_identity() first")
+    keyed = compounds.assign(
+        _key=[canonicalize(i, stereo_guard=stereo_guard).inchikey for i in compounds["inchi"]]
+    )
+    rows = []
+    for key, group in keyed.groupby("_key", sort=True):
+        if len(group) < 2:
+            continue
+        inchis = list(group["inchi"])
+        stages = [canonicalize(i, stereo_guard=stereo_guard) for i in inchis]
+        rows.append(
+            {
+                "canonical_inchikey": key,
+                "size": len(group),
+                "stage": _group_stage(inchis, stages),
+                "drugbank_ids": [str(i) for i in group["drugbank_id"]],
+            }
+        )
+    return pd.DataFrame(rows, columns=["canonical_inchikey", "size", "stage", "drugbank_ids"])
+
+
+@dataclass(frozen=True)
+class SplitGroup:
+    """A merge group that exists WITHOUT the guard and is split by it."""
+
+    key_before: str
+    stage_before: str
+    members: tuple[tuple[str, str], ...]  # (drugbank_id, name)
+    keys_after: tuple[str, ...]
+    layers: tuple[str, ...]  # which of t/m/s the tautomer step altered, union over members
+
+
+@dataclass(frozen=True)
+class GuardEffect:
+    compounds: int
+    guard_fired: int
+    merge_groups_before: int
+    merge_groups_after: int
+    before_breakdown: dict[str, int]
+    after_breakdown: dict[str, int]
+    split_groups: tuple[SplitGroup, ...]
+    new_merges: tuple[tuple[str, ...], ...]  # after-groups joining ids from >1 before-group
+    reclassified: tuple[tuple[str, str, str], ...] = field(
+        default_factory=tuple
+    )  # (key, before, after)
+
+
+def _layers_altered(c: Canonicalization) -> set[str]:
+    before = {layer[0] for layer in _stereo_layers(c.neutral)}
+    after_layers = _stereo_layers(c.tautomer)
+    before_full = _stereo_layers(c.neutral)
+    altered = set()
+    for prefix in STEREO_LAYERS:
+        b = tuple(x for x in before_full if x[0] == prefix)
+        a = tuple(x for x in after_layers if x[0] == prefix)
+        if b != a:
+            altered.add(prefix)
+    return altered or before
+
+
+def guard_effect(compounds: pd.DataFrame) -> GuardEffect:
+    """Measure the guard on a frame: merge groups with and without it, which
+    groups it splits (by name — the record of reference), which it newly merges
+    (expected: none), and how many compounds it fires on."""
+    if "inchi" not in compounds.columns:
+        raise ValueError("compounds frame has no `inchi` column")
+    ids = [str(i) for i in compounds["drugbank_id"]]
+    names = [str(n) for n in compounds["name"]] if "name" in compounds.columns else ids
+    off = [canonicalize(i, stereo_guard=False) for i in compounds["inchi"]]
+    on = [canonicalize(i, stereo_guard=True) for i in compounds["inchi"]]
+
+    frame = compounds.assign(canonical_inchikey=[c.inchikey for c in on])
+    before = merge_stage_report(frame, stereo_guard=False)
+    after = merge_stage_report(frame, stereo_guard=True)
+
+    by_id = {i: (o, n, nm) for i, o, n, nm in zip(ids, off, on, names, strict=True)}
+    after_key_of = {i: n.inchikey for i, n in zip(ids, on, strict=True)}
+    before_key_of = {i: o.inchikey for i, o in zip(ids, off, strict=True)}
+
+    splits = []
+    for row in before.itertuples(index=False):
+        keys_after = {after_key_of[i] for i in row.drugbank_ids}
+        if len(keys_after) > 1:
+            altered: set[str] = set()
+            for i in row.drugbank_ids:
+                if by_id[i][1].guard_fired:
+                    altered |= _layers_altered(by_id[i][1])
+            splits.append(
+                SplitGroup(
+                    key_before=row.canonical_inchikey,
+                    stage_before=row.stage,
+                    members=tuple((i, by_id[i][2]) for i in row.drugbank_ids),
+                    keys_after=tuple(sorted(keys_after)),
+                    layers=tuple(sorted(altered)),
+                )
+            )
+    new_merges = []
+    for row in after.itertuples(index=False):
+        if len({before_key_of[i] for i in row.drugbank_ids}) > 1:
+            new_merges.append(tuple(row.drugbank_ids))
+    # Reclassification is by MEMBERSHIP, not by key: the members a split leaves
+    # together get a new (pre-tautomer) key, so "same key, different stage" would
+    # never see the residual pair that turned from tautomer-stage into a pure
+    # upstream duplicate — which is exactly how the source-identical count moves
+    # with zero new merges.
+    before_group_of = {
+        i: (row.canonical_inchikey, row.stage)
+        for row in before.itertuples(index=False)
+        for i in row.drugbank_ids
+    }
+    reclassified = []
+    for row in after.itertuples(index=False):
+        origins = {before_group_of[i] for i in row.drugbank_ids if i in before_group_of}
+        if len(origins) == 1:
+            ((_, stage_before),) = origins
+            if stage_before != row.stage:
+                reclassified.append((row.canonical_inchikey, stage_before, row.stage))
+    reclassified = tuple(reclassified)
+    return GuardEffect(
+        compounds=len(ids),
+        guard_fired=sum(c.guard_fired for c in on),
+        merge_groups_before=len(before),
+        merge_groups_after=len(after),
+        before_breakdown=dict(Counter(before["stage"])),
+        after_breakdown=dict(Counter(after["stage"])),
+        split_groups=tuple(splits),
+        new_merges=tuple(new_merges),
+        reclassified=reclassified,
+    )

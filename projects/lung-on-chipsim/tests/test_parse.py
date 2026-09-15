@@ -264,6 +264,172 @@ def test_t5b_salt_strips_to_the_free_base_key():
 
 
 # --------------------------------------------------------------------------- #
+# T5b · stereo guard — principal ruling 2026-09-15 (CTO #106): compare {/t, /m, /s} ONLY
+# --------------------------------------------------------------------------- #
+#
+# Real snapshot InChIs, NOT hand-written SMILES: the first stage-by-stage probe of
+# rolipram used a stand-in structure and concluded the R/S pair survived every
+# stage. It was not rolipram, and the conclusion was worthless (#97). Every
+# structure below is copied verbatim from data/raw/drugbank/drugbank.tsv and is
+# named by compound name only — no accession numbers in tracked test code.
+#
+# Ruling: reject any canonicalisation step that alters stereo. If the tautomer
+# step changes or erases a /t, /m or /s layer of the pre-tautomer InChI, return the
+# PRE-tautomer InChIKey. **/b (double-bond geometry) is NOT compared** — a /b change
+# alone must not trigger the fallback (#106 supersedes #98's four-layer wording;
+# 56186's per-layer table showed /b split true tautomers). Compare InChI stereo
+# LAYERS, not InChIKey blocks — the tautomer step legitimately moves the H-layer,
+# which lives in the first key block, so key-block comparison cannot isolate stereo.
+
+#: (snapshot InChI, InChIKey of the pre-tautomer structure) — the key the guard
+#: must return. Pinned literals (rdkit 2026.3.5), same rule as
+#: GOLDEN_CANONICAL_KEYS: if one moves, the rdkit pin moved.
+STEREO_PAIRS = {
+    "threonine": (
+        # L-Threonine — a NON-standard `InChI=1/` at source, `/s2`
+        (
+            "InChI=1/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3+/s2",
+            "AYFVYJQAPQTCCC-STHAYSLISA-N",
+        ),
+        # D-Threonine
+        (
+            "InChI=1S/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3-/m1/s1",
+            "AYFVYJQAPQTCCC-PWNYCUMCSA-N",
+        ),
+    ),
+    "isoleucine": (
+        # L-Isoleucine
+        (
+            "InChI=1S/C6H13NO2/c1-3-4(2)5(7)6(8)9/h4-5H,3,7H2,1-2H3,(H,8,9)/t4-,5-/m0/s1",
+            "AGPKZVBTJJNPAG-WHFBIAKZSA-N",
+        ),
+        # Allo-Isoleucine
+        (
+            "InChI=1S/C6H13NO2/c1-3-4(2)5(7)6(8)9/h4-5H,3,7H2,1-2H3,(H,8,9)/t4-,5+/m1/s1",
+            "AGPKZVBTJJNPAG-UHNVWZDZSA-N",
+        ),
+    ),
+    "aspartate": (
+        # L-Aspartic Acid — `/m0`; the CTO's confirmed pipeline collapse (#97)
+        (
+            "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m0/s1",
+            "CKLJMWTZIZZHCS-REOHCLBHSA-N",
+        ),
+        # D-Aspartic Acid — `/m1`
+        (
+            "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m1/s1",
+            "CKLJMWTZIZZHCS-UWTATZPHSA-N",
+        ),
+    ),
+    "phenylalanine": (
+        # L-Phenylalanine — the alpha-carbon centre the tautomer step drops (#106)
+        (
+            "InChI=1S/C9H11NO2/c10-8(9(11)12)6-7-4-2-1-3-5-7/h1-5,8H,6,10H2,(H,11,12)/t8-/m0/s1",
+            "COLNVLDHVKWLRT-QMMMGPOBSA-N",
+        ),
+        # D-Phenylalanine
+        (
+            "InChI=1S/C9H11NO2/c10-8(9(11)12)6-7-4-2-1-3-5-7/h1-5,8H,6,10H2,(H,11,12)/t8-/m1/s1",
+            "COLNVLDHVKWLRT-MRVPVSSYSA-N",
+        ),
+    ),
+}
+
+
+@pytest.mark.parametrize("pair", sorted(STEREO_PAIRS))
+def test_t5b_stereo_guard_keeps_enantiomers_and_diastereomers_distinct(pair):
+    """L-/D-threonine, L-/allo-isoleucine, L-/D-aspartate and L-/D-phenylalanine
+    are DIFFERENT compounds. Before the guard all three pairs collapsed to one key at the
+    tautomer step (46 of the 48 tautomer-stage merge groups on the real snapshot
+    had stereo before that step)."""
+    (a, _), (b, _) = STEREO_PAIRS[pair]
+    assert canonical_inchikey(a) != canonical_inchikey(b)
+
+
+@pytest.mark.parametrize(
+    "inchi,expected",
+    sorted(v for pair in STEREO_PAIRS.values() for v in pair),
+)
+def test_t5b_stereo_guard_returns_the_pre_tautomer_key(inchi, expected):
+    """When the guard fires it returns the PRE-tautomer InChIKey — the key of the
+    salt-stripped, neutralised structure with its stereo intact — not some third
+    value. Pinned so `!=` above cannot be satisfied by returning garbage."""
+    assert canonical_inchikey(inchi) == expected
+
+
+#: Nitisinone and its enol tautomer — byte-DIFFERENT source InChIs
+#: (`/h4-6,12H` vs `/h4-6,21H`), no stereo layer on either. One of exactly two
+#: stereo-free tautomer-stage merge groups on the real snapshot.
+NITISINONE_KETO = (
+    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
+    "/h4-6,12H,1-3H2"
+)
+NITISINONE_ENOL = (
+    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
+    "/h4-6,21H,1-3H2"
+)
+
+
+def test_t5b_stereo_free_tautomer_pair_still_merges():
+    """The guard must not disable tautomer canonicalisation: a pair that differs
+    ONLY in tautomeric form, with no stereo to lose, still collapses to one key."""
+    assert canonical_inchikey(NITISINONE_KETO) == canonical_inchikey(NITISINONE_ENOL)
+
+
+#: 2-(2-Hydroxy-Phenyl)-1H-benzimidazole-5-carboxamidine, its 3H tautomer, and
+#: CRA_1144 (the same structure without the /p+1 protonation). The 1H form carries
+#: `/b14-9-` — a double-bond geometry layer that the tautomer step removes.
+BENZIMIDAZOLE_1H = (
+    "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
+    "/h1-7,17-18H,(H3,15,16)/p+1/b14-9-"
+)
+BENZIMIDAZOLE_3H = (
+    "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
+    "/h1-7,19H,(H3,15,16)(H,17,18)/p+1"
+)
+CRA_1144 = (
+    "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
+    "/h1-7,19H,(H3,15,16)(H,17,18)"
+)
+
+
+def test_t5b_benzimidazole_tautomers_still_merge_because_b_is_not_compared():
+    """The regression test for the ruling's scope (#106): the 1H form's only
+    stereo-ish layer is `/b14-9-`, which the tautomer step erases. A guard that
+    compared /b would fire here and split three forms of one compound; the ruled
+    {t,m,s} guard does not, and the trio stays one canonical key."""
+    keys = {
+        canonical_inchikey(BENZIMIDAZOLE_1H),
+        canonical_inchikey(BENZIMIDAZOLE_3H),
+        canonical_inchikey(CRA_1144),
+    }
+    assert len(keys) == 1, keys
+
+
+#: Malate Ion and the "Malate Like Intermediate" — tautomers of one compound, both
+#: carrying `/t2-/m1/s1` that the tautomer step erases.
+MALATE_ION = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h2,5H,1H2,(H,6,7)(H,8,9)/p-1/t2-/m1/s1"
+MALATE_LIKE_INTERMEDIATE = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h1-2,5-7H,(H,8,9)/p-2/t2-/m1/s1"
+
+
+def test_malate_pair_splits_known_accepted_loss():
+    """DELIBERATE and ACCEPTED (principal ruling 2026-09-15, CTO #106): this pair
+    SPLITS under the guard, and that is a recorded limit, not a bug to fix.
+
+    They are tautomers of one compound whose pre-tautomer skeletons already differ
+    (first InChIKey blocks BJEPYKJPYRNKOW vs QFBHYOKSQPPXHZ — the H layer and the
+    protonation differ at source). Both carry `/t2-/m1/s1`; the tautomer step
+    erases it; the guard fires for each and returns two different pre-tautomer
+    keys. The guard cannot keep them together without also re-merging true
+    stereoisomers. A known loss with a test is a recorded limit; a known loss
+    without one is a latent surprise.
+    """
+    assert canonical_inchikey(MALATE_ION) != canonical_inchikey(MALATE_LIKE_INTERMEDIATE)
+    assert canonical_inchikey(MALATE_ION).startswith("BJEPYKJPYRNKOW-")
+    assert canonical_inchikey(MALATE_LIKE_INTERMEDIATE).startswith("QFBHYOKSQPPXHZ-")
+
+
+# --------------------------------------------------------------------------- #
 # T5a · persistence
 # --------------------------------------------------------------------------- #
 
