@@ -6,7 +6,11 @@ Dispatch #98 §2 ruled a stereo guard on `canonical_inchikey`; CTO #102 §2 put 
 **implementation on HOLD** pending the principal's ruling on which InChI stereo layers
 are compared ({/t,/m,/s} alone, {/b} alone, or all four). No module code was written.
 
-What the patch holds (written test-first, watched fail — 9 failed / 1 passed, HEAD 3fa54e3):
+What the patch holds (written test-first, HEAD 3fa54e3). RED state per file:
+`tests/test_parse.py` — 9 failed / 1 passed (the Nitisinone regression guard passes today);
+`tests/test_merge_report.py` — **collection error**, not failures: it imports `MERGE_STAGES` and
+`merge_stage_report` from `chipsim.harmonize.ids`, neither of which exists yet. Expect the
+ImportError on resume; it is the RED for that half, not a bad patch.
 - `tests/test_parse.py`: L/D-threonine, L/allo-isoleucine, L/D-aspartate stay DISTINCT
   (real snapshot InChIs, DB00156/DB03700, DB00167/DB01739, DB00128/DB02655); the guard
   returns the PRE-tautomer InChIKey (pinned literals, rdkit 2026.3.5); Nitisinone
