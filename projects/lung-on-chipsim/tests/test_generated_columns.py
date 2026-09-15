@@ -222,7 +222,9 @@ def test_t15_raises_on_a_legacy_sheet_and_says_how_to_fix_it():
     message = str(exc.value)
     assert "stereo_is_relative" in message
     assert "write_adjudication_worksheet" in message
-    assert "preserv" in message
+    # Case-insensitive: the assertion is about what the message TELLS the reviewer, not
+    # how it is capitalised. The message says "PRESERVES every verdict, DOI and attribution".
+    assert "preserv" in message.lower()
 
 
 def test_t15_writes_the_flag_into_the_label_parquet(tmp_path):

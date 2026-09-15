@@ -373,6 +373,16 @@ def pgp_substrate_label(
             "free bases and undercounts silently."
         )
 
+    if "stereo_is_relative" not in compounds.columns:
+        raise ValueError(
+            "compounds must carry `stereo_is_relative` — run add_canonical_identity() (T5b) "
+            "after the relative-stereo re-key (principal ruling 2026-09-15, CTO #122 §0). A frame "
+            "without the flag predates the re-key, so its keys may assert an absolute "
+            "configuration the source never gave: 13 of the snapshot's 42 relative-stereo "
+            "compounds were keyed as their MIRROR IMAGE before the fix. Labelling such a frame "
+            "would attach evidence to the wrong enantiomer without erroring."
+        )
+
     keys = compounds["canonical_inchikey"]
     if keys.isna().any() or (keys.astype(str).str.strip() == "").any():
         raise ValueError(

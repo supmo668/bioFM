@@ -1,0 +1,260 @@
+schema_version: '1'
+purpose: 'Reference for the T13 worksheet''s generated column `label_disagrees_with_key`
+  (principal ruling via CTO #126). Tri-state: a row whose base name is absent here,
+  or whose key matches neither enantiomer, is `unresolved` — never a false `agrees`.'
+source: PubChem PUG REST, /compound/name/<L-|D-><base>/property/InChIKey
+retrieved_on: '2026-09-15'
+recorded_on: '2026-09-15'
+admission_rule: a base name is listed only if PubChem resolves BOTH 'L-<base>' and
+  'D-<base>' by name to distinct InChIKeys sharing a skeleton block
+not_a_live_lookup: 'Committed deliberately: a worksheet must regenerate identically
+  offline, and a network call inside human-artefact generation is a reproducibility
+  hazard (CTO #126 §2).'
+excluded_as_drugbank_coined:
+  base_names:
+  - 1-(4-chlorophenyl)-2-(acetamido)ethane boronic acid
+  - 1-naphthyl-2-acetamido-ethane boronic acid
+  - '[(n-hydroxyamino)carbonyl]phenylalanine'
+  - naphthyl-1-acetamido boronic acid alanine
+  reason: 'PubChem resolves these, so admission was not a rule violation — but they
+    read as DrugBank record titles rather than names a chemist would use, and the
+    invariant test is ''would this string exist if DrugBank did not?'' (CTO #122 §1).'
+  measured_cost: '8 snapshot rows lose their agreement check and report `unresolved`:
+    2 for [(n-hydroxyamino)carbonyl]phenylalanine, 2 for 1-(4-chlorophenyl)-2-(acetamido)ethane
+    boronic acid, and 4 across the two naphthyl spellings (1-naphthyl-2-acetamido-ethane
+    boronic acid, naphthyl-1-acetamido boronic acid alanine), which PubChem resolves
+    separately and which the draft carried as two entries. An earlier line here said
+    "6 rows" for three names — it predated finding the second naphthyl spelling, and
+    contradicted this block''s own four-entry list.'
+known_coverage_gap: 'Three of the eleven label errors the CTO measured cannot be decided
+  by a NAME-keyed table: for `treitol`, `benzylsuccinic acid` and `xylitol`, PubChem
+  returns the SAME InChIKey for both the L- and the D- name. Rows with those base
+  names therefore report `unresolved`, not `disagrees`. Also excluded: `glucuronic
+  acid`, `iduronic acid`, `rhamnose` — their L/D names resolve to keys with DIFFERENT
+  skeleton blocks, so the pair is not a clean enantiomer pair. NAMED EXAMPLE, so the
+  gap is concrete rather than abstract: the CTO''s per-row measurement resolved D-treitol
+  as a GENUINE label error, and this table reports it `unresolved`. The gap is ACCEPTED
+  and recorded (CTO, 2026-09-15) rather than patched with a per-row override list
+  — an override would be a second source of truth beside this table, and it would
+  drift.'
+entries:
+- base_name: alanine
+  l_inchikey: QNAYBMKLOCPYGJ-REOHCLBHSA-N
+  l_pubchem_cid: '5950'
+  d_inchikey: QNAYBMKLOCPYGJ-UWTATZPHSA-N
+  d_pubchem_cid: '71080'
+- base_name: allopyranose
+  l_inchikey: WQZGKKKJIJFFOK-HOWGCPQDSA-N
+  l_pubchem_cid: '12285879'
+  d_inchikey: WQZGKKKJIJFFOK-IVMDWMLBSA-N
+  d_pubchem_cid: '439507'
+- base_name: arginine
+  l_inchikey: ODKSFYDXXFIFQN-BYPYZUCNSA-N
+  l_pubchem_cid: '6322'
+  d_inchikey: ODKSFYDXXFIFQN-SCSAIBSYSA-N
+  d_pubchem_cid: '71070'
+- base_name: asparagine
+  l_inchikey: DCXYFEDJOCDNAF-REOHCLBHSA-N
+  l_pubchem_cid: '6267'
+  d_inchikey: DCXYFEDJOCDNAF-UWTATZPHSA-N
+  d_pubchem_cid: '439600'
+- base_name: aspartic acid
+  l_inchikey: CKLJMWTZIZZHCS-REOHCLBHSA-N
+  l_pubchem_cid: '5960'
+  d_inchikey: CKLJMWTZIZZHCS-UWTATZPHSA-N
+  d_pubchem_cid: '83887'
+- base_name: carnitine
+  l_inchikey: PHIQHXFUZVPYII-ZCFIWIBFSA-N
+  l_pubchem_cid: '10917'
+  d_inchikey: PHIQHXFUZVPYII-LURJTMIESA-N
+  d_pubchem_cid: '2724480'
+- base_name: citrulline
+  l_inchikey: RHGKLRLOHDJJDR-BYPYZUCNSA-N
+  l_pubchem_cid: '9750'
+  d_inchikey: RHGKLRLOHDJJDR-SCSAIBSYSA-N
+  d_pubchem_cid: '637599'
+- base_name: cysteine
+  l_inchikey: XUJNEKJLAYXESH-REOHCLBHSA-N
+  l_pubchem_cid: '5862'
+  d_inchikey: XUJNEKJLAYXESH-UWTATZPHSA-N
+  d_pubchem_cid: '92851'
+- base_name: cystine
+  l_inchikey: LEVWYRKDKASIDU-IMJSIDKUSA-N
+  l_pubchem_cid: '67678'
+  d_inchikey: LEVWYRKDKASIDU-QWWZWVQMSA-N
+  d_pubchem_cid: '6857538'
+- base_name: dopa
+  l_inchikey: WTDRDQBEARUVNC-LURJTMIESA-N
+  l_pubchem_cid: '6047'
+  d_inchikey: WTDRDQBEARUVNC-ZCFIWIBFSA-N
+  d_pubchem_cid: '92222'
+- base_name: glutamic acid
+  l_inchikey: WHUUTDBJXJRKMK-VKHMYHEASA-N
+  l_pubchem_cid: '33032'
+  d_inchikey: WHUUTDBJXJRKMK-GSVOUGTGSA-N
+  d_pubchem_cid: '23327'
+- base_name: glutamine
+  l_inchikey: ZDXPYRJPNDTMRX-VKHMYHEASA-N
+  l_pubchem_cid: '5961'
+  d_inchikey: ZDXPYRJPNDTMRX-GSVOUGTGSA-N
+  d_pubchem_cid: '145815'
+- base_name: glycero-d-manno-heptopyranose
+  l_inchikey: BGWQRWREUZVRGI-OLLRPPRZSA-N
+  l_pubchem_cid: '21120522'
+  d_inchikey: BGWQRWREUZVRGI-NNPWBXLPSA-N
+  d_pubchem_cid: '53681436'
+- base_name: histidine
+  l_inchikey: HNDVDQJCIGZPNO-YFKPBYRVSA-N
+  l_pubchem_cid: '6274'
+  d_inchikey: HNDVDQJCIGZPNO-RXMQYKEDSA-N
+  d_pubchem_cid: '71083'
+- base_name: homoarginine
+  l_inchikey: QUOGESRFPZDMMT-YFKPBYRVSA-N
+  l_pubchem_cid: '9085'
+  d_inchikey: QUOGESRFPZDMMT-RXMQYKEDSA-N
+  d_pubchem_cid: '25202705'
+- base_name: homoserine
+  l_inchikey: UKAUYVFTDYCKQA-VKHMYHEASA-N
+  l_pubchem_cid: '12647'
+  d_inchikey: UKAUYVFTDYCKQA-GSVOUGTGSA-N
+  d_pubchem_cid: '2724170'
+- base_name: isoleucine
+  l_inchikey: AGPKZVBTJJNPAG-WHFBIAKZSA-N
+  l_pubchem_cid: '6306'
+  d_inchikey: AGPKZVBTJJNPAG-RFZPGFLSSA-N
+  d_pubchem_cid: '76551'
+- base_name: isovaline
+  l_inchikey: GCHPUFAZSONQIV-YFKPBYRVSA-N
+  l_pubchem_cid: '6971276'
+  d_inchikey: GCHPUFAZSONQIV-RXMQYKEDSA-N
+  d_pubchem_cid: '2724877'
+- base_name: lactic acid
+  l_inchikey: JVTAAEKCZFNVCJ-REOHCLBHSA-N
+  l_pubchem_cid: '107689'
+  d_inchikey: JVTAAEKCZFNVCJ-UWTATZPHSA-N
+  d_pubchem_cid: '61503'
+- base_name: leucine
+  l_inchikey: ROHFNLRQFUQHCH-YFKPBYRVSA-N
+  l_pubchem_cid: '6106'
+  d_inchikey: ROHFNLRQFUQHCH-RXMQYKEDSA-N
+  d_pubchem_cid: '439524'
+- base_name: limonene 1,2-epoxide
+  l_inchikey: CCEFMUBVSUDRLG-IDKOKCKLSA-N
+  l_pubchem_cid: '10953718'
+  d_inchikey: CCEFMUBVSUDRLG-BBBLOLIVSA-N
+  d_pubchem_cid: '449290'
+- base_name: lysine
+  l_inchikey: KDXKERNSBIXSRK-YFKPBYRVSA-N
+  l_pubchem_cid: '5962'
+  d_inchikey: KDXKERNSBIXSRK-RXMQYKEDSA-N
+  d_pubchem_cid: '57449'
+- base_name: methionine
+  l_inchikey: FFEARJCKVFRZRR-BYPYZUCNSA-N
+  l_pubchem_cid: '6137'
+  d_inchikey: FFEARJCKVFRZRR-SCSAIBSYSA-N
+  d_pubchem_cid: '84815'
+- base_name: myo-inositol-1,4,5-triphosphate
+  l_inchikey: MMWCIQZXVOZEGG-HOZKJCLWSA-N
+  l_pubchem_cid: '55310'
+  d_inchikey: MMWCIQZXVOZEGG-XJTPDSDZSA-N
+  d_pubchem_cid: '439456'
+- base_name: myo-inositol-1-phosphate
+  l_inchikey: INAPMGSXUVUWAF-LXOASSSBSA-L
+  l_pubchem_cid: '5288700'
+  d_inchikey: INAPMGSXUVUWAF-GCVPSNMTSA-N
+  d_pubchem_cid: '107737'
+- base_name: ornithine
+  l_inchikey: AHLPHDHHMVZTML-BYPYZUCNSA-N
+  l_pubchem_cid: '6262'
+  d_inchikey: AHLPHDHHMVZTML-SCSAIBSYSA-N
+  d_pubchem_cid: '71082'
+- base_name: phenylalanine
+  l_inchikey: COLNVLDHVKWLRT-QMMMGPOBSA-N
+  l_pubchem_cid: '6140'
+  d_inchikey: COLNVLDHVKWLRT-MRVPVSSYSA-N
+  d_pubchem_cid: '71567'
+- base_name: phenylalaninol
+  l_inchikey: STVVMTBJNDTZBF-VIFPVBQESA-N
+  l_pubchem_cid: '447213'
+  d_inchikey: STVVMTBJNDTZBF-SECBINFHSA-N
+  d_pubchem_cid: '853475'
+- base_name: phospholactate
+  l_inchikey: CSZRNWHGZPKNKY-REOHCLBHSA-N
+  l_pubchem_cid: '5326965'
+  d_inchikey: CSZRNWHGZPKNKY-UWTATZPHSA-K
+  d_pubchem_cid: '25244520'
+- base_name: proline
+  l_inchikey: ONIBWKKTOPOVIA-BYPYZUCNSA-N
+  l_pubchem_cid: '145742'
+  d_inchikey: ONIBWKKTOPOVIA-SCSAIBSYSA-N
+  d_pubchem_cid: '8988'
+- base_name: serine
+  l_inchikey: MTCFGRXMJLQNBG-REOHCLBHSA-N
+  l_pubchem_cid: '5951'
+  d_inchikey: MTCFGRXMJLQNBG-UWTATZPHSA-N
+  d_pubchem_cid: '71077'
+- base_name: sorbitol
+  l_inchikey: FBPFZTCFMRRESA-FSIIMWSLSA-N
+  l_pubchem_cid: '82170'
+  d_inchikey: FBPFZTCFMRRESA-JGWLITMVSA-N
+  d_pubchem_cid: '5780'
+- base_name: tartaric acid
+  l_inchikey: FEWJPZIEWOKRBE-JCYAYHJZSA-N
+  l_pubchem_cid: '444305'
+  d_inchikey: FEWJPZIEWOKRBE-LWMBPPNESA-N
+  d_pubchem_cid: '439655'
+- base_name: threonine
+  l_inchikey: AYFVYJQAPQTCCC-GBXIJSLDSA-N
+  l_pubchem_cid: '6288'
+  d_inchikey: AYFVYJQAPQTCCC-STHAYSLISA-N
+  d_pubchem_cid: '69435'
+- base_name: tryptophan
+  l_inchikey: QIVBCDIJIAJPQS-VIFPVBQESA-N
+  l_pubchem_cid: '6305'
+  d_inchikey: QIVBCDIJIAJPQS-SECBINFHSA-N
+  d_pubchem_cid: '9060'
+- base_name: tryptophanamide
+  l_inchikey: JLSKPBDKNIXMBS-VIFPVBQESA-N
+  l_pubchem_cid: '439356'
+  d_inchikey: JLSKPBDKNIXMBS-SECBINFHSA-N
+  d_pubchem_cid: '688582'
+- base_name: tyrosinamide
+  l_inchikey: PQFMNVGMJJMLAE-QMMMGPOBSA-N
+  l_pubchem_cid: '151243'
+  d_inchikey: PQFMNVGMJJMLAE-MRVPVSSYSA-N
+  d_pubchem_cid: '10511575'
+- base_name: tyrosine
+  l_inchikey: OUYCCCASQSFEME-QMMMGPOBSA-N
+  l_pubchem_cid: '6057'
+  d_inchikey: OUYCCCASQSFEME-MRVPVSSYSA-N
+  d_pubchem_cid: '71098'
+- base_name: valine
+  l_inchikey: KZSNJWFQEVHDMF-BYPYZUCNSA-N
+  l_pubchem_cid: '6287'
+  d_inchikey: KZSNJWFQEVHDMF-SCSAIBSYSA-N
+  d_pubchem_cid: '71563'
+- base_name: valinol
+  l_inchikey: NWYYWIJOWOLJNR-RXMQYKEDSA-N
+  l_pubchem_cid: '640993'
+  d_inchikey: NWYYWIJOWOLJNR-YFKPBYRVSA-N
+  d_pubchem_cid: '6950587'
+- base_name: xylitol 5-phosphate
+  l_inchikey: VJDOAZKNBQCAGE-WISUUJSJSA-N
+  l_pubchem_cid: '448027'
+  d_inchikey: VJDOAZKNBQCAGE-VPENINKCSA-N
+  d_pubchem_cid: '6420179'
+- base_name: xylopyranose
+  l_inchikey: SRBFZHDQGSBBOR-CZBDKTQLSA-N
+  l_pubchem_cid: '439509'
+  d_inchikey: SRBFZHDQGSBBOR-IOVATXLUSA-N
+  d_pubchem_cid: '135191'
+- base_name: xylulose
+  l_inchikey: ZAQJHHRNXZUBTE-WVZVXSGGSA-N
+  l_pubchem_cid: '22253'
+  d_inchikey: ZAQJHHRNXZUBTE-WUJLRWPWSA-N
+  d_pubchem_cid: '5289590'
+- base_name: xylulose 5-phosphate
+  l_inchikey: FNZLKVNUWIIPSJ-WHFBIAKZSA-N
+  l_pubchem_cid: '23615404'
+  d_inchikey: FNZLKVNUWIIPSJ-RFZPGFLSSA-N
+  d_pubchem_cid: '439190'

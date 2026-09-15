@@ -20,11 +20,37 @@ from pathlib import Path
 
 import pandas as pd
 
+from chipsim.harmonize.label_reference import LabelReference, label_agreement
+
 #: Worksheet schema. The last four are the human's to fill in T14.
 WORKSHEET_COLUMNS = (
     "canonical_inchikey",
     "name",
     "snapshot_label",
+    "adjudicated_label",
+    "evidence_doi",
+    "adjudicated_by",
+    "adjudicated_on",
+)
+
+#: GENERATED columns — a THIRD class, distinct from the declared schema above and from
+#: the human-owned verdicts below (CTO #125 §1). Recomputed on every regeneration from the
+#: current compounds frame, NEVER carried from the prior sheet, OPTIONAL on read.
+#:
+#: Why a third class rather than either obvious option:
+#:   - adding them to WORKSHEET_COLUMNS makes `_read_worksheet` reject every existing sheet
+#:     that lacks them, locking a reviewer out of 60-90 minutes of irreplaceable work;
+#:   - leaving them undeclared makes the never-clobber merge treat them as human-added and
+#:     PRESERVE A STALE value — the flag would silently stop tracking the data.
+GENERATED_COLUMNS = ("stereo_is_relative", "label_disagrees_with_key")
+
+#: What a regenerated worksheet actually contains, in order: the generated columns sit
+#: after `snapshot_label`, beside the evidence they qualify.
+WRITTEN_COLUMNS = (
+    "canonical_inchikey",
+    "name",
+    "snapshot_label",
+    *GENERATED_COLUMNS,
     "adjudicated_label",
     "evidence_doi",
     "adjudicated_by",
@@ -96,17 +122,27 @@ def _read_worksheet(path: Path) -> pd.DataFrame:
     # Declared columns first, then any column the human added (a `notes` or `pmid`
     # column typed in Excel). Dropping them would be the same class of silent loss
     # the never-clobber rule forbids.
-    extra = [c for c in frame.columns if c not in WORKSHEET_COLUMNS]
-    return frame.loc[:, [*WORKSHEET_COLUMNS, *extra]]
+    # Generated columns are OPTIONAL here: a sheet written before they existed must still
+    # load. When present they are ordered as written, so a regenerated sheet round-trips.
+    declared = [c for c in WRITTEN_COLUMNS if c in frame.columns]
+    extra = [c for c in frame.columns if c not in WRITTEN_COLUMNS]
+    return frame.loc[:, [*declared, *extra]]
 
 
 def write_adjudication_worksheet(
     labels: pd.Series,
     compounds: pd.DataFrame,
     out: Path,
+    *,
+    label_reference: LabelReference | None = None,
 ) -> int:
-    """Write a CSV: canonical_inchikey, name, snapshot_label, adjudicated_label,
-    evidence_doi, adjudicated_by, adjudicated_on. Last four empty for H.
+    """Write the adjudication worksheet: WRITTEN_COLUMNS, human verdicts empty for T14.
+
+    **Generated columns (CTO #125 §1, #126).** `stereo_is_relative` (per key: True if ANY
+    member row is relative-stereo) and `label_disagrees_with_key` (tri-state, from the
+    committed reference table) are recomputed here on every call and never carried from the
+    prior sheet. Without a `label_reference` the verdict is `unresolved` — never a false
+    `agrees`. Neither column gates anything; they inform the reviewer.
 
     NEVER CLOBBERS (defect 22): if `out` exists, merge on canonical_inchikey and
     preserve every non-empty adjudicated_*/evidence_doi cell. Raises if a
@@ -118,6 +154,14 @@ def write_adjudication_worksheet(
 
     if "canonical_inchikey" not in compounds.columns:
         raise AdjudicationError("compounds must carry `canonical_inchikey` (T5b)")
+
+    if "stereo_is_relative" not in compounds.columns:
+        raise AdjudicationError(
+            "compounds must carry `stereo_is_relative` — run add_canonical_identity() (T5b) "
+            "after the relative-stereo re-key (CTO #122 §0). A frame without the flag predates "
+            "the re-key, and the worksheet would tell the reviewer nothing about identities the "
+            "source leaves unspecified."
+        )
 
     # A duplicated labels index writes duplicate rows, after which EVERY later
     # regeneration dies in reindex with a bare pandas error naming neither the file
@@ -137,11 +181,23 @@ def write_adjudication_worksheet(
             f"can be rendered for them: {absent[:5]}" + (" ..." if len(absent) > 5 else "")
         )
 
+    # Generated, per key, from the CURRENT frame — never read back from the prior sheet.
+    relative_by_key = (
+        compounds.loc[:, ["canonical_inchikey", "stereo_is_relative"]]
+        .astype({"stereo_is_relative": bool})
+        .groupby("canonical_inchikey")["stereo_is_relative"]
+        .any()
+    )
+
     fresh = pd.DataFrame(
         {
             "canonical_inchikey": list(labels.index),
             "name": [names[k] for k in labels.index],
             "snapshot_label": list(labels.to_numpy()),
+            "stereo_is_relative": [bool(relative_by_key.get(k, False)) for k in labels.index],
+            "label_disagrees_with_key": [
+                label_agreement(names[k], k, label_reference) for k in labels.index
+            ],
             "adjudicated_label": "",
             "evidence_doi": "",
             "adjudicated_by": "",
@@ -174,8 +230,13 @@ def write_adjudication_worksheet(
             fresh = fresh.set_index("canonical_inchikey")
 
             # Human-owned verdict columns, plus any column the human added.
+            # GENERATED columns are excluded deliberately: carrying them would preserve a
+            # stale flag, which is the failure the third column class exists to prevent.
             carried_columns = [
-                c for c in prior.columns if c in HUMAN_OWNED_COLUMNS or c not in WORKSHEET_COLUMNS
+                c
+                for c in prior.columns
+                if c not in GENERATED_COLUMNS
+                and (c in HUMAN_OWNED_COLUMNS or c not in WRITTEN_COLUMNS)
             ]
             for column in carried_columns:
                 if column not in fresh.columns:
@@ -185,7 +246,7 @@ def write_adjudication_worksheet(
                 fresh.loc[keep, column] = carried[keep]
             fresh = fresh.reset_index()
 
-    ordered = [*WORKSHEET_COLUMNS, *[c for c in carried_columns if c not in WORKSHEET_COLUMNS]]
+    ordered = [*WRITTEN_COLUMNS, *[c for c in carried_columns if c not in WRITTEN_COLUMNS]]
     fresh = fresh.loc[:, ordered].sort_values("canonical_inchikey", kind="mergesort")
 
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -220,6 +281,16 @@ def adjudicate_pgp_labels(worksheet: Path, parquet_out: Path | None = None) -> p
     """
     worksheet = Path(worksheet)
     frame = _read_worksheet(worksheet)
+
+    if "stereo_is_relative" not in frame.columns:
+        raise AdjudicationError(
+            f"{worksheet} has no `stereo_is_relative` column: it was generated before the "
+            "relative-stereo re-key (CTO #122 §0), so T17 could not tell 'this identity is "
+            "stereo-unspecified' from 'this compound is not relative'. Regenerate it with "
+            "write_adjudication_worksheet(labels, compounds, out) — the regeneration PRESERVES "
+            "every verdict, DOI and attribution already in the sheet (the never-clobber merge), "
+            "and adds the generated columns."
+        )
 
     filled = ~frame["adjudicated_label"].map(_blank)
 
@@ -273,7 +344,13 @@ def adjudicate_pgp_labels(worksheet: Path, parquet_out: Path | None = None) -> p
     if parquet_out is not None:
         parquet_out = Path(parquet_out)
         parquet_out.parent.mkdir(parents=True, exist_ok=True)
-        series.to_frame().to_parquet(parquet_out, engine="pyarrow", version="2.6", compression=None)
+        # The flag travels with the verdicts: T17 reads this file, and a label set that
+        # silently lacks it is the stale-flag failure one step later (CTO #125 §2).
+        out_frame = series.to_frame()
+        out_frame["stereo_is_relative"] = (
+            frame["stereo_is_relative"].astype(str).str.strip().str.lower() == "true"
+        ).to_numpy()
+        out_frame.to_parquet(parquet_out, engine="pyarrow", version="2.6", compression=None)
 
     return series
 
