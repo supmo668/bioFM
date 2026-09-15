@@ -35,7 +35,9 @@ Decided 2026-09-15, on the fact that nothing is pushed. Two parts, both required
 
 `tests/fixtures/snapshot/*.tsv` also carry InChI strings. My read-only measurement, now:
 
-    FIXTUREVERDICT
+    drugbank.tsv: 8 InChI strings, 6 byte-identical to the real snapshot
+    drugbank-slim.tsv: 8 InChI strings, 6 byte-identical to the real snapshot
+    proteins.tsv: 0 InChI strings
 
 Treat that as data for step 6, not as an instruction: if fixture rows are verbatim snapshot content, the guard test will fail on them the moment it exists, and the fix is the same as for the tests — re-source or synthesise, never allow-list. **Report what you find before changing fixtures**, because fixtures feed many tests and I would rather rule on the approach than have it inferred.
 
