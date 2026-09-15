@@ -2,7 +2,12 @@
 
 **Tool:** `tools/plan-gate` (plugin 0.52.0), `sign` subcommand
 **Severity:** high — destroys the only record that distinguishes a human approval from a delegated one
-**Observed eight times** (as of 2026-09-15), by three different actors — see the addendum at the end
+**Observed nine times** (as of 2026-09-15), by three different actors — see the addendum at the end.
+**The consuming project has now been forced to work around it structurally:** an append-only
+`plan-approval-log.md` beside the marker, made the provenance of record by a plan amendment, with the
+quality gate failing when its newest entry's hash differs from the marker's. That is a reasonable
+design in its own right — but it was adopted *because* the tool destroys the marker, and it means
+every signer must now remember two steps instead of zero
 
 ## What happens
 

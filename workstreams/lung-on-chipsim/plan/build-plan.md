@@ -43,6 +43,22 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   input is human-gated (T1/T2/T8/T14/T18), its done-condition runs against a committed fixture
   under `tests/fixtures/`; the live-data check is a separate *integration* condition, explicitly
   deferred and reported at the human boundary. (Defect 33.)
+- **One interactive session per tree** *(r2.15 item 3)*. A worktree has exactly one interactive
+  session that may commit to it; the trunk has exactly one CTO session that may write to it. A
+  second session on the same tree **is** the signing hold: the tip moves mid-computation and no
+  receipt verifies. **The grill draft's specific resolution of 2026-09-15 is VOID** — it directed
+  closing pid `56186` on the worktree and pid `51059` on the trunk, on the premise that each tree
+  held a second bare session. Verified by `ps` and `ListAgents`: `56186` **is** the worktree's sole
+  writer, and the principal subsequently ruled that `51059` keeps this lane. The **principle**
+  stands; its 2026-09-15 application does not. *Lesson recorded because it nearly cost the work: a
+  constraint expressed as "close pid X" inherits whatever the premise about X got wrong — identity
+  claims must cite the check that produced them.*
+- **Approval provenance lives in an append-only log** *(r2.15 item 6)*. `plan-approval.md` is
+  tool-owned: `plan-gate sign` regenerates it wholesale and preserves nothing below the frontmatter
+  (observed **eight** times). `plan/plan-approval-log.md` is append-only — one entry per sign, with
+  revision, hash, route (`human-direct` / `standing-delegation` / `principal-directed`), authorising
+  rulings and the prior human-direct hash. Every sign appends. **The quality gate fails when the
+  newest entry's hash differs from `plan-approval.md`'s `plan_hash`.**
 
 ---
 
@@ -92,9 +108,13 @@ downstream claim.
 > live panel, so sealing a fixture — a sanctioned agent action — yielded the valid live seal. It
 > does **not** close **forgery**: anything that can write `ratified: true` can compute the digest
 > over what it wrote. Real signing (minisign/age/GPG against a pinned human key) is the only option
-> that would give (4) technical force; it is **with the principal, undecided**. Until then the
-> quality gate checks this rule, reviewers treat an agent-run seal as a gate failure, and the
-> limitation is stated wherever the ratification is claimed — including the model card.
+> that would give (4) technical force, and it is now **decided: minisign, at the M1
+> re-ratification** *(r2.15 item 5)* — when the three provisional faces (TFRC, FCGRT, SLCO2B1) are
+> re-checked, so the panel is signed **once, settled**, rather than signed now and re-signed weeks
+> later against a changed panel. Until that happens the quality gate checks this rule, reviewers
+> treat an agent-run seal as a gate failure, and the limitation is stated wherever the ratification
+> is claimed — the plan, the run journal's provenance block (T17) and any model card — **carrying
+> this sentence verbatim: "digest-sealed, human-ratified, not cryptographically signed."**
 
 ## 2 · Phase ownership map (M0–M6)
 
@@ -311,6 +331,16 @@ Read the two licence statements (CC BY-NC 4.0 on the derived data; DrugBank ToS)
 decision in your own words. **The artifact is split in two** (defect 15): a structured YAML that
 T11 can parse, and your prose.
 - **Files:** `data/raw/drugbank/provenance.yaml` (edit — structured) · `data/raw/drugbank/PROVENANCE.md` (new, hand-written prose)
+
+> **r2.15 — PROVENANCE.md stays human-authored; a proposal to let the CTO draft it was put and
+> declined.** The 2026-09-15 grill draft (item 1) proposed the T8 pattern — CTO drafts, principal
+> ratifies and seals — reasoning that the licence *decision* was already the principal's (1B1
+> 2026-09-09, recorded verbatim in `provenance.yaml`'s `non_commercial_commitment`), so the prose
+> would restate a decided claim rather than make one. **The principal was shown both readings
+> explicitly and chose human-only.** "Hand-written prose" above is therefore unchanged, a
+> CTO-drafted `PROVENANCE.draft.md` committed at `5147281` was removed at `6557487`, and **no agent
+> may draft this file**. The argument is recorded rather than discarded so that a future reader sees
+> it was considered, not overlooked.
 - **Interfaces** — `provenance.yaml` must carry, in addition to T2's three keys:
   ```yaml
   source_repo:      https://github.com/dhimmel/drugbank
@@ -726,6 +756,19 @@ own allocation rule it is human-owned. An auto-filter of `drugbank-slim.tsv` is 
 - **Done when** the roster has 20–40 entries, every entry carries a non-empty `canonical_inchikey`
   and `evidence_doi`, and every `canonical_inchikey` resolves in the parsed snapshot.
 
+> **r2.15 items 2 and 7 — the hand-off, and the window it starts.** The candidate list is generated
+> **only on guarded keys**: after the r2.12 stereo guard and the r2.14 relative-stereo re-key have
+> landed, with the disagreement report regenerated, so the principal authors a roster on keys that
+> will not move again in slice 1. *(Both have landed — `7592f56`/`8cb72bf`, re-keyed at `1b74814` —
+> so the hand-off is unblocked on the CTO's timing.)* Entries stay keyed by `canonical_inchikey`;
+> **`drugbank_id` is carried alongside for traceability, never as the key** — this source mislabels
+> at least 11 of its stereoisomers, so the key is identity and the name is annotation.
+> **Milestone, counted from the day the guarded candidate list is handed over:** the roster (T18) by
+> **working day 2**, the P-gp adjudication (T14) by **working day 3**. The plan carries the hand-off
+> date and both due dates; **a slip is reported in the dev-log and never back-filled by an agent
+> draft.** The candidate list must also carry the tri-state `label_disagrees_with_key` column, so the
+> principal sees where the source's own name contradicts the structure he is selecting on.
+
 ### S11a · Write the roster validator — **CA · 3 min** *(paired with T18)*
 - **Interfaces:** `load_poc_roster(path) -> pd.DataFrame`, rejecting a roster outside 20–40 entries, any entry with an empty `canonical_inchikey` or `evidence_doi`, and any key absent from the snapshot.
 - **Done when** each of those four rejection cases raises, verified against `tests/fixtures/poc_compounds.yaml`.
@@ -927,12 +970,16 @@ independent audit of r1 against the A&D, PVR and CONTEXT.md.
 
 **AM conformance.** AM-1 ✓ · AM-2 ✓ (defect 4 fixed: composition is configuration) · AM-3 ✓
 (defect 1 fixed: `ratified` is a real field) · AM-4 ✓ (defects 10/12/13 fixed: every "(edit)"
-target now exists) · AM-5 ✓ (T5b is §1.2 *identity*, inside the boundary) · **AM-6 OPEN**.
+target now exists) · AM-5 ✓ (T5b is §1.2 *identity*, inside the boundary) · **AM-6 resolved**
+(ADR-0002, 2026-09-02; the arithmetic is re-checked at M0b against real counts — r2.15 item 8).
 
-> **AM-6 pointer.** The two-group calibration arithmetic remains **open and with the principal**;
-> it is **non-blocking for M0 slice 1** — no task here depends on the group-size threshold — but
-> **M5 pre-registration is gated on it.** Defect 24's fix means T15/T17 now *measure* the `yes`/`no`
-> populations, so AM-6 can be closed against real counts rather than estimates.
+> **AM-6 pointer** *(r2.15 item 8, editorial).* **AM-6 is resolved by ADR-0002** (accepted
+> 2026-09-02). What remains is not the decision but the **arithmetic re-check against real M0b
+> records**, which cannot happen before curation — so: *"AM-6 resolved (ADR-0002); arithmetic
+> re-checked at M0b against real counts."* It stays **non-blocking for M0 slice 1** — no task here
+> depends on the group-size threshold — while **M5 pre-registration remains gated on the re-check**.
+> Defect 24's fix means T15/T17 *measure* the `yes`/`no` populations, so the check runs against real
+> counts rather than estimates.
 
 ## 7a · Amendment r2 → r2.1 — CTO rulings E-1…E-5 (dispatch #11, 2026-08-31)
 
