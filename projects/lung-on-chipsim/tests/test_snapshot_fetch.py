@@ -18,9 +18,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 VALID = "a" * 40
 CONTENT = {
-    "drugbank.tsv": b"drugbank_id\tname\n DB00001\tlepirudin\n",
+    "drugbank.tsv": b"drugbank_id\tname\n DB90001\tlepirudin\n",
     "drugbank-slim.tsv": b"drugbank_id\tname\nDB00002\tcetuximab\n",
-    "proteins.tsv": b"drugbank_id\tuniprot_id\nDB00001\tP08183\n",
+    "proteins.tsv": b"drugbank_id\tuniprot_id\nDB90001\tP08183\n",
 }
 
 
@@ -282,47 +282,73 @@ def test_live_fetch_against_the_pinned_commit(tmp_path):
     assert ds.verify_snapshot(tmp_path) == digests
 
 
-#: r2.11 — the three per-file DVC pointers T4 produces (one `dvc add` per TSV).
-DVC_POINTERS = (
-    "data/raw/drugbank/drugbank.tsv.dvc",
-    "data/raw/drugbank/drugbank-slim.tsv.dvc",
-    "data/raw/drugbank/proteins.tsv.dvc",
-)
+def _dvc_remote_url() -> str | None:
+    """The configured default remote's url, as DVC itself resolves it across
+    .dvc/config and .dvc/config.local. None when no url is configured on this
+    machine. (DVC writes section headers as `['remote "local"']`, quotes included,
+    which configparser reads as a differently-named section — so ask dvc.)"""
+    import subprocess
+
+    def _get(key: str) -> str | None:
+        r = subprocess.run(
+            ["dvc", "config", key], cwd=PROJECT_ROOT, capture_output=True, text=True, check=False
+        )
+        return r.stdout.strip() or None if r.returncode == 0 else None
+
+    name = _get("core.remote")
+    return _get(f"remote.{name}.url") if name else None
+
+
+def _dvc_status(*args: str):
+    import subprocess
+
+    return subprocess.run(
+        ["dvc", "status", *args], cwd=PROJECT_ROOT, capture_output=True, text=True, check=False
+    )
 
 
 @pytest.mark.integration
 @_blocked_on_t2
-def test_t4_dvc_pointer_tracks_the_snapshot():
-    """T4's four done-conditions (defects 5, 10):
-    (a) git status lists no .tsv; (b) EACH of the three per-file pointers
-    data/raw/drugbank/{drugbank,drugbank-slim,proteins}.tsv.dvc exists, is
-    git-tracked, and parses as YAML with a non-empty outs[0].md5; (c) dvc status on
-    all three is up-to-date; (d) SHA256SUMS.json is git-tracked.
+def test_t4_dvc_pointers_track_the_snapshot():
+    """T4's four done-conditions (defects 5, 10; (b)/(c) amended r2.11 — one
+    pointer per TSV, because a directory pointer is unsatisfiable while
+    provenance.yaml / PROVENANCE.md / SHA256SUMS.json are git-tracked inside
+    data/raw/drugbank/, dvc/output.py:670).
 
-    (b)/(c) amended r2.11 (principal ruling 2026-09-15): a single directory pointer
-    `data/raw/drugbank.dvc` is unsatisfiable while provenance.yaml / PROVENANCE.md /
-    SHA256SUMS.json are git-tracked inside the directory (dvc/output.py:670).
+    (a) no .tsv is git-tracked — asked of the INDEX, because `git status
+        --porcelain` can see neither an ignored payload nor a committed one (QG-7);
+    (b) each pointer describes ITS OWN TSV (path, size, md5) — here with the
+        snapshot on disk, which is this test's precondition;
+    (c) `dvc status -q` on all three exits 0 — the ONLY form with an exit-code
+        contract; without `-q` dvc exits 0 on stale and deleted outs alike (QG-1);
+    (d) SHA256SUMS.json is tracked.
+    (b)/(d) are also asserted UNGATED in tests/test_provenance.py (QG-8), so that a
+    missing provenance.yaml turns them into failures there rather than skips here.
     """
     import subprocess
 
     import yaml
 
     # (a)
-    porcelain = subprocess.run(
-        ["git", "status", "--porcelain"],
+    tracked_tsv = subprocess.run(
+        ["git", "ls-files", "--", "data/raw/**/*.tsv"],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
         check=True,
-    ).stdout
-    assert not [line for line in porcelain.splitlines() if line.endswith(".tsv")]
+    ).stdout.split()
+    assert tracked_tsv == [], f"payload TSVs are git-tracked: {tracked_tsv}"
 
-    # (b) — one pointer per TSV; EACH must exist, parse, and be tracked.
-    for rel in DVC_POINTERS:
+    # (b) — bound to the file each pointer names.
+    for rel in ds.DVC_POINTERS:
         pointer = PROJECT_ROOT / rel
         assert pointer.is_file(), f"T4 has not run: {rel} is absent"
-        doc = yaml.safe_load(pointer.read_text())
-        assert doc["outs"][0]["md5"], f"{rel} has an empty outs[0].md5"
+        tsv = pointer.with_suffix("")
+        assert tsv.is_file(), f"{tsv.name} is not on disk — fetch the snapshot before this leg"
+        defects = ds.pointer_defects(
+            yaml.safe_load(pointer.read_text()), expected_path=tsv.name, file=tsv
+        )
+        assert defects == [], f"{rel}: " + "; ".join(defects)
         tracked = subprocess.run(
             ["git", "ls-files", "--error-unmatch", rel],
             cwd=PROJECT_ROOT,
@@ -331,15 +357,13 @@ def test_t4_dvc_pointer_tracks_the_snapshot():
         )
         assert tracked.returncode == 0, f"{rel} exists but is untracked"
 
-    # (c) — all three pointers up-to-date in one status call.
-    status = subprocess.run(
-        ["dvc", "status", *DVC_POINTERS],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert status.returncode == 0, status.stderr
+    # (c) — quiet for the verdict, verbose for the diagnosis.
+    quiet = _dvc_status("-q", *ds.DVC_POINTERS)
+    if quiet.returncode != 0:
+        verbose = _dvc_status(*ds.DVC_POINTERS)
+        raise AssertionError(
+            f"dvc status is not up to date:\n{verbose.stdout}{verbose.stderr}{quiet.stderr}"
+        )
 
     # (d)
     assert (
@@ -351,3 +375,21 @@ def test_t4_dvc_pointer_tracks_the_snapshot():
         ).returncode
         == 0
     )
+
+
+@pytest.mark.integration
+@_blocked_on_t2
+def test_t4_snapshot_is_pushed_to_the_remote():
+    """A committed pointer whose blob exists only in this worktree's .dvc/cache is
+    not recoverable — `git worktree remove` destroys the only copy, which is the
+    data-loss incident .dvc/config warns about (QG-2). Skips when no remote url is
+    configured on this machine (S9's own rule)."""
+    if not _dvc_remote_url():
+        pytest.skip("no DVC remote url configured on this machine (.dvc/config.local)")
+    quiet = _dvc_status("--cloud", "-q", *ds.DVC_POINTERS)
+    if quiet.returncode != 0:
+        verbose = _dvc_status("--cloud", *ds.DVC_POINTERS)
+        raise AssertionError(
+            "snapshot is not pushed to the DVC remote:\n"
+            f"{verbose.stdout}{verbose.stderr}{quiet.stderr}"
+        )
