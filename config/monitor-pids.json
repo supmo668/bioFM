@@ -1,8 +1,8 @@
 [
   {
     "monitor_type": "dispatch",
-    "pid": 54304,
-    "cmdline_hash": "1a8ec6f7f8aa23b3",
+    "pid": 53533,
+    "cmdline_hash": "2dee5d0bcdd87121",
     "agent_address": "biofm/matthew-mo/lung-on-chipsim"
   },
   {
