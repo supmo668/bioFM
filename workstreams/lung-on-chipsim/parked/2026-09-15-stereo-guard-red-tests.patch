@@ -1,0 +1,179 @@
+diff --git a/projects/lung-on-chipsim/tests/test_merge_report.py b/projects/lung-on-chipsim/tests/test_merge_report.py
+new file mode 100644
+index 0000000..527cc63
+--- /dev/null
++++ b/projects/lung-on-chipsim/tests/test_merge_report.py
+@@ -0,0 +1,82 @@
++"""Merge-stage report — which pipeline stage each canonical-key merge group
++collapses at (dispatch #98: "re-run the real-data merge report and report the
++stage breakdown before/after").
++
++The stage matters because the groups are NOT all ours: a group whose members
++carry byte-identical SOURCE InChIs is an upstream DrugBank limitation no pipeline
++change can recover (100 of 191 on the real snapshot, #97). Only groups that merge
++at a later stage are the pipeline's doing, and only those are a decision for the
++principal. A report that cannot tell the two apart invites the "236/191 over-
++merges" framing the CTO retracted.
++"""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++import pandas as pd
++
++from chipsim.harmonize.ids import (
++    MERGE_STAGES,
++    add_canonical_identity,
++    merge_stage_report,
++)
++from chipsim.ingest.drugbank_snapshot import load_compounds
++
++PROJECT_ROOT = Path(__file__).resolve().parent.parent
++SNAPSHOT_DIR = PROJECT_ROOT / "tests" / "fixtures" / "snapshot"
++
++NITISINONE_KETO = (
++    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
++    "/h4-6,12H,1-3H2"
++)
++NITISINONE_ENOL = (
++    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
++    "/h4-6,21H,1-3H2"
++)
++ASPIRIN = "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)"
++
++
++def _frame(rows: list[tuple[str, str]]) -> pd.DataFrame:
++    return add_canonical_identity(
++        pd.DataFrame(rows, columns=["drugbank_id", "inchi"]).assign(inchikey="x")
++    )
++
++
++def test_stages_are_ordered_from_source_to_tautomer():
++    assert MERGE_STAGES == ("upstream-duplicate", "parse", "salt", "uncharge", "tautomer")
++
++
++def test_report_is_one_row_per_merge_group_and_names_the_stage():
++    """Verapamil (DB90004) and verapamil HCl (DB90005) merge at the SALT stage."""
++    canonical = add_canonical_identity(load_compounds(SNAPSHOT_DIR, min_rows=0))
++    report = merge_stage_report(canonical)
++    assert list(report.columns) == ["canonical_inchikey", "size", "stage", "drugbank_ids"]
++    verapamil = report[report["drugbank_ids"].map(lambda ids: "DB90004" in ids)]
++    assert len(verapamil) == 1
++    assert verapamil.iloc[0]["stage"] == "salt"
++    assert verapamil.iloc[0]["size"] == 2
++    assert set(verapamil.iloc[0]["drugbank_ids"]) == {"DB90004", "DB90005"}
++
++
++def test_byte_identical_source_inchis_are_an_upstream_duplicate():
++    report = merge_stage_report(_frame([("A", ASPIRIN), ("B", ASPIRIN)]))
++    assert report["stage"].tolist() == ["upstream-duplicate"]
++
++
++def test_a_tautomer_only_difference_is_the_tautomer_stage():
++    report = merge_stage_report(_frame([("K", NITISINONE_KETO), ("E", NITISINONE_ENOL)]))
++    assert report["stage"].tolist() == ["tautomer"]
++
++
++def test_no_merges_gives_an_empty_report_with_the_columns():
++    report = merge_stage_report(_frame([("A", ASPIRIN), ("K", NITISINONE_KETO)]))
++    assert report.empty
++    assert list(report.columns) == ["canonical_inchikey", "size", "stage", "drugbank_ids"]
++
++
++def test_report_requires_canonical_identity():
++    import pytest
++
++    with pytest.raises(ValueError, match="add_canonical_identity"):
++        merge_stage_report(pd.DataFrame({"drugbank_id": ["A"], "inchi": [ASPIRIN]}))
+diff --git a/projects/lung-on-chipsim/tests/test_parse.py b/projects/lung-on-chipsim/tests/test_parse.py
+index 36f3c54..5c66f4f 100644
+--- a/projects/lung-on-chipsim/tests/test_parse.py
++++ b/projects/lung-on-chipsim/tests/test_parse.py
+@@ -263,6 +263,86 @@ def test_t5b_salt_strips_to_the_free_base_key():
+     assert canonical_inchikey(hcl) == canonical_inchikey(free_base)
+ 
+ 
++# --------------------------------------------------------------------------- #
++# T5b · stereo guard (principal ruling 2026-09-15, dispatch #98)
++# --------------------------------------------------------------------------- #
++#
++# Real snapshot InChIs, NOT hand-written SMILES: the first stage-by-stage probe of
++# rolipram used a stand-in structure and concluded the R/S pair survived every
++# stage. It was not rolipram, and the conclusion was worthless (#97). Every pair
++# below is copied verbatim from data/raw/drugbank/drugbank.tsv.
++#
++# Ruling: reject any canonicalisation step that alters stereo. If the tautomer
++# step changes or erases a stereo layer (/b /t /m /s) of the pre-tautomer InChI,
++# return the PRE-tautomer InChIKey. Compare InChI stereo LAYERS, not InChIKey
++# blocks — the tautomer step legitimately moves the H-layer, which lives in the
++# first key block, so key-block comparison cannot isolate stereo.
++
++#: (name, snapshot InChI, InChIKey of the pre-tautomer structure) — the key the
++#: guard must return. Pinned literals (rdkit 2026.3.5), same rule as
++#: GOLDEN_CANONICAL_KEYS: if one moves, the rdkit pin moved.
++STEREO_PAIRS = {
++    "threonine": (
++        # DB00156 L-Threonine — a NON-standard `InChI=1/` at source, `/s2`
++        ("InChI=1/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3+/s2", "AYFVYJQAPQTCCC-STHAYSLISA-N"),
++        # DB03700 D-Threonine
++        ("InChI=1S/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3-/m1/s1", "AYFVYJQAPQTCCC-PWNYCUMCSA-N"),
++    ),
++    "isoleucine": (
++        # DB00167 L-Isoleucine
++        ("InChI=1S/C6H13NO2/c1-3-4(2)5(7)6(8)9/h4-5H,3,7H2,1-2H3,(H,8,9)/t4-,5-/m0/s1", "AGPKZVBTJJNPAG-WHFBIAKZSA-N"),
++        # DB01739 Allo-Isoleucine
++        ("InChI=1S/C6H13NO2/c1-3-4(2)5(7)6(8)9/h4-5H,3,7H2,1-2H3,(H,8,9)/t4-,5+/m1/s1", "AGPKZVBTJJNPAG-UHNVWZDZSA-N"),
++    ),
++    "aspartate": (
++        # DB00128 L-Aspartic Acid — `/m0`; the CTO's confirmed pipeline collapse (#97)
++        ("InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m0/s1", "CKLJMWTZIZZHCS-REOHCLBHSA-N"),
++        # DB02655 D-Aspartic Acid — `/m1`
++        ("InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m1/s1", "CKLJMWTZIZZHCS-UWTATZPHSA-N"),
++    ),
++}
++
++
++@pytest.mark.parametrize("pair", sorted(STEREO_PAIRS))
++def test_t5b_stereo_guard_keeps_enantiomers_and_diastereomers_distinct(pair):
++    """L-/D-threonine, L-/allo-isoleucine and L-/D-aspartate are DIFFERENT
++    compounds. Before the guard all three pairs collapsed to one key at the
++    tautomer step (46 of the 48 tautomer-stage merge groups on the real snapshot
++    had stereo before that step)."""
++    (a, _), (b, _) = STEREO_PAIRS[pair]
++    assert canonical_inchikey(a) != canonical_inchikey(b)
++
++
++@pytest.mark.parametrize(
++    "inchi,expected",
++    sorted(v for pair in STEREO_PAIRS.values() for v in pair),
++)
++def test_t5b_stereo_guard_returns_the_pre_tautomer_key(inchi, expected):
++    """When the guard fires it returns the PRE-tautomer InChIKey — the key of the
++    salt-stripped, neutralised structure with its stereo intact — not some third
++    value. Pinned so `!=` above cannot be satisfied by returning garbage."""
++    assert canonical_inchikey(inchi) == expected
++
++
++#: DB00348 Nitisinone and DB08307, its enol tautomer — byte-DIFFERENT source InChIs
++#: (`/h4-6,12H` vs `/h4-6,21H`), no stereo layer on either. One of exactly two
++#: stereo-free tautomer-stage merge groups on the real snapshot.
++NITISINONE_KETO = (
++    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
++    "/h4-6,12H,1-3H2"
++)
++NITISINONE_ENOL = (
++    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
++    "/h4-6,21H,1-3H2"
++)
++
++
++def test_t5b_stereo_free_tautomer_pair_still_merges():
++    """The guard must not disable tautomer canonicalisation: a pair that differs
++    ONLY in tautomeric form, with no stereo to lose, still collapses to one key."""
++    assert canonical_inchikey(NITISINONE_KETO) == canonical_inchikey(NITISINONE_ENOL)
++
++
+ # --------------------------------------------------------------------------- #
+ # T5a · persistence
+ # --------------------------------------------------------------------------- #
