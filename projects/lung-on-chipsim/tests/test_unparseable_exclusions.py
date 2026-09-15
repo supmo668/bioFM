@@ -81,10 +81,10 @@ def test_the_roster_records_its_own_provenance() -> None:
 
 def test_a_listed_failure_is_excluded_and_returned_not_dropped() -> None:
     """The kept frame loses it; the excluded frame carries it WITH its reason."""
-    df = _frame([("DB01929", BAD), ("DB00945", GOOD)])
+    df = _frame([("DB01929", BAD), ("DB90945", GOOD)])
     kept, excluded = add_canonical_identity_excluding(df, preregistered={"DB01929"})
 
-    assert list(kept["drugbank_id"]) == ["DB00945"]
+    assert list(kept["drugbank_id"]) == ["DB90945"]
     assert kept["canonical_inchikey"].notna().all()
     assert list(excluded["drugbank_id"]) == ["DB01929"]
     # The reason is its OWN categorical value, per the CTO's binding ruling: a
@@ -104,7 +104,7 @@ def test_an_UNLISTED_failure_raises_rather_than_growing_the_roster() -> None:
     roster absorbs every future breakage and the recorded 0.117% quietly becomes
     whatever the data happens to do.
     """
-    df = _frame([("DB99999", BAD), ("DB00945", GOOD)])
+    df = _frame([("DB99999", BAD), ("DB90945", GOOD)])
     with pytest.raises(CanonicalizationError, match="NOT in the pre-registered"):
         add_canonical_identity_excluding(df, preregistered={"DB01929"})
 
@@ -116,14 +116,14 @@ def test_a_listed_compound_that_now_PARSES_raises_as_stale() -> None:
     Continuing would over-exclude a compound the toolchain can now handle — data
     loss that looks like compliance.
     """
-    df = _frame([("DB01929", GOOD), ("DB00945", GOOD)])
+    df = _frame([("DB01929", GOOD), ("DB90945", GOOD)])
     with pytest.raises(CanonicalizationError, match="now parse successfully"):
         add_canonical_identity_excluding(df, preregistered={"DB01929"})
 
 
 def test_a_listed_compound_absent_from_the_frame_is_not_an_error() -> None:
     """Upstream filters legitimately remove rows; that is not roster staleness."""
-    df = _frame([("DB00945", GOOD)])
+    df = _frame([("DB90945", GOOD)])
     kept, excluded = add_canonical_identity_excluding(df, preregistered={"DB01929"})
     assert len(kept) == 1
     assert excluded.empty
@@ -135,7 +135,7 @@ def test_returns_a_TUPLE_so_the_exclusion_cannot_be_ignored() -> None:
     A caller writing `df = f(...)` gets a tuple and breaks loudly downstream,
     rather than silently proceeding on a frame whose dropped rows they never saw.
     """
-    out = add_canonical_identity_excluding(_frame([("DB00945", GOOD)]), preregistered=set())
+    out = add_canonical_identity_excluding(_frame([("DB90945", GOOD)]), preregistered=set())
     assert isinstance(out, tuple) and len(out) == 2
     assert isinstance(out[0], pd.DataFrame) and isinstance(out[1], pd.DataFrame)
 
@@ -150,7 +150,7 @@ def test_empty_frame_returns_two_empty_frames() -> None:
 def test_no_inchi_column_raises() -> None:
     with pytest.raises(ValueError, match="no `inchi` column"):
         add_canonical_identity_excluding(
-            pd.DataFrame({"drugbank_id": ["DB00945"]}), preregistered=set()
+            pd.DataFrame({"drugbank_id": ["DB90945"]}), preregistered=set()
         )
 
 
