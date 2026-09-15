@@ -69,6 +69,17 @@
       "summary": "T5-T19 + S11a against fixtures; E-1..E-5 applied+falsified; 27 QG findings fixed; 5 human blockers still absent",
       "pr": "",
       "updated_at": "2026-08-31T18:49:13.935237+00:00"
+    },
+    "P0.4": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "e55bd4f",
+      "qgr": "workstreams/lung-on-chipsim/qgr/bioFM-matthew-mo-lung-on-chipsim-lung-on-chipsim-bioFM-qgr-iteration-complete-20260915-0231-2e1937e.md",
+      "summary": "T4 (r2.11) three per-file DVC pointers; pointer/ignore/vendoring guards made falsifiable; 567 pass",
+      "pr": "",
+      "updated_at": "2026-09-15T09:32:58.202784+00:00"
     }
   },
   "notes": [
@@ -76,5 +87,5 @@
     "Human-owned tasks T1, T2, T8, T14 are blockers the agent must escalate, never simulate.",
     "No coding agent may write a biological number, create a curated chip record, or edit the frozen evaluator."
   ],
-  "updated_at": "2026-08-31T18:49:13.935363+00:00"
+  "updated_at": "2026-09-15T09:32:58.203038+00:00"
 }

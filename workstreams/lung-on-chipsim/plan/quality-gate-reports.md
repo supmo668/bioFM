@@ -19,6 +19,7 @@
 |---|---|---|---|---|---|
 | P0.1 | S1–S11 scaffold | 20 fixed · 2 rejected false · 1 deferred | ✅ 106 passed / 5 skipped | `cc10f7e` | `qgr/…-iteration-complete-20260831-1059-0653839.md` |
 | P0.2 | T5–T19, S11a + E-1…E-5 | 27 fixed (15 correctness · 12 test-validity) · 1 accepted-as-is | ✅ 284 passed / 6 skipped · 15 network | `b18d097` | see below |
+| P0.4 | T4 (r2.11): three per-file DVC pointers; QG fix cycle on the pointer/ignore/vendoring guards | 14 kept (12 fixed, 2 decisions up); 9 dropped | 567 pass / 0 fail / 4 skip | b0ae849…e55bd4f + boundary | `qgr/…-qgr-iteration-complete-20260915-0231-2e1937e.md` |
 
 ### P0.1 — S1–S11 scaffold (2026-08-31)
 
@@ -257,3 +258,82 @@ the E-5 mechanism, D9's correction), all landed by the CTO at `bfa2c1e`/`87c74c5
 licence posture is human-owned T1 and an agent authoring one would simulate a blocked task.
 
 **Human blockers — artifacts correctly ABSENT:** T2, T1, T8, T18, T14.
+
+### P0.4 — T4 (r2.11): three per-file DVC pointers; fix cycle on the pointer, ignore and vendoring guards (2026-09-15)
+
+**Scope:** `3fa54e3..HEAD` — the T4 commit `6561963` (three `dvc add`s + the twelve
+test lines CTO #98 named), the parked §2 stereo-guard patch, and dispatch payloads.
+**Base:** merge of local `main` carrying r2.11 (`plan-gate verify` → `26b7a4f`).
+**Receipt:** `qgr/bioFM-matthew-mo-lung-on-chipsim-lung-on-chipsim-bioFM-qgr-iteration-complete-20260915-0231-2e1937e.md`
+(A `86a00de`, B `868e169`, C `1c1bca0`, D = C auto-approved, E `2e1937e`).
+
+#### Issues Found
+| ID | Type | Summary | Status | Via | Tests Added | Bug-Exposing Fix |
+|----|------|---------|--------|-----|-------------|------------------|
+| QG-1 | bug | (c) `dvc status` without `-q` exits 0 on stale AND deleted outs — the T4 test PASSED with a stale-but-valid md5 (measured) | Fixed | Test + dvc source | `-q` verdict, verbose diagnosis (integration, 1 rewritten) | `dd9e4d2` |
+| QG-2 | bug | payload never `dvc push`ed; remote empty; `git worktree remove` would destroy the only copy | Fixed | Inspection (`dvc status --cloud`) | `test_t4_snapshot_is_pushed_to_the_remote` (integration, 1; red before push, green after) | `dd9e4d2` |
+| QG-3 | bug | `git check-ignore` consults the index — every tracked expected-not-ignored probe was a tautology | Fixed | Test (scratch repo) | `--no-index` + untracked `future.tsv.dvc` rows (unit, 5) — falsified: removing `!data/**/*.dvc` fails 8 | `b0ae849`, `64e28c6` |
+| QG-4 | bug | nothing bound a pointer to its own file (path/size/md5/distinctness) | Fixed | Inspection | `test_dvc_pointer_describes_its_own_file` ×3, distinct+cover (unit, 4) | `b0ae849` |
+| QG-5 | bug | `if pointer.exists()` — a DELETED pointer passed T11 | Fixed | Test | unconditional `is_file()` — falsified: moving one pointer fails exactly its row | `b0ae849` |
+| QG-6 | docs | parked README tally omitted that `test_merge_report.py` is a collection error | Fixed | Inspection | N/A | `e55bd4f` |
+| QG-7 | bug | (a) via `git status --porcelain` cannot see an ignored or a committed `.tsv` | Fixed | Inspection | `git ls-files -- data/raw/**/*.tsv` (integration) | `dd9e4d2` |
+| QG-8 | test | (b)/(d) behind `@integration` + `@_blocked_on_t2` — deleting `provenance.yaml` turned failures into skips | Fixed | Inspection | (b)/(d) asserted ungated in T11 (unit, 2) | `b0ae849` |
+| QG-9 | security | anti-vendoring saw only `data/raw/`; `.dvc` suffix allow-list admitted a renamed payload | Fixed (partial — see Decisions) | Inspection | pointer-shaped rule ×3, accession scan ×2 (unit, 5); two illustrative real IDs moved to DB9xxxx | `b0ae849` |
+| QG-10 | design | pointer list hard-coded in three files | Fixed | Inspection | `DVC_POINTERS` derived from `SNAPSHOT_FILES` | `b0ae849`, `64e28c6` |
+| QG-11 | design | held stereo guard has no anchor in the plan/dev-log | DECISION → CTO (plan hash-locked); dev-log line added | Inspection | N/A | N/A |
+| QG-12 | security/licensing | parked patch carries six InChIs + eight real DrugBank accessions "copied verbatim" | DECISION → principal via CTO; patch untouched (HELD, now to be un-parked per #106) | Inspection | N/A | N/A |
+| QG-13 | test | pointer checks had no production rule and no negative case (IndexError/KeyError on malformed) | Fixed | Inspection | `pointer_defects` falsification (unit, 11) | `b0ae849` |
+| QG-14 | bug | `git ls-files` = index only; a staged-never-committed pointer counted as tracked | Fixed | Inspection | `git cat-file -e HEAD:./<rel>` (unit, in T11 rows) | `b0ae849` |
+
+Dropped by the scorer (<80): TEST-9 (40), DES-5 (55), DES-7 (60), CODE-8 (35), TEST-12 (45), SEC-3 (25);
+TEST-10, CODE-7, TEST-11 folded into QG-2/QG-5/QG-1.
+
+#### Quality Gate Accountability
+| Purpose | Before | Added | Removed | Total |
+|---------|--------|-------|---------|-------|
+| Bug-exposing | 0 | 22 | 0 | 22 |
+| Coverage | 0 | 5 | 0 | 5 |
+| Pre-existing | 540 | 0 | 0 | 540 |
+| **Passing** | **540** | **27** | **0** | **567** |
+| **Failing** | **0** | **0** | **0** | **0** |
+
+(4 skipped, unchanged: integration/network legs gated on artifacts this machine lacks.)
+
+#### Coverage Health
+| Type | Before | Added | Total | % |
+|------|--------|-------|-------|---|
+| Unit | — | 25 | — | not tracked by type |
+| Integration | — | 2 | — | not tracked by type |
+
+#### Checks
+| Check | Result |
+|-------|--------|
+| Format | `ruff format --check`: 49 files already formatted |
+| Lint | `ruff check chipsim tests`: 0 errors |
+| Typecheck | N/A — not configured for this project |
+| Tests | 567/567 pass, 0 failing, 4 skipped (fresh run this session) |
+
+#### Quality Gate Summary
+- reviewer-code: 8    - reviewer-security: 3    - reviewer-design: 7
+- reviewer-test: 12    - reviewer-scorer: scored 31, 14 passed threshold (>= 80)
+- Own review: 1 (OWN-1 = QG-1, with the stale-pointer red evidence)
+
+#### What Was Found and Fixed
+T4 was signed with four done-conditions and, as landed at `6561963`, a repo in which the
+snapshot was **stale, mismatched, or unpushed** satisfied all four. (c) had no exit-code
+contract without `-q`; (a) asked a question porcelain cannot answer for ignored files;
+nothing tied a pointer to its own TSV; the ignore probes answered from the index; a
+deleted pointer passed T11; and the payload existed only in this worktree's cache.
+Every fix has a falsification: the stale-md5 probe, the removed-negation probe, the
+moved-pointer probe, and the pre-push red of the remote leg. The vendoring control
+gained a shape rule for `.dvc` files and a project-tree scan for real accessions,
+which immediately found two illustrative real IDs in tests (moved to the synthetic
+range) — and which will trip the moment the §2 patch is un-parked into `tests/`,
+forcing QG-12's licensing decision at that point rather than silently.
+
+**Decisions carried up:** QG-11 (T5b amendment blockquote — CTO), QG-12 (real
+DrugBank identifiers in test code — principal).
+
+#### Proposed Commit
+- **Message:** `Iteration P0.4: T4 (r2.11) three per-file DVC pointers — pointer, ignore and vendoring guards made falsifiable; 567 pass`
+- **Files:** the QGR receipt, this report, `dev-log.md`, the handoff, `context.json`

@@ -1,3 +1,6 @@
 - P0.2 — T5-T19 + S11a against fixtures; CTO rulings E-1..E-5 applied and falsified; 27 QG findings fixed (commit fd945cc)
 - chipsim-lbm-audit A&D r1.0 — R2 specified as TWO mechanisms (digest for unsealed edits; journalled seal invocations for re-seal-after-results ordering); honesty clause carried from the panel seal verbatim: detection is not attestation (commit b368c83)
 - S12 — run journal: config snapshot + environment capture + digest verification; six done-conditions, 13 tests (commit e8fb8c3); QG cycle fixed 12 findings incl. CRITICAL QG-1 (finish_run overwrote, so a crashed run could be restamped as success) and QG-2 (config snapshot never re-hashed on read) (commit 295a63a)
+- P0.4 — T4 (r2.11): three per-file DVC pointers landed and pushed to the DVC remote; the QG fix cycle made the pointer/ignore/vendoring guards falsifiable (14 findings, 12 fixed; 567 pass) (commits 6561963, b0ae849…e55bd4f + boundary)
+- P0.4 — §2 stereo guard: RED tests written and PARKED under workstreams/lung-on-chipsim/parked/ (CTO #102 hold); principal ruled {t,m,s}, /b excluded (CTO #106) — un-park + implement is the next iteration. T5b in build-plan.md carries no note of this yet (QG-11 → CTO)
+  · docs-ticket-align at P0.4: ALIGNED 0 (no ticket filed; no docs/usage/lung-on-chipsim.md) — noted for /phase-complete, not fixed in the inner loop
