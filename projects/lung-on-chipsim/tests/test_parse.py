@@ -289,7 +289,12 @@ STEREO_PAIRS = {
         # L-Threonine — a NON-standard `InChI=1/` at source, `/s2`
         (
             "InChI=1/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3+/s2",
-            "AYFVYJQAPQTCCC-STHAYSLISA-N",
+            # Stereo-free since the relative-stereo re-key (principal ruling 2026-09-15,
+            # CTO #122 §0): this string is `/s2` (RELATIVE), so it is keyed without sp3
+            # stereo — PubChem CID 205's key. It USED to pin AYFVYJQAPQTCCC-STHAYSLISA-N,
+            # which is PubChem D-threonine (CID 69435): RDKit read /s2 as absolute /m0.
+            # Test and label wording are HELD unchanged until the re-key lands (#122 §6).
+            "AYFVYJQAPQTCCC-UHFFFAOYSA-N",
         ),
         # D-Threonine
         (

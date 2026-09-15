@@ -46,7 +46,17 @@ def _frame(rows: list[tuple[str, str]]) -> pd.DataFrame:
 
 
 def test_stages_are_ordered_from_source_to_tautomer():
-    assert MERGE_STAGES == ("upstream-duplicate", "parse", "salt", "uncharge", "tautomer")
+    # `relative-stereo` added by principal ruling 2026-09-15 (CTO #122 §0): /s2 input is
+    # keyed stereo-free, and the merges that produces are their own stage so the re-key's
+    # effect is attributable rather than folded into later stages.
+    assert MERGE_STAGES == (
+        "upstream-duplicate",
+        "parse",
+        "relative-stereo",
+        "salt",
+        "uncharge",
+        "tautomer",
+    )
 
 
 def test_report_is_one_row_per_merge_group_and_names_the_stage():

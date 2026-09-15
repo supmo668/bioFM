@@ -95,6 +95,21 @@ def _stereo_layers(inchi: str) -> tuple[str, ...]:
     return tuple(layers)
 
 
+#: The InChI stereo-type layer value for RELATIVE sp3 stereo. `/s1` is absolute and
+#: `/s3` racemic; the snapshot carries 42 `/s2` strings and no `/s3`.
+_RELATIVE_STEREO_LAYER = "s2"
+
+
+def is_relative_stereo(inchi: str) -> bool:
+    """True when the SOURCE InChI declares relative sp3 stereo (`/s2`).
+
+    Read from the string's own layers, without RDKit, so it is defined for rows that
+    fail to parse too. Principal ruling 2026-09-15 (CTO #122 §0)."""
+    if not isinstance(inchi, str):
+        return False
+    return _RELATIVE_STEREO_LAYER in _stereo_layers(inchi.strip())
+
+
 @dataclass(frozen=True)
 class Canonicalization:
     """Every stage of one structure's canonicalization, so a merge can be
@@ -107,11 +122,33 @@ class Canonicalization:
     neutral: str  # after uncharge — the PRE-tautomer structure
     tautomer: str  # after tautomer canonicalization
     guard_fired: bool  # True when the key is the pre-tautomer key
+    #: The SOURCE carried relative stereo (/s2). Describes the input, not the handling:
+    #: it is True even when `strip_relative_stereo=False` (measurement mode).
+    stereo_is_relative: bool = False
+    #: InChI as RDKit parsed it BEFORE the relative-stereo strip. Equals `parsed` for
+    #: every absolute or stereo-free input; the two differ only when the strip acted.
+    parsed_as_given: str = ""
 
 
 @lru_cache(maxsize=8192)
-def canonicalize(inchi: str, *, stereo_guard: bool = True) -> Canonicalization:
-    """RDKit: salt strip -> neutralize -> tautomer canonicalize -> stereo guard -> InChIKey.
+def canonicalize(
+    inchi: str, *, stereo_guard: bool = True, strip_relative_stereo: bool = True
+) -> Canonicalization:
+    """RDKit: parse -> relative-stereo strip -> salt strip -> neutralize -> tautomer
+    canonicalize -> stereo guard -> InChIKey.
+
+    **Relative-stereo strip (principal ruling 2026-09-15, CTO #122 §0).** InChI's
+    stereo-type layer says `/s1` absolute, `/s2` RELATIVE, `/s3` racemic. RDKit reads a
+    `/s2` string as if it were absolute `/m0`, so the pipeline used to assign an
+    arbitrary absolute configuration: 13 of the snapshot's 42 relative-stereo
+    compounds came out as the MIRROR IMAGE (DrugBank's L-threonine keyed as
+    D-threonine). An arbitrary assignment is a fabrication, so for `/s2` input the
+    TETRAHEDRAL chiral tags are cleared immediately after parsing and the compound is
+    keyed stereo-free, with `stereo_is_relative=True` for downstream joins and roster
+    selection to honour. Only sp3 stereo is stripped: the `/s` flag qualifies /t and
+    /m, and InChI double-bond geometry (/b) is always absolute, so it is kept.
+    `strip_relative_stereo=False` reproduces the old behaviour for measurement only,
+    never for production identity.
 
     The order is load-bearing. Salt stripping first, so the counter-ion cannot
     influence neutralization; neutralization before tautomer canonicalization, so
@@ -133,6 +170,13 @@ def canonicalize(inchi: str, *, stereo_guard: bool = True) -> Canonicalization:
     mol = Chem.MolFromInchi(inchi.strip())
     if mol is None:
         raise CanonicalizationError(f"RDKit could not parse InChI: {_excerpt(inchi)}")
+    parsed_as_given = Chem.MolToInchi(mol)
+    relative = is_relative_stereo(inchi)
+
+    # 0. Relative-stereo strip (CTO #122 §0): assert nothing the source did not.
+    if relative and strip_relative_stereo:
+        for atom in mol.GetAtoms():
+            atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
     parsed = Chem.MolToInchi(mol)
 
     # 1. Salt strip — drops counter-ions, keeping the parent fragment.
@@ -165,6 +209,8 @@ def canonicalize(inchi: str, *, stereo_guard: bool = True) -> Canonicalization:
         neutral=neutral,
         tautomer=tautomer,
         guard_fired=fired,
+        stereo_is_relative=relative,
+        parsed_as_given=parsed_as_given,
     )
 
 
@@ -186,6 +232,7 @@ def add_canonical_identity(compounds: pd.DataFrame) -> pd.DataFrame:
         # for a frame containing zero compounds and point a debugger at a
         # structure that does not exist.
         out["canonical_inchikey"] = pd.Series(dtype="object")
+        out["stereo_is_relative"] = pd.Series(dtype=bool)
         return out
 
     failures: list[tuple[str, str]] = []
@@ -209,6 +256,8 @@ def add_canonical_identity(compounds: pd.DataFrame) -> pd.DataFrame:
     if out["canonical_inchikey"].isna().any():
         raise CanonicalizationError("canonical_inchikey is null on at least one row")
 
+    # CTO #122 §0: the flag T10/T13/T15 must honour and T18 must be able to exclude on.
+    out["stereo_is_relative"] = out["inchi"].map(is_relative_stereo).astype(bool)
     return out
 
 
@@ -268,6 +317,7 @@ def add_canonical_identity_excluding(
     out = compounds.copy()
     if out.empty:
         out["canonical_inchikey"] = pd.Series(dtype="object")
+        out["stereo_is_relative"] = pd.Series(dtype=bool)
         return out, out.iloc[0:0].assign(exclusion_reason=pd.Series(dtype="object"))
 
     reasons: dict[int, str] = {}
@@ -280,6 +330,8 @@ def add_canonical_identity_excluding(
             return None
 
     out["canonical_inchikey"] = out.apply(_one, axis=1)
+    # From the source string's layers, so excluded (unparseable) rows carry it too.
+    out["stereo_is_relative"] = out["inchi"].map(is_relative_stereo).astype(bool)
 
     failed_mask = out["canonical_inchikey"].isna()
     failed_ids = {str(i) for i in out.loc[failed_mask, "drugbank_id"]}
@@ -355,9 +407,18 @@ def canonicalization_disagreements(compounds: pd.DataFrame) -> pd.DataFrame:
 #: The stage at which the members of a merge group first coincide. The first is
 #: NOT ours: byte-identical SOURCE InChIs are an upstream DrugBank limitation no
 #: pipeline change can recover (100 of 191 groups on the real snapshot, #97).
-MERGE_STAGES = ("upstream-duplicate", "parse", "salt", "uncharge", "tautomer")
+#: `relative-stereo` (CTO #122 §0) sits immediately after `parse`: members that first
+#: coincide once relative sp3 stereo is stripped. It is its own stage so the re-key's
+#: effect is attributable rather than folded into salt/uncharge/tautomer counts.
+MERGE_STAGES = ("upstream-duplicate", "parse", "relative-stereo", "salt", "uncharge", "tautomer")
 
-_STAGE_FIELD = {"parse": "parsed", "salt": "parent", "uncharge": "neutral", "tautomer": "tautomer"}
+_STAGE_FIELD = {
+    "parse": "parsed_as_given",
+    "relative-stereo": "parsed",
+    "salt": "parent",
+    "uncharge": "neutral",
+    "tautomer": "tautomer",
+}
 
 
 def _group_stage(inchis: list[str], stages: list[Canonicalization]) -> str:
@@ -369,7 +430,9 @@ def _group_stage(inchis: list[str], stages: list[Canonicalization]) -> str:
     return "tautomer"
 
 
-def merge_stage_report(compounds: pd.DataFrame, *, stereo_guard: bool = True) -> pd.DataFrame:
+def merge_stage_report(
+    compounds: pd.DataFrame, *, stereo_guard: bool = True, strip_relative_stereo: bool = True
+) -> pd.DataFrame:
     """One row per merge group (>1 compound on one canonical key): the key, its
     size, the STAGE at which the members first coincide, and the member IDs.
 
@@ -379,15 +442,14 @@ def merge_stage_report(compounds: pd.DataFrame, *, stereo_guard: bool = True) ->
     """
     if "canonical_inchikey" not in compounds.columns:
         raise ValueError("call add_canonical_identity() first")
-    keyed = compounds.assign(
-        _key=[canonicalize(i, stereo_guard=stereo_guard).inchikey for i in compounds["inchi"]]
-    )
+    opts = {"stereo_guard": stereo_guard, "strip_relative_stereo": strip_relative_stereo}
+    keyed = compounds.assign(_key=[canonicalize(i, **opts).inchikey for i in compounds["inchi"]])
     rows = []
     for key, group in keyed.groupby("_key", sort=True):
         if len(group) < 2:
             continue
         inchis = list(group["inchi"])
-        stages = [canonicalize(i, stereo_guard=stereo_guard) for i in inchis]
+        stages = [canonicalize(i, **opts) for i in inchis]
         rows.append(
             {
                 "canonical_inchikey": key,
@@ -506,4 +568,66 @@ def guard_effect(compounds: pd.DataFrame) -> GuardEffect:
         split_groups=tuple(splits),
         new_merges=tuple(new_merges),
         reclassified=reclassified,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Relative-stereo re-key: measured effect (CTO #122 §0)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class RelativeStereoEffect:
+    """What keying /s2 input stereo-free does to identity.
+
+    Groups are identified by canonical InChIKey. `*_members` carry snapshot row IDs
+    for the UNTRACKED journal only; a tracked report must never serialize them
+    (DrugBank record content, CTO #120/#122 §2)."""
+
+    compounds: int
+    relative: int  # compounds whose source InChI declares /s2
+    merge_groups_before: int  # strip OFF (the old absolute assignment)
+    merge_groups_after: int  # strip ON (the ruling)
+    merged_keys: tuple[str, ...]  # after-keys of groups the strip newly creates
+    split_keys: tuple[str, ...]  # before-keys of groups the strip separates
+    merged_members: tuple[tuple[str, ...], ...] = field(default_factory=tuple)
+    split_members: tuple[tuple[str, ...], ...] = field(default_factory=tuple)
+
+    @property
+    def new_merges(self) -> int:
+        return len(self.merged_keys)
+
+
+def relative_stereo_effect(compounds: pd.DataFrame) -> RelativeStereoEffect:
+    """Merge groups with the relative-stereo strip OFF vs ON (guard ON both times).
+
+    Stripping removes information, so it mostly MERGES. It can also SPLIT: a relative
+    compound that used to share a key with an absolute compound — by the arbitrary
+    configuration RDKit assigned — no longer does. Both directions are reported.
+    """
+    if "inchi" not in compounds.columns:
+        raise ValueError("compounds frame has no `inchi` column")
+    ids = [str(i) for i in compounds["drugbank_id"]]
+    inchis = list(compounds["inchi"])
+    off = {i: canonicalize(s, strip_relative_stereo=False).inchikey for i, s in zip(ids, inchis, strict=True)}
+    on = {i: canonicalize(s, strip_relative_stereo=True).inchikey for i, s in zip(ids, inchis, strict=True)}
+
+    def _groups(key_of: dict[str, str]) -> dict[str, tuple[str, ...]]:
+        by_key: dict[str, list[str]] = {}
+        for i, k in key_of.items():
+            by_key.setdefault(k, []).append(i)
+        return {k: tuple(v) for k, v in by_key.items() if len(v) > 1}
+
+    before, after = _groups(off), _groups(on)
+    merged = sorted((k, m) for k, m in after.items() if len({off[i] for i in m}) > 1)
+    split = sorted((k, m) for k, m in before.items() if len({on[i] for i in m}) > 1)
+    return RelativeStereoEffect(
+        compounds=len(ids),
+        relative=sum(is_relative_stereo(s) for s in inchis),
+        merge_groups_before=len(before),
+        merge_groups_after=len(after),
+        merged_keys=tuple(k for k, _ in merged),
+        split_keys=tuple(k for k, _ in split),
+        merged_members=tuple(m for _, m in merged),
+        split_members=tuple(m for _, m in split),
     )

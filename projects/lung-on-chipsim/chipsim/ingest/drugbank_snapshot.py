@@ -533,9 +533,13 @@ def load_protein_edges(
 # --------------------------------------------------------------------------- #
 
 #: Persisted column order. `canonical_inchikey` (T5b) leads because the frame is
-#: sorted on it and every downstream task indexes on it.
+#: sorted on it and every downstream task indexes on it. `stereo_is_relative`
+#: (CTO #122 §0) follows it: `write_compounds` persists ONLY these columns, so a flag
+#: absent from this tuple would be silently dropped here and never reach the
+#: T10/T13/T15 joins or the T18 roster that must honour it.
 PERSISTED_COMPOUND_COLUMNS = (
     "canonical_inchikey",
+    "stereo_is_relative",
     "drugbank_id",
     "name",
     "type",

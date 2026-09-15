@@ -1,0 +1,123 @@
+"""Relative-stereo (/s2) input is keyed STEREO-FREE and flagged — principal ruling
+2026-09-15 (CTO #122 §0).
+
+The defect this pins: the InChI stereo-type flag says `/s1` = absolute, `/s2` =
+RELATIVE, `/s3` = racemic. RDKit reads a `/s2` string as if it were absolute `/m0`,
+so the pipeline gave every one of the snapshot's 42 relative-stereo compounds an
+ABSOLUTE canonical key. Classified by InChI LAYERS against PubChem, 13 of the 42 came
+out as the MIRROR IMAGE — among them DrugBank's L-threonine row, keyed as D-threonine.
+An arbitrary absolute assignment is a fabrication, so the ruling is: strip stereo
+before keying, and carry `stereo_is_relative` so downstream joins and roster
+selection can honour it. Enantiomers DrugBank never distinguished will merge; that
+is what the source actually says.
+
+Scope of the strip: TETRAHEDRAL (sp3) stereo only. The InChI `/s` flag qualifies the
+sp3 layers (/t, /m); double-bond geometry (/b) is always absolute in InChI and is
+kept.
+
+Structure provenance (every structure cites a public source — CTO #120 §1):
+  - THREONINE_RELATIVE has NO public record: it is a non-standard `InChI=1/` string
+    with relative stereo, cited from the pinned DrugBank snapshot as its source of
+    record (CTO #120 §7). It is named here by its generic chemical name only.
+  - THREONINE_UNSPECIFIED: PubChem CID 205, "2-amino-3-hydroxybutanoic acid",
+    retrieved 2026-09-15 (InChIKey AYFVYJQAPQTCCC-UHFFFAOYSA-N).
+  - D-threonine for the defect pin: PubChem CID 69435, InChIKey
+    AYFVYJQAPQTCCC-STHAYSLISA-N, retrieved 2026-09-15.
+  - L_ASPARTIC_ACID: PubChem CID 5960, retrieved 2026-09-15.
+"""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from chipsim.harmonize.ids import (
+    MERGE_STAGES,
+    add_canonical_identity,
+    canonicalize,
+    merge_stage_report,
+    relative_stereo_effect,
+)
+
+#: Source of record: the pinned DrugBank snapshot (no public record — non-standard,
+#: relative stereo). Relative `/t2-,3+` with `/s2`: threo configuration, absolute
+#: configuration NOT stated.
+THREONINE_RELATIVE = "InChI=1/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3+/s2"
+
+#: PubChem CID 205 (retrieved 2026-09-15) — threonine with no stereo specified.
+THREONINE_UNSPECIFIED = "InChI=1S/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)"
+THREONINE_STEREO_FREE_KEY = "AYFVYJQAPQTCCC-UHFFFAOYSA-N"  # CID 205's InChIKey
+
+#: PubChem CID 69435 (D-threonine), retrieved 2026-09-15 — the key the defect produced.
+D_THREONINE_KEY = "AYFVYJQAPQTCCC-STHAYSLISA-N"
+
+#: PubChem CID 5960 (L-aspartic acid), retrieved 2026-09-15 — ABSOLUTE stereo (/s1).
+L_ASPARTIC_ACID = "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m0/s1"
+L_ASPARTIC_ACID_KEY = "CKLJMWTZIZZHCS-REOHCLBHSA-N"
+
+
+def test_relative_stereo_input_is_flagged_and_keyed_stereo_free():
+    """The pipeline asserts nothing the source did not: a relative string gets the
+    stereo-free key, which is exactly PubChem CID 205's key."""
+    result = canonicalize(THREONINE_RELATIVE)
+    assert result.stereo_is_relative is True
+    assert result.inchikey == THREONINE_STEREO_FREE_KEY
+
+
+def test_without_the_strip_the_relative_string_gets_d_threonines_key():
+    """The defect, pinned so it cannot silently return: read as absolute, DrugBank's
+    L-threonine string keys to PubChem's D-threonine (CID 69435). The flag is still
+    reported in measurement mode — it describes the SOURCE, not the handling."""
+    result = canonicalize(THREONINE_RELATIVE, strip_relative_stereo=False)
+    assert result.inchikey == D_THREONINE_KEY
+    assert result.stereo_is_relative is True
+
+
+def test_absolute_stereo_input_is_not_flagged_and_keeps_its_stereo():
+    result = canonicalize(L_ASPARTIC_ACID)
+    assert result.stereo_is_relative is False
+    assert result.inchikey == L_ASPARTIC_ACID_KEY
+
+
+def test_stereo_free_input_is_not_flagged():
+    assert canonicalize(THREONINE_UNSPECIFIED).stereo_is_relative is False
+
+
+def test_relative_stereo_is_its_own_merge_stage_immediately_after_parse():
+    """The re-key's effect must be attributable, not folded into existing counts."""
+    assert "relative-stereo" in MERGE_STAGES
+    assert MERGE_STAGES.index("relative-stereo") == MERGE_STAGES.index("parse") + 1
+
+
+def test_relative_and_unspecified_threonine_merge_at_the_relative_stereo_stage():
+    frame = pd.DataFrame(
+        [("R", THREONINE_RELATIVE), ("U", THREONINE_UNSPECIFIED)],
+        columns=["drugbank_id", "inchi"],
+    ).assign(inchikey="x")
+    report = merge_stage_report(add_canonical_identity(frame))
+    assert report["stage"].tolist() == ["relative-stereo"]
+    assert report["canonical_inchikey"].tolist() == [THREONINE_STEREO_FREE_KEY]
+
+
+def test_add_canonical_identity_emits_the_stereo_is_relative_flag():
+    frame = pd.DataFrame(
+        [("R", THREONINE_RELATIVE), ("A", L_ASPARTIC_ACID), ("U", THREONINE_UNSPECIFIED)],
+        columns=["drugbank_id", "inchi"],
+    ).assign(inchikey="x")
+    out = add_canonical_identity(frame)
+    assert out["stereo_is_relative"].tolist() == [True, False, False]
+    assert out["stereo_is_relative"].dtype == bool
+
+
+def test_relative_stereo_effect_reports_which_relative_compounds_merge():
+    """CTO #122 §0: report how many relative-stereo compounds merge with another
+    compound, and which — identified by canonical InChIKey, never by accession."""
+    frame = pd.DataFrame(
+        [("R", THREONINE_RELATIVE), ("U", THREONINE_UNSPECIFIED), ("A", L_ASPARTIC_ACID)],
+        columns=["drugbank_id", "inchi"],
+    ).assign(inchikey="x")
+    effect = relative_stereo_effect(frame)
+    assert effect.relative == 1
+    assert effect.merge_groups_before == 0
+    assert effect.merge_groups_after == 1
+    assert effect.merged_keys == (THREONINE_STEREO_FREE_KEY,)
+    assert effect.new_merges == 1
