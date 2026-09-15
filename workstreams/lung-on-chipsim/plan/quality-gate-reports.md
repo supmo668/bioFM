@@ -19,7 +19,7 @@
 |---|---|---|---|---|---|
 | P0.1 | S1–S11 scaffold | 20 fixed · 2 rejected false · 1 deferred | ✅ 106 passed / 5 skipped | `cc10f7e` | `qgr/…-iteration-complete-20260831-1059-0653839.md` |
 | P0.2 | T5–T19, S11a + E-1…E-5 | 27 fixed (15 correctness · 12 test-validity) · 1 accepted-as-is | ✅ 284 passed / 6 skipped · 15 network | `b18d097` | see below |
-| P0.4 | T4 (r2.11): three per-file DVC pointers; QG fix cycle on the pointer/ignore/vendoring guards | 14 kept (12 fixed, 2 decisions up); 9 dropped | 567 pass / 0 fail / 4 skip | b0ae849…e55bd4f + boundary | `qgr/…-qgr-iteration-complete-20260915-0231-2e1937e.md` |
+| P0.4 | T4 (r2.11): three per-file DVC pointers; QG fix cycle on the pointer/ignore/vendoring guards | 14 kept (12 fixed, 2 decisions up); 9 dropped | 567 pass / 0 fail / 4 skip | b0ae849…e55bd4f, boundary ecda7b0 | `qgr/…-qgr-iteration-complete-20260915-0231-2e1937e.md` |
 
 ### P0.1 — S1–S11 scaffold (2026-08-31)
 

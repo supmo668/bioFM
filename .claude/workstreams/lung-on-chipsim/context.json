@@ -75,11 +75,11 @@
       "artifact": "",
       "linear": "",
       "gh": "",
-      "commit": "e55bd4f",
+      "commit": "ecda7b0",
       "qgr": "workstreams/lung-on-chipsim/qgr/bioFM-matthew-mo-lung-on-chipsim-lung-on-chipsim-bioFM-qgr-iteration-complete-20260915-0231-2e1937e.md",
       "summary": "T4 (r2.11) three per-file DVC pointers; pointer/ignore/vendoring guards made falsifiable; 567 pass",
       "pr": "",
-      "updated_at": "2026-09-15T09:32:58.202784+00:00"
+      "updated_at": "2026-09-15T09:36:51.618702+00:00"
     }
   },
   "notes": [
@@ -87,5 +87,5 @@
     "Human-owned tasks T1, T2, T8, T14 are blockers the agent must escalate, never simulate.",
     "No coding agent may write a biological number, create a curated chip record, or edit the frozen evaluator."
   ],
-  "updated_at": "2026-09-15T09:32:58.203038+00:00"
+  "updated_at": "2026-09-15T09:36:51.618925+00:00"
 }
