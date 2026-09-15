@@ -2,7 +2,7 @@
 
 **Tool:** `tools/plan-gate` (plugin 0.52.0), `sign` subcommand
 **Severity:** high — destroys the only record that distinguishes a human approval from a delegated one
-**Observed six times** (as of 2026-09-15), by three different actors — see the addendum at the end
+**Observed seven times** (as of 2026-09-15), by three different actors — see the addendum at the end
 
 ## What happens
 
@@ -68,3 +68,23 @@ again, restored manually.
 Three distinct actors now (worktree agent, two CTO sessions). The workaround depends on every signer
 knowing it; one that doesn't — or believes it already did it — loses the record silently. This is the
 strongest argument for the fix being in the tool rather than in procedure.
+
+**2026-09-15 11:19 (r2.12)** and **2026-09-15 12:43 (r2.13)** — occurrences six and seven, the same
+CTO, captured beforehand and restored by hand both times.
+
+## A second defect the workaround exposes: hand-restored frontmatter is unvalidated
+
+The r2.12 restoration put `{t,m,s}` inside a YAML flow sequence, which parses as a flow *mapping*.
+**The frontmatter was invalid YAML and `plan-gate verify` passed anyway**, because it does not parse
+the disclosure fields — it only compares the plan hash. The break was caught by a separate parse
+check, not by the gate.
+
+So the tool's rewrite behaviour forces hand-editing of a YAML block that the tool itself never
+validates. Two consequences worth fixing together:
+
+- **`plan-gate verify` should parse the marker's frontmatter and fail loudly if it is not valid
+  YAML.** A marker that cannot be parsed cannot be audited, and today that state is invisible.
+- **Preserving content below the frontmatter** (the original request) would remove the need for hand
+  restoration entirely, and with it this failure mode.
+
+Seven restorations by hand is seven chances to introduce exactly this kind of error.
