@@ -437,7 +437,21 @@ done-conditions passed.
       """Adds `canonical_inchikey`. Raises if any value is null."""
   ```
   **T10, T13 and T15 index on `canonical_inchikey`, not the raw snapshot key.**
-- **Done when** a known salt / free-base pair collapses to one `canonical_inchikey`, the column is non-null on every row, and a raw-vs-canonical disagreement count is reported.
+- **Done when** a known salt / free-base pair collapses to one `canonical_inchikey`, the column is non-null on every row, and a raw-vs-canonical disagreement count is reported. **Plus (r2.12):** L-/D-threonine stay distinct, the benzimidazole 1H/3H tautomers stay merged, and the malate pair's split is asserted by a named accepted-loss test.
+
+> **r2.12 — the stereo guard, and what it costs.** Principal ruling 2026-09-15: tautomer
+> canonicalisation must not change stereo. Compare the pre- and post-tautomer InChI's **`/t`, `/m`
+> and `/s`** layers only — **`/b` (double-bond geometry) is excluded** — and return the
+> **pre-tautomer** key when any of the three changes or vanishes. Measured on the pinned snapshot
+> (CTO re-ran it independently): fires on **1,599 of 6,802** compounds (23.5%), merge groups
+> **191 → 156**, tautomer-stage groups **48 → 7**, **41 groups split, zero new merges**. Of those 41:
+> **36** clean stereo separations, **2** ambiguous keto/enol pairs whose stereo does not correspond
+> between forms, **2** incidental aldose/ketose, and **1 accepted known loss** — the malate tautomer
+> pair, whose source forms already differ in skeleton hash. The salt/free-base condition above is
+> unaffected: the guard fires on the tautomer step, not the salt-strip step. The first reading of the
+> ruling compared four layers including `/b`; that split 3 true-tautomer groups and was refuted by
+> per-layer measurement before any code was written. Aldose/ketose merging is a **separate, open**
+> scope question and is not decided here.
 
 ### T5a · Persist the compound frame — **CA · 3 min** *(new — defect 26)*
 - **Interfaces:**

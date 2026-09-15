@@ -2,7 +2,7 @@
 
 **Tool:** `tools/plan-gate` (plugin 0.52.0), `sign` subcommand
 **Severity:** high — destroys the only record that distinguishes a human approval from a delegated one
-**Observed five times** (as of 2026-09-15), by three different actors — see the addendum at the end
+**Observed six times** (as of 2026-09-15), by three different actors — see the addendum at the end
 
 ## What happens
 
