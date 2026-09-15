@@ -12,9 +12,22 @@ What the patch holds (written test-first, HEAD 3fa54e3). RED state per file:
 `merge_stage_report` from `chipsim.harmonize.ids`, neither of which exists yet. Expect the
 ImportError on resume; it is the RED for that half, not a bad patch.
 - `tests/test_parse.py`: L/D-threonine, L/allo-isoleucine, L/D-aspartate stay DISTINCT
-  (real snapshot InChIs, DB00156/DB03700, DB00167/DB01739, DB00128/DB02655); the guard
-  returns the PRE-tautomer InChIKey (pinned literals, rdkit 2026.3.5); Nitisinone
-  keto/enol (DB00348/DB08307, no /b layer) must STILL merge — passes today, regression guard.
+  (snapshot InChIs, identified here by InChIKey — see note); the guard returns the
+  PRE-tautomer InChIKey (pinned literals, rdkit 2026.3.5); Nitisinone keto/enol
+  (`OUBCNLGXQFSTLU-UHFFFAOYSA-N` PubChem CID 115355 / `PMHVFNYNPNKNRO-UHFFFAOYSA-N`
+  CID 5289053, no /b layer) must STILL merge — passes today, regression guard.
+  - isoleucine / allo-isoleucine: `AGPKZVBTJJNPAG-WHFBIAKZSA-N` / `AGPKZVBTJJNPAG-UHNVWZDZSA-N`
+  - L- / D-aspartate: `CKLJMWTZIZZHCS-REOHCLBHSA-N` / `CKLJMWTZIZZHCS-UWTATZPHSA-N`
+  - threonine pair: `AYFVYJQAPQTCCC-STHAYSLISA-N` (as pinned at `7592f56`) / `AYFVYJQAPQTCCC-PWNYCUMCSA-N`
+
+  **Note (forward fix, CTO #122 §4, 2026-09-15).** This entry originally identified the
+  pairs by DrugBank accession; accessions are DrugBank record content and were replaced
+  with InChIKeys (this file was already on origin, so the change is forward-only). The
+  threonine labels above are DrugBank's and are wrong twice: the "L-" member is a
+  relative-stereo (`/s2`) string that the pipeline then keyed as D-threonine's
+  `…-STHAYSLISA-N` — since the relative-stereo re-key (`1b74814`) it keys stereo-free
+  `AYFVYJQAPQTCCC-UHFFFAOYSA-N` — and the "D-" member's structure is D-allothreonine
+  (PubChem CID 90624). Wording left as historical; the test rename is held (#122 §6).
 - `tests/test_merge_report.py`: `merge_stage_report` — one row per merge group with the
   stage it merges at (`upstream-duplicate | parse | salt | uncharge | tautomer`).
 

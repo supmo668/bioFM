@@ -467,9 +467,14 @@ class SplitGroup:
 
     key_before: str
     stage_before: str
-    members: tuple[tuple[str, str], ...]  # (drugbank_id, name)
+    #: (drugbank_id, name) — IN MEMORY ONLY. DrugBank record content (CTO #120/#122 §2):
+    #: never serialize to a tracked output; the journal mapping carries it.
+    members: tuple[tuple[str, str], ...]
     keys_after: tuple[str, ...]
     layers: tuple[str, ...]  # which of t/m/s the tautomer step altered, union over members
+    #: Each member's canonical key after the guard, aligned with `members`. This, not
+    #: the id/name pair, is how a tracked report identifies a member (CTO #122 §2).
+    member_keys: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -534,6 +539,7 @@ def guard_effect(compounds: pd.DataFrame) -> GuardEffect:
                     members=tuple((i, by_id[i][2]) for i in row.drugbank_ids),
                     keys_after=tuple(sorted(keys_after)),
                     layers=tuple(sorted(altered)),
+                    member_keys=tuple(after_key_of[i] for i in row.drugbank_ids),
                 )
             )
     new_merges = []
