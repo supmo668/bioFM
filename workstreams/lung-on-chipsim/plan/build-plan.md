@@ -437,7 +437,37 @@ done-conditions passed.
       """Adds `canonical_inchikey`. Raises if any value is null."""
   ```
   **T10, T13 and T15 index on `canonical_inchikey`, not the raw snapshot key.**
-- **Done when** a known salt / free-base pair collapses to one `canonical_inchikey`, the column is non-null on every row, and a raw-vs-canonical disagreement count is reported. **Plus (r2.12, corrected r2.13):** **L-threonine and D-allothreonine** stay distinct, the benzimidazole 1H/3H tautomers stay merged, and the malate pair's split is asserted by a named accepted-loss test.
+- **Done when** a known salt / free-base pair collapses to one `canonical_inchikey`, the column is non-null on every row, and a raw-vs-canonical disagreement count is reported. **Plus (r2.12, corrected r2.13, extended r2.14):**
+  (i) the benzimidazole 1H/3H tautomers stay merged, and the malate pair's split is asserted by a named accepted-loss test;
+  (ii) **relative-stereo handling:** a source InChI declaring `/s2` is keyed with its **tetrahedral stereo stripped** (`/b` retained — double-bond geometry is always absolute), `stereo_is_relative` is emitted as a `bool` column by both `add_canonical_identity` paths, **is listed in `PERSISTED_COMPOUND_COLUMNS`** so T5a cannot drop it, and `MERGE_STAGES` carries a `relative-stereo` stage immediately after `parse`;
+  (iii) the threonine test pins its members **by InChIKey, not by name** — the stereo-free threonine key (PubChem CID 205) and `AYFVYJQAPQTCCC-PWNYCUMCSA-N` (D-allothreonine, CID 90624).
+
+> **r2.14 — the source's own stereo flag, and why the condition now names keys instead of compounds.**
+> An InChI's `/s` layer declares whether its sp3 stereo is absolute (`/s1`) or **relative** (`/s2`).
+> The snapshot holds **42 `/s2` strings and no `/s3`**, and the pipeline keyed **all 42 as absolute**
+> — RDKit reads `/s2` as `/m0`. Of the 31 with comparable centre sets, **13 received the mirror
+> image**, including single-enantiomer drugs (dextropropoxyphene, dexetimide, dolutegravir, ethinyl
+> estradiol, mestranol). Nothing errored: this is the key T10/T13/T15 join on. **Principal ruling
+> 2026-09-15: assert nothing the source does not — strip tetrahedral stereo for `/s2` input and flag
+> it.** Accepted consequence, stated rather than buried: **esomeprazole now merges with omeprazole**,
+> because DrugBank records esomeprazole with relative stereo, so on this snapshot's evidence the
+> study cannot distinguish the single S-enantiomer from the racemate. Three relative rows also
+> *separate* from absolute rows they had matched by RDKit's arbitrary assignment.
+> **The source's D-/L- labels are wrong at scale, measured and then classified.** Of 134 rows whose
+> name carries a `D-`/`L-` prefix, 59 resolve against PubChem for both enantiomers. Of those, **11
+> are genuine label errors on rows whose stereo is absolute** — D-leucine, D-alanine, D-glutamine,
+> D-glutamic acid, D-proline, D-cysteine, D-lysine, D-treitol, D-tyrosine and D-arginine all carry
+> **L** structures, and one `L-`-prefixed boronic-acid alanine keys as **D**. The re-key does not
+> touch these: they were absolute already, and they key the same before and after. A twelfth
+> contradiction, "L-Threonine", **was** an artifact of the old absolute reading of a relative string
+> and is fixed by (ii). A thirteenth is unresolved and not counted. A further 75 rows could not be
+> resolved either way, so **11 is a floor, not a total**.
+> This is why (iii) pins InChIKeys: **a condition that names a compound inherits the source's
+> labelling errors, and this source mislabels a substantial fraction of its stereoisomers.** Every
+> label-bearing output — worksheet `name`, roster entries, model cards — must be treated as
+> unreliable wherever the label disagrees with the key, **and the key is what joins**. The two
+> classes must not be conflated: one is a source defect the pipeline can only report, the other was
+> a pipeline defect the pipeline has fixed.
 
 > **r2.13 — the snapshot mislabels DB03700, and r2.12 inherited the error.** r2.12's condition said
 > "L-/D-threonine". DrugBank's `DB03700`, named *D-Threonine*, carries
