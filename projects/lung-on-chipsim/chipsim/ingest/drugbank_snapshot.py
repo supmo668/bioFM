@@ -308,29 +308,58 @@ def vendored_offenders(tracked_paths, *, root: Path | None = None) -> list[str]:
 #: test fixtures use is excluded by the lookahead, so fixtures never match.
 REAL_ACCESSION_RE = re.compile(r"\bDB(?!9\d{4}\b)\d{5}\b")
 
-#: Tracked project files that may carry real accessions, each by ruling. Every
-#: other tracked file uses the synthetic DB9nnnn range.
-DRUGBANK_ID_EXCEPTIONS = frozenset(
+#: Every path below is relative to the REPOSITORY root, because the scan walks the whole
+#: repository (CTO #122 §5). The keys used to be project-relative; under a repo-root walk
+#: those would silently stop matching and the scan would report clean for the wrong reason.
+
+#: The sanctioned exclusion LEDGER (#120 §4): it may carry real accessions — a study that
+#: cannot name what it excluded cannot report its exclusions — but NOT an accession
+#: associated with a structure (see `ledger_tuple_hits`).
+DRUGBANK_ID_LEDGER = frozenset(
     {
         # The CLOSED unparseable-InChI roster: principal's ruling 2026-09-14,
         # "exclude these, recorded by ID".
-        "configs/unparseable_compounds.yaml",
+        "projects/lung-on-chipsim/configs/unparseable_compounds.yaml",
         # Its tests cite the same eight IDs — the roster is closed and the tests
         # pin that it raises on an unlisted failure and on a listed compound that
         # parses again, which cannot be written without naming the members.
-        "tests/test_unparseable_exclusions.py",
+        "projects/lung-on-chipsim/tests/test_unparseable_exclusions.py",
     }
 )
 
+#: Single FILES excluded by ruling. Named files, never patterns over a directory.
+DRUGBANK_ID_EXCLUDED_FILES = frozenset(
+    {
+        # Append-only approval log (CTO ruling 2026-09-16): rewriting a log to satisfy a
+        # scan falsifies the record the log exists to keep. The FILE only — build-plan.md
+        # beside it stays in scope, so its accessions are fixed rather than excused.
+        "workstreams/lung-on-chipsim/plan/plan-approval-log.md",
+    }
+)
+
+#: Dispatch payloads at any depth under .claude/usr/ (#122 §3): coordination records.
+#: Redacting a sent message falsifies the audit trail of the rulings it carries.
+_DISPATCH_PAYLOAD_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+$")
+
+#: Union kept for callers that only need membership of the named files.
+DRUGBANK_ID_EXCEPTIONS = DRUGBANK_ID_LEDGER | DRUGBANK_ID_EXCLUDED_FILES
+
+
+def is_accession_excluded(rel: str) -> bool:
+    """True when a repo-relative path is in the ruled exclusion set — and nothing else is:
+    the ledger pair, the named excluded files, and dispatch payloads."""
+    rel = str(rel)
+    return rel in DRUGBANK_ID_EXCEPTIONS or bool(_DISPATCH_PAYLOAD_RE.match(rel))
+
 
 def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
-    """(path, first real accession) for every tracked text file outside the declared
-    exceptions that carries a real DrugBank ID. The data/raw/ rule above sees only
-    data/raw/; this is the project-tree half of "never redistributes" (QG-9).
-    Binary files (undecodable as UTF-8) are skipped."""
+    """(path, first real accession) for every tracked text file outside the ruled
+    exclusions that carries a real DrugBank ID. `root` is the REPOSITORY root and
+    `paths` are repo-relative (CTO #122 §5); the old project-rooted scan never saw
+    `workstreams/` or `.claude/`. Binary files (undecodable as UTF-8) are skipped."""
     hits: list[tuple[str, str]] = []
     for rel in paths:
-        if rel in DRUGBANK_ID_EXCEPTIONS:
+        if is_accession_excluded(rel):
             continue
         target = Path(root) / rel
         if not target.is_file():
@@ -342,6 +371,51 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
         found = REAL_ACCESSION_RE.search(text)
         if found:
             hits.append((rel, found.group(0)))
+    return hits
+
+
+#: A structure identifier: a full InChI, or an InChIKey. A key beside an accession is as
+#: much an association as the full string — it identifies the same molecule.
+_STRUCTURE_RE = re.compile(r"InChI=1S?/\S+|\b[A-Z]{14}-[A-Z]{10}-[A-Z]\b")
+
+#: How far apart, in lines, an accession and a structure may sit and still be one
+#: association. Two lines each way: a comment that names an accession on one line and gives
+#: "its full string" on the next is the case this exists for.
+_TUPLE_WINDOW = 2
+
+
+def accession_structure_tuples(text: str, window: int = _TUPLE_WINDOW) -> list[tuple[int, str, str]]:
+    """(1-based line of the accession, accession, structure) for every real accession that
+    sits within `window` lines of a structure identifier.
+
+    This is the ASSOCIATION half of the record-content invariant (CTO #120 §1): an accession
+    alone is identification, a structure alone is a public identifier, and the two together
+    are DrugBank's row. A plain "no structure in this file" rule would be wrong — a file can
+    legitimately hold a structure that belongs to no accession.
+    """
+    lines = text.splitlines()
+    structures = [(i, m.group(0)) for i, line in enumerate(lines) for m in _STRUCTURE_RE.finditer(line)]
+    found: list[tuple[int, str, str]] = []
+    seen: set[tuple[int, str]] = set()
+    for i, line in enumerate(lines):
+        for match in REAL_ACCESSION_RE.finditer(line):
+            near = [s for j, s in structures if abs(j - i) <= window]
+            if near and (i, match.group(0)) not in seen:
+                seen.add((i, match.group(0)))
+                found.append((i + 1, match.group(0), near[0]))
+    return found
+
+
+def ledger_tuple_hits(root: Path) -> list[tuple[str, int, str]]:
+    """(repo-relative path, line, accession) for every accession/structure association in
+    the sanctioned exclusion ledger (#120 §4: keep the accessions, drop the structures)."""
+    hits: list[tuple[str, int, str]] = []
+    for rel in sorted(DRUGBANK_ID_LEDGER):
+        target = Path(root) / rel
+        if not target.is_file():
+            continue
+        for line, accession, _ in accession_structure_tuples(target.read_text(encoding="utf-8")):
+            hits.append((rel, line, accession))
     return hits
 
 

@@ -451,16 +451,9 @@ def test_vendoring_rule_accepts_a_real_pointer(tmp_path):
 # --- no real DrugBank accession outside the declared exceptions (QG-9) ---------
 
 
-def test_no_real_drugbank_accession_is_tracked_outside_the_declared_exceptions():
-    """The anti-vendoring rule used to look only under data/raw/. A real DrugBank
-    accession (DBnnnnn outside the synthetic DB9nnnn fixture range) anywhere else
-    in the tracked project tree is redistributed content unless it is on the
-    declared-exception list (the principal-ruled closed exclusion roster).
-    """
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=PROJECT_ROOT, capture_output=True, text=True, check=True
-    ).stdout.split()
-    assert real_accession_hits(PROJECT_ROOT, tracked) == []
+# The tracked-tree accession scan moved to tests/test_record_content_guard.py and now runs
+# from the REPOSITORY root (CTO #122 §5). The project-rooted version here could never see
+# workstreams/ or .claude/, and under repo-relative exception keys it would flag the ledger.
 
 
 def test_real_accession_scan_catches_a_real_id_and_ignores_synthetic_ones(tmp_path):
