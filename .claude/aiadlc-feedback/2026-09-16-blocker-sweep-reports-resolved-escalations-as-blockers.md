@@ -31,6 +31,23 @@ This is the failure mode the plugin's own guidance warns about elsewhere: a chec
 cannot distinguish "needs action" from "already handled" trains the reader to skim it, and the next
 real blocker is skimmed with it.
 
+## Stronger evidence, measured an hour later: 27 lines, ZERO actionable
+
+After acting on the only two genuinely open items (`#131`, `#132` — both `read`, both since
+resolved), the sweep was re-run:
+
+```
+$ blocker-sweep | grep '^BLOCKER' | grep -v '/resolved'     # genuinely open
+(no output)
+$ blocker-sweep | grep -c '^BLOCKER'                        # lines printed
+27
+```
+
+**Twenty-seven `BLOCKER` lines, none of them open**, each with a matching
+`ESCALATE principal #<id>  (agent blocked — clear it or flow up)` recommending that a closed item be
+escalated to the human. The tool's self-nudge header reads "never rest until ALL is clear" — a state
+that, with this filter, can never be reached: resolving an item does not remove its line.
+
 ## Repro
 
 1. Resolve several escalation-type dispatches (`dispatch resolve <id>`).
