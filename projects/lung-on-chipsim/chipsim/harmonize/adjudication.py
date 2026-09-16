@@ -65,14 +65,6 @@ WRITTEN_COLUMNS = (
 #: `name`. A tracked `name` beside a `canonical_inchikey` is the (name, structure) association
 #: the principal's record-content invariant protects; the reviewer's names live in the
 #: generated, UNTRACKED worksheet instead.
-TRACKED_COLUMNS = (
-    "canonical_inchikey",
-    "adjudicated_label",
-    "evidence_doi",
-    "adjudicated_by",
-    "adjudicated_on",
-)
-
 #: The columns T13 must never overwrite once non-empty.
 HUMAN_OWNED_COLUMNS = (
     "adjudicated_label",
@@ -80,6 +72,16 @@ HUMAN_OWNED_COLUMNS = (
     "adjudicated_by",
     "adjudicated_on",
 )
+
+#: DERIVED, never re-listed (QG G-09): the tracked file is the key plus the human's own cells.
+#: Spelling it out a second time let the projection and the refusal drift apart — the export
+#: refused columns outside WRITTEN_COLUMNS while actually dropping WRITTEN_COLUMNS minus these,
+#: so a column added to either tuple would have been dropped silently rather than refused.
+TRACKED_COLUMNS = ("canonical_inchikey", *HUMAN_OWNED_COLUMNS)
+
+#: What the export drops BY DESIGN. Pinned here (and named in the docstring, which a test checks
+#: against this tuple) so the omission stays legible if either schema changes.
+EXPORT_DROPPED_COLUMNS = tuple(c for c in WRITTEN_COLUMNS if c not in TRACKED_COLUMNS)
 
 #: The post-adjudication label domain. 'no' becomes assignable HERE, and only
 #: with a citation.
@@ -91,6 +93,43 @@ CITED_LABELS = frozenset({"yes", "no"})
 
 class AdjudicationError(RuntimeError):
     """The adjudication worksheet is incomplete, inconsistent, or unusable."""
+
+
+def _relative_by_key(compounds: pd.DataFrame) -> pd.Series:
+    """Per canonical key: True when ANY member row is relative-stereo (QG G-03).
+
+    The flag is REFUSED rather than coerced when it is not a real boolean column. `.astype(bool)`
+    goes by Python truthiness, so a frame round-tripped through CSV — `dtype=str` is this
+    project's own convention for reading these files — turned the strings "False" into True and
+    reported every compound as stereo-unspecified, with no error anywhere and T17 receiving it as
+    fact. A NaN column did the same. Guessing here is exactly the silent-default failure the
+    generated-column class exists to prevent.
+    """
+    if "canonical_inchikey" not in compounds.columns:
+        raise AdjudicationError("compounds must carry `canonical_inchikey` (T5b)")
+    if "stereo_is_relative" not in compounds.columns:
+        raise AdjudicationError(
+            "compounds must carry `stereo_is_relative` — run add_canonical_identity() (T5b) "
+            "after the relative-stereo re-key (CTO #122 §0). A frame without the flag predates "
+            "the re-key, and the worksheet would tell the reviewer nothing about identities the "
+            "source leaves unspecified."
+        )
+
+    flag = compounds["stereo_is_relative"]
+    if not pd.api.types.is_bool_dtype(flag):
+        raise AdjudicationError(
+            "compounds `stereo_is_relative` must be a real boolean column, not "
+            f'{flag.dtype!r}. Refusing to coerce: every non-empty string (including "False") '
+            "is truthy, so a frame read back from CSV would report EVERY compound as "
+            "relative-stereo and T17 would receive that as fact. Rebuild it with "
+            "add_canonical_identity() (T5b), or cast the column deliberately."
+        )
+
+    return (
+        compounds.loc[:, ["canonical_inchikey", "stereo_is_relative"]]
+        .groupby("canonical_inchikey")["stereo_is_relative"]
+        .any()
+    )
 
 
 def _blank(value: object) -> bool:
@@ -171,13 +210,8 @@ def write_adjudication_worksheet(
     if "canonical_inchikey" not in compounds.columns:
         raise AdjudicationError("compounds must carry `canonical_inchikey` (T5b)")
 
-    if "stereo_is_relative" not in compounds.columns:
-        raise AdjudicationError(
-            "compounds must carry `stereo_is_relative` — run add_canonical_identity() (T5b) "
-            "after the relative-stereo re-key (CTO #122 §0). A frame without the flag predates "
-            "the re-key, and the worksheet would tell the reviewer nothing about identities the "
-            "source leaves unspecified."
-        )
+    # Refuses a missing or non-boolean flag column (QG G-03), shared with T15.
+    relative_by_key = _relative_by_key(compounds)
 
     # A duplicated labels index writes duplicate rows, after which EVERY later
     # regeneration dies in reindex with a bare pandas error naming neither the file
@@ -196,14 +230,6 @@ def write_adjudication_worksheet(
             f"{len(absent)} labelled key(s) are missing from `compounds`, so no name "
             f"can be rendered for them: {absent[:5]}" + (" ..." if len(absent) > 5 else "")
         )
-
-    # Generated, per key, from the CURRENT frame — never read back from the prior sheet.
-    relative_by_key = (
-        compounds.loc[:, ["canonical_inchikey", "stereo_is_relative"]]
-        .astype({"stereo_is_relative": bool})
-        .groupby("canonical_inchikey")["stereo_is_relative"]
-        .any()
-    )
 
     # Over EVERY member name of a key, not the first (QG F-01): a correctly-named row must not
     # hide a mislabelled one, and the verdict must not depend on row order.
@@ -298,9 +324,9 @@ def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
     without saying so loses their work invisibly. Emptiness is not intent: an empty added
     column is refused too, because the column exists only because someone made it.
 
-    Generated columns — `name`, `snapshot_label`, `stereo_is_relative` and
-    `label_disagrees_with_key` — are dropped BY DESIGN and named here so the omission is
-    legible. `name` is dropped because the tracked file must not carry the (name, structure)
+    Dropped BY DESIGN and named here so the omission is legible — `name`, `snapshot_label`,
+    `stereo_is_relative`, `label_disagrees_with_key` (a test pins this list against
+    EXPORT_DROPPED_COLUMNS, so the two cannot drift apart). `name` is dropped because the tracked file must not carry the (name, structure)
     association; the other three are regenerated on every write and would go stale if tracked.
 
     Why a helper rather than a manual step (T14, r2.18): "move to configs/" would otherwise
@@ -309,6 +335,18 @@ def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
     deliberately.
     """
     worksheet, out = Path(worksheet), Path(out)
+
+    # Re-running the export on its own output used to fail with "missing column(s): ['name',
+    # 'snapshot_label']" — telling the human to ADD `name` to the one file whose design point is
+    # that it must never carry it (QG G-08).
+    header = pd.read_csv(worksheet, nrows=0).columns.tolist()
+    if tuple(header) == TRACKED_COLUMNS:
+        raise AdjudicationError(
+            f"{worksheet} is already the tracked five-column projection, so there is nothing to "
+            "export. Re-export from the reviewer's worksheet (data/interim/pgp_adjudication.csv) "
+            "if you need to refresh it."
+        )
+
     frame = _read_worksheet(worksheet)
 
     added = [c for c in frame.columns if c not in WRITTEN_COLUMNS]
@@ -324,6 +362,40 @@ def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
         raise AdjudicationError(f"{worksheet} is missing column(s): {missing}")
 
     tracked = frame.loc[:, list(TRACKED_COLUMNS)]
+
+    # NEVER-CLOBBER, extended to the tracked file (QG G-01; defect 22's rule, one file over).
+    # Measured before this guard existed: exporting a BLANK worksheet over a filled tracked file
+    # left 0 of 24 verdicts and returned 24, which reads as success. It needs no carelessness —
+    # the git-ignored worksheet is lost (clean checkout, DVC re-pull, new machine), T13
+    # regenerates it blank WITHOUT error, and a re-export to "refresh configs/" destroys the
+    # adjudication. Refused, never merged: unlike the worksheet, this file is the published
+    # record, and quietly healing it would hide that the worksheet is the stale one.
+    if out.exists():
+        prior = _read_tracked_adjudication(out)
+        new_by_key = tracked.set_index("canonical_inchikey")
+        blanked: list[str] = []
+        for key, row in prior.set_index("canonical_inchikey").iterrows():
+            if key not in new_by_key.index:
+                blanked.append(str(key))
+                continue
+            fresh = new_by_key.loc[key]
+            blanked += [
+                str(key)
+                for column in HUMAN_OWNED_COLUMNS
+                if not _blank(row[column]) and _blank(fresh[column])
+            ][:1]
+        if blanked:
+            unique = sorted(set(blanked))
+            raise AdjudicationError(
+                f"refusing to export: {len(unique)} key(s) carry human work in {out} that this "
+                f"projection would blank or drop, e.g. {unique[:5]}"
+                + (" ..." if len(unique) > 5 else "")
+                + ". The worksheet being exported is older than the tracked file — most often the "
+                "interim worksheet was regenerated empty after data/interim/ was lost. Recover "
+                "the worksheet (write_adjudication_worksheet merges the tracked verdicts back in) "
+                "rather than publishing over them."
+            )
+
     out.parent.mkdir(parents=True, exist_ok=True)
 
     # Atomic publish, as for the worksheet: `out` is the tracked record of irreplaceable
@@ -398,23 +470,12 @@ def adjudicate_pgp_labels(
 
     Also writes data/processed/pgp_labels.parquet, which T17 reads (defect 25).
     """
-    worksheet = Path(adjudication)
-    frame = _read_tracked_adjudication(worksheet)
+    tracked = Path(adjudication)
+    frame = _read_tracked_adjudication(tracked)
 
-    if "stereo_is_relative" not in compounds.columns:
-        raise AdjudicationError(
-            "compounds must carry `stereo_is_relative` — run add_canonical_identity() (T5b) "
-            "after the relative-stereo re-key (CTO #122 §0). Without it T17 could not tell "
-            "'this identity is stereo-unspecified' from 'this compound is not relative', and a "
-            "frame that predates the re-key would silently report neither."
-        )
-
-    relative_by_key = (
-        compounds.loc[:, ["canonical_inchikey", "stereo_is_relative"]]
-        .astype({"stereo_is_relative": bool})
-        .groupby("canonical_inchikey")["stereo_is_relative"]
-        .any()
-    )
+    # Refuses a missing or non-boolean flag column, and names a missing `canonical_inchikey` the
+    # way T13 does rather than dying on a bare KeyError (QG G-03, G-10).
+    relative_by_key = _relative_by_key(compounds)
     unknown = sorted(set(frame["canonical_inchikey"]) - set(relative_by_key.index))
     if unknown:
         raise AdjudicationError(
@@ -429,24 +490,27 @@ def adjudicate_pgp_labels(
 
     if not filled.any():
         raise AdjudicationError(
-            f"{worksheet} is wholly unadjudicated — no row has an adjudicated_label. "
+            f"{tracked} is wholly unadjudicated — no row has an adjudicated_label. "
             "An empty cell is an INCOMPLETE verdict, not an 'unknown' one (defect 6); "
-            "returning all-'unknown' here would make a blank worksheet indistinguishable "
-            "from a completed one."
+            "returning all-'unknown' here would make a blank file indistinguishable from a "
+            "completed one. Fix the reviewer's worksheet and re-run "
+            "export_tracked_adjudication() — do not hand-edit this file, which is how a `name` "
+            "column reaches it."
         )
     if not filled.all():
         blanks = frame.loc[~filled, "canonical_inchikey"].tolist()
         raise AdjudicationError(
-            f"{worksheet} is partially adjudicated: {len(blanks)} row(s) have an empty "
+            f"{tracked} is partially adjudicated: {len(blanks)} row(s) have an empty "
             f"adjudicated_label, e.g. {blanks[:5]}. Leave a genuinely uncertain compound "
-            "as the explicit string 'unknown'; do not leave the cell blank."
+            "as the explicit string 'unknown'; do not leave the cell blank. Fix the reviewer's "
+            "worksheet and re-run export_tracked_adjudication() rather than editing this file."
         )
 
     values = frame["adjudicated_label"].str.strip()
     outside = sorted(set(values) - ADJUDICATED_LABELS)
     if outside:
         raise AdjudicationError(
-            f"{worksheet} carries adjudicated_label value(s) outside "
+            f"{tracked} carries adjudicated_label value(s) outside "
             f"{sorted(ADJUDICATED_LABELS)}: {outside}"
         )
 
@@ -455,7 +519,7 @@ def adjudicate_pgp_labels(
         offenders = cited.loc[cited[column].map(_blank), "canonical_inchikey"].tolist()
         if offenders:
             raise AdjudicationError(
-                f"{worksheet}: {len(offenders)} row(s) carry a 'yes'/'no' verdict with an "
+                f"{tracked}: {len(offenders)} row(s) carry a 'yes'/'no' verdict with an "
                 f"empty `{column}`, e.g. {offenders[:5]}. A positive or negative claim "
                 "without attribution cannot be audited."
             )
@@ -464,7 +528,7 @@ def adjudicate_pgp_labels(
     for group in ("yes", "no"):
         if counts.get(group, 0) == 0:
             raise AdjudicationError(
-                f"{worksheet} has an empty '{group}' group "
+                f"{tracked} has an empty '{group}' group "
                 f"(counts: {counts.to_dict()}). The M5 grouping variable is unusable "
                 "with only one populated group (defect 24)."
             )
