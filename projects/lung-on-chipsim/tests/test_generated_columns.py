@@ -136,13 +136,21 @@ def test_generated_columns_follow_snapshot_label_in_the_written_sheet(tmp_path):
     assert GENERATED_COLUMNS == ("stereo_is_relative", "label_disagrees_with_key")
     labels, compounds = _labels_and_compounds()
     out = tmp_path / "w.csv"
-    write_adjudication_worksheet(labels, compounds, out, label_reference=load_label_reference(_reference_file(tmp_path)))
+    write_adjudication_worksheet(
+        labels, compounds, out, label_reference=load_label_reference(_reference_file(tmp_path))
+    )
     frame = pd.read_csv(out, dtype=str, keep_default_na=False)
     assert list(frame.columns) == list(WRITTEN_COLUMNS)
     assert list(WRITTEN_COLUMNS) == [
-        "canonical_inchikey", "name", "snapshot_label",
-        "stereo_is_relative", "label_disagrees_with_key",
-        "adjudicated_label", "evidence_doi", "adjudicated_by", "adjudicated_on",
+        "canonical_inchikey",
+        "name",
+        "snapshot_label",
+        "stereo_is_relative",
+        "label_disagrees_with_key",
+        "adjudicated_label",
+        "evidence_doi",
+        "adjudicated_by",
+        "adjudicated_on",
     ]
     by_key = frame.set_index("canonical_inchikey")
     assert by_key.loc["FIXTURECMPDAAB-FIXTUREKEY-N", "stereo_is_relative"] == "True"
@@ -240,7 +248,9 @@ def test_a_regenerated_sheet_round_trips_through_read_worksheet_unchanged(tmp_pa
 def test_t13_refuses_compounds_without_the_flag(tmp_path):
     labels, compounds = _labels_and_compounds()
     with pytest.raises(AdjudicationError, match="stereo_is_relative"):
-        write_adjudication_worksheet(labels, compounds.drop(columns="stereo_is_relative"), tmp_path / "w.csv")
+        write_adjudication_worksheet(
+            labels, compounds.drop(columns="stereo_is_relative"), tmp_path / "w.csv"
+        )
 
 
 # --- T15: raise on a legacy sheet; carry the flag ----------------------------------------
@@ -256,9 +266,9 @@ def test_t15_refuses_a_worksheet_where_the_tracked_file_belongs(tmp_path):
     """
     compounds = pd.DataFrame(
         {
-            "canonical_inchikey": pd.read_csv(
-                FIXTURES / "pgp_adjudication_filled.csv", dtype=str
-            )["canonical_inchikey"],
+            "canonical_inchikey": pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str)[
+                "canonical_inchikey"
+            ],
             "name": "FIXTURE-NAME",
             "stereo_is_relative": False,
         }
@@ -266,8 +276,10 @@ def test_t15_refuses_a_worksheet_where_the_tracked_file_belongs(tmp_path):
     with pytest.raises(AdjudicationError) as exc:
         adjudicate_pgp_labels(FIXTURES / "pgp_adjudication_filled.csv", compounds)
     message = str(exc.value)
-    assert "name" in message
-    assert "export_tracked_adjudication" in message
+    # The refusal template mentions `name` unconditionally, so asserting the word proved nothing
+    # (QG G-12). Assert the columns the refusal actually LISTED.
+    assert "'name'" in message and "'snapshot_label'" in message
+    assert "outside the tracked schema" in message
 
 
 def test_t15_writes_the_flag_into_the_label_parquet(tmp_path):
@@ -300,4 +312,6 @@ def test_t10_refuses_a_compounds_frame_without_the_flag(panel_ratified_path, fix
     compounds = add_canonical_identity(load_compounds(snapshot, min_rows=0))
     edges = barrier_panel_edges(load_protein_edges(snapshot, min_rows=0), panel_ratified_path)
     with pytest.raises(ValueError, match="stereo_is_relative"):
-        pgp_substrate_label(compounds.drop(columns="stereo_is_relative"), edges, panel_ratified_path)
+        pgp_substrate_label(
+            compounds.drop(columns="stereo_is_relative"), edges, panel_ratified_path
+        )

@@ -51,7 +51,9 @@ def test_every_committed_entry_has_distinct_l_and_d_keys_sharing_a_skeleton():
 
 def _table(tmp_path: Path, entries: list[dict]) -> Path:
     path = tmp_path / "ref.yaml"
-    path.write_text(yaml.safe_dump({"retrieved_on": "2026-09-16", "source": "x", "entries": entries}))
+    path.write_text(
+        yaml.safe_dump({"retrieved_on": "2026-09-16", "source": "x", "entries": entries})
+    )
     return path
 
 
