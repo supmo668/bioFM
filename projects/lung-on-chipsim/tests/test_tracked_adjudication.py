@@ -474,3 +474,35 @@ def test_the_real_tracked_adjudication_file_if_present_carries_no_name_column():
         f"{real} must carry exactly {list(TRACKED_COLUMNS)}; found {list(header)}. Produce it "
         "with export_tracked_adjudication(), never by hand."
     )
+
+
+def test_the_module_reader_carries_the_flag_through_the_parquet(tmp_path):
+    """QG G-19 (CTO ruling). T15 writes the flag "so T17 receives it"; before this, the module's
+    own reader dropped it and a caller had to bypass the module to get it back."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame, read_pgp_labels
+
+    keys = _keys("filled")
+    flagged = keys[2]
+    compounds = _compounds(keys, relative=[k == flagged for k in keys])
+    out = tmp_path / "pgp_labels.parquet"
+    series = adjudicate_pgp_labels(_tracked("filled"), compounds, parquet_out=out)
+
+    frame = read_pgp_label_frame(out)
+    assert frame["stereo_is_relative"].dtype == bool
+    assert frame.loc[flagged, "stereo_is_relative"]
+    assert frame["stereo_is_relative"].sum() == 1
+    assert frame.index.name == "canonical_inchikey"
+    pd.testing.assert_series_equal(frame["adjudicated_label"], series)
+    pd.testing.assert_series_equal(read_pgp_labels(out), series)
+
+
+def test_a_label_parquet_without_the_flag_is_refused_by_the_frame_reader(tmp_path):
+    """A pre-re-key label set must not read as "nothing is relative-stereo"."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame
+
+    legacy = pd.DataFrame({"adjudicated_label": ["yes"]}, index=["FIXTURECMPDAAA-FIXTUREKEY-N"])
+    legacy.index.name = "canonical_inchikey"
+    path = tmp_path / "legacy.parquet"
+    legacy.to_parquet(path, engine="pyarrow")
+    with pytest.raises(AdjudicationError, match="stereo_is_relative"):
+        read_pgp_label_frame(path)

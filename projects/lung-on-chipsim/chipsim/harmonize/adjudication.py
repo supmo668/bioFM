@@ -552,9 +552,33 @@ def adjudicate_pgp_labels(
     return series
 
 
-def read_pgp_labels(parquet_path: Path) -> pd.Series:
-    """Round-trip counterpart to adjudicate_pgp_labels' parquet write."""
+def read_pgp_label_frame(parquet_path: Path) -> pd.DataFrame:
+    """Verdicts AND `stereo_is_relative`, as T15 wrote them (QG G-19).
+
+    T15 writes the flag into the parquet specifically "so T17 receives it", but the module's only
+    reader returned the verdict Series and dropped it, so any caller wiring T15 -> T17 had to
+    bypass this module and call `pd.read_parquet` itself — re-implementing the dtype and index
+    guarantees at the call site. The round-trip test asserted the Series alone, so the gap was
+    invisible from the suite.
+    """
     frame = pd.read_parquet(parquet_path, engine="pyarrow")
-    series = frame["adjudicated_label"]
+    missing = [c for c in ("adjudicated_label", "stereo_is_relative") if c not in frame.columns]
+    if missing:
+        raise AdjudicationError(
+            f"{parquet_path} is missing column(s): {missing}. It predates the relative-stereo "
+            "re-key (CTO #122 §0); regenerate it with adjudicate_pgp_labels(..., parquet_out=...)."
+        )
+    frame.index.name = "canonical_inchikey"
+    frame["stereo_is_relative"] = frame["stereo_is_relative"].astype(bool)
+    return frame.loc[:, ["adjudicated_label", "stereo_is_relative"]]
+
+
+def read_pgp_labels(parquet_path: Path) -> pd.Series:
+    """Round-trip counterpart to adjudicate_pgp_labels' parquet write: the verdicts alone.
+
+    Kept returning a Series because that is what T17's counts take. A caller that needs the
+    relative-stereo flag uses `read_pgp_label_frame`, which carries both.
+    """
+    series = read_pgp_label_frame(parquet_path)["adjudicated_label"]
     series.index.name = "canonical_inchikey"
     return series
