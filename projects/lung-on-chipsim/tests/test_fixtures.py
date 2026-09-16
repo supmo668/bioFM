@@ -66,6 +66,9 @@ SHARED_NAMES = {
 FIXTURE_SUBDIRS = {
     "snapshot": {
         "README.md",
+        # Public-source citation for every fixture structure (CTO ruling 2026-09-16);
+        # kept in step with the TSVs by tests/test_fixture_sources.py.
+        "SOURCES.md",
         "drugbank.tsv",
         "drugbank-slim.tsv",
         "proteins.tsv",
