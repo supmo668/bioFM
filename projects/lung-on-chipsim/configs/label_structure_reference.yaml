@@ -16,6 +16,10 @@ excluded_as_drugbank_coined:
   - 1-naphthyl-2-acetamido-ethane boronic acid
   - '[(n-hydroxyamino)carbonyl]phenylalanine'
   - naphthyl-1-acetamido boronic acid alanine
+  quoted_deliberately: 'A deliberate, reasoned exception to the DrugBank-coined-titles
+    rule (CTO ruling on QG F-14, 2026-09-16), on the ledger precedent (#120 §4): these names
+    appear here with no structure and no accession beside them — identification without
+    association — and an exclusion nobody can name is an exclusion nobody can audit.'
   reason: 'PubChem resolves these, so admission was not a rule violation — but they
     read as DrugBank record titles rather than names a chemist would use, and the
     invariant test is ''would this string exist if DrugBank did not?'' (CTO #122 §1).'
