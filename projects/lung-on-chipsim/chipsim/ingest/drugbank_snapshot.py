@@ -383,7 +383,9 @@ _STRUCTURE_RE = re.compile(r"InChI=1S?/\S+|\b[A-Z]{14}-[A-Z]{10}-[A-Z]\b")
 _TUPLE_WINDOW = 2
 
 
-def accession_structure_tuples(text: str, window: int = _TUPLE_WINDOW) -> list[tuple[int, str, str]]:
+def accession_structure_tuples(
+    text: str, window: int = _TUPLE_WINDOW
+) -> list[tuple[int, str, str]]:
     """(1-based line of the accession, accession, structure) for every real accession that
     sits within `window` lines of a structure identifier.
 
@@ -393,7 +395,9 @@ def accession_structure_tuples(text: str, window: int = _TUPLE_WINDOW) -> list[t
     legitimately hold a structure that belongs to no accession.
     """
     lines = text.splitlines()
-    structures = [(i, m.group(0)) for i, line in enumerate(lines) for m in _STRUCTURE_RE.finditer(line)]
+    structures = [
+        (i, m.group(0)) for i, line in enumerate(lines) for m in _STRUCTURE_RE.finditer(line)
+    ]
     found: list[tuple[int, str, str]] = []
     seen: set[tuple[int, str]] = set()
     for i, line in enumerate(lines):

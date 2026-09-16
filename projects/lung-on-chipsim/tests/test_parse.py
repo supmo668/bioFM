@@ -431,9 +431,7 @@ def test_t5b_benzimidazole_tautomers_still_merge_because_b_is_not_compared():
 #: structure has a PubChem record (checked by exact-InChI lookup, 2026-09-15), so there
 #: is no public name to cite: the pre-tautomer keys below are the identification.
 MALATE_MONOANION = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h2,5H,1H2,(H,6,7)(H,8,9)/p-1/t2-/m1/s1"
-MALATE_DIANION_TAUTOMER = (
-    "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h1-2,5-7H,(H,8,9)/p-2/t2-/m1/s1"
-)
+MALATE_DIANION_TAUTOMER = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h1-2,5-7H,(H,8,9)/p-2/t2-/m1/s1"
 
 
 def test_malate_pair_splits_known_accepted_loss():

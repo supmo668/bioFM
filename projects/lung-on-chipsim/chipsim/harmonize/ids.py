@@ -615,8 +615,14 @@ def relative_stereo_effect(compounds: pd.DataFrame) -> RelativeStereoEffect:
         raise ValueError("compounds frame has no `inchi` column")
     ids = [str(i) for i in compounds["drugbank_id"]]
     inchis = list(compounds["inchi"])
-    off = {i: canonicalize(s, strip_relative_stereo=False).inchikey for i, s in zip(ids, inchis, strict=True)}
-    on = {i: canonicalize(s, strip_relative_stereo=True).inchikey for i, s in zip(ids, inchis, strict=True)}
+    off = {
+        i: canonicalize(s, strip_relative_stereo=False).inchikey
+        for i, s in zip(ids, inchis, strict=True)
+    }
+    on = {
+        i: canonicalize(s, strip_relative_stereo=True).inchikey
+        for i, s in zip(ids, inchis, strict=True)
+    }
 
     def _groups(key_of: dict[str, str]) -> dict[str, tuple[str, ...]]:
         by_key: dict[str, list[str]] = {}
@@ -650,7 +656,9 @@ def relative_stereo_keys(compounds: pd.DataFrame) -> frozenset[str]:
     must not read as "no relative-stereo compounds" — that is exactly how a dropped
     flag would pass every downstream check.
     """
-    missing = [c for c in ("canonical_inchikey", "stereo_is_relative") if c not in compounds.columns]
+    missing = [
+        c for c in ("canonical_inchikey", "stereo_is_relative") if c not in compounds.columns
+    ]
     if missing:
         raise ValueError(
             f"compounds frame lacks {missing}: run add_canonical_identity() (T5b) after the "

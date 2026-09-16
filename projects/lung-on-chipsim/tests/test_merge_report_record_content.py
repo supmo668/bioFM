@@ -95,10 +95,14 @@ def test_main_writes_the_mapping_into_the_journal_run_and_not_the_tracked_out_di
     assert (
         main(
             [
-                "--raw-dir", str(SNAPSHOT_DIR),
-                "--out", str(out),
-                "--project-root", str(root),
-                "--min-rows", "0",
+                "--raw-dir",
+                str(SNAPSHOT_DIR),
+                "--out",
+                str(out),
+                "--project-root",
+                str(root),
+                "--min-rows",
+                "0",
                 "--no-exclusions",
             ]
         )

@@ -68,7 +68,9 @@ def _rollup(breakdown: dict[str, int]) -> dict[str, int]:
     return dict(out)
 
 
-def report_payload(effect: GuardEffect, *, raw_dir: str, run_dir: str | None, excluded: int) -> dict:
+def report_payload(
+    effect: GuardEffect, *, raw_dir: str, run_dir: str | None, excluded: int
+) -> dict:
     """The TRACKED JSON payload. Members are canonical InChIKeys; no id, no name.
 
     Built field by field rather than from `asdict(effect)`: `asdict` would serialize
@@ -246,8 +248,12 @@ def main(argv: list[str] | None = None) -> int:
             excluded = len(dropped)
         effect = guard_effect(compounds)
         ns.out.mkdir(parents=True, exist_ok=True)
-        payload = report_payload(effect, raw_dir=str(ns.raw_dir), run_dir=str(run_dir), excluded=excluded)
-        (ns.out / "merge_report.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        payload = report_payload(
+            effect, raw_dir=str(ns.raw_dir), run_dir=str(run_dir), excluded=excluded
+        )
+        (ns.out / "merge_report.json").write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n"
+        )
         (ns.out / "merge_report.md").write_text(
             render_markdown(effect, raw_dir=str(ns.raw_dir), run_dir=str(run_dir))
         )
