@@ -272,25 +272,42 @@ collapsed to one canonical key. `canonical_inchikey` now compares the pre-tautom
 changed or vanished. **/b (double-bond geometry) is deliberately not compared**: measured, a
 /b-inclusive guard split true tautomers that share no stereocentre. Measured on the DrugBank 4.2
 snapshot (`workstreams/lung-on-chipsim/reports/2026-09-15-stereo-guard-tms/`, run
-`journal/20260915T094806Z-2fe6fafa`): the guard fires on 1,599 of 6,802 compounds (23.5%);
-merge groups 191 → 156; 41 groups split, 0 newly merged; tautomer-stage groups 48 → 7;
+`journal/20260915T221645Z-cc3521ea`): the guard fires on 1,576 of 6,802 compounds (23.2%);
+merge groups 192 → 154; 43 groups split, 0 newly merged; tautomer-stage groups 48 → 7;
 source-identical groups 100 → 101 (reclassification of a residual pair, not a new merge).
-`python -m chipsim.harmonize.merge_report` regenerates the report and lists every split
-group by name — that list, not the counts, is the record of reference.
+`python -m chipsim.harmonize.merge_report` regenerates the report, which identifies every
+split group's members by **canonical InChIKey** — that list, not the counts, is the record of
+reference. The id/name association is written to the run's journal directory (untracked), never
+to the report: DrugBank accessions and record titles are licensed record content.
 
-- **Accepted known loss — malate.** *Malate Ion* and *Malate Like Intermediate* are tautomers of
-  one compound whose pre-tautomer skeletons already differ (first InChIKey blocks
-  `BJEPYKJPYRNKOW` vs `QFBHYOKSQPPXHZ`); both carry `/t2-/m1/s1`, the tautomer step erases
-  it, the guard fires for each and they **split**. The guard cannot keep them together
-  without also re-merging true stereoisomers. Pinned by
+**These figures supersede an earlier set (1,599 fired; 191 → 156; 41 split).** The guard is now
+measured on relative-stereo-re-keyed identity on both sides, so the "without guard" baseline
+already contains the re-key's one merge, and the re-keyed compounds no longer carry an absolute
+configuration for the guard to protect. Same code, different baseline — not a correction of the
+earlier run.
+
+- **Relative-stereo source structures are keyed stereo-free.** InChI's stereo-type layer
+  distinguishes absolute (`/s1`) from RELATIVE (`/s2`) stereo; RDKit reads a `/s2` string as if it
+  were absolute, so the pipeline assigned an arbitrary absolute configuration to all **42** such
+  snapshot compounds — and, classified against PubChem by InChI layers, **13 came out as the
+  MIRROR IMAGE** (DrugBank's L-threonine row was keyed as D-threonine). Since the re-key, `/s2`
+  input is keyed **without sp3 stereo** and carries `stereo_is_relative`, which the persisted
+  frame, the T13 worksheet, the T15 label set and the T18 roster validator all honour. The honest
+  consequence: enantiomers the source never distinguished now **merge** — esomeprazole merges with
+  omeprazole, because DrugBank never stated esomeprazole's absolute configuration.
+- **Accepted known loss — malate.** The snapshot's malate **monoanion** (`/p-1`) and a **dianion
+  tautomer** (`/p-2`) are two charge states of one compound whose pre-tautomer skeletons already
+  differ (first InChIKey blocks `BJEPYKJPYRNKOW` vs `QFBHYOKSQPPXHZ`); both carry `/t2-/m1/s1`, the
+  tautomer step erases it, the guard fires for each and they **split**. The guard cannot keep them
+  together without also re-merging true stereoisomers. Pinned by
   `test_malate_pair_splits_known_accepted_loss` so the loss is a recorded limit, not a
   latent surprise.
-- **Ambiguous — two keto/enol pairs whose stereo does not correspond.** *Dicoumarol* |
-  *Bishydroxy[2H-1-benzopyran-2-one,1,2-benzopyrone]* (the diketo form carries `/t12-,13+`,
-  the bis-enol none) and *2-Oxalosuccinic Acid* | *4-Hydroxy-Aconitate Ion* (keto `/t2-/m1`,
-  enol `/b2-1-` + `/t4-/m0`). Both split under the ruled guard. They are recorded here as
-  **ambiguous** — neither "stereoisomers rightly separated" nor "tautomers wrongly split" —
-  and are not argued onto either side.
+- **Ambiguous — two keto/enol pairs whose stereo does not correspond.** *Dicoumarol*
+  (`KSKRYQVHJQRUNC-UHFFFAOYSA-N`, the bis-enol, no stereo) against its **diketo tautomer**
+  (`HIZKPJUTKKJDGA-BETUJISGSA-N`, carrying `/t12-,13+`); and *2-oxalosuccinic acid* |
+  *4-hydroxy-aconitate* (keto `/t2-/m1`, enol `/b2-1-` + `/t4-/m0`). Both split under the ruled
+  guard. They are recorded here as **ambiguous** — neither "stereoisomers rightly separated" nor
+  "tautomers wrongly split" — and are not argued onto either side.
 - **Aldose/ketose — out of scope, open.** The ruled guard separates both known pairs
   (*Dihydroxyacetone* | *(2R)-glyceraldehyde*; *Glyceraldehyde-3-phosphate* |
   *Dihydroxyacetone phosphate*), but **only because one member carries a stereocentre the
