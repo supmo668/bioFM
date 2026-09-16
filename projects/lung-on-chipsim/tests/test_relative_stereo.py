@@ -24,6 +24,10 @@ Structure provenance (every structure cites a public source — CTO #120 §1):
   - D-threonine for the defect pin: PubChem CID 69435, InChIKey
     AYFVYJQAPQTCCC-STHAYSLISA-N, retrieved 2026-09-15.
   - L_ASPARTIC_ACID: PubChem CID 5960, retrieved 2026-09-15.
+  - ABSCISIC_ACID: PubChem CID 5280896, "(2Z,4E)-5-[(1S)-1-hydroxy-2,6,6-trimethyl-4-
+    oxocyclohex-2-en-1-yl]-3-methylpenta-2,4-dienoic acid", retrieved 2026-09-16.
+    ABSCISIC_ACID_RELATIVE is DERIVED from it here (the /m1/s1 layers replaced by /s2), so
+    it is a constructed test input, not any record's string.
 """
 
 from __future__ import annotations
@@ -55,6 +59,20 @@ L_ASPARTIC_ACID = "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/
 L_ASPARTIC_ACID_KEY = "CKLJMWTZIZZHCS-REOHCLBHSA-N"
 
 
+#: PubChem CID 5280896 (retrieved 2026-09-16): two double bonds (/b) AND one stereocentre.
+ABSCISIC_ACID = (
+    "InChI=1S/C15H20O4/c1-10(7-13(17)18)5-6-15(19)11(2)8-12(16)9-14(15,3)4"
+    "/h5-8,19H,9H2,1-4H3,(H,17,18)/b6-5+,10-7-/t15-/m1/s1"
+)
+ABSCISIC_ACID_KEY = "JLIDBLDQVAYHNE-YKALOCIXSA-N"  # CID 5280896's InChIKey
+#: Derived: the same string with its absolute stereo layers replaced by relative (/s2).
+ABSCISIC_ACID_RELATIVE = ABSCISIC_ACID.replace("InChI=1S/", "InChI=1/").replace(
+    "/t15-/m1/s1", "/t15-/s2"
+)
+#: The stereo-free key of the WHOLE molecule — what an over-broad strip would produce.
+ABSCISIC_ACID_ALL_STEREO_FREE_KEY = "JLIDBLDQVAYHNE-UHFFFAOYSA-N"
+
+
 def test_relative_stereo_input_is_flagged_and_keyed_stereo_free():
     """The pipeline asserts nothing the source did not: a relative string gets the
     stereo-free key, which is exactly PubChem CID 205's key."""
@@ -76,6 +94,19 @@ def test_absolute_stereo_input_is_not_flagged_and_keeps_its_stereo():
     result = canonicalize(L_ASPARTIC_ACID)
     assert result.stereo_is_relative is False
     assert result.inchikey == L_ASPARTIC_ACID_KEY
+
+
+def test_the_strip_clears_tetrahedral_stereo_but_keeps_double_bond_geometry():
+    """QG F-04. Every other strip test uses a structure with no double-bond stereo, so an
+    over-broad strip (e.g. `Chem.RemoveStereochemistry`, which also erases E/Z) passed them
+    all. InChI /b geometry is always absolute and is NOT qualified by /s2: it must survive."""
+    result = canonicalize(ABSCISIC_ACID_RELATIVE)
+    assert result.stereo_is_relative is True
+    assert "/b6-5+,10-7-" in result.parsed
+    assert "/t" not in result.parsed and "/m" not in result.parsed
+    assert result.inchikey != ABSCISIC_ACID_ALL_STEREO_FREE_KEY
+    assert result.inchikey != ABSCISIC_ACID_KEY
+    assert result.inchikey.split("-")[0] == ABSCISIC_ACID_KEY.split("-")[0]
 
 
 def test_stereo_free_input_is_not_flagged():
