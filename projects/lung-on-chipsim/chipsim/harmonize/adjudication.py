@@ -20,7 +20,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from chipsim.harmonize.label_reference import LabelReference, label_agreement
+from chipsim.harmonize.label_reference import (
+    LabelReference,
+    aggregate_label_agreement,
+    label_agreement,
+)
 
 #: Worksheet schema. The last four are the human's to fill in T14.
 WORKSHEET_COLUMNS = (
@@ -189,6 +193,10 @@ def write_adjudication_worksheet(
         .any()
     )
 
+    # Over EVERY member name of a key, not the first (QG F-01): a correctly-named row must not
+    # hide a mislabelled one, and the verdict must not depend on row order.
+    names_by_key = compounds.groupby("canonical_inchikey", sort=False)["name"].agg(list)
+
     fresh = pd.DataFrame(
         {
             "canonical_inchikey": list(labels.index),
@@ -196,7 +204,10 @@ def write_adjudication_worksheet(
             "snapshot_label": list(labels.to_numpy()),
             "stereo_is_relative": [bool(relative_by_key.get(k, False)) for k in labels.index],
             "label_disagrees_with_key": [
-                label_agreement(names[k], k, label_reference) for k in labels.index
+                aggregate_label_agreement(
+                    label_agreement(n, k, label_reference) for n in names_by_key[k]
+                )
+                for k in labels.index
             ],
             "adjudicated_label": "",
             "evidence_doi": "",

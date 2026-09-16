@@ -142,3 +142,22 @@ def label_agreement(name: str, canonical_inchikey: str, reference: LabelReferenc
     if key == keys[other]:
         return "disagrees"
     return "unresolved"
+
+
+def aggregate_label_agreement(verdicts) -> str:
+    """One verdict for a key from its member rows' verdicts (QG F-01).
+
+    Several snapshot rows can share one canonical key. Judging only the first name let a
+    correctly-named row hide a mislabelled one, and which one "won" depended on row order.
+    `disagrees` if ANY member disagrees; `agrees` only if at least one agrees and none
+    disagrees; otherwise `unresolved`.
+    """
+    seen = set(verdicts)
+    unknown = seen - set(LABEL_AGREEMENT)
+    if unknown:
+        raise ValueError(f"not label-agreement verdicts: {sorted(unknown)}")
+    if "disagrees" in seen:
+        return "disagrees"
+    if "agrees" in seen:
+        return "agrees"
+    return "unresolved"

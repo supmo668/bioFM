@@ -150,6 +150,37 @@ def test_generated_columns_follow_snapshot_label_in_the_written_sheet(tmp_path):
     assert by_key.loc["FIXTURECMPDAAA-FIXTUREKEY-N", "label_disagrees_with_key"] == "unresolved"
 
 
+@pytest.mark.parametrize(
+    "names",
+    [("L-Proline", "D-Proline"), ("D-Proline", "L-Proline")],
+    ids=["correct-name-first", "wrong-name-first"],
+)
+def test_a_mislabelled_row_sharing_a_key_is_not_hidden_by_a_correct_one(tmp_path, names):
+    """QG F-01. The verdict must consider EVERY name on a key, not the first one kept.
+
+    The measured defect: 11 snapshot rows carry a D-/L- label that contradicts their structure,
+    and they share a canonical key with a correctly named row. Taking one name per key let the
+    correct row mask the wrong one — 6 of 9 real disagreements read "agrees", the exact false
+    "agrees" the tri-state column exists to prevent. Both row orders are tested because the
+    defect was order-dependent: whichever name sorted first decided the verdict.
+    """
+    labels = pd.Series(["unknown"], index=[L_KEY])
+    labels.index.name = "canonical_inchikey"
+    compounds = pd.DataFrame(
+        {
+            "canonical_inchikey": [L_KEY, L_KEY],
+            "name": list(names),
+            "stereo_is_relative": [False, False],
+        }
+    )
+    out = tmp_path / "w.csv"
+    write_adjudication_worksheet(
+        labels, compounds, out, label_reference=load_label_reference(_reference_file(tmp_path))
+    )
+    frame = pd.read_csv(out, dtype=str, keep_default_na=False).set_index("canonical_inchikey")
+    assert frame.loc[L_KEY, "label_disagrees_with_key"] == "disagrees"
+
+
 def test_a_stale_generated_value_is_overwritten_not_carried(tmp_path):
     """The falsification of the undeclared-column failure: a regenerated flag must win."""
     labels, compounds = _labels_and_compounds(flags=(False, False, False))
