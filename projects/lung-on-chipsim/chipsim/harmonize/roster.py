@@ -12,6 +12,8 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
+from chipsim.harmonize.label_reference import LabelReference, label_agreement
+
 MIN_ROSTER_ENTRIES = 20
 MAX_ROSTER_ENTRIES = 40
 
@@ -103,3 +105,22 @@ def load_poc_roster(
             )
 
     return frame.reset_index(drop=True)
+
+
+def roster_label_disagreements(
+    roster: pd.DataFrame, reference: LabelReference | None
+) -> list[tuple[str, str]]:
+    """`(canonical_inchikey, name)` for every roster entry whose D-/L- name contradicts its key.
+
+    CTO #126 §3: REPORTED, never rejected. Unlike a relative-stereo key, a label disagreement
+    leaves the identity right (the key is right and the name is wrong), so validation lists
+    it for the human who wrote the roster and does not refuse the roster. With no reference
+    there is nothing to judge against, so nothing is reported rather than guessed.
+    """
+    if reference is None:
+        return []
+    return [
+        (key, name)
+        for key, name in zip(roster["canonical_inchikey"], roster["name"], strict=True)
+        if label_agreement(name, key, reference) == "disagrees"
+    ]

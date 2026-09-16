@@ -87,6 +87,43 @@ def test_roster_without_relative_stereo_keys_is_unchanged(tmp_path):
     assert len(load_poc_roster(path)) == 20
 
 
+# --- T18 roster REPORTS label disagreements (CTO #126 §3; QG F-06) -------------------------
+
+
+def test_roster_reports_entries_whose_label_contradicts_their_key(tmp_path):
+    """#126 §3: unlike a relative-stereo key, a label disagreement does not make the identity
+    wrong — the key is right and the name is wrong — so the roster REPORTS it (listing) and does
+    NOT reject. A T18 roster naming "D-Proline" on an L structure must surface, not pass silently.
+    """
+    from chipsim.harmonize.label_reference import load_label_reference
+    from chipsim.harmonize.roster import roster_label_disagreements
+
+    l_key, d_key = "FIXTUREPROLINE-LFORMKEYAA-N", "FIXTUREPROLINE-DFORMKEYAA-N"
+    ref = tmp_path / "ref.yaml"
+    ref.write_text(
+        "retrieved_on: '2026-09-16'\nsource: synthetic\nentries:\n"
+        f"- base_name: proline\n  l_inchikey: {l_key}\n  d_inchikey: {d_key}\n"
+    )
+    frame = pd.DataFrame(
+        {
+            "canonical_inchikey": [l_key, d_key, "SYNTHETIC00001AA-UHFFFAOYSA-N"],
+            "name": ["D-Proline", "D-Proline", "synthetic compound"],
+            "evidence_doi": ["10.0/a", "10.0/b", "10.0/c"],
+        }
+    )
+    report = roster_label_disagreements(frame, load_label_reference(ref))
+    assert report == [(l_key, "D-Proline")]
+
+
+def test_roster_label_report_without_a_reference_reports_nothing_rather_than_guessing():
+    from chipsim.harmonize.roster import roster_label_disagreements
+
+    frame = pd.DataFrame(
+        {"canonical_inchikey": ["K-N"], "name": ["D-Proline"], "evidence_doi": ["10.0/a"]}
+    )
+    assert roster_label_disagreements(frame, None) == []
+
+
 # --- T5a persisted schema, pinned as a literal -------------------------------------------
 
 
