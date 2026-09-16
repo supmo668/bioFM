@@ -86,10 +86,27 @@ def load_label_reference(path: str | Path) -> LabelReference:
                 f"{path} entry {index} is missing {missing}. A partial entry would make its "
                 "rows report `unresolved` while the table looked populated."
             )
-        entries[str(entry["base_name"]).strip().lower()] = {
-            "l_inchikey": str(entry["l_inchikey"]).strip(),
-            "d_inchikey": str(entry["d_inchikey"]).strip(),
-        }
+        base = str(entry["base_name"]).strip().lower()
+        l_key = str(entry["l_inchikey"]).strip()
+        d_key = str(entry["d_inchikey"]).strip()
+        if base in entries:
+            raise LabelReferenceError(
+                f"{path} lists base name {base!r} twice. The later entry would silently "
+                "overwrite the earlier one."
+            )
+        if l_key == d_key:
+            raise LabelReferenceError(
+                f"{path} entry {base!r} has equal L and D keys. Every row on that base name "
+                "would read `agrees`, the one verdict this column must never produce falsely."
+            )
+        charged = [k for k in (l_key, d_key) if not k.endswith("-N")]
+        if charged:
+            raise LabelReferenceError(
+                f"{path} entry {base!r} carries charged-form key(s) {charged}. Pipeline keys "
+                "are neutralised (-N), so a charged key can never match and the entry would "
+                "report only `unresolved` while looking populated."
+            )
+        entries[base] = {"l_inchikey": l_key, "d_inchikey": d_key}
 
     return LabelReference(
         retrieved_on=retrieved_on,

@@ -37,6 +37,11 @@ known_coverage_gap: 'Three of the eleven label errors the CTO measured cannot be
   and recorded (CTO, 2026-09-15) rather than patched with a per-row override list
   — an override would be a second source of truth beside this table, and it would
   drift.'
+neutral_keys_only: 'Every key is the NEUTRAL (-N) form, because pipeline keys are neutralised
+  and a charged key can never match one. Two entries originally carried the charged key
+  PubChem returns for the name (-L, -K) and so could never report anything but
+  `unresolved` (QG F-03, 2026-09-16); they carry a `*_neutralised` note. The loader
+  rejects any non-neutral key.'
 entries:
 - base_name: alanine
   l_inchikey: QNAYBMKLOCPYGJ-REOHCLBHSA-N
@@ -159,8 +164,9 @@ entries:
   d_inchikey: MMWCIQZXVOZEGG-XJTPDSDZSA-N
   d_pubchem_cid: '439456'
 - base_name: myo-inositol-1-phosphate
-  l_inchikey: INAPMGSXUVUWAF-LXOASSSBSA-L
+  l_inchikey: INAPMGSXUVUWAF-LXOASSSBSA-N
   l_pubchem_cid: '5288700'
+  l_neutralised: 'CID 5288700 is the dianion (-L); key is chipsim canonicalize() of its InChI, 2026-09-16'
   d_inchikey: INAPMGSXUVUWAF-GCVPSNMTSA-N
   d_pubchem_cid: '107737'
 - base_name: ornithine
@@ -181,8 +187,9 @@ entries:
 - base_name: phospholactate
   l_inchikey: CSZRNWHGZPKNKY-REOHCLBHSA-N
   l_pubchem_cid: '5326965'
-  d_inchikey: CSZRNWHGZPKNKY-UWTATZPHSA-K
+  d_inchikey: CSZRNWHGZPKNKY-UWTATZPHSA-N
   d_pubchem_cid: '25244520'
+  d_neutralised: 'CID 25244520 is the trianion (-K); key is chipsim canonicalize() of its InChI, 2026-09-16'
 - base_name: proline
   l_inchikey: ONIBWKKTOPOVIA-BYPYZUCNSA-N
   l_pubchem_cid: '145742'
