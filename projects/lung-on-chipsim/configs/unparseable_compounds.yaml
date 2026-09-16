@@ -18,9 +18,12 @@
 #
 # Verified at the point of exclusion: the InChI strings are COMPLETE in the source
 # TSV. The truncation visible in the raw error message is an artefact of the
-# message formatting, not of the data. DB02377's full string, for instance, is
-# `InChI=1S/C5H4N5O/c6-5-9-3-2(4(11)10-5)7-1-8-3/h1H,(H3,6,8,9,10,11)` — intact,
-# and refused by the pinned toolchain.
+# message formatting, not of the data. DB02377's full string, for instance, is intact
+# in the snapshot and refused by the pinned toolchain; its SHA-256 is
+# f6224961f8f059aaf470a800cd62f5dabf8e602fb1c2910806a2a078b4bed712, so that claim can be
+# checked against the source. The string itself is not reproduced here: an accession
+# beside its structure is DrugBank record content (principal invariant, CTO #120 §4 —
+# the ledger keeps its accessions and drops its structures).
 
 # COUNTS LIVE HERE, IN COMMENTS, FOR TWO REASONS.
 # S6 forbids bare numeric leaves in `configs/` because biological numbers are
