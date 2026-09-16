@@ -74,10 +74,12 @@ graph TB
 | Module | Responsibility |
 |---|---|
 | `ingest/drugbank_snapshot.py` | Fetch the pinned snapshot by 40-hex commit; write `SHA256SUMS.json`; verify hashes; parse compound and protein-edge tables |
-| `harmonize/ids.py` | Canonical InChIKey — salt strip, neutralize, tautomer canonicalize, **stereo guard** ({/t,/m,/s}: if the tautomer step alters or erases them, the pre-tautomer key is kept); merge-stage report |
+| `harmonize/ids.py` | Canonical InChIKey — **relative-stereo strip** (`/s2` input keyed without sp3 stereo, flagged `stereo_is_relative`), salt strip, neutralize, tautomer canonicalize, **stereo guard** ({/t,/m,/s}: if the tautomer step alters or erases them, the pre-tautomer key is kept); merge-stage report; `relative_stereo_keys` refuses a frame without the flag |
+| `harmonize/merge_report.py` | Regenerate the stereo-guard merge report; members identified by canonical InChIKey only, the id/name association kept in the untracked run journal |
+| `harmonize/label_reference.py` | Load the committed name/structure reference (`configs/label_structure_reference.yaml`); tri-state `disagrees` / `agrees` / `unresolved` verdict. Never a live lookup; gates nothing |
 | `harmonize/pgp_label.py` | Three-way P-gp substrate label; resolves ABCB1 **from the panel config**, never hard-coded |
-| `harmonize/adjudication.py` | Load human-adjudicated labels; reject a verdict lacking an evidence DOI |
-| `harmonize/roster.py` | Validate the PoC compound roster before a human spends time filling it |
+| `harmonize/adjudication.py` | Write the T13 worksheet with two **generated** columns (`stereo_is_relative`; `label_disagrees_with_key`, aggregated over every name sharing a key) recomputed on every write, never carried; load human-adjudicated labels (T15), rejecting a verdict lacking an evidence DOI and **raising on a worksheet generated before the relative-stereo re-key** |
+| `harmonize/roster.py` | Validate the PoC compound roster before a human spends time filling it; **reject** a roster naming a relative-stereo key (when the caller supplies the keys); **report** — never reject — entries whose D-/L- name contradicts the key |
 | `harmonize/contracts.py` | Provenance contract — nine keys, eight unconditional, conditional rationale |
 | `eval/provenance_block.py` | Model-card data-provenance section |
 | `pipeline.py` | `argparse` CLI; the entrypoint the n8n ETL export invokes |
@@ -291,10 +293,23 @@ earlier run.
   were absolute, so the pipeline assigned an arbitrary absolute configuration to all **42** such
   snapshot compounds — and, classified against PubChem by InChI layers, **13 came out as the
   MIRROR IMAGE** (DrugBank's L-threonine row was keyed as D-threonine). Since the re-key, `/s2`
-  input is keyed **without sp3 stereo** and carries `stereo_is_relative`, which the persisted
-  frame, the T13 worksheet, the T15 label set and the T18 roster validator all honour. The honest
+  input is keyed **without sp3 stereo** and carries `stereo_is_relative`. The persisted frame
+  carries it, the T13 worksheet generates it, and T15 refuses a worksheet that predates it. The
+  T18 roster validator rejects flagged keys **only when the caller passes them in** — no pipeline
+  stage does that yet, because T18 has no caller until the roster exists. The honest
   consequence: enantiomers the source never distinguished now **merge** — esomeprazole merges with
   omeprazole, because DrugBank never stated esomeprazole's absolute configuration.
+- **Name/structure disagreements are reported, not fixed.** Of the snapshot's 134 rows whose name
+  carries a D-/L- prefix, **11 are genuine label errors** (the name states the opposite
+  configuration to the structure) — **a floor, not a total** — **1** was an artifact the
+  relative-stereo re-key fixed, and **75 cannot be resolved** either way (CTO #126 §4).
+  The key is right and the name is wrong, so nothing is
+  filtered: the T13 worksheet shows a tri-state `label_disagrees_with_key` beside every row and
+  the roster validator lists disagreements. The verdict comes from a committed, dated
+  reference table keyed by base name, and that has a **measured blind spot**: for *treitol*,
+  *benzylsuccinic acid* and *xylitol*, PubChem resolves the L- and D- names to the same key, so
+  those rows read `unresolved` — including D-treitol, which the per-row measurement found to be
+  a genuine error. Accepted and recorded, not patched with per-row overrides.
 - **Accepted known loss — malate.** The snapshot's malate **monoanion** (`/p-1`) and a **dianion
   tautomer** (`/p-2`) are two charge states of one compound whose pre-tautomer skeletons already
   differ (first InChIKey blocks `BJEPYKJPYRNKOW` vs `QFBHYOKSQPPXHZ`); both carry `/t2-/m1/s1`, the
