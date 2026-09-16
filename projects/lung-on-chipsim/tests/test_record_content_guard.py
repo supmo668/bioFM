@@ -108,10 +108,39 @@ def test_synthetic_accessions_are_never_hits(tmp_path):
 # --- the live repository -----------------------------------------------------------------
 
 
+def _tracked_paths() -> list[str]:
+    """Every tracked path, repo-relative, submodule gitlinks removed.
+
+    QG F-07: the previous `git ls-files` + `str.split()` broke any path containing whitespace
+    into fragments that resolve to nothing, and the scan skips what does not resolve, so such
+    a file was silently never scanned. NUL-separated output cannot be mis-split. Gitlinks
+    (mode 160000) are skipped explicitly: they are another repository, not a file here.
+    """
+    raw = subprocess.run(
+        ["git", "ls-files", "-z", "-s"], cwd=REPO_ROOT, capture_output=True, check=True
+    ).stdout.decode("utf-8")
+    paths = []
+    for record in filter(None, raw.split("\0")):
+        meta, rel = record.split("\t", 1)
+        if meta.split()[0] != "160000":
+            paths.append(rel)
+    return paths
+
+
+def test_the_live_scan_sees_every_tracked_file():
+    """Anti-vacuity for the live scan: a scan over the wrong or an empty list reports clean."""
+    tracked = _tracked_paths()
+    assert len(tracked) > 100
+    assert "projects/lung-on-chipsim/tests/test_record_content_guard.py" in tracked
+    assert APPROVAL_LOG in tracked and BUILD_PLAN in tracked
+    unresolvable = [rel for rel in tracked if not (REPO_ROOT / rel).is_file()]
+    assert unresolvable == [], (
+        f"tracked paths that do not resolve to a file, so the scan would skip them: {unresolvable[:5]}"
+    )
+
+
 def test_no_real_drugbank_accession_is_tracked_anywhere_in_the_repo_outside_the_exclusions():
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
-    ).stdout.split()
+    tracked = _tracked_paths()
     hits = real_accession_hits(REPO_ROOT, tracked)
     assert hits == [], f"real DrugBank accessions tracked outside the ruled exclusions: {hits}"
 
