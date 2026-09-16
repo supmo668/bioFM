@@ -881,6 +881,16 @@ the original scaffold hole, which is why this is an S-task.
       """Write a CSV: canonical_inchikey, name, snapshot_label, adjudicated_label,
       evidence_doi, adjudicated_by, adjudicated_on. Last four empty for H.
 
+      **GENERATED COLUMNS (r2.17), a third class beside declared and human-added:**
+      `stereo_is_relative` and `label_disagrees_with_key` (tri-state:
+      disagrees / agrees / unresolved). Recomputed on EVERY regeneration from the
+      current compounds frame, NEVER carried from a prior sheet, OPTIONAL on read
+      so legacy worksheets still load, and placed after `snapshot_label` so the
+      reviewer sees them beside the evidence they qualify. `label_disagrees_with_key`
+      is computed from the COMMITTED `configs/label_structure_reference.yaml`, never
+      a live lookup, so a worksheet regenerates identically offline. The verdict must
+      cover EVERY name sharing a key, not the first one encountered (F-01).
+
       NEVER CLOBBERS (defect 22): if `out` exists, merge on canonical_inchikey and
       preserve every non-empty adjudicated_*/evidence_doi cell. Raises if a
       previously-adjudicated key has disappeared from `labels`.
@@ -899,13 +909,33 @@ corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the
 - **Files:** on completion, move to `configs/pgp_adjudication.csv` — **git-tracked**. r1 left this
   in `data/interim/`, which is git-ignored and DVC-tracked, leaving the plan's most load-bearing
   human artifact unversioned and unattributable (defect 23).
-- **Done when** every row has a verdict and a DOI, or an explicit `unknown`, and the file is tracked by git.
+- **Done when** every row has a verdict and a DOI, or an explicit `unknown`, and the file is tracked by git **carrying no `name` column** (r2.17).
+
+> **r2.17 — the tracked adjudication file drops `name`; the worksheet keeps it.** The worktree agent
+> raised it (F-05): the filled sheet pairs a DrugBank `name` with a `canonical_inchikey`, and if that
+> lands tracked it is exactly the `(name, structure)` association the principal's record-content
+> invariant protects. Both halves matter, so they are separated rather than traded: **tracked**
+> `configs/pgp_adjudication.csv` carries `canonical_inchikey`, `adjudicated_label`, `evidence_doi`,
+> `adjudicated_by`, `adjudicated_on` — **no `name`** — preserving defect 23's fix that a human
+> artifact must be versioned and attributable; the **generated, untracked** worksheet keeps `name`
+> beside the evidence, because a reviewer adjudicating 60–90 minutes of labels cannot work from keys
+> alone. T13/T15's interfaces above are amended in the same revision to match the code that now
+> exists (generated columns; the legacy raise) — they had drifted, which the agent flagged rather
+> than edited, the plan being hash-locked and the CTO's.
 
 ### T15 · Load adjudicated labels with provenance — **CA · 5 min**
 - **Interfaces:**
   ```python
   def adjudicate_pgp_labels(worksheet: Path) -> pd.Series:
       """Index: canonical_inchikey. Values: 'yes' | 'no' | 'unknown'.
+
+      **(r2.17) RAISES if the worksheet lacks `stereo_is_relative`** — a legacy sheet
+      predating the flag. The error must name `write_adjudication_worksheet` and state
+      that regeneration PRESERVES every verdict, DOI and attribution, so the reviewer
+      is told how to fix it. NA was rejected: a label set silently missing the flag is
+      the stale-flag failure one step later, and T17 cannot tell 'absent' from 'not
+      relative'. The flag is written into `pgp_labels.parquet` as a real boolean so
+      T17 receives it.
 
       Raises if NO row has a non-empty adjudicated_label (a wholly unadjudicated
       worksheet — r1 returned all-'unknown' and looked identical to a completed
