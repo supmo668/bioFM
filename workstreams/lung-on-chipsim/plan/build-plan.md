@@ -909,6 +909,24 @@ corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the
 - **Files:** on completion, move to `configs/pgp_adjudication.csv` — **git-tracked**. r1 left this
   in `data/interim/`, which is git-ignored and DVC-tracked, leaving the plan's most load-bearing
   human artifact unversioned and unattributable (defect 23).
+- **Interfaces (r2.18):**
+  ```python
+  def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
+      """Project the reviewer's filled worksheet to the five tracked columns:
+      canonical_inchikey, adjudicated_label, evidence_doi, adjudicated_by,
+      adjudicated_on. Returns rows written.
+
+      REFUSES (raises) on any extra human-added column rather than dropping it
+      silently — a reviewer who added a column meant something by it, and a
+      projection that discards it without saying so loses their work invisibly.
+      Generated columns (`name`, `snapshot_label`, `stereo_is_relative`,
+      `label_disagrees_with_key`) are dropped by design and named in the docstring
+      so the omission is legible.
+      """
+  ```
+  **Why a helper rather than a manual step:** "move to `configs/`" would otherwise mean a human
+  deleting columns by hand, which is exactly how a `name` column reaches a tracked file by accident.
+  With the helper, a tracked file carrying `name` has to be written deliberately.
 - **Done when** every row has a verdict and a DOI, or an explicit `unknown`, and the file is tracked by git **carrying no `name` column** (r2.17).
 
 > **r2.17 — the tracked adjudication file drops `name`; the worksheet keeps it.** The worktree agent
@@ -926,16 +944,28 @@ corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the
 ### T15 · Load adjudicated labels with provenance — **CA · 5 min**
 - **Interfaces:**
   ```python
-  def adjudicate_pgp_labels(worksheet: Path) -> pd.Series:
+  def adjudicate_pgp_labels(
+      adjudication: Path,          # the TRACKED five-column file T14 defines (r2.18)
+      compounds: pd.DataFrame,
+      parquet_out: Path | None = None,
+  ) -> pd.Series:
       """Index: canonical_inchikey. Values: 'yes' | 'no' | 'unknown'.
 
-      **(r2.17) RAISES if the worksheet lacks `stereo_is_relative`** — a legacy sheet
-      predating the flag. The error must name `write_adjudication_worksheet` and state
-      that regeneration PRESERVES every verdict, DOI and attribution, so the reviewer
-      is told how to fix it. NA was rejected: a label set silently missing the flag is
-      the stale-flag failure one step later, and T17 cannot tell 'absent' from 'not
-      relative'. The flag is written into `pgp_labels.parquet` as a real boolean so
-      T17 receives it.
+      **(r2.18) Reads the TRACKED file, and RECOMPUTES `stereo_is_relative` from
+      `compounds`** — per key, True if any member is flagged, exactly as T13 generates
+      it. The flag is a *generated* column: never carried, therefore never stale.
+      RAISES if `compounds` lacks `stereo_is_relative` (the same refusal as T10/T13),
+      and RAISES if any adjudicated key is absent from `compounds`.
+
+      *(r2.17 said this function read the worksheet and raised when the WORKSHEET
+      lacked the flag. That contradicted T14 as amended in the same revision: the
+      tracked five-column file has no such column, so T15 would have raised every
+      time. Two clauses were amended without checking the composition — the
+      plan-level form of the F-01 defect. Caught by the worktree agent before any
+      code was written; the alternatives were rejected as recorded under T14.)*
+
+      The flag is written into `pgp_labels.parquet` as a real boolean so T17
+      receives it.
 
       Raises if NO row has a non-empty adjudicated_label (a wholly unadjudicated
       worksheet — r1 returned all-'unknown' and looked identical to a completed
