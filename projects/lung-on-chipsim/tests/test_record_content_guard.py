@@ -1,5 +1,5 @@
 """The DrugBank record-content guard — principal invariant (CTO #120 §1), scope and
-exclusions ruled in #122 §3, #122 §5 and the CTO ruling of 2026-09-16.
+exclusions ruled in #122 §3, #122 §5 and the CTO rulings of 2026-09-16.
 
 **The invariant.** The project does not redistribute DrugBank RECORD CONTENT: real
 accessions, DrugBank-coined titles, and above all the ASSOCIATION of either with a
@@ -12,17 +12,13 @@ were never in scope, which is how a tracked merge report came to carry 89 real a
 **The complete exclusion set (nothing else):**
   - `.claude/usr/**/dispatches/` — coordination records; redacting a sent message falsifies
     the audit trail of the rulings it carries (#122 §3);
-  - `workstreams/lung-on-chipsim/plan/plan-approval-log.md` — append-only; rewriting a log to
-    satisfy a scan falsifies the record the log exists to keep. The FILE, not a pattern over
-    `plan/`: `build-plan.md` stays in scope so its fix is enforced rather than excused;
   - the sanctioned exclusion ledger pair (#120 §4) — which may carry accessions, but not an
     accession ASSOCIATED WITH A STRUCTURE.
 
-**Two tests here are born failing, by ruling, and say so in their messages:**
-  - the repo-wide scan, on `build-plan.md`, until r2.16 replaces its accessions with InChIKeys
-    ("a test that fails because my file is wrong is the test working");
-  - the ledger tuple check, on a comment pairing an accession with its full InChI, until the
-    ledger drops its structure strings.
+**The approval log is IN scope.** It was excluded by name until the CTO reversed that
+ruling (2026-09-16): a log row may be corrected in place when the correction is disclosed in
+the row, so an exclusion would mean the guard takes a "corrected" claim on trust. It was
+scanned clean before the exclusion was removed.
 
 Accessions below are ASSEMBLED at runtime, never written literally: this file is itself in
 scope, and a literal real accession would be a self-inflicted hit.
@@ -67,10 +63,10 @@ def test_every_named_exception_resolves_at_the_repo_root():
 def test_the_exclusion_boundary_is_exactly_the_ruled_set():
     assert is_accession_excluded(".claude/usr/matthew-mo/cto/dispatches/directive-x.md")
     assert is_accession_excluded(".claude/usr/matthew-mo/lung-on-chipsim/dispatches/d.md")
-    assert is_accession_excluded(APPROVAL_LOG)
     assert all(is_accession_excluded(rel) for rel in DRUGBANK_ID_LEDGER)
-    # In scope — the ruling keeps these enforced, not excused:
+    # In scope — the rulings keep these enforced, not excused:
     assert not is_accession_excluded(BUILD_PLAN)
+    assert not is_accession_excluded(APPROVAL_LOG)  # reversed 2026-09-16: see module docstring
     assert not is_accession_excluded(".claude/usr/matthew-mo/lung-on-chipsim/handoff.md")
     assert not is_accession_excluded("workstreams/lung-on-chipsim/reports/x/merge_report.json")
     assert not is_accession_excluded("projects/lung-on-chipsim/README.md")
@@ -87,7 +83,12 @@ def test_scope_falsification_plants_real_accessions_across_the_tree(tmp_path):
     planted = {
         "workstreams/lung-on-chipsim/notes.md": True,
         BUILD_PLAN: True,
-        APPROVAL_LOG: False,
+        # The approval log IS caught (CTO reversal, 2026-09-16). RULE FOR ANYONE EDITING IT:
+        # a row that corrects an accession must DESCRIBE the removal — e.g. "one DrugBank
+        # accession removed from this row" — and must NEVER quote the accession to say what
+        # was removed. Naming it re-introduces exactly what the row records the removal of,
+        # and this guard will fail on it.
+        APPROVAL_LOG: True,
         ".claude/usr/matthew-mo/cto/dispatches/directive.md": False,
         "projects/lung-on-chipsim/README.md": True,
     }
@@ -108,16 +109,11 @@ def test_synthetic_accessions_are_never_hits(tmp_path):
 
 
 def test_no_real_drugbank_accession_is_tracked_anywhere_in_the_repo_outside_the_exclusions():
-    """BORN FAILING BY RULING until r2.16 lands: `build-plan.md` carries three accessions in
-    its r2.13 note, and it is deliberately NOT excluded."""
     tracked = subprocess.run(
         ["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
     ).stdout.split()
     hits = real_accession_hits(REPO_ROOT, tracked)
-    assert hits == [], (
-        f"real DrugBank accessions tracked outside the ruled exclusions: {hits}. If the only "
-        f"hit is {BUILD_PLAN}, that is the r2.16 fix still pending (CTO ruling 2026-09-16)."
-    )
+    assert hits == [], f"real DrugBank accessions tracked outside the ruled exclusions: {hits}"
 
 
 # --- the tuple half: an accession ASSOCIATED WITH a structure --------------------------------
@@ -143,10 +139,9 @@ def test_tuple_detector_ignores_synthetic_accessions():
 
 
 def test_the_ledger_carries_no_accession_structure_tuple():
-    """BORN FAILING BY RULING until the ledger change (#120 §4): the ledger may keep its
-    accessions but not a structure associated with one. A plain "no InChI in the ledger"
-    rule would be wrong — the ledger's tests hold an aspirin structure and an invalid
-    sentinel that belong to no accession."""
+    """The ledger may keep its accessions but not a structure associated with one (#120 §4).
+    A plain "no InChI in the ledger" rule would be wrong — the ledger's tests hold an aspirin
+    structure and an invalid sentinel that belong to no accession."""
     hits = ledger_tuple_hits(REPO_ROOT)
     assert hits == [], (
         f"accession/structure tuples in the sanctioned ledger: {hits}. Drop the structure "

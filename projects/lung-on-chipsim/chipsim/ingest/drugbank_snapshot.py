@@ -328,14 +328,13 @@ DRUGBANK_ID_LEDGER = frozenset(
 )
 
 #: Single FILES excluded by ruling. Named files, never patterns over a directory.
-DRUGBANK_ID_EXCLUDED_FILES = frozenset(
-    {
-        # Append-only approval log (CTO ruling 2026-09-16): rewriting a log to satisfy a
-        # scan falsifies the record the log exists to keep. The FILE only — build-plan.md
-        # beside it stays in scope, so its accessions are fixed rather than excused.
-        "workstreams/lung-on-chipsim/plan/plan-approval-log.md",
-    }
-)
+#:
+#: EMPTY, deliberately. The approval log was excluded here until the CTO reversed that
+#: ruling (2026-09-16): a log row may be corrected IN PLACE when the correction is disclosed
+#: in the row. Once that is the rule, an exclusion means the guard takes a row's "corrected"
+#: claim on trust — a check that cannot see what it certifies. The log was scanned clean
+#: before the exclusion was removed, so the change could not turn a green suite red.
+DRUGBANK_ID_EXCLUDED_FILES: frozenset[str] = frozenset()
 
 #: Dispatch payloads at any depth under .claude/usr/ (#122 §3): coordination records.
 #: Redacting a sent message falsifies the audit trail of the rulings it carries.
