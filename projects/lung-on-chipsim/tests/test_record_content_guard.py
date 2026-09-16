@@ -167,6 +167,50 @@ def test_tuple_detector_ignores_synthetic_accessions():
     assert accession_structure_tuples(f"{SYNTHETIC} {STRUCTURE}\n") == []
 
 
+def test_tuple_detector_window_is_two_lines_each_way():
+    """QG F-08: pin the window edge in both directions, so widening or narrowing it is a
+    deliberate, visible change."""
+    assert accession_structure_tuples(f"{REAL} {STRUCTURE}\n")  # distance 0: same line
+    for distance, caught in [(1, True), (2, True), (3, False)]:
+        filler = "\n" * (distance - 1)  # `distance` lines apart
+        after = f"{REAL}\n{filler}{STRUCTURE}\n"
+        before = f"{STRUCTURE}\n{filler}{REAL}\n"
+        assert bool(accession_structure_tuples(after)) is caught, ("after", distance)
+        assert bool(accession_structure_tuples(before)) is caught, ("before", distance)
+
+
+def test_tuple_detector_treats_an_inchikey_as_a_structure():
+    """A key beside an accession identifies the molecule as surely as the full string."""
+    key = "CKLJMWTZIZZHCS-REOHCLBHSA-N"  # PubChem CID 5960 (L-aspartic acid)
+    assert [a for _, a, _ in accession_structure_tuples(f"{REAL}: {key}\n")] == [REAL]
+
+
+def _plant(root: Path, rel: str, text: str) -> None:
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def test_the_ledger_tuple_check_catches_a_planted_tuple_in_each_ledger_file(tmp_path):
+    """QG F-08: the live ledger check passes on a clean ledger, which proves nothing about
+    whether it can fail. Plant a tuple in each ledger file; each must be reported."""
+    for rel in DRUGBANK_ID_LEDGER:
+        _plant(tmp_path, rel, f"# {REAL}\n# {STRUCTURE}\n")
+    hits = ledger_tuple_hits(tmp_path)
+    assert sorted(rel for rel, _, _ in hits) == sorted(DRUGBANK_ID_LEDGER)
+    assert all(line == 1 and accession == REAL for _, line, accession in hits)
+
+
+def test_the_ledger_tuple_check_does_not_scan_outside_the_ledger(tmp_path):
+    """The tuple check is the ledger's rule. Everywhere else a real accession is already a hit
+    on its own (`real_accession_hits`), with or without a structure."""
+    for rel in DRUGBANK_ID_LEDGER:
+        _plant(tmp_path, rel, "# clean\n")
+    _plant(tmp_path, "projects/lung-on-chipsim/README.md", f"{REAL}\n{STRUCTURE}\n")
+    assert ledger_tuple_hits(tmp_path) == []
+    assert real_accession_hits(tmp_path, ["projects/lung-on-chipsim/README.md"]) != []
+
+
 def test_the_ledger_carries_no_accession_structure_tuple():
     """The ledger may keep its accessions but not a structure associated with one (#120 §4).
     A plain "no InChI in the ledger" rule would be wrong — the ledger's tests hold an aspirin
