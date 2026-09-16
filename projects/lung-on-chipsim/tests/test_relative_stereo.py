@@ -108,6 +108,33 @@ def test_add_canonical_identity_emits_the_stereo_is_relative_flag():
     assert out["stereo_is_relative"].dtype == bool
 
 
+def test_the_pipeline_path_emits_the_flag_on_kept_and_excluded_rows():
+    """QG F-02. `add_canonical_identity_excluding` is what the pipeline actually calls, and no
+    test asserted its flag: hardcoding `stereo_is_relative = False` there left the suite green,
+    which would silently switch off T10/T13/T15 and the T18 rejection for every relative-stereo
+    compound.
+
+    The excluded row is an UNPARSEABLE string that nonetheless declares relative stereo (`/s2`):
+    the flag is read from the source string's own layers, so it must survive exclusion.
+    """
+    from chipsim.harmonize.ids import add_canonical_identity_excluding
+
+    frame = pd.DataFrame(
+        [
+            ("DB90701", THREONINE_RELATIVE),
+            ("DB90702", L_ASPARTIC_ACID),
+            ("DB90703", THREONINE_UNSPECIFIED),
+            ("DB90704", "InChI=1S/NOT-A-REAL-STRUCTURE/t2-/s2"),
+        ],
+        columns=["drugbank_id", "inchi"],
+    ).assign(inchikey="x")
+    kept, excluded = add_canonical_identity_excluding(frame, preregistered={"DB90704"})
+    assert kept["stereo_is_relative"].dtype == bool
+    assert kept["stereo_is_relative"].tolist() == [True, False, False]
+    assert excluded["drugbank_id"].tolist() == ["DB90704"]
+    assert excluded["stereo_is_relative"].tolist() == [True]
+
+
 def test_relative_stereo_effect_reports_which_relative_compounds_merge():
     """CTO #122 §0: report how many relative-stereo compounds merge with another
     compound, and which — identified by canonical InChIKey, never by accession."""
