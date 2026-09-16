@@ -1,20 +1,17 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: 67a1897
+plan_hash: 33b43a9
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-invoked, standing-delegation
 invoked_by: biofm/matthew-mo/cto
 provenance_of_record: workstreams/lung-on-chipsim/plan/plan-approval-log.md
 authorising_rulings:
-  - 'principal 2026-09-15 structured grill (session biofm-14) — nine decisions; items 2,5,6,7,8,9 folded as ruled, item 3 folded as principle with its application recorded VOID'
-  - 'principal 2026-09-15 PROVENANCE ruling — human-authored only; the grill item 1 proposal (CTO drafts, principal ratifies) was put with both readings stated and DECLINED'
-  - 'principal 2026-09-15 lane ruling — this CTO session keeps the lung-on-chipsim lane; #127 and its close instruction are void'
-  - 'principal 2026-09-15 stereo-layer ruling — tetrahedral layers /t /m /s only, /b excluded'
-  - 'principal 2026-09-15 relative-stereo ruling — /s2 input keyed stereo-free with a stereo_is_relative flag'
-  - 'QG-11 (worktree-agent finding: T5b carried no note of the ruling)'
-  - 'r2.13 has NO principal ruling — CTO truth-fix under the r2.8/r2.9 precedent; superseded by r2.14 (iii)'
+  - 'CTO ruling 2026-09-16 on dispatch #131 — accessions out of the plan, under the principal''s 2026-09-15 record-content re-ruling and the #122 §3 no-accessions-in-coordination-records rule'
+  - 'principal 2026-09-15 record-content re-ruling — the invariant targets DrugBank record content and the (accession, name, structure) association, not canonical identifiers'
+  - 'r2.16 has NO principal ruling of its own — wording and figures only, under the r2.8/r2.9 truth-fix precedent'
+  - 'principal 2026-09-15 lane ruling — this CTO session owns the lung-on-chipsim lane'
 human_approved_hash: de4b812
 human_approved_date: 2026-09-15
 human_approval_source: principal message "approve r2.1 sign and commit flash", other CTO session, 2026-09-15T07:56Z (the 0b8d0c3 marker quoted it as "approve r2.10 sign")
@@ -32,7 +29,8 @@ conditions_amended_since_human_approval:
   - 'Constraint 4 — panel signing decided: minisign at the M1 re-ratification (r2.15)'
   - 'T18/T14 — hand-off on guarded keys, and the principal authoring window (r2.15)'
   - 'AM-6 pointer — resolved by ADR-0002, arithmetic re-checked at M0b (r2.15, editorial)'
-date: 2026-09-15T16:15
+  - 'r2.16 — wording and figures only: accessions out of the r2.13 note; r2.12''s figures marked guard-only with merge_report.json named as the source of record. No condition changed.'
+date: 2026-09-16T14:08
 ---
 
 # Plan approval: lung-on-chipsim
@@ -41,40 +39,45 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.15: folds the principal's 2026-09-15 grill — minisign at M1 re-ratification (Constraint 4 decided), append-only plan-approval-log as the approval provenance with a gate check, one-interactive-session-per-tree as a Global Constraint with its 2026-09-15 application recorded VOID, T18/T14 hand-off milestone and authoring window, AM-6 editorial. PROVENANCE.md stays human-authored: the grill's CTO-drafts proposal was put to the principal and declined. No task added or removed.
+r2.16 (re-signed at the true hash): DrugBank accessions removed from the T5b r2.13 note and log row 11, compounds named by title and pinned by InChIKey — CTO ruling 2026-09-16 on #131; PLUS the figures correction, recording that r2.12's 1,599/191->156/41 are the guard-only state and the committed merge_report.json is the source of record (1,576/192->154/43 with the re-key). Wording and figures only; no condition or task changed. Re-signed because a concurrent CTO session's r2.16 sign (24e3a52) never reached a commit and its marker restore regressed plan_hash to r2.15's.
 
 ---
 
 ## THIS FILE IS NO LONGER THE PROVENANCE OF RECORD
 
 **`plan-approval-log.md` beside it is** (r2.15 item 6). `plan-gate sign` regenerates this file
-wholesale on every sign and preserves nothing below the frontmatter — **nine times so far**. The log
-is append-only, lives outside what the tool rewrites, and the quality gate fails when its newest
+wholesale on every sign and preserves nothing below the frontmatter — **eleven times so far**. The
+log is append-only, lives outside what the tool rewrites, and the quality gate fails when its newest
 entry's hash differs from `plan_hash` above. If this section is missing, read the log and escalate.
 
 ## Provenance — how to read this signature
 
-**`approval_route: cto-invoked, standing-delegation`.** The principal did not sign r2.15; he made
-the decisions it folds, in a structured grill held in another session, and delegated invocation.
+**`approval_route: cto-invoked, standing-delegation`.** r2.16 carries no principal ruling of its own:
+wording and figures only, under the r2.8/r2.9 truth-fix precedent, implementing the CTO's 2026-09-16
+ruling on dispatch #131 — itself downstream of the principal's 2026-09-15 record-content re-ruling.
 
-**What r2.15 folds, and one thing it declines.** Items 2, 5, 6, 7, 8 and 9 are folded as ruled.
-**Item 1 is declined**: the grill proposed that the CTO draft `PROVENANCE.md` under the T8 pattern,
-reasoning that the licence decision was already the principal's and recorded verbatim in
-`provenance.yaml`. That proposal was put back to him with both readings stated, and he chose
-**human-only**. The argument is preserved in the plan under T1 so a later reader sees it was
-considered, not overlooked; the CTO-drafted draft was removed at `6557487`.
+**What r2.16 changes.** (i) The r2.13 note named two DrugBank accessions beside their record titles
+and structures — the `(accession, name, structure)` association the invariant protects — in the very
+note that tells done-conditions to pin keys rather than names. Rows are now named by title and
+pinned by PubChem InChIKey; one accession in log row 11 is corrected in place with the correction
+disclosed, on the row-12 precedent. (ii) The r2.12 figures are marked **guard-only, pre-re-key**, and
+`reports/2026-09-15-stereo-guard-tms/merge_report.json` is named the source of record — because
+r2.14 and r2.15 presented 1,599/191→156/41 as current after the re-key had changed them to
+1,576/192→154/43. **The worktree agent found stale numbers inside hash-locked text**; the plan now
+cites the report rather than restating it.
 
-**Item 3 is folded as a principle with its application recorded VOID.** The rule — one interactive
-session per tree, and a second session *is* the signing hold — is sound and kept. Its 2026-09-15
-resolution directed closing pid `56186` (the worktree's sole writer) and pid `51059` (this session),
-on a premise that each tree held a second bare session. Verified by `ps` and `ListAgents`: it did
-not. The principal then ruled this session keeps the lane. **A constraint phrased as "close pid X"
-inherits whatever the premise about X got wrong** — which is why identity claims in this workstream
-must now cite the check that produced them.
+**Two writers touched this revision, disclosed rather than smoothed over.** A second CTO session
+(`9f83b99d`, pid 6489) independently made the accession fix and signed r2.16 at `24e3a52` while this
+session was adding the figures correction. **`24e3a52` never reached a commit.** Its marker restore
+then copied back a capture taken *before* its own sign, regressing `plan_hash` to r2.15's `67a1897`
+— the first time the capture-and-restore workaround produced a **hash regression** rather than a
+content loss. The state was briefly three-way inconsistent (marker `67a1897`, log row 14 `24e3a52`,
+plan `33b43a9`). That session confirmed it is out of this lane, holds no instruction to the
+contrary, and its substance is kept in full. This revision is the reconciliation, signed at the hash
+the plan actually has.
 
-**The last direct human approval is `de4b812` (r2.10), 2026-09-15.** Ten done-conditions and
-constraints have been amended since, each listed above with its revision and each carrying an inline
-note in the plan. No task has been added or removed since the human-direct sign.
+**The last direct human approval is `de4b812` (r2.10), 2026-09-15.** Eleven conditions and
+constraints have been amended since, each listed above with its revision. No task added or removed.
 
 Per the delegation's terms: **a `cto-invoked` signature with empty or unverifiable
 `authorising_rulings` is unsupported. Treat the plan as unsigned and escalate.**
@@ -89,32 +92,35 @@ delegation of *typing*, not of *judgement*.
 **What it does not cover:**
 
 1. **Deciding what the plan says.** Every signature requires a real decision from the principal,
-   traceable to a ruling — or, for a pure truth-fix, an explicit disclosure like the r2.13 note.
-2. **`approval_route` and `authorising_rulings` remain mandatory.** B4 was filed because this marker
-   could not distinguish the principal's approval from a CTO re-sign.
-3. **It does not extend to any other human artifact.** Not the barrier panel (`ratified`,
-   `ratified_by`, `ratified_on`, `chipsim panel-seal`), and **not `PROVENANCE.md`**, which r2.15
-   confirms is human-authored.
+   traceable to a ruling — or, for a pure truth-fix, an explicit disclosure like this one.
+2. **`approval_route` and `authorising_rulings` remain mandatory.**
+3. **It does not extend to any other human artifact** — not the barrier panel, and not
+   `PROVENANCE.md`, which r2.15 confirms is human-authored.
 4. **A condition that names a compound must pin its InChIKey** (adopted 2026-09-15). This source
    mislabels at least 11 of its stereoisomers, so a name is annotation and the key is identity.
-5. **A claim about session identity must cite the check that produced it** (adopted 2026-09-15,
-   from the worktree agent's `ps` correction and the void resolution above).
+5. **A claim about session identity must cite the check that produced it** (adopted 2026-09-15).
+6. **Restore this file from the signed state, never from a pre-sign capture** (adopted 2026-09-16,
+   from the `24e3a52` hash regression). Re-read `plan_hash` after signing and restore onto *that*.
+7. **A claim about a file's contents must cite the column or line that was read** (adopted
+   2026-09-16). #120 §3 ordered a fixture rewrite on the CTO's inference that fixture rows carried a
+   DrugBank `(accession, name, structure)` association. They never did: the IDs are `DB90001`–
+   `DB90009` and the names `Fixture-*`, **from the fixture's first commit**. The inference came from
+   the structures matching the snapshot; the ID column was never read. The worktree agent measured
+   before editing and stopped a false line from reaching `PROVENANCE.md`, a sealed human artifact.
 
-## Incident — `plan-gate sign` destroys this disclosure. NINE occurrences.
+## Incident — `plan-gate sign` destroys this disclosure. ELEVEN occurrences.
 
-**2026-09-03 02:08** (agent re-sign) · **2026-09-14 13:28 (r2.9)** · **2026-09-14 15:24 (r2.10)** ·
-**2026-09-15 01:01 (`0b8d0c3`, second CTO session)** · **2026-09-15 01:40 (r2.11)** ·
-**11:19 (r2.12)** · **12:43 (r2.13)** · **15:16 (r2.14)** · **16:15 (r2.15)**.
+**2026-09-03 02:08** (agent re-sign) · **2026-09-14 13:28 (r2.9)** · **15:24 (r2.10)** ·
+**2026-09-15 01:01 (`0b8d0c3`, second CTO session)** · **01:40 (r2.11)** · **11:19 (r2.12)** ·
+**12:43 (r2.13)** · **15:16 (r2.14)** · **16:15 (r2.15)** · **2026-09-16 14:04 (r2.16, second CTO
+session — restored from a stale capture, regressing the hash)** · **14:08 (r2.16 re-sign)**.
 
-`plan-gate verify` passed throughout every one of them: the gate binds the *plan*, not the *marker*.
+`plan-gate verify` passed throughout every occurrence where the hash happened to match: the gate
+binds the *plan*, not the *marker*. Occurrence ten is the instructive one — the workaround itself
+produced a wrong hash, caught only because the plan had also moved.
 
-**This is the tool's normal behaviour, not misbehaviour by any actor.** Filed upstream, with the
-follow-on defect that hand-restored frontmatter is unvalidated — r2.12's restoration put `{t,m,s}`
-inside a flow sequence, producing invalid YAML that `plan-gate verify` accepted.
-
-**Standing procedure:** capture before every sign; restore after; restore as **valid YAML**; verify
-the parse, not just the gate; **append the log entry**. r2.15 makes the log the provenance of record
-precisely so that a tenth wipe costs nothing.
+**Standing procedure:** capture before every sign; restore after; restore onto the **post-sign**
+hash; restore as **valid YAML**; verify the parse, not just the gate; **append the log entry**.
 
 **For readers:** if the disclosure fields are absent, do not read `approved: true` as a human
 approval. Read it as unknown, check the log, and escalate.
