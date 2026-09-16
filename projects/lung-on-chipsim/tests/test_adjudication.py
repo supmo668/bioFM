@@ -39,17 +39,35 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = PROJECT_ROOT / "tests" / "fixtures"
 
 
-def _sheet_with_flag(tmp_path: Path, name: str) -> Path:
-    """A copy of a committed fixture worksheet carrying the generated `stereo_is_relative`.
+def _tracked(case: str) -> Path:
+    """The TRACKED five-column adjudication fixture for a case (r2.18 T14).
 
-    The committed fixtures predate the relative-stereo re-key and are NOT modified (#117
-    holds every file under tests/fixtures/): they remain the LEGACY sheets that T15 must
-    refuse, which `test_t15_raises_on_a_legacy_sheet_and_says_how_to_fix_it` asserts. Tests
-    that need a readable sheet take this copy instead.
+    T15 reads the tracked file, not the worksheet: the worksheet-shaped fixtures stay as
+    T13's inputs. Both shapes are committed; neither is modified (#117).
     """
-    frame = pd.read_csv(FIXTURES / name, dtype=str, keep_default_na=False)
-    frame.insert(3, "stereo_is_relative", "False")
-    path = tmp_path / name
+    return FIXTURES / f"pgp_adjudication_tracked_{case}.csv"
+
+
+def _compounds_for(case: str, relative: list[bool] | None = None) -> pd.DataFrame:
+    """A minimal compounds frame covering a tracked fixture's keys.
+
+    T15 recomputes `stereo_is_relative` from HERE, never from the tracked file.
+    """
+    keys = pd.read_csv(_tracked(case), dtype=str)["canonical_inchikey"].tolist()
+    return pd.DataFrame(
+        {
+            "canonical_inchikey": keys,
+            "name": [f"FIXTURE-NAME-{i:02d}" for i in range(len(keys))],
+            "stereo_is_relative": relative if relative is not None else [False] * len(keys),
+        }
+    )
+
+
+def _edited_tracked(tmp_path: Path, case: str, edit) -> Path:
+    """A writable copy of a tracked fixture, with `edit(frame)` applied."""
+    frame = pd.read_csv(_tracked(case), dtype=str, keep_default_na=False)
+    frame = edit(frame)
+    path = tmp_path / "pgp_adjudication.csv"
     frame.to_csv(path, index=False)
     return path
 
@@ -336,49 +354,49 @@ def test_t15_wholly_blank_worksheet_raises(tmp_path):
     """r1 returned all-'unknown' here, which looked identical to a completed
     worksheet (defect 6)."""
     with pytest.raises(AdjudicationError, match="wholly unadjudicated"):
-        adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_blank.csv"))
+        adjudicate_pgp_labels(_tracked("blank"), _compounds_for("blank"))
 
 
 def test_t15_partially_filled_worksheet_raises(tmp_path):
     with pytest.raises(AdjudicationError, match="partially adjudicated"):
-        adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_partial.csv"))
+        adjudicate_pgp_labels(_tracked("partial"), _compounds_for("partial"))
 
 
 def test_t15_all_unknown_worksheet_raises(tmp_path):
     """Completed, in-domain, and still unusable: no 'yes' and no 'no' group."""
     with pytest.raises(AdjudicationError, match="empty 'yes' group"):
-        adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_all_unknown.csv"))
+        adjudicate_pgp_labels(_tracked("all_unknown"), _compounds_for("all_unknown"))
 
 
 def test_t15_single_populated_group_raises(tmp_path):
     """defect 24 — the M5 grouping variable is unusable with one group."""
     with pytest.raises(AdjudicationError, match="empty 'no' group"):
-        adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_single_group.csv"))
+        adjudicate_pgp_labels(_tracked("single_group"), _compounds_for("single_group"))
 
 
 def test_t15_verdict_without_a_doi_raises(tmp_path):
     with pytest.raises(AdjudicationError, match="empty `evidence_doi`"):
-        adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_no_missing_doi.csv"))
+        adjudicate_pgp_labels(_tracked("no_missing_doi"), _compounds_for("no_missing_doi"))
 
 
 def test_t15_out_of_domain_value_raises(tmp_path):
-    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
-    frame.insert(3, "stereo_is_relative", "False")
-    frame.loc[0, "adjudicated_label"] = "probably"
-    path = tmp_path / "w.csv"
-    frame.to_csv(path, index=False)
+    def edit(frame):
+        frame.loc[0, "adjudicated_label"] = "probably"
+        return frame
+
+    path = _edited_tracked(tmp_path, "filled", edit)
     with pytest.raises(AdjudicationError, match="outside"):
-        adjudicate_pgp_labels(path)
+        adjudicate_pgp_labels(path, _compounds_for("filled"))
 
 
 def test_t15_verdict_without_an_adjudicator_raises(tmp_path):
-    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
-    frame.insert(3, "stereo_is_relative", "False")
-    frame.loc[0, "adjudicated_by"] = ""
-    path = tmp_path / "w.csv"
-    frame.to_csv(path, index=False)
+    def edit(frame):
+        frame.loc[0, "adjudicated_by"] = ""
+        return frame
+
+    path = _edited_tracked(tmp_path, "filled", edit)
     with pytest.raises(AdjudicationError, match="empty `adjudicated_by`"):
-        adjudicate_pgp_labels(path)
+        adjudicate_pgp_labels(path, _compounds_for("filled"))
 
 
 def test_t15_maps_each_compound_to_ITS_OWN_verdict(tmp_path):
@@ -389,32 +407,30 @@ def test_t15_maps_each_compound_to_ITS_OWN_verdict(tmp_path):
     aggregate is identical, and the whole suite passes. Same defect class as r1's
     constant-'unknown' label: right shape, wrong mapping.
     """
-    series = adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_filled.csv"))
+    series = adjudicate_pgp_labels(_tracked("filled"), _compounds_for("filled"))
 
     assert series["FIXTURECMPDAAA-FIXTUREKEY-N"] == "yes"
     assert series["FIXTURECMPDAAB-FIXTUREKEY-N"] == "no"
     assert series["FIXTURECMPDAAC-FIXTUREKEY-N"] == "unknown"
     assert series.index.is_unique
 
-    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
+    frame = pd.read_csv(_tracked("filled"), dtype=str, keep_default_na=False)
     for _, row in frame.iterrows():
         assert series[row["canonical_inchikey"]] == row["adjudicated_label"]
 
 
 def test_t15_rejects_a_duplicated_canonical_inchikey(tmp_path):
     """Two contradictory verdicts for one compound must not be accepted silently."""
-    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
-    frame.insert(3, "stereo_is_relative", "False")
-    frame = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
-    path = tmp_path / "dup.csv"
-    frame.to_csv(path, index=False)
+    path = _edited_tracked(
+        tmp_path, "filled", lambda frame: pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
+    )
 
     with pytest.raises(AdjudicationError, match="repeats canonical_inchikey"):
-        adjudicate_pgp_labels(path)
+        adjudicate_pgp_labels(path, _compounds_for("filled"))
 
 
 def test_t15_fully_adjudicated_fixture_returns_the_domain(tmp_path):
-    series = adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_filled.csv"))
+    series = adjudicate_pgp_labels(_tracked("filled"), _compounds_for("filled"))
     assert set(series) == {"yes", "no", "unknown"}
     assert series.index.name == "canonical_inchikey"
 
@@ -423,13 +439,13 @@ def test_t15_unknown_is_a_completed_verdict_not_a_blank(tmp_path):
     """An empty cell is INCOMPLETE; the literal 'unknown' is COMPLETE. The blank
     fixture raises while the filled one (which contains 'unknown' rows) does not —
     that asymmetry is the whole point."""
-    series = adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_filled.csv"))
+    series = adjudicate_pgp_labels(_tracked("filled"), _compounds_for("filled"))
     assert (series == "unknown").sum() > 0
 
 
 def test_t15_parquet_round_trips_to_an_identical_series(tmp_path):
     out = tmp_path / "pgp_labels.parquet"
-    series = adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_filled.csv"), parquet_out=out)
+    series = adjudicate_pgp_labels(_tracked("filled"), _compounds_for("filled"), parquet_out=out)
     pd.testing.assert_series_equal(read_pgp_labels(out), series)
 
 
@@ -441,7 +457,7 @@ def test_t15_parquet_preserves_index_metadata_without_normalization(tmp_path):
     passed. This checks what is actually on disk.
     """
     out = tmp_path / "pgp_labels.parquet"
-    series = adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_filled.csv"), parquet_out=out)
+    series = adjudicate_pgp_labels(_tracked("filled"), _compounds_for("filled"), parquet_out=out)
 
     raw = pd.read_parquet(out, engine="pyarrow")
     assert raw.index.name == "canonical_inchikey"
@@ -455,10 +471,10 @@ def test_t15_parquet_preserves_index_metadata_without_normalization(tmp_path):
 
 
 @pytest.fixture
-def fixture_labels(tmp_path) -> pd.Series:
-    # `tmp_path` is requested because the committed fixture sheet predates the generated
-    # columns and T15 now refuses it; `_sheet_with_flag` writes the flagged copy here.
-    return adjudicate_pgp_labels(_sheet_with_flag(tmp_path, "pgp_adjudication_filled.csv"))
+def fixture_labels() -> pd.Series:
+    # T15 reads the TRACKED fixture and recomputes the flag from `compounds` (r2.18), so no
+    # temporary copy is needed any more.
+    return adjudicate_pgp_labels(_tracked("filled"), _compounds_for("filled"))
 
 
 def test_t17_renders_the_composed_version_string(provenance_fixture_path, fixture_labels):

@@ -61,6 +61,18 @@ WRITTEN_COLUMNS = (
     "adjudicated_on",
 )
 
+#: The TRACKED adjudication file (T14, r2.17/r2.18): exactly these five columns, and NO
+#: `name`. A tracked `name` beside a `canonical_inchikey` is the (name, structure) association
+#: the principal's record-content invariant protects; the reviewer's names live in the
+#: generated, UNTRACKED worksheet instead.
+TRACKED_COLUMNS = (
+    "canonical_inchikey",
+    "adjudicated_label",
+    "evidence_doi",
+    "adjudicated_by",
+    "adjudicated_on",
+)
+
 #: The columns T13 must never overwrite once non-empty.
 HUMAN_OWNED_COLUMNS = (
     "adjudicated_label",
@@ -276,8 +288,104 @@ def write_adjudication_worksheet(
     return len(fresh)
 
 
-def adjudicate_pgp_labels(worksheet: Path, parquet_out: Path | None = None) -> pd.Series:
+def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
+    """Project the reviewer's filled worksheet to the five tracked columns:
+    canonical_inchikey, adjudicated_label, evidence_doi, adjudicated_by, adjudicated_on.
+    Returns rows written.
+
+    REFUSES (raises) on any extra human-added column rather than dropping it silently — a
+    reviewer who added a column meant something by it, and a projection that discards it
+    without saying so loses their work invisibly. Emptiness is not intent: an empty added
+    column is refused too, because the column exists only because someone made it.
+
+    Generated columns — `name`, `snapshot_label`, `stereo_is_relative` and
+    `label_disagrees_with_key` — are dropped BY DESIGN and named here so the omission is
+    legible. `name` is dropped because the tracked file must not carry the (name, structure)
+    association; the other three are regenerated on every write and would go stale if tracked.
+
+    Why a helper rather than a manual step (T14, r2.18): "move to configs/" would otherwise
+    mean a human deleting columns by hand, which is exactly how a `name` column reaches a
+    tracked file by accident. With this, a tracked file carrying `name` must be written
+    deliberately.
+    """
+    worksheet, out = Path(worksheet), Path(out)
+    frame = _read_worksheet(worksheet)
+
+    added = [c for c in frame.columns if c not in WRITTEN_COLUMNS]
+    if added:
+        raise AdjudicationError(
+            f"{worksheet} carries column(s) this projection does not know: {added}. Refusing to "
+            "export: a reviewer added them deliberately, and dropping them silently would lose "
+            f"that work. Fold them into {list(TRACKED_COLUMNS)} or remove them deliberately."
+        )
+
+    missing = [c for c in TRACKED_COLUMNS if c not in frame.columns]
+    if missing:
+        raise AdjudicationError(f"{worksheet} is missing column(s): {missing}")
+
+    tracked = frame.loc[:, list(TRACKED_COLUMNS)]
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    # Atomic publish, as for the worksheet: `out` is the tracked record of irreplaceable
+    # human work, and a half-written tracked file is worse than none.
+    tmp = out.with_name(out.name + ".tmp")
+    try:
+        tracked.to_csv(tmp, index=False)
+        os.replace(tmp, out)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+    return len(tracked)
+
+
+def _read_tracked_adjudication(path: Path) -> pd.DataFrame:
+    """The TRACKED five-column file, read strictly (r2.18).
+
+    Strict on both sides. A MISSING column means the file is not what T14 defines. An EXTRA
+    column is refused rather than ignored: `name` would be the very association the invariant
+    protects, and a smuggled `stereo_is_relative` would be a carried — therefore stale —
+    generated column, when T15 recomputes it from `compounds`.
+    """
+    frame = pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[])
+
+    missing = [c for c in TRACKED_COLUMNS if c not in frame.columns]
+    if missing:
+        raise AdjudicationError(
+            f"{path} is missing column(s): {missing}. The tracked adjudication file carries "
+            f"exactly {list(TRACKED_COLUMNS)} — produce it with export_tracked_adjudication()."
+        )
+
+    extra = [c for c in frame.columns if c not in TRACKED_COLUMNS]
+    if extra:
+        raise AdjudicationError(
+            f"{path} carries column(s) outside the tracked schema: {extra}. The tracked file is "
+            f"exactly {list(TRACKED_COLUMNS)}: `name` there would be the (name, structure) "
+            "association the record-content invariant forbids, and a generated column there "
+            "would be a stale copy of one T15 recomputes. Produce it with "
+            "export_tracked_adjudication(worksheet, out)."
+        )
+
+    _reject_duplicate_keys(frame["canonical_inchikey"], str(path))
+    return frame.loc[:, list(TRACKED_COLUMNS)]
+
+
+def adjudicate_pgp_labels(
+    adjudication: Path,
+    compounds: pd.DataFrame,
+    parquet_out: Path | None = None,
+) -> pd.Series:
     """Index: canonical_inchikey. Values: 'yes' | 'no' | 'unknown'.
+
+    **(r2.18) Reads the TRACKED five-column file** that T14 produces, and **RECOMPUTES
+    `stereo_is_relative` from `compounds`** — per key, True if ANY member row is flagged,
+    exactly as T13 generates it. The flag is a GENERATED column: never carried, therefore
+    never stale. Raises if `compounds` lacks `stereo_is_relative` (the same refusal as
+    T10/T13), and raises if any adjudicated key is absent from `compounds`.
+
+    r2.17 had this function read the worksheet and raise when the WORKSHEET lacked the flag,
+    which contradicted T14 as amended in the same revision: the tracked file has no such
+    column, so T15 would have raised on every valid input. Repaired in r2.18 before any code
+    was written.
 
     Raises if NO row has a non-empty adjudicated_label (a wholly unadjudicated
     worksheet — r1 returned all-'unknown' and looked identical to a completed
@@ -290,17 +398,31 @@ def adjudicate_pgp_labels(worksheet: Path, parquet_out: Path | None = None) -> p
 
     Also writes data/processed/pgp_labels.parquet, which T17 reads (defect 25).
     """
-    worksheet = Path(worksheet)
-    frame = _read_worksheet(worksheet)
+    worksheet = Path(adjudication)
+    frame = _read_tracked_adjudication(worksheet)
 
-    if "stereo_is_relative" not in frame.columns:
+    if "stereo_is_relative" not in compounds.columns:
         raise AdjudicationError(
-            f"{worksheet} has no `stereo_is_relative` column: it was generated before the "
-            "relative-stereo re-key (CTO #122 §0), so T17 could not tell 'this identity is "
-            "stereo-unspecified' from 'this compound is not relative'. Regenerate it with "
-            "write_adjudication_worksheet(labels, compounds, out) — the regeneration PRESERVES "
-            "every verdict, DOI and attribution already in the sheet (the never-clobber merge), "
-            "and adds the generated columns."
+            "compounds must carry `stereo_is_relative` — run add_canonical_identity() (T5b) "
+            "after the relative-stereo re-key (CTO #122 §0). Without it T17 could not tell "
+            "'this identity is stereo-unspecified' from 'this compound is not relative', and a "
+            "frame that predates the re-key would silently report neither."
+        )
+
+    relative_by_key = (
+        compounds.loc[:, ["canonical_inchikey", "stereo_is_relative"]]
+        .astype({"stereo_is_relative": bool})
+        .groupby("canonical_inchikey")["stereo_is_relative"]
+        .any()
+    )
+    unknown = sorted(set(frame["canonical_inchikey"]) - set(relative_by_key.index))
+    if unknown:
+        raise AdjudicationError(
+            f"{len(unknown)} adjudicated key(s) are absent from `compounds`, so the generated "
+            f"`stereo_is_relative` cannot be computed for them: {unknown[:5]}"
+            + (" ..." if len(unknown) > 5 else "")
+            + ". The verdicts and the compounds frame describe different snapshots; reconcile "
+            "them deliberately rather than defaulting the flag."
         )
 
     filled = ~frame["adjudicated_label"].map(_blank)
@@ -359,8 +481,8 @@ def adjudicate_pgp_labels(worksheet: Path, parquet_out: Path | None = None) -> p
         # silently lacks it is the stale-flag failure one step later (CTO #125 §2).
         out_frame = series.to_frame()
         out_frame["stereo_is_relative"] = (
-            frame["stereo_is_relative"].astype(str).str.strip().str.lower() == "true"
-        ).to_numpy()
+            relative_by_key.reindex(frame["canonical_inchikey"]).astype(bool).to_numpy()
+        )
         out_frame.to_parquet(parquet_out, engine="pyarrow", version="2.6", compression=None)
 
     return series

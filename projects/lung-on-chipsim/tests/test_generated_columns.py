@@ -246,28 +246,46 @@ def test_t13_refuses_compounds_without_the_flag(tmp_path):
 # --- T15: raise on a legacy sheet; carry the flag ----------------------------------------
 
 
-def test_t15_raises_on_a_legacy_sheet_and_says_how_to_fix_it():
-    """The committed fixture CSVs predate the flag, so they ARE legacy sheets."""
+def test_t15_refuses_a_worksheet_where_the_tracked_file_belongs(tmp_path):
+    """r2.18 moved the refusal. T15 reads the TRACKED five-column file, so a worksheet handed
+    to it — the committed fixtures are worksheets — is refused for carrying `name` and the
+    generated columns, and the message names the helper that produces the right file.
+
+    Under r2.17 this refusal was about a sheet LACKING `stereo_is_relative`; that rule would
+    have rejected every valid tracked file, since the tracked file never has that column.
+    """
+    compounds = pd.DataFrame(
+        {
+            "canonical_inchikey": pd.read_csv(
+                FIXTURES / "pgp_adjudication_filled.csv", dtype=str
+            )["canonical_inchikey"],
+            "name": "FIXTURE-NAME",
+            "stereo_is_relative": False,
+        }
+    )
     with pytest.raises(AdjudicationError) as exc:
-        adjudicate_pgp_labels(FIXTURES / "pgp_adjudication_filled.csv")
+        adjudicate_pgp_labels(FIXTURES / "pgp_adjudication_filled.csv", compounds)
     message = str(exc.value)
-    assert "stereo_is_relative" in message
-    assert "write_adjudication_worksheet" in message
-    # Case-insensitive: the assertion is about what the message TELLS the reviewer, not
-    # how it is capitalised. The message says "PRESERVES every verdict, DOI and attribution".
-    assert "preserv" in message.lower()
+    assert "name" in message
+    assert "export_tracked_adjudication" in message
 
 
 def test_t15_writes_the_flag_into_the_label_parquet(tmp_path):
-    frame = pd.read_csv(FIXTURES / "pgp_adjudication_filled.csv", dtype=str, keep_default_na=False)
-    frame.insert(3, "stereo_is_relative", ["True"] + ["False"] * (len(frame) - 1))
-    sheet = tmp_path / "w.csv"
-    frame.to_csv(sheet, index=False)
+    """The flag reaches T17 as a real boolean — recomputed from `compounds` (r2.18)."""
+    tracked = FIXTURES / "pgp_adjudication_tracked_filled.csv"
+    keys = pd.read_csv(tracked, dtype=str)["canonical_inchikey"].tolist()
+    compounds = pd.DataFrame(
+        {
+            "canonical_inchikey": keys,
+            "name": [f"FIXTURE-NAME-{i:02d}" for i in range(len(keys))],
+            "stereo_is_relative": [True] + [False] * (len(keys) - 1),
+        }
+    )
     out = tmp_path / "pgp_labels.parquet"
-    adjudicate_pgp_labels(sheet, parquet_out=out)
+    adjudicate_pgp_labels(tracked, compounds, parquet_out=out)
     raw = pd.read_parquet(out, engine="pyarrow")
     assert raw["stereo_is_relative"].dtype == bool
-    assert raw["stereo_is_relative"].tolist() == [True] + [False] * (len(frame) - 1)
+    assert raw["stereo_is_relative"].tolist() == [True] + [False] * (len(keys) - 1)
 
 
 # --- T10: refuse an unflagged frame ------------------------------------------------------
