@@ -6,12 +6,6 @@
     "agent_address": "biofm/matthew-mo/lung-on-chipsim"
   },
   {
-    "monitor_type": "blocker",
-    "pid": 50300,
-    "cmdline_hash": "42169cb15a9483e4",
-    "agent_address": "biofm/matthew-mo/cto"
-  },
-  {
     "monitor_type": "issue",
     "pid": 56946,
     "cmdline_hash": "4ddb28703da7567a",
@@ -21,6 +15,12 @@
     "monitor_type": "dispatch",
     "pid": 84659,
     "cmdline_hash": "69dbd7041b8ae105",
+    "agent_address": "biofm/matthew-mo/cto"
+  },
+  {
+    "monitor_type": "blocker",
+    "pid": 94197,
+    "cmdline_hash": "66ef6e4c5f7c020b",
     "agent_address": "biofm/matthew-mo/cto"
   }
 ]
