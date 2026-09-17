@@ -1,13 +1,14 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: 2235d01
+plan_hash: 797fc99
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-invoked, standing-delegation
 invoked_by: biofm/matthew-mo/cto
 provenance_of_record: workstreams/lung-on-chipsim/plan/plan-approval-log.md
 authorising_rulings:
+  - 'CTO ruling 2026-09-17 declining to widen the exclusion set after the accession half caught the CTO own approval log'
   - 'principal ruling 2026-09-17 on the test constant — replace without investigating; CTO instruction to drop the assembly RETRACTED after the agent measured'
   - 'CTO rulings 2026-09-17 on the §11 boundary: error taxonomy two classes, split ordering, E6-3 substance, §12 scope (dispatch #157)'
   - 'CTO rulings 2026-09-17 on the §11 gate: index-vs-worktree escalation, E6-7 non-compliance, contract escapes'
@@ -21,7 +22,7 @@ authorising_rulings:
   - 'CTO rulings 2026-09-16 on §5 escalations E-1 to E-6 (r2.20)'
   - 'principal 2026-09-15 record-content re-ruling — the invariant targets record content and the (accession, name, structure) association'
   - 'principal 2026-09-15 lane ruling, re-confirmed 2026-09-16 — this CTO session owns the lane'
-  - 'r2.30 carries a principal ruling (test constant) plus a CTO self-retraction'
+  - 'r2.31 has NO principal ruling — a CTO ruling on its own violation; r2.8/r2.9 precedent'
 human_approved_hash: de4b812
 human_approved_date: 2026-09-15
 human_approval_source: principal message "approve r2.1 sign and commit flash", other CTO session, 2026-09-15T07:56Z (the 0b8d0c3 marker quoted it as "approve r2.10 sign")
@@ -38,7 +39,7 @@ conditions_amended_since_human_approval:
   - 'Global Constraints + T5a + T14 (r2.20) — record-bearing writers validate destinations against an ALLOW-LIST via one shared helper; the guard may not skip an undecodable file silently; publish via the CLI; fail-closed stated'
   - 'Global Constraints (r2.21) — declarations owned per project with path->sha256 or a derived-from-source claim; readable structured containers always read, never declared; the dispatch waiver covers .md messages only; which half each mechanism enforces is stated'
   - 'Global Constraints (r2.22) — E6-1b: the undeclared-undecodable FAILURE is scoped to the owning project, the LISTING stays repo-wide, and a path owned by NO project fails THIS gate so scoping can never make a file unfailable everywhere; r2.20 fail-closed clause amended to match'
-date: 2026-09-17T15:20
+date: 2026-09-17T16:40
   - 'Global Constraints (r2.23) — allow-list checked by directory IDENTITY not case-folding, with missing-root and outside-root as two distinct failures; roots anchored at runtime; operator-chosen --dest/--out through the same helper with data/raw and the journal declared; the listing RENDERED at the REPO root by a shipped command; owner-gate fiction stated; a repo-root declaration surface for unowned paths; declaration data acknowledged unbuilt'
   - 'Global Constraints (r2.24) — the report proves it scanned something (check=True, count floor, paths resolve); GIT_* dropped and executed config disabled; an owner needs a tracked marker; paths escaped; unresolvable tracked paths counted always and failing only when owned; submodules explicitly NOT scanned; owner registry folded into E-02; topology placement folded into E6-6'
   - 'Global Constraints (r2.25) — a broken declaration file is exit 2 with nothing declared and the listing still rendered, not exit 3; counts kept separate; assertions bind the exit code not the return value; declarations load once through a snapshot; the registry may not police itself; an absent declaration file is not an empty one; all defects per entry in one pass; per-reviewer copies with a verified interpreter'
@@ -47,6 +48,7 @@ date: 2026-09-17T15:20
   - 'Global Constraints (r2.28) — a commit gate reads the STAGED BLOB it certifies, never the working file, and the report states which copy it read; E6-7 declared UNMET because the shipped command composes three of four and the CTO cited it for the fourth; a three-state contract admits no fourth state; every interpolated field escaped, not just paths'
   - 'Global Constraints (r2.29) — E6-7 confirmed MET by falsification; the error taxonomy is TWO classes in a dependency-free guards/errors.py; signatures are fixed BEFORE modules are extracted; report grouping withdrawn; derived_from must pin the declared file bytes, because E6-3 letter was met and its substance was not'
   - 'Global Constraints (r2.30) — the guard test file is deliberately IN SCOPE, so its assembled constant is load-bearing whatever value it holds; the CTO instruction to remove the assembly was wrong and is retracted'
+  - 'Global Constraints (r2.31) — the exclusion set is NOT widened for coordination files; accession literals must never be written into tracked prose and this is enforced on the commit path rather than by exclusion, because the CTO wrote two while recording the ruling forbidding them'
 ---
 
 # Plan approval: lung-on-chipsim
@@ -55,43 +57,43 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.30 records the principal's test-constant ruling — **replace without investigating** — and a **CTO
-retraction**: the instruction to drop the fragment assembly was issued without establishing why the
-assembly existed, and would have turned the live gate red. The agent **measured before complying** and
-refused the half that was wrong.
+r2.31 answers the accession half's **first live catch** — which caught the **CTO**. Two shape-valid
+non-synthetic literals had been written into `plan-approval-log.md` **while recording the ruling that
+forbids them**. The exclusion set is **not** widened; the rule is enforced on the commit path instead.
 
 ---
 
 ## THIS FILE IS NO LONGER THE PROVENANCE OF RECORD
 
 **`plan-approval-log.md` beside it is** (r2.15 item 6). `plan-gate sign` regenerates this file
-wholesale on every sign — **twenty-six times so far** — preserving nothing below the frontmatter.
+wholesale on every sign — **twenty-seven times so far** — preserving nothing below the frontmatter.
 
 ## Provenance — how to read this signature
 
-**The principal ruled: replace the constant, do not investigate.** Because the guard is **shape-only**
-— it holds no list of assigned identifiers — an obviously-unassigned value exercises the positive
-detection path identically, so the remediation costs **zero coverage** and is worth applying whether or
-not anything was ever wrong. That made it possible to remove the exposure **without anyone determining
-whether the existing pair was an association**, which is itself the association the constraint forbids.
-Nobody looked. That remains forbidden after the change. Confirmed by the suite: **962 passed / 5
-skipped, unchanged** — no detection test ever depended on the identifier denoting anything.
+**THE ACCESSION HALF'S FIRST LIVE CATCH WAS THE CTO'S OWN APPROVAL LOG.** Recording the test-constant
+ruling, the CTO wrote **two shape-valid non-synthetic literals** into `plan-approval-log.md` — probe
+values that denote nothing, but the guard is **shape-only by design and must not know that**. The gate
+went red on tracked coordination content. *The record of the remediation reintroduced the pattern the
+remediation removed*, one file away from where the defect had just been fixed.
 
-**A CTO INSTRUCTION WAS WRONG AND THE AGENT REFUSED THE WRONG HALF.** The CTO ruled "drop the
-fragment-assembly and the comment explaining it" **without establishing why the assembly existed**. The
-agent measured: the guard's own test file is **not excluded** from the accession scan, and a **literal**
-shape-valid non-synthetic form matches — so any literal there turns the live gate **red**, whatever
-value it holds. *The assembly was never the problem; the value was.* CTO-verified independently:
-`is_accession_excluded(<test file>)` → `False`, `REAL_ACCESSION_RE` on a literal → `True`, and the live
-gate exit 0 / 790 tracked after the change. The agent also rejected the alternative — excluding the
-test file from the scan — on the grounds that **excluding the file that tests the scan is a bigger hole
-than an assembled constant**, which is correct and is the shape of defect this whole iteration found.
+**The agent reported it without reproducing the value**, pointing at the file rather than quoting it,
+and **declined to edit** a plan-gated file that was not its own. Both correct.
 
-**Both parties are now relaying rulings they cannot verify, and both disclose it.** The agent could not
-verify this principal ruling independently — it arrived through the CTO's session — so it treated it as
-a work instruction, said so in the commit body, and kept the change reversible. That is the same
-disclosure the CTO made when the agent cited a ruling the CTO could not see. *The symmetry is the
-point: neither pretends to an authority it is only carrying.*
+**E6-7 earned itself here.** Before §11 the shipped command composed three of four halves and would
+have reported this tree **clean at exit 0** — the exit 0 both parties had been citing as evidence of
+compliance. The half that was wired in §11 is the half that caught this, on the coordination content
+of the person who ruled it.
+
+**The exclusion set is NOT widened, and the agent was right to ask rather than assume.** Excluding
+`workstreams/**/plan/**` would be the same hole as excluding the test file that tests the scan, ruled
+against one revision earlier. **Enforcement moves to the commit path**, because the decisive evidence
+is that remembering failed immediately: the literals were written *by the author of the rule, in the
+act of writing it down*.
+
+**Fixed by description, not deletion:** the log row now names the forms — "an all-zeros five-digit
+body" — and carries an in-place correction notice. `plan-approval.md` and `build-plan.md` were swept
+and were already clean; the six flagged files under `.claude/usr/**/dispatches/` are pre-`#122` `.md`
+messages covered by the E6-4 waiver **by design**, not new exposure.
 
 **The last direct human approval is `de4b812` (r2.10), 2026-09-15.** No task added or removed since.
 
@@ -177,12 +179,12 @@ not judgement.
     compliance reports were in my own resolved dispatch list. Rule 7 says cite what you read; rule
     11 says a thing you intend to do is not a thing you have done.
 
-## Incident — `plan-gate sign` destroys this disclosure. TWENTY-SIX occurrences.
+## Incident — `plan-gate sign` destroys this disclosure. TWENTY-SEVEN occurrences.
 
 **2026-09-03 02:08** · **2026-09-14 13:28 / 15:24** · **2026-09-15 01:01 (`0b8d0c3`, second CTO
 session) / 01:40 / 11:19 / 12:43 / 15:16 / 16:15** · **2026-09-16 14:04 (third CTO session — restored
 from a stale capture, regressing the hash) / 14:08 / 15:00 / 15:04 / 15:36 / 15:38 / 18:28 / 18:59**
-· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15 / 08:55 / 10:35 / 12:10 / 13:55 / 15:20**.
+· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15 / 08:55 / 10:35 / 12:10 / 13:55 / 15:20 / 16:40**.
 
 **Standing procedure:** capture before every sign; restore after; restore onto the **post-sign**
 hash; restore as **valid YAML**; verify the parse, not just the gate; **append the log entry**.
