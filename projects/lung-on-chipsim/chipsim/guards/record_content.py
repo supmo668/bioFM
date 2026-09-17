@@ -1326,6 +1326,7 @@ def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
             f"({sum(1 for _, _, s in entries if s == 'project')} from {PROJECT_DECLARATION_FILE}, "
             f"{sum(1 for _, _, s in entries if s == 'repo-root')} from {REPO_DECLARATION_FILE}), "
             f"{len({path for path, _ in defects})} whose claim does not hold"
+            f" ({len(defects)} defect(s))"
         ),
         f"  (scan run from package {Path(__file__).resolve()})",
     ]

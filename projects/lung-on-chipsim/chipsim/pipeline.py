@@ -345,6 +345,19 @@ def _cmd_adjudication_export(ns) -> int:
     return 0
 
 
+def _record_content_policy():
+    """WHICH policy this command enforces. A seam, so a test can bind it.
+
+    It is a function rather than a module constant because a constant cannot be observed: two
+    mutants — the CLI calling `render_undeclared_report()` with no policy, and `_render_for_root`
+    discarding the policy it was handed — each passed the entire suite, since on the live tree the
+    DrugBank policy and the guard's default render byte-identical output.
+    """
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
+
+    return DRUGBANK_CONTENT_POLICY
+
+
 def _cmd_record_content_report(ns) -> int:
     """Print the repo-wide undeclared-undecodable report (r2.20 listing / r2.22 scoping).
 
@@ -356,14 +369,15 @@ def _cmd_record_content_report(ns) -> int:
         RecordContentScanError,
         render_undeclared_report,
     )
-    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
 
     # The REPO root, not project_root(): see r2.23 E-08 — passing the project root here made the
     # command print "every tracked file was read" while 23 files had never been read.
     try:
         # The POLICY is passed, never imported by the guard: the guard must not know about
-        # DrugBank, and its defaults waive nothing, so forgetting it makes the gate noisier.
-        text, code = render_undeclared_report(DRUGBANK_CONTENT_POLICY)
+        # DrugBank. Resolved through a seam so a test can bind WHICH policy the command uses —
+        # without one, nothing in the suite could tell this call from `render_undeclared_report()`,
+        # and two mutants that dropped the policy entirely passed all 895 tests.
+        text, code = render_undeclared_report(_record_content_policy())
     except RecordContentScanError as exc:
         # Exit 3, NOT 2. Exit 2 means "files fail this gate"; this means "I could not scan", which
         # is a different fact with a different remedy. Collapsing them is how an unscannable tree

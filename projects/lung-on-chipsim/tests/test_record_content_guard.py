@@ -564,7 +564,10 @@ def test_an_undecodable_ledger_file_is_reported_but_a_dispatch_payload_is_not(tm
 
     message = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/real.md"
     (tmp_path / message).write_text("a sent message\n")
-    assert undecodable_unallowed(tmp_path, _surfaced(tmp_path, [message]), NOTHING_WAIVED) == []
+    assert (
+        undecodable_unallowed(tmp_path, _surfaced(tmp_path, [message]), DRUGBANK_CONTENT_POLICY)
+        == []
+    )
 
 
 def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
@@ -1969,7 +1972,9 @@ def test_a_declaration_field_of_the_wrong_TYPE_is_refused_with_a_diagnosis(tmp_p
     assert field in message, "and the field that is wrong"
 
 
-def test_a_malformed_declaration_exits_3_rather_than_crashing(tmp_path, monkeypatch, capsys):
+def test_a_malformed_declaration_exits_2_with_a_diagnosis_rather_than_crashing(
+    tmp_path, monkeypatch, capsys
+):
     """Through the SHIPPED command, not the function: before this, returncode 1 and a traceback."""
     import chipsim.guards.record_content as rc
     from chipsim import pipeline
@@ -2545,7 +2550,13 @@ def test_the_header_counts_declaration_defects_SEPARATELY(tmp_path, monkeypatch,
 
 def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch, capsys):
     """E-15. A reader who learns their entry's next problem one gate run at a time is being made to
-    bisect their own data. This entry is wrong in three independent ways at once."""
+    bisect their own data.
+
+    The fixture is wrong in TWO reportable ways, not three: the stale pin is never reached, because
+    the container branch still short-circuits — deliberately, since a container IS a readable file
+    and reporting both would print the same fact twice. `>= 2` was the weakest predicate that could
+    still pass and could not have failed if the count regressed, so it is an equality now.
+    """
     import chipsim.guards.record_content as rc
 
     rel = "projects/perturb-seq-eval/paper/fig.parquet"
@@ -2562,7 +2573,7 @@ def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch,
         for path, why in rc.declaration_defects(tmp_path, listing, NOTHING_WAIVED)
         if path == rel
     ]
-    assert len(reasons) >= 2, f"only one defect reported for a triply-broken entry: {reasons}"
+    assert len(reasons) == 2, f"expected placement + container, got: {reasons}"
     joined = " ".join(reasons)
     assert "owns it" in joined, "the placement problem"
     assert "container" in joined, "and the container problem, in the SAME pass"
@@ -2608,8 +2619,15 @@ def test_no_guard_refusal_is_written_as_a_bare_assert():
     )
 
 
-def test_the_container_refusal_survives_python_O():
-    """The property, not the shape: run the guard under -O and watch it still refuse."""
+def test_the_container_refusal_survives_python_O(tmp_path):
+    """Call the REAL guard under -O and watch it refuse.
+
+    The previous version of this test raised a RecordContentScanError it had constructed itself and
+    then re-parsed the module source with `ast` — and `ast.parse` yields Assert nodes identically
+    under -O, so that check was a byte-for-byte duplicate of the shape test with a subprocess
+    wrapped around it. A mutant guarding the refusal with `not sys.flags.optimize` made it vanish
+    EXACTLY AND ONLY under -O, and all three container/assert tests passed.
+    """
     import subprocess
     import sys
     import textwrap
@@ -2618,21 +2636,44 @@ def test_the_container_refusal_survives_python_O():
         f"""
         import sys
         sys.path.insert(0, {str(PROJECT_ROOT)!r})
+        import pathlib, yaml
         import chipsim.guards.record_content as rc
+
+        root = pathlib.Path({str(tmp_path)!r})
+        blob = root / "projects" / rc.THIS_PROJECT / "docs" / "blob.dat"
+        blob.parent.mkdir(parents=True, exist_ok=True)
+        blob.write_bytes(b"PAR1" + b"\\x00" * 32)
+        (root / "config").mkdir(parents=True, exist_ok=True)
+        (root / "projects" / rc.THIS_PROJECT / "configs").mkdir(parents=True, exist_ok=True)
+        (root / rc.PROJECT_DECLARATION_FILE).write_text(yaml.safe_dump({{
+            "version": "1",
+            "declarations": [{{
+                "path": f"projects/{{rc.THIS_PROJECT}}/docs/blob.dat",
+                "sha256": "0" * 64,
+                "why": "claims to be opaque",
+            }}],
+        }}))
+        (root / rc.REPO_DECLARATION_FILE).write_text(yaml.safe_dump(
+            {{"version": "1", "declarations": []}}
+        ))
+
+        print("OPTIMIZE", sys.flags.optimize)
         try:
-            raise rc.RecordContentScanError("refusal reachable")
-        except rc.RecordContentScanError:
-            print("REFUSAL-IS-AN-EXCEPTION")
-        import ast, inspect
-        tree = ast.parse(inspect.getsource(rc))
-        print("ASSERTS", sum(isinstance(n, ast.Assert) for n in ast.walk(tree)))
+            rc.assert_no_container_is_declared(root)
+        except rc.RecordContentScanError as exc:
+            print("REFUSED:", exc)
+        else:
+            print("CLEARED-IN-SILENCE")
         """
     )
     out = subprocess.run(
         [sys.executable, "-O", "-c", script], capture_output=True, text=True, check=False
     )
-    assert "REFUSAL-IS-AN-EXCEPTION" in out.stdout, out.stderr
-    assert "ASSERTS 0" in out.stdout, out.stdout
+    assert "OPTIMIZE 1" in out.stdout, (
+        f"the child must really be optimised, or this test degrades to the ordinary case\n{out.stderr}"
+    )
+    assert "REFUSED:" in out.stdout, out.stdout + out.stderr
+    assert "declared readable container" in out.stdout
 
 
 def test_the_content_policy_has_no_default_because_one_half_would_be_fail_open():
@@ -2789,3 +2830,178 @@ def test_the_header_counts_DECLARATIONS_not_defects(tmp_path, monkeypatch, capsy
     pipeline.main(["record-content-report"])
     out = capsys.readouterr().out
     assert "1 whose claim does not hold" in out, out.splitlines()[1]
+
+
+# --- r2.26 §10: one test per mutant that survived the whole suite ------------------------------
+
+
+def test_a_broken_declaration_file_ALONE_is_still_exit_2(tmp_path, monkeypatch, capsys):
+    """MUT-5, and it is the r2.25 ruling itself left unpinned.
+
+    `2 if failing or surface.structural_error else 0` degrades to `2 if failing else 0` with the
+    whole suite green, because every existing broken-declaration fixture ALSO plants a failing
+    payload — so `failing` is non-empty and the structural term is redundant in every one of them.
+    This fixture has nothing else wrong with it, which is the only way the term can be observed.
+    """
+    import chipsim.guards.record_content as rc
+
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT])
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+    assert "undeclared undecodable files: 0 (failing this gate: 0)" in out, out
+    assert "0 whose claim does not hold" in out
+    assert code == 2, "a broken declaration file ALONE must still be exit 2"
+
+
+def test_an_absent_surface_is_DISTINGUISHABLE_from_an_empty_one(tmp_path, monkeypatch, capsys):
+    """MUT-18. The existing absent-file test was vacuous: with the refusal deleted it still passed,
+    because the unlinked file was in the listing (so it counted as unresolvable-and-failing) and the
+    footer mentions that path unconditionally. Neither assertion could tell "absent" from "empty",
+    which is the one distinction the function exists for."""
+    import chipsim.guards.record_content as rc
+
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT])
+    (tmp_path / rc.REPO_DECLARATION_FILE).unlink()
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+    assert "is ABSENT" in out, out
+    assert "NOTHING IS DECLARED" in out
+    assert code == 2
+
+
+def test_the_command_passes_THIS_PROJECTS_policy_not_the_guards_default(
+    tmp_path, monkeypatch, capsys
+):
+    """MUT-16 and MUT-17. Nothing bound the policy seam at the report level: the CLI calling
+    `render_undeclared_report()` with no policy, and `_render_for_root` discarding the policy it was
+    handed, each passed all 895 tests — because on the live tree the two render byte-identical
+    output (zero declarations, and the excluded-files set is empty).
+
+    A ledger path, declared and READABLE, separates them: under this project's policy it is exempt
+    by the content mechanism, so declaring it too is a double exemption.
+    """
+    rel = min(DRUGBANK_ID_LEDGER)
+    _write(tmp_path, rel, b"readable: yes\n")
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "sha256": "a" * 64, "why": "x"}],
+        owners=[THIS_PROJECT],
+    ) + [rel]
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+    assert "exempted twice" in out, (
+        "the command must pass THIS project's policy; the guard's own default exempts nothing"
+    )
+    assert "1 whose claim does not hold (2 defect(s))" in out
+    assert code == 2
+
+
+def test_the_readability_waiver_is_consulted_and_obeyed(tmp_path):
+    """MUT-22. The waiver half of the policy seam — the thing the whole extraction docstring is
+    about — was never consulted by any test, and the DrugBank predicate cannot demonstrate it: a
+    dispatch message is waived only when it DECODES, which is exactly when it would not have been
+    reported anyway. Bind the predicate directly instead of through DrugBank."""
+    import chipsim.guards.record_content as rc
+
+    rel = "docs/opaque.bin"
+    _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _surfaced(tmp_path, [rel])
+
+    seen: list[str] = []
+
+    def waive(root, candidate):
+        seen.append(candidate)
+        return candidate == rel
+
+    waiving = rc.ContentPolicy(readability_waived=waive)
+    assert rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED) == [rel], (
+        "unwaived: reported"
+    )
+    assert rc.undecodable_unallowed(tmp_path, listing, waiving) == [], "waived: not reported"
+    assert rel in seen, "the waiver must actually be consulted, not merely accepted"
+
+
+def test_the_ledger_is_not_readability_waived_and_a_binary_is_not_a_message(tmp_path):
+    """The boundary the DrugBank waiver actually draws, asserted through the policy rather than
+    around it. Swapping the two predicates silently waives the ledger — whose content IS read, so
+    its readability is exactly what the check is for."""
+    ledger = min(DRUGBANK_ID_LEDGER)
+    payload = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/leak.pdf"
+    for rel in (ledger, payload):
+        _write(tmp_path, rel, b"\x00\xff not text")
+    listing = _surfaced(tmp_path, [ledger, payload])
+
+    assert undecodable_unallowed(tmp_path, listing, DRUGBANK_CONTENT_POLICY) == sorted(
+        [ledger, payload]
+    ), "the ledger is NOT readability-waived, and a binary at a dispatch path is not a message"
+
+
+def test_three_defects_for_one_entry_are_all_reported(tmp_path, monkeypatch, capsys):
+    """MUT-8 and MUT-9: two of the removed short-circuits were unbound, because every defect test
+    asserts "this reason appears" — satisfied by any ONE defect — and the count it checks is of
+    PATHS, not defects. The header count is the observable that distinguishes them."""
+    rel = "projects/perturb-seq-eval/paper/fig.pdf"  # declared, never written, never tracked
+    _write(tmp_path, "projects/perturb-seq-eval/pyproject.toml", b"[project]\n")
+    listing = _decl_fixture(
+        tmp_path,
+        repo_entries=[{"path": rel, "sha256": "a" * 64, "why": "x"}],
+        owners=[THIS_PROJECT, "perturb-seq-eval"],
+    ) + ["projects/perturb-seq-eval/pyproject.toml"]
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+    assert "1 whose claim does not hold (3 defect(s))" in out, out
+    assert code == 2
+
+
+def test_a_declared_dispatch_payload_reports_both_of_its_defects(tmp_path, monkeypatch, capsys):
+    """MUT-10: the dispatch short-circuit was unbound."""
+    rel = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/leak.pdf"
+    _write(tmp_path, rel, b"plain readable text\n")
+    listing = _decl_fixture(
+        tmp_path,
+        repo_entries=[{"path": rel, "sha256": "a" * 64, "why": "x"}],
+        owners=[THIS_PROJECT],
+    ) + [rel]
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+    assert "1 whose claim does not hold (2 defect(s))" in out, out
+    assert "DOUBLE-EXEMPT" in out and "scan CAN read it" in out
+    assert code == 2
+
+
+def test_the_guard_does_not_import_anything_from_ingest():
+    """The extraction's entire premise, asserted rather than assumed. One
+    `from chipsim.ingest.drugbank_snapshot import ...` would re-merge the modules with the suite
+    green, and the dependency direction is the only thing keeping the guard generic."""
+    import ast
+    import inspect
+
+    import chipsim.guards.record_content as rc
+
+    modules: list[str] = []
+    for node in ast.walk(ast.parse(inspect.getsource(rc))):
+        if isinstance(node, ast.Import):
+            modules += [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.append(node.module)
+    offenders = [m for m in modules if "ingest" in m or "drugbank" in m]
+    assert offenders == [], f"the guard must not know about DrugBank: {offenders}"
+
+
+def test_no_shipped_module_writes_a_refusal_as_a_bare_assert():
+    """Widened from one module to the whole package: `python -O` strips asserts everywhere, and
+    `output_roots` and `pipeline` both carry refusals today."""
+    import ast
+    import pathlib
+
+    import chipsim
+
+    offenders: list[str] = []
+    for path in sorted(pathlib.Path(chipsim.__file__).parent.rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.Assert):
+                offenders.append(f"{path.name}:{node.lineno}")
+    assert offenders == [], (
+        f"bare assert(s) in shipped code at {offenders} — python -O removes them"
+    )
