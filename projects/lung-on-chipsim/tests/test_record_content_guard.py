@@ -29,6 +29,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from chipsim.ingest.drugbank_snapshot import (
     BINARY_ALLOWLIST,
     DRUGBANK_ID_EXCLUDED_FILES,
@@ -493,3 +495,94 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
 def test_no_declared_path_is_also_content_excluded():
     """A path must never be exempted twice by two different mechanisms."""
     assert [rel for rel in BINARY_ALLOWLIST if is_accession_excluded(rel)] == []
+
+
+# --- r2.21 E6-2: a readable structured container is ALWAYS read, never declared -------------
+
+
+def _hdf5(tmp_path: Path, name: str, datasets: dict, attrs: dict | None = None) -> Path:
+    h5py = pytest.importorskip("h5py")
+    path = tmp_path / name
+    with h5py.File(path, "w") as handle:
+        for key, values in datasets.items():
+            handle.create_dataset(key, data=values)
+        for key, value in (attrs or {}).items():
+            handle.attrs[key] = value
+    return path
+
+
+def test_an_hdf5_string_dataset_carrying_an_accession_is_scanned(tmp_path):
+    """r2.21 E6-2. HDF5/h5ad is a readable structured container, so it is READ — the same argument
+    that made parquet's footer readable. It was the one entry in the declared list that was not a
+    rendered artifact, filed among 24 figures where nobody would register it."""
+    path = _hdf5(tmp_path, "matrix.h5ad", {"obs/perturbation": [REAL.encode(), b"control"]})
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_an_hdf5_ATTRIBUTE_carrying_an_accession_is_scanned(tmp_path):
+    """Attributes are the HDF5 analogue of parquet's footer metadata — the placement that carried
+    a whole record invisibly in §6."""
+    path = _hdf5(tmp_path, "attrs.h5", {"x": [1, 2]}, attrs={"provenance": f"from {REAL}"})
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_a_clean_hdf5_container_is_neither_a_hit_nor_undecodable(tmp_path):
+    path = _hdf5(tmp_path, "clean.h5ad", {"obs/cell": [b"FIXTURE-CELL"]})
+    assert real_accession_hits(tmp_path, [path.name]) == []
+    assert undecodable_unallowed(tmp_path, [path.name]) == []
+
+
+def test_no_readable_structured_container_is_declared():
+    """E6-2: only RENDERED artifacts may be declared. A container in the list is the category
+    collapse the clause forbids — and the h5ad was exactly that."""
+    containers = [
+        rel
+        for rel in BINARY_ALLOWLIST
+        if Path(rel).suffix.lower() in {".parquet", ".pq", ".h5", ".h5ad", ".hdf5", ".feather"}
+    ]
+    assert containers == [], (
+        f"declared readable container(s): {containers}. A structured container is always read."
+    )
+
+
+def test_an_unreadable_container_fails_loudly_rather_than_inviting_a_declaration(tmp_path):
+    """If the HDF5 reader is absent the file must NOT quietly become 'undecodable — declare it',
+    because declaring a container is precisely what E6-2 forbids."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    path = _hdf5(tmp_path, "x.h5ad", {"obs/p": [b"FIXTURE"]})
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(ds, "_HDF5_READER", None)
+        with pytest.raises(RuntimeError, match="h5py"):
+            ds.real_accession_hits(tmp_path, [path.name])
+
+
+# --- r2.21 E6-4: the dispatch waiver covers MESSAGES, not bytes ------------------------------
+
+
+def test_the_dispatch_waiver_covers_md_payloads_only():
+    """#122 §3 waives dispatches because redacting a sent MESSAGE falsifies the audit trail. A PDF
+    dropped in that directory is not a message whose text is being audited — and a tracked
+    `dispatches/leak.pdf` carrying a real accession was double-exempt with the suite green."""
+    base = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches"
+    assert is_accession_excluded(f"{base}/message.md")
+    assert not is_accession_excluded(f"{base}/leak.pdf")
+    assert not is_accession_excluded(f"{base}/leak.parquet")
+    assert not is_accession_excluded(f"{base}/attachment.csv")
+
+
+def test_a_non_md_file_in_a_dispatch_directory_is_scanned_and_reported(tmp_path):
+    base = Path(".claude/usr/matthew-mo/lung-on-chipsim/dispatches")
+    (tmp_path / base).mkdir(parents=True)
+    (tmp_path / base / "leak.csv").write_text(f"see {REAL}\n")
+    (tmp_path / base / "leak.pdf").write_bytes(b"%PDF-1.4\x00\xff not text")
+    (tmp_path / base / "message.md").write_text(f"a message naming {REAL}\n")
+
+    hits = {
+        rel
+        for rel, _ in real_accession_hits(
+            tmp_path, [str(base / n) for n in ("leak.csv", "message.md")]
+        )
+    }
+    assert hits == {str(base / "leak.csv")}, "the .md message stays waived; the .csv does not"
+    assert undecodable_unallowed(tmp_path, [str(base / "leak.pdf")]) == [str(base / "leak.pdf")]

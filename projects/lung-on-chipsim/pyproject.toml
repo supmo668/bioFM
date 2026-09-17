@@ -42,6 +42,10 @@ dev = [
     "pytest-cov",
     "ruff",
     "dvc",
+    # The record-content guard READS HDF5/h5ad rather than declaring it unread (r2.21 E6-2): a
+    # readable structured container carries names and identifiers the way parquet's footer did.
+    # DEV, not runtime — the guard has no production caller; it exists as the repo-wide test.
+    "h5py",
 ]
 
 [tool.pytest.ini_options]

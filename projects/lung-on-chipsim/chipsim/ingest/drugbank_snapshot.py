@@ -340,7 +340,12 @@ DRUGBANK_ID_EXCLUDED_FILES: frozenset[str] = frozenset()
 
 #: Dispatch payloads at any depth under .claude/usr/ (#122 §3): coordination records.
 #: Redacting a sent message falsifies the audit trail of the rulings it carries.
-_DISPATCH_PAYLOAD_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+$")
+#: (r2.21 E6-4) `.md` ONLY. #122 §3 waives dispatch payloads because redacting a sent MESSAGE
+#: falsifies the audit trail of the rulings it carries — reasoning that covers a message, not
+#: arbitrary bytes that happen to sit in the directory. Proven at §6: a tracked
+#: `dispatches/leak.pdf` carrying a real accession was DOUBLE-exempt (undecodable AND waived) with
+#: the whole suite green.
+_DISPATCH_PAYLOAD_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+\.md$")
 
 #: Union kept for callers that only need membership of the named files.
 DRUGBANK_ID_EXCEPTIONS = DRUGBANK_ID_LEDGER | DRUGBANK_ID_EXCLUDED_FILES
@@ -359,9 +364,17 @@ def is_accession_excluded(rel: str) -> bool:
 #: silent-skip this list exists to end. A new undecodable tracked file FAILS the guard until
 #: someone reads it and adds it here.
 #:
-#: These 24 are plotting outputs and a typeset paper from OTHER modules (perturb-seq-eval,
-#: paper_standalone) plus one AnnData pilot dataset. None is a DrugBank artifact; all predate this
-#: declaration and were skipped in silence by every scan before it.
+#: RENDERED ARTIFACTS ONLY (r2.21 E6-2): plotting outputs and a typeset paper from other modules.
+#: A readable structured CONTAINER may never be declared — the AnnData pilot dataset that used to
+#: sit in this list is now READ, because it was the one entry here that was not a rendered artifact
+#: and it was filed among figures where no reader would register it.
+#:
+#: OWNERSHIP (r2.21 E6-1): every path below belongs to `perturb-seq-eval` or `paper_standalone`,
+#: not to this module, which is the defect E6-1 names — another team adding a figure turns THIS
+#: gate red and the repair lands in a file they neither own nor can judge. Moving them to
+#: per-project declaration data is BLOCKED on a composition question sent to the CTO: r2.20 says an
+#: undeclared undecodable file FAILS, so removing these before those projects have declaration
+#: files simply inverts the coupling (measured: 24 files, 0 owned here, my gate red on day one).
 BINARY_ALLOWLIST: frozenset[str] = frozenset(
     {
         "paper_standalone/figures/fig1_metric_vs_difficulty.pdf",
@@ -381,7 +394,6 @@ BINARY_ALLOWLIST: frozenset[str] = frozenset(
         "projects/perturb-seq-eval/artifacts/modal_run/figures/fig4_e3b_task_conditional.pdf",
         "projects/perturb-seq-eval/artifacts/modal_run/figures/fig5_backbone_msd.pdf",
         "projects/perturb-seq-eval/artifacts/modal_run/figures/fig6_lifecycle_optimizer.pdf",
-        "projects/perturb-seq-eval/data/Adamson2016_pilot.h5ad",
         "projects/perturb-seq-eval/paper/figures/fig1_metric_vs_difficulty.pdf",
         "projects/perturb-seq-eval/paper/figures/fig2_calibration_and_ablation.pdf",
         "projects/perturb-seq-eval/paper/figures/fig3_pareto.pdf",
@@ -391,6 +403,18 @@ BINARY_ALLOWLIST: frozenset[str] = frozenset(
     }
 )
 
+
+#: HDF5's signature. `h5ad` is HDF5, and AnnData's `obs`/`var` carry names and identifiers — the
+#: same argument that made parquet's footer readable (r2.21 E6-2). A readable structured container
+#: is ALWAYS read; only RENDERED artifacts (figures, typeset PDFs) may be declared.
+_HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
+
+#: Indirected so a test can remove the reader and assert the guard fails LOUDLY rather than
+#: reporting "undecodable — declare it", which for a container is the one answer E6-2 forbids.
+try:  # pragma: no cover - import guard
+    import h5py as _HDF5_READER
+except ImportError:  # pragma: no cover
+    _HDF5_READER = None
 
 #: Bytes a parquet file starts and ends with. Dispatch on the MAGIC, not on the name (QG §6):
 #: `UP.PARQUET`, `.pq` and an extensionless blob are all real parquet, and a suffix test sent each
@@ -478,6 +502,43 @@ def _parquet_chunks(target: Path):
         yield frame.map(_cell).to_csv(index=True)
 
 
+def _hdf5_chunks(target: Path):
+    """Every string dataset and every attribute in an HDF5/h5ad container.
+
+    Numeric arrays are skipped deliberately: a 14.7M-element expression matrix cannot carry a
+    compound name, and reading it would make the repo-wide scan unusable. Names and identifiers
+    live in string datasets (`obs`, `var`) and in attributes — the HDF5 analogue of the parquet
+    footer that carried a whole record invisibly at §6.
+    """
+    if _HDF5_READER is None:
+        raise RuntimeError(
+            f"{target} is an HDF5 container and no reader is installed (h5py). A container is "
+            "ALWAYS read, never declared unread (r2.21 E6-2), so this fails loudly rather than "
+            "inviting a declaration. Install the dev dependencies."
+        )
+
+    parts: list[str] = []
+
+    def visit(name, node):
+        parts.append(name)
+        for key, value in getattr(node, "attrs", {}).items():
+            parts.append(f"{key}={value!r}")
+        data = getattr(node, "dtype", None)
+        if data is not None and data.kind in {"O", "S", "U"}:
+            try:
+                values = node[()]
+            except Exception:  # noqa: BLE001 - an unreadable dataset is not a clean one
+                parts.append(f"{name}=<unreadable>")
+                return
+            parts.append(repr(values))
+
+    with _HDF5_READER.File(target, "r") as handle:
+        for key, value in handle.attrs.items():
+            parts.append(f"{key}={value!r}")
+        handle.visititems(visit)
+    yield "\n".join(parts)
+
+
 def _scan_chunks(target: Path):
     """Chunks of scannable text for one file, or None when nothing can be read from it.
 
@@ -492,11 +553,19 @@ def _scan_chunks(target: Path):
         return None
 
     try:
-        head = target.open("rb").read(4)
+        head = target.open("rb").read(8)
     except OSError:
         return None
 
-    if head == _PARQUET_MAGIC:
+    if head.startswith(_HDF5_MAGIC):
+        try:
+            return list(_hdf5_chunks(target))
+        except (MemoryError, RuntimeError):
+            raise
+        except Exception:  # noqa: BLE001 - an unreadable container is REPORTABLE, never clean
+            return None
+
+    if head.startswith(_PARQUET_MAGIC):
         try:
             return list(_parquet_chunks(target))
         except MemoryError:
