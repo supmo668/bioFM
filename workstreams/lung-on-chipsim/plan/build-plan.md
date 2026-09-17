@@ -83,6 +83,32 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   lung-on-chipsim's source, so another team adding a figure turned this module's gate red and the
   repair landed in a file they neither own nor can judge.
   *A decision that looks like bookkeeping is still a shape decision if it assigns ownership.*
+- **The FAILURE is scoped per-project; the LISTING is repo-wide; UNOWNED paths fail HERE**
+  *(r2.22, E6-1b)*. An undeclared undecodable file **fails** the gate of the project that owns it —
+  for this module, `projects/lung-on-chipsim/**` and `workstreams/lung-on-chipsim/**`. A path owned
+  by **another** project (`projects/<other>/**`, `paper_standalone/**`) is **still listed**, with its
+  owning project named, in a report the test prints and asserts on, but does not fail this gate.
+  **A path owned by NO project — `.claude/**` and every other repo-root location — fails THIS gate**,
+  so that scoping can never make a file unfailable everywhere. Ownership is read from an explicit
+  map, and **a path matching no owner is unowned by definition, never "somebody else's"**.
+  The **accession scan itself stays repo-wide and does not shrink** — this scopes only who a missing
+  *declaration* blocks.
+  **This clause is load-bearing for E6-4:** `.claude/usr/**/dispatches/` belongs to no project, so a
+  non-`.md` dispatch payload keeps failing here. Drafted without the unowned rule, E6-1b silently
+  re-opened the `dispatches/leak.pdf` hole that E6-4 had closed one clause above — found by reading
+  the two against each other before signing, which is the check r2.17 did not get.
+  **Why:** E6-1 and the r2.20 fail-closed clause did not compose. Measured in the merged tree: of 24
+  declared paths **0 belong to this project**; removing them as E6-1 requires, with no declaration
+  data yet existing in the owning projects, made this module's live test fail on **24 files owned by
+  two other teams**. That inverts the coupling instead of removing it — before, another team *adding*
+  a figure turned this gate red; after, another team *not yet having adopted the rule* turned it red
+  on day one. The repair still landed where the knowledge is not.
+  **The residual risk is stated, not hidden:** a genuinely undecodable file outside this module's
+  paths is neither read nor declaration-gated here. E6-2 shrinks that set to *rendered* artifacts
+  only, since every readable structured container is now read repo-wide wherever it lives. What
+  remains is visible and countable in the report, and is the owning team's to close.
+  *Scoping a failure is an ownership assignment, so it is a shape decision — rule 10 applied to the
+  rule that produced rule 10.*
 - **A readable structured container is always READ, never declared** *(r2.21, E6-2)*. Parquet, HDF5
   and `h5ad` are scanned — parquet including its **footer metadata**, HDF5 including string datasets
   and attributes. Only *rendered* artifacts (figures, typeset PDFs) may be declared, and the two
@@ -100,9 +126,10 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   The repo-wide scan enforces the **accession** half. The r2.20 writer allow-list enforces the
   **name** half. A structure plus a name with no accession is invisible to the scan **by design**,
   not by oversight — an overclaim about what a guard sees is worse than the gap it hides.
-- **The repo-wide record-content guard may not skip a file silently** *(r2.20)*. Any file it cannot
-  decode is **listed and fails** unless it appears in a declared binary allow-list; parquet is read
-  with pandas and scanned as a frame. Measured at §5: a tracked parquet carrying accession + name +
+- **The repo-wide record-content guard may not skip a file silently** *(r2.20, scope fixed r2.22)*.
+  Any file it cannot decode is **listed** — always, repo-wide — and **fails** the gate of the project
+  that owns it, per E6-1b, unless it is declared. Listing is the part that may never be skipped;
+  failing is the part that is scoped. Parquet is read with pandas and scanned as a frame. Measured at §5: a tracked parquet carrying accession + name +
   InChI returned **no hits**, against a CSV control that did hit. *A skipped file is an unchecked
   file, and "no hits" from a file that was never read is a false clean.*
 - **Approval provenance lives in an append-only log** *(r2.15 item 6)*. `plan-approval.md` is
