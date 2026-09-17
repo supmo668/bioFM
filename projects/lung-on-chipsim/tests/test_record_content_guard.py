@@ -461,7 +461,6 @@ def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path, 
     """The allow-list declares that a file cannot be READ — never that its content is exempt.
     Adding `or rel in RENDERED_ARTIFACT_DECLARATIONS` to the accession scan survived the whole suite, which
     would have turned "somebody looked at this artifact once" into a blanket content waiver."""
-    import chipsim.guards.record_content as ds
 
     declared = f"projects/{THIS_PROJECT}/docs/figure.pdf"
     target = tmp_path / declared
@@ -479,7 +478,7 @@ def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path, 
 
     # ...and declaring a file the scan CAN read is itself a defect: it exempts nothing and hides
     # everything, which is the shape the live shipped-data test has always asserted.
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert declared in defects and "readable" in defects[declared].lower()
 
 
@@ -1519,6 +1518,22 @@ def test_the_witness_check_is_still_fatal(tmp_path):
 # than convenient.
 
 
+def _defects(root, listing, policy=None):
+    """{path: every reason reported for it}, joined.
+
+    NOT `dict(declaration_defects(...))`: since r2.25 E-15 an entry may carry several defects, and a
+    dict keeps only the last, so an assertion on a message would depend on check ORDER instead of on
+    behaviour.
+    """
+    import chipsim.guards.record_content as _rc
+
+    out: dict[str, str] = {}
+    args = (root, listing) if policy is None else (root, listing, policy)
+    for path, why in _rc.declaration_defects(*args):
+        out[path] = f"{out.get(path, '')} {why}".strip()
+    return out
+
+
 def _decl_fixture(tmp_path, project_entries=None, repo_entries=None, owners=None):
     """A repo-shaped fixture carrying both declaration files and the markers that make owners real."""
     import yaml
@@ -1590,7 +1605,7 @@ def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
     _write(tmp_path, rel, b"\x00\xffREGENERATED")  # same path, different content
 
     assert rel not in ds.valid_declarations(tmp_path, listing)
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     # NOT `"stale" in ...lower()`: pytest names tmp_path after the test, so "STALE" is already in
     # this test's own directory name, and a reviewer proved the assertion passes with the whole
     # message replaced by the absolute path. Assert the sentence only this branch produces, and the
@@ -1621,7 +1636,7 @@ def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_pa
     # ...and the claim fails when the source is NOT tracked, which is what makes it self-maintaining.
     listing_without_source = [p for p in listing if p != src]
     assert rel not in ds.valid_declarations(tmp_path, listing_without_source)
-    defects = dict(ds.declaration_defects(tmp_path, listing_without_source))
+    defects = _defects(tmp_path, listing_without_source)
     assert "not tracked" in defects[rel].lower()
 
 
@@ -1638,7 +1653,7 @@ def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
     ) + [rel, "projects/perturb-seq-eval/pyproject.toml"]
 
     assert rel not in ds.valid_declarations(tmp_path, listing)
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert "perturb-seq-eval" in defects[rel] and "owns" in defects[rel].lower()
     # The ownership branch is the FIRST check, so the assertion above holds for a fixture in any
     # state at all. The control makes ownership the only variable: byte-identical content, declared
@@ -1673,7 +1688,7 @@ def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
     ) + [unowned, owned]
 
     assert unowned in ds.valid_declarations(tmp_path, listing)
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert owned in defects, "an OWNED path does not belong in the repo-root surface"
     assert "repo-root" in defects[owned].lower()
 
@@ -1688,7 +1703,7 @@ def test_a_declaration_for_a_path_that_is_not_tracked_is_reported_as_rot(tmp_pat
         tmp_path, project_entries=[{"path": rel, "sha256": "0" * 64, "why": "long gone"}]
     )
 
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert rel in defects and "not tracked" in defects[rel].lower()
     assert len(defects) == 1, defects
     assert rel not in ds.valid_declarations(tmp_path, listing), "rot must clear nothing"
@@ -1705,7 +1720,7 @@ def test_a_readable_container_can_never_be_declared(tmp_path):
         tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "claims to be opaque"}]
     ) + [rel]
 
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     # NOT `"container" in ...`: it is already in this test's own tmp directory name. Assert the
     # clause reference and the MAGIC-derived kind, neither of which the test name contains.
     assert len(defects) == 1, defects
@@ -1915,9 +1930,14 @@ def test_a_malformed_declaration_exits_3_rather_than_crashing(tmp_path, monkeypa
 
     code = pipeline.main(["record-content-report"])
     captured = capsys.readouterr()
-    assert code == 3, "could not evaluate the gate — not 2 (files fail) and not a crash"
-    assert "Traceback" not in captured.err
-    assert "sha256" in captured.err
+    # r2.25 E-13 SUPERSEDED the exit 3 this test originally asserted. A broken declaration file is
+    # not "could not scan at all" — the scan works, only the exemption data is unreadable — so it is
+    # exit 2 with nothing declared and the listing still rendered. What this test still pins, and
+    # what it was written for, is that a malformed field produces a DIAGNOSIS rather than a
+    # traceback.
+    assert code == 2, "not a crash, and not exit 3: the scan worked"
+    assert "Traceback" not in captured.err + captured.out
+    assert "sha256" in captured.err + captured.out
 
 
 # --- r2.24 §9: two bypasses of the declaration surface itself ----------------------------------
@@ -1953,7 +1973,7 @@ def test_delisting_a_project_does_not_make_its_artifacts_declarable_here(tmp_pat
             foreign,
             "projects/perturb-seq-eval/pyproject.toml",
         ]
-        defects = dict(ds.declaration_defects(tmp_path, listing))
+        defects = _defects(tmp_path, listing)
         assert foreign in defects, (
             f"with owners={owners}, delisting turned another team's artifact into a "
             f"repo-root-declarable path"
@@ -2018,7 +2038,6 @@ def test_a_derived_from_source_must_belong_to_the_same_owner(tmp_path):
     tracked readable file satisfied it — `derived_from: README.md` passed for any artifact in the
     repo. That puts the actual claim entirely back into review, which is the position `sha256` was
     introduced to escape."""
-    import chipsim.guards.record_content as ds
 
     rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
     _write(tmp_path, rel, b"\x00\xff\x80\x81")
@@ -2034,7 +2053,7 @@ def test_a_derived_from_source_must_belong_to_the_same_owner(tmp_path):
         owners=[THIS_PROJECT, "perturb-seq-eval"],
     ) + [rel, foreign_source, "projects/perturb-seq-eval/pyproject.toml"]
 
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert rel in defects and "owner" in defects[rel].lower()
 
 
@@ -2247,7 +2266,7 @@ def test_a_pinned_path_absent_from_disk_is_a_defect(tmp_path):
 
     rel = f"projects/{THIS_PROJECT}/docs/gone.bin"
     listing = _one_entry(tmp_path, {"path": rel, "sha256": "a" * 64, "why": "vanished"})
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert rel in defects and "absent from disk" in defects[rel]
     assert rel not in ds.valid_declarations(tmp_path, listing)
 
@@ -2261,7 +2280,7 @@ def test_a_derived_from_source_that_cannot_be_READ_is_a_defect(tmp_path):
     _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
     _write(tmp_path, src, b"\x00\xff\x80\x81 ALSO-OPAQUE")
     listing = _one_entry(tmp_path, {"path": rel, "derived_from": src, "why": "w"}, extra=[src])
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert rel in defects and "cannot read" in defects[rel]
     assert rel not in ds.valid_declarations(tmp_path, listing)
 
@@ -2277,7 +2296,7 @@ def test_a_dispatch_payload_cannot_be_declared(tmp_path):
     listing = _decl_fixture(
         tmp_path, repo_entries=[{"path": rel, "sha256": digest, "why": "cannot be read"}]
     ) + [rel]
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert rel in defects and "DOUBLE-EXEMPT" in defects[rel]
     assert rel not in ds.valid_declarations(tmp_path, listing)
 
@@ -2296,14 +2315,13 @@ def test_a_declared_path_may_not_also_be_content_excluded(tmp_path):
         else {"repo_entries": [{"path": rel, "sha256": digest, "why": "w"}]}
     )
     listing = _decl_fixture(tmp_path, **kwargs) + [rel]
-    defects = dict(ds.declaration_defects(tmp_path, listing, DRUGBANK_CONTENT_POLICY))
+    defects = _defects(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
     assert rel in defects and "exempted twice" in defects[rel]
     assert rel not in ds.valid_declarations(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
 
 
 def test_a_derived_from_source_may_not_itself_be_declared(tmp_path):
     """An exemption may not rest on a file this same report may be calling a broken claim."""
-    import chipsim.guards.record_content as ds
 
     a = f"projects/{THIS_PROJECT}/docs/a.bin"
     b = f"projects/{THIS_PROJECT}/docs/b.bin"
@@ -2316,7 +2334,7 @@ def test_a_derived_from_source_may_not_itself_be_declared(tmp_path):
             {"path": b, "sha256": b_digest, "why": "also declared"},
         ],
     ) + [a, b]
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert a in defects and "ITSELF declared" in defects[a]
 
 
@@ -2352,7 +2370,7 @@ def test_a_fabricated_project_directory_is_not_declarable_at_the_repo_root(tmp_p
         tmp_path, repo_entries=[{"path": ghost, "sha256": digest, "why": "no such project"}]
     ) + [ghost]
 
-    defects = dict(ds.declaration_defects(tmp_path, listing))
+    defects = _defects(tmp_path, listing)
     assert ghost in defects and "OWNERSHIP PREFIX" in defects[ghost]
     assert ghost not in ds.valid_declarations(tmp_path, listing)
 
@@ -2383,3 +2401,124 @@ def test_the_declaration_files_do_not_overclaim_what_derived_from_verifies():
 
     project_doc = (PROJECT_ROOT / "configs/record_content_declarations.yaml").read_text()
     assert "does not check that this file actually derives from that source" in project_doc
+
+
+# --- r2.25 E-13/E-13b/E-14/E-15 ----------------------------------------------------------------
+
+
+def _report(tmp_path, monkeypatch, capsys, listing, policy=None):
+    """Run the SHIPPED command against a fixture root and return (exit code, stdout, stderr).
+
+    E-13b: assertions bind the observable a consumer sees. Every defect test before this asserted
+    on the validator's return value, and 12 mutants walked through the whole suite as a result.
+    """
+    import chipsim.guards.record_content as ds
+    from chipsim import pipeline
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
+
+    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(
+        pipeline, "_record_content_policy", lambda: policy or DRUGBANK_CONTENT_POLICY, raising=False
+    )
+    code = pipeline.main(["record-content-report"])
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err
+
+
+def test_a_broken_declaration_file_still_renders_the_listing_and_exits_2(
+    tmp_path, monkeypatch, capsys
+):
+    """E-13. Turning the whole gate to exit 3 hid WHICH file failed. The scan works; only the
+    exemption data is unreadable, so: treat nothing as declared (fail-closed — more files fail,
+    never fewer), still render the listing, exit 2, and name the file that is broken."""
+    import chipsim.guards.record_content as ds
+
+    payload = "docs/payload.bin"
+    _write(tmp_path, payload, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [payload]
+    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
+
+    code, out, err = _report(tmp_path, monkeypatch, capsys, listing)
+
+    assert code == 2, f"not 3 — the scan worked; only the declaration data is broken\n{out}{err}"
+    assert payload in out, "the listing must still be rendered, or the broken data hides it"
+    assert ds.PROJECT_DECLARATION_FILE in out + err, "the broken FILE must be named"
+    assert "nothing is declared" in (out + err).lower()
+
+
+def test_an_absent_declaration_file_also_renders_and_exits_2(tmp_path, monkeypatch, capsys):
+    """Absent is still not EMPTY — it produces a structural error and nothing declared, where an
+    empty `declarations: []` produces a clean zero-count report. The difference is visible; what
+    changed is that it no longer costs the operator the listing."""
+    import chipsim.guards.record_content as ds
+
+    payload = "docs/payload.bin"
+    _write(tmp_path, payload, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [payload]
+    (tmp_path / ds.REPO_DECLARATION_FILE).unlink()
+
+    code, out, err = _report(tmp_path, monkeypatch, capsys, listing)
+    assert code == 2
+    assert payload in out
+    assert ds.REPO_DECLARATION_FILE in out + err
+
+
+def test_the_header_counts_declaration_defects_SEPARATELY(tmp_path, monkeypatch, capsys):
+    """E-13. Mixing two categories into one `failing` number makes the summary wrong exactly where
+    a reader checks first: every listed row read `[listed]` while the header claimed one failing."""
+    rel = f"projects/{THIS_PROJECT}/docs/deleted.bin"
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "sha256": "0" * 64, "why": "long gone"}],
+        owners=[THIS_PROJECT],
+    )
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+
+    header = out.splitlines()[0]
+    assert "undeclared undecodable files: 0" in header, header
+    assert "failing this gate: 0" in header, "no UNDECODABLE file fails here"
+    assert "1 whose claim does not hold" in out
+    assert code == 2, "but the broken declaration does"
+
+
+def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch, capsys):
+    """E-15. A reader who learns their entry's next problem one gate run at a time is being made to
+    bisect their own data. This entry is wrong in three independent ways at once."""
+    import chipsim.guards.record_content as ds
+
+    rel = "projects/perturb-seq-eval/paper/fig.parquet"
+    _write(tmp_path, rel, b"PAR1" + b"\x00" * 32)
+    _write(tmp_path, "projects/perturb-seq-eval/pyproject.toml", b"[project]\n")
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "sha256": "b" * 64, "why": "wrong in several ways"}],
+        owners=[THIS_PROJECT, "perturb-seq-eval"],
+    ) + [rel, "projects/perturb-seq-eval/pyproject.toml"]
+
+    reasons = [why for path, why in ds.declaration_defects(tmp_path, listing) if path == rel]
+    assert len(reasons) >= 2, f"only one defect reported for a triply-broken entry: {reasons}"
+    joined = " ".join(reasons)
+    assert "owns it" in joined, "the placement problem"
+    assert "container" in joined, "and the container problem, in the SAME pass"
+
+
+def test_the_declaration_surface_is_read_once_per_report(tmp_path, monkeypatch, capsys):
+    """E-14, on the half that is CORRECTNESS rather than speed: with no snapshot, a concurrent edit
+    yields a self-contradictory single report — rows marked FAILS HERE under an owner the footer
+    says fails nobody. Reading once makes that impossible rather than unlikely."""
+    import chipsim.guards.record_content as ds
+
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT])
+    reads: list[str] = []
+    real = ds._declaration_document
+
+    def counting(root, rel):
+        reads.append(rel)
+        return real(root, rel)
+
+    monkeypatch.setattr(ds, "_declaration_document", counting)
+    _report(tmp_path, monkeypatch, capsys, listing)
+
+    assert len(reads) == 2, f"the two surfaces must be read exactly once each, got {reads}"

@@ -417,7 +417,9 @@ def marker_backed_owners(paths) -> frozenset[str]:
     return frozenset(found)
 
 
-def recognised_owners(root: Path, paths) -> frozenset[str]:
+def recognised_owners(
+    root: Path, paths, surface: DeclarationSurface | None = None
+) -> frozenset[str]:
     """The projects that DEMONSTRABLY exist.
 
     TWO independent conditions, and an owner needs BOTH (r2.24 E-11):
@@ -432,7 +434,7 @@ def recognised_owners(root: Path, paths) -> frozenset[str]:
     proof: it is addable by anyone who adds a `pyproject.toml`, and the report says so.
     """
     found = marker_backed_owners(paths)
-    declared = declared_owner_registry(root)
+    declared = (DeclarationSurface.require(root) if surface is None else surface).registry
     return found if declared is None else found & declared
 
 
@@ -578,13 +580,23 @@ def _declaration_entries(root: Path) -> list[tuple[str, dict, str]]:
     cannot parse, and "could not evaluate" must never arrive at the same answer as "nothing to
     declare". That is exit 3, not exit 2 and certainly not a pass.
     """
+    return _entries_from(
+        {
+            PROJECT_DECLARATION_FILE: _declaration_document(root, PROJECT_DECLARATION_FILE),
+            REPO_DECLARATION_FILE: _declaration_document(root, REPO_DECLARATION_FILE),
+        }
+    )
+
+
+def _entries_from(docs: dict[str, dict]) -> list[tuple[str, dict, str]]:
+    """The shape checks, over documents that have already been parsed."""
     entries: list[tuple[str, dict, str]] = []
     seen: dict[str, str] = {}
     for rel, surface in (
         (PROJECT_DECLARATION_FILE, "project"),
         (REPO_DECLARATION_FILE, "repo-root"),
     ):
-        doc = _declaration_document(root, rel)
+        doc = docs[rel]
         declared_list = doc.get("declarations") or []
         if not isinstance(declared_list, list):
             raise RecordContentScanError(
@@ -661,7 +673,10 @@ def _under_an_ownership_prefix(rel: str) -> bool:
 
 
 def declaration_defects(
-    root: Path, paths, policy: ContentPolicy = DEFAULT_POLICY
+    root: Path,
+    paths,
+    policy: ContentPolicy = DEFAULT_POLICY,
+    surface: DeclarationSurface | None = None,
 ) -> list[tuple[str, str]]:
     """(declared path, what is wrong with the claim) for every entry that does NOT hold.
 
@@ -675,11 +690,12 @@ def declaration_defects(
     # failure scoping asks "whose gate does this fail?" and uses the narrowed set elsewhere. Using
     # the narrowed set for BOTH let a delisting legalise declaring another team's artifacts.
     placement_owners = marker_backed_owners(paths)
+    read = DeclarationSurface.require(root) if surface is None else surface
     defects: list[tuple[str, str]] = []
 
-    for path, entry, surface in _declaration_entries(root):
+    for path, entry, where in read.entries:
         owner = path_owner(path, placement_owners)
-        if surface == "project" and owner != THIS_PROJECT:
+        if where == "project" and owner != THIS_PROJECT:
             remedy = (
                 "Another team's artifact declared here inherits this module's failure mode and "
                 "repair path, in a file they neither own nor can judge."
@@ -692,8 +708,7 @@ def declaration_defects(
                     f"declared in this project's file, but {owner or 'nobody'} owns it. {remedy}",
                 )
             )
-            continue
-        if surface == "repo-root" and _under_an_ownership_prefix(path):
+        if where == "repo-root" and _under_an_ownership_prefix(path):
             defects.append(
                 (
                     path,
@@ -705,8 +720,7 @@ def declaration_defects(
                     ),
                 )
             )
-            continue
-        if surface == "repo-root" and owner is not None:
+        if where == "repo-root" and owner is not None:
             defects.append(
                 (
                     path,
@@ -716,7 +730,6 @@ def declaration_defects(
                     ),
                 )
             )
-            continue
         if path not in tracked:
             defects.append(
                 (
@@ -741,7 +754,6 @@ def declaration_defects(
                     ),
                 )
             )
-            continue
 
         if policy.content_exempt(path):
             defects.append(
@@ -755,7 +767,6 @@ def declaration_defects(
                     ),
                 )
             )
-            continue
 
         target = Path(root) / path
         if target.is_file():
@@ -824,7 +835,7 @@ def declaration_defects(
         # human claim, and `why` is where it is made; the gate narrows who may make it and keeps the
         # source in scope, which is less than the prose used to imply.
         source = entry["derived_from"]
-        if source in {p for p, _e, _s in _declaration_entries(root)}:
+        if source in {p for p, _e, _s in read.entries}:
             defects.append(
                 (
                     path,
@@ -875,15 +886,75 @@ def declaration_defects(
     return defects
 
 
-def valid_declarations(root: Path, paths, policy: ContentPolicy = DEFAULT_POLICY) -> frozenset[str]:
+@dataclass(frozen=True)
+class DeclarationSurface:
+    """Everything the declaration data says, read ONCE and then immutable (r2.25 E-14).
+
+    The cheap complaint was nineteen parses per report and a pinned artifact hashed three times. The
+    real one: nothing was snapshotted, so an edit landing mid-report produced A SINGLE REPORT THAT
+    DISAGREED WITH ITSELF — rows marked FAILS HERE under an owner whose own footer said it fails
+    nobody, with an exit code that depended on interleaving. Reading once makes that impossible
+    rather than unlikely.
+
+    `structural_error` is E-13. A declaration file that cannot be parsed is NOT "could not scan at
+    all": the scan works, only the exemption data is unreadable. So nothing is declared — the
+    fail-closed direction, more files fail and never fewer — the listing is still rendered, and the
+    reason travels WITH the surface, to be reported beside the listing instead of replacing it.
+    """
+
+    entries: tuple[tuple[str, dict, str], ...] = ()
+    registry: frozenset[str] | None = None
+    structural_error: str | None = None
+
+    @classmethod
+    def require(cls, root: Path) -> DeclarationSurface:
+        """RAISES on MALFORMED declaration data. For a caller asking one rule a direct question.
+
+        It tolerates an ABSENT file — that rule belongs to the report, which is the surface an
+        operator reads, and has always been checked there rather than in the validator.
+        """
+        docs = {
+            rel: _declaration_document(root, rel)
+            for rel in (PROJECT_DECLARATION_FILE, REPO_DECLARATION_FILE)
+        }
+        return cls(
+            entries=tuple(_entries_from(docs)),
+            registry=_registry_from(docs[REPO_DECLARATION_FILE]),
+            structural_error=None,
+        )
+
+    @classmethod
+    def read(cls, root: Path) -> DeclarationSurface:
+        """NEVER raises; carries the reason instead, so the listing can still be rendered (E-13).
+
+        Used only by the report. Nothing is declared when the data is broken — the fail-closed
+        direction, more files fail and never fewer.
+        """
+        try:
+            refuse_an_absent_declaration_surface(root)
+            return cls.require(root)
+        except RecordContentScanError as exc:
+            return cls(entries=(), registry=None, structural_error=str(exc))
+
+
+def valid_declarations(
+    root: Path,
+    paths,
+    policy: ContentPolicy = DEFAULT_POLICY,
+    surface: DeclarationSurface | None = None,
+) -> frozenset[str]:
     """The declared paths whose claim actually HOLDS. Only these clear a file."""
-    broken = {path for path, _ in declaration_defects(root, paths, policy)}
-    return frozenset(path for path, _, _ in _declaration_entries(root) if path not in broken)
+    read = DeclarationSurface.require(root) if surface is None else surface
+    broken = {path for path, _ in declaration_defects(root, paths, policy, read)}
+    return frozenset(path for path, _, _ in read.entries if path not in broken)
 
 
 def declared_owner_registry(root: Path) -> frozenset[str] | None:
     """The owner names the repo-root surface declares, or None when no registry exists yet."""
-    doc = _declaration_document(root, REPO_DECLARATION_FILE)
+    return _registry_from(_declaration_document(root, REPO_DECLARATION_FILE))
+
+
+def _registry_from(doc: dict) -> frozenset[str] | None:
     owners = doc.get("owners")
     if owners is None:
         return None
@@ -1109,7 +1180,8 @@ def refuse_an_absent_declaration_surface(root: Path) -> None:
                 f"made on purpose; a missing file is a scan that could not be performed. Refusing "
                 f"to report."
             )
-        _declaration_document(root, rel)  # parses, and checks the schema version
+        # Existence only. The PARSE happens once, in DeclarationSurface.require, rather than here
+        # and again there — the surface is supposed to be read once (E-14).
 
 
 def unresolvable_tracked(root: Path, paths) -> list[str]:
@@ -1144,23 +1216,32 @@ def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tupl
     root = Path(root).resolve()
     paths, submodules = _tracked_listing(root)
     _refuse_a_scan_that_cannot_see_itself(root, paths)
-    refuse_an_absent_declaration_surface(root)
-    report = undeclared_report(root, paths, policy)
-    failing = set(failing_undeclared(root, paths, policy))
+
+    # ONE read, threaded through everything below (r2.25 E-14). Before this the two YAML files were
+    # parsed nineteen times per report and nothing was snapshotted, so an edit landing mid-report
+    # produced a report that disagreed with itself.
+    surface = DeclarationSurface.read(root)
+    report = undeclared_report(root, paths, policy, surface)
+    failing = set(failing_undeclared(root, paths, policy, surface))
 
     # Tracked but absent from disk. Listed always; failing only where we own it, or where nobody
     # does — the same predicate failing_undeclared uses, because "unowned fails here" is
     # load-bearing for E6-4 and a missing file is no different in that respect.
-    recognised = recognised_owners(root, paths)
+    recognised = recognised_owners(root, paths, surface)
     missing = [(rel, path_owner(rel, recognised)) for rel in unresolvable_tracked(root, paths)]
     failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
 
     # A declaration whose claim does not hold fails this gate outright. Both surfaces are ours —
     # the project file by ownership, the repo-root file because an unowned path belongs to nobody —
     # so there is no other gate for a broken claim to fall to (E-03).
-    entries = _declaration_entries(root)
-    defects = declaration_defects(root, paths, policy)
+    entries = surface.entries
+    defects = declaration_defects(root, paths, policy, surface)
+    # Kept in `failing` so a broken claim marks its row, but COUNTED separately below: mixing two
+    # categories into one number made the summary wrong exactly where a reader checks it first.
     failing |= {path for path, _ in defects}
+    undecodable_failing = {rel for rel, _owner in report if rel in failing} | {
+        rel for rel, _owner in missing if rel in failing
+    }
 
     # The root and the denominator go on the header, printed unconditionally. Naming the root only
     # in the all-clear branch left the harder falsehood undetectable: a wrong-but-nonempty root
@@ -1170,7 +1251,8 @@ def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tupl
     # on the other's tree without a word.
     lines = [
         (
-            f"undeclared undecodable files: {len(report)} (failing this gate: {len(failing)}) "
+            f"undeclared undecodable files: {len(report)} "
+            f"(failing this gate: {len(undecodable_failing)}) "
             f"— scanned {len(paths)} tracked files under {root}, "
             f"{len(missing)} not present on disk"
         ),
@@ -1186,6 +1268,14 @@ def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tupl
         ),
         f"  (scan run from package {Path(__file__).resolve()})",
     ]
+    if surface.structural_error:
+        lines.append(
+            "  DECLARATION DATA COULD NOT BE READ, so NOTHING IS DECLARED — every undecodable file "
+            "is reported below as if it had never been declared, which is the fail-closed "
+            "direction: more files fail, never fewer. This is exit 2, not exit 3: the scan worked, "
+            "only the exemption data is unreadable."
+        )
+        lines.append(f"    {surface.structural_error}")
     for rel, owner in report:
         mark = "FAILS HERE" if rel in failing else "listed"
         lines.append(f"  {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
@@ -1211,7 +1301,7 @@ def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tupl
     # E-03, stated where it is read rather than only in the plan: `owner=` names who SHOULD care,
     # not who is enforcing. Saying "listed" to a human 23 times, with an owner beside it, reads as
     # "filed with the team who will fix it" — and no other project implements this check.
-    if declared_owner_registry(root) is None:
+    if surface.registry is None:
         lines.append(
             f"  owner registry: MARKER-BACKED ONLY — no `owners` list in {REPO_DECLARATION_FILE}. "
             "A tracked marker is louder than `mkdir` but is addable by anyone who adds a "
@@ -1227,11 +1317,14 @@ def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tupl
         "against another project fail NO gate today: no other project implements this check, so "
         "`owner=` names who should care, not who is enforcing (E-03)."
     )
-    return "\n".join(lines), (2 if failing else 0)
+    return "\n".join(lines), (2 if failing or surface.structural_error else 0)
 
 
 def undeclared_report(
-    root: Path, paths, policy: ContentPolicy = DEFAULT_POLICY
+    root: Path,
+    paths,
+    policy: ContentPolicy = DEFAULT_POLICY,
+    surface: DeclarationSurface | None = None,
 ) -> list[tuple[str, str | None]]:
     """(path, owning project) for every undeclared undecodable file, repo-wide (r2.22, E6-1b).
 
@@ -1241,13 +1334,20 @@ def undeclared_report(
     """
     # The registry is built from the SAME listing the report is rendered from, so an owner cannot
     # be recognised on the strength of a file that this scan never saw.
-    recognised = recognised_owners(root, paths)
+    read = DeclarationSurface.require(root) if surface is None else surface
+    recognised = recognised_owners(root, paths, read)
     return sorted(
-        (rel, path_owner(rel, recognised)) for rel in undecodable_unallowed(root, paths, policy)
+        (rel, path_owner(rel, recognised))
+        for rel in undecodable_unallowed(root, paths, policy, read)
     )
 
 
-def failing_undeclared(root: Path, paths, policy: ContentPolicy = DEFAULT_POLICY) -> list[str]:
+def failing_undeclared(
+    root: Path,
+    paths,
+    policy: ContentPolicy = DEFAULT_POLICY,
+    surface: DeclarationSurface | None = None,
+) -> list[str]:
     """The subset of the report that fails THIS project's gate: files this project owns, plus
     every file no project owns.
 
@@ -1257,12 +1357,17 @@ def failing_undeclared(root: Path, paths, policy: ContentPolicy = DEFAULT_POLICY
     """
     return [
         rel
-        for rel, owner in undeclared_report(root, paths, policy)
+        for rel, owner in undeclared_report(root, paths, policy, surface)
         if owner is None or owner == THIS_PROJECT
     ]
 
 
-def undecodable_unallowed(root: Path, paths, policy: ContentPolicy = DEFAULT_POLICY) -> list[str]:
+def undecodable_unallowed(
+    root: Path,
+    paths,
+    policy: ContentPolicy = DEFAULT_POLICY,
+    surface: DeclarationSurface | None = None,
+) -> list[str]:
     """Tracked paths the scan cannot read AND whose declaration does not hold (r2.24 E-02).
 
     A skipped file is an UNCHECKED file: "no hits" from a file the scan never read is the
@@ -1274,7 +1379,7 @@ def undecodable_unallowed(root: Path, paths, policy: ContentPolicy = DEFAULT_POL
     IS still read (`ledger_tuple_hits`), so its readability is exactly what this check is for. The
     exclusions exist for accession CONTENT, not for readability.
     """
-    declared = valid_declarations(root, paths, policy)
+    declared = valid_declarations(root, paths, policy, surface)
     unreadable: list[str] = []
     for rel in paths:
         if policy.readability_waived(root, rel):
