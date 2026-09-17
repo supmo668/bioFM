@@ -1,13 +1,14 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: b63405a
+plan_hash: 545645e
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-invoked, standing-delegation
 invoked_by: biofm/matthew-mo/cto
 provenance_of_record: workstreams/lung-on-chipsim/plan/plan-approval-log.md
 authorising_rulings:
+  - 'CTO rulings 2026-09-17 on the §11 boundary: error taxonomy two classes, split ordering, E6-3 substance, §12 scope (dispatch #157)'
   - 'CTO rulings 2026-09-17 on the §11 gate: index-vs-worktree escalation, E6-7 non-compliance, contract escapes'
   - 'CTO rulings 2026-09-17 on the §10 gate escalations E-17 to E-20 (dispatch #155)'
   - 'CTO ruling 2026-09-17 stating E6-7, which had been authorised verbally since r2.21 and written nowhere hash-locked (agent refusal to build an unstated clause)'
@@ -19,7 +20,7 @@ authorising_rulings:
   - 'CTO rulings 2026-09-16 on §5 escalations E-1 to E-6 (r2.20)'
   - 'principal 2026-09-15 record-content re-ruling — the invariant targets record content and the (accession, name, structure) association'
   - 'principal 2026-09-15 lane ruling, re-confirmed 2026-09-16 — this CTO session owns the lane'
-  - 'r2.28 has NO principal ruling — quality-gate findings and a correction to evidence the CTO itself accepted; r2.8/r2.9 precedent'
+  - 'r2.29 has NO principal ruling — quality-gate findings; r2.8/r2.9 precedent'
 human_approved_hash: de4b812
 human_approved_date: 2026-09-15
 human_approval_source: principal message "approve r2.1 sign and commit flash", other CTO session, 2026-09-15T07:56Z (the 0b8d0c3 marker quoted it as "approve r2.10 sign")
@@ -36,13 +37,14 @@ conditions_amended_since_human_approval:
   - 'Global Constraints + T5a + T14 (r2.20) — record-bearing writers validate destinations against an ALLOW-LIST via one shared helper; the guard may not skip an undecodable file silently; publish via the CLI; fail-closed stated'
   - 'Global Constraints (r2.21) — declarations owned per project with path->sha256 or a derived-from-source claim; readable structured containers always read, never declared; the dispatch waiver covers .md messages only; which half each mechanism enforces is stated'
   - 'Global Constraints (r2.22) — E6-1b: the undeclared-undecodable FAILURE is scoped to the owning project, the LISTING stays repo-wide, and a path owned by NO project fails THIS gate so scoping can never make a file unfailable everywhere; r2.20 fail-closed clause amended to match'
-date: 2026-09-17T12:10
+date: 2026-09-17T13:55
   - 'Global Constraints (r2.23) — allow-list checked by directory IDENTITY not case-folding, with missing-root and outside-root as two distinct failures; roots anchored at runtime; operator-chosen --dest/--out through the same helper with data/raw and the journal declared; the listing RENDERED at the REPO root by a shipped command; owner-gate fiction stated; a repo-root declaration surface for unowned paths; declaration data acknowledged unbuilt'
   - 'Global Constraints (r2.24) — the report proves it scanned something (check=True, count floor, paths resolve); GIT_* dropped and executed config disabled; an owner needs a tracked marker; paths escaped; unresolvable tracked paths counted always and failing only when owned; submodules explicitly NOT scanned; owner registry folded into E-02; topology placement folded into E6-6'
   - 'Global Constraints (r2.25) — a broken declaration file is exit 2 with nothing declared and the listing still rendered, not exit 3; counts kept separate; assertions bind the exit code not the return value; declarations load once through a snapshot; the registry may not police itself; an absent declaration file is not an empty one; all defects per entry in one pass; per-reviewer copies with a verified interpreter'
   - 'Global Constraints (r2.26) — E6-7 STATED — one entry point a non-pytest consumer can call, composing all four checks with the FAIL in it and the three-state exit contract; and a production guard may not be a bare assert, since python -O strips it'
   - 'Global Constraints (r2.27) — predicates with opposite safe directions may not share a default; structural errors carried by the header counts; readability_waived measured and removed if inert; E-17 required ScanContext with data/presentation split so the exit code is assertable; E-18 two pure moves; the -O enforcement must OBSERVE the guard in a child interpreter, never re-derive it'
   - 'Global Constraints (r2.28) — a commit gate reads the STAGED BLOB it certifies, never the working file, and the report states which copy it read; E6-7 declared UNMET because the shipped command composes three of four and the CTO cited it for the fourth; a three-state contract admits no fourth state; every interpolated field escaped, not just paths'
+  - 'Global Constraints (r2.29) — E6-7 confirmed MET by falsification; the error taxonomy is TWO classes in a dependency-free guards/errors.py; signatures are fixed BEFORE modules are extracted; report grouping withdrawn; derived_from must pin the declared file bytes, because E6-3 letter was met and its substance was not'
 ---
 
 # Plan approval: lung-on-chipsim
@@ -51,55 +53,52 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.28 rules the §11 gate, which **failed** with nine blocking findings. The one that reaches the CTO:
-the shipped `record-content-report` **does not check accessions at all**, and the CTO has been citing
-its output as compliance evidence. Also ruled: a commit gate must read the **staged blob**, after the
-guard was shown certifying bytes other than the ones being committed.
+r2.29 accepts the §11 boundary and rules its four escalations. **E6-7 is MET** — the CTO verified the
+binding by **falsification**, not by reading the call site, having already been wrong once by reading.
+The agent carried its **reviewer's version over its own draft on three of four**, and **withdrew the
+fourth**.
 
 ---
 
 ## THIS FILE IS NO LONGER THE PROVENANCE OF RECORD
 
 **`plan-approval-log.md` beside it is** (r2.15 item 6). `plan-gate sign` regenerates this file
-wholesale on every sign — **twenty-four times so far** — preserving nothing below the frontmatter.
+wholesale on every sign — **twenty-five times so far** — preserving nothing below the frontmatter.
 
 ## Provenance — how to read this signature
 
-**THE FINDING THAT IMPLICATES THE CTO.** `record-content-report` composes **three** of E6-7's four
-checks — readability, declarations, ownership. `real_accession_hits` and `ledger_tuple_hits` are
-**unreachable from it**, and `enforce_record_content` has **no caller outside its own test file**. The
-CTO ran that command repeatedly, quoted `23 listed / N scanned / 0 failing / exit 0` back as
-independent verification, and recorded it in dispatches and reports as evidence the record-content
-invariant held. **It is not that evidence.** The tree is genuinely clean on accessions — the live-repo
-scans at `:170` and `:244` establish it — but that rests on `pytest`, and the CTO attributed it to the
-command. **E6-5 is the clause the CTO wrote about exactly this**, and then broke: a mechanism
-enforcing three halves may not be cited for the fourth. E6-7 is therefore **declared unmet**.
+**E6-7 is met, and the CTO checked it the way the previous failure demanded.** Reading a call site is
+how the earlier false claim passed, so this one was **falsified**: disconnecting the accession half on
+a throwaway copy kills `test_the_shipped_command_fails_on_a_real_accession_in_tracked_content` — a
+test that names the **command**. The binding is a fixture clean on the other three halves, so exit 2
+can only arrive through the accession half.
 
-**A gate was certifying bytes other than the ones being committed.** The guard lists `git ls-files -s`
-(the **index**) and reads from the **worktree**. Reproduced end-to-end: index held the payload, disk
-held clean text, guard read clean, the commit would have carried it. Ruled: a commit gate reads the
-**staged blob**. The agent **escalated rather than fixed**, on the grounds that reading staged blobs
-changes what the gate means and that refusing on divergence would break ordinary development — both
-correct, and both reasons this needed a ruling rather than a patch.
+**The agent carried its reviewer's version over its own draft on three of four escalations, and
+withdrew the fourth.** It also corrected a rule of its own that the CTO had inherited:
+`guards/__init__.py` justified the exception's location as belonging *"with the layer that RAISES
+it"* — `repo.py` raises it 5 times, `record_content.py` 20 — and the real reason was cycle avoidance.
+A rule written to justify a decision already made.
 
-**A FALSE CLEAN, fixed:** `decoding.py` refused soft/external links among the **root group's members
-only**, while `visititems` skips links at **every depth**. Measured: same link at top level →
-`readable=False`; nested one group down → `readable=True`. An `h5ad` with its payload behind an
-`ExternalLink` one level in was read, never listed, zero hits. Fixed red→green with an
-**anti-overcorrection** test so "refuse every group" cannot pass either.
+**Its second argument for the taxonomy beat its first.** Not that `pytest.raises(RuntimeError)` is
+broad — a test defect with a test fix — but that `RecordContentScan.__post_init__` raises the same
+class for an **internal invariant violation**, surfacing as exit 3 *"your checkout could not be
+scanned"* for a programming error inside the guard.
 
-**The agent's mutation method was weaker than it claimed, and its own reviewer caught it.** It
-reported "7/7 killed against a green 165-passed subset" — true, but the clone was **project-only**,
-silently deselecting 44 tests including precisely the ownership and anti-vacuity ones most likely to
-kill those mutants. A reviewer rebuilt a self-contained checkout staging all 788 files, baselined
-942/5 with **no deselections**, and re-derived all seven: they do die. *The conclusion held by which
-mutants it happened to pick, not by method.* **Rule 15 is amended accordingly.**
+**`derived_from` is E6-3's letter without its substance**, and E6-3 is the CTO's clause: it names a
+source without pinning the declared artifact's bytes, so the ban on a bare path is satisfied while
+the claim a reader was promised they could check stays uncheckable.
 
-**Thirteenth vacuity, the agent's own:** a test keying on **annotation text**
-(`"DeclarationSurface" in str(parameter.annotation)`) cannot see the edit a person restoring the
-convenience default would actually make — verified surviving at 942 — in a file that guards that exact
-pattern three tests earlier. Also `37 of 118` mutants survived, including **every bounded-read ceiling
-in `decoding.py`**, under a module docstring claiming every bound was set by measurement.
+**The receipt it could not see is a defect this repo already filed.** It signed
+`--project lung-on-chipsim` while `git-safe-commit` verifies with `--project bioFM`, so a real receipt
+with correct hashes sat in a bucket nothing looked in — section (b) of
+`2026-09-16-receipt-verification-depends-on-the-working-copy-and-project-name-lookup.md`, now
+independently reproduced. It also disclosed forming a hypothesis about staging and testing it twice
+before checking its own argument.
+
+**CTO process note, disclosed because it nearly corrupted this file:** the first attempt at this
+restore used an **unquoted heredoc**, so the shell executed every backticked identifier and wrote a
+marker full of holes. Caught by reading the result. Same class as the `sed` delimiter collision that
+put a literal placeholder into dispatch #115.
 
 **The last direct human approval is `de4b812` (r2.10), 2026-09-15.** No task added or removed since.
 
@@ -176,12 +175,12 @@ not judgement.
     compliance reports were in my own resolved dispatch list. Rule 7 says cite what you read; rule
     11 says a thing you intend to do is not a thing you have done.
 
-## Incident — `plan-gate sign` destroys this disclosure. TWENTY-FOUR occurrences.
+## Incident — `plan-gate sign` destroys this disclosure. TWENTY-FIVE occurrences.
 
 **2026-09-03 02:08** · **2026-09-14 13:28 / 15:24** · **2026-09-15 01:01 (`0b8d0c3`, second CTO
 session) / 01:40 / 11:19 / 12:43 / 15:16 / 16:15** · **2026-09-16 14:04 (third CTO session — restored
 from a stale capture, regressing the hash) / 14:08 / 15:00 / 15:04 / 15:36 / 15:38 / 18:28 / 18:59**
-· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15 / 08:55 / 10:35 / 12:10**.
+· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15 / 08:55 / 10:35 / 12:10 / 13:55**.
 
 **Standing procedure:** capture before every sign; restore after; restore onto the **post-sign**
 hash; restore as **valid YAML**; verify the parse, not just the gate; **append the log entry**.

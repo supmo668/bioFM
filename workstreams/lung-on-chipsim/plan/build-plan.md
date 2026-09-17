@@ -237,7 +237,36 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
   into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
   halves may not be cited for the fourth.*
-- **A COMMIT GATE READS THE BYTES IT CERTIFIES** *(r2.28, index-vs-worktree)*. The guard lists
+- **E6-7 IS NOW MET, and the CTO verified it by FALSIFICATION rather than by reading the call site**
+  *(r2.29)*. `enforce_record_content` is reached from the shipped command, and disconnecting it kills
+  `test_the_shipped_command_fails_on_a_real_accession_in_tracked_content` — a test that names the
+  **command**, not the function. The binding is a fixture clean on the other three halves, so exit 2
+  can only arrive via the accession half. *The CTO read a call site and called it verified once
+  already; reading the code is how the previous claim passed.*
+- **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
+  (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
+  today distinguished only by which call site happens to catch them. A third class for topology buys
+  nothing, because **no caller treats a topology failure differently from a decoding one**. The
+  deciding evidence is not that `pytest.raises(RuntimeError)` is broad — that is a test defect with a
+  test fix — but that `RecordContentScan.__post_init__` raises the same class for an **internal
+  invariant violation**, which surfaces as exit 3 *"your checkout could not be scanned"* for what is
+  a programming error inside the guard. The exception lives in a **dependency-free `guards/errors.py`**:
+  the previous placement rule — *"the exception belongs with the layer that raises it"* — was
+  **post-hoc justification for a cycle constraint**, and `repo.py` raises it 5 times against
+  `record_content.py`'s 20.
+- **Fix the signatures BEFORE extracting the modules** *(r2.29)*. Splitting a module whose interior
+  signatures are wrong **exports the wrong signature**: five public functions still take
+  `(root, paths, policy, surface)` — `ScanContext` minus submodules — and the anti-vacuity invariant
+  runs on none of them. Order: **signatures and the root/surface binding first**, then `errors.py` and
+  `policy.py`, then the report. `policy.py` outranks the original ordering because
+  `drugbank_snapshot` imports the **entire ~1100-line guard** to construct a two-field dataclass.
+  *Report grouping is WITHDRAWN* — remedies are per-category, two dispositions give a filter rather
+  than a grouping, and the real defect was the header count, already fixed.
+- **`derived_from` MUST PIN THE DECLARED FILE'S BYTES** *(r2.29, E6-3 substance)*. It currently names
+  a source without pinning the declared artifact, so the **form-level ban on a bare path is satisfied
+  while E6-3's substance is not** — the claim a reader was promised they could check remains
+  uncheckable. This is a clause of the CTO's whose letter was implemented and whose purpose was not.
+- **A COMMIT GATE READS THE BYTES IT CERTIFIES** *(r2.28, index-vs-worktree; scheduled §12)*. The guard lists
   `git ls-files -s` — the **index** — and then reads `root/rel` from the **worktree**. Reproduced
   end-to-end in a throwaway repo: index held the payload, disk held clean text, the guard read clean,
   and the commit would have carried the payload. **A gate certifying bytes other than the ones being
