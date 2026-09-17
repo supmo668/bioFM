@@ -53,6 +53,29 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   stands; its 2026-09-15 application does not. *Lesson recorded because it nearly cost the work: a
   constraint expressed as "close pid X" inherits whatever the premise about X got wrong — identity
   claims must cite the check that produced them.*
+- **Record-bearing writers check an ALLOW-LIST of untracked output roots** *(r2.20)*. Any function
+  whose payload can carry DrugBank record content — `write_adjudication_worksheet` (`name` beside a
+  key) and `write_compounds` (accession + name + InChI + InChIKey **on one row**, the complete
+  record) — must resolve its destination through **one shared helper** and refuse unless it is
+  contained in a declared untracked root (`data/interim/`, `data/processed/`, the test tmp root),
+  taken relative to the project root.
+  **Checked on both the literal and the resolved path, case-insensitively, refusing a symlinked
+  destination or any symlinked ancestor, by containment — never by substring.**
+  **Why an allow-list and not a forbidden directory:** r2.19 guarded the *name* `configs/`. The §5
+  reviewers executed **three** bypasses — `CONFIGS/` (which on a case-insensitive volume landed the
+  name-bearing worksheet in the **real** `configs/`), a symlinked `configs` directory that
+  `resolve()` erased, and check-one-object-write-another where `os.replace` swapped a destination
+  symlink for a real file inside the tracked directory. It was simultaneously **too broad**,
+  refusing every worksheet write under any `configs` ancestor, including the recovery path. A
+  deny-list can only enumerate the attacks someone thought of; the invariant is *not written to a
+  tracked path*, so the rule must name where writing IS allowed.
+  **A registry test enumerates record-bearing writers and asserts each calls the helper**, so a new
+  writer cannot silently opt out — the pattern that caught the unregistered fixture file.
+- **The repo-wide record-content guard may not skip a file silently** *(r2.20)*. Any file it cannot
+  decode is **listed and fails** unless it appears in a declared binary allow-list; parquet is read
+  with pandas and scanned as a frame. Measured at §5: a tracked parquet carrying accession + name +
+  InChI returned **no hits**, against a CSV control that did hit. *A skipped file is an unchecked
+  file, and "no hits" from a file that was never read is a false clean.*
 - **Approval provenance lives in an append-only log** *(r2.15 item 6)*. `plan-approval.md` is
   tool-owned: `plan-gate sign` regenerates it wholesale and preserves nothing below the frontmatter
   (observed **eight** times). `plan/plan-approval-log.md` is append-only — one entry per sign, with
@@ -554,7 +577,17 @@ done-conditions passed.
   ```python
   def write_compounds(df: pd.DataFrame, out: Path) -> None:
       """Declared column order and dtypes, sorted by canonical_inchikey.
-      pyarrow, version='2.6', compression=None."""
+      pyarrow, version='2.6', compression=None.
+
+      **(r2.20) VALIDATES `out` through the shared record-bearing-writer helper**
+      (see Global Constraints) and refuses a destination outside the declared
+      untracked roots. This frame is the WORST payload in the project: accession,
+      name, InChI and InChIKey on ONE ROW — the complete DrugBank record, not merely
+      the (name, structure) association. Until r2.20 it validated its columns and
+      never its destination, and `chipsim write --out <any path>` reached it with no
+      validation at all; writing into `configs/` was measured at §5. The CLI inherits
+      the refusal through this function — it does NOT get a second check of its own,
+      because two checks drift and the second becomes the one people trust."""
   ```
 - **Files:** `data/processed/drugbank_compounds.parquet` — **not** `compounds.parquet`, which A&D §1
   reserves for the harmonized multi-source S1 artifact `(InChIKey, SMILES, logP, pKa, MW, TPSA)`
@@ -913,7 +946,14 @@ corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the
 > exists to prevent. **No column check can catch this** — the column is legitimate, only the value
 > is wrong — so it is stated here as an instruction and recorded as a limit rather than claimed as
 > enforced. Work from `canonical_inchikey`; the generated worksheet shows you the name beside it.
-- **Files:** on completion, move to `configs/pgp_adjudication.csv` — **git-tracked**. r1 left this
+- **Files (r2.20):** on completion, publish with **`chipsim adjudication-export`** — not by hand.
+  The CLI is the only sanctioned way the filled worksheet becomes `configs/pgp_adjudication.csv`;
+  r2.19 called the hand-move "the accident it exists to prevent" while this clause still said
+  "move to", which is the drift r2.19 itself was repairing. **The export journals fail-closed**
+  *(r2.20, stating a behaviour that until now was inherited from tuple membership in a workflow
+  test rather than chosen)*: it is idempotent and publishes nothing on failure, so refusing to
+  proceed when the journal cannot be written costs nothing and preserves the record. **Still
+  git-tracked**: r1 left this
   in `data/interim/`, which is git-ignored and DVC-tracked, leaving the plan's most load-bearing
   human artifact unversioned and unattributable (defect 23).
 - **Interfaces (r2.18):**
