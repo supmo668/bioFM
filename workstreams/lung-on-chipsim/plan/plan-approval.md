@@ -124,6 +124,19 @@ not judgement.
 10. **A decision that looks like bookkeeping is still a shape decision if it assigns ownership**
     (2026-09-16, r2.21). Declaring another module's artifacts inside your own source assigns them
     your failure mode and your repair path. **Scoping a failure is the same act** (r2.22).
+16. **A NEGATIVE RESULT IS EVIDENCE ONLY IF THE CHECK COULD HAVE PRODUCED A POSITIVE**
+    (2026-09-17). Rule 15 is the special case; this is the general form, and it recurred **three
+    times in one day across both parties**. The agent ran `git cat-file -t db3d598` and read "not a
+    valid object name" as "the commit has not reached me" — it answers whether a STRING IS A GIT
+    OBJECT, and a plan hash never is. The CTO inferred a fixture row-association from matching
+    structures **without reading the accession column**. The CTO then ran
+    `pgrep -fl "worktrees/lung-on-chipsim"`, got zero, and nearly concluded a live agent was gone —
+    a session's COMMAND LINE never contains its working directory, so the probe could not have
+    returned a positive; `lsof -d cwd` showed pid 80498 alive all along.
+    **Before trusting a negative, state what a positive would have looked like.** The failure is
+    seductive exactly when the silence agrees with what you already suspect — and in the third case
+    only procedure prevented harm: probing by message rather than `agent-wake`, which beside a live
+    session is how the two-writer condition happened at `#98`.
 15. **A mutation result is evidence ONLY if the baseline was green** (2026-09-17, r2.27). A clone
     whose suite already fails "kills" every mutant with the same failing test and reports no
     survivors — the vacuity family wearing a different hat, and it nearly reached a CTO report.
