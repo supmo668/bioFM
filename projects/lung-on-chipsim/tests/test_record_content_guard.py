@@ -63,7 +63,15 @@ NOTHING_WAIVED = _rc_policy(
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT = PROJECT_ROOT.parent.parent
 
-REAL = "DB" + "00128"  # assembled: a literal would be a self-inflicted hit
+# A shape-valid, NON-SYNTHETIC accession that denotes nothing: all zeros, deliberately not an
+# assigned identifier. The scan checks SHAPE ONLY and holds no list of assigned accessions, so
+# the positive detection path never needed a real one (measured, r2.29). The synthetic range is
+# excluded by a negative lookahead, so it cannot serve here — hence non-synthetic, not real.
+#
+# STILL ASSEMBLED, and that half is load-bearing: this file is NOT accession-excluded, so a
+# literal would be found by the guard scanning its own fixture and the live gate would go red.
+# The assembly was never the problem; the value was.
+REAL = "DB" + "00000"
 SYNTHETIC = "DB90004"
 STRUCTURE = "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m0/s1"
 

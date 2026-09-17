@@ -459,7 +459,9 @@ def test_vendoring_rule_accepts_a_real_pointer(tmp_path):
 def test_real_accession_scan_catches_a_real_id_and_ignores_synthetic_ones(tmp_path):
     # Built, not written literally: the scan reads THIS file too, and a bare real
     # accession here would be a self-inflicted hit.
-    real = "DB" + "00128"
+    # Shape-valid, non-synthetic, and denoting nothing — see the note on REAL in
+    # test_record_content_guard.py. Still assembled: a literal would be a self-inflicted hit.
+    real = "DB" + "00000"
     (tmp_path / "a.py").write_text(f"x = '{real}'\n")
     (tmp_path / "b.py").write_text("x = 'DB90004'\n")
     (tmp_path / "c.bin").write_bytes(b"\xff\xfe" + real.encode())
