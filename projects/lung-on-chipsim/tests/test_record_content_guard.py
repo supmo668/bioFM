@@ -43,6 +43,7 @@ from chipsim.ingest.drugbank_snapshot import (
     ledger_tuple_hits,
     path_owner,
     real_accession_hits,
+    recognised_owners,
     undeclared_report,
     undecodable_unallowed,
 )
@@ -638,7 +639,7 @@ def test_a_non_md_file_in_a_dispatch_directory_is_scanned_and_reported(tmp_path)
 def test_ownership_is_read_from_an_explicit_map(rel, owner):
     """ "A path matching no owner is unowned BY DEFINITION, never 'somebody else's'." The dispatch
     directory is the case that matters: it belongs to no project."""
-    assert path_owner(rel) == owner
+    assert path_owner(rel, recognised_owners(_tracked_paths())) == owner
 
 
 def test_a_file_this_project_owns_fails_this_gate(tmp_path):
@@ -656,8 +657,11 @@ def test_a_file_another_project_owns_is_listed_but_does_not_fail_this_gate(tmp_p
     target = tmp_path / rel
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"%PDF-1.4\x00\xff")
-    assert failing_undeclared(tmp_path, [rel]) == []
-    assert undeclared_report(tmp_path, [rel]) == [(rel, "perturb-seq-eval")]
+    # The marker is what makes perturb-seq-eval a REAL project rather than a name in a path: an
+    # owner minted by mkdir listed as somebody else's problem and failed nobody's gate.
+    listing = [rel, "projects/perturb-seq-eval/pyproject.toml"]
+    assert failing_undeclared(tmp_path, listing) == []
+    assert undeclared_report(tmp_path, listing) == [(rel, "perturb-seq-eval")]
 
 
 def test_a_path_owned_by_NO_project_fails_this_gate(tmp_path):
@@ -686,7 +690,15 @@ def test_the_report_names_the_owner_of_every_listed_file(tmp_path):
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"\x00\xff")
-    assert undeclared_report(tmp_path, list(files)) == sorted(files.items())
+    # The markers that make those three owners real. They are listed but never written to disk, so
+    # they are not readable and never appear in the report — exactly as an unreadable-file scan
+    # should treat a path it cannot open.
+    markers = [
+        "projects/perturb-seq-eval/pyproject.toml",
+        "paper_standalone/README.md",
+        "projects/lung-on-chipsim/pyproject.toml",
+    ]
+    assert undeclared_report(tmp_path, [*files, *markers]) == sorted(files.items())
 
 
 def test_the_accession_scan_does_not_shrink_with_the_failure_scope(tmp_path):
@@ -883,7 +895,12 @@ def test_the_waiver_is_anchored_so_leak_md_pdf_is_not_waived():
 def test_every_declaration_belongs_to_this_project():
     """E6-1's actual invariant, which nothing tested: re-adding all 23 foreign paths would have
     passed every existing test. The clause was enforced by the ABSENCE OF DATA, not by a rule."""
-    foreign = [rel for rel in RENDERED_ARTIFACT_DECLARATIONS if path_owner(rel) != THIS_PROJECT]
+    _recognised = recognised_owners(_tracked_paths())
+    foreign = [
+        rel
+        for rel in RENDERED_ARTIFACT_DECLARATIONS
+        if path_owner(rel, _recognised) != THIS_PROJECT
+    ]
     assert foreign == [], (
         f"declared here but owned elsewhere: {foreign}. Declarations live with the project that "
         "owns the artifact (E6-1); declaring another team's file assigns them this gate's failure."
@@ -916,15 +933,18 @@ def test_the_report_is_printed_by_a_command_a_human_can_run(tmp_path, monkeypatc
     skip", which is the thing r2.20 forbade."""
     from chipsim import pipeline
 
-    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+    # No CHIPSIM_PROJECT_ROOT here. The command stopped reading it when the root became structural,
+    # so setting it claimed a tmp_path scope this test never had — a reader would mis-file what it
+    # covers. Its defeat is asserted for real in test_the_command_is_not_steered_by_the_directory...
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
     assert code == 0
     assert "undeclared" in printed.lower()
     # Every LISTED path names its owner, and unowned is spelled out rather than left blank.
-    listed = [ln for ln in printed.splitlines() if ln.startswith("  ") and "(none" not in ln]
+    listed = [ln for ln in printed.splitlines() if "owner=" in ln]
+    assert listed, printed
     for line in listed:
-        assert "owner=" in line and ("FAILS HERE" in line or "listed" in line)
+        assert "FAILS HERE" in line or "listed" in line
 
 
 def test_the_report_command_exits_non_zero_when_this_gate_would_fail(tmp_path, monkeypatch, capsys):
@@ -939,49 +959,365 @@ def test_the_report_command_exits_non_zero_when_this_gate_would_fail(tmp_path, m
     # Steer the ROOT, not an environment variable: r2.23 E-08 makes the command derive the repo
     # root structurally, precisely so no ambient setting can narrow what it scans.
     monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_paths_for_report", lambda root: [rel])
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: ([rel], []))
+    # This test fabricates a listing under tmp_path, which the witness check refuses BY DESIGN
+    # (a listing must contain this module's own tracked file). Disabled here only, so that this
+    # test can still say what it is about — the exit code for a file that fails the gate. The
+    # witness check has its own tests above.
+    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
     code = pipeline.main(["record-content-report"])
     assert code == 2
     assert rel in capsys.readouterr().out
 
 
-# --- r2.23 E-08: the report is rendered at the REPO root -------------------------------------
+# --- r2.23 E-08: the report is rendered at the REPO root, and an unscannable tree is not clean ---
+#
+# The first E-08 fix moved the root SELECTION and left the root VALIDATION and the file LISTING
+# able to fail silently, so every remaining way of getting the root wrong still printed
+# "0 (failing this gate: 0)" and exit 0. These tests are about the failure MODE, not the happy
+# path: each one asserts that a scan which cannot be performed is distinguishable from a clean one.
 
 
-def test_the_report_scans_the_repo_root_not_the_project_root():
-    """r2.23 E-08, BLOCKING. As first shipped the command passed `project_root()`, so it scanned
-    only `projects/lung-on-chipsim/**`, found nothing, and printed "0 — every tracked file was
-    read" WHILE 23 FILES HAD NEVER BEEN READ. The reporting surface built to prevent a false clean
-    produced one.
+def _init_repo(path: Path) -> Path:
+    """A REAL repository. A bare `.git` directory is not one: `repo_root()` asks git to resolve the
+    candidate precisely so that a stray marker cannot pass as a root."""
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+    return path
 
-    #122 had already ruled this exact defect for the accession scan ("it ran git ls-files at
-    cwd=PROJECT_ROOT, so it never saw workstreams/ or .claude/ — run it from the repo root"), so
-    this is that ruling rebuilt one clause later, in the fix for the gap it describes.
 
-    With no other project implementing this gate (E-03), THE LISTING IS THE ENTIRE MECHANISM — a
-    listing that prints 0 is the whole protection failing.
+def test_repo_root_agrees_with_the_oracle_the_rest_of_this_file_uses():
+    """Two independent definitions of "the repo root" exist: REPO_ROOT (positional, used by ten
+    tests here) and `repo_root()` (the `.git` walk, used by the command). They agreed only by
+    coincidence and nothing pinned them, so the suite and the command could each scan their own
+    tree and each report clean — E-08's geometry one layer up."""
+    from chipsim.ingest.drugbank_snapshot import repo_root
+
+    assert repo_root() == REPO_ROOT
+
+
+def test_repo_root_walks_past_a_directory_that_merely_looks_like_a_repo_root(tmp_path, monkeypatch):
+    """The marker is `.git`, not "a directory containing projects/".
+
+    A mutant that stops at the first ancestor holding a `projects/` directory — never consulting
+    `.git` at all — survived the whole previous suite, because in the live tree those two rules
+    name the same directory. Only a fixture can tell them apart.
     """
-    from chipsim.ingest.drugbank_snapshot import render_undeclared_report, repo_root
+    import chipsim.ingest.drugbank_snapshot as ds
 
-    root = repo_root()
-    assert root != PROJECT_ROOT, "the repo root is above the project root"
-    assert (root / "projects" / "lung-on-chipsim").is_dir(), root
-    assert (root / ".git").exists(), "the repo root is the directory holding .git"
+    outer = _init_repo(tmp_path / "outer")
+    package_parent = outer / "nested" / "projects" / "lung-on-chipsim"
+    (package_parent / "chipsim").mkdir(parents=True)
+    assert not (outer / "nested" / ".git").exists(), "the lookalike must NOT be a repository"
 
-    text, code = render_undeclared_report(root)
-    assert "every tracked file was read" not in text, (
-        "the report claims a clean scan while other projects' binaries are unread"
+    monkeypatch.setattr(ds, "source_root", lambda: package_parent)
+    assert ds.repo_root() == outer.resolve()
+
+
+@pytest.mark.parametrize("marker", ["directory", "worktree_file"])
+def test_repo_root_accepts_a_worktree_git_file_not_only_a_git_directory(
+    tmp_path, monkeypatch, marker
+):
+    """A worktree's `.git` is a FILE. `is_dir()` instead of `exists()` is a one-character change
+    that silently reinstates the project-root scan IN EVERY WORKTREE — which is where this repo's
+    work actually happens. The commit message claimed this property; nothing tested it, and the
+    mutant survived."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    main = _init_repo(tmp_path / "main")
+    (main / "seed.txt").write_text("seed\n")
+    subprocess.run(["git", "add", "seed.txt"], cwd=main, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "seed"],
+        cwd=main,
+        check=True,
     )
-    assert text.count("owner=") >= 20, text.splitlines()[0]
-    assert code == 0, "none of them falls to this gate"
+
+    if marker == "directory":
+        root = main
+    else:
+        root = tmp_path / "wt"
+        subprocess.run(["git", "worktree", "add", "-q", str(root)], cwd=main, check=True)
+        assert (root / ".git").is_file(), "a worktree's .git is a file, which is the whole point"
+
+    package_parent = root / "projects" / "lung-on-chipsim"
+    (package_parent / "chipsim").mkdir(parents=True)
+    monkeypatch.setattr(ds, "source_root", lambda: package_parent)
+    assert ds.repo_root() == root.resolve()
 
 
-def test_the_shipped_command_renders_the_repo_root_listing(capsys):
-    """The command a HUMAN runs, not the function a test calls. My §7 report said "23 listed with
-    owners" — true of the function as my tests called it, false of the command."""
+def test_repo_root_refuses_a_broken_git_marker_rather_than_collapsing_to_the_project_root(
+    tmp_path, monkeypatch
+):
+    """An aborted `git init`, a copied worktree stub or a half-done submodule conversion leaves a
+    `.git` that git cannot open. Trusting the marker's existence alone collapsed the scan back to
+    the project root and restored E-08 verbatim — and this repo DOES use submodules, so a sibling
+    of this project is already one."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    outer = _init_repo(tmp_path / "outer")
+    package_parent = outer / "projects" / "lung-on-chipsim"
+    (package_parent / "chipsim").mkdir(parents=True)
+    (package_parent / ".git").write_text("gitdir: /nonexistent/.git/worktrees/gone\n")
+
+    monkeypatch.setattr(ds, "source_root", lambda: package_parent)
+    with pytest.raises(ds.RecordContentScanError) as exc:
+        ds.repo_root()
+    message = str(exc.value).replace(str(tmp_path), "<tmp>")
+    assert "git cannot open a repository" in message
+    assert "clean" in message, "the refusal must say why an unscannable tree is not a clean one"
+
+
+def test_repo_root_refuses_when_no_repository_exists_above_the_package(tmp_path, monkeypatch):
+    """The fallback that shipped returned `source_root()` — the narrow root the finding is ABOUT.
+    Composed with a listing that swallowed its own failure, a non-editable install printed a clean
+    report over a tree it had never read. Reproduced end-to-end before this fix."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    bare = tmp_path / "a" / "b"
+    bare.mkdir(parents=True)
+    if any((p / ".git").exists() for p in [bare, *bare.parents]):
+        pytest.skip(
+            "this temp directory sits inside a repository, so the no-repo case is untestable here"
+        )
+
+    monkeypatch.setattr(ds, "source_root", lambda: bare)
+    with pytest.raises(ds.RecordContentScanError) as exc:
+        ds.repo_root()
+    assert "no git repository" in str(exc.value)
+
+
+def test_a_listing_that_could_not_be_produced_is_not_an_empty_one(tmp_path):
+    """`_tracked_paths_for_report` returned `[]` when git failed, and the renderer printed that as
+    "0 (failing this gate: 0)" with exit 0. The test-side twin of this function has used
+    `check=True` since the day it was written, beneath a test titled "a scan over the wrong or an
+    empty list reports clean" — the guard existed in the suite and not in the command."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    not_a_checkout = tmp_path / "plain"
+    not_a_checkout.mkdir()
+    with pytest.raises(ds.RecordContentScanError) as exc:
+        ds._tracked_paths_for_report(not_a_checkout)
+    assert "not an all-clear" in str(exc.value)
+
+
+def test_an_emptied_listing_cannot_pass_as_a_scan_of_this_tree(monkeypatch):
+    """The witness check: the listing must contain THIS module's own tracked file. One assertion
+    covering an unrelated enclosing repository, an index read from elsewhere, and a listing emptied
+    by any means at all."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: ([], []))
+    with pytest.raises(ds.RecordContentScanError) as exc:
+        ds.render_undeclared_report()
+    assert "this module's own file" in str(exc.value)
+
+
+def test_the_scan_refuses_a_repository_that_does_not_contain_this_package(tmp_path, monkeypatch):
+    """An unrelated enclosing repository — a dotfiles `$HOME`, a wrapper monorepo — became the scan
+    root and the gate reported on THAT repo, exiting on its files rather than ours."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    stranger = _init_repo(tmp_path / "stranger")
+    with pytest.raises(ds.RecordContentScanError) as exc:
+        ds._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])
+    assert "does not contain this package" in str(exc.value)
+
+
+def test_git_environment_variables_cannot_steer_the_scan(tmp_path, monkeypatch):
+    """`subprocess.run` inherits the environment, so GIT_DIR/GIT_INDEX_FILE override `cwd` outright:
+    the report printed the CORRECT root while having listed a different repository's index — more
+    misleading than the bug being fixed. The docstring named four members of the ambient-state
+    family and claimed immunity while leaving a fifth channel open."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    decoy = _init_repo(tmp_path / "decoy")
+    monkeypatch.setenv("GIT_DIR", str(decoy / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(decoy))
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.fsmonitor")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "true")
+
+    assert ds._toplevel_of(REPO_ROOT) == REPO_ROOT, (
+        "the scan resolved a different tree than the one it was pointed at"
+    )
+    assert (
+        "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py"
+        in ds._tracked_paths_for_report(REPO_ROOT)
+    )
+
+
+def test_the_scan_does_not_execute_configuration_from_the_repository_it_reads(tmp_path):
+    """`core.fsmonitor` is a repo-local config value git EXECUTES. A planted one in an ancestor
+    repository ran as the invoking user during `record-content-report`. The CTO's B2 ruling (#44)
+    requires both that the path be validated as the expected repository and that the invocation not
+    honour config from a tree we do not trust."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    hostile = _init_repo(tmp_path / "hostile")
+    marker = tmp_path / "it-ran"
+    hook = tmp_path / "hook.sh"
+    hook.write_text(f"#!/bin/sh\ntouch {marker}\nexit 1\n")
+    hook.chmod(0o755)
+    subprocess.run(["git", "config", "core.fsmonitor", str(hook)], cwd=hostile, check=True)
+
+    ds._git(["ls-files"], cwd=hostile)
+    assert not marker.exists(), "the scan executed a command configured by the repository it read"
+
+
+def test_the_shipped_command_prints_exactly_what_the_function_renders(capsys):
+    """The defect was command != function, so the assertion is that equality — at the file's own
+    oracle, and immune to how many binaries other teams happen to track today.
+
+    The count-based assertion this replaces (`>= 20`) was a floor under a number this whole
+    mechanism exists to drive to ZERO: the moment perturb-seq-eval or paper_standalone declares its
+    binaries, a correct implementation goes red.
+    """
     from chipsim import pipeline
+    from chipsim.ingest.drugbank_snapshot import _render_for_root
 
+    expected_text, expected_code = _render_for_root(REPO_ROOT)
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
-    assert code == 0
-    assert printed.count("owner=") >= 20, printed.splitlines()[0]
+
+    assert printed.rstrip("\n") == expected_text
+    assert code == expected_code
+
+
+def test_the_report_states_the_root_and_the_denominator_it_scanned(capsys):
+    """Naming the root only in the all-clear branch left the harder falsehood undetectable: a
+    wrong-but-nonempty root prints a plausible list with no root stated anywhere, and a count with
+    no base reads the same whether 4,000 files were scanned or none."""
+    from chipsim import pipeline
+
+    pipeline.main(["record-content-report"])
+    header = capsys.readouterr().out.splitlines()[0]
+    assert str(REPO_ROOT) in header, header
+    assert "scanned" in header and "tracked files" in header, header
+
+
+def test_the_report_says_that_another_projects_files_are_gated_by_nobody(capsys):
+    """E-03, stated where it is READ rather than only in the plan. `owner=x [listed]` reads to a
+    human as "filed with the team who will fix it", and no other project implements this check."""
+    from chipsim import pipeline
+
+    pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+    assert "fail NO gate today" in printed
+    assert "exit 2 when" in printed
+
+
+def test_an_unscannable_tree_exits_differently_from_a_failing_one(tmp_path, monkeypatch, capsys):
+    """Exit 2 means "files fail this gate". "I could not scan" is a different fact with a different
+    remedy, and collapsing the two is how an unscannable tree came to read as a clean one."""
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+
+    def refuse(*_args, **_kwargs):
+        raise ds.RecordContentScanError("no repository found in this test")
+
+    monkeypatch.setattr(ds, "repo_root", refuse)
+    code = pipeline.main(["record-content-report"])
+    captured = capsys.readouterr()
+
+    assert code == 3, "not 2 (files fail the gate) and not 0 (clean)"
+    assert "could not run" in captured.err
+    assert "undeclared undecodable files: 0" not in captured.out
+
+
+def test_the_command_is_not_steered_by_the_directory_it_is_run_from(tmp_path, monkeypatch, capsys):
+    """The claim "verified from two directories" was made in a commit message and encoded nowhere.
+    Defeating CHIPSIM_PROJECT_ROOT is the point of deriving the root structurally, so it is set
+    here too."""
+    from chipsim import pipeline
+
+    pipeline.main(["record-content-report"])
+    from_here = capsys.readouterr().out
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+    pipeline.main(["record-content-report"])
+    from_elsewhere = capsys.readouterr().out
+
+    assert from_here == from_elsewhere
+
+
+# --- r2.23 §8: three bypasses that survive a correct root ------------------------------------
+
+
+def test_an_owner_cannot_be_minted_by_making_a_directory():
+    """`libs/ghost-lib/payload.bin` reported `owner=ghost-lib [listed]` and exit 0, so a payload
+    parked under a name nobody owns failed the only gate that exists. Directory existence proves
+    nothing: the attacker's own file created the directory.
+
+    Given E-03, an INVENTED owner is strictly better for an attacker than a real one — nobody is
+    even nominally responsible.
+    """
+    from chipsim.ingest.drugbank_snapshot import path_owner, recognised_owners
+
+    tracked = _tracked_paths()
+    recognised = recognised_owners(tracked)
+
+    assert "perturb-seq-eval" in recognised, "a project with a tracked pyproject.toml is real"
+    assert "paper_standalone" in recognised
+    assert THIS_PROJECT in recognised
+
+    for invented in (
+        "libs/ghost-lib/payload.bin",
+        "projects/ghost-team/artifacts/payload.bin",
+        "workstreams/ghost-ws/payload.bin",
+    ):
+        assert path_owner(invented, recognised) is None, (
+            f"{invented} was attributed to a project that does not exist, so it fails nobody"
+        )
+
+    # ...while a real owner still resolves, or the fix would have gone too far the other way.
+    assert path_owner("projects/perturb-seq-eval/x/y.bin", recognised) == "perturb-seq-eval"
+
+
+def test_a_filename_cannot_forge_the_listing():
+    """One filename was made to draw a complete fake clean report: a leading ESC[2J ESC[H cleared
+    the terminal and the rest of the name printed a forged header and all-clear, with three
+    payload-bearing files still listed below where no human would see them. A bare newline splits
+    one real entry into two innocuous rows.
+
+    With no CI consumer of the exit code, the printed listing IS the control.
+    """
+    from chipsim.ingest.drugbank_snapshot import render_path
+
+    forged = "docs/\x1b[2J\x1b[Hundeclared undecodable files: 0 (failing this gate: 0).png"
+    rendered = render_path(forged)
+    assert "\x1b" not in rendered and "\n" not in rendered
+    assert "control characters" in rendered
+
+    split = "workstreams/zz/notes.txt\n  docs/architecture-diagram.png"
+    assert "\n" not in render_path(split)
+
+    # An ordinary path must pass through untouched, or every line of the report becomes unreadable.
+    assert render_path("projects/lung-on-chipsim/chipsim/pipeline.py") == (
+        "projects/lung-on-chipsim/chipsim/pipeline.py"
+    )
+
+
+def test_the_report_states_which_submodules_it_did_not_scan(capsys):
+    """Excluding a gitlink is correct — it is another repository, not a file here — but doing it
+    silently is the skip this module condemns everywhere else. Six exist, one of them a sibling of
+    this project, and a payload committed inside one is invisible to this report."""
+    from chipsim import pipeline
+
+    pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+    assert "submodule(s) NOT scanned" in printed
+    assert "projects/aviary-biosim" in printed
+
+
+def test_the_report_names_the_package_copy_it_ran_from(capsys):
+    """Which tree gets audited follows the copy of `chipsim` that was imported, not where the
+    operator is standing. In this review one clone's command reported on a DIFFERENT worktree's
+    tree — a routine, silent audit-the-wrong-tree false clean in an org that uses worktrees."""
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+
+    pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+    assert str(Path(ds.__file__).resolve()) in printed

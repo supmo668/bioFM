@@ -352,11 +352,21 @@ def _cmd_record_content_report(ns) -> int:
     on inside tests, which means it reached nobody — and listing that reaches no one is a silent
     skip with extra steps.
     """
-    from chipsim.ingest.drugbank_snapshot import render_undeclared_report
+    from chipsim.ingest.drugbank_snapshot import (
+        RecordContentScanError,
+        render_undeclared_report,
+    )
 
     # The REPO root, not project_root(): see r2.23 E-08 — passing the project root here made the
     # command print "every tracked file was read" while 23 files had never been read.
-    text, code = render_undeclared_report()
+    try:
+        text, code = render_undeclared_report()
+    except RecordContentScanError as exc:
+        # Exit 3, NOT 2. Exit 2 means "files fail this gate"; this means "I could not scan", which
+        # is a different fact with a different remedy. Collapsing them is how an unscannable tree
+        # came to read as a clean one.
+        print(f"ERROR: the record-content scan could not run: {exc}", file=sys.stderr)
+        return 3
     print(text)
     return code
 

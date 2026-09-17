@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import UTC, datetime
@@ -687,15 +689,48 @@ THIS_PROJECT = Path(source_root()).name
 #: The WHOLE map (r2.22 calls it "an explicit map"). `workstreams/` used to be a hardcoded branch
 #: below, outside the constant whose docstring calls itself the source of truth, so a reader
 #: auditing the map saw two thirds of the rule.
+#: (prefix, owner segment index, the tracked file that PROVES the owner exists). The marker is
+#: what stops an owner being minted by mkdir: `libs/ghost-lib/payload.bin` used to report
+#: `owner=ghost-lib [listed]` and exit 0, so a payload parked under a name nobody owns failed the
+#: only gate that exists. The docstring below already condemned exactly this at depth 1
+#: (`projects/README.pdf` -> owner "README.pdf"); this is that hole one segment deeper.
 _OWNERSHIP_PREFIXES = (
-    ("projects/", 1),  # projects/<owner>/...
-    ("libs/", 1),  # libs/<owner>/...
-    ("workstreams/", 1),  # workstreams/<owner>/...
-    ("paper_standalone/", 0),  # the directory IS the project
+    ("projects/", 1, "pyproject.toml"),  # projects/<owner>/...
+    ("libs/", 1, "pyproject.toml"),  # libs/<owner>/...
+    ("workstreams/", 1, "plan/build-plan.md"),  # workstreams/<owner>/...
+    ("paper_standalone/", 0, "README.md"),  # the directory IS the project
 )
 
 
-def path_owner(rel: str) -> str | None:
+def recognised_owners(paths) -> frozenset[str]:
+    """The projects that DEMONSTRABLY exist, read from the tracked listing itself.
+
+    An owner is recognised only when the repository tracks its marker. Creating the directory
+    cannot mint one, because the attacker's file already had to create the directory — existence of
+    the directory is therefore worth nothing as evidence.
+    """
+    tracked = set(paths)
+    found: set[str] = set()
+    for prefix, index, marker in _OWNERSHIP_PREFIXES:
+        head = prefix.rstrip("/")
+        if index == 0:
+            # NOT "any path under it": the payload's own path would then prove its owner exists,
+            # which is the self-certification the marker is here to prevent.
+            if f"{head}/{marker}" in tracked:
+                found.add(head)
+            continue
+        for rel in tracked:
+            parts = Path(rel).parts
+            if (
+                len(parts) > index
+                and parts[0] == head
+                and f"{head}/{parts[index]}/{marker}" in tracked
+            ):
+                found.add(parts[index])
+    return frozenset(found)
+
+
+def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
     """The project owning a repo-relative path, or None when no project owns it.
 
     An owner must own a SUBTREE. `projects/README.pdf` used to return "README.pdf" — an invented
@@ -704,20 +739,26 @@ def path_owner(rel: str) -> str | None:
     double-exempt hole E6-4 closed, re-opened one function below the comment calling
     unowned-fails-here LOAD-BEARING FOR E6-4. `projects/../configs/x` returned ".." the same way.
 
+    `recognised` is REQUIRED, not defaulted: an optional registry would let any future caller opt
+    back into invented owners by omitting it, which is the same shape as the `root=None` parameter
+    this revision removed one function below.
+
     Unowned is the SAFE answer here (it fails this gate), so every doubtful shape returns None.
     """
     parts = Path(rel).parts
     if not parts or ".." in parts or Path(rel).is_absolute():
         return None
-    for prefix, index in _OWNERSHIP_PREFIXES:
+    for prefix, index, _marker in _OWNERSHIP_PREFIXES:
         head = prefix.rstrip("/")
         if parts[0] != head:
             continue
         if index == 0:
-            return head
+            return head if head in recognised else None
         # An owner owns a subtree: there must be a segment AFTER the owner segment.
         if len(parts) > index + 1:
-            return parts[index]
+            # ...and the owner must EXIST. An unrecognised name is unowned, which fails here,
+            # rather than somebody else's problem, which fails nowhere (E-03).
+            return parts[index] if parts[index] in recognised else None
         return None
     return None
 
@@ -746,64 +787,236 @@ def assert_no_container_is_declared(root: Path) -> None:
     )
 
 
+class RecordContentScanError(RuntimeError):
+    """The scan could not be PERFORMED — a different answer from "the scan found nothing".
+
+    E-08 was that the report scanned the wrong tree and printed a clean result. The first fix moved
+    the root selection and left every other way of getting the root wrong still ending in
+    "0 (failing this gate: 0)" and exit 0. Four reviewers reproduced that composite, so "I could not
+    determine what to scan" is now an exception with its own exit code rather than an empty list.
+
+    This is E-06's ruling applied to the READ side: a missing declared root fails loudly naming the
+    root, because one message for both states sends a legitimate operator looking for the wrong bug.
+    """
+
+
+def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
+    """Run git so that NOTHING outside `cwd` can steer it.
+
+    Two channels, both demonstrated against the previous version of this module:
+
+    * `GIT_DIR` / `GIT_INDEX_FILE` / `GIT_CONFIG_COUNT` and friends override `cwd` outright, so the
+      report listed a DIFFERENT repository's index while printing the root we believed we scanned —
+      more misleading than the bug being fixed. Every `GIT_*` name is dropped rather than a curated
+      list: new ones are added by git, not by us, and a curated list is what goes stale.
+    * `core.fsmonitor` is a repo-local config value git EXECUTES. A planted one in an ancestor
+      repository ran as the invoking user during `record-content-report`. The CTO's B2 ruling
+      (#44) already requires both that the path be validated as the expected repository and that
+      the invocation not honour config from a tree we do not trust; `-c core.fsmonitor=` is the
+      second half, and `repo_root()`'s witness check below is the first.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    return subprocess.run(
+        ["git", "-c", "core.fsmonitor=", *args],
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        # A tracked path need not be valid UTF-8. Strict decoding turned that into a traceback
+        # instead of a report, which is a loss of the listing rather than a false clean, but still
+        # a way for one filename to silence the whole mechanism.
+        errors="surrogateescape",
+        check=False,
+    )
+
+
+def _toplevel_of(directory: Path) -> Path | None:
+    """The working-tree root git itself reports for `directory`, or None if it is not a checkout."""
+    run = _git(["rev-parse", "--show-toplevel"], cwd=directory)
+    if run.returncode != 0 or not run.stdout.strip():
+        return None
+    return Path(run.stdout.strip()).resolve()
+
+
+def render_path(rel: str) -> str:
+    """A tracked path as it may safely be PRINTED.
+
+    `git ls-files -z` emits names unquoted, and newline and ESC are legal in paths. A reviewer
+    forged a complete clean report out of one filename: a leading `ESC[2J ESC[H` cleared the
+    terminal and the rest of the name drew a fake header and a fake all-clear, with three
+    payload-bearing files still listed underneath where no human would ever see them. A newline
+    alone splits one real entry into two innocuous-looking rows.
+
+    With no CI consumer of the exit code, THE PRINTED LISTING IS THE CONTROL, so it must not be
+    writable by whoever can add a file.
+    """
+    if rel.isprintable():
+        return rel
+    return rel.encode("unicode_escape").decode("ascii") + "  [name contains control characters]"
+
+
 def repo_root() -> Path:
-    """The REPOSITORY root — the directory holding `.git` above this package (r2.23 E-08).
+    """The REPOSITORY root — the working tree holding this package (r2.23 E-08).
 
     Derived by walking up from `source_root()`, never from the cwd or an environment variable: the
     same ambient-state family that produced the $TMPDIR allow-list, the cwd-sensitive receipt
-    verification, the cwd-derived monitor identity and the quality-config resolution. A worktree's
-    `.git` is a FILE rather than a directory, so this tests existence, not is_dir.
+    verification, the cwd-derived monitor identity and the quality-config resolution.
 
-    Why a distinct function: the report first shipped with `project_root()` and therefore scanned
-    only `projects/lung-on-chipsim/**` — it printed "0, every tracked file was read" while 23 files
-    had never been read. #122 had already ruled exactly this for the accession scan.
+    A worktree's `.git` is a FILE rather than a directory, so the marker is tested for EXISTENCE,
+    not `is_dir` — `is_dir()` here is a one-character change that silently reinstates the
+    project-root scan in every worktree, which is where this repo's work actually happens.
+
+    The marker alone is not trusted. git is asked to resolve the candidate, so a stray or broken
+    `.git` (an aborted `git init`, a copied worktree stub, a submodule conversion — this repo DOES
+    use submodules) raises instead of collapsing the scan back to the project root, which is E-08
+    verbatim. Nothing is returned on a guess: no repository found is an error, never a fallback to
+    `source_root()`, because that fallback IS the narrow root the finding is about.
     """
     start = Path(source_root()).resolve()
     for candidate in (start, *start.parents):
-        if (candidate / ".git").exists():
-            return candidate
-    return start
+        marker = candidate / ".git"
+        if not marker.exists():
+            continue
+        top = _toplevel_of(candidate)
+        if top is None:
+            raise RecordContentScanError(
+                f"{marker} exists but git cannot open a repository there, so the tree to scan "
+                f"cannot be determined. Refusing to report: an unscannable tree must never render "
+                f"as a clean one. Repair or remove that marker."
+            )
+        return top
+    raise RecordContentScanError(
+        f"no git repository at or above {start}, so there is no tracked-file list to scan. "
+        f"Refusing to report a clean result over a tree that was never read (r2.23 E-08). This "
+        f"command reports on a CHECKOUT; it cannot speak for an installed copy of the package."
+    )
+
+
+def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
+    """(files, submodule gitlinks) under `root`, or an exception. NEVER an empty list standing in
+    for a failure.
+
+    The test-side twin of this function has used `check=True` from the day it was written, beneath
+    a test titled "a scan over the wrong or an empty list reports clean". The human-facing copy
+    used `check=False` and returned `[]`. That is the E-08 lesson — true of the function as the
+    tests call it, false of the command a human runs — one function below the fix for it.
+
+    Both halves come from ONE `git ls-files`, so the files reported and the submodules disclosed as
+    unscanned can never be drawn from two different readings of the repository.
+    """
+    root = Path(root).resolve()
+    top = _toplevel_of(root)
+    if top is None:
+        raise RecordContentScanError(
+            f"{root} is not a git checkout, so no tracked-file list could be read. An empty list "
+            f"is not an all-clear."
+        )
+    if top != root:
+        raise RecordContentScanError(
+            f"asked to scan {root}, but git resolves that directory to the working tree {top}. "
+            f"Refusing to report: the tree scanned and the tree named must be the same one."
+        )
+    run = _git(["ls-files", "-z", "-s"], cwd=root)
+    if run.returncode != 0:
+        raise RecordContentScanError(
+            f"git ls-files failed under {root}: {run.stderr.strip() or 'no diagnostic'}"
+        )
+    paths: list[str] = []
+    gitlinks: list[str] = []
+    for record in filter(None, run.stdout.split("\0")):
+        meta, rel = record.split("\t", 1)
+        (gitlinks if meta.split()[0] == "160000" else paths).append(rel)
+    return paths, sorted(gitlinks)
 
 
 def _tracked_paths_for_report(root: Path) -> list[str]:
-    """Tracked paths for the human-facing report. Split out so a test can supply its own."""
-    import subprocess
-
-    run = subprocess.run(
-        ["git", "ls-files", "-z", "-s"], cwd=root, capture_output=True, check=False
-    )
-    if run.returncode != 0:
-        # Not a checkout (or git unavailable): report nothing rather than crash. The gate's
-        # enforcement lives in the suite; this command is the human-facing view of it.
-        return []
-    raw = run.stdout.decode("utf-8")
-    paths = []
-    for record in filter(None, raw.split("\0")):
-        meta, rel = record.split("\t", 1)
-        if meta.split()[0] != "160000":
-            paths.append(rel)
-    return paths
+    """The files half of the listing. Named for what it used to get wrong."""
+    return _tracked_listing(root)[0]
 
 
-def render_undeclared_report(root: Path | None = None) -> tuple[str, int]:
+def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
+    """The listing must contain THIS module's own tracked file, and every path must resolve.
+
+    One assertion instead of one per failure mode. It kills, together: a root that is some
+    unrelated enclosing repository (a dotfiles `$HOME`, a wrapper monorepo), a root whose index was
+    read from elsewhere, a listing emptied by any means, and a checkout too sparse to answer the
+    question. The suite has asserted exactly this about ITSELF since it was written; the command
+    could not, which is why every wrong root read as clean.
+    """
+    here = Path(__file__).resolve()
+    try:
+        witness = here.relative_to(root).as_posix()
+    except ValueError:
+        raise RecordContentScanError(
+            f"{root} does not contain this package ({here}), so it is not the repository this "
+            f"report can speak for."
+        ) from None
+    if witness not in set(paths):
+        raise RecordContentScanError(
+            f"the listing for {root} does not contain this module's own file ({witness}), so it "
+            f"is not a listing of the tree this package lives in. Refusing to report."
+        )
+    unresolvable = [rel for rel in paths if not (root / rel).is_file()]
+    if unresolvable:
+        raise RecordContentScanError(
+            f"{len(unresolvable)} tracked path(s) under {root} do not resolve to a file, so they "
+            f"would be skipped unread (e.g. {unresolvable[:3]}). A partially-materialised checkout "
+            f"cannot produce an all-clear."
+        )
+
+
+def render_undeclared_report() -> tuple[str, int]:
     """The report a HUMAN reads, and the exit code this project's gate would produce.
 
     "Listing that reaches no one is functionally a silent skip" (CTO, §6 boundary) — a report only
     ever asserted on inside tests is the declare-and-skip problem wearing a different coat.
+
+    It takes NO argument. The defect was a caller passing the wrong root, and a `root=None`
+    parameter removes the caller's obligation to choose without removing its ability to choose
+    wrongly. Narrowed scans are `_render_for_root`, whose underscore says that a narrowed scan is
+    not a supported product behaviour.
     """
-    # THE REPO ROOT, never the project root (r2.23 E-08). Defaulting here rather than at the call
-    # site means a future caller cannot reintroduce the narrow scan by passing the wrong root.
-    root = repo_root() if root is None else Path(root)
-    paths = _tracked_paths_for_report(root)
+    return _render_for_root(repo_root())
+
+
+def _render_for_root(root: Path) -> tuple[str, int]:
+    root = Path(root).resolve()
+    paths, submodules = _tracked_listing(root)
+    _refuse_a_scan_that_cannot_see_itself(root, paths)
     report = undeclared_report(root, paths)
     failing = set(failing_undeclared(root, paths))
 
-    lines = [f"undeclared undecodable files: {len(report)} (failing this gate: {len(failing)})"]
+    # The root and the denominator go on the header, printed unconditionally. Naming the root only
+    # in the all-clear branch left the harder falsehood undetectable: a wrong-but-nonempty root
+    # prints a plausible list with no root stated anywhere, and a count with no base reads the same
+    # whether 4,000 files were scanned or none. The PACKAGE is named too: which tree gets audited
+    # follows the copy of chipsim that was imported, so two worktrees of one repo can each report
+    # on the other's tree without a word.
+    lines = [
+        (
+            f"undeclared undecodable files: {len(report)} (failing this gate: {len(failing)}) "
+            f"— scanned {len(paths)} tracked files under {root}"
+        ),
+        f"  (scan run from package {Path(__file__).resolve()})",
+    ]
     for rel, owner in report:
         mark = "FAILS HERE" if rel in failing else "listed"
-        lines.append(f"  {rel}  owner={owner or '<unowned>'}  [{mark}]")
+        lines.append(f"  {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
     if not report:
-        lines.append(f"  (none — every tracked file under {root} was read)")
+        lines.append("  (none)")
+    if submodules:
+        lines.append(
+            f"  {len(submodules)} submodule(s) NOT scanned (another repository, not files here): "
+            f"{', '.join(render_path(rel) for rel in submodules)}"
+        )
+    # E-03, stated where it is read rather than only in the plan: `owner=` names who SHOULD care,
+    # not who is enforcing. Saying "listed" to a human 23 times, with an owner beside it, reads as
+    # "filed with the team who will fix it" — and no other project implements this check.
+    lines.append(
+        "  exit 2 when a file owned by this project, or owned by none, is undeclared. Files listed "
+        "against another project fail NO gate today: no other project implements this check, so "
+        "`owner=` names who should care, not who is enforcing (E-03)."
+    )
     return "\n".join(lines), (2 if failing else 0)
 
 
@@ -814,7 +1027,10 @@ def undeclared_report(root: Path, paths) -> list[tuple[str, str | None]]:
     scoped" — so another team's artifacts stay visible and countable here even though they do not
     fail this gate.
     """
-    return sorted((rel, path_owner(rel)) for rel in undecodable_unallowed(root, paths))
+    # The registry is built from the SAME listing the report is rendered from, so an owner cannot
+    # be recognised on the strength of a file that this scan never saw.
+    recognised = recognised_owners(paths)
+    return sorted((rel, path_owner(rel, recognised)) for rel in undecodable_unallowed(root, paths))
 
 
 def failing_undeclared(root: Path, paths) -> list[str]:
