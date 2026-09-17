@@ -71,6 +71,35 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   tracked path*, so the rule must name where writing IS allowed.
   **A registry test enumerates record-bearing writers and asserts each calls the helper**, so a new
   writer cannot silently opt out — the pattern that caught the unregistered fixture file.
+- **Declarations are owned by the project whose artifacts they describe** *(r2.21, E6-1)*. Files the
+  scan cannot decode are declared in **per-project declaration data** — a file in that project,
+  following this module's own `DRUGBANK_ID_LEDGER` precedent of pointing at `configs/` rather than
+  inlining — and the guard reads the union. Each entry carries **`path -> sha256`**, not a bare path
+  *(E6-3)*: every declared file is a build output, so a path-keyed declaration goes silent forever
+  the moment the artifact is regenerated with different content. An entry may instead assert
+  **"derived from tracked source S, and S is in scope"**, which is self-maintaining and, unlike a
+  comment saying "none of these is a DrugBank artifact", is a claim a reader can check.
+  **Why:** 24 paths belonging to `perturb-seq-eval` and `paper_standalone` were declared inside
+  lung-on-chipsim's source, so another team adding a figure turned this module's gate red and the
+  repair landed in a file they neither own nor can judge.
+  *A decision that looks like bookkeeping is still a shape decision if it assigns ownership.*
+- **A readable structured container is always READ, never declared** *(r2.21, E6-2)*. Parquet, HDF5
+  and `h5ad` are scanned — parquet including its **footer metadata**, HDF5 including string datasets
+  and attributes. Only *rendered* artifacts (figures, typeset PDFs) may be declared, and the two
+  kinds are named distinctly so a structured container cannot be filed among figures where nobody
+  registers it.
+  **Why:** a parquet's footer carried accession + coined name + structure while the file scanned as
+  `",harmless\n0,1\n"` — present, invisible to both halves, and certified clean by the guard's own
+  green tests. Metadata stamping is ordinary; several engines do it by default.
+- **The dispatch waiver covers MESSAGES, not bytes** *(r2.21, E6-4)*. `#122 §3` waives
+  `.claude/usr/**/dispatches/` because redacting a sent message falsifies the audit trail. That
+  reasoning covers **`.md` payloads only**; any other file type under a dispatch directory is **in
+  scope**. Proven: a tracked `dispatches/leak.pdf` carrying raw bytes and a real accession was
+  double-exempt — undecodable *and* waived — with the suite green.
+- **Which half each mechanism enforces is stated, and neither claims the other's** *(r2.21, E6-5)*.
+  The repo-wide scan enforces the **accession** half. The r2.20 writer allow-list enforces the
+  **name** half. A structure plus a name with no accession is invisible to the scan **by design**,
+  not by oversight — an overclaim about what a guard sees is worse than the gap it hides.
 - **The repo-wide record-content guard may not skip a file silently** *(r2.20)*. Any file it cannot
   decode is **listed and fails** unless it appears in a declared binary allow-list; parquet is read
   with pandas and scanned as a frame. Measured at §5: a tracked parquet carrying accession + name +
