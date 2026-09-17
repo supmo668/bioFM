@@ -54,13 +54,16 @@ credentials.json
 # --- Scope: projects/ only (set 2026-09-17 by /understand, principal ruling) ---
 # Remove this block to widen the graph back to the whole repo.
 # libs/ and paper_standalone/ are independent components; no projects/ file imports them.
-libs/
-paper_standalone/
-research/
-docs/
-workstreams/
-scripts/
-tools/
-config/
-.agents/
-.understand-anything/
+# ROOT-ANCHORED (leading /). A bare `docs/` matches at ANY depth in gitignore
+# syntax, which silently excluded projects/*/docs (4 ADRs) and
+# projects/perturb-seq-eval/scripts (22 files, incl. every Modal app).
+/libs/
+/paper_standalone/
+/research/
+/docs/
+/workstreams/
+/scripts/
+/tools/
+/config/
+/.agents/
+/.understand-anything/
