@@ -26,6 +26,8 @@ import pandas as pd
 import requests
 import yaml
 
+from chipsim.guards.output_roots import refuse_unless_declared_output_root
+
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
 SNAPSHOT_FILES = ("drugbank.tsv", "drugbank-slim.tsv", "proteins.tsv")
@@ -845,6 +847,13 @@ def write_compounds(df: pd.DataFrame, out: Path) -> None:
 
     pyarrow, version='2.6', compression=None.
     """
+    # r2.20: the WORST payload in the project — accession, name, InChI and InChIKey on ONE
+    # ROW, the complete record. Until r2.20 this validated its columns and never its
+    # destination, and `chipsim write --out <any path>` reached it with no validation at all;
+    # writing into configs/ was measured at §5. The CLI inherits this refusal rather than
+    # adding its own, because two checks drift and the second becomes the one people trust.
+    refuse_unless_declared_output_root(out)
+
     missing = [c for c in PERSISTED_COMPOUND_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(

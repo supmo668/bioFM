@@ -20,12 +20,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from chipsim.guards.output_roots import refuse_unless_declared_output_root
 from chipsim.harmonize.label_reference import (
     LabelReference,
     aggregate_label_agreement,
     label_agreement,
 )
-from chipsim.journal import source_root
 
 #: Worksheet schema. The last four are the human's to fill in T14.
 WORKSHEET_COLUMNS = (
@@ -92,15 +92,6 @@ ADJUDICATED_LABELS = frozenset({"yes", "no", "unknown"})
 CITED_LABELS = frozenset({"yes", "no"})
 
 
-#: The directory name the WORKSHEET writer refuses (r2.19, G-15). Deliberately private and
-#: use-named: it is NOT a claim that this module owns `configs/` — `seal_panel` legitimately
-#: writes `configs/barrier_panel.yaml`, and `journal` reads the whole tree. It means only that
-#: the name-bearing worksheet shape may not be written there, because `name` beside
-#: `canonical_inchikey` in a tracked file is the association the five-column split exists to
-#: prevent. `export_tracked_adjudication` (five columns, no `name`) remains free to target it.
-_WORKSHEET_FORBIDDEN_DIRNAME = "configs"
-
-
 class AdjudicationError(RuntimeError):
     """The adjudication worksheet is incomplete, inconsistent, or unusable."""
 
@@ -140,105 +131,6 @@ def _relative_by_key(compounds: pd.DataFrame) -> pd.Series:
         .groupby("canonical_inchikey")["stereo_is_relative"]
         .any()
     )
-
-
-def _casefold_within(child: Path, parent: Path) -> bool:
-    """Is `child` `parent` or beneath it, comparing case-INSENSITIVELY?
-
-    Case-insensitively because this project's own volume is (APFS): `CONFIGS/` and `configs/` are
-    ONE directory here, while `Path.resolve()` does not normalise case — so a case-sensitive
-    comparison let `CONFIGS/w.csv` through and the file landed in the real `configs/`, measured.
-    On a case-sensitive filesystem this errs toward REFUSING a genuinely distinct `CONFIGS/`,
-    which is the safe direction for a guard whose failure publishes record content.
-    """
-    c, p = str(child).casefold(), str(parent).casefold().rstrip(os.sep)
-    return c == p or c.startswith(p + os.sep)
-
-
-def _refuse_tracked_destination(out: Path) -> None:
-    """Refuse a WORKSHEET write to the tracked config directory (r2.19, G-15).
-
-    By PATH, never by asking git: a `git ls-files` call from library code is slow,
-    environment-dependent and wrong in a non-git checkout.
-
-    Three checks, because the obvious one-liner failed in three directions, each MEASURED against
-    the shipped code before this was written:
-
-      1. the final component must not be a SYMLINK. The check resolves, the write does not, so a
-         destination symlinked out of `configs/` was accepted and then `os.replace` REPLACED THE
-         LINK with a name-bearing file inside the tracked directory;
-      2. the resolved destination must not be inside the project's real `configs/` (anchored to
-         `source_root()`, case-insensitively). Anchoring is what stops the guard from refusing
-         every write in a checkout that merely lives under some other `configs/` ancestor —
-         which made the worksheet writer unusable, including the recovery path;
-      3. failing that, no path COMPONENT may be `configs` (case-insensitively), checked on the
-         literal path and on the resolved one. The literal half catches a `configs` symlink
-         whose resolution hides the name; the resolved half catches `../../configs/x.csv` and a
-         bare filename written while the cwd is inside `configs/`. Inside the project this is
-         applied to the path RELATIVE to the project root, so an unrelated `configs` ancestor
-         above the checkout is not matched.
-
-    This is a second boundary for one directory, which `journal._configs_boundary` (E-3) warns
-    against. It is deliberately NOT that boundary: E-3 governs READING config entries and is
-    anchored strictly inside the project, while this governs WRITING and must also refuse
-    destinations outside the project entirely (a temp tree, another checkout). The overlap is the
-    anchored check, and it is written to agree with E-3's half (b).
-    """
-    literal = Path(out)
-    try:
-        resolved = literal.resolve()
-    except (OSError, RuntimeError) as exc:
-        # A symlink loop raises RuntimeError, which escapes every `except AdjudicationError` —
-        # including the CLI handler's, producing the traceback that handler exists to prevent.
-        raise AdjudicationError(
-            f"refusing to write a worksheet to {out}: the path could not be resolved ({exc})."
-        ) from exc
-
-    def refuse(why: str) -> None:
-        raise AdjudicationError(
-            f"refusing to write a worksheet to the TRACKED artifact directory ({why}): the "
-            "worksheet shape carries `name` beside `canonical_inchikey`, and a tracked file "
-            "pairing a compound name with a structure is exactly what the five-column split "
-            "exists to prevent. Write the worksheet under data/interim/ and publish it with "
-            "export_tracked_adjudication(worksheet, out) — or `chipsim adjudication-export` — "
-            f"which is the only writer permitted to target it. Destination was: {out}"
-        )
-
-    if literal.is_symlink():
-        refuse("the destination itself is a symlink, and writing would replace the link")
-
-    tracked = Path(source_root()) / _WORKSHEET_FORBIDDEN_DIRNAME
-    try:
-        tracked_resolved = tracked.resolve()
-    except (OSError, RuntimeError):
-        tracked_resolved = tracked
-    if _casefold_within(resolved, tracked_resolved):
-        refuse(f"it resolves inside {tracked_resolved}")
-
-    root = Path(source_root()).resolve()
-
-    def _within_project(candidate: Path) -> tuple[str, ...] | None:
-        """The candidate's parts RELATIVE to the project root, or None if it is outside.
-
-        Anchors by comparing RESOLVED ancestors rather than the literal prefix: on macOS a temp
-        path spells itself `/var/...` while resolving to `/private/var/...`, so a literal prefix
-        comparison decided "outside the project" for a path plainly inside it, and the component
-        rule then refused a legitimate `data/interim/` write. Measured before this was written.
-        """
-        for parent in (candidate, *candidate.parents):
-            try:
-                if _casefold_within(parent.resolve(), root) and parent.resolve() == root:
-                    return candidate.relative_to(parent).parts
-            except (OSError, RuntimeError, ValueError):
-                continue
-        return None
-
-    for candidate in (literal if literal.is_absolute() else Path.cwd() / literal, resolved):
-        parts = _within_project(candidate)
-        if parts is None:
-            parts = candidate.parts
-        if any(part.casefold() == _WORKSHEET_FORBIDDEN_DIRNAME for part in parts):
-            refuse(f"the path has a `{_WORKSHEET_FORBIDDEN_DIRNAME}` component")
 
 
 def _blank(value: object) -> bool:
@@ -318,7 +210,7 @@ def write_adjudication_worksheet(
     Returns row count.
     """
     out = Path(out)
-    _refuse_tracked_destination(out)
+    refuse_unless_declared_output_root(out)
 
     if "canonical_inchikey" not in compounds.columns:
         raise AdjudicationError("compounds must carry `canonical_inchikey` (T5b)")
