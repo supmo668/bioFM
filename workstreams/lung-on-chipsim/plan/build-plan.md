@@ -234,13 +234,44 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   correct refusal: *an agent asked to implement a clause that does not exist is being asked to
   approve it.* This is the project's own "an invariant that lives only in prose" failure, committed
   by the party that wrote the warning.
-- **A production guard may not be a bare `assert`** *(r2.26)*. `python -O` **strips assert
+- **Two predicates with opposite safe directions MAY NOT SHARE A DEFAULT** *(r2.27)*. `ContentPolicy`
+  carried one comment for both: *"both defaults refuse nothing, so a caller who forgets them gets a
+  NOISIER gate."* True of `readability_waived`. **False of `content_exempt`** — exempt nothing and the
+  double-exemption defect never fires, the declaration **holds**, and the file is **cleared**.
+  Measured: the default cleared a file the shipped policy fails. Each predicate states its own safe
+  direction and carries its own default, because "fail-closed" is not a property of a dataclass, it
+  is a property of each question it answers.
+- **A structural error is carried by the HEADER COUNTS, not only by prose** *(r2.27, E-20)*. A broken
+  declaration file alone exits 2 while every number a reader checks first reads clean, leaving the
+  signal in a paragraph. That is E-13's own rationale — counts must be right where a reader looks
+  first — applied to the case E-13 created.
+- **`readability_waived` is measured, and removed if it never fires** *(r2.27, E-19)*. As the
+  DrugBank predicate defines it, a dispatch message is waived only when it **decodes** — which is
+  exactly when it would not have been reported, so the waiver may be inert. Measure it against the
+  live tree; if it never fires, **delete it and say why in the clause**. An inert mechanism is worse
+  than an absent one because it reads as coverage (rule 13).
+- **E-17 — a REQUIRED `ScanContext`, and the renderer split into DATA and PRESENTATION** *(r2.27,
+  its own iteration, after E-18)*. `ScanContext(root, paths, policy, surface)` is required everywhere
+  and **resolvable nowhere** — no fallback. *What makes state ambient is not aggregation but
+  IMPLICIT RESOLUTION*, so a context that cannot resolve itself is the opposite of ambient state, and
+  this is the sixth defect in that family. The scan returns an object carrying `exit_code` and typed
+  rows; presentation renders it. **The exit code must be assertable without parsing a string** —
+  its living only inside the renderer is *why* E-13b happened, since no test could reach it cheaply
+  and every defect test therefore asserted on a return value instead.
+- **E-18 — `chipsim/guards/decoding.py` and `chipsim/guards/repo.py`** *(r2.27, do FIRST)*. Two pure
+  moves that also remove `ingest`'s reach into **three private names** of the guard — a re-coupling of
+  exactly what E6-6 split.
+- **A production guard may not be a bare `assert`** *(r2.26; enforcement corrected r2.27)*. `python -O` **strips assert
   statements**, so under optimisation such a guard does not weaken — it **vanishes**, and in this
   module a declared readable container would have been cleared in silence. Guards raise the module's
   own error type explicitly; `AssertionError` is a test-shaped exception and must not surface from
   production code. Enforced two ways, because one of them can rot: a test that **parses this module's
-  source** and asserts no bare `assert` appears in it, and a test that runs the guard **under `-O` in
-  a subprocess**.
+  source** and asserts no bare `assert` appears in it, and a test that **starts a child interpreter
+  with `-O` and observes the GUARD REFUSING**. *(r2.27: the first implementation did neither — it
+  raised an exception it had constructed itself and re-parsed the source with `ast`, which yields
+  `Assert` nodes identically under `-O`. A mutant that made the refusal vanish **exactly and only
+  under `-O`** passed all three related tests. A test must observe the behaviour, never re-derive
+  it.)*
   **For E6-6:** `undecodable_unallowed` reaching into the DrugBank exclusions is the **one
   non-mechanical part** of that extraction. It moves by judgement, not cut-and-paste, and the clause
   says so rather than letting a mechanical move carry it silently.
