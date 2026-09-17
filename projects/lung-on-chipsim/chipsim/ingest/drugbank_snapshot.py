@@ -382,6 +382,25 @@ BINARY_ALLOWLIST: frozenset[str] = frozenset()
 #: is ALWAYS read; only RENDERED artifacts (figures, typeset PDFs) may be declared.
 _HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
 
+#: Per-dataset ceiling. `_MAX_SCAN_BYTES` bounds the file ON DISK; a compressed dataset expands
+#: far beyond it (206 KB -> 200 MB measured, 950x), and the parquet path is already batched.
+_MAX_DATASET_BYTES = 64 * 1024 * 1024
+
+
+class _UnreadableContainer(RuntimeError):
+    """A structured container could not be fully read — REPORTABLE, never clean."""
+
+
+class MissingContainerReader(RuntimeError):
+    """No reader is installed for a structured container.
+
+    Distinct from `_UnreadableContainer` so it can PROPAGATE: E6-2 says a container is always read,
+    so "no reader" must stop the scan loudly rather than become "undecodable — declare it", which
+    is the one answer a container may not receive. Distinct from a bare RuntimeError because h5py
+    raises those for some malformed files, and those ARE reportable.
+    """
+
+
 #: Indirected so a test can remove the reader and assert the guard fails LOUDLY rather than
 #: reporting "undecodable — declare it", which for a container is the one answer E6-2 forbids.
 try:  # pragma: no cover - import guard
@@ -466,9 +485,17 @@ def _parquet_chunks(target: Path):
     yield "\n".join(meta_parts)
 
     def _cell(value):
+        """Stringify a cell by VALUE.
+
+        Iterating a dict yields KEYS, so a top-level struct column scanned as
+        `[accession,name,inchi]` while the record sat in the file's bytes — the §6 pattern in the
+        one nested shape that was still eliding.
+        """
         if isinstance(value, (str, bytes)) or not hasattr(value, "__len__"):
             return value
-        return "[" + ",".join(str(item) for item in value) + "]"
+        if isinstance(value, dict):
+            return "{" + ",".join(f"{k}={_cell(v)}" for k, v in value.items()) + "}"
+        return "[" + ",".join(str(_cell(item)) for item in value) + "]"
 
     for batch in pq.ParquetFile(target).iter_batches(batch_size=_PARQUET_BATCH_ROWS):
         frame = batch.to_pandas()
@@ -484,32 +511,75 @@ def _hdf5_chunks(target: Path):
     footer that carried a whole record invisibly at §6.
     """
     if _HDF5_READER is None:
-        raise RuntimeError(
+        raise MissingContainerReader(
             f"{target} is an HDF5 container and no reader is installed (h5py). A container is "
             "ALWAYS read, never declared unread (r2.21 E6-2), so this fails loudly rather than "
             "inviting a declaration. Install the dev dependencies."
         )
 
     parts: list[str] = []
+    datasets_seen = 0
+
+    def _stringify(values) -> str:
+        """Every element, never `repr(array)`.
+
+        numpy's repr SUMMARISES above 1,000 elements, so the repo's own 34.6 MB container scanned
+        to 4,270 characters with three elision markers: under 0.5% of its string content examined
+        while reporting clean. `_parquet_chunks` fixed exactly this one clause earlier; the HDF5
+        reader reintroduced it.
+        """
+        flat = getattr(values, "ravel", lambda: values)()
+        return "\n".join(str(item) for item in flat)
 
     def visit(name, node):
+        nonlocal datasets_seen
         parts.append(name)
         for key, value in getattr(node, "attrs", {}).items():
             parts.append(f"{key}={value!r}")
-        data = getattr(node, "dtype", None)
-        if data is not None and data.kind in {"O", "S", "U"}:
-            try:
-                values = node[()]
-            except Exception:  # noqa: BLE001 - an unreadable dataset is not a clean one
-                parts.append(f"{name}=<unreadable>")
-                return
-            parts.append(repr(values))
+
+        dtype = getattr(node, "dtype", None)
+        if dtype is None:
+            return
+        datasets_seen += 1
+
+        # Compound/structured dtypes (`kind == "V"`) are the on-disk shape of every HDF5 table and
+        # of legacy AnnData obs/var recarrays. Skipping them meant a dataset holding the whole
+        # record scanned to seven characters.
+        readable = dtype.kind in {"O", "S", "U", "V"}
+        if not readable:
+            return
+
+        nbytes = getattr(node, "nbytes", 0) or 0
+        if nbytes > _MAX_DATASET_BYTES:
+            # Bounded like the parquet path: a 206 KB compressed dataset materialised 200 MB
+            # (950x). A guard that OOMs gives no verdict at all.
+            raise _UnreadableContainer(
+                f"{name} is {nbytes} bytes uncompressed, above the scan bound"
+            )
+        try:
+            values = node[()]
+        except Exception as exc:
+            # An unreadable dataset used to be annotated `<unreadable>` and the file still counted
+            # as READ and scanned CLEAN. "A skipped file is an unchecked file" applies inside a
+            # container too — this is the hdf5plugin-missing case, measured.
+            raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
+        parts.append(_stringify(values))
 
     with _HDF5_READER.File(target, "r") as handle:
         for key, value in handle.attrs.items():
             parts.append(f"{key}={value!r}")
+        for name in handle:
+            # `visititems` skips soft and external LINKS, so a container whose only members were
+            # links produced an empty chunk and passed as "read".
+            raw = handle.get(name, getlink=True)
+            if isinstance(raw, (_HDF5_READER.SoftLink, _HDF5_READER.ExternalLink)):
+                raise _UnreadableContainer(f"{name} is a link this scan does not follow")
         handle.visititems(visit)
-    yield "\n".join(parts)
+
+    text = "\n".join(parts)
+    if not text.strip():
+        raise _UnreadableContainer("the container yielded no scannable content")
+    yield text
 
 
 def _scan_chunks(target: Path):
@@ -533,9 +603,16 @@ def _scan_chunks(target: Path):
     if head.startswith(_HDF5_MAGIC):
         try:
             return list(_hdf5_chunks(target))
-        except (MemoryError, RuntimeError):
+        except MissingContainerReader:
             raise
-        except Exception:  # noqa: BLE001 - an unreadable container is REPORTABLE, never clean
+        except _UnreadableContainer:
+            # Partially-read IS unread: reported, never clean. E6-2 forbids answering this with a
+            # declaration, and `test_no_readable_structured_container_is_declared` enforces that,
+            # so the file stays visible until someone makes it readable.
+            return None
+        except MemoryError:
+            raise
+        except Exception:  # noqa: BLE001 - unreadable container: REPORTABLE, never clean
             return None
 
     if head.startswith(_PARQUET_MAGIC):

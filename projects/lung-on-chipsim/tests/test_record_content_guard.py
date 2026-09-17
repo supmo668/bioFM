@@ -729,3 +729,105 @@ def test_each_mechanism_states_which_half_of_the_invariant_it_enforces():
     assert "NAME half" in writer_doc, "the writer allow-list must say which half it enforces"
     assert "NAME half" not in scan_doc, "the scan must not claim the name half"
     assert "ACCESSION half" not in writer_doc, "the writer must not claim the accession half"
+
+
+# --- §7 Phase B: "always READ" was false for every real container ---------------------------
+
+
+def test_a_long_hdf5_string_dataset_is_scanned_whole_not_elided(tmp_path):
+    """§7 HIGH, measured on the LIVE artifact: the 34.6 MB h5ad scanned to 4,270 chars with THREE
+    elision markers — var/gene_symbol (35,635), var/ensembl_id (35,635) and obs/cell_barcode
+    (5,768) all elided, under 0.5% of its string content examined. `repr(array)` summarises above
+    1,000 elements.
+
+    This is the SAME defect `_parquet_chunks` fixed and pinned one clause earlier ("numpy's repr
+    ELIDES above 1000 elements"), reintroduced in the reader written to close the container gap.
+    And the 0.01s scan time I quoted as evidence the cost was fine was a measurement OF the elision.
+    """
+    h5py = pytest.importorskip("h5py")
+    values = [b"FIXTURE-CELL"] * 2000
+    values[1500] = REAL.encode()
+    path = tmp_path / "big.h5ad"
+    with h5py.File(path, "w") as handle:
+        handle.create_dataset("obs/_index", data=values)
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_a_compound_dtype_dataset_is_scanned(tmp_path):
+    """§7 HIGH. `dtype.kind == "V"` was skipped — the on-disk shape of every HDF5 table and of
+    legacy AnnData obs/var recarrays. A compound dataset holding the whole record scanned to SEVEN
+    CHARACTERS: hit [], reported []. The §6 parquet-footer pattern inside the reader added to close
+    the §6 parquet-footer pattern."""
+    import numpy as np
+
+    h5py = pytest.importorskip("h5py")
+    path = tmp_path / "compound.h5"
+    data = np.array(
+        [(REAL.encode(), b"a coined title", 1.0)],
+        dtype=[("id", "S12"), ("name", "S32"), ("val", "f4")],
+    )
+    with h5py.File(path, "w") as handle:
+        handle.create_dataset("records", data=data)
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_a_container_whose_dataset_cannot_be_read_is_reported_not_called_clean(
+    tmp_path, monkeypatch
+):
+    """§7. An unreadable dataset was annotated `<unreadable>`, the file then counted as READ and
+    scanned CLEAN, and nothing inspected the marker — reproduced with the exact error an h5ad
+    written with hdf5plugin raises when the plugin is absent. "A skipped file is an UNCHECKED
+    file" applies inside a container too."""
+    h5py = pytest.importorskip("h5py")
+    path = tmp_path / "broken_dataset.h5ad"
+    with h5py.File(path, "w") as handle:
+        handle.create_dataset("obs/_index", data=[b"FIXTURE"])
+
+    def boom(self, *args, **kwargs):
+        raise OSError("Can't read data (can't open directory: /usr/local/hdf5/lib/plugin)")
+
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", boom)
+    assert undecodable_unallowed(tmp_path, [path.name]) == [path.name]
+
+
+def test_a_container_holding_only_links_is_reported_not_called_read(tmp_path):
+    """§7. `visititems` skips soft and external links, so a container whose only members are links
+    produced an EMPTY chunk and was classified readable and clean. A container that yields ZERO
+    content was never read."""
+    h5py = pytest.importorskip("h5py")
+    target = tmp_path / "elsewhere.h5"
+    with h5py.File(target, "w") as handle:
+        handle.create_dataset("secret", data=[REAL.encode()])
+    path = tmp_path / "links_only.h5"
+    with h5py.File(path, "w") as handle:
+        handle["soft"] = h5py.SoftLink("/missing")
+        handle["ext"] = h5py.ExternalLink(str(target), "/secret")
+    assert undecodable_unallowed(tmp_path, [path.name]) == [path.name]
+
+
+def test_a_parquet_struct_column_is_scanned_by_value_not_by_key(tmp_path):
+    """§7. `_cell` iterated a dict, which yields KEYS: a top-level struct column scanned as
+    `[accession,name,inchi]` while the record sat in the bytes. list<struct>, map, dictionary
+    encoding and multi-row-group were all caught — this was the one remaining nested shape."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    path = tmp_path / "struct.parquet"
+    table = pa.table({"rec": pa.array([{"accession": REAL, "inchi": STRUCTURE}])})
+    pq.write_table(table, path)
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_the_live_container_is_read_substantially_not_vacuously():
+    """The anti-vacuity the elision hid: the repo's own 34.6 MB container must yield far more than
+    a summary. Before the fix it produced 4,270 chars for ~41,000 identifiers."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    target = REPO_ROOT / "projects/perturb-seq-eval/data/Adamson2016_pilot.h5ad"
+    if not target.is_file():
+        pytest.skip("the AnnData artifact is not present in this checkout")
+    chunks = ds._scan_chunks(target)
+    assert chunks is not None
+    text = "\n".join(chunks)
+    assert "..." not in text, "an elision marker means the container was summarised, not read"
+    assert len(text) > 500_000, f"only {len(text):,} chars scanned for ~41,000 identifiers"
