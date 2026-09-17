@@ -352,6 +352,28 @@ _DISPATCH_PAYLOAD_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+\.m
 DRUGBANK_ID_EXCEPTIONS = DRUGBANK_ID_LEDGER | DRUGBANK_ID_EXCLUDED_FILES
 
 
+def _is_dispatch_message(root: Path, rel: str) -> bool:
+    """Is this dispatch payload an actual MESSAGE — i.e. does it decode as text?
+
+    #122 §3 waives dispatch payloads because redacting a sent MESSAGE falsifies the audit trail of
+    the rulings it carries. That reasoning is about text a human wrote and sent. A binary blob is
+    not a message whatever it is named, and deciding messagehood by FILENAME meant the same payload
+    that fails as `leak.pdf` was DOUBLE-exempt as `leak.md` — waived from the accession scan and
+    skipped by the undecodable report, listed nowhere. Two reviewers executed it independently.
+
+    This module's own doctrine, two functions away: "dispatch on the MAGIC, not on the name".
+    """
+    if not _DISPATCH_PAYLOAD_RE.match(rel):
+        return False
+    target = Path(root) / rel
+    if not target.is_file():
+        return True  # nothing to read; the path shape is all we have
+    try:
+        return _decode_text(target.read_bytes()) is not None
+    except OSError:
+        return False
+
+
 def is_accession_excluded(rel: str) -> bool:
     """True when a repo-relative path is in the ruled exclusion set — and nothing else is:
     the ledger pair, the named excluded files, and dispatch payloads."""
@@ -375,7 +397,7 @@ def is_accession_excluded(rel: str) -> bool:
 #: ownership. They are now LISTED by `undeclared_report` with their owner named, and fail their
 #: owner's gate rather than this one (r2.22 E6-1b). They are NOT re-declared here on those teams'
 #: behalf.
-BINARY_ALLOWLIST: frozenset[str] = frozenset()
+RENDERED_ARTIFACT_DECLARATIONS: frozenset[str] = frozenset()
 
 
 #: HDF5's signature. `h5ad` is HDF5, and AnnData's `obs`/`var` carry names and identifiers — the
@@ -700,6 +722,69 @@ def path_owner(rel: str) -> str | None:
     return None
 
 
+def assert_no_container_is_declared(root: Path) -> None:
+    """Raise when a DECLARED path is a readable structured container (r2.21 E6-2).
+
+    Checked by MAGIC, not by suffix: a suffix filter is name-based dispatch, the anti-pattern this
+    module condemns for parquet 170 lines above, and a container named `blob.dat` walked straight
+    through it.
+    """
+    containers = []
+    for rel in sorted(RENDERED_ARTIFACT_DECLARATIONS):
+        target = Path(root) / rel
+        if not target.is_file():
+            continue
+        try:
+            head = target.open("rb").read(8)
+        except OSError:
+            continue
+        if head.startswith((_HDF5_MAGIC, _PARQUET_MAGIC)):
+            containers.append(rel)
+    assert containers == [], (
+        f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
+        "never declared (r2.21 E6-2) — only rendered artifacts may be declared."
+    )
+
+
+def _tracked_paths_for_report(root: Path) -> list[str]:
+    """Tracked paths for the human-facing report. Split out so a test can supply its own."""
+    import subprocess
+
+    run = subprocess.run(
+        ["git", "ls-files", "-z", "-s"], cwd=root, capture_output=True, check=False
+    )
+    if run.returncode != 0:
+        # Not a checkout (or git unavailable): report nothing rather than crash. The gate's
+        # enforcement lives in the suite; this command is the human-facing view of it.
+        return []
+    raw = run.stdout.decode("utf-8")
+    paths = []
+    for record in filter(None, raw.split("\0")):
+        meta, rel = record.split("\t", 1)
+        if meta.split()[0] != "160000":
+            paths.append(rel)
+    return paths
+
+
+def render_undeclared_report(root: Path) -> tuple[str, int]:
+    """The report a HUMAN reads, and the exit code this project's gate would produce.
+
+    "Listing that reaches no one is functionally a silent skip" (CTO, §6 boundary) — a report only
+    ever asserted on inside tests is the declare-and-skip problem wearing a different coat.
+    """
+    paths = _tracked_paths_for_report(root)
+    report = undeclared_report(root, paths)
+    failing = set(failing_undeclared(root, paths))
+
+    lines = [f"undeclared undecodable files: {len(report)} (failing this gate: {len(failing)})"]
+    for rel, owner in report:
+        mark = "FAILS HERE" if rel in failing else "listed"
+        lines.append(f"  {rel}  owner={owner or '<unowned>'}  [{mark}]")
+    if not report:
+        lines.append("  (none — every tracked file was read)")
+    return "\n".join(lines), (2 if failing else 0)
+
+
 def undeclared_report(root: Path, paths) -> list[tuple[str, str | None]]:
     """(path, owning project) for every undeclared undecodable file, repo-wide (r2.22, E6-1b).
 
@@ -726,7 +811,7 @@ def failing_undeclared(root: Path, paths) -> list[str]:
 
 
 def undecodable_unallowed(root: Path, paths) -> list[str]:
-    """Tracked paths the scan cannot read AND which are not declared in `BINARY_ALLOWLIST`.
+    """Tracked paths the scan cannot read AND which are not declared in `RENDERED_ARTIFACT_DECLARATIONS`.
 
     A skipped file is an UNCHECKED file: "no hits" from a file the scan never read is the
     false-clean this project keeps rediscovering. Reporting them is what makes the scan's silence
@@ -739,9 +824,9 @@ def undecodable_unallowed(root: Path, paths) -> list[str]:
     """
     unreadable: list[str] = []
     for rel in paths:
-        if _DISPATCH_PAYLOAD_RE.match(rel) or rel in DRUGBANK_ID_EXCLUDED_FILES:
+        if _is_dispatch_message(root, rel) or rel in DRUGBANK_ID_EXCLUDED_FILES:
             continue
-        if rel in BINARY_ALLOWLIST:
+        if rel in RENDERED_ARTIFACT_DECLARATIONS:
             continue
         target = Path(root) / rel
         if not target.is_file():
@@ -760,7 +845,7 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
     is skipped HERE and reported by `undecodable_unallowed`, which fails unless the file is
     declared — so a skip is always visible somewhere (QG §5 E-3).
 
-    `BINARY_ALLOWLIST` is deliberately NOT consulted here: it declares that a file cannot be READ,
+    `RENDERED_ARTIFACT_DECLARATIONS` is deliberately NOT consulted here: it declares that a file cannot be READ,
     never that its content is exempt. A declared path whose bytes turn out to be readable text is
     still scanned and still reported.
 

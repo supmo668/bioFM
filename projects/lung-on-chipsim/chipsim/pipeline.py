@@ -53,7 +53,7 @@ SUBCOMMANDS = (
 #: must appear in exactly one of these two tuples — see test_workflow_export.
 #: `adjudication-export` (T14, r2.19) publishes a HUMAN artifact, like `panel-seal`: it is an
 #: invocation to be journalled, not an ETL run over the snapshot.
-NON_ETL_SUBCOMMANDS = ("panel-seal", "adjudication-export")
+NON_ETL_SUBCOMMANDS = ("panel-seal", "adjudication-export", "record-content-report")
 
 MODULE_PATH = "chipsim.pipeline"
 
@@ -345,6 +345,20 @@ def _cmd_adjudication_export(ns) -> int:
     return 0
 
 
+def _cmd_record_content_report(ns) -> int:
+    """Print the repo-wide undeclared-undecodable report (r2.20 listing / r2.22 scoping).
+
+    The listing exists so an unread file is VISIBLE. Until this command it was only ever asserted
+    on inside tests, which means it reached nobody — and listing that reaches no one is a silent
+    skip with extra steps.
+    """
+    from chipsim.ingest.drugbank_snapshot import render_undeclared_report
+
+    text, code = render_undeclared_report(project_root())
+    print(text)
+    return code
+
+
 _HANDLERS = {
     "fetch": _cmd_fetch,
     "hash-verify": _cmd_hash_verify,
@@ -353,6 +367,7 @@ _HANDLERS = {
     "write": _cmd_write,
     "panel-seal": _cmd_panel_seal,
     "adjudication-export": _cmd_adjudication_export,
+    "record-content-report": _cmd_record_content_report,
 }
 
 
@@ -390,6 +405,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("configs/unparseable_compounds.yaml"),
         help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
+    )
+
+    sub.add_parser(
+        "record-content-report",
+        help="list every tracked file the record-content scan could not read, with its owner",
+        description=(
+            "Lists undeclared undecodable files repo-wide with the owning project named, and "
+            "exits 2 when any of them falls to THIS project's gate (its own paths, plus any path "
+            "no project owns). Listing is never scoped; failing is."
+        ),
     )
 
     p = sub.add_parser(

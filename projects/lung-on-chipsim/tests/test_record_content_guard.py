@@ -32,9 +32,10 @@ from pathlib import Path
 import pytest
 
 from chipsim.ingest.drugbank_snapshot import (
-    BINARY_ALLOWLIST,
     DRUGBANK_ID_EXCLUDED_FILES,
     DRUGBANK_ID_LEDGER,
+    RENDERED_ARTIFACT_DECLARATIONS,
+    THIS_PROJECT,
     _is_readable,
     accession_structure_tuples,
     failing_undeclared,
@@ -273,13 +274,13 @@ def test_an_undecodable_file_is_reported_unless_it_is_declared(tmp_path):
 
 
 def test_a_declared_binary_file_is_not_reported(tmp_path, monkeypatch):
-    """BINARY_ALLOWLIST is EMPTY in this repo (E6-1: the foreign declarations left), so the
+    """RENDERED_ARTIFACT_DECLARATIONS is EMPTY in this repo (E6-1: the foreign declarations left), so the
     mechanism is exercised with a synthetic declaration owned by THIS project — which is what a
     real entry here would have to be."""
     import chipsim.ingest.drugbank_snapshot as ds
 
     declared = "projects/lung-on-chipsim/docs/figure.pdf"
-    monkeypatch.setattr(ds, "BINARY_ALLOWLIST", frozenset({declared}))
+    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
     target = tmp_path / declared
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"\xff\xfe not utf-8")
@@ -307,7 +308,7 @@ def test_the_binary_allowlist_is_not_a_blanket():
     project owns no undecodable tracked file, and the other teams' paths are listed by
     `undeclared_report` rather than declared here. Anti-vacuity moved to the report test, which
     asserts those files are still counted and named."""
-    for rel in BINARY_ALLOWLIST:
+    for rel in RENDERED_ARTIFACT_DECLARATIONS:
         assert not rel.endswith("/"), f"{rel} waves through a whole directory"
         assert "*" not in rel, f"{rel} is a glob, not a declared file"
         assert Path(rel).suffix, f"{rel} has no extension — is it really a binary artifact?"
@@ -426,7 +427,7 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
     import chipsim.ingest.drugbank_snapshot as ds
 
     declared = "projects/lung-on-chipsim/docs/figure.pdf"
-    monkeypatch.setattr(ds, "BINARY_ALLOWLIST", frozenset({declared}))
+    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
     for rel in (f"vendor/{declared}", f"some/other/dir/{Path(declared).name}"):
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -436,12 +437,12 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
 
 def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path, monkeypatch):
     """The allow-list declares that a file cannot be READ — never that its content is exempt.
-    Adding `or rel in BINARY_ALLOWLIST` to the accession scan survived the whole suite, which
+    Adding `or rel in RENDERED_ARTIFACT_DECLARATIONS` to the accession scan survived the whole suite, which
     would have turned "somebody looked at this artifact once" into a blanket content waiver."""
     import chipsim.ingest.drugbank_snapshot as ds
 
     declared = "projects/lung-on-chipsim/docs/figure.pdf"
-    monkeypatch.setattr(ds, "BINARY_ALLOWLIST", frozenset({declared}))
+    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
     target = tmp_path / declared
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(f"see {REAL}\n")
@@ -495,7 +496,14 @@ def test_an_undecodable_ledger_file_is_reported_but_a_dispatch_payload_is_not(tm
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"\x00\xff not text")
-    assert undecodable_unallowed(tmp_path, [ledger, dispatch]) == [ledger]
+    # BOTH are reported now: the ledger because its content is still read, and the dispatch payload
+    # because a BINARY IS NOT A MESSAGE however it is named (E6-4 as repaired in §7). The waiver
+    # below is what a real message looks like.
+    assert undecodable_unallowed(tmp_path, [ledger, dispatch]) == sorted([ledger, dispatch])
+
+    message = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/real.md"
+    (tmp_path / message).write_text("a sent message\n")
+    assert undecodable_unallowed(tmp_path, [message]) == []
 
 
 def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
@@ -505,7 +513,7 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
     README.md — passed every earlier test. The ledger sets already had this check (above); the new
     set was simply left out of it."""
     tracked = set(_tracked_paths())
-    for rel in sorted(BINARY_ALLOWLIST):
+    for rel in sorted(RENDERED_ARTIFACT_DECLARATIONS):
         path = REPO_ROOT / rel
         assert path.is_file(), f"{rel} is declared but does not exist — a pre-granted exemption"
         assert rel in tracked, f"{rel} is declared but not tracked"
@@ -517,7 +525,7 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
 
 def test_no_declared_path_is_also_content_excluded():
     """A path must never be exempted twice by two different mechanisms."""
-    assert [rel for rel in BINARY_ALLOWLIST if is_accession_excluded(rel)] == []
+    assert [rel for rel in RENDERED_ARTIFACT_DECLARATIONS if is_accession_excluded(rel)] == []
 
 
 # --- r2.21 E6-2: a readable structured container is ALWAYS read, never declared -------------
@@ -560,7 +568,7 @@ def test_no_readable_structured_container_is_declared():
     collapse the clause forbids — and the h5ad was exactly that."""
     containers = [
         rel
-        for rel in BINARY_ALLOWLIST
+        for rel in RENDERED_ARTIFACT_DECLARATIONS
         if Path(rel).suffix.lower() in {".parquet", ".pq", ".h5", ".h5ad", ".hdf5", ".feather"}
     ]
     assert containers == [], (
@@ -831,3 +839,106 @@ def test_the_live_container_is_read_substantially_not_vacuously():
     text = "\n".join(chunks)
     assert "..." not in text, "an elision marker means the container was summarised, not read"
     assert len(text) > 500_000, f"only {len(text):,} chars scanned for ~41,000 identifiers"
+
+
+# --- §7 Phase D: a message is TEXT, not a filename -------------------------------------------
+
+
+def test_a_binary_named_md_in_a_dispatch_directory_is_not_waived(tmp_path):
+    """§7 HIGH, EXECUTED by two reviewers. The waiver was decided by FILENAME, so the same binary
+    blob that fails as `leak.pdf` was DOUBLE-EXEMPT as `leak.md` — waived from the accession scan
+    AND skipped by the undecodable report, listed nowhere.
+
+    #122 §3 waives a sent MESSAGE because redacting one falsifies the audit trail. A binary is not
+    a message whatever it is named, and this module's own doctrine two functions away is "dispatch
+    on the MAGIC, not on the name"."""
+    base = Path(".claude/usr/matthew-mo/lung-on-chipsim/dispatches")
+    (tmp_path / base).mkdir(parents=True)
+    blob = b"\x00\xff binary payload carrying " + REAL.encode()
+    (tmp_path / base / "leak.md").write_bytes(blob)
+    (tmp_path / base / "message.md").write_text(f"a real message naming {REAL}\n")
+
+    rel_binary = str(base / "leak.md")
+    rel_message = str(base / "message.md")
+
+    assert undecodable_unallowed(tmp_path, [rel_binary]) == [rel_binary]
+    assert failing_undeclared(tmp_path, [rel_binary]) == [rel_binary], "unowned -> fails here"
+    # The genuine message keeps its waiver: its text IS the audit trail.
+    assert real_accession_hits(tmp_path, [rel_message]) == []
+    assert undecodable_unallowed(tmp_path, [rel_message]) == []
+
+
+def test_the_waiver_is_anchored_so_leak_md_pdf_is_not_waived():
+    """Dropping the `$` anchor would waive `leak.md.pdf` — the same double exemption in a new
+    costume. No existing fixture tested the anchor, because they all fail the substring too."""
+    base = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches"
+    assert is_accession_excluded(f"{base}/message.md")
+    for name in ("leak.md.pdf", "notes.md.parquet", "x.md.bin"):
+        assert not is_accession_excluded(f"{base}/{name}"), name
+
+
+# --- §7 Phase D: declarations must be OWNED, and containers may not be declared --------------
+
+
+def test_every_declaration_belongs_to_this_project():
+    """E6-1's actual invariant, which nothing tested: re-adding all 23 foreign paths would have
+    passed every existing test. The clause was enforced by the ABSENCE OF DATA, not by a rule."""
+    foreign = [rel for rel in RENDERED_ARTIFACT_DECLARATIONS if path_owner(rel) != THIS_PROJECT]
+    assert foreign == [], (
+        f"declared here but owned elsewhere: {foreign}. Declarations live with the project that "
+        "owns the artifact (E6-1); declaring another team's file assigns them this gate's failure."
+    )
+
+
+def test_a_container_cannot_be_declared_even_if_its_name_hides_it(tmp_path, monkeypatch):
+    """The "no container declared" test filtered by SUFFIX — name-based dispatch, the anti-pattern
+    this module condemns 170 lines earlier. A container named `blob.dat` passed."""
+    import pandas as pd
+
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    declared = "projects/lung-on-chipsim/docs/blob.dat"
+    target = tmp_path / declared
+    target.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"drugbank_id": [REAL]}).to_parquet(target, engine="pyarrow")
+
+    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
+    with pytest.raises(AssertionError):
+        ds.assert_no_container_is_declared(tmp_path)
+
+
+# --- §7 Phase D: the report reaches a human ---------------------------------------------------
+
+
+def test_the_report_is_printed_by_a_command_a_human_can_run(tmp_path, monkeypatch, capsys):
+    """The CTO's question at the §6 boundary: is `undeclared_report` ever CALLED somewhere a human
+    sees it, or only asserted on in tests? "Listing that reaches no one is functionally a silent
+    skip", which is the thing r2.20 forbade."""
+    from chipsim import pipeline
+
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+    code = pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+    assert code == 0
+    assert "undeclared" in printed.lower()
+    # Every LISTED path names its owner, and unowned is spelled out rather than left blank.
+    listed = [ln for ln in printed.splitlines() if ln.startswith("  ") and "(none" not in ln]
+    for line in listed:
+        assert "owner=" in line and ("FAILS HERE" in line or "listed" in line)
+
+
+def test_the_report_command_exits_non_zero_when_this_gate_would_fail(tmp_path, monkeypatch, capsys):
+    from chipsim import pipeline
+
+    rel = "projects/lung-on-chipsim/data/interim/mystery.bin"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"\x00\xff")
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    monkeypatch.setattr(ds, "_tracked_paths_for_report", lambda root: [rel])
+    code = pipeline.main(["record-content-report"])
+    assert code == 2
+    assert rel in capsys.readouterr().out
