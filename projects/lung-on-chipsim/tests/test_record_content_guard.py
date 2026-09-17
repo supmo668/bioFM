@@ -654,11 +654,13 @@ def test_no_readable_structured_container_is_declared():
 def test_an_unreadable_container_fails_loudly_rather_than_inviting_a_declaration(tmp_path):
     """If the HDF5 reader is absent the file must NOT quietly become 'undecodable — declare it',
     because declaring a container is precisely what E6-2 forbids."""
-    import chipsim.guards.record_content as rc
 
     path = _hdf5(tmp_path, "x.h5ad", {"obs/p": [b"FIXTURE"]})
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(rc, "_HDF5_READER", None)
+        # The reader moved to chipsim.guards.decoding in E-18; patch where the code READS it.
+        import chipsim.guards.decoding as _decoding
+
+        patch.setattr(_decoding, "_HDF5_READER", None)
         with pytest.raises(RuntimeError, match="h5py"):
             real_accession_hits(tmp_path, [path.name])
 
@@ -923,12 +925,12 @@ def test_a_parquet_struct_column_is_scanned_by_value_not_by_key(tmp_path):
 def test_the_live_container_is_read_substantially_not_vacuously():
     """The anti-vacuity the elision hid: the repo's own 34.6 MB container must yield far more than
     a summary. Before the fix it produced 4,270 chars for ~41,000 identifiers."""
-    import chipsim.guards.record_content as rc
+    import chipsim.guards.decoding as _decoding
 
     target = REPO_ROOT / "projects/perturb-seq-eval/data/Adamson2016_pilot.h5ad"
     if not target.is_file():
         pytest.skip("the AnnData artifact is not present in this checkout")
-    chunks = rc._scan_chunks(target)
+    chunks = _decoding.scan_chunks(target)
     assert chunks is not None
     text = "\n".join(chunks)
     assert "..." not in text, "an elision marker means the container was summarised, not read"
@@ -1097,13 +1099,14 @@ def test_repo_root_walks_past_a_directory_that_merely_looks_like_a_repo_root(tmp
     name the same directory. Only a fixture can tell them apart.
     """
     import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     outer = _init_repo(tmp_path / "outer")
     package_parent = outer / "nested" / "projects" / "lung-on-chipsim"
     (package_parent / "chipsim").mkdir(parents=True)
     assert not (outer / "nested" / ".git").exists(), "the lookalike must NOT be a repository"
 
-    monkeypatch.setattr(rc, "source_root", lambda: package_parent)
+    monkeypatch.setattr(_repo, "source_root", lambda: package_parent)
     assert rc.repo_root() == outer.resolve()
 
 
@@ -1116,6 +1119,7 @@ def test_repo_root_accepts_a_worktree_git_file_not_only_a_git_directory(
     work actually happens. The commit message claimed this property; nothing tested it, and the
     mutant survived."""
     import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     main = _init_repo(tmp_path / "main")
     (main / "seed.txt").write_text("seed\n")
@@ -1135,7 +1139,7 @@ def test_repo_root_accepts_a_worktree_git_file_not_only_a_git_directory(
 
     package_parent = root / "projects" / "lung-on-chipsim"
     (package_parent / "chipsim").mkdir(parents=True)
-    monkeypatch.setattr(rc, "source_root", lambda: package_parent)
+    monkeypatch.setattr(_repo, "source_root", lambda: package_parent)
     assert rc.repo_root() == root.resolve()
 
 
@@ -1147,13 +1151,14 @@ def test_repo_root_refuses_a_broken_git_marker_rather_than_collapsing_to_the_pro
     the project root and restored E-08 verbatim — and this repo DOES use submodules, so a sibling
     of this project is already one."""
     import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     outer = _init_repo(tmp_path / "outer")
     package_parent = outer / "projects" / "lung-on-chipsim"
     (package_parent / "chipsim").mkdir(parents=True)
     (package_parent / ".git").write_text("gitdir: /nonexistent/.git/worktrees/gone\n")
 
-    monkeypatch.setattr(rc, "source_root", lambda: package_parent)
+    monkeypatch.setattr(_repo, "source_root", lambda: package_parent)
     with pytest.raises(rc.RecordContentScanError) as exc:
         rc.repo_root()
     message = str(exc.value).replace(str(tmp_path), "<tmp>")
@@ -1166,6 +1171,7 @@ def test_repo_root_refuses_when_no_repository_exists_above_the_package(tmp_path,
     Composed with a listing that swallowed its own failure, a non-editable install printed a clean
     report over a tree it had never read. Reproduced end-to-end before this fix."""
     import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     bare = tmp_path / "a" / "b"
     bare.mkdir(parents=True)
@@ -1174,7 +1180,7 @@ def test_repo_root_refuses_when_no_repository_exists_above_the_package(tmp_path,
             "this temp directory sits inside a repository, so the no-repo case is untestable here"
         )
 
-    monkeypatch.setattr(rc, "source_root", lambda: bare)
+    monkeypatch.setattr(_repo, "source_root", lambda: bare)
     with pytest.raises(rc.RecordContentScanError) as exc:
         rc.repo_root()
     assert "no git repository" in str(exc.value)
@@ -1186,11 +1192,12 @@ def test_a_listing_that_could_not_be_produced_is_not_an_empty_one(tmp_path):
     `check=True` since the day it was written, beneath a test titled "a scan over the wrong or an
     empty list reports clean" — the guard existed in the suite and not in the command."""
     import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     not_a_checkout = tmp_path / "plain"
     not_a_checkout.mkdir()
     with pytest.raises(rc.RecordContentScanError) as exc:
-        rc._tracked_paths_for_report(not_a_checkout)
+        _repo.tracked_paths(not_a_checkout)
     assert "not an all-clear" in str(exc.value)
 
 
@@ -1206,13 +1213,14 @@ def test_a_git_failure_inside_a_real_checkout_is_not_an_empty_listing(tmp_path):
     above and left this one covered by nothing.
     """
     import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     repo = _init_repo(tmp_path / "corrupt")
     (repo / ".git" / "index").write_bytes(b"this is not an index")
-    assert rc._toplevel_of(repo) == repo.resolve(), "the checkout itself must still resolve"
+    assert _repo.toplevel_of(repo) == repo.resolve(), "the checkout itself must still resolve"
 
     with pytest.raises(rc.RecordContentScanError) as exc:
-        rc._tracked_paths_for_report(repo)
+        _repo.tracked_paths(repo)
     message = str(exc.value)
     assert "git ls-files failed" in message
     # git's own diagnostic is what tells the operator WHICH failure this is; the old code captured
@@ -1248,7 +1256,7 @@ def test_git_environment_variables_cannot_steer_the_scan(tmp_path, monkeypatch):
     the report printed the CORRECT root while having listed a different repository's index — more
     misleading than the bug being fixed. The docstring named four members of the ambient-state
     family and claimed immunity while leaving a fifth channel open."""
-    import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     decoy = _init_repo(tmp_path / "decoy")
     monkeypatch.setenv("GIT_DIR", str(decoy / ".git"))
@@ -1257,12 +1265,11 @@ def test_git_environment_variables_cannot_steer_the_scan(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.fsmonitor")
     monkeypatch.setenv("GIT_CONFIG_VALUE_0", "true")
 
-    assert rc._toplevel_of(REPO_ROOT) == REPO_ROOT, (
+    assert _repo.toplevel_of(REPO_ROOT) == REPO_ROOT, (
         "the scan resolved a different tree than the one it was pointed at"
     )
-    assert (
-        "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py"
-        in rc._tracked_paths_for_report(REPO_ROOT)
+    assert "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py" in _repo.tracked_paths(
+        REPO_ROOT
     )
 
 
@@ -1271,7 +1278,7 @@ def test_the_scan_does_not_execute_configuration_from_the_repository_it_reads(tm
     repository ran as the invoking user during `record-content-report`. The CTO's B2 ruling (#44)
     requires both that the path be validated as the expected repository and that the invocation not
     honour config from a tree we do not trust."""
-    import chipsim.guards.record_content as rc
+    import chipsim.guards.repo as _repo
 
     hostile = _init_repo(tmp_path / "hostile")
     marker = tmp_path / "it-ran"
@@ -1280,7 +1287,7 @@ def test_the_scan_does_not_execute_configuration_from_the_repository_it_reads(tm
     hook.chmod(0o755)
     subprocess.run(["git", "config", "core.fsmonitor", str(hook)], cwd=hostile, check=True)
 
-    rc._git(["ls-files"], cwd=hostile)
+    _repo.run_git(["ls-files"], cwd=hostile)
     assert not marker.exists(), "the scan executed a command configured by the repository it read"
 
 

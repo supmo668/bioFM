@@ -431,7 +431,7 @@ NOT_RECORD_BEARING = {
     # Not a writer at all: stringifies a parquet IN MEMORY so the record-content scan can read it.
     # It touches no path. Declared rather than excluded from the scan, because a scan that knows
     # about "the ones that do not really count" stops being a registry.
-    "record_content._parquet_chunks",
+    "decoding._parquet_chunks",
     # A hex digest of a file. No compound data of any kind.
     "drugbank_snapshot.write_digest_sidecar",
     # Run metadata and config snapshots into the git-ignored journal; no compound rows.

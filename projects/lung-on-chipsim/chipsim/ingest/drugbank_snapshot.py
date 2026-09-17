@@ -26,13 +26,9 @@ import pandas as pd
 import requests
 import yaml
 
+from chipsim.guards.decoding import decode_text, scan_chunks, sha256_of
 from chipsim.guards.output_roots import refuse_unless_declared_output_root
-from chipsim.guards.record_content import (
-    ContentPolicy,
-    _decode_text,
-    _scan_chunks,
-    _sha256,
-)
+from chipsim.guards.record_content import ContentPolicy
 
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
@@ -123,7 +119,7 @@ def fetch_snapshot(dest: Path, commit: str) -> dict[str, str]:
         for basename in SNAPSHOT_FILES:
             target = staging / basename
             _download(snapshot_url(commit, basename), target)
-            digests[basename] = _sha256(target)
+            digests[basename] = sha256_of(target)
 
         manifest = {
             "source_commit": commit,
@@ -184,7 +180,7 @@ def verify_snapshot(dest: Path) -> dict[str, str]:
         if not path.is_file():
             problems.append(f"{basename}: missing from {dest}")
             continue
-        recomputed[basename] = _sha256(path)
+        recomputed[basename] = sha256_of(path)
         if basename not in recorded:
             problems.append(f"{basename}: absent from {MANIFEST_NAME}")
         elif recomputed[basename] != recorded[basename]:
@@ -405,7 +401,7 @@ def _is_dispatch_message(root: Path, rel: str) -> bool:
     if not target.is_file():
         return True  # nothing to read; the path shape is all we have
     try:
-        return _decode_text(target.read_bytes()) is not None
+        return decode_text(target.read_bytes()) is not None
     except OSError:
         return False
 
@@ -469,7 +465,7 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
         target = Path(root) / rel
         if not target.is_file():
             continue
-        chunks = _scan_chunks(target)
+        chunks = scan_chunks(target)
         if chunks is None:
             continue
         for chunk in chunks:
@@ -784,7 +780,7 @@ def write_digest_sidecar(target: Path) -> str:
     reviewer verify the artifact without it being redistributed.
     """
     target = Path(target)
-    digest = _sha256(target)
+    digest = sha256_of(target)
     sidecar = target.with_suffix(".sha256")
     sidecar.write_text(f"{digest}  {target.name}\n")
     return digest

@@ -30,10 +30,7 @@ REQUIRED at every call site — the same reasoning this module already applies t
 
 from __future__ import annotations
 
-import hashlib
-import os
 import re
-import subprocess
 from collections.abc import Callable
 
 # Aliased: two loops in this module already bind a variable called `field`, and ruff caught the
@@ -44,6 +41,18 @@ from pathlib import Path
 
 import yaml
 
+from chipsim.guards.decoding import (
+    _container_magic,
+    _is_readable,
+    _sha256,
+)
+from chipsim.guards.repo import (
+    _MINIMUM_PLAUSIBLE_TRACKED,
+    RecordContentScanError,
+    _tracked_listing,
+    render_path,
+    repo_root,
+)
 from chipsim.journal import source_root
 
 
@@ -92,284 +101,6 @@ NOTHING_WAIVED = ContentPolicy(
 #: failing here, so matching on the waiver's pattern would have exempted the one file the rule is
 #: for — `leak.pdf` walked straight through it.
 _DISPATCH_DIRECTORY_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+$")
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-#: HDF5's signature. `h5ad` is HDF5, and AnnData's `obs`/`var` carry names and identifiers — the
-#: same argument that made parquet's footer readable (r2.21 E6-2). A readable structured container
-#: is ALWAYS read; only RENDERED artifacts (figures, typeset PDFs) may be declared.
-_HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
-
-#: Per-dataset ceiling. `_MAX_SCAN_BYTES` bounds the file ON DISK; a compressed dataset expands
-#: far beyond it (206 KB -> 200 MB measured, 950x), and the parquet path is already batched.
-_MAX_DATASET_BYTES = 64 * 1024 * 1024
-
-
-class _UnreadableContainer(RuntimeError):
-    """A structured container could not be fully read — REPORTABLE, never clean."""
-
-
-class MissingContainerReader(RuntimeError):
-    """No reader is installed for a structured container.
-
-    Distinct from `_UnreadableContainer` so it can PROPAGATE: E6-2 says a container is always read,
-    so "no reader" must stop the scan loudly rather than become "undecodable — declare it", which
-    is the one answer a container may not receive. Distinct from a bare RuntimeError because h5py
-    raises those for some malformed files, and those ARE reportable.
-    """
-
-
-#: Indirected so a test can remove the reader and assert the guard fails LOUDLY rather than
-#: reporting "undecodable — declare it", which for a container is the one answer E6-2 forbids.
-try:  # pragma: no cover - import guard
-    import h5py as _HDF5_READER
-except ImportError:  # pragma: no cover
-    _HDF5_READER = None
-
-#: Bytes a parquet file starts and ends with. Dispatch on the MAGIC, not on the name (QG §6):
-#: `UP.PARQUET`, `.pq` and an extensionless blob are all real parquet, and a suffix test sent each
-#: of them down the "cannot be decoded — declare it" path, whose remedy would have made a fully
-#: readable record carrier permanently invisible. This repo already closed one case-sensitivity
-#: bypass (84ce8e0); the same shape came back here.
-_PARQUET_MAGIC = b"PAR1"
-
-#: Rows per batch when scanning a parquet. Bounded deliberately: a 30 KiB dictionary-encoded file
-#: expanded to 186.9 MiB as one string (6,317x, 592 MiB peak RSS), measured — and a guard that
-#: OOMs produces no verdict at all, which is the same false-clean in a new costume.
-_PARQUET_BATCH_ROWS = 10_000
-
-#: Above this, a file is REPORTED as unscannable rather than read. A reported refusal is
-#: actionable; an OOM mid-scan is not.
-_MAX_SCAN_BYTES = 256 * 1024 * 1024
-
-#: Verdict cache keyed by (path, mtime_ns, size): both callers walk the whole tracked tree, so an
-#: uncached parquet was parsed and stringified TWICE per suite run.
-_READABILITY_CACHE: dict[tuple[str, int, int], bool] = {}
-
-
-def _decode_text(data: bytes) -> str | None:
-    """Decode bytes that are TEXT in some encoding, or None when they are genuinely not text.
-
-    UTF-16 and latin-1 documents carrying a real accession were classified "undecodable" and the
-    only remedy offered was the allow-list — which would have made a PLAIN-TEXT accession carrier
-    permanently invisible (measured on both encodings). UTF-16 in particular is a routine artifact
-    of Windows-authored files.
-
-    latin-1 decodes ANY byte sequence, so it cannot be the last resort unconditionally: a NUL byte
-    or a low printable ratio means binary, and binary must stay REPORTABLE rather than become a
-    string of mojibake that scans clean.
-    """
-    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
-        try:
-            return data.decode("utf-16")
-        except UnicodeDecodeError:
-            return None
-    for encoding in ("utf-8", "utf-8-sig"):
-        try:
-            return data.decode(encoding)
-        except UnicodeDecodeError:
-            continue
-    if b"\x00" in data:
-        return None
-    try:
-        text = data.decode("latin-1")
-    except UnicodeDecodeError:  # pragma: no cover - latin-1 decodes every byte
-        return None
-    printable = sum(ch.isprintable() or ch in "\r\n\t" for ch in text)
-    return text if text and printable / len(text) >= 0.9 else None
-
-
-def _parquet_chunks(target: Path):
-    """Every scannable part of a parquet: the FOOTER METADATA first, then the rows in batches.
-
-    The metadata is not decoration. A table whose schema metadata carried
-    {"drugbank_id": <real>, "name": <coined title>, "inchi": ...} scanned as ",harmless\n0,1\n" —
-    the complete record present in the file, absent from the scanned text, and reported by NEITHER
-    half of the guard, so its own tests certified the file clean. `pq.write_table(..., metadata=)`
-    is ordinary, and DuckDB/Spark/Polars stamp metadata by default.
-
-    Rows are yielded per batch rather than as one string, and list/array cells are stringified
-    explicitly: numpy's repr ELIDES above 1000 elements, so an accession at position 1500 of a
-    `groups` list vanished — and `write_compounds` persists `groups` and `atc_codes` as list
-    columns, so that is this project's own shape.
-    """
-    import pyarrow.parquet as pq
-
-    schema = pq.read_schema(target)
-    meta_parts: list[str] = [str(schema)]
-    for holder in (schema.metadata, *(field.metadata for field in schema)):
-        for key, value in (holder or {}).items():
-            meta_parts.append(f"{key.decode('latin-1')}={value.decode('latin-1')}")
-    yield "\n".join(meta_parts)
-
-    def _cell(value):
-        """Stringify a cell by VALUE.
-
-        Iterating a dict yields KEYS, so a top-level struct column scanned as
-        `[accession,name,inchi]` while the record sat in the file's bytes — the §6 pattern in the
-        one nested shape that was still eliding.
-        """
-        if isinstance(value, (str, bytes)) or not hasattr(value, "__len__"):
-            return value
-        if isinstance(value, dict):
-            return "{" + ",".join(f"{k}={_cell(v)}" for k, v in value.items()) + "}"
-        return "[" + ",".join(str(_cell(item)) for item in value) + "]"
-
-    for batch in pq.ParquetFile(target).iter_batches(batch_size=_PARQUET_BATCH_ROWS):
-        frame = batch.to_pandas()
-        yield frame.map(_cell).to_csv(index=True)
-
-
-def _hdf5_chunks(target: Path):
-    """Every string dataset and every attribute in an HDF5/h5ad container.
-
-    Numeric arrays are skipped deliberately: a 14.7M-element expression matrix cannot carry a
-    compound name, and reading it would make the repo-wide scan unusable. Names and identifiers
-    live in string datasets (`obs`, `var`) and in attributes — the HDF5 analogue of the parquet
-    footer that carried a whole record invisibly at §6.
-    """
-    if _HDF5_READER is None:
-        raise MissingContainerReader(
-            f"{target} is an HDF5 container and no reader is installed (h5py). A container is "
-            "ALWAYS read, never declared unread (r2.21 E6-2), so this fails loudly rather than "
-            "inviting a declaration. Install the dev dependencies."
-        )
-
-    parts: list[str] = []
-    datasets_seen = 0
-
-    def _stringify(values) -> str:
-        """Every element, never `repr(array)`.
-
-        numpy's repr SUMMARISES above 1,000 elements, so the repo's own 34.6 MB container scanned
-        to 4,270 characters with three elision markers: under 0.5% of its string content examined
-        while reporting clean. `_parquet_chunks` fixed exactly this one clause earlier; the HDF5
-        reader reintroduced it.
-        """
-        flat = getattr(values, "ravel", lambda: values)()
-        return "\n".join(str(item) for item in flat)
-
-    def visit(name, node):
-        nonlocal datasets_seen
-        parts.append(name)
-        for key, value in getattr(node, "attrs", {}).items():
-            parts.append(f"{key}={value!r}")
-
-        dtype = getattr(node, "dtype", None)
-        if dtype is None:
-            return
-        datasets_seen += 1
-
-        # Compound/structured dtypes (`kind == "V"`) are the on-disk shape of every HDF5 table and
-        # of legacy AnnData obs/var recarrays. Skipping them meant a dataset holding the whole
-        # record scanned to seven characters.
-        readable = dtype.kind in {"O", "S", "U", "V"}
-        if not readable:
-            return
-
-        nbytes = getattr(node, "nbytes", 0) or 0
-        if nbytes > _MAX_DATASET_BYTES:
-            # Bounded like the parquet path: a 206 KB compressed dataset materialised 200 MB
-            # (950x). A guard that OOMs gives no verdict at all.
-            raise _UnreadableContainer(
-                f"{name} is {nbytes} bytes uncompressed, above the scan bound"
-            )
-        try:
-            values = node[()]
-        except Exception as exc:
-            # An unreadable dataset used to be annotated `<unreadable>` and the file still counted
-            # as READ and scanned CLEAN. "A skipped file is an unchecked file" applies inside a
-            # container too — this is the hdf5plugin-missing case, measured.
-            raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
-        parts.append(_stringify(values))
-
-    with _HDF5_READER.File(target, "r") as handle:
-        for key, value in handle.attrs.items():
-            parts.append(f"{key}={value!r}")
-        for name in handle:
-            # `visititems` skips soft and external LINKS, so a container whose only members were
-            # links produced an empty chunk and passed as "read".
-            raw = handle.get(name, getlink=True)
-            if isinstance(raw, (_HDF5_READER.SoftLink, _HDF5_READER.ExternalLink)):
-                raise _UnreadableContainer(f"{name} is a link this scan does not follow")
-        handle.visititems(visit)
-
-    text = "\n".join(parts)
-    if not text.strip():
-        raise _UnreadableContainer("the container yielded no scannable content")
-    yield text
-
-
-def _scan_chunks(target: Path):
-    """Chunks of scannable text for one file, or None when nothing can be read from it.
-
-    None means REPORTABLE — `undecodable_unallowed` turns it into a failure unless the path is
-    declared. It never means "clean".
-    """
-    try:
-        size = target.stat().st_size
-    except OSError:
-        return None
-    if size > _MAX_SCAN_BYTES:
-        return None
-
-    try:
-        with target.open("rb") as handle:
-            head = handle.read(8)
-    except OSError:
-        return None
-
-    if head.startswith(_HDF5_MAGIC):
-        try:
-            return list(_hdf5_chunks(target))
-        except MissingContainerReader:
-            raise
-        except _UnreadableContainer:
-            # Partially-read IS unread: reported, never clean. E6-2 forbids answering this with a
-            # declaration, and `test_no_readable_structured_container_is_declared` enforces that,
-            # so the file stays visible until someone makes it readable.
-            return None
-        except MemoryError:
-            raise
-        except Exception:  # noqa: BLE001 - unreadable container: REPORTABLE, never clean
-            return None
-
-    if head.startswith(_PARQUET_MAGIC):
-        try:
-            return list(_parquet_chunks(target))
-        except MemoryError:
-            # NOT swallowed with everything else: an exhausted scan must never be remediable by
-            # declaring the file, which is what the generic "undecodable" message invites.
-            raise
-        except ImportError:
-            raise
-        except Exception:  # noqa: BLE001 - an unreadable parquet is REPORTABLE, never clean
-            return None
-
-    try:
-        data = target.read_bytes()
-    except OSError:
-        return None
-    text = _decode_text(data)
-    return None if text is None else [text]
-
-
-def _is_readable(target: Path) -> bool:
-    try:
-        stat = target.stat()
-        key = (str(target), stat.st_mtime_ns, stat.st_size)
-    except OSError:
-        return False
-    if key not in _READABILITY_CACHE:
-        _READABILITY_CACHE[key] = _scan_chunks(target) is not None
-    return _READABILITY_CACHE[key]
 
 
 #: This module's project, DERIVED. A bare literal bound to nothing meant that renaming the
@@ -495,19 +226,6 @@ def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
     return None
 
 
-class RecordContentScanError(RuntimeError):
-    """The scan could not be PERFORMED — a different answer from "the scan found nothing".
-
-    E-08 was that the report scanned the wrong tree and printed a clean result. The first fix moved
-    the root selection and left every other way of getting the root wrong still ending in
-    "0 (failing this gate: 0)" and exit 0. Four reviewers reproduced that composite, so "I could not
-    determine what to scan" is now an exception with its own exit code rather than an empty list.
-
-    This is E-06's ruling applied to the READ side: a missing declared root fails loudly naming the
-    root, because one message for both states sends a legitimate operator looking for the wrong bug.
-    """
-
-
 #: WHERE declarations live. Per-project data following the ingest module's `DRUGBANK_ID_LEDGER`
 #: precedent of pointing at `configs/` rather than inlining (r2.21 E6-1) — the precedent stands even
 #: though the ledger itself stayed behind in that module at the E6-6 extraction — plus a repo-root
@@ -534,24 +252,6 @@ _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 #: `why` is required. A declaration is a CLAIM, and "none of these is a DrugBank artifact" in a
 #: comment is the thing E6-1 contrasts a checkable claim against.
 _DECLARATION_KEYS = frozenset({"path", "sha256", "derived_from", "why"})
-
-
-def _container_magic(target: Path) -> str | None:
-    """ "parquet" / "HDF5" when the file IS a structured container, by MAGIC rather than by suffix.
-
-    A suffix filter is name-based dispatch — the anti-pattern this module condemns for parquet 170
-    lines above — and a container named `blob.dat` walks straight through it.
-    """
-    try:
-        with target.open("rb") as handle:
-            head = handle.read(8)
-    except OSError:
-        return None
-    if head.startswith(_PARQUET_MAGIC):
-        return "parquet"
-    if head.startswith(_HDF5_MAGIC):
-        return "HDF5"
-    return None
 
 
 def _declaration_document(root: Path, rel: str) -> dict:
@@ -1046,148 +746,6 @@ def assert_no_container_is_declared(root: Path) -> None:
             f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
             "never declared (r2.21 E6-2) — only rendered artifacts may be declared."
         )
-
-
-def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
-    """Run git so that NOTHING outside `cwd` can steer it.
-
-    Two channels, both demonstrated against the previous version of this module:
-
-    * `GIT_DIR` / `GIT_INDEX_FILE` / `GIT_CONFIG_COUNT` and friends override `cwd` outright, so the
-      report listed a DIFFERENT repository's index while printing the root we believed we scanned —
-      more misleading than the bug being fixed. Every `GIT_*` name is dropped rather than a curated
-      list: new ones are added by git, not by us, and a curated list is what goes stale.
-    * `core.fsmonitor` is a repo-local config value git EXECUTES. A planted one in an ancestor
-      repository ran as the invoking user during `record-content-report`. The CTO's B2 ruling
-      (#44) already requires both that the path be validated as the expected repository and that
-      the invocation not honour config from a tree we do not trust; `-c core.fsmonitor=` is the
-      second half, and `repo_root()`'s witness check below is the first.
-    """
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    return subprocess.run(
-        ["git", "-c", "core.fsmonitor=", *args],
-        cwd=cwd,
-        env=env,
-        capture_output=True,
-        text=True,
-        # A tracked path need not be valid UTF-8. Strict decoding turned that into a traceback
-        # instead of a report, which is a loss of the listing rather than a false clean, but still
-        # a way for one filename to silence the whole mechanism.
-        errors="surrogateescape",
-        check=False,
-    )
-
-
-def _toplevel_of(directory: Path) -> Path | None:
-    """The working-tree root git itself reports for `directory`, or None if it is not a checkout."""
-    run = _git(["rev-parse", "--show-toplevel"], cwd=directory)
-    if run.returncode != 0 or not run.stdout.strip():
-        return None
-    return Path(run.stdout.strip()).resolve()
-
-
-def render_path(rel: str) -> str:
-    """A tracked path as it may safely be PRINTED.
-
-    `git ls-files -z` emits names unquoted, and newline and ESC are legal in paths. A reviewer
-    forged a complete clean report out of one filename: a leading `ESC[2J ESC[H` cleared the
-    terminal and the rest of the name drew a fake header and a fake all-clear, with three
-    payload-bearing files still listed underneath where no human would ever see them. A newline
-    alone splits one real entry into two innocuous-looking rows.
-
-    With no CI consumer of the exit code, THE PRINTED LISTING IS THE CONTROL, so it must not be
-    writable by whoever can add a file.
-    """
-    if rel.isprintable():
-        return rel
-    return rel.encode("unicode_escape").decode("ascii") + "  [name contains control characters]"
-
-
-def repo_root() -> Path:
-    """The REPOSITORY root — the working tree holding this package (r2.23 E-08).
-
-    Derived by walking up from `source_root()`, never from the cwd or an environment variable: the
-    same ambient-state family that produced the $TMPDIR allow-list, the cwd-sensitive receipt
-    verification, the cwd-derived monitor identity and the quality-config resolution.
-
-    A worktree's `.git` is a FILE rather than a directory, so the marker is tested for EXISTENCE,
-    not `is_dir` — `is_dir()` here is a one-character change that silently reinstates the
-    project-root scan in every worktree, which is where this repo's work actually happens.
-
-    The marker alone is not trusted. git is asked to resolve the candidate, so a stray or broken
-    `.git` (an aborted `git init`, a copied worktree stub, a submodule conversion — this repo DOES
-    use submodules) raises instead of collapsing the scan back to the project root, which is E-08
-    verbatim. Nothing is returned on a guess: no repository found is an error, never a fallback to
-    `source_root()`, because that fallback IS the narrow root the finding is about.
-    """
-    start = Path(source_root()).resolve()
-    for candidate in (start, *start.parents):
-        marker = candidate / ".git"
-        if not marker.exists():
-            continue
-        top = _toplevel_of(candidate)
-        if top is None:
-            raise RecordContentScanError(
-                f"{marker} exists but git cannot open a repository there, so the tree to scan "
-                f"cannot be determined. Refusing to report: an unscannable tree must never render "
-                f"as a clean one. Repair or remove that marker."
-            )
-        return top
-    raise RecordContentScanError(
-        f"no git repository at or above {start}, so there is no tracked-file list to scan. "
-        f"Refusing to report a clean result over a tree that was never read (r2.23 E-08). This "
-        f"command reports on a CHECKOUT; it cannot speak for an installed copy of the package."
-    )
-
-
-def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
-    """(files, submodule gitlinks) under `root`, or an exception. NEVER an empty list standing in
-    for a failure.
-
-    The test-side twin of this function has used `check=True` from the day it was written, beneath
-    a test titled "a scan over the wrong or an empty list reports clean". The human-facing copy
-    used `check=False` and returned `[]`. That is the E-08 lesson — true of the function as the
-    tests call it, false of the command a human runs — one function below the fix for it.
-
-    Both halves come from ONE `git ls-files`, so the files reported and the submodules disclosed as
-    unscanned can never be drawn from two different readings of the repository.
-    """
-    root = Path(root).resolve()
-    top = _toplevel_of(root)
-    if top is None:
-        raise RecordContentScanError(
-            f"{root} is not a git checkout, so no tracked-file list could be read. An empty list "
-            f"is not an all-clear."
-        )
-    if top != root:
-        raise RecordContentScanError(
-            f"asked to scan {root}, but git resolves that directory to the working tree {top}. "
-            f"Refusing to report: the tree scanned and the tree named must be the same one."
-        )
-    run = _git(["ls-files", "-z", "-s"], cwd=root)
-    if run.returncode != 0:
-        raise RecordContentScanError(
-            f"git ls-files failed under {root}: {run.stderr.strip() or 'no diagnostic'}"
-        )
-    paths: list[str] = []
-    gitlinks: list[str] = []
-    for record in filter(None, run.stdout.split("\0")):
-        meta, rel = record.split("\t", 1)
-        (gitlinks if meta.split()[0] == "160000" else paths).append(rel)
-    return paths, sorted(gitlinks)
-
-
-def _tracked_paths_for_report(root: Path) -> list[str]:
-    """The files half of the listing. Named for what it used to get wrong."""
-    return _tracked_listing(root)[0]
-
-
-#: A tracked count below this is not a repository this report can speak for — it is a listing that
-#: went wrong. Crude on purpose, and the WEAKER half of the pair: the witness below proves the
-#: listing is of THIS tree, while the floor catches a listing of the right tree that came back
-#: truncated, which the witness cannot see. The suite's own anti-vacuity test has used the same
-#: floor since it was written (r2.24 E-08b).
-_MINIMUM_PLAUSIBLE_TRACKED = 100
 
 
 def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
