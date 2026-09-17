@@ -13,9 +13,13 @@ seam (named in the r2.25 clause) was `undecodable_unallowed` reaching into the D
 That is not one question but TWO, and conflating them would be a defect:
 
   * `readability_waived(root, rel)` — "this file's readability is not this gate's business."
-    Dispatch payloads are waived by ruling (#122 §3) and never scanned either way, so reporting them
-    would be unactionable noise. It deliberately does NOT cover the exclusion LEDGER: the ledger's
-    content IS still read, so its readability is exactly what this check is for.
+    WHAT IS WAIVED IS THE OWNING PROJECT'S CHOICE, and this docstring must not assert its contents.
+    It said, as present fact, that "dispatch payloads are waived by ruling (#122 §3) and never
+    scanned either way" — r2.27 E-19 DELETED that clause, and the DrugBank policy today waives
+    nothing for readability, so dispatch payloads ARE scanned and, being unowned, DO fail here.
+    `drugbank_snapshot` says so in terms while this file said the opposite (r2.27 §11 QG). It
+    deliberately does NOT cover the exclusion LEDGER: the ledger's content IS still read, so its
+    readability is exactly what this check is for.
   * `content_exempt(rel)` — "this path is ALREADY exempt by the content mechanism", so a declaration
     on top would exempt it twice and make it invisible to both halves of the guard. This one DOES
     cover the ledger.
@@ -358,7 +362,20 @@ def _entries_from(docs: dict[str, dict]) -> list[tuple[str, dict, str]]:
                 )
             # PRESENCE, not truthiness: `sha256: null` alongside `derived_from` is two claims,
             # and testing bool() silently resolved it to the second one.
-            if ("sha256" in raw) == ("derived_from" in raw):
+            #
+            # BUT PRESENCE ALONE WAS ALSO WRONG, IN THE OTHER DIRECTION (r2.27 §11 QG). `sha256:`
+            # with NO value and no `derived_from` is `True == False` -> no raise, and the type loop
+            # skips None while the hex check is gated on `is not None`. Adjudication then tested
+            # `entry.get("sha256")` — truthiness — fell through to the `derived_from` branch, and
+            # did `entry["derived_from"]` on an entry that has no such key: an uncaught KeyError,
+            # which is not a RecordContentScanError, so it left BOTH entry points as an exit-1
+            # traceback rather than exit 3. The comment above was right about the hazard it named
+            # and the check it justified did not cover the null it was named for.
+            #
+            # A claim is a key that is PRESENT AND NOT NULL. That is one rule, and it is the rule
+            # adjudication uses, so the two can no longer disagree.
+            claims = [key for key in ("sha256", "derived_from") if raw.get(key) is not None]
+            if len(claims) != 1:
                 raise RecordContentScanError(
                     f"{rel}: `{path}` must carry exactly one of `sha256` (pin the content) or "
                     f"`derived_from` (name a tracked source). Neither is a bare path declaration, "
@@ -921,6 +938,10 @@ class RecordContentScan:
     root: Path
     package: Path
     tracked_count: int
+    #: How many rows FAIL THIS GATE — derived once, beside `exit_code`, for the same reason
+    #: `exit_code` lives here: a number the renderer recomputes is a number that can disagree
+    #: with the verdict it sits next to (r2.27 §11 QG).
+    failing_count: int
     rows: tuple[ScanRow, ...]
     declaration_counts: tuple[int, int, int]  # (project, repo-root, distinct defective)
     defect_count: int
@@ -943,6 +964,25 @@ class RecordContentScan:
         should_fail = bool(self.structural_error) or any(
             row.disposition == "FAILS HERE" for row in self.rows
         )
+        # MEMBERSHIP, not truthiness (r2.27 §11 QG). `bool(exit_code) != should_fail` accepted
+        # exit_code=1 beside a failing row: constructed, rendered, and returned verbatim by
+        # `render_scan`. 1 is outside the three states this system declares (clean 0 / files-fail 2
+        # / could-not-scan 3), so the contract was escapable from the DATA side and not only
+        # through the uncaught-exception path. An invariant that checks one BIT of a value is not
+        # checking the value.
+        if self.exit_code not in {0, 2}:
+            raise RecordContentScanError(
+                f"scan carries exit_code={self.exit_code}, which is not one of the two codes a "
+                f"SCAN can produce (0 clean, 2 files-fail). Exit 3 belongs to the composition "
+                f"root, which raises rather than building a scan."
+            )
+        counted = sum(1 for row in self.rows if row.disposition == "FAILS HERE")
+        if self.failing_count != counted:
+            raise RecordContentScanError(
+                f"scan is internally inconsistent: failing_count={self.failing_count} with "
+                f"{counted} row(s) marked FAILS HERE. The header prints this number beside the "
+                f"word FAILING; it must be the rows."
+            )
         if bool(self.exit_code) != should_fail:
             raise RecordContentScanError(
                 f"scan is internally inconsistent: exit_code={self.exit_code} with "
@@ -1000,6 +1040,9 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
         root=root,
         package=Path(__file__).resolve(),
         tracked_count=len(paths),
+        # Derived from the SAME rows the exit code is derived from, so the header number and the
+        # verdict cannot drift apart (r2.27 §11 QG).
+        failing_count=sum(1 for row in rows if row.disposition == "FAILS HERE"),
         rows=tuple(rows),
         declaration_counts=counts,
         defect_count=len(defects),
@@ -1028,13 +1071,18 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
     undecodable = [r for r in scan.rows if r.category == "undecodable"]
     missing = [r for r in scan.rows if r.category == "missing-on-disk"]
     broken = [r for r in scan.rows if r.category == "broken-declaration"]
-    undecodable_failing = [r for r in undecodable + missing if r.disposition == "FAILS HERE"]
+    # NOT recomputed here (r2.27 §11 QG). The renderer used to derive this from `undecodable +
+    # missing`, which EXCLUDES every broken-declaration row — and those are FAILS HERE by
+    # construction. A scan with one broken declaration therefore headed with
+    # "(failing this gate: 0)" and returned exit 2: the number standing beside the word FAILING
+    # was not the number of failing rows, and the divergence was silent. The rule "the renderer
+    # decides nothing" held for the exit code and broke one field to its left.
     project_count, repo_count, defective = scan.declaration_counts
 
     lines = [
         (
             f"undeclared undecodable files: {len(undecodable)} "
-            f"(failing this gate: {len(undecodable_failing)}"
+            f"(failing this gate: {scan.failing_count}"
             f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if scan.structural_error else ''}) "
             f"— scanned {scan.tracked_count} tracked files under {scan.root}, "
             f"{len(missing)} not present on disk"

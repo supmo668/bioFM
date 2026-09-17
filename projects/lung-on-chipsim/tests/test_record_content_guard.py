@@ -2662,9 +2662,22 @@ def test_the_header_counts_declaration_defects_SEPARATELY(tmp_path, monkeypatch,
 
     header = out.splitlines()[0]
     assert "undeclared undecodable files: 0" in header, header
-    assert "failing this gate: 0" in header, "no UNDECODABLE file fails here"
+
+    # THIS ASSERTION USED TO READ `"failing this gate: 0" in header`, with the justification "no
+    # UNDECODABLE file fails here" — and it was PINNING THE DEFECT (r2.27 §11 QG). The number was
+    # scoped to undecodable+missing rows, so a broken declaration failed the gate while the one
+    # line a human reads first said nothing was failing. Two reviewers found it independently, and
+    # the test named after the header's counts is what had made it look intended.
+    #
+    # The leading count stays scoped — it is "undeclared undecodable files" and it is 0 here. The
+    # parenthetical is now the TOTAL failing, because that is the question a reader is asking when
+    # they read a line beside a non-zero exit code.
+    assert "failing this gate: 1" in header, (
+        "the broken declaration fails this gate, so the header must say 1 — a header reading 0 "
+        "beside exit 2 is the defect, not the contract"
+    )
     assert "1 whose claim does not hold" in out
-    assert code == 2, "but the broken declaration does"
+    assert code == 2, "and the exit code agrees with the number beside the word FAILING"
 
 
 def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch, capsys):
@@ -3186,3 +3199,74 @@ def test_the_readability_waiver_actually_waives_when_the_set_is_not_empty(tmp_pa
         "the waiver did not waive — the kept half of `_readability_waived` is inert and `return "
         "False` is an exact replacement for it"
     )
+
+
+# --- r2.27 §11 quality gate: the link refusal guarded ONE level --------------------------------
+
+
+def test_a_link_hides_content_at_ANY_depth_not_only_at_the_top(tmp_path):
+    """S11-20, and it is a TRUE FALSE CLEAN — the worst outcome this guard has.
+
+    `for name in handle:` iterates the ROOT GROUP ONLY, while `visititems` silently skips links at
+    every depth. So the identical link is refused at the top level and invisible one group down:
+    the container is READ, is never listed as undecodable, and yields zero accession hits, while
+    part of its graph was never visited. Measured before the fix:
+
+        link at TOP level    -> chunks=None      readable=False
+        link NESTED in /uns  -> chunks=['uns']   readable=True
+
+    The comment above that loop states the exact hazard — "a container whose only members were
+    links produced an empty chunk and passed as 'read'" — and then guards one level. That is this
+    iteration's recurring shape: a mechanism stopping one layer short of where the defect lives.
+    """
+    h5py = pytest.importorskip("h5py")
+    from chipsim.guards.decoding import _is_readable, _scan_chunks
+
+    secret = tmp_path / "secret.h5"
+    with h5py.File(secret, "w") as handle:
+        handle.create_dataset("payload", data=[f"{REAL} {STRUCTURE}".encode()])
+
+    cases = {
+        "top-level": ("top.h5ad", ""),
+        "nested": ("nested.h5ad", "uns"),
+        "deeply nested": ("deep.h5ad", "a/b/c"),
+    }
+    for label, (filename, group) in cases.items():
+        container = tmp_path / filename
+        with h5py.File(container, "w") as handle:
+            parent = handle.create_group(group) if group else handle
+            parent["ext"] = h5py.ExternalLink(str(secret), "payload")
+        assert _scan_chunks(container) is None, (
+            f"{label}: the container was READ while a link hid part of its graph"
+        )
+        assert not _is_readable(container), (
+            f"{label}: an unfollowed link must make the container UNREADABLE, so it is reported "
+            "and cannot be cleared without a human looking at it"
+        )
+
+
+def test_a_soft_link_nested_in_the_same_file_is_still_refused(tmp_path):
+    """The narrower half. A SoftLink hides nothing today — `visititems` reaches the target by its
+    real path — so refusing it is a fail-CLOSED choice rather than a correctness fix, and it must
+    be stated as such rather than implied to be closing a hole."""
+    h5py = pytest.importorskip("h5py")
+    from chipsim.guards.decoding import _scan_chunks
+
+    path = tmp_path / "soft.h5ad"
+    with h5py.File(path, "w") as handle:
+        handle.create_dataset("obs/real", data=[REAL.encode()])
+        handle.create_group("uns")["alias"] = h5py.SoftLink("/obs/real")
+
+    assert _scan_chunks(path) is None, "a nested soft link must be refused like a top-level one"
+
+
+def test_a_container_of_plain_nested_groups_is_still_read(tmp_path):
+    """The anti-overcorrection half: refusing links must not refuse ordinary nesting. Without this,
+    "refuse every group" would pass the test above and break every real h5ad."""
+    from chipsim.guards.decoding import _is_readable, _scan_chunks
+
+    path = _hdf5(tmp_path, "nested_ok.h5ad", {"uns/deep/obs/perturbation": [REAL.encode()]})
+    chunks = _scan_chunks(path)
+    assert chunks, "a normally-nested container must still be READ"
+    assert REAL in "\n".join(chunks)
+    assert _is_readable(path)

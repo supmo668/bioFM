@@ -218,15 +218,45 @@ def _hdf5_chunks(target: Path):
             raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
         parts.append(_stringify(values))
 
+    def refuse_links(group, prefix: str, seen: set) -> None:
+        """Refuse a link ANYWHERE in the graph, not only among the root group's members.
+
+        The original loop was `for name in handle:`, which iterates the ROOT GROUP ONLY, while
+        `visititems` silently skips links at every depth. The identical external link was therefore
+        refused at the top level and invisible one group down — measured:
+
+            link at TOP level    -> chunks=None      readable=False
+            link NESTED in /uns  -> chunks=['uns']   readable=True
+
+        The second case is a FALSE CLEAN: the container counted as READ, was never listed as
+        undecodable, and yielded no accession hits, while part of its graph was never visited. The
+        comment this replaces stated that exact hazard and then guarded one level (r2.27 §11 QG).
+
+        `seen` holds object ids: HDF5 permits cyclic HARD links, so a naive walk can recurse
+        forever on a container an attacker chooses.
+        """
+        for key in group:
+            path = f"{prefix}{key}"
+            raw = group.get(key, getlink=True)
+            if isinstance(raw, (_HDF5_READER.SoftLink, _HDF5_READER.ExternalLink)):
+                raise _UnreadableContainer(f"{path} is a link this scan does not follow")
+            try:
+                child = group[key]
+            except (KeyError, OSError) as exc:
+                # A dangling link resolves to nothing. Unreadable, not absent: the same direction
+                # as every other refusal here.
+                raise _UnreadableContainer(f"{path} could not be resolved: {exc}") from exc
+            if isinstance(child, _HDF5_READER.Group):
+                marker = child.id.__hash__()
+                if marker in seen:
+                    continue
+                seen.add(marker)
+                refuse_links(child, f"{path}/", seen)
+
     with _HDF5_READER.File(target, "r") as handle:
         for key, value in handle.attrs.items():
             parts.append(f"{key}={value!r}")
-        for name in handle:
-            # `visititems` skips soft and external LINKS, so a container whose only members were
-            # links produced an empty chunk and passed as "read".
-            raw = handle.get(name, getlink=True)
-            if isinstance(raw, (_HDF5_READER.SoftLink, _HDF5_READER.ExternalLink)):
-                raise _UnreadableContainer(f"{name} is a link this scan does not follow")
+        refuse_links(handle, "", set())
         handle.visititems(visit)
 
     text = "\n".join(parts)
