@@ -22,10 +22,10 @@
 # says so.
 #
 # ---------------------------------------------------------------------------------------------
-# ENTRY SHAPE. Each entry carries `path`, a `why`, and EXACTLY ONE of:
+# ENTRY SHAPE. Each entry carries `path`, a `why`, and ALWAYS a `sha256`:
 #
-#   sha256:       <hex>          # pins the CONTENT, not the path
-#   derived_from: <tracked path> # "derived from tracked source S, and S is in scope"
+#   sha256:       <hex>          # REQUIRED. Pins the CONTENT, not the path.
+#   derived_from: <tracked path> # OPTIONAL provenance: "derived from S, and S is in scope"
 #
 # A bare path is forbidden (E6-3). Every declared file is a build output, so a path-keyed
 # declaration goes silent forever the moment the artifact is regenerated with different content —
@@ -33,15 +33,23 @@
 # When the pin no longer matches, the entry becomes a STALE declaration: it clears nothing and is
 # printed as a defect. Re-pin it deliberately, having looked at the new artifact.
 #
-# `derived_from` is the self-maintaining alternative and is preferred where it applies: it stops
-# holding by itself if the source stops being tracked, stops being readable, changes owner, or is
-# itself declared.
+# THE PIN USED TO BE OPTIONAL, and that was the defect (r2.29 §12.6). `derived_from` was offered as
+# an ALTERNATIVE to `sha256` and described as the self-maintaining form — but it verifies the
+# SOURCE and never reads the declared file at all, so an entry could satisfy the ban on a bare path
+# while leaving the declared artifact's bytes entirely unconstrained. That is exactly what E6-3
+# forbids, reached through the form E6-3 recommended: the letter implemented, the purpose not.
+#
+# So `derived_from` is now carried BESIDE the pin rather than instead of it. It is still worth
+# adding where it applies — it stops holding by itself if the source stops being tracked, stops
+# being readable, changes owner, or is itself declared — but it is provenance, not a substitute for
+# looking at the artifact.
 #
 # BE CLEAR ABOUT WHAT IT DOES NOT DO. The gate does NOT verify that the declared file derives from
 # the named source — naming an unrelated file belonging to the same project satisfies the check.
 # The derivation itself is a human claim and `why` is where it is made. What the gate narrows is
-# WHO may make that claim and whether the source is still in scope. `sha256` is the stronger form
-# and is what to use when the content is what matters.
+# WHO may make that claim and whether the source is still in scope. It is NOT a choice between the
+# two any more: the content pin is always present, and this narrows who may vouch for where the
+# artifact came from.
 #
 # A readable structured container (parquet, HDF5) may NEVER be declared — it is always read
 # (E6-2). Checked by MAGIC, not by suffix, because a container named `blob.dat` walks through a

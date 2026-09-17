@@ -364,12 +364,22 @@ def _entries_from(docs: dict[str, dict]) -> list[tuple[str, dict, str]]:
             #
             # A claim is a key that is PRESENT AND NOT NULL. That is one rule, and it is the rule
             # adjudication uses, so the two can no longer disagree.
-            claims = [key for key in ("sha256", "derived_from") if raw.get(key) is not None]
-            if len(claims) != 1:
+            # `sha256` IS REQUIRED (r2.29 §12.6). It used to be one of two alternatives, and the
+            # other one — `derived_from` — never read the declared file at all, so an entry could
+            # satisfy the form-level ban on a bare path while leaving the artifact's bytes
+            # completely unconstrained. That is E6-3's defect reached through the form E6-3 offered
+            # as its self-maintaining alternative: the letter implemented, the purpose not.
+            #
+            # So there are no longer two forms to disagree. Every declaration pins content;
+            # `derived_from` is OPTIONAL provenance carried beside the pin, still validated (the
+            # source must be tracked, readable, same-owner and not itself declared).
+            if raw.get("sha256") is None:
                 raise DeclarationDataUnusable(
-                    f"{rel}: `{path}` must carry exactly one of `sha256` (pin the content) or "
-                    f"`derived_from` (name a tracked source). Neither is a bare path declaration, "
-                    f"which is what E6-3 forbids; both at once is a claim nobody can adjudicate."
+                    f"{rel}: `{path}` needs a `sha256` pinning its CONTENT. Every declared file "
+                    f"is a build output, so a declaration that does not pin bytes goes on matching "
+                    f"this path forever, whatever the file becomes (E6-3). `derived_from` may be "
+                    f"carried beside it as provenance, but it is not a substitute: it verifies the "
+                    f"SOURCE and never reads the declared file."
                 )
             if not raw.get("why"):
                 raise DeclarationDataUnusable(
@@ -534,38 +544,31 @@ def _declaration_defects_uncached(
             )
             continue
 
-        if entry.get("sha256"):
-            if not target.is_file():
-                defects.append((path, "declared with a sha256 but absent from disk."))
-                continue
-            # The module's own streaming helper, not read_bytes(): every other reader in this
-            # guard is bounded, and a declared file is by construction a binary — a pinned PDF or a
-            # rendered video is exactly the large-file case.
-            actual = _sha256(target)
-            if actual != entry["sha256"]:
-                defects.append(
-                    (
-                        path,
-                        (
-                            f"STALE declaration: pinned {entry['sha256'][:12]}…, file is {actual[:12]}…. "
-                            f"Every declared file is a build output, so a path-keyed declaration would have "
-                            f"gone on matching this path forever (E6-3)."
-                        ),
-                    )
-                )
-            continue
-
+        # THE PIN, ALWAYS — every declaration carries one now, so this is no longer a branch and
+        # no longer TERMINAL. It used to `continue` on success because the two forms were
+        # exclusive; leaving that in place made `derived_from`'s source checks unreachable for
+        # exactly the entries that carry one, and the tests for those checks went quiet.
         if not target.is_file():
+            defects.append((path, "declared with a sha256 but absent from disk."))
+            continue
+        # The module's own streaming helper, not read_bytes(): every other reader in this guard is
+        # bounded, and a declared file is by construction a binary — a pinned PDF or a rendered
+        # video is exactly the large-file case.
+        actual = _sha256(target)
+        if actual != entry["sha256"]:
             defects.append(
                 (
                     path,
                     (
-                        "claims a tracked source, but the declared file itself is absent from disk, "
-                        "so nothing about it has been looked at. `sha256` refuses this case and the "
-                        "two forms must agree."
+                        f"STALE declaration: pinned {entry['sha256'][:12]}…, file is {actual[:12]}…. "
+                        f"Every declared file is a build output, so a path-keyed declaration would have "
+                        f"gone on matching this path forever (E6-3)."
                     ),
                 )
             )
+            continue
+
+        if entry.get("derived_from") is None:
             continue
 
         # WHAT THIS VERIFIES, exactly: that the named source is tracked, readable, owned by the

@@ -1764,11 +1764,18 @@ def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_pa
 
     rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
     src = f"projects/{THIS_PROJECT}/docs/plot_source.csv"
-    _write(tmp_path, rel, b"\x00\xffOPAQUE")
+    rel_digest = _write(tmp_path, rel, b"\x00\xffOPAQUE")
     _write(tmp_path, src, b"name,value\nalpha,1\n")
     listing = _decl_fixture(
         tmp_path,
-        project_entries=[{"path": rel, "derived_from": src, "why": "plotted from the tracked csv"}],
+        project_entries=[
+            {
+                "path": rel,
+                "sha256": rel_digest,
+                "derived_from": src,
+                "why": "plotted from the tracked csv",
+            }
+        ],
     ) + [rel, src]
 
     assert rel in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
@@ -1873,20 +1880,46 @@ def test_a_readable_container_can_never_be_declared(tmp_path):
     assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
-def test_an_entry_with_both_claims_or_neither_cannot_be_evaluated(tmp_path):
-    """Malformed declaration DATA is a configuration error the gate cannot evaluate, so it is exit 3
-    (could not scan), not exit 2 (files fail) and certainly not a pass."""
+def test_an_entry_with_NO_CONTENT_PIN_cannot_be_evaluated(tmp_path):
+    """Malformed declaration DATA is a configuration error the gate cannot evaluate: refused when
+    the surface is read, not reported as one broken claim among valid ones.
+
+    THE RULE CHANGED IN r2.29 §12.6, and this test changed with it rather than being quietly
+    relaxed. It used to assert that carrying BOTH `sha256` and `derived_from` was refused — "exactly
+    one of" — and that rule is now gone, because the alternative it permitted was the defect: a
+    `derived_from` entry never read the declared file, so it satisfied the form-level ban on a bare
+    path while leaving the artifact's bytes completely unconstrained. E6-3's letter without its
+    purpose.
+
+    Carrying both is now NORMAL: the pin is mandatory and `derived_from` is provenance beside it.
+    What is refused is an entry with no pin at all.
+    """
     import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/x.bin"
     digest = _write(tmp_path, rel, b"\x00\xff")
 
+    unpinned = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "derived_from": "a.csv", "why": "?"}],
+    ) + [rel]
+    with pytest.raises(rc.RecordContentScanError, match="sha256"):
+        rc.valid_declarations(unpinned, NOTHING_WAIVED, _surface_of(tmp_path))
+
+    # ...and the pair that used to be refused is now the recommended shape, or this test would be
+    # asserting a rule nobody holds.
+    # A REAL tracked source owned by the same project: `a.csv` was never tracked, so the
+    # provenance check failed for the right reason and the assertion would have proved nothing
+    # about the pair being legal.
+    src = f"projects/{THIS_PROJECT}/docs/source.csv"
+    _write(tmp_path, src, b"name,value\nalpha,1\n")
     both = _decl_fixture(
         tmp_path,
-        project_entries=[{"path": rel, "sha256": digest, "derived_from": "a.csv", "why": "?"}],
-    ) + [rel]
-    with pytest.raises(rc.RecordContentScanError, match="exactly one"):
-        rc.valid_declarations(both, NOTHING_WAIVED, _surface_of(tmp_path))
+        project_entries=[
+            {"path": rel, "sha256": digest, "derived_from": src, "why": "provenance too"}
+        ],
+    ) + [rel, src]
+    assert rel in rc.valid_declarations(both, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_path):
@@ -2189,7 +2222,7 @@ def test_a_derived_from_source_must_belong_to_the_same_owner(tmp_path):
     introduced to escape."""
 
     rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
-    _write(tmp_path, rel, b"\x00\xff\x80\x81")
+    rel_digest = _write(tmp_path, rel, b"\x00\xff\x80\x81")
     foreign_source = "projects/perturb-seq-eval/data.csv"
     _write(tmp_path, foreign_source, b"name,value\nalpha,1\n")
     _write(tmp_path, "projects/perturb-seq-eval/pyproject.toml", b"[project]\n")
@@ -2197,7 +2230,12 @@ def test_a_derived_from_source_must_belong_to_the_same_owner(tmp_path):
     listing = _decl_fixture(
         tmp_path,
         project_entries=[
-            {"path": rel, "derived_from": foreign_source, "why": "cross-team pointer"}
+            {
+                "path": rel,
+                "sha256": rel_digest,
+                "derived_from": foreign_source,
+                "why": "cross-team pointer",
+            }
         ],
         owners=[THIS_PROJECT, "perturb-seq-eval"],
     ) + [rel, foreign_source, "projects/perturb-seq-eval/pyproject.toml"]
@@ -2230,7 +2268,11 @@ def test_a_BARE_path_declaration_is_refused(tmp_path):
     rel = f"projects/{THIS_PROJECT}/docs/bare.bin"
     _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
     listing = _one_entry(tmp_path, {"path": rel, "why": "bare"})
-    with pytest.raises(rc.RecordContentScanError, match="exactly one"):
+    # The rule CHANGED in r2.29 §12.6: `sha256` is required on every declaration, and
+    # `derived_from` is optional provenance carried beside it. The old "exactly one of" rule let an
+    # entry satisfy the ban on a bare path while leaving the declared file's bytes unconstrained —
+    # E6-3's letter without its purpose. A bare path is still refused; the message names the pin.
+    with pytest.raises(rc.RecordContentScanError, match="sha256"):
         rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
@@ -2426,9 +2468,11 @@ def test_a_derived_from_source_that_cannot_be_READ_is_a_defect(tmp_path):
 
     rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
     src = f"projects/{THIS_PROJECT}/docs/source.bin"
-    _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
+    rel_digest = _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
     _write(tmp_path, src, b"\x00\xff\x80\x81 ALSO-OPAQUE")
-    listing = _one_entry(tmp_path, {"path": rel, "derived_from": src, "why": "w"}, extra=[src])
+    listing = _one_entry(
+        tmp_path, {"path": rel, "sha256": rel_digest, "derived_from": src, "why": "w"}, extra=[src]
+    )
     defects = _defects(tmp_path, listing)
     assert rel in defects and "cannot read" in defects[rel]
     assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
@@ -2474,12 +2518,17 @@ def test_a_derived_from_source_may_not_itself_be_declared(tmp_path):
 
     a = f"projects/{THIS_PROJECT}/docs/a.bin"
     b = f"projects/{THIS_PROJECT}/docs/b.bin"
-    _write(tmp_path, a, b"\x00\xff\x80\x81 A")
+    a_digest = _write(tmp_path, a, b"\x00\xff\x80\x81 A")
     b_digest = _write(tmp_path, b, b"\x00\xff\x80\x81 B")
     listing = _decl_fixture(
         tmp_path,
         project_entries=[
-            {"path": a, "derived_from": b, "why": "derived from a declared file"},
+            {
+                "path": a,
+                "sha256": a_digest,
+                "derived_from": b,
+                "why": "derived from a declared file",
+            },
             {"path": b, "sha256": b_digest, "why": "also declared"},
         ],
     ) + [a, b]
@@ -3617,4 +3666,77 @@ def test_E10_missing_on_disk_belongs_to_worktree_mode_only(tmp_path, monkeypatch
     assert missing_in_staged == [], (
         "the staged mode reported a file as missing — a staged blob always exists, so this is "
         "worktree-mode's failure set leaking into a mode that cannot produce it"
+    )
+
+
+# --- §12.6 (r2.29): `derived_from` must PIN THE DECLARED FILE'S BYTES ---------------------------
+
+
+def test_a_derived_from_declaration_must_also_pin_the_declared_files_bytes(tmp_path):
+    """r2.29, E6-3's SUBSTANCE. The form-level ban on a bare path was satisfied and the substance
+    was not.
+
+    `derived_from` verified the SOURCE — tracked, readable, same owner, not itself declared — and
+    never read the DECLARED file at all. So the declaration cleared that path FOREVER, across
+    arbitrary content changes: declare `artifact.bin` as derived from a plausible source, then
+    replace it with any undecodable payload, and the gate stays clean while the file is skipped by
+    both halves. That is exactly what E6-3 says a path-keyed declaration does, reached through the
+    form E6-3 offers as the self-maintaining alternative.
+
+    A clause of the CTO's whose letter was implemented and whose purpose was not.
+    """
+    import chipsim.guards.record_content as rc
+
+    declared = f"projects/{THIS_PROJECT}/docs/artifact.bin"
+    source = f"projects/{THIS_PROJECT}/pyproject.toml"
+    _write(tmp_path, source, b"[project]\nname = 'x'\n")
+    _write(tmp_path, declared, b"\x00\xff\x80\x81 the artifact as declared")
+
+    entry = {"path": declared, "derived_from": source, "why": "rendered from the manifest"}
+    listing = _decl_fixture(tmp_path, project_entries=[entry], owners=[THIS_PROJECT]) + [
+        declared,
+        source,
+    ]
+
+    # REFUSED AT PARSE TIME, not reported as a per-entry defect — and that is the right channel:
+    # a missing required key is a SCHEMA violation, handled exactly as a missing `path` or `why`
+    # is. It reaches the operator as "declaration data unusable" (exit 2, nothing declared, listing
+    # still rendered) rather than as one broken claim among valid ones. My first version of this
+    # test asserted a defect; the implementation was right and the expectation was wrong.
+    from chipsim.guards.errors import DeclarationDataUnusable
+
+    with pytest.raises(DeclarationDataUnusable, match="sha256"):
+        rc.declaration_defects(listing, NOTHING_WAIVED, _surface_of(tmp_path))
+
+
+def test_a_derived_from_declaration_WITH_a_pin_still_holds(tmp_path):
+    """The other direction, or the test above would pass against "reject every derived_from".
+    `derived_from` remains the self-maintaining provenance claim; it is now carried BESIDE a content
+    pin rather than instead of one."""
+    import chipsim.guards.record_content as rc
+
+    declared = f"projects/{THIS_PROJECT}/docs/artifact.bin"
+    source = f"projects/{THIS_PROJECT}/pyproject.toml"
+    _write(tmp_path, source, b"[project]\nname = 'x'\n")
+    digest = _write(tmp_path, declared, b"\x00\xff\x80\x81 the artifact as declared")
+
+    entry = {
+        "path": declared,
+        "sha256": digest,
+        "derived_from": source,
+        "why": "rendered from the manifest",
+    }
+    listing = _decl_fixture(tmp_path, project_entries=[entry], owners=[THIS_PROJECT]) + [
+        declared,
+        source,
+    ]
+
+    assert dict(rc.declaration_defects(listing, NOTHING_WAIVED, _surface_of(tmp_path))) == {}
+    assert declared in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
+
+    # ...and the pin is LOAD-BEARING: change the artifact and the claim stops holding.
+    _write(tmp_path, declared, b"\x00\xff\x80\x81 REGENERATED, nobody looked")
+    stale = dict(rc.declaration_defects(listing, NOTHING_WAIVED, _surface_of(tmp_path)))
+    assert declared in stale, (
+        "the artifact changed and the declaration still held — the pin is decorative"
     )

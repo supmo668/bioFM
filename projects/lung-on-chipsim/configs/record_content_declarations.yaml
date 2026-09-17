@@ -14,10 +14,14 @@
 # bookkeeping while it was assigning ownership. The guard now refuses a foreign path declared here
 # and names the project that owns it.
 #
-# ENTRY SHAPE: `path`, `why`, and exactly one of `sha256` (pins the content) or `derived_from`
-# (names a tracked source that is itself in scope). A bare path is forbidden — every declared file
-# is a build output, so a path-keyed declaration would go on matching after the artifact was
-# regenerated (E6-3). A readable parquet or HDF5 container may never be declared: it is always
+# ENTRY SHAPE: `path`, `why`, and ALWAYS `sha256` (pins the content). `derived_from` (naming a
+# tracked source that is itself in scope) is OPTIONAL provenance carried beside the pin. A bare path
+# is forbidden — every declared file is a build output, so a path-keyed declaration would go on
+# matching after the artifact was regenerated (E6-3).
+#
+# The pin used to be optional, with `derived_from` as an alternative. That form never read the
+# declared file, so it satisfied the ban on a bare path while leaving the artifact unconstrained
+# (r2.29 §12.6). A readable parquet or HDF5 container may never be declared: it is always
 # read (E6-2), checked by magic rather than by suffix.
 #
 # Worked example, for whoever adds the first real entry:
