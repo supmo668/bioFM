@@ -59,8 +59,28 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   record) — must resolve its destination through **one shared helper** and refuse unless it is
   contained in a declared untracked root (`data/interim/`, `data/processed/`, the test tmp root),
   taken relative to the project root.
-  **Checked on both the literal and the resolved path, case-insensitively, refusing a symlinked
-  destination or any symlinked ancestor, by containment — never by substring.**
+  **Checked on both the literal and the resolved path, by directory IDENTITY, refusing a symlinked
+  destination or any symlinked ancestor, by containment — never by substring.** *(identity replaces
+  "case-insensitively", r2.23 E-04: for an ALLOW-list, case-folding is the PERMISSIVE direction —
+  the opposite of its effect on the deny-list it replaced, where folding closed the `CONFIGS/`
+  bypass. The agent implemented identity and disclosed the deviation rather than leaving a signed
+  clause contradicted by a docstring, which is the correct order of operations.)*
+  **Identity requires the root to EXIST, so the guard distinguishes two failures with two messages**
+  *(r2.23 E-06)*: a destination outside every declared root is **refused**; a declared root that is
+  **missing** is a configuration error that fails loudly naming that root. They have different
+  remedies, and one message for both would send a legitimate writer looking for a bug in its own
+  path. *E-04's fix is what creates E-06 — identity buys precision and pays in an existence
+  requirement; the pair is ruled together because neither reads correctly alone.*
+  **Roots anchor to the project root discovered at RUNTIME, never to the installed package tree**
+  *(r2.23 E-07)*: a non-editable install otherwise refuses every record-bearing write. Fifth in the
+  ambient-state family — see the listing clause below, which had the same defect.
+  **Operator-chosen destinations (`--dest`, `--out`) resolve through the SAME helper** *(r2.23
+  E-01)*, and the declared roots cover the project's real untracked output locations — `data/raw/`
+  (DVC-tracked, git-ignored) and the run journal — which were always legitimate and merely
+  undeclared. **Why this is not a widening:** the invariant is *not written to a tracked path*, and
+  both are untracked; leaving them out did not make them safe, it made the two most record-bearing
+  writers in the project — `fetch_snapshot` (the raw DrugBank tables) and `merge_report.main` (the
+  `--out` behind the 89-accession incident) — invisible to the helper entirely.
   **Why an allow-list and not a forbidden directory:** r2.19 guarded the *name* `configs/`. The §5
   reviewers executed **three** bypasses — `CONFIGS/` (which on a case-insensitive volume landed the
   name-bearing worksheet in the **real** `configs/`), a symlinked `configs` directory that
@@ -93,6 +113,20 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   map, and **a path matching no owner is unowned by definition, never "somebody else's"**.
   The **accession scan itself stays repo-wide and does not shrink** — this scopes only who a missing
   *declaration* blocks.
+  **Unowned paths need a DECLARATION SURFACE, or the rule has no remedy** *(r2.23 E-05)*. Because
+  unowned means every repo-root location (`docs/`, `config/`, `research/`, `tools/`, `.claude/`), a
+  new `docs/architecture.png` from anyone fails **this** gate, and E6-1's "do not re-declare on
+  their behalf" left no legitimate way to clear it. So: a **repo-root declaration file**, carrying
+  the same `path -> sha256` or derived-from-source claim, which this gate reads. That is not
+  re-declaring another team's artifacts — **an unowned path belongs to nobody, so there is no one
+  else whose ownership is being assumed**, and this is the only gate that reads it. Rule 9 applies:
+  state where declaring IS permitted rather than leaving the permitted case unreachable.
+  **The declaration DATA itself is still unbuilt and that is not closed** *(r2.23 E-02)*. Nothing
+  reads a union and E6-3's `sha256` pinning does not exist; only the removal half shipped, and
+  E6-1b's scoping keeps the suite green without the rest — *which is exactly why it was easy to
+  miss, and the agent found it by re-reading the clause against the code rather than by a failing
+  test.* Build it for **this project's own** undecodable files and for the repo-root surface above.
+  Do **not** author declaration files inside other projects.
   **This clause is load-bearing for E6-4:** `.claude/usr/**/dispatches/` belongs to no project, so a
   non-`.md` dispatch payload keeps failing here. Drafted without the unowned rule, E6-1b silently
   re-opened the `dispatches/leak.pdf` hole that E6-4 had closed one clause above — found by reading
@@ -106,7 +140,25 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **The residual risk is stated, not hidden:** a genuinely undecodable file outside this module's
   paths is neither read nor declaration-gated here. E6-2 shrinks that set to *rendered* artifacts
   only, since every readable structured container is now read repo-wide wherever it lives. What
-  remains is visible and countable in the report, and is the owning team's to close.
+  remains is visible and countable in the report.
+  **"It fails their owner's gate" is FICTION today, and the plan says so** *(r2.23 E-03)*. No other
+  project implements this gate, so the 23 listed files fail **nowhere** — they are listed here and
+  gated by no one. That is the true state and the honest reading of "the repair lands with the
+  owner": the owner has no gate to land it in yet. **The listing is therefore the whole mechanism,
+  not a courtesy**, which is why the next clause makes rendering it non-optional. The CTO wrote
+  "the owning team's to close" in r2.22; the agent measured that no such closing exists and said so.
+- **The listing must be RENDERED, at the REPO root, by a shipped command** *(r2.23 E-08)*. A listing
+  asserted on only inside tests reaches nobody, and a listing reaches nobody is a silent skip with
+  extra steps — the precise thing r2.20 forbids. `chipsim record-content-report` prints every
+  undeclared undecodable file with its owner and exits non-zero when any falls to **this** gate.
+  **It takes the REPO root, never the project root.**
+  **Why stated this explicitly:** as first shipped the command passed `project_root()`, so it
+  scanned only `projects/lung-on-chipsim/**`, found nothing, and printed *"0 — every tracked file
+  was read"* while **23 files had never been read**. The reporting surface built to prevent a false
+  clean produced one. `#122` had already ruled this exact defect — *"the accession scan ran
+  `git ls-files` at `cwd=PROJECT_ROOT`, so it never saw `workstreams/` or `.claude/` — run it from
+  the repo root"* — so this is that ruling rebuilt one clause later, in the fix for the gap it
+  describes. CTO-verified by running both roots: `project_root()` → 0, repo root → 23.
   *Scoping a failure is an ownership assignment, so it is a shape decision — rule 10 applied to the
   rule that produced rule 10.*
 - **A readable structured container is always READ, never declared** *(r2.21, E6-2)*. Parquet, HDF5
