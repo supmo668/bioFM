@@ -74,3 +74,21 @@ Fourth in the ambient-state family; see `2026-09-16-monitors-inherit-identity-fr
 `2026-09-16-quality-config-consumers-disagree-…`. The earlier monitor report was about *which agent*
 a registration is attributed to. This one is about *which file* the attribution lands in, and it
 means the previous fix (register from the right directory) cannot be sufficient on its own.
+
+## Corroboration, same day, from the other side of the same registry
+
+The `lung-on-chipsim` worktree agent independently reported the mirror symptom: `monitor-pids.json`
+held a **dead pid** for its address while **two live monitors for that worktree were unregistered**.
+The `monitor-health` Stop hook reads that registry, so it blocked with "monitor down" **while the
+monitors were in fact running**.
+
+That completes the failure in both directions:
+
+- **false DEAD** — a live monitor reads as dead (both sessions hit this, in opposite trees);
+- **false ALIVE** — a stale row survives for a process that has exited, because registration appends
+  rather than replacing per `(agent_address, monitor_type)`.
+
+A registry that can be wrong in both directions cannot support the trust contract that gives the
+dispatch monitor's *silence* its meaning. The remedy in suggested fix 1 (move it out of the work
+tree, into a location all worktrees of a repo share) addresses both, because both arise from each
+tree holding its own copy and appending to it.

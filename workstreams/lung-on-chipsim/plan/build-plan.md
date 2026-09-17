@@ -127,6 +127,16 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   miss, and the agent found it by re-reading the clause against the code rather than by a failing
   test.* Build it for **this project's own** undecodable files and for the repo-root surface above.
   Do **not** author declaration files inside other projects.
+  **The OWNER REGISTRY is part of that declaration surface** *(r2.24, E-11)*. A tracked marker is
+  louder than `mkdir` but is still addable by anyone who adds a `pyproject.toml`, so it is a
+  **mitigation, not proof**, and the report says so until the declared registry exists. The coupling
+  was flagged **before** E-02 was built rather than discovered after — build the registry and the
+  declaration surface together, as one thing.
+  **Topology placement folds into E6-6** *(r2.24, E-09)*. `repo_root()`, `source_root()`,
+  `THIS_PROJECT` and E-07's runtime anchor are **not** extracted into a new `chipsim/paths.py` now:
+  placement reassigns ownership of a primitive across modules, which is a shape decision (rule 10),
+  and doing it here would force the already-authorised E6-6 extraction to undo it. E6-6 moves guard
+  code only, and takes the anchors with it when it runs.
   **This clause is load-bearing for E6-4:** `.claude/usr/**/dispatches/` belongs to no project, so a
   non-`.md` dispatch payload keeps failing here. Drafted without the unowned rule, E6-1b silently
   re-opened the `dispatches/leak.pdf` hole that E6-4 had closed one clause above — found by reading
@@ -152,6 +162,31 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   extra steps — the precise thing r2.20 forbids. `chipsim record-content-report` prints every
   undeclared undecodable file with its owner and exits non-zero when any falls to **this** gate.
   **It takes the REPO root, never the project root.**
+  **The command must also prove it SCANNED something** *(r2.24, E-08b)*. Fixing the root *selection*
+  left the root *validation* and the file *listing* able to fail silently, and they composed: no
+  `.git` above the package → silent fallback to the narrow root → `git ls-files` fails there → the
+  listing swallows the failure and returns `[]` → *"0 (failing this gate: 0)"*, exit 0, **printed
+  with the true repo root interpolated**. So: `check=True` on the git call, a floor on the tracked
+  count, and every tracked path resolves — the anti-vacuity guard that **already existed in the
+  tests and not in the command**. Reachable with no attacker: a non-editable install, a root-owned
+  CI checkout refused by `safe.directory`, a corrupt index, a shimmed `git`.
+  **The environment may not steer the listing** *(r2.24)*: all `GIT_*` variables are dropped (not a
+  curated list — git adds new ones), and config the scanned tree supplies and git *executes*
+  (`core.fsmonitor`) is disabled, satisfying both halves of the `#44` B2 ruling. **An owner may not
+  be minted with `mkdir`** — an owner must carry a tracked marker, since under E-03 an *invented*
+  owner is strictly better for an attacker than a real one, nobody being even nominally
+  responsible. **Paths are escaped when not printable**, because a filename beginning `ESC[2J ESC[H`
+  drew a complete fake all-clear over the real report.
+  **An unresolvable tracked path is COUNTED AND REPORTED always, and FAILS only when we own it**
+  *(r2.24, E-10)*. A payload committed in HEAD but absent from disk (sparse, `skip-worktree`,
+  partial clone) must never be silently dropped — that is the original sin — but making it fatal
+  outright makes the report unrunnable in a legitimate sparse checkout. Scoping the *failure* by
+  ownership is exactly E6-1b; scoping the *count* would repeat E-08. Exit 3 stays reserved for
+  "could not scan at all", distinct from exit 2 (files fail) and 0 (clean).
+  **Submodules are NOT scanned from here** *(r2.24, E-12)*. A submodule is a different repository
+  with its own gate obligation; scanning it would be the E-03 fiction inverted — gating what we do
+  not own. The six are **named in the report** as unscanned, and this is a stated gap, not a covered
+  one. *A payload committed inside one is invisible to this report.*
   **Why stated this explicitly:** as first shipped the command passed `project_root()`, so it
   scanned only `projects/lung-on-chipsim/**`, found nothing, and printed *"0 — every tracked file
   was read"* while **23 files had never been read**. The reporting surface built to prevent a false
