@@ -23,15 +23,19 @@ import os
 import subprocess
 from pathlib import Path
 
-# The exception vocabulary is a LEAF (r2.29): it lived here under a rule that was false on the
-# facts — this module raises it 5 times against record_content's 24 — and the real reason was
-# cycle avoidance. Re-exported so existing importers keep working.
 from chipsim.guards.errors import (  # noqa: F401
     DeclarationDataUnusable,
     GuardInvariantViolated,
     RecordContentScanError,
     ScanNotPerformed,
 )
+
+# The exception vocabulary is a LEAF (r2.29): it lived here under a rule that was false on the
+# facts — this module raises it 5 times against record_content's 24 — and the real reason was
+# cycle avoidance. Re-exported so existing importers keep working.
+# `render_path` moved to `report` with the rest of presentation; re-exported because callers
+# reach it here and ruff deletes what it cannot see a use for.
+from chipsim.guards.report import render_path  # noqa: F401
 from chipsim.journal import source_root
 
 
@@ -71,23 +75,6 @@ def _toplevel_of(directory: Path) -> Path | None:
     if run.returncode != 0 or not run.stdout.strip():
         return None
     return Path(run.stdout.strip()).resolve()
-
-
-def render_path(rel: str) -> str:
-    """A tracked path as it may safely be PRINTED.
-
-    `git ls-files -z` emits names unquoted, and newline and ESC are legal in paths. A reviewer
-    forged a complete clean report out of one filename: a leading `ESC[2J ESC[H` cleared the
-    terminal and the rest of the name drew a fake header and a fake all-clear, with three
-    payload-bearing files still listed underneath where no human would ever see them. A newline
-    alone splits one real entry into two innocuous-looking rows.
-
-    With no CI consumer of the exit code, THE PRINTED LISTING IS THE CONTROL, so it must not be
-    writable by whoever can add a file.
-    """
-    if rel.isprintable():
-        return rel
-    return rel.encode("unicode_escape").decode("ascii") + "  [name contains control characters]"
 
 
 def repo_root() -> Path:

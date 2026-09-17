@@ -363,6 +363,7 @@ def test_a_scan_cannot_disagree_with_its_own_exit_code(tmp_path, monkeypatch):
             declaration_counts=(0, 0, 0),
             defect_count=0,
             submodules=(),
+            declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
             registry_state="declared",
             structural_error=None,
             exit_code=0,
@@ -384,6 +385,7 @@ def test_a_row_in_an_unknown_category_is_still_printed(tmp_path):
         declaration_counts=(0, 0, 0),
         defect_count=0,
         submodules=(),
+        declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
         registry_state="declared",
         structural_error=None,
         exit_code=2,
@@ -630,6 +632,7 @@ def test_no_field_of_a_row_can_forge_a_report_line(category, tmp_path):
         declaration_counts=(0, 0, 1),
         defect_count=1,
         submodules=(f"libs/{FORGERY}",),
+        declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
         registry_state="declared",
         structural_error=None,
         exit_code=2,
@@ -923,7 +926,97 @@ def test_the_invariants_raise_the_guards_own_error_not_a_repository_one():
             declaration_counts=(0, 0, 0),
             defect_count=0,
             submodules=(),
+            declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
             registry_state="declared",
             structural_error=None,
             exit_code=0,
         )
+
+
+# --- §12.4: "the renderer decides nothing" is now a CHECK, not a claim -------------------------
+
+
+def test_the_report_module_cannot_read_anything():
+    """This is the whole reason the extraction was worth doing.
+
+    "The renderer decides nothing" was a property a reviewer had to verify BY READING, and it had
+    already been broken twice while the words stayed true: the exit code was recomputed in the
+    renderer for a while, and as late as r2.27 §11 the header's failing-count was still being
+    re-derived from a NARROWER partition than the exit code — so a scan with one broken declaration
+    printed "failing this gate: 0" beside exit 2.
+
+    A module that cannot open a file cannot decide anything about one. So the property is asserted
+    against the IMPORT LIST: `errors` (a leaf) plus the standard library, and nothing that reaches
+    the filesystem, git or YAML.
+    """
+    import ast
+    from pathlib import Path as _Path
+
+    from chipsim.guards import report
+
+    tree = ast.parse(_Path(report.__file__).read_text())
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            imported.add((node.module or "").split(".")[0])
+    imported.discard("__future__")
+
+    forbidden = {"subprocess", "yaml", "os", "shutil", "io", "tempfile", "socket", "requests"}
+    assert not (imported & forbidden), (
+        f"the report module imports {sorted(imported & forbidden)} — it can reach outside the scan "
+        "it was handed, and 'the renderer decides nothing' is back to being a claim"
+    )
+
+    package_imports = {m for m in imported if m == "chipsim"}
+    assert package_imports <= {"chipsim"}, sorted(package_imports)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("chipsim"):
+            assert node.module == "chipsim.guards.errors", (
+                f"report imports {node.module}; it may only depend on the errors leaf, or the "
+                "dependency stops pointing one way"
+            )
+
+    # And it must not call the builtins that read, even without an import.
+    calls = {
+        n.func.id
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+    }
+    assert "open" not in calls, "the report module calls open()"
+
+
+def test_the_renderer_returns_the_scans_exit_code_and_counts_verbatim(tmp_path):
+    """The behavioural half of the same property, because an import list cannot see arithmetic.
+
+    Both numbers the header reports are FIELDS now, and this asserts the renderer prints them rather
+    than recomputing them: a scan whose fields are deliberately inconsistent with a naive recount
+    cannot be constructed (the invariant refuses it), so the check is that the printed values equal
+    the field values for a scan that CAN exist.
+    """
+    import chipsim.guards.record_content as rc
+
+    scan = rc.RecordContentScan(
+        root=tmp_path,
+        package=tmp_path / "pkg.py",
+        tracked_count=777,
+        failing_count=1,
+        rows=(rc.ScanRow("docs/x.bin", None, "undecodable", "FAILS HERE"),),
+        declaration_counts=(3, 2, 0),
+        defect_count=0,
+        submodules=(),
+        declaration_files=("a/project.yaml", "b/repo.yaml"),
+        registry_state="declared",
+        structural_error=None,
+        exit_code=2,
+    )
+    text, code = rc.render_scan(scan)
+    header = text.splitlines()[0]
+
+    assert code == scan.exit_code
+    assert f"(failing this gate: {scan.failing_count}" in header
+    assert f"scanned {scan.tracked_count} tracked files" in header
+    # the declaration FILES come from the scan too, so the renderer no longer resolves them
+    assert "3 from a/project.yaml" in text
+    assert "2 from b/repo.yaml" in text
