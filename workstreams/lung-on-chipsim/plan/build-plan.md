@@ -227,6 +227,41 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   a pre-commit hook, or another project. It **composes** the existing checks and re-implements none
   of them, so there stays one definition of each. Its outcomes follow the exit-code contract already
   ruled *(E-13)*: clean, files-fail, could-not-scan — three states, not a boolean.
+  **E6-7 IS NOT YET SATISFIED, and the CTO accepted evidence that it was** *(r2.28)*. The shipped
+  `record-content-report` composes **three** of the four — readability, declarations, ownership —
+  and `real_accession_hits` / `ledger_tuple_hits` are **unreachable from it**; `enforce_record_content`
+  has **no caller outside its own test file**. The accession half is enforced by `pytest` and by
+  nothing a consumer runs. **The CTO cited that command's `23 listed / N scanned / 0 failing / exit 0`
+  as compliance evidence in reports and verifications; it is not that evidence.** The tree *is* clean
+  on accessions — the live-repo scans at `test_record_content_guard.py:170` and `:244` establish that
+  — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
+  into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
+  halves may not be cited for the fourth.*
+- **A COMMIT GATE READS THE BYTES IT CERTIFIES** *(r2.28, index-vs-worktree)*. The guard lists
+  `git ls-files -s` — the **index** — and then reads `root/rel` from the **worktree**. Reproduced
+  end-to-end in a throwaway repo: index held the payload, disk held clean text, the guard read clean,
+  and the commit would have carried the payload. **A gate certifying bytes other than the ones being
+  committed is not a gate.** So: when run as a commit gate it reads the **staged blob**
+  (`git cat-file` / `git show :path`), never the working file. Divergence is **not** made a refusal —
+  that would break ordinary in-progress development, which was the agent's reason for escalating
+  rather than fixing, and it was right to escalate.
+  **The report may still inspect the worktree, but it must SAY which bytes it read** — the same
+  discipline as E6-5, applied to *which copy* rather than *which half*. A reader cannot check a
+  verdict without knowing what was verified.
+  **Composition note, stated so it is not discovered later:** reading staged blobs means a tracked
+  path always HAS content, so **E-10's unresolvable-path handling applies to the worktree-inspection
+  mode only**. The two modes have different failure sets and the clause says so rather than leaving
+  one to inherit the other's rules.
+- **A THREE-STATE CONTRACT ADMITS NO FOURTH STATE** *(r2.28)*. `sha256: null` passed the
+  exactly-one-claim check — which tests key PRESENCE, not value — and then raised `KeyError`, exiting
+  **1**, outside the ruled clean / files-fail / could-not-scan set. The scan invariant also compares
+  **truthiness**, so an `exit_code=1` object constructs and renders. Every path out of the entry point
+  lands in one of the three states, and the type makes the fourth unrepresentable rather than merely
+  untested.
+- **EVERY INTERPOLATED FIELD IS ESCAPED, not just paths** *(r2.28)*. r2.24 escaped unprintable
+  **paths** after a filename drew a fake all-clear. `ScanRow.detail` is interpolated **raw**, and a
+  **structurally valid declaration** rendered a forged clean-report line at column 0. Escaping one
+  field and not its neighbours is the same error one column over.
   **Why this clause exists as a clause:** the CTO authorised "E6-6/E6-7" in four separate dispatches
   while E6-7 appeared **zero times** in the signed plan — its only record was the phrase *"a combined
   entry point with the FAIL in the API"* in provenance log row 20. The agent stopped rather than
