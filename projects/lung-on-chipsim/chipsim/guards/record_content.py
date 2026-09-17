@@ -68,18 +68,23 @@ class ContentPolicy:
     no default, because its docstring can only be half true.
     """
 
-    #: "This file's readability is not this gate's business." Dispatch payloads are waived by
-    #: ruling (#122 §3). NOT the exclusion ledger: its content IS read, so its readability is
-    #: exactly what the check is for.
-    readability_waived: Callable[[Path, str], bool] = nothing_is_waived
+    #: "This file's readability is not this gate's business."
+    #: SAFE DIRECTION: waiving nothing makes the scan read MORE, so refusing nothing is fail-closed
+    #: here — but it is stated per predicate and not defaulted, because the other one is the reverse.
+    readability_waived: Callable[[Path, str], bool]
     #: "This path is ALREADY exempt by the content mechanism", so declaring it too would exempt it
     #: twice and make it invisible to both halves of the guard. This one DOES cover the ledger.
-    content_exempt: Callable[[str], bool] = nothing_is_content_exempt
+    #: SAFE DIRECTION: THE OPPOSITE. Exempting nothing means the double-exemption defect never fires,
+    #: so the declaration HOLDS and the file is CLEARED. Fail-closed here would be exempting
+    #: EVERYTHING, which is absurd as a default — which is the whole reason neither has one.
+    content_exempt: Callable[[str], bool]
 
 
 #: Waives nothing and exempts nothing. NOT a default — a caller must choose it deliberately,
 #: because "exempt nothing" is the QUIETER direction for declarations, not the safer one.
-NOTHING_WAIVED = ContentPolicy()
+NOTHING_WAIVED = ContentPolicy(
+    readability_waived=nothing_is_waived, content_exempt=nothing_is_content_exempt
+)
 
 
 #: Any file in a dispatches/ directory, whatever its suffix. The waiver pattern above is `.md`-only
@@ -1313,7 +1318,12 @@ def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
     lines = [
         (
             f"undeclared undecodable files: {len(report)} "
-            f"(failing this gate: {len(undecodable_failing)}) "
+            f"(failing this gate: {len(undecodable_failing)}"
+            # E-20: a broken declaration file alone exits 2 while every number a reader checks
+            # first reads clean, leaving the only signal in a paragraph below. That is E-13's own
+            # rationale — counts must be right where a reader looks first — applied to the case
+            # E-13 itself created.
+            f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if surface.structural_error else ''}) "
             f"— scanned {len(paths)} tracked files under {root}, "
             f"{len(missing)} not present on disk"
         ),

@@ -352,15 +352,24 @@ DRUGBANK_ID_EXCEPTIONS = DRUGBANK_ID_LEDGER | DRUGBANK_ID_EXCLUDED_FILES
 def _readability_waived(root: Path, rel: str) -> bool:
     """Files whose READABILITY is not the record-content gate's business.
 
-    Dispatch payloads are waived by ruling (#122 §3) and never scanned either way, so reporting
-    them would be unactionable noise — and the check is by MAGIC, not by name, so a binary parked
-    at a dispatch path is still reported.
+    THE DISPATCH CLAUSE WAS REMOVED IN r2.27 (E-19) BECAUSE IT COULD NEVER FIRE. `_is_dispatch_message`
+    returns True only when the payload DECODES AS TEXT — which is exactly when `_is_readable` is also
+    True, so a waived message was never a candidate for the unreadable list in the first place.
+    Measured against the live tree before removing it: the waiver fired on 153 files and changed the
+    answer on ZERO of them; the report was 23 files with it and 23 without, difference NONE.
 
-    The exclusion LEDGER is deliberately absent: its content IS still read (`ledger_tuple_hits`),
-    so its readability is exactly what the check is for. Conflating these two sets was the one
+    An inert mechanism is worse than an absent one, because it reads as coverage (rule 13) — and this
+    one read as the DrugBank half of the E6-6 seam while doing nothing at all.
+
+    What remains is `DRUGBANK_ID_EXCLUDED_FILES`, which is inert only because the set is currently
+    EMPTY, not by construction: an undecodable file added to it would genuinely be waived here. That
+    is a data condition, not a dead branch, so it stays.
+
+    The exclusion LEDGER is deliberately absent: its content IS still read (`ledger_tuple_hits`), so
+    its readability is exactly what the check is for. Conflating those two sets was the one
     non-mechanical part of the E6-6 extraction, and it is two questions, not one.
     """
-    return _is_dispatch_message(root, rel) or rel in DRUGBANK_ID_EXCLUDED_FILES
+    return rel in DRUGBANK_ID_EXCLUDED_FILES
 
 
 def _content_exempt(rel: str) -> bool:

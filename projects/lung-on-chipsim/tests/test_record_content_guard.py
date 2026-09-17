@@ -42,6 +42,8 @@ from chipsim.guards.record_content import (
     undecodable_unallowed,
 )
 from chipsim.guards.record_content import ContentPolicy as _rc_policy
+from chipsim.guards.record_content import nothing_is_content_exempt as _rc_nothing_exempt
+from chipsim.guards.record_content import nothing_is_waived as _rc_nothing_waived
 from chipsim.ingest.drugbank_snapshot import (
     DRUGBANK_CONTENT_POLICY,
     DRUGBANK_ID_EXCLUDED_FILES,
@@ -54,7 +56,9 @@ from chipsim.ingest.drugbank_snapshot import (
 
 #: Most guard tests are not about DrugBank's waivers, so they say so explicitly rather than
 #: inheriting a default that was fail-open in one direction (DES-1).
-NOTHING_WAIVED = _rc_policy()
+NOTHING_WAIVED = _rc_policy(
+    readability_waived=_rc_nothing_waived, content_exempt=_rc_nothing_exempt
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT = PROJECT_ROOT.parent.parent
@@ -2849,9 +2853,13 @@ def test_a_broken_declaration_file_ALONE_is_still_exit_2(tmp_path, monkeypatch, 
     (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
 
     code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
-    assert "undeclared undecodable files: 0 (failing this gate: 0)" in out, out
+    header = out.splitlines()[0]
+    assert "undeclared undecodable files: 0" in header, header
     assert "0 whose claim does not hold" in out
     assert code == 2, "a broken declaration file ALONE must still be exit 2"
+    # r2.27 E-20: the structural error is carried by the HEADER, not left in a paragraph below.
+    # Without this the two numbers a reader checks first both read clean while the process exits 2.
+    assert "DECLARATION DATA UNREADABLE" in header, header
 
 
 def test_an_absent_surface_is_DISTINGUISHABLE_from_an_empty_one(tmp_path, monkeypatch, capsys):
@@ -2914,7 +2922,9 @@ def test_the_readability_waiver_is_consulted_and_obeyed(tmp_path):
         seen.append(candidate)
         return candidate == rel
 
-    waiving = rc.ContentPolicy(readability_waived=waive)
+    waiving = rc.ContentPolicy(
+        readability_waived=waive, content_exempt=rc.nothing_is_content_exempt
+    )
     assert rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED) == [rel], (
         "unwaived: reported"
     )
