@@ -2537,11 +2537,7 @@ def test_no_guard_refusal_is_written_as_a_bare_assert():
     import chipsim.guards.record_content as ds
 
     source = inspect.getsource(ds)
-    asserts = [
-        node.lineno
-        for node in ast.walk(ast.parse(source))
-        if isinstance(node, ast.Assert)
-    ]
+    asserts = [node.lineno for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Assert)]
     assert asserts == [], (
         f"bare assert(s) in the guard at line(s) {asserts} — `python -O` removes them, so the "
         "refusal disappears rather than weakening"
@@ -2568,6 +2564,8 @@ def test_the_container_refusal_survives_python_O():
         print("ASSERTS", sum(isinstance(n, ast.Assert) for n in ast.walk(tree)))
         """
     )
-    out = subprocess.run([sys.executable, "-O", "-c", script], capture_output=True, text=True)
+    out = subprocess.run(
+        [sys.executable, "-O", "-c", script], capture_output=True, text=True, check=False
+    )
     assert "REFUSAL-IS-AN-EXCEPTION" in out.stdout, out.stderr
     assert "ASSERTS 0" in out.stdout, out.stdout
