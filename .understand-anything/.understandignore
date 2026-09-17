@@ -50,3 +50,17 @@ credentials.json
 # --- Project-specific ---
 
 *.dvi
+
+# --- Scope: projects/ only (set 2026-09-17 by /understand, principal ruling) ---
+# Remove this block to widen the graph back to the whole repo.
+# libs/ and paper_standalone/ are independent components; no projects/ file imports them.
+libs/
+paper_standalone/
+research/
+docs/
+workstreams/
+scripts/
+tools/
+config/
+.agents/
+.understand-anything/
