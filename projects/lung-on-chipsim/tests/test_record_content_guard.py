@@ -3340,3 +3340,137 @@ def test_the_shipped_command_reports_a_LEDGER_tuple_hit_too(tmp_path, monkeypatc
         "the ledger branch emits a LINE NUMBER; its absence means the report came from the "
         "content branch and the ledger half is unbound"
     )
+
+
+# --- r2.28 §11 QG: every bound in decoding.py was inert -----------------------------------------
+
+
+def test_the_scan_size_ceiling_reports_rather_than_reads(tmp_path, monkeypatch):
+    """Every ceiling in `decoding.py` survived mutation to 1<<60 with the suite green, under a
+    module docstring saying "every bound in this module was set by a measurement, not a guess".
+    A bound no test can feel is a bound that reads as coverage.
+
+    Pinned in BOTH directions, because a one-sided test passes against "refuse everything".
+    """
+    import chipsim.guards.decoding as _decoding
+
+    target = tmp_path / "plain.txt"
+    target.write_text("x" * 100)  # readable UTF-8: only the ceiling can make it unreadable
+
+    monkeypatch.setattr(_decoding, "_MAX_SCAN_BYTES", 16)
+    _decoding._READABILITY_CACHE.clear()
+    assert _decoding._scan_chunks(target) is None, "the size ceiling did not refuse the file"
+    assert not _decoding._is_readable(target)
+
+    monkeypatch.setattr(_decoding, "_MAX_SCAN_BYTES", 1024)
+    _decoding._READABILITY_CACHE.clear()
+    assert _decoding._is_readable(target), (
+        "the same file must be readable under a ceiling above its size, or this test would pass "
+        "against an implementation that refuses everything"
+    )
+
+
+def test_a_variable_length_dataset_is_bounded_by_what_it_MATERIALISES(tmp_path, monkeypatch):
+    """S11-6. `node.nbytes` is `size * dtype.itemsize`, and `np.dtype("O").itemsize` is 8 — a
+    POINTER width — so a vlen-string dataset reported 8 bytes per element however long its strings
+    were. Measured: 1,000 x 1 KiB strings report 8,000 bytes and materialise 1,024,000, a 128x
+    understatement, so the 64 MiB ceiling admitted ~8.6 GB. h5ad obs/var are exactly this dtype —
+    the datasets this reader exists to read.
+    """
+    h5py = pytest.importorskip("h5py")
+    import numpy as np
+
+    import chipsim.guards.decoding as _decoding
+
+    path = tmp_path / "vlen.h5ad"
+    with h5py.File(path, "w") as handle:
+        vlen = h5py.special_dtype(vlen=str)
+        node = handle.create_dataset("obs/p", (200,), dtype=vlen)
+        node[:] = ["Y" * 512] * 200
+
+    with h5py.File(path, "r") as handle:
+        reported = handle["obs/p"].nbytes
+    materialised = 200 * 512
+    assert np.dtype("O").itemsize == 8
+    assert reported < materialised, (
+        "the fixture does not reproduce the understatement, so this test proves nothing"
+    )
+
+    # A ceiling ABOVE what it reports but BELOW what it materialises. The old check compared
+    # against `nbytes` and would have let this straight through.
+    monkeypatch.setattr(_decoding, "_MAX_DATASET_BYTES", (reported + materialised) // 2)
+    _decoding._READABILITY_CACHE.clear()
+    assert _decoding._scan_chunks(path) is None, (
+        "the dataset was read despite materialising past the ceiling — the bound is still being "
+        "taken on pointer widths"
+    )
+
+    monkeypatch.setattr(_decoding, "_MAX_DATASET_BYTES", materialised * 4)
+    _decoding._READABILITY_CACHE.clear()
+    chunks = _decoding._scan_chunks(path)
+    assert chunks and "Y" * 512 in "\n".join(chunks), (
+        "and under a sufficient ceiling the content must still be READ and scannable"
+    )
+
+
+def test_the_container_total_is_bounded_not_just_each_dataset(tmp_path, monkeypatch):
+    """S11-7. `_scan_chunks` did `list(...)` over the chunk generator, so `_PARQUET_BATCH_ROWS`
+    bounded one batch and nothing else, and the per-dataset HDF5 ceiling was applied N times with
+    no cap on N. Measured by the reviewer: a 4,140-byte parquet yielded 11 chunks totalling
+    20,588,497 bytes held simultaneously.
+
+    The aggregate refusal must be REPORTED, never a crash and never a declaration-shaped remedy.
+    """
+    h5py = pytest.importorskip("h5py")
+    import chipsim.guards.decoding as _decoding
+
+    path = tmp_path / "many.h5ad"
+    with h5py.File(path, "w") as handle:
+        for i in range(12):
+            handle.create_dataset(f"g{i}/d", data=[("Z" * 400).encode()])
+
+    # Each dataset is far below the per-dataset ceiling; only the TOTAL exceeds this.
+    monkeypatch.setattr(_decoding, "_MAX_CONTAINER_BYTES", 1200)
+    _decoding._READABILITY_CACHE.clear()
+    assert _decoding._scan_chunks(path) is None, (
+        "the container total is unbounded — the per-dataset ceiling is applied N times with no "
+        "cap on N"
+    )
+
+    monkeypatch.setattr(_decoding, "_MAX_CONTAINER_BYTES", 1 << 30)
+    _decoding._READABILITY_CACHE.clear()
+    assert _decoding._scan_chunks(path), "under a sufficient total the container must still read"
+
+
+def test_the_shipped_ceilings_are_actually_ceilings():
+    """The three tests above bind the MECHANISM by monkeypatching the constants — and that is
+    exactly why they are not enough. I ran the reviewer's mutation against them and ALL THREE
+    SURVIVED with every ceiling raised to `1 << 60`, because a test that patches the constant
+    cannot feel the shipped one. Proving a ceiling is enforced is not proving the ceiling is a
+    bound, and I only learned the difference by running the mutant rather than by reasoning.
+
+    So this pins the VALUES. A ceiling larger than any machine's memory is not a ceiling, and the
+    module docstring says each was "set by a measurement, not a guess" — a claim nothing checked.
+    The upper bounds are deliberately loose (these are DoS ceilings, not correctness constants);
+    what they exclude is the mutant, and anything else effectively infinite.
+    """
+    import chipsim.guards.decoding as _decoding
+
+    ceilings = {
+        "_MAX_SCAN_BYTES": _decoding._MAX_SCAN_BYTES,
+        "_MAX_DATASET_BYTES": _decoding._MAX_DATASET_BYTES,
+        "_MAX_CONTAINER_BYTES": _decoding._MAX_CONTAINER_BYTES,
+    }
+    for name, value in ceilings.items():
+        assert 0 < value <= 2 * 1024**3, (
+            f"{name} is {value}, which is not a bound any machine can be protected by. A guard "
+            f"that OOMs produces no verdict at all."
+        )
+    assert _decoding._MAX_DATASET_BYTES <= _decoding._MAX_CONTAINER_BYTES, (
+        "a per-dataset ceiling above the whole-container ceiling makes the aggregate unreachable"
+    )
+    assert 0 < _decoding._PARQUET_BATCH_ROWS <= 1_000_000, (
+        "the batch size is what keeps one conversion peak bounded; unbounded, the batching is "
+        "decorative"
+    )
+    assert 0 < _decoding._VLEN_SLICE_ELEMENTS <= 1_000_000

@@ -39,6 +39,23 @@ _HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
 #: far beyond it (206 KB -> 200 MB measured, 950x), and the parquet path is already batched.
 _MAX_DATASET_BYTES = 64 * 1024 * 1024
 
+#: AGGREGATE ceiling across ONE container, and the reason it exists (r2.28 §11 QG): the per-dataset
+#: bound was applied N times with no cap on N, and `_scan_chunks` did `list(...)` over the chunk
+#: generator, so every batch was held at once. `_PARQUET_BATCH_ROWS` therefore bounded the pandas
+#: conversion peak and NOTHING ELSE — measured, a 4,140-byte parquet yielded 11 chunks totalling
+#: 20,588,497 bytes, ~4,974x the on-disk size, held simultaneously. Exceeding this is a REPORTED
+#: refusal, not a crash: a guard that OOMs produces no verdict at all, which is a false clean in a
+#: new costume.
+_MAX_CONTAINER_BYTES = 192 * 1024 * 1024
+
+#: How many elements of a variable-length dataset to materialise at a time. `node.nbytes` is
+#: `size * dtype.itemsize`, and `np.dtype("O").itemsize` is 8 — a POINTER width — so a vlen-string
+#: dataset reports 8 bytes per element however long the strings are. Measured: 1,000 x 1 KiB
+#: strings report 8,000 bytes and materialise 1,024,000, a 128x understatement, so the 64 MiB
+#: ceiling admitted ~8.6 GB. Those are exactly the datasets (h5ad obs/var) this reader exists to
+#: read, so the bound has to be taken on MATERIALISED bytes, in slices, rather than on `nbytes`.
+_VLEN_SLICE_ELEMENTS = 4096
+
 
 class _UnreadableContainer(RuntimeError):
     """A structured container could not be fully read — REPORTABLE, never clean."""
@@ -203,6 +220,11 @@ def _hdf5_chunks(target: Path):
             return
 
         nbytes = getattr(node, "nbytes", 0) or 0
+        if dtype.kind == "O":
+            # `nbytes` is a POINTER count here, not a byte count — see _VLEN_SLICE_ELEMENTS. Read
+            # in slices and bound what actually materialises.
+            parts.append(_read_vlen_in_slices(name, node))
+            return
         if nbytes > _MAX_DATASET_BYTES:
             # Bounded like the parquet path: a 206 KB compressed dataset materialised 200 MB
             # (950x). A guard that OOMs gives no verdict at all.
@@ -217,6 +239,35 @@ def _hdf5_chunks(target: Path):
             # container too — this is the hdf5plugin-missing case, measured.
             raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
         parts.append(_stringify(values))
+
+    def _read_vlen_in_slices(name, node) -> str:
+        """Materialise a variable-length dataset a slice at a time, against a real byte budget."""
+        try:
+            count = int(getattr(node, "shape", (0,))[0]) if getattr(node, "shape", ()) else 0
+        except (TypeError, IndexError):
+            count = 0
+        if count == 0:
+            try:
+                return _stringify(node[()])
+            except Exception as exc:
+                raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
+
+        pieces: list[str] = []
+        used = 0
+        for start in range(0, count, _VLEN_SLICE_ELEMENTS):
+            try:
+                block = node[start : start + _VLEN_SLICE_ELEMENTS]
+            except Exception as exc:
+                raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
+            text = _stringify(block)
+            used += len(text)
+            if used > _MAX_DATASET_BYTES:
+                raise _UnreadableContainer(
+                    f"{name} materialises more than {_MAX_DATASET_BYTES} bytes of "
+                    f"variable-length data, above the scan bound"
+                )
+            pieces.append(text)
+        return "\n".join(pieces)
 
     def refuse_links(group, prefix: str, seen: set) -> None:
         """Refuse a link ANYWHERE in the graph, not only among the root group's members.
@@ -265,6 +316,31 @@ def _hdf5_chunks(target: Path):
     yield text
 
 
+def _collect_bounded(chunks, what: str) -> list[str]:
+    """Consume a chunk generator against an AGGREGATE byte budget.
+
+    The `list(...)` this replaces was not gratuitous — it forces errors at CALL time so
+    `_scan_chunks` can classify them, which a lazy generator would defer to the consumer. But it
+    also held every batch at once, so `_PARQUET_BATCH_ROWS` bounded the per-batch conversion peak
+    and nothing else. Keeping the eager consumption and adding a running total gets both: errors
+    still surface where they can be classified, and the total is bounded.
+
+    Exceeding the budget is `_UnreadableContainer` — REPORTED, never clean, and never answerable
+    with a declaration (E6-2). A guard that OOMs gives no verdict at all.
+    """
+    collected: list[str] = []
+    used = 0
+    for chunk in chunks:
+        used += len(chunk)
+        if used > _MAX_CONTAINER_BYTES:
+            raise _UnreadableContainer(
+                f"{what} expands beyond {_MAX_CONTAINER_BYTES} bytes of scannable text, above the "
+                f"container bound"
+            )
+        collected.append(chunk)
+    return collected
+
+
 def _scan_chunks(target: Path):
     """Chunks of scannable text for one file, or None when nothing can be read from it.
 
@@ -286,7 +362,7 @@ def _scan_chunks(target: Path):
 
     if head.startswith(_HDF5_MAGIC):
         try:
-            return list(_hdf5_chunks(target))
+            return _collect_bounded(_hdf5_chunks(target), "the HDF5 container")
         except MissingContainerReader:
             raise
         except _UnreadableContainer:
@@ -301,7 +377,7 @@ def _scan_chunks(target: Path):
 
     if head.startswith(_PARQUET_MAGIC):
         try:
-            return list(_parquet_chunks(target))
+            return _collect_bounded(_parquet_chunks(target), "the parquet")
         except MemoryError:
             # NOT swallowed with everything else: an exhausted scan must never be remediable by
             # declaring the file, which is what the generic "undecodable" message invites.

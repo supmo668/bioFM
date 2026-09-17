@@ -204,35 +204,93 @@ def test_no_public_callable_resolves_a_declaration_surface_for_itself():
     exit 2 through the scan and exit 3 through the direct API — E-13's ruling holding on one path and
     inverted on the other, decided by whether a caller remembered an optional argument.
 
-    The test that was supposed to cover this inspected `ScanContext` alone, and a signature check on
-    one class cannot see six functions. This walks the module.
+    THIS TEST WAS ITSELF THE THIRTEENTH VACUITY (r2.27 §11 QG), and it is mine. Three defects:
+
+      1. IT KEYED ON THE ANNOTATION TEXT — `"DeclarationSurface" in str(parameter.annotation)`. An
+         annotation is not a control the guard enforces. Restore the convenience default faithfully
+         and drop the annotation, which is the one edit a person restoring it would actually make,
+         and the walk cannot see it. Measured: `surface=None` with a `DeclarationSurface.require`
+         fallback SURVIVED the full 942-test suite, and this test passed in isolation under it.
+      2. `vars(rc)` YIELDS ONLY MODULE-LEVEL CALLABLES, so `DeclarationSurface.require`,
+         `DeclarationSurface.read` and `ScanContext.build` — the three constructors that decide
+         `require`-vs-`read` in the first place — were never examined at all.
+      3. NO ANTI-VACUITY FLOOR. `assert offenders == []` over a filter that can go blind passes
+         loudest when it is examining nothing — the same empty-collection family this file guards
+         against three tests above with `assert body, "no body lines means this all() proves
+         nothing"`. Written by me, in the file that names the rule.
+
+    So it selects by PARAMETER NAME, walks the classmethods too, and asserts a floor on how many
+    parameters it actually looked at.
     """
     import inspect
 
     import chipsim.guards.record_content as rc
 
-    offenders = []
+    candidates = []
     for name, obj in vars(rc).items():
-        if name.startswith("__") or not callable(obj):
+        if name.startswith("__"):
             continue
-        if getattr(obj, "__module__", None) != rc.__name__:
+        if isinstance(obj, type) and obj.__module__ == rc.__name__:
+            # The constructors live HERE, and they are the ones that choose `require` vs `read`.
+            for attr, member in vars(obj).items():
+                target = member.__func__ if isinstance(member, classmethod) else member
+                # `__init__` is INCLUDED deliberately: `ScanContext.__init__` is where the dataclass
+                # takes its `surface`, and excluding dunders hid the one constructor that has the
+                # parameter at all. The classmethods take `root`/`policy`, not `surface` — so a
+                # floor of 9 asserted from memory failed here, and the number below is the measured
+                # one. Guessing the floor would have made the anti-vacuity check itself vacuous.
+                if callable(target) and (attr == "__init__" or not attr.startswith("__")):
+                    candidates.append((f"{name}.{attr}", target))
             continue
+        if callable(obj) and getattr(obj, "__module__", None) == rc.__name__:
+            candidates.append((name, obj))
+
+    examined: list[str] = []
+    offenders: list[str] = []
+    for label, obj in candidates:
         try:
             signature = inspect.signature(obj)
         except (TypeError, ValueError):  # pragma: no cover - builtins
             continue
         for parameter in signature.parameters.values():
-            annotation = str(parameter.annotation)
-            if (
-                "DeclarationSurface" in annotation
-                and parameter.default is not inspect.Parameter.empty
-            ):
-                offenders.append(f"{name}({parameter.name}={parameter.default!r})")
+            # BY NAME, not by annotation: the annotation is documentation, and the defect is a
+            # DEFAULT. Keying on the annotation made the check removable by deleting it.
+            if parameter.name != "surface":
+                continue
+            examined.append(f"{label}({parameter.name})")
+            if parameter.default is not inspect.Parameter.empty:
+                offenders.append(f"{label}({parameter.name}={parameter.default!r})")
+
+    assert len(examined) >= 9, (  # measured, not assumed: 8 module functions + ScanContext.__init__
+        f"this walk examined only {len(examined)} `surface` parameters ({examined}) — it is "
+        "supposed to cover the seven public functions below ScanContext plus the constructors. A "
+        "filter that has gone blind passes this test loudest, which is how it failed last time."
+    )
     assert offenders == [], (
         f"these resolve a declaration surface for themselves: {offenders} — a context that can find "
         "itself is the ambient state this clause exists to prevent, and the fallback disagreed with "
         "ScanContext.build about whether a broken file raises"
     )
+
+
+def test_the_surface_walk_would_notice_a_default_with_no_annotation():
+    """The floor above says the walk LOOKED; this says it would SEE. A shape test nobody has
+    inverted is a shape test nobody has checked, so the check is applied to a function built here
+    rather than to the module — no production code is mutated to prove it.
+    """
+    import inspect
+
+    def undecodable_unallowed(root, paths, policy, surface=None):
+        """The exact restoration the old test could not see: a default, and NO annotation."""
+
+    parameter = inspect.signature(undecodable_unallowed).parameters["surface"]
+    assert parameter.annotation is inspect.Parameter.empty, "the fixture must be un-annotated"
+    assert parameter.default is not inspect.Parameter.empty
+
+    by_annotation = "DeclarationSurface" in str(parameter.annotation)
+    by_name = parameter.name == "surface"
+    assert not by_annotation, "an annotation-keyed walk is blind to this — that was the defect"
+    assert by_name, "a name-keyed walk catches it, which is why the walk now keys on the name"
 
 
 def test_a_broken_declaration_file_reads_UNREADABLE_not_zero(tmp_path, monkeypatch):
