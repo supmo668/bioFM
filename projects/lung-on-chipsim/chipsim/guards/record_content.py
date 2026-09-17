@@ -35,7 +35,6 @@ REQUIRED at every call site — the same reasoning this module already applies t
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
 
 # Aliased: two loops in this module already bind a variable called `field`, and ruff caught the
 # shadowing the moment the import arrived.
@@ -50,6 +49,12 @@ from chipsim.guards.decoding import (
     _is_readable,
     _sha256,
 )
+from chipsim.guards.errors import (  # noqa: F401
+    DeclarationDataUnusable,
+    GuardInvariantViolated,
+    RecordContentScanError,
+    ScanNotPerformed,
+)
 
 # `RecordContentScanError` is re-exported DELIBERATELY: it is the base of the vocabulary this
 # module raises, and callers and tests reach it here. `noqa: F401` because ruff's autofix deleted it
@@ -57,11 +62,15 @@ from chipsim.guards.decoding import (
 # five tests reached through earlier in this workstream, and which produced an ImportError in the
 # SHIPPED command while the suite stayed green, because I ran the formatter after the tests rather
 # than before them.
-from chipsim.guards.errors import (  # noqa: F401
-    DeclarationDataUnusable,
-    GuardInvariantViolated,
-    RecordContentScanError,
-    ScanNotPerformed,
+# The policy vocabulary is a LEAF now (r2.29): `ingest` imported this entire ~1,330-line module
+# to construct a two-field dataclass, so the seam that exists to keep the guard ignorant of DrugBank
+# was forcing DrugBank to depend on the guard. Re-exported because callers and tests reach these
+# names here.
+from chipsim.guards.policy import (  # noqa: F401
+    NOTHING_WAIVED,
+    ContentPolicy,
+    nothing_is_content_exempt,
+    nothing_is_waived,
 )
 from chipsim.guards.repo import (
     _MINIMUM_PLAUSIBLE_TRACKED,
@@ -70,47 +79,6 @@ from chipsim.guards.repo import (
     repo_root,
 )
 from chipsim.journal import source_root
-
-
-def nothing_is_waived(root: Path, rel: str) -> bool:
-    """Default readability waiver: nothing is waived. Fail-closed."""
-    return False
-
-
-def nothing_is_content_exempt(rel: str) -> bool:
-    """Default content-exemption predicate: nothing is exempt. Fail-closed."""
-    return False
-
-
-@dataclass(frozen=True)
-class ContentPolicy:
-    """What the OWNING project waives, injected rather than imported.
-
-    The guard must not know about DrugBank. There is NO default: the two predicates have opposite
-    safe directions — waiving nothing makes the scan noisier, exempting nothing makes it QUIETER,
-    because the double-exemption defect stops firing and the declaration it would have broken then
-    holds. A default that is fail-closed for one member and fail-open for the other is worse than
-    no default, because its docstring can only be half true.
-    """
-
-    #: "This file's readability is not this gate's business."
-    #: SAFE DIRECTION: waiving nothing makes the scan read MORE, so refusing nothing is fail-closed
-    #: here — but it is stated per predicate and not defaulted, because the other one is the reverse.
-    readability_waived: Callable[[Path, str], bool]
-    #: "This path is ALREADY exempt by the content mechanism", so declaring it too would exempt it
-    #: twice and make it invisible to both halves of the guard. This one DOES cover the ledger.
-    #: SAFE DIRECTION: THE OPPOSITE. Exempting nothing means the double-exemption defect never fires,
-    #: so the declaration HOLDS and the file is CLEARED. Fail-closed here would be exempting
-    #: EVERYTHING, which is absurd as a default — which is the whole reason neither has one.
-    content_exempt: Callable[[str], bool]
-
-
-#: Waives nothing and exempts nothing. NOT a default — a caller must choose it deliberately,
-#: because "exempt nothing" is the QUIETER direction for declarations, not the safer one.
-NOTHING_WAIVED = ContentPolicy(
-    readability_waived=nothing_is_waived, content_exempt=nothing_is_content_exempt
-)
-
 
 #: Any file in a dispatches/ directory, whatever its suffix. The waiver pattern above is `.md`-only
 #: by design; THIS one is the never-declarable class. A non-.md payload is exactly what E6-4 keeps

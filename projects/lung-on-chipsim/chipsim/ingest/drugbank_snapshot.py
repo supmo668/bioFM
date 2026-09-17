@@ -28,7 +28,7 @@ import yaml
 
 from chipsim.guards.decoding import scan_chunks, sha256_of
 from chipsim.guards.output_roots import refuse_unless_declared_output_root
-from chipsim.guards.record_content import ContentPolicy
+from chipsim.guards.policy import ContentPolicy
 
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
