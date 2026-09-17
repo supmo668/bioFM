@@ -1189,9 +1189,16 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
         )
     elif scan.registry_state == "unreadable":
         lines.append(
-            f"  owner registry: UNREADABLE — {REPO_DECLARATION_FILE} could not be parsed, so EVERY "
-            "owner was narrowed away and every path is unowned. This is not the marker-backed "
-            "mitigation; it is the absence of any registry at all."
+            # DOES NOT NAME A FILE (r2.28 §11 QG). It used to assert `REPO_DECLARATION_FILE`, but
+            # `registry_state` is derived from `surface.structural_error`, which is set by EITHER
+            # declaration file failing to parse. With only the PROJECT file broken, the report
+            # named the repo-root file here while the structural-error section named the project
+            # file correctly — so one report gave two answers and the operator was sent to repair
+            # a file that was fine. The section above names the file; this line states the
+            # CONSEQUENCE, which is what it is for.
+            "  owner registry: UNREADABLE — the declaration data could not be parsed (the file is "
+            "named above), so EVERY owner was narrowed away and every path is unowned. This is "
+            "not the marker-backed mitigation; it is the absence of any registry at all."
         )
     else:
         lines.append(

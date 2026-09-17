@@ -3474,3 +3474,42 @@ def test_the_shipped_ceilings_are_actually_ceilings():
         "decorative"
     )
     assert 0 < _decoding._VLEN_SLICE_ELEMENTS <= 1_000_000
+
+
+def test_a_NUL_FREE_binary_is_still_reported_not_decoded_into_mojibake(tmp_path):
+    """The printable-ratio floor was inert: `printable / len(text) >= 0.9` mutated to `>= 0.0`
+    SURVIVED the whole suite. Code correct, nothing bound it.
+
+    The NUL half is well covered, and that is exactly why the ratio half was not: the one fixture
+    for it is a PNG header, which contains NUL bytes and dies on the earlier branch. A NUL-free
+    binary — a raw deflate stream, an encrypted blob, a PDF object stream — decodes to mojibake
+    under latin-1, `_is_readable` returns True, the accession regex finds nothing, and the file is
+    never listed. That is a false clean.
+    """
+    import chipsim.guards.decoding as _decoding
+
+    data = bytes(b for b in range(1, 256) if b != 0) * 40
+    text = data.decode("latin-1")
+    printable = sum(ch.isprintable() or ch in "\r\n\t" for ch in text)
+
+    # The fixture's own preconditions. Without these the test could pass for the NUL reason, which
+    # is the branch it is NOT about.
+    assert b"\x00" not in data, "this fixture must not be caught by the NUL branch"
+    assert printable / len(text) < 0.9, "and it must genuinely be below the ratio floor"
+
+    assert _decoding._decode_text(data) is None, (
+        "a NUL-free binary decoded into mojibake — it would scan clean and never be listed"
+    )
+
+    rel = "docs/blob.bin"
+    _write(tmp_path, rel, data)
+    assert undecodable_unallowed(
+        tmp_path, _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
+    ) == [rel]
+
+    # The positive control: a mostly-printable latin-1 document must STILL decode, or this test
+    # would pass against an implementation that refuses every latin-1 file.
+    readable = ("caf\xe9 " * 200).encode("latin-1")
+    assert _decoding._decode_text(readable) is not None, (
+        "the ratio floor must not reject ordinary latin-1 text"
+    )

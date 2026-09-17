@@ -668,3 +668,74 @@ def test_a_row_disposition_outside_the_two_values_is_refused(tmp_path):
 
     with pytest.raises(rc.RecordContentScanError, match="neither"):
         rc.ScanRow("docs/x.png", None, "undecodable", "FAILS-HERE")
+
+
+@pytest.mark.parametrize("broken", ["project", "repo-root"])
+def test_the_UNREADABLE_disclosure_does_not_name_the_healthy_file(broken, tmp_path, monkeypatch):
+    """r2.28 §11 QG. `registry_state == "unreadable"` is derived from `structural_error`, which is
+    set by EITHER declaration file — but the banner hardcoded the repo-root path. With only the
+    PROJECT file broken, one report named the project file in its structural-error section and the
+    repo-root file in its registry banner, and the banner is the half an operator acts on.
+
+    The existing test happened to corrupt the repo-root file, so it never saw this.
+    """
+    import chipsim.guards.record_content as rc
+
+    listing = _surface(tmp_path, owners=[rc.THIS_PROJECT])
+    target = rc.PROJECT_DECLARATION_FILE if broken == "project" else rc.REPO_DECLARATION_FILE
+    healthy = rc.REPO_DECLARATION_FILE if broken == "project" else rc.PROJECT_DECLARATION_FILE
+    (tmp_path / target).write_text("declarations: [ unclosed\n")
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    assert scan.registry_state == "unreadable"
+    text, _code = render_scan(scan)
+
+    banner = [line for line in text.splitlines() if "owner registry: UNREADABLE" in line]
+    assert banner, "the disclosure is missing entirely"
+    assert healthy not in banner[0], (
+        f"the banner names {healthy}, which parsed fine — the operator is sent to repair the "
+        f"wrong file while {target} is the one that failed"
+    )
+    assert target in text, "the report must still name the file that actually failed"
+
+
+def test_an_EMPTY_owners_list_narrows_to_nothing_and_is_not_an_absent_registry(
+    tmp_path, monkeypatch
+):
+    """The code here is CORRECT and nothing bound it — a test gap, not a defect, and worth saying
+    so precisely rather than claiming a fix.
+
+    `if owners is None: return None` distinguishes "no registry yet" from "a registry naming
+    nobody". The mutant `if not owners:` collapses them and SURVIVED the full suite: with
+    `owners: []`, current code yields `frozenset()` so every path is unowned and unowned FAILS
+    here (fail-closed); the mutant yields `None`, so the marker-backed set comes back, other
+    projects' paths acquire owners, and under E-03 they fail nobody's gate. One-line data edit, no
+    code change, gate goes quiet.
+
+    The existing registry test covers "owners present" and "no `owners:` key" — never the empty
+    list, which is the only input that separates the two readings.
+    """
+    import chipsim.guards.record_content as rc
+
+    theirs = "projects/perturb-seq-eval/theirs.bin"
+    _write(tmp_path, theirs, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _surface(tmp_path, owners=[]) + [
+        "projects/perturb-seq-eval/pyproject.toml",
+        theirs,
+    ]
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    assert rc.declared_owner_registry(tmp_path) == frozenset(), (
+        "an empty `owners:` list is a registry naming NOBODY, not an absent registry"
+    )
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    assert scan.registry_state == "declared", "the registry EXISTS; it is simply empty"
+
+    row = next(r for r in scan.rows if r.path == theirs)
+    assert row.owner is None, "the registry narrowed every owner away, so this path is unowned"
+    assert row.disposition == "FAILS HERE", "and unowned fails HERE — the fail-closed direction"
+    assert scan.exit_code == 2
