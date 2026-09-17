@@ -83,7 +83,10 @@ def test_the_declared_roots_are_exactly_what_the_clause_names():
 def test_every_tracked_destination_is_refused(rel):
     """r2.19 protected ONE directory name. Measured at §5: the name-bearing worksheet wrote
     cleanly to the project root, docs/, tests/fixtures/ and workstreams/ — all tracked."""
-    with pytest.raises(OutputRootError, match="data/interim"):
+    # No match=: "data/interim" is the allow-list constant the generic message always enumerates,
+    # so it is satisfied by any refusal at all. The message contract is asserted once, by
+    # test_the_refusal_names_the_destination_and_the_remedy, and nowhere else.
+    with pytest.raises(OutputRootError):
         refuse_unless_declared_output_root(PROJECT_ROOT / rel)
 
 
@@ -156,10 +159,20 @@ def test_a_symlinked_destination_is_refused(tmp_path):
 def test_a_symlinked_ANCESTOR_is_refused(tmp_path):
     """The ancestor case is the one `resolve()` alone hides: a link named like a declared root,
     pointing anywhere."""
+    # NOT match="symlink". pytest names tmp_path after the test function, so this test's own
+    # directory contains the word: a reviewer left the branch raising, deleted "symlink" from its
+    # message, and the file stayed green. The sibling test above documents this exact trap in a
+    # comment and avoids it; this one walked into it one function later.
     (tmp_path / "real").mkdir()
     os.symlink(tmp_path / "real", tmp_path / "interim")
-    with pytest.raises(OutputRootError, match="symlink"):
+    with pytest.raises(OutputRootError) as exc:
         refuse_unless_declared_output_root(tmp_path / "interim" / "w.csv")
+    message = str(exc.value).replace(str(tmp_path), "<tmp>")
+    assert "is a symlink" in message
+    assert "the path the check sees is not the path the write reaches" in message
+    assert "not inside a declared untracked root" not in message, (
+        "the generic refusal fired, so the ancestor branch is not what this test exercised"
+    )
 
 
 def test_containment_is_by_directory_identity_not_by_substring(tmp_path):
@@ -191,7 +204,9 @@ def test_the_worksheet_writer_refuses_a_tracked_destination(tmp_path):
     from chipsim.harmonize.adjudication import write_adjudication_worksheet
 
     target = PROJECT_ROOT / "configs" / "pgp_adjudication.csv"
-    with pytest.raises(Exception, match="data/interim"):
+    # OutputRootError, not Exception: a bare Exception is satisfied by anything raised BEFORE the
+    # guard is ever reached, so the test would pass while the destination went unchecked.
+    with pytest.raises(OutputRootError):
         write_adjudication_worksheet(labels, compounds, target)
     assert not target.exists()
 
@@ -270,7 +285,8 @@ def test_the_compound_writer_refuses_a_tracked_destination():
     """The WORST payload in the project — accession, name, InChI and InChIKey on one row — and
     until r2.20 it validated its columns and never its destination."""
     target = PROJECT_ROOT / "configs" / "drugbank_compounds.parquet"
-    with pytest.raises(Exception, match="data/interim"):
+    # OutputRootError, not Exception — see the worksheet twin above.
+    with pytest.raises(OutputRootError):
         write_compounds(_compound_frame(), target)
     assert not target.exists()
 
@@ -532,10 +548,17 @@ def test_a_tracked_by_negation_filename_inside_a_declared_root_is_refused(tmp_pa
     tracked inside the allowed directories. Writing the name-bearing worksheet to
     `data/processed/pgp_adjudication.sha256` was accepted: no symlink, no env var, no race, just a
     filename in the directory where `.sha256` is this project's own sidecar convention."""
+    # NOT match="tracked": the word comes from this test's own tmp directory name. A reviewer
+    # replaced this branch's entire .gitignore explanation with "nope." and the file stayed green —
+    # the message that makes the refusal actionable could be deleted unnoticed.
     root = _tracked_like(tmp_path, monkeypatch)
     for rel in ("data/processed/x.sha256", "data/interim/x.dvc", "data/interim/.gitkeep"):
-        with pytest.raises(OutputRootError, match="tracked"):
+        with pytest.raises(OutputRootError) as exc:
             refuse_unless_declared_output_root(root / rel)
+        message = str(exc.value).replace(str(tmp_path), "<tmp>")
+        assert ".gitignore re-includes it" in message
+        assert "untracked by DIRECTORY" in message
+        assert Path(rel).name in message, "the refusal must name the file the operator chose"
 
     # The ordinary names in the same directories stay allowed.
     refuse_unless_declared_output_root(root / "data" / "processed" / "x.parquet")

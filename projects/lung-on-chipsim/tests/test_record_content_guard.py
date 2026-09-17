@@ -1101,6 +1101,32 @@ def test_a_listing_that_could_not_be_produced_is_not_an_empty_one(tmp_path):
     assert "not an all-clear" in str(exc.value)
 
 
+def test_a_git_failure_inside_a_real_checkout_is_not_an_empty_listing(tmp_path):
+    """The harder half, and the one a mutant survived: the root IS a valid checkout and `ls-files`
+    still fails — a corrupt or locked index, an unreadable object store, or git refusing the tree
+    over `safe.directory` ownership, which is the ordinary case for a root-owned checkout under a
+    non-root CI runner.
+
+    `rev-parse` answers fine in every one of those, so the not-a-checkout guard never fires and this
+    branch is the only thing standing between a broken repository and a clean report. The first
+    version of this test used a directory that was not a checkout at all, so it exercised the guard
+    above and left this one covered by nothing.
+    """
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    repo = _init_repo(tmp_path / "corrupt")
+    (repo / ".git" / "index").write_bytes(b"this is not an index")
+    assert ds._toplevel_of(repo) == repo.resolve(), "the checkout itself must still resolve"
+
+    with pytest.raises(ds.RecordContentScanError) as exc:
+        ds._tracked_paths_for_report(repo)
+    message = str(exc.value)
+    assert "git ls-files failed" in message
+    # git's own diagnostic is what tells the operator WHICH failure this is; the old code captured
+    # stderr and threw it away, so the one useful sentence never reached anybody.
+    assert "no diagnostic" not in message
+
+
 def test_an_emptied_listing_cannot_pass_as_a_scan_of_this_tree(monkeypatch):
     """The witness check: the listing must contain THIS module's own tracked file. One assertion
     covering an unrelated enclosing repository, an index read from elsewhere, and a listing emptied
