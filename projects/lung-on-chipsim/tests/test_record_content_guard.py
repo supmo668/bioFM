@@ -1347,3 +1347,113 @@ def test_the_report_names_the_package_copy_it_ran_from(capsys):
     pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
     assert str(Path(ds.__file__).resolve()) in printed
+
+
+# --- r2.24 E-10: a path the scan cannot reach is counted always, and fails only where we own it ---
+#
+# I shipped this FATAL in §8, on the reading that a scan which cannot see everything must not read
+# as clean. The CTO ruled that one level too wide: it makes the report unrunnable in a legitimate
+# sparse or partial checkout, and a control nobody can run is not a control. Counting is never
+# scoped (scoping the count would be E-08 again); FAILING is scoped by ownership (that is E6-1b).
+
+
+def _missing_tracked(tmp_path, rel, markers=()):
+    """A listing that names `rel` while `rel` is absent from disk — skip-worktree, sparse checkout,
+    or a partial clone that never fetched the blob. The payload is IN the repository, which is what
+    the invariant protects; the worktree simply does not have it."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    witness = Path(ds.__file__).resolve()
+    listing = [rel, *markers]
+    return listing, witness
+
+
+def test_a_tracked_path_that_is_not_on_disk_is_counted_and_reported(tmp_path, monkeypatch, capsys):
+    """The original sin was the silent drop: `if not target.is_file(): continue`. A payload
+    committed in HEAD but absent from the worktree produced a report that said nothing at all."""
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+
+    rel = "docs/ghost_payload.bin"
+    listing, _ = _missing_tracked(tmp_path, rel)
+    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    code = pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+
+    assert rel in printed, "a path the scan could not reach must never be silently dropped"
+    assert "not present on disk" in printed
+    assert code == 2, "docs/ is owned by no project, and unowned fails here (E6-1b)"
+
+
+def test_a_missing_path_another_project_owns_is_listed_but_does_not_fail_this_gate(
+    tmp_path, monkeypatch, capsys
+):
+    """Scoping the FAILURE by ownership is E6-1b; scoping the COUNT would be E-08 again. Another
+    team's un-materialised file is visible and counted here, and red on nobody's board but theirs."""
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+
+    rel = "projects/perturb-seq-eval/paper/ghost.pdf"
+    listing, _ = _missing_tracked(
+        tmp_path, rel, markers=("projects/perturb-seq-eval/pyproject.toml",)
+    )
+    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    code = pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+
+    assert rel in printed and "not present on disk" in printed
+    assert code == 0, "another project's missing file is counted here and fails only on their gate"
+
+
+def test_a_missing_path_this_project_owns_fails_the_gate(tmp_path, monkeypatch, capsys):
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+
+    rel = f"projects/{THIS_PROJECT}/data/processed/ghost.parquet"
+    listing, _ = _missing_tracked(
+        tmp_path, rel, markers=(f"projects/{THIS_PROJECT}/pyproject.toml",)
+    )
+    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    code = pipeline.main(["record-content-report"])
+    assert rel in capsys.readouterr().out
+    assert code == 2
+
+
+def test_a_sparse_checkout_can_still_run_the_report(tmp_path, monkeypatch, capsys):
+    """The reason the ruling went this way: fatal-always made the report unrunnable wherever a
+    legitimate sparse or partial checkout is in use, and a control nobody can run is not a control.
+    Exit 3 stays reserved for "could not scan AT ALL"."""
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+
+    rel = "paper_standalone/figures/never_fetched.pdf"
+    listing, _ = _missing_tracked(tmp_path, rel, markers=("paper_standalone/README.md",))
+    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    code = pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+
+    assert code != 3, "a sparse checkout is not the same as being unable to scan"
+    assert code == 0
+    assert rel in printed
+
+
+def test_the_witness_check_is_still_fatal(tmp_path):
+    """E-10 relaxed the UNRESOLVABLE path, not the witness. A listing that is not a listing of this
+    tree is still "could not scan at all" — exit 3, not a report."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    stranger = _init_repo(tmp_path / "stranger")
+    with pytest.raises(ds.RecordContentScanError):
+        ds._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])

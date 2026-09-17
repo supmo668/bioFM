@@ -934,14 +934,26 @@ def _tracked_paths_for_report(root: Path) -> list[str]:
     return _tracked_listing(root)[0]
 
 
-def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
-    """The listing must contain THIS module's own tracked file, and every path must resolve.
+#: A tracked count below this is not a repository this report can speak for — it is a listing that
+#: went wrong. Crude on purpose, and the WEAKER half of the pair: the witness below proves the
+#: listing is of THIS tree, while the floor catches a listing of the right tree that came back
+#: truncated, which the witness cannot see. The suite's own anti-vacuity test has used the same
+#: floor since it was written (r2.24 E-08b).
+_MINIMUM_PLAUSIBLE_TRACKED = 100
 
-    One assertion instead of one per failure mode. It kills, together: a root that is some
-    unrelated enclosing repository (a dotfiles `$HOME`, a wrapper monorepo), a root whose index was
-    read from elsewhere, a listing emptied by any means, and a checkout too sparse to answer the
-    question. The suite has asserted exactly this about ITSELF since it was written; the command
-    could not, which is why every wrong root read as clean.
+
+def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
+    """The listing must be a listing of THIS tree, and a plausible one. Fatal — exit 3.
+
+    Kills together: a root that is some unrelated enclosing repository (a dotfiles `$HOME`, a
+    wrapper monorepo), a root whose index was read from elsewhere, and a listing emptied or
+    truncated by any means. The suite has asserted exactly this about ITSELF since it was written;
+    the command could not, which is why every wrong root read as clean.
+
+    A path that is tracked but ABSENT FROM DISK is deliberately NOT refused here — see
+    `unresolvable_tracked`. Making that fatal (as I first shipped it) makes the report unrunnable in
+    a legitimate sparse or partial checkout, and a control nobody can run is not a control
+    (r2.24 E-10).
     """
     here = Path(__file__).resolve()
     try:
@@ -956,13 +968,26 @@ def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
             f"the listing for {root} does not contain this module's own file ({witness}), so it "
             f"is not a listing of the tree this package lives in. Refusing to report."
         )
-    unresolvable = [rel for rel in paths if not (root / rel).is_file()]
-    if unresolvable:
+    if len(paths) < _MINIMUM_PLAUSIBLE_TRACKED:
         raise RecordContentScanError(
-            f"{len(unresolvable)} tracked path(s) under {root} do not resolve to a file, so they "
-            f"would be skipped unread (e.g. {unresolvable[:3]}). A partially-materialised checkout "
-            f"cannot produce an all-clear."
+            f"only {len(paths)} tracked path(s) under {root}, which is below the floor of "
+            f"{_MINIMUM_PLAUSIBLE_TRACKED}: this is a listing that went wrong, not a repository "
+            f"with nothing in it. Refusing to report."
         )
+
+
+def unresolvable_tracked(root: Path, paths) -> list[str]:
+    """Tracked paths that are not present on disk, so the scan cannot read them.
+
+    Sparse checkout, `skip-worktree`, or a partial clone that never fetched the blob. THE PAYLOAD IS
+    STILL IN THE REPOSITORY — which is the thing the invariant protects — while the worktree simply
+    does not have it, so `undecodable_unallowed` walked straight past it with
+    `if not target.is_file(): continue` and the report said nothing at all.
+
+    Counted and reported ALWAYS; scoping the count would repeat E-08. The FAILURE is scoped by
+    ownership, which is E6-1b exactly (r2.24 E-10).
+    """
+    return sorted(rel for rel in paths if not (Path(root) / rel).is_file())
 
 
 def render_undeclared_report() -> tuple[str, int]:
@@ -986,6 +1011,13 @@ def _render_for_root(root: Path) -> tuple[str, int]:
     report = undeclared_report(root, paths)
     failing = set(failing_undeclared(root, paths))
 
+    # Tracked but absent from disk. Listed always; failing only where we own it, or where nobody
+    # does — the same predicate failing_undeclared uses, because "unowned fails here" is
+    # load-bearing for E6-4 and a missing file is no different in that respect.
+    recognised = recognised_owners(paths)
+    missing = [(rel, path_owner(rel, recognised)) for rel in unresolvable_tracked(root, paths)]
+    failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
+
     # The root and the denominator go on the header, printed unconditionally. Naming the root only
     # in the all-clear branch left the harder falsehood undetectable: a wrong-but-nonempty root
     # prints a plausible list with no root stated anywhere, and a count with no base reads the same
@@ -995,7 +1027,8 @@ def _render_for_root(root: Path) -> tuple[str, int]:
     lines = [
         (
             f"undeclared undecodable files: {len(report)} (failing this gate: {len(failing)}) "
-            f"— scanned {len(paths)} tracked files under {root}"
+            f"— scanned {len(paths)} tracked files under {root}, "
+            f"{len(missing)} not present on disk"
         ),
         f"  (scan run from package {Path(__file__).resolve()})",
     ]
@@ -1004,6 +1037,14 @@ def _render_for_root(root: Path) -> tuple[str, int]:
         lines.append(f"  {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
     if not report:
         lines.append("  (none)")
+    if missing:
+        lines.append(
+            "  tracked but NOT PRESENT ON DISK, so the scan could not read them (sparse or partial "
+            "checkout). The payload is still in the repository:"
+        )
+        for rel, owner in missing:
+            mark = "FAILS HERE" if rel in failing else "listed"
+            lines.append(f"    {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
     if submodules:
         lines.append(
             f"  {len(submodules)} submodule(s) NOT scanned (another repository, not files here): "
@@ -1068,6 +1109,9 @@ def undecodable_unallowed(root: Path, paths) -> list[str]:
             continue
         target = Path(root) / rel
         if not target.is_file():
+            # Not silent any more: unresolvable_tracked() counts these and the report gives them
+            # their own section. Skipping HERE is right — there is nothing to read — but the skip
+            # was the whole defect for as long as nothing said it had happened (r2.24 E-10).
             continue
         if not _is_readable(target):
             unreadable.append(rel)
