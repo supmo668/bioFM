@@ -836,118 +836,218 @@ def render_undeclared_report(policy: ContentPolicy) -> tuple[str, int]:
     return _render_for_root(repo_root(), policy)
 
 
-def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
-    root = Path(root).resolve()
-    paths, submodules = _tracked_listing(root)
-    _refuse_a_scan_that_cannot_see_itself(root, paths)
+@dataclass(frozen=True)
+class ScanContext:
+    """Everything a scan needs, REQUIRED everywhere and RESOLVABLE NOWHERE (r2.27 E-17).
 
-    # ONE read, threaded through everything below (r2.25 E-14). Before this the two YAML files were
-    # parsed nineteen times per report and nothing was snapshotted, so an edit landing mid-report
-    # produced a report that disagreed with itself.
-    surface = DeclarationSurface.read(root)
+    What makes state ambient is not aggregation but IMPLICIT RESOLUTION. Six defects in this
+    codebase came from a value that could find itself: a tmp root from `$TMPDIR`, an agent identity
+    from the cwd, a quality config from the cwd, a monitor registry from a tracked file, a scan root
+    from `project_root()`, and a declaration surface from a `None` default. Every one was a
+    correctness-relevant answer derived from something nobody passed.
+
+    So this has no default, no `None`, no module-level instance and no `current()`. A caller must
+    build one, which means the dependency is visible in the call graph instead of resolved behind it.
+    """
+
+    root: Path
+    paths: tuple[str, ...]
+    submodules: tuple[str, ...]
+    policy: ContentPolicy
+    surface: DeclarationSurface
+
+    @classmethod
+    def build(cls, root: Path, policy: ContentPolicy) -> ScanContext:
+        """Read the tree ONCE and freeze it. The only constructor a caller needs."""
+        root = Path(root).resolve()
+        paths, submodules = _tracked_listing(root)
+        _refuse_a_scan_that_cannot_see_itself(root, paths)
+        return cls(
+            root=root,
+            paths=tuple(paths),
+            submodules=tuple(submodules),
+            policy=policy,
+            surface=DeclarationSurface.read(root),
+        )
+
+
+@dataclass(frozen=True)
+class ScanRow:
+    """One file, and what this gate has decided about it.
+
+    `disposition` is the answer a reader came for, and it is a FIELD rather than a mark embedded in a
+    formatted line — so "what fails" can be asked of the data instead of reassembled by grepping four
+    sections of prose.
+    """
+
+    path: str
+    owner: str | None
+    #: "undecodable" | "missing-on-disk" | "broken-declaration"
+    category: str
+    #: "FAILS HERE" | "listed"
+    disposition: str
+    #: Only for a broken declaration: why the claim does not hold.
+    detail: str | None = None
+
+
+@dataclass(frozen=True)
+class RecordContentScan:
+    """The verdict as DATA. Rendering derives from this and decides nothing.
+
+    `exit_code` lives HERE, not inside a string. Its living only in the renderer is *why* E-13b
+    happened: no test could reach it cheaply, so twelve mutants survived while every defect test
+    asserted on a validator's return value instead.
+    """
+
+    root: Path
+    package: Path
+    tracked_count: int
+    rows: tuple[ScanRow, ...]
+    declaration_counts: tuple[int, int, int]  # (project, repo-root, distinct defective)
+    defect_count: int
+    submodules: tuple[str, ...]
+    registry_declared: bool
+    structural_error: str | None
+    exit_code: int
+
+
+def scan_record_content(context: ScanContext) -> RecordContentScan:
+    """Run the gate and return its verdict as data. No formatting, no printing, no exit."""
+    root, paths, policy, surface = (
+        context.root,
+        list(context.paths),
+        context.policy,
+        context.surface,
+    )
+
     report = undeclared_report(root, paths, policy, surface)
     failing = set(failing_undeclared(root, paths, policy, surface))
 
-    # Tracked but absent from disk. Listed always; failing only where we own it, or where nobody
-    # does — the same predicate failing_undeclared uses, because "unowned fails here" is
-    # load-bearing for E6-4 and a missing file is no different in that respect.
+    # Tracked but absent from disk. Listed always; failing only where we own it or nobody does —
+    # the same predicate failing_undeclared uses, because "unowned fails here" is load-bearing for
+    # E6-4 and a missing file is no different in that respect.
     recognised = recognised_owners(root, paths, surface)
     missing = [(rel, path_owner(rel, recognised)) for rel in unresolvable_tracked(root, paths)]
     failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
 
-    # A declaration whose claim does not hold fails this gate outright. Both surfaces are ours —
-    # the project file by ownership, the repo-root file because an unowned path belongs to nobody —
-    # so there is no other gate for a broken claim to fall to (E-03).
-    entries = surface.entries
+    # A declaration whose claim does not hold fails this gate outright: both surfaces are ours, so
+    # there is no other gate for a broken claim to fall to (E-03).
     defects = declaration_defects(root, paths, policy, surface)
-    # Kept in `failing` so a broken claim marks its row, but COUNTED separately below: mixing two
-    # categories into one number made the summary wrong exactly where a reader checks it first.
     failing |= {path for path, _ in defects}
-    undecodable_failing = {rel for rel, _owner in report if rel in failing} | {
-        rel for rel, _owner in missing if rel in failing
-    }
 
-    # The root and the denominator go on the header, printed unconditionally. Naming the root only
-    # in the all-clear branch left the harder falsehood undetectable: a wrong-but-nonempty root
-    # prints a plausible list with no root stated anywhere, and a count with no base reads the same
-    # whether 4,000 files were scanned or none. The PACKAGE is named too: which tree gets audited
-    # follows the copy of chipsim that was imported, so two worktrees of one repo can each report
-    # on the other's tree without a word.
+    def mark(rel: str) -> str:
+        return "FAILS HERE" if rel in failing else "listed"
+
+    rows: list[ScanRow] = []
+    rows += [ScanRow(rel, owner, "undecodable", mark(rel)) for rel, owner in report]
+    rows += [ScanRow(rel, owner, "missing-on-disk", mark(rel)) for rel, owner in missing]
+    rows += [
+        ScanRow(path, path_owner(path, recognised), "broken-declaration", "FAILS HERE", why)
+        for path, why in defects
+    ]
+
+    entries = surface.entries
+    counts = (
+        sum(1 for _, _, where in entries if where == "project"),
+        sum(1 for _, _, where in entries if where == "repo-root"),
+        len({path for path, _ in defects}),
+    )
+    return RecordContentScan(
+        root=root,
+        package=Path(__file__).resolve(),
+        tracked_count=len(paths),
+        rows=tuple(rows),
+        declaration_counts=counts,
+        defect_count=len(defects),
+        submodules=context.submodules,
+        registry_declared=surface.registry is not None,
+        structural_error=surface.structural_error,
+        exit_code=2 if failing or surface.structural_error else 0,
+    )
+
+
+def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
+    """Kept as the one-call form the CLI and the composition root use."""
+    return render_scan(scan_record_content(ScanContext.build(root, policy)))
+
+
+def render_scan(scan: RecordContentScan) -> tuple[str, int]:
+    """PRESENTATION. It may reorder, group or drop; it may not decide.
+
+    The exit code it returns is the one the scan computed — it is not recomputed here, because a
+    verdict that exists in two places is a verdict that can disagree with itself.
+    """
+    undecodable = [r for r in scan.rows if r.category == "undecodable"]
+    missing = [r for r in scan.rows if r.category == "missing-on-disk"]
+    broken = [r for r in scan.rows if r.category == "broken-declaration"]
+    undecodable_failing = [r for r in undecodable + missing if r.disposition == "FAILS HERE"]
+    project_count, repo_count, defective = scan.declaration_counts
+
     lines = [
         (
-            f"undeclared undecodable files: {len(report)} "
+            f"undeclared undecodable files: {len(undecodable)} "
             f"(failing this gate: {len(undecodable_failing)}"
-            # E-20: a broken declaration file alone exits 2 while every number a reader checks
-            # first reads clean, leaving the only signal in a paragraph below. That is E-13's own
-            # rationale — counts must be right where a reader looks first — applied to the case
-            # E-13 itself created.
-            f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if surface.structural_error else ''}) "
-            f"— scanned {len(paths)} tracked files under {root}, "
+            f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if scan.structural_error else ''}) "
+            f"— scanned {scan.tracked_count} tracked files under {scan.root}, "
             f"{len(missing)} not present on disk"
         ),
         (
-            # The failure this clause is about is a mechanism that is easy to MISS because nothing
-            # exercises it: the removal half shipped and the READ half did not, and the scoping kept
-            # the suite green without it. An empty declaration set is the correct state today, and
-            # it has to be a NUMBER rather than something implied by silence.
-            f"  declarations read: {len(entries)} "
-            f"({sum(1 for _, _, s in entries if s == 'project')} from {PROJECT_DECLARATION_FILE}, "
-            f"{sum(1 for _, _, s in entries if s == 'repo-root')} from {REPO_DECLARATION_FILE}), "
-            f"{len({path for path, _ in defects})} whose claim does not hold"
-            f" ({len(defects)} defect(s))"
+            f"  declarations read: {project_count + repo_count} "
+            f"({project_count} from {PROJECT_DECLARATION_FILE}, "
+            f"{repo_count} from {REPO_DECLARATION_FILE}), "
+            f"{defective} whose claim does not hold ({scan.defect_count} defect(s))"
         ),
-        f"  (scan run from package {Path(__file__).resolve()})",
+        f"  (scan run from package {scan.package})",
     ]
-    if surface.structural_error:
+    if scan.structural_error:
         lines.append(
             "  DECLARATION DATA COULD NOT BE READ, so NOTHING IS DECLARED — every undecodable file "
             "is reported below as if it had never been declared, which is the fail-closed "
             "direction: more files fail, never fewer. This is exit 2, not exit 3: the scan worked, "
             "only the exemption data is unreadable."
         )
-        lines.append(f"    {surface.structural_error}")
-    for rel, owner in report:
-        mark = "FAILS HERE" if rel in failing else "listed"
-        lines.append(f"  {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
-    if not report:
+        lines.append(f"    {scan.structural_error}")
+    for row in undecodable:
+        lines.append(
+            f"  {render_path(row.path)}  owner={row.owner or '<unowned>'}  [{row.disposition}]"
+        )
+    if not undecodable:
         lines.append("  (none)")
-    if defects:
+    if broken:
         lines.append("  DECLARATIONS WHOSE CLAIM DOES NOT HOLD — these clear nothing:")
-        for path, why in defects:
-            lines.append(f"    {render_path(path)}  [FAILS HERE]  {why}")
+        for row in broken:
+            lines.append(f"    {render_path(row.path)}  [{row.disposition}]  {row.detail}")
     if missing:
         lines.append(
             "  tracked but NOT PRESENT ON DISK, so the scan could not read them (sparse or partial "
             "checkout). The payload is still in the repository:"
         )
-        for rel, owner in missing:
-            mark = "FAILS HERE" if rel in failing else "listed"
-            lines.append(f"    {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
-    if submodules:
+        for row in missing:
+            lines.append(
+                f"    {render_path(row.path)}  owner={row.owner or '<unowned>'}  [{row.disposition}]"
+            )
+    if scan.submodules:
         lines.append(
-            f"  {len(submodules)} submodule(s) NOT scanned (another repository, not files here): "
-            f"{', '.join(render_path(rel) for rel in submodules)}"
+            f"  {len(scan.submodules)} submodule(s) NOT scanned (another repository, not files "
+            f"here): {', '.join(render_path(rel) for rel in scan.submodules)}"
         )
-    # E-03, stated where it is read rather than only in the plan: `owner=` names who SHOULD care,
-    # not who is enforcing. Saying "listed" to a human 23 times, with an owner beside it, reads as
-    # "filed with the team who will fix it" — and no other project implements this check.
-    if surface.registry is None:
+    if scan.registry_declared:
+        lines.append(
+            f"  owner registry: DECLARED in {REPO_DECLARATION_FILE}, intersected with the tracked "
+            "marker — an owner needs both, so neither a declaration nor a file alone mints one."
+        )
+    else:
         lines.append(
             f"  owner registry: MARKER-BACKED ONLY — no `owners` list in {REPO_DECLARATION_FILE}. "
             "A tracked marker is louder than `mkdir` but is addable by anyone who adds a "
             "pyproject.toml, so this is a MITIGATION, not proof (E-11)."
-        )
-    else:
-        lines.append(
-            f"  owner registry: DECLARED in {REPO_DECLARATION_FILE}, intersected with the tracked "
-            "marker — an owner needs both, so neither a declaration nor a file alone mints one."
         )
     lines.append(
         "  exit 2 when a file owned by this project, or owned by none, is undeclared. Files listed "
         "against another project fail NO gate today: no other project implements this check, so "
         "`owner=` names who should care, not who is enforcing (E-03)."
     )
-    return "\n".join(lines), (2 if failing or surface.structural_error else 0)
+    return "\n".join(lines), scan.exit_code
 
 
 def undeclared_report(
