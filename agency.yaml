@@ -80,8 +80,15 @@ quality:
   block_on_secrets: true
   block_on_console_log: false
   review_confidence_threshold: 80      # findings below this are filtered (unified — was 50/80)
-  format_command: ""                   # e.g. "pnpm exec oxfmt --check ."
-  lint_command: ""                     # e.g. "pnpm exec oxlint"
+  # Set 2026-09-16 (principal-approved; CTO ruling on QG G-14). Both were "", so every gate
+  # SKIPPED them while projects/lung-on-chipsim/README.md line 27 declared them part of the gate
+  # — receipts up to and including QGR 061f12d ran `ruff check` only. Run from the module dir.
+  # NOTE: these are GLOBAL. `quality.lint_command_<agent>` is described at the referee_command
+  # comment below as an existing convention, but only tools/referee implements per-module
+  # resolution; the quality gate reads the plain key, so a per-agent override would silently
+  # do nothing. A module that is not a uv/ruff project needs this revisited.
+  format_command: "uv run ruff format --check ."
+  lint_command: "uv run ruff check ."
   typecheck_command: ""                # e.g. "pnpm exec tsc --noEmit"
   test_command: ""                     # e.g. "pnpm exec jest"
   # Definition of Done (Scrum) — the explicit, shared statement of what "complete"
