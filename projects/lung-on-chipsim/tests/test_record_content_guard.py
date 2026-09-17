@@ -286,7 +286,7 @@ def test_a_parquet_that_cannot_be_READ_is_undecodable_not_clean(tmp_path):
     version of these tests, which is how it was found."""
     (tmp_path / "broken.parquet").write_bytes(b"PAR1 truncated garbage not really parquet")
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, ["broken.parquet"]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, ["broken.parquet"]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == ["broken.parquet"]
     assert real_accession_hits(tmp_path, ["broken.parquet"]) == []
 
@@ -298,7 +298,7 @@ def test_an_undecodable_file_is_reported_unless_it_is_declared(tmp_path):
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "figure.pdf").write_bytes(b"\x89PNG\x00\xff\xfe not utf-8")
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, ["docs/figure.pdf"]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, ["docs/figure.pdf"]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == ["docs/figure.pdf"]
 
 
@@ -317,15 +317,15 @@ def test_a_declared_binary_file_is_not_reported(tmp_path):
     digest = _write(tmp_path, declared, b"%PDF-1.4\x00\xfe\xff\x80\x81 binary")
 
     bare = _decl_fixture(tmp_path) + [declared]
-    assert rc.undecodable_unallowed(tmp_path, bare, NOTHING_WAIVED, _surface_of(tmp_path)) == [
-        declared
-    ], "the fixture must be genuinely undecodable, or declaring it proves nothing"
+    assert rc.undecodable_unallowed(bare, NOTHING_WAIVED, _surface_of(tmp_path)) == [declared], (
+        "the fixture must be genuinely undecodable, or declaring it proves nothing"
+    )
 
     listing = _decl_fixture(
         tmp_path,
         project_entries=[{"path": declared, "sha256": digest, "why": "rendered figure"}],
     ) + [declared]
-    assert rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
+    assert rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
 
 
 def test_every_undecodable_tracked_file_in_this_repo_is_declared():
@@ -337,9 +337,7 @@ def test_every_undecodable_tracked_file_in_this_repo_is_declared():
     `test_the_live_report_is_not_vacuous_and_this_gate_is_green`, because listing is what may never
     be skipped and failing is what is scoped.
     """
-    undeclared = failing_undeclared(
-        REPO_ROOT, _tracked_paths(), NOTHING_WAIVED, _surface_of(REPO_ROOT)
-    )
+    undeclared = failing_undeclared(_tracked_paths(), NOTHING_WAIVED, _surface_of(REPO_ROOT))
     assert undeclared == [], (
         f"{len(undeclared)} tracked file(s) this project owns (or that no project owns) cannot be "
         f"decoded and are not declared: {undeclared[:5]}"
@@ -445,7 +443,7 @@ def test_a_parquet_is_recognised_by_its_MAGIC_not_its_name(tmp_path):
         assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL], name
         assert (
             undecodable_unallowed(
-                tmp_path, _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
+                _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
             )
             == []
         ), name
@@ -461,7 +459,6 @@ def test_text_in_other_encodings_is_scanned_not_declared_away(tmp_path):
     assert hits == {"latin1.md", "utf16.md"}
     assert (
         undecodable_unallowed(
-            tmp_path,
             _surfaced(tmp_path, ["latin1.md", "utf16.md"]),
             NOTHING_WAIVED,
             _surface_of(tmp_path),
@@ -475,7 +472,7 @@ def test_genuine_binary_is_still_reported_not_decoded_into_mojibake(tmp_path):
     unconditional last resort — a binary that "decodes" is a binary that scans clean."""
     (tmp_path / "real.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00")
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, ["real.png"]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, ["real.png"]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == ["real.png"]
 
 
@@ -492,11 +489,9 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
     for rel in (f"vendor/{declared}", f"some/other/dir/{Path(declared).name}"):
         _write(tmp_path, rel, b"\x00\xff\x80\x81 not text")
         listing = _decl_fixture(tmp_path, project_entries=[entry]) + [declared, rel]
-        assert rel in rc.undecodable_unallowed(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-        ), rel
+        assert rel in rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)), rel
         assert declared not in rc.undecodable_unallowed(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
+            listing, NOTHING_WAIVED, _surface_of(tmp_path)
         ), (
             "the declared path itself must still be cleared, or this test would pass on a "
             "declaration mechanism that simply does not work"
@@ -534,7 +529,6 @@ def test_undecodable_reporting_is_not_limited_to_familiar_extensions(tmp_path):
     for name in ("weird.bin", "notes.md", "blob_no_ext"):
         (tmp_path / name).write_bytes(b"\x00\xff\xfe\x00 not text at all")
     assert undecodable_unallowed(
-        tmp_path,
         _surfaced(tmp_path, ["weird.bin", "notes.md", "blob_no_ext"]),
         NOTHING_WAIVED,
         _surface_of(tmp_path),
@@ -554,7 +548,6 @@ def test_an_empty_file_is_read_not_reported(tmp_path):
     _parquet(tmp_path, pd.DataFrame({"drugbank_id": pd.Series([], dtype=str)}), "zero.parquet")
     assert (
         undecodable_unallowed(
-            tmp_path,
             _surfaced(tmp_path, ["empty.md", "zero.parquet"]),
             NOTHING_WAIVED,
             _surface_of(tmp_path),
@@ -570,7 +563,6 @@ def test_the_report_is_sorted_so_a_failure_reads_the_same_way_twice(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"\x00\xff")
     assert undecodable_unallowed(
-        tmp_path,
         _surfaced(tmp_path, ["z/c.bin", "m/a.bin", "a/b.bin"]),
         NOTHING_WAIVED,
         _surface_of(tmp_path),
@@ -596,14 +588,14 @@ def test_an_undecodable_ledger_file_is_reported_but_a_dispatch_payload_is_not(tm
     # because a BINARY IS NOT A MESSAGE however it is named (E6-4 as repaired in §7). The waiver
     # below is what a real message looks like.
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, [ledger, dispatch]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [ledger, dispatch]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == sorted([ledger, dispatch])
 
     message = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/real.md"
     (tmp_path / message).write_text("a sent message\n")
     assert (
         undecodable_unallowed(
-            tmp_path, _surfaced(tmp_path, [message]), DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path)
+            _surfaced(tmp_path, [message]), DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path)
         )
         == []
     )
@@ -670,7 +662,7 @@ def test_a_clean_hdf5_container_is_neither_a_hit_nor_undecodable(tmp_path):
     assert real_accession_hits(tmp_path, [path.name]) == []
     assert (
         undecodable_unallowed(
-            tmp_path, _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
+            _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
         )
         == []
     )
@@ -738,7 +730,6 @@ def test_a_non_md_file_in_a_dispatch_directory_is_scanned_and_reported(tmp_path)
     }
     assert hits == {str(base / "leak.csv")}, "the .md message stays waived; the .csv does not"
     assert undecodable_unallowed(
-        tmp_path,
         _surfaced(tmp_path, [str(base / "leak.pdf")]),
         NOTHING_WAIVED,
         _surface_of(tmp_path),
@@ -764,10 +755,7 @@ def test_a_non_md_file_in_a_dispatch_directory_is_scanned_and_reported(tmp_path)
 def test_ownership_is_read_from_an_explicit_map(rel, owner):
     """ "A path matching no owner is unowned BY DEFINITION, never 'somebody else's'." The dispatch
     directory is the case that matters: it belongs to no project."""
-    assert (
-        path_owner(rel, recognised_owners(REPO_ROOT, _tracked_paths(), _surface_of(REPO_ROOT)))
-        == owner
-    )
+    assert path_owner(rel, recognised_owners(_tracked_paths(), _surface_of(REPO_ROOT))) == owner
 
 
 def test_a_file_this_project_owns_fails_this_gate(tmp_path):
@@ -776,7 +764,7 @@ def test_a_file_this_project_owns_fails_this_gate(tmp_path):
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"\x00\xff not text")
     assert failing_undeclared(
-        tmp_path, _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [rel]
 
 
@@ -790,8 +778,8 @@ def test_a_file_another_project_owns_is_listed_but_does_not_fail_this_gate(tmp_p
     # The marker is what makes perturb-seq-eval a REAL project rather than a name in a path: an
     # owner minted by mkdir listed as somebody else's problem and failed nobody's gate.
     listing = _surfaced(tmp_path, [rel, "projects/perturb-seq-eval/pyproject.toml"])
-    assert failing_undeclared(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
-    assert undeclared_report(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [
+    assert failing_undeclared(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
+    assert undeclared_report(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [
         (rel, "perturb-seq-eval")
     ]
 
@@ -806,11 +794,11 @@ def test_a_path_owned_by_NO_project_fails_this_gate(tmp_path):
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"%PDF-1.4\x00\xff and a real accession " + REAL.encode())
     assert failing_undeclared(
-        tmp_path, _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [rel]
-    assert undeclared_report(
-        tmp_path, _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
-    ) == [(rel, None)]
+    assert undeclared_report(_surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)) == [
+        (rel, None)
+    ]
 
 
 def test_the_report_names_the_owner_of_every_listed_file(tmp_path):
@@ -835,7 +823,7 @@ def test_the_report_names_the_owner_of_every_listed_file(tmp_path):
         "projects/lung-on-chipsim/pyproject.toml",
     ]
     assert undeclared_report(
-        tmp_path, _surfaced(tmp_path, [*files, *markers]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [*files, *markers]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == sorted(files.items())
 
 
@@ -848,10 +836,7 @@ def test_the_accession_scan_does_not_shrink_with_the_failure_scope(tmp_path):
     target.write_text(f"see {REAL}\n")
     assert [a for _, a in real_accession_hits(tmp_path, [rel])] == [REAL]
     assert (
-        failing_undeclared(
-            tmp_path, _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
-        )
-        == []
+        failing_undeclared(_surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)) == []
     )
 
 
@@ -860,8 +845,8 @@ def test_the_live_report_is_not_vacuous_and_this_gate_is_green():
     none of the 24 was ever ours) to the REPORT: the other teams' artifacts must still be counted
     and named, not silently dropped by the scoping."""
     tracked = _tracked_paths()
-    report = undeclared_report(REPO_ROOT, tracked, NOTHING_WAIVED, _surface_of(REPO_ROOT))
-    assert failing_undeclared(REPO_ROOT, tracked, NOTHING_WAIVED, _surface_of(REPO_ROOT)) == [], (
+    report = undeclared_report(tracked, NOTHING_WAIVED, _surface_of(REPO_ROOT))
+    assert failing_undeclared(tracked, NOTHING_WAIVED, _surface_of(REPO_ROOT)) == [], (
         "this project owns an undeclared undecodable file (or one owned by nobody)"
     )
     assert len(report) >= 20, "the other teams' undeclared binaries must stay visible"
@@ -951,7 +936,7 @@ def test_a_container_whose_dataset_cannot_be_read_is_reported_not_called_clean(
 
     monkeypatch.setattr(h5py.Dataset, "__getitem__", boom)
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [path.name]
 
 
@@ -968,7 +953,7 @@ def test_a_container_holding_only_links_is_reported_not_called_read(tmp_path):
         handle["soft"] = h5py.SoftLink("/missing")
         handle["ext"] = h5py.ExternalLink(str(target), "/secret")
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [path.name]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [path.name]
 
 
@@ -1021,16 +1006,16 @@ def test_a_binary_named_md_in_a_dispatch_directory_is_not_waived(tmp_path):
     rel_message = str(base / "message.md")
 
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, [rel_binary]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [rel_binary]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [rel_binary]
     assert failing_undeclared(
-        tmp_path, _surfaced(tmp_path, [rel_binary]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [rel_binary]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [rel_binary], "unowned -> fails here"
     # The genuine message keeps its waiver: its text IS the audit trail.
     assert real_accession_hits(tmp_path, [rel_message]) == []
     assert (
         undecodable_unallowed(
-            tmp_path, _surfaced(tmp_path, [rel_message]), NOTHING_WAIVED, _surface_of(tmp_path)
+            _surfaced(tmp_path, [rel_message]), NOTHING_WAIVED, _surface_of(tmp_path)
         )
         == []
     )
@@ -1053,7 +1038,7 @@ def test_every_declaration_belongs_to_this_project():
     passed every existing test. The clause was enforced by the ABSENCE OF DATA, not by a rule."""
     import chipsim.guards.record_content as rc
 
-    _recognised = recognised_owners(REPO_ROOT, _tracked_paths(), _surface_of(REPO_ROOT))
+    _recognised = recognised_owners(_tracked_paths(), _surface_of(REPO_ROOT))
     foreign = [
         rel
         for rel, _, surface in rc._declaration_entries(REPO_ROOT)
@@ -1450,7 +1435,7 @@ def test_an_owner_cannot_be_minted_by_making_a_directory():
     from chipsim.guards.record_content import path_owner, recognised_owners
 
     tracked = _tracked_paths()
-    recognised = recognised_owners(REPO_ROOT, tracked, _surface_of(REPO_ROOT))
+    recognised = recognised_owners(tracked, _surface_of(REPO_ROOT))
 
     assert "perturb-seq-eval" in recognised, "a project with a tracked pyproject.toml is real"
     assert "paper_standalone" in recognised
@@ -1659,7 +1644,7 @@ def _defects(root, listing, policy=NOTHING_WAIVED):
     import chipsim.guards.record_content as _rc
 
     out: dict[str, str] = {}
-    for path, why in _rc.declaration_defects(root, listing, policy, _surface_of(root)):
+    for path, why in _rc.declaration_defects(listing, policy, _surface_of(root)):
         out[path] = f"{out.get(path, '')} {why}".strip()
     return out
 
@@ -1737,11 +1722,11 @@ def test_a_declaration_must_pin_the_content_not_just_the_path(tmp_path):
         ],
     ) + [rel]
 
-    assert rel in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
-    assert rc.declaration_defects(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
-    assert (
-        rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
-    ), "a validly declared file is cleared"
+    assert rel in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
+    assert rc.declaration_defects(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == []
+    assert rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [], (
+        "a validly declared file is cleared"
+    )
 
 
 def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
@@ -1757,9 +1742,7 @@ def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
 
     _write(tmp_path, rel, b"\x00\xffREGENERATED")  # same path, different content
 
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
     defects = _defects(tmp_path, listing)
     # NOT `"stale" in ...lower()`: pytest names tmp_path after the test, so "STALE" is already in
     # this test's own directory name, and a reviewer proved the assertion passes with the whole
@@ -1769,9 +1752,9 @@ def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
     assert defects[rel].startswith("STALE declaration: pinned ")
     assert digest[:12] in defects[rel]
     assert hashlib.sha256((tmp_path / rel).read_bytes()).hexdigest()[:12] in defects[rel]
-    assert rel in rc.undecodable_unallowed(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    ), "a stale declaration clears nothing"
+    assert rel in rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)), (
+        "a stale declaration clears nothing"
+    )
 
 
 def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_path):
@@ -1788,12 +1771,12 @@ def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_pa
         project_entries=[{"path": rel, "derived_from": src, "why": "plotted from the tracked csv"}],
     ) + [rel, src]
 
-    assert rel in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+    assert rel in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
     # ...and the claim fails when the source is NOT tracked, which is what makes it self-maintaining.
     listing_without_source = [p for p in listing if p != src]
     assert rel not in rc.valid_declarations(
-        tmp_path, listing_without_source, NOTHING_WAIVED, _surface_of(tmp_path)
+        listing_without_source, NOTHING_WAIVED, _surface_of(tmp_path)
     )
     defects = _defects(tmp_path, listing_without_source)
     assert "not tracked" in defects[rel].lower()
@@ -1811,9 +1794,7 @@ def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
         tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "not mine to declare"}]
     ) + [rel, "projects/perturb-seq-eval/pyproject.toml"]
 
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
     defects = _defects(tmp_path, listing)
     assert "perturb-seq-eval" in defects[rel] and "owns" in defects[rel].lower()
     # The ownership branch is the FIRST check, so the assertion above holds for a fixture in any
@@ -1825,8 +1806,8 @@ def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
     control = _decl_fixture(
         tmp_path, project_entries=[{"path": mine, "sha256": mine_digest, "why": "mine"}]
     ) + [mine]
-    assert rc.declaration_defects(tmp_path, control, NOTHING_WAIVED, _surface_of(tmp_path)) == []
-    assert mine in rc.valid_declarations(tmp_path, control, NOTHING_WAIVED, _surface_of(tmp_path))
+    assert rc.declaration_defects(control, NOTHING_WAIVED, _surface_of(tmp_path)) == []
+    assert mine in rc.valid_declarations(control, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
@@ -1848,9 +1829,7 @@ def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
         ],
     ) + [unowned, owned]
 
-    assert unowned in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert unowned in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
     defects = _defects(tmp_path, listing)
     assert owned in defects, "an OWNED path does not belong in the repo-root surface"
     assert "repo-root" in defects[owned].lower()
@@ -1869,9 +1848,9 @@ def test_a_declaration_for_a_path_that_is_not_tracked_is_reported_as_rot(tmp_pat
     defects = _defects(tmp_path, listing)
     assert rel in defects and "not tracked" in defects[rel].lower()
     assert len(defects) == 1, defects
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    ), "rot must clear nothing"
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path)), (
+        "rot must clear nothing"
+    )
 
 
 def test_a_readable_container_can_never_be_declared(tmp_path):
@@ -1891,9 +1870,7 @@ def test_a_readable_container_can_never_be_declared(tmp_path):
     assert len(defects) == 1, defects
     assert "ALWAYS read, never declared (E6-2)" in defects[rel]
     assert "parquet" in defects[rel], "the kind must come from the magic, not from the suffix"
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_an_entry_with_both_claims_or_neither_cannot_be_evaluated(tmp_path):
@@ -1909,7 +1886,7 @@ def test_an_entry_with_both_claims_or_neither_cannot_be_evaluated(tmp_path):
         project_entries=[{"path": rel, "sha256": digest, "derived_from": "a.csv", "why": "?"}],
     ) + [rel]
     with pytest.raises(rc.RecordContentScanError, match="exactly one"):
-        rc.valid_declarations(tmp_path, both, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(both, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_path):
@@ -1925,7 +1902,7 @@ def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_pat
         "projects/declared-but-absent/anything.txt",
     ]
 
-    recognised = rc.recognised_owners(tmp_path, listing, _surface_of(tmp_path))
+    recognised = rc.recognised_owners(listing, _surface_of(tmp_path))
     assert THIS_PROJECT in recognised and "perturb-seq-eval" in recognised
     assert "undeclared-but-real" not in recognised, "a marker alone does not mint an owner"
     assert "declared-but-absent" not in recognised, "a declaration alone does not mint one either"
@@ -1975,9 +1952,7 @@ def test_the_shipped_declaration_files_hold():
     import chipsim.guards.record_content as rc
 
     assert (
-        rc.declaration_defects(
-            REPO_ROOT, _tracked_paths(), DRUGBANK_CONTENT_POLICY, _surface_of(REPO_ROOT)
-        )
+        rc.declaration_defects(_tracked_paths(), DRUGBANK_CONTENT_POLICY, _surface_of(REPO_ROOT))
         == []
     )
 
@@ -2032,7 +2007,7 @@ def test_the_owner_registry_narrows_rather_than_widens():
     import chipsim.guards.record_content as rc
 
     tracked = _tracked_paths()
-    recognised = rc.recognised_owners(REPO_ROOT, tracked, _surface_of(REPO_ROOT))
+    recognised = rc.recognised_owners(tracked, _surface_of(REPO_ROOT))
     declared = rc.declared_owner_registry(REPO_ROOT)
 
     # `recognised <= declared` is true BY CONSTRUCTION of the intersection — and true again if the
@@ -2040,7 +2015,7 @@ def test_the_owner_registry_narrows_rather_than_widens():
     # in neither half must not appear, and adding a payload path must not mint its owner.
     assert recognised == rc.marker_backed_owners(tracked) & declared
     assert "ghost-lib" not in rc.recognised_owners(
-        REPO_ROOT, [*tracked, "libs/ghost-lib/payload.bin"], _surface_of(REPO_ROOT)
+        [*tracked, "libs/ghost-lib/payload.bin"], _surface_of(REPO_ROOT)
     )
 
 
@@ -2079,7 +2054,7 @@ def test_a_declaration_field_of_the_wrong_TYPE_is_refused_with_a_diagnosis(tmp_p
     listing = _decl_fixture(tmp_path, project_entries=[entry]) + [rel]
 
     with pytest.raises(rc.RecordContentScanError) as exc:
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
     message = str(exc.value)
     assert rel in message, "the refusal must name the entry the operator has to fix"
     assert field in message, "and the field that is wrong"
@@ -2152,9 +2127,7 @@ def test_delisting_a_project_does_not_make_its_artifacts_declarable_here(tmp_pat
             f"with owners={owners}, delisting turned another team's artifact into a "
             f"repo-root-declarable path"
         )
-        assert foreign not in rc.valid_declarations(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-        )
+        assert foreign not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
         # A sentence only this branch produces — `projects/` is an ownership prefix whether or not
         # the project behind it is registered, which is what breaks the circle.
         assert "OWNERSHIP PREFIX" in defects[foreign]
@@ -2203,9 +2176,7 @@ def test_a_pin_is_hashed_with_the_module_s_own_streaming_helper(tmp_path):
     monkey = _pytest.MonkeyPatch()
     monkey.setattr(rc, "_sha256", ds_sha)
     try:
-        assert rel in rc.valid_declarations(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-        )
+        assert rel in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
     finally:
         monkey.undo()
     assert calls, "the pin must go through the module's own bounded, streaming hash helper"
@@ -2260,7 +2231,7 @@ def test_a_BARE_path_declaration_is_refused(tmp_path):
     _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
     listing = _one_entry(tmp_path, {"path": rel, "why": "bare"})
     with pytest.raises(rc.RecordContentScanError, match="exactly one"):
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_declared_owner_with_no_tracked_marker_is_not_recognised(tmp_path):
@@ -2274,7 +2245,7 @@ def test_a_declared_owner_with_no_tracked_marker_is_not_recognised(tmp_path):
     listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT, "ghost-lib"]) + [
         "libs/ghost-lib/payload.bin"  # note: libs/ghost-lib/pyproject.toml is NOT tracked
     ]
-    recognised = rc.recognised_owners(tmp_path, listing, _surface_of(tmp_path))
+    recognised = rc.recognised_owners(listing, _surface_of(tmp_path))
     assert THIS_PROJECT in recognised
     assert "ghost-lib" not in recognised, "a registry entry alone must not mint an owner"
     assert rc.path_owner("libs/ghost-lib/payload.bin", recognised) is None
@@ -2353,7 +2324,7 @@ def test_an_unparsable_declaration_file_is_not_an_empty_one(tmp_path):
     listing = _decl_fixture(tmp_path)
     (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
     with pytest.raises(rc.RecordContentScanError, match="not an empty one"):
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_declaration_file_with_a_non_utf8_byte_is_refused(tmp_path):
@@ -2388,7 +2359,7 @@ def test_an_entry_missing_its_why_is_refused(tmp_path):
     digest = _write(tmp_path, rel, b"\x00\xff\x80\x81")
     listing = _one_entry(tmp_path, {"path": rel, "sha256": digest})
     with pytest.raises(rc.RecordContentScanError, match="needs a `why`"):
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_an_entry_missing_its_path_is_refused(tmp_path):
@@ -2396,7 +2367,7 @@ def test_an_entry_missing_its_path_is_refused(tmp_path):
 
     listing = _one_entry(tmp_path, {"sha256": "a" * 64, "why": "no path"})
     with pytest.raises(rc.RecordContentScanError, match="needs a `path`"):
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_an_unknown_declaration_key_is_refused(tmp_path):
@@ -2410,7 +2381,7 @@ def test_an_unknown_declaration_key_is_refused(tmp_path):
         tmp_path, {"path": rel, "sha256": digest, "why": "w", "expires": "2030-01-01"}
     )
     with pytest.raises(rc.RecordContentScanError, match="unknown declaration key"):
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_path_declared_on_BOTH_surfaces_is_refused(tmp_path):
@@ -2422,7 +2393,7 @@ def test_a_path_declared_on_BOTH_surfaces_is_refused(tmp_path):
     entry = {"path": rel, "sha256": digest, "why": "twice"}
     listing = _decl_fixture(tmp_path, project_entries=[entry], repo_entries=[entry]) + [rel]
     with pytest.raises(rc.RecordContentScanError, match="declared twice"):
-        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
+        rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_an_owners_registry_of_the_wrong_shape_is_refused(tmp_path):
@@ -2446,9 +2417,7 @@ def test_a_pinned_path_absent_from_disk_is_a_defect(tmp_path):
     listing = _one_entry(tmp_path, {"path": rel, "sha256": "a" * 64, "why": "vanished"})
     defects = _defects(tmp_path, listing)
     assert rel in defects and "absent from disk" in defects[rel]
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_derived_from_source_that_cannot_be_READ_is_a_defect(tmp_path):
@@ -2462,9 +2431,7 @@ def test_a_derived_from_source_that_cannot_be_READ_is_a_defect(tmp_path):
     listing = _one_entry(tmp_path, {"path": rel, "derived_from": src, "why": "w"}, extra=[src])
     defects = _defects(tmp_path, listing)
     assert rel in defects and "cannot read" in defects[rel]
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_dispatch_payload_cannot_be_declared(tmp_path):
@@ -2480,9 +2447,7 @@ def test_a_dispatch_payload_cannot_be_declared(tmp_path):
     ) + [rel]
     defects = _defects(tmp_path, listing)
     assert rel in defects and "DOUBLE-EXEMPT" in defects[rel]
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_declared_path_may_not_also_be_content_excluded(tmp_path):
@@ -2501,9 +2466,7 @@ def test_a_declared_path_may_not_also_be_content_excluded(tmp_path):
     listing = _decl_fixture(tmp_path, **kwargs) + [rel]
     defects = _defects(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
     assert rel in defects and "exempted twice" in defects[rel]
-    assert rel not in rc.valid_declarations(
-        tmp_path, listing, DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path)
-    )
+    assert rel not in rc.valid_declarations(listing, DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path))
 
 
 def test_a_derived_from_source_may_not_itself_be_declared(tmp_path):
@@ -2541,12 +2504,12 @@ def test_an_OWNED_payload_cannot_be_cleared_at_the_repo_root_surface_by_delistin
 
     for owners in ([THIS_PROJECT], []):
         listing = _decl_fixture(tmp_path, repo_entries=[entry], owners=owners) + [rel]
-        assert rel not in rc.valid_declarations(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-        ), f"cleared with owners={owners}"
-        assert rel in rc.undecodable_unallowed(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-        ), "and it stays reported"
+        assert rel not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path)), (
+            f"cleared with owners={owners}"
+        )
+        assert rel in rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)), (
+            "and it stays reported"
+        )
 
 
 def test_a_fabricated_project_directory_is_not_declarable_at_the_repo_root(tmp_path):
@@ -2562,9 +2525,7 @@ def test_a_fabricated_project_directory_is_not_declarable_at_the_repo_root(tmp_p
 
     defects = _defects(tmp_path, listing)
     assert ghost in defects and "OWNERSHIP PREFIX" in defects[ghost]
-    assert ghost not in rc.valid_declarations(
-        tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-    )
+    assert ghost not in rc.valid_declarations(listing, NOTHING_WAIVED, _surface_of(tmp_path))
 
 
 def test_a_declaration_file_larger_than_the_bound_is_refused(tmp_path):
@@ -2710,9 +2671,7 @@ def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch,
 
     reasons = [
         why
-        for path, why in rc.declaration_defects(
-            tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)
-        )
+        for path, why in rc.declaration_defects(listing, NOTHING_WAIVED, _surface_of(tmp_path))
         if path == rel
     ]
     assert len(reasons) == 2, f"expected placement + container, got: {reasons}"
@@ -2864,10 +2823,8 @@ def test_exempting_nothing_is_the_QUIETER_direction(tmp_path):
             "this ledger entry is not owned by this project, so the fixture cannot declare it"
         )
 
-    lenient = rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path))
-    strict = rc.undecodable_unallowed(
-        tmp_path, listing, DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path)
-    )
+    lenient = rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path))
+    strict = rc.undecodable_unallowed(listing, DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path))
     assert rel not in lenient, "exempting nothing CLEARS it — the quieter direction"
     assert rel in strict, "the real policy reports it"
 
@@ -3061,10 +3018,10 @@ def test_the_readability_waiver_is_consulted_and_obeyed(tmp_path):
     waiving = rc.ContentPolicy(
         readability_waived=waive, content_exempt=rc.nothing_is_content_exempt
     )
-    assert rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [
-        rel
-    ], "unwaived: reported"
-    assert rc.undecodable_unallowed(tmp_path, listing, waiving, _surface_of(tmp_path)) == [], (
+    assert rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [rel], (
+        "unwaived: reported"
+    )
+    assert rc.undecodable_unallowed(listing, waiving, _surface_of(tmp_path)) == [], (
         "waived: not reported"
     )
     assert rel in seen, "the waiver must actually be consulted, not merely accepted"
@@ -3080,11 +3037,9 @@ def test_the_ledger_is_not_readability_waived_and_a_binary_is_not_a_message(tmp_
         _write(tmp_path, rel, b"\x00\xff not text")
     listing = _surfaced(tmp_path, [ledger, payload])
 
-    assert undecodable_unallowed(
-        tmp_path, listing, DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path)
-    ) == sorted([ledger, payload]), (
-        "the ledger is NOT readability-waived, and a binary at a dispatch path is not a message"
-    )
+    assert undecodable_unallowed(listing, DRUGBANK_CONTENT_POLICY, _surface_of(tmp_path)) == sorted(
+        [ledger, payload]
+    ), "the ledger is NOT readability-waived, and a binary at a dispatch path is not a message"
 
 
 def test_three_defects_for_one_entry_are_all_reported(tmp_path, monkeypatch, capsys):
@@ -3198,12 +3153,12 @@ def test_the_readability_waiver_actually_waives_when_the_set_is_not_empty(tmp_pa
     )
 
     # Empty set, the live configuration: both files are reported.
-    assert rc.undecodable_unallowed(tmp_path, listing, waiver_only, surface) == [rel, other]
+    assert rc.undecodable_unallowed(listing, waiver_only, surface) == [rel, other]
 
     # Non-empty set: the configuration the surviving branch exists to serve. `rel` is waived and
     # `other` is not, so the waiver is shown to fire AND to stay a path list rather than a blanket.
     monkeypatch.setattr(ds, "DRUGBANK_ID_EXCLUDED_FILES", frozenset({rel}))
-    assert rc.undecodable_unallowed(tmp_path, listing, waiver_only, surface) == [other], (
+    assert rc.undecodable_unallowed(listing, waiver_only, surface) == [other], (
         "the waiver did not waive — the kept half of `_readability_waived` is inert and `return "
         "False` is an exact replacement for it"
     )
@@ -3512,7 +3467,7 @@ def test_a_NUL_FREE_binary_is_still_reported_not_decoded_into_mojibake(tmp_path)
     rel = "docs/blob.bin"
     _write(tmp_path, rel, data)
     assert undecodable_unallowed(
-        tmp_path, _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
+        _surfaced(tmp_path, [rel]), NOTHING_WAIVED, _surface_of(tmp_path)
     ) == [rel]
 
     # The positive control: a mostly-printable latin-1 document must STILL decode, or this test

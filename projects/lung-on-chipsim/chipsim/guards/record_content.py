@@ -168,7 +168,7 @@ def marker_backed_owners(paths) -> frozenset[str]:
     return frozenset(found)
 
 
-def recognised_owners(root: Path, paths, surface: DeclarationSurface) -> frozenset[str]:
+def recognised_owners(paths, surface: DeclarationSurface) -> frozenset[str]:
     """The projects that DEMONSTRABLY exist.
 
     TWO independent conditions, and an owner needs BOTH (r2.24 E-11):
@@ -412,18 +412,16 @@ def _under_an_ownership_prefix(rel: str) -> bool:
 
 
 def declaration_defects(
-    root: Path,
     paths,
     policy: ContentPolicy,
     surface: DeclarationSurface,
 ) -> list[tuple[str, str]]:
     """Adjudicate every declaration, at most ONCE per (surface, policy). See _adjudicate_once."""
     read = surface
-    return _adjudicate_once(root, paths, policy, read)
+    return _adjudicate_once(paths, policy, read)
 
 
 def _declaration_defects_uncached(
-    root: Path,
     paths,
     policy: ContentPolicy,
     surface: DeclarationSurface,
@@ -441,6 +439,7 @@ def _declaration_defects_uncached(
     # the narrowed set for BOTH let a delisting legalise declaring another team's artifacts.
     placement_owners = marker_backed_owners(paths)
     read = surface
+    root = read.root  # FROM THE SURFACE: one source, so a mismatch is unrepresentable (§12)
     defects: list[tuple[str, str]] = []
 
     for path, entry, where in read.entries:
@@ -652,15 +651,43 @@ class DeclarationSurface:
     reason travels WITH the surface, to be reported beside the listing instead of replacing it.
     """
 
-    entries: tuple[tuple[str, dict, str], ...] = ()
-    registry: frozenset[str] | None = None
-    structural_error: str | None = None
+    #: The tree this surface was READ FROM (r2.29 §12). Without it, `read(root)` discarded its
+    #: argument and eight public functions took `root` and `surface` separately — so a surface read
+    #: from tree A could be passed with tree B and would return A's verdicts, silently. Every
+    #: verdict in the memo is a snapshot of filesystem reads under a root the key never mentioned.
+    #: E-14's thesis is that disagreement must be IMPOSSIBLE, not unlikely, and the frozen object
+    #: was missing the one field saying what it was frozen FROM.
+    #: NO DEFAULTS, for the reason the rest of the scan path has none (§12). `DeclarationSurface()`
+    #: used to be publicly constructible and landed on `registry=None` -> MARKER-BACKED-ONLY, which
+    #: is the WIDENING direction: more paths acquire an owner and under E-03 an owned path fails
+    #: nobody's gate. A real root plus a real listing plus a defaulted surface reported
+    #: MARKER-BACKED ONLY over a repository whose registry exists and narrows. `ScanContext` was
+    #: given `__post_init__` precisely because "the only sanctioned constructor has to be enforced
+    #: by the TYPE rather than by convention", and that argument was not carried one class over.
+    #: I then reintroduced it myself, adding `root: Path = Path()` to satisfy field ordering.
+    root: Path
+    entries: tuple[tuple[str, dict, str], ...]
+    registry: frozenset[str] | None
+    structural_error: str | None
     #: Adjudication memo, keyed by policy. The YAML was snapshotted but the VERDICTS were not:
     #: `declaration_defects` ran three times per report and re-read the filesystem each time, so a
     #: pinned artifact was hashed three times and an artifact rebuilt between passes produced a
     #: single report that disagreed with itself — the exact failure E-14 claims to prevent,
     #: surviving inside the fix for E-14. Excluded from equality and repr: it is a cache, not state.
     _verdicts: dict = dataclass_field(default_factory=dict, compare=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """The two invariants that are stateable about a surface.
+
+        A structural error means NOTHING could be read, so carrying entries or a registry beside one
+        would be a surface claiming to have parsed the file it is reporting it could not parse.
+        """
+        if self.structural_error and (self.entries or self.registry is not None):
+            raise RecordContentScanError(
+                "a surface carrying a structural error must declare nothing: "
+                f"{len(self.entries)} entry(ies) and registry={self.registry!r} were kept beside "
+                f"{self.structural_error!r}"
+            )
 
     @classmethod
     def require(cls, root: Path) -> DeclarationSurface:
@@ -679,6 +706,7 @@ class DeclarationSurface:
             for rel in (PROJECT_DECLARATION_FILE, REPO_DECLARATION_FILE)
         }
         return cls(
+            root=Path(root).resolve(),
             entries=tuple(_entries_from(docs)),
             registry=_registry_from(docs[REPO_DECLARATION_FILE]),
             structural_error=None,
@@ -694,22 +722,23 @@ class DeclarationSurface:
         try:
             return cls.require(root)
         except RecordContentScanError as exc:
-            return cls(entries=(), registry=None, structural_error=str(exc))
+            return cls(
+                root=Path(root).resolve(), entries=(), registry=None, structural_error=str(exc)
+            )
 
 
 def valid_declarations(
-    root: Path,
     paths,
     policy: ContentPolicy,
     surface: DeclarationSurface,
 ) -> frozenset[str]:
     """The declared paths whose claim actually HOLDS. Only these clear a file."""
     read = surface
-    broken = {path for path, _ in declaration_defects(root, paths, policy, read)}
+    broken = {path for path, _ in declaration_defects(paths, policy, read)}
     return frozenset(path for path, _, _ in read.entries if path not in broken)
 
 
-def _adjudicate_once(root: Path, paths, policy: ContentPolicy, surface: DeclarationSurface):
+def _adjudicate_once(paths, policy: ContentPolicy, surface: DeclarationSurface):
     """`declaration_defects`, computed at most once per (surface, policy).
 
     Every caller inside one report shares the verdict, so the rows, the header count and the defect
@@ -719,7 +748,7 @@ def _adjudicate_once(root: Path, paths, policy: ContentPolicy, surface: Declarat
     # policy and a new one allocated at the same address would share a memo entry.
     key = (policy, tuple(paths))
     if key not in surface._verdicts:
-        surface._verdicts[key] = _declaration_defects_uncached(root, paths, policy, surface)
+        surface._verdicts[key] = _declaration_defects_uncached(paths, policy, surface)
     return surface._verdicts[key]
 
 
@@ -1030,19 +1059,19 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
         context.surface,
     )
 
-    report = undeclared_report(root, paths, policy, surface)
-    failing = set(failing_undeclared(root, paths, policy, surface))
+    report = undeclared_report(paths, policy, surface)
+    failing = set(failing_undeclared(paths, policy, surface))
 
     # Tracked but absent from disk. Listed always; failing only where we own it or nobody does —
     # the same predicate failing_undeclared uses, because "unowned fails here" is load-bearing for
     # E6-4 and a missing file is no different in that respect.
-    recognised = recognised_owners(root, paths, surface)
+    recognised = recognised_owners(paths, surface)
     missing = [(rel, path_owner(rel, recognised)) for rel in unresolvable_tracked(root, paths)]
     failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
 
     # A declaration whose claim does not hold fails this gate outright: both surfaces are ours, so
     # there is no other gate for a broken claim to fall to (E-03).
-    defects = declaration_defects(root, paths, policy, surface)
+    defects = declaration_defects(paths, policy, surface)
     failing |= {path for path, _ in defects}
 
     def mark(rel: str) -> str:
@@ -1215,7 +1244,6 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
 
 
 def undeclared_report(
-    root: Path,
     paths,
     policy: ContentPolicy,
     surface: DeclarationSurface,
@@ -1229,15 +1257,13 @@ def undeclared_report(
     # The registry is built from the SAME listing the report is rendered from, so an owner cannot
     # be recognised on the strength of a file that this scan never saw.
     read = surface
-    recognised = recognised_owners(root, paths, read)
+    recognised = recognised_owners(paths, read)
     return sorted(
-        (rel, path_owner(rel, recognised))
-        for rel in undecodable_unallowed(root, paths, policy, read)
+        (rel, path_owner(rel, recognised)) for rel in undecodable_unallowed(paths, policy, read)
     )
 
 
 def failing_undeclared(
-    root: Path,
     paths,
     policy: ContentPolicy,
     surface: DeclarationSurface,
@@ -1251,13 +1277,12 @@ def failing_undeclared(
     """
     return [
         rel
-        for rel, owner in undeclared_report(root, paths, policy, surface)
+        for rel, owner in undeclared_report(paths, policy, surface)
         if owner is None or owner == THIS_PROJECT
     ]
 
 
 def undecodable_unallowed(
-    root: Path,
     paths,
     policy: ContentPolicy,
     surface: DeclarationSurface,
@@ -1273,7 +1298,8 @@ def undecodable_unallowed(
     IS still read (`ledger_tuple_hits`), so its readability is exactly what this check is for. The
     exclusions exist for accession CONTENT, not for readability.
     """
-    declared = valid_declarations(root, paths, policy, surface)
+    declared = valid_declarations(paths, policy, surface)
+    root = surface.root  # FROM THE SURFACE (§12), never a separately-passed argument
     unreadable: list[str] = []
     for rel in paths:
         if policy.readability_waived(root, rel):

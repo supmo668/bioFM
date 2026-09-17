@@ -739,3 +739,80 @@ def test_an_EMPTY_owners_list_narrows_to_nothing_and_is_not_an_absent_registry(
     assert row.owner is None, "the registry narrowed every owner away, so this path is unowned"
     assert row.disposition == "FAILS HERE", "and unowned fails HERE — the fail-closed direction"
     assert scan.exit_code == 2
+
+
+# --- §12: the surface must be bound to the root it was READ FROM ------------------------------
+
+
+def test_a_surface_cannot_be_used_against_a_root_it_was_not_read_from(tmp_path_factory):
+    """S11-11 / r2.29 signatures-first. `DeclarationSurface.read(root)` DISCARDS `root`, and eight
+    public functions then take `root` and `surface` as SEPARATE arguments — so a caller can pass a
+    surface read from tree A together with tree B and receive A's verdicts, silently.
+
+    Every verdict in the memo is a snapshot of filesystem reads (`is_file`, `_sha256`,
+    `_is_readable`) under a root the key does not mention. E-14's whole thesis is that disagreement
+    must be IMPOSSIBLE rather than unlikely, and the frozen object is missing the one field that
+    says what it was frozen FROM.
+
+    Unreachable through `ScanContext.build` today — which is why it is a latent hazard rather than a
+    live bug, and why the fix is to make the pair unrepresentable rather than to add a check.
+    """
+    import chipsim.guards.record_content as rc
+
+    a = tmp_path_factory.mktemp("tree_a")
+    b = tmp_path_factory.mktemp("tree_b")
+    for root in (a, b):
+        (root / rc.PROJECT_DECLARATION_FILE).parent.mkdir(parents=True, exist_ok=True)
+        (root / rc.REPO_DECLARATION_FILE).parent.mkdir(parents=True, exist_ok=True)
+        (root / rc.PROJECT_DECLARATION_FILE).write_text('version: "1"\ndeclarations: []\n')
+        (root / rc.REPO_DECLARATION_FILE).write_text('version: "1"\ndeclarations: []\n')
+
+    surface = rc.DeclarationSurface.read(a)
+    assert getattr(surface, "root", None) is not None, (
+        "the surface does not record which tree it was read from, so nothing can detect a "
+        "mismatched (root, surface) pair"
+    )
+    assert Path(surface.root).resolve() == a.resolve()
+
+
+def test_a_declaration_surface_cannot_be_constructed_without_saying_what_it_read(tmp_path):
+    """S11-8, closed in §12. `DeclarationSurface()` was publicly constructible on all-defaults and
+    landed on `registry=None` -> MARKER-BACKED-ONLY: the WIDENING direction, where more paths
+    acquire an owner and under E-03 an owned path fails nobody's gate. A real root plus a real
+    listing plus a defaulted surface reported MARKER-BACKED ONLY over a repository whose registry
+    exists and narrows, and the anti-vacuity refusal never saw it because it validates root and
+    paths, not the surface.
+
+    `ScanContext` got `__post_init__` because "the only sanctioned constructor has to be enforced by
+    the TYPE rather than by convention". That argument was not carried one class over — and when I
+    bound the root in §12 I reintroduced the default myself, to satisfy dataclass field ordering.
+    """
+    import chipsim.guards.record_content as rc
+
+    with pytest.raises(TypeError):
+        rc.DeclarationSurface()
+
+    with pytest.raises(TypeError):
+        rc.DeclarationSurface(root=tmp_path)
+
+
+def test_a_surface_reporting_it_could_not_parse_may_not_also_carry_entries(tmp_path):
+    """The stateable invariant: a structural error means NOTHING was read. Carrying entries beside
+    one is a surface claiming to have parsed the file it is reporting it could not parse."""
+    import chipsim.guards.record_content as rc
+
+    with pytest.raises(rc.RecordContentScanError, match="must declare nothing"):
+        rc.DeclarationSurface(
+            root=tmp_path,
+            entries=(("docs/x.bin", {"path": "docs/x.bin"}, "project"),),
+            registry=None,
+            structural_error="could not be read as YAML",
+        )
+
+    with pytest.raises(rc.RecordContentScanError, match="must declare nothing"):
+        rc.DeclarationSurface(
+            root=tmp_path,
+            entries=(),
+            registry=frozenset({"x"}),
+            structural_error="could not be read as YAML",
+        )
