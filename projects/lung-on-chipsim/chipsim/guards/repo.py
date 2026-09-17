@@ -23,20 +23,16 @@ import os
 import subprocess
 from pathlib import Path
 
+# The exception vocabulary is a LEAF (r2.29): it lived here under a rule that was false on the
+# facts — this module raises it 5 times against record_content's 24 — and the real reason was
+# cycle avoidance. Re-exported so existing importers keep working.
+from chipsim.guards.errors import (  # noqa: F401
+    DeclarationDataUnusable,
+    GuardInvariantViolated,
+    RecordContentScanError,
+    ScanNotPerformed,
+)
 from chipsim.journal import source_root
-
-
-class RecordContentScanError(RuntimeError):
-    """The scan could not be PERFORMED — a different answer from "the scan found nothing".
-
-    E-08 was that the report scanned the wrong tree and printed a clean result. The first fix moved
-    the root selection and left every other way of getting the root wrong still ending in
-    "0 (failing this gate: 0)" and exit 0. Four reviewers reproduced that composite, so "I could not
-    determine what to scan" is now an exception with its own exit code rather than an empty list.
-
-    This is E-06's ruling applied to the READ side: a missing declared root fails loudly naming the
-    root, because one message for both states sends a legitimate operator looking for the wrong bug.
-    """
 
 
 def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
@@ -118,13 +114,13 @@ def repo_root() -> Path:
             continue
         top = _toplevel_of(candidate)
         if top is None:
-            raise RecordContentScanError(
+            raise ScanNotPerformed(
                 f"{marker} exists but git cannot open a repository there, so the tree to scan "
                 f"cannot be determined. Refusing to report: an unscannable tree must never render "
                 f"as a clean one. Repair or remove that marker."
             )
         return top
-    raise RecordContentScanError(
+    raise ScanNotPerformed(
         f"no git repository at or above {start}, so there is no tracked-file list to scan. "
         f"Refusing to report a clean result over a tree that was never read (r2.23 E-08). This "
         f"command reports on a CHECKOUT; it cannot speak for an installed copy of the package."
@@ -146,18 +142,18 @@ def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
     root = Path(root).resolve()
     top = _toplevel_of(root)
     if top is None:
-        raise RecordContentScanError(
+        raise ScanNotPerformed(
             f"{root} is not a git checkout, so no tracked-file list could be read. An empty list "
             f"is not an all-clear."
         )
     if top != root:
-        raise RecordContentScanError(
+        raise ScanNotPerformed(
             f"asked to scan {root}, but git resolves that directory to the working tree {top}. "
             f"Refusing to report: the tree scanned and the tree named must be the same one."
         )
     run = _git(["ls-files", "-z", "-s"], cwd=root)
     if run.returncode != 0:
-        raise RecordContentScanError(
+        raise ScanNotPerformed(
             f"git ls-files failed under {root}: {run.stderr.strip() or 'no diagnostic'}"
         )
     paths: list[str] = []

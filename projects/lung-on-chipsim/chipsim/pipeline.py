@@ -365,7 +365,8 @@ def _cmd_record_content_report(ns) -> int:
     on inside tests, which means it reached nobody — and listing that reaches no one is a silent
     skip with extra steps.
     """
-    from chipsim.guards.repo import RecordContentScanError, render_path
+    from chipsim.guards.errors import RecordContentScanError
+    from chipsim.guards.repo import render_path
     from chipsim.record_content import RecordContentViolation, enforce_record_content
 
     # THIS COMMAND NOW RUNS ALL FOUR HALVES (r2.28, E6-7 declared UNMET).

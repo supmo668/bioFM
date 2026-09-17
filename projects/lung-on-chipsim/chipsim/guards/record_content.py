@@ -50,9 +50,21 @@ from chipsim.guards.decoding import (
     _is_readable,
     _sha256,
 )
+
+# `RecordContentScanError` is re-exported DELIBERATELY: it is the base of the vocabulary this
+# module raises, and callers and tests reach it here. `noqa: F401` because ruff's autofix deleted it
+# the moment this file stopped raising the base directly — the same autofix that deleted re-exports
+# five tests reached through earlier in this workstream, and which produced an ImportError in the
+# SHIPPED command while the suite stayed green, because I ran the formatter after the tests rather
+# than before them.
+from chipsim.guards.errors import (  # noqa: F401
+    DeclarationDataUnusable,
+    GuardInvariantViolated,
+    RecordContentScanError,
+    ScanNotPerformed,
+)
 from chipsim.guards.repo import (
     _MINIMUM_PLAUSIBLE_TRACKED,
-    RecordContentScanError,
     _tracked_listing,
     render_path,
     repo_root,
@@ -266,7 +278,7 @@ def _declaration_document(root: Path, rel: str) -> dict:
         # Bounded like every other reader in this guard. `yaml.safe_load` is safe against arbitrary
         # object construction but not against alias expansion or a huge document, and a declaration
         # file nobody can parse is the gate held permanently un-runnable.
-        raise RecordContentScanError(
+        raise DeclarationDataUnusable(
             f"{rel} is {size} bytes, above the {_MAX_DECLARATION_BYTES}-byte bound for declaration "
             f"data. A declaration file is a short list of claims; this is something else."
         )
@@ -276,14 +288,14 @@ def _declaration_document(root: Path, rel: str) -> dict:
         # ValueError covers UnicodeDecodeError, which read_text raises and which is NOT an OSError.
         # One non-UTF-8 byte in a declaration file produced a traceback out of the CLI — exit 1 and
         # no report — from the one command whose contract is that it must never fail silently.
-        raise RecordContentScanError(
+        raise DeclarationDataUnusable(
             f"{rel} could not be read as YAML ({exc}), so the gate cannot tell what is declared. "
             f"Refusing to report: an unreadable declaration file is not an empty one."
         ) from exc
     if doc is None:
         return {}
     if not isinstance(doc, dict):
-        raise RecordContentScanError(f"{rel} must be a mapping, got {type(doc).__name__}.")
+        raise DeclarationDataUnusable(f"{rel} must be a mapping, got {type(doc).__name__}.")
     # Quoted in the data because tests/test_scaffold.py forbids a bare numeric value anywhere under
     # configs/ — biological numbers are human-owned, and a scanner cannot tell a schema version from
     # a parameter. Checked here so the field is load-bearing: reading a future schema as if it were
@@ -292,7 +304,7 @@ def _declaration_document(root: Path, rel: str) -> dict:
     # `str(version) != "1"` accepted YAML 1.1 integer spellings — 0x1 and 01 both stringify to
     # something a reader would not call version 1. The data files quote it, so require the string.
     if version != "1":
-        raise RecordContentScanError(
+        raise DeclarationDataUnusable(
             f'{rel}: unsupported declaration schema version {version!r} (this gate reads "1"). '
             f"Refusing to interpret it as the schema it is not."
         )
@@ -325,22 +337,22 @@ def _entries_from(docs: dict[str, dict]) -> list[tuple[str, dict, str]]:
         doc = docs[rel]
         declared_list = doc.get("declarations") or []
         if not isinstance(declared_list, list):
-            raise RecordContentScanError(
+            raise DeclarationDataUnusable(
                 f"{rel}: `declarations` must be a list, got {type(declared_list).__name__}."
             )
         for raw in declared_list:
             if not isinstance(raw, dict):
-                raise RecordContentScanError(f"{rel}: every declaration must be a mapping.")
+                raise DeclarationDataUnusable(f"{rel}: every declaration must be a mapping.")
             unknown = set(raw) - _DECLARATION_KEYS
             if unknown:
-                raise RecordContentScanError(
+                raise DeclarationDataUnusable(
                     f"{rel}: unknown declaration key(s) {sorted(map(repr, unknown))}. A key the "
                     f"gate does not "
                     f"understand may be the one a reader believed was doing the work."
                 )
             path = raw.get("path")
             if not isinstance(path, str) or not path:
-                raise RecordContentScanError(f"{rel}: every declaration needs a `path`.")
+                raise DeclarationDataUnusable(f"{rel}: every declaration needs a `path`.")
             # TYPE before truthiness. `bool(12345)`, `bool(True)` and `bool({"a": 1})` are all
             # true, so a mistyped field passed the exactly-one-claim check below and then crashed on
             # a string operation — a traceback out of the CLI, which tells an operator nothing about
@@ -348,14 +360,14 @@ def _entries_from(docs: dict[str, dict]) -> list[tuple[str, dict, str]]:
             for field, expected in (("sha256", str), ("derived_from", str), ("why", str)):
                 value = raw.get(field)
                 if value is not None and not isinstance(value, expected):
-                    raise RecordContentScanError(
+                    raise DeclarationDataUnusable(
                         f"{rel}: `{path}` has `{field}` of type {type(value).__name__}; it must be "
                         f"a string. YAML supplies whatever was written, and a mistyped field is a "
                         f"claim nobody can evaluate."
                     )
             digest = raw.get("sha256")
             if digest is not None and not _SHA256_RE.fullmatch(digest):
-                raise RecordContentScanError(
+                raise DeclarationDataUnusable(
                     f"{rel}: `{path}` has a `sha256` that is not 64 lowercase hex characters "
                     f"({digest!r}). A pin that cannot match anything would clear nothing while "
                     f"looking like coverage."
@@ -376,18 +388,18 @@ def _entries_from(docs: dict[str, dict]) -> list[tuple[str, dict, str]]:
             # adjudication uses, so the two can no longer disagree.
             claims = [key for key in ("sha256", "derived_from") if raw.get(key) is not None]
             if len(claims) != 1:
-                raise RecordContentScanError(
+                raise DeclarationDataUnusable(
                     f"{rel}: `{path}` must carry exactly one of `sha256` (pin the content) or "
                     f"`derived_from` (name a tracked source). Neither is a bare path declaration, "
                     f"which is what E6-3 forbids; both at once is a claim nobody can adjudicate."
                 )
             if not raw.get("why"):
-                raise RecordContentScanError(
+                raise DeclarationDataUnusable(
                     f"{rel}: `{path}` needs a `why`. A declaration is a claim, and an unexplained "
                     f"one is the comment E6-1 contrasts a checkable claim against."
                 )
             if path in seen:
-                raise RecordContentScanError(
+                raise DeclarationDataUnusable(
                     f"`{path}` is declared twice ({seen[path]} and {surface}); which claim governs "
                     f"is not something the gate may pick."
                 )
@@ -683,7 +695,7 @@ class DeclarationSurface:
         would be a surface claiming to have parsed the file it is reporting it could not parse.
         """
         if self.structural_error and (self.entries or self.registry is not None):
-            raise RecordContentScanError(
+            raise GuardInvariantViolated(
                 "a surface carrying a structural error must declare nothing: "
                 f"{len(self.entries)} entry(ies) and registry={self.registry!r} were kept beside "
                 f"{self.structural_error!r}"
@@ -721,7 +733,7 @@ class DeclarationSurface:
         """
         try:
             return cls.require(root)
-        except RecordContentScanError as exc:
+        except DeclarationDataUnusable as exc:
             return cls(
                 root=Path(root).resolve(), entries=(), registry=None, structural_error=str(exc)
             )
@@ -762,7 +774,7 @@ def _registry_from(doc: dict) -> frozenset[str] | None:
     if owners is None:
         return None
     if not isinstance(owners, list) or not all(isinstance(o, str) and o for o in owners):
-        raise RecordContentScanError(
+        raise DeclarationDataUnusable(
             f"{REPO_DECLARATION_FILE}: `owners` must be a list of project names."
         )
     return frozenset(owners)
@@ -788,7 +800,7 @@ def assert_no_container_is_declared(root: Path) -> None:
         # optimisation, it would VANISH, and a declared container would be cleared in silence. And
         # AssertionError is a test-shaped exception; this is a production refusal, so it raises the
         # module's own error like every other refusal here.
-        raise RecordContentScanError(
+        raise DeclarationDataUnusable(
             f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
             "never declared (r2.21 E6-2) — only rendered artifacts may be declared."
         )
@@ -811,17 +823,17 @@ def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
     try:
         witness = here.relative_to(root).as_posix()
     except ValueError:
-        raise RecordContentScanError(
+        raise ScanNotPerformed(
             f"{root} does not contain this package ({here}), so it is not the repository this "
             f"report can speak for."
         ) from None
     if witness not in set(paths):
-        raise RecordContentScanError(
+        raise ScanNotPerformed(
             f"the listing for {root} does not contain this module's own file ({witness}), so it "
             f"is not a listing of the tree this package lives in. Refusing to report."
         )
     if len(paths) < _MINIMUM_PLAUSIBLE_TRACKED:
-        raise RecordContentScanError(
+        raise ScanNotPerformed(
             f"only {len(paths)} tracked path(s) under {root}, which is below the floor of "
             f"{_MINIMUM_PLAUSIBLE_TRACKED}: this is a listing that went wrong, not a repository "
             f"with nothing in it. Refusing to report."
@@ -845,7 +857,7 @@ def refuse_an_absent_declaration_surface(root: Path) -> None:
     """
     for rel in (PROJECT_DECLARATION_FILE, REPO_DECLARATION_FILE):
         if not (Path(root) / rel).is_file():
-            raise RecordContentScanError(
+            raise DeclarationDataUnusable(
                 f"the declaration surface {rel} is ABSENT. An empty `declarations: []` is a claim "
                 f"made on purpose; a missing file is a scan that could not be performed. Refusing "
                 f"to report."
@@ -972,7 +984,7 @@ class ScanRow:
         failing.
         """
         if self.disposition not in {"FAILS HERE", "listed"}:
-            raise RecordContentScanError(
+            raise GuardInvariantViolated(
                 f"{self.path}: disposition {self.disposition!r} is neither 'FAILS HERE' nor "
                 f"'listed'. The scan's failing-count matches on this string."
             )
@@ -1030,20 +1042,20 @@ class RecordContentScan:
         # through the uncaught-exception path. An invariant that checks one BIT of a value is not
         # checking the value.
         if self.exit_code not in {0, 2}:
-            raise RecordContentScanError(
+            raise GuardInvariantViolated(
                 f"scan carries exit_code={self.exit_code}, which is not one of the two codes a "
                 f"SCAN can produce (0 clean, 2 files-fail). Exit 3 belongs to the composition "
                 f"root, which raises rather than building a scan."
             )
         counted = sum(1 for row in self.rows if row.disposition == "FAILS HERE")
         if self.failing_count != counted:
-            raise RecordContentScanError(
+            raise GuardInvariantViolated(
                 f"scan is internally inconsistent: failing_count={self.failing_count} with "
                 f"{counted} row(s) marked FAILS HERE. The header prints this number beside the "
                 f"word FAILING; it must be the rows."
             )
         if bool(self.exit_code) != should_fail:
-            raise RecordContentScanError(
+            raise GuardInvariantViolated(
                 f"scan is internally inconsistent: exit_code={self.exit_code} with "
                 f"{sum(1 for r in self.rows if r.disposition == 'FAILS HERE')} failing row(s) and "
                 f"structural_error={self.structural_error!r}"

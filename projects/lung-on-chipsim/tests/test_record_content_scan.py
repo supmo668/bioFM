@@ -816,3 +816,114 @@ def test_a_surface_reporting_it_could_not_parse_may_not_also_carry_entries(tmp_p
             registry=frozenset({"x"}),
             structural_error="could not be read as YAML",
         )
+
+
+# --- §12.2: whose fault is it? the taxonomy, and the handler that used to get it wrong ----------
+
+
+def test_a_guard_bug_is_not_reported_as_the_repositorys_declaration_data(tmp_path):
+    """r2.29's deciding evidence, and it is worse than the clause states.
+
+    `DeclarationSurface.read` existed to turn declaration problems into a rendered report, and it
+    caught the BASE class. MEASURED before the split: a guard bug raised inside `require()` was
+    swallowed, became `structural_error`, and was reported as "the declaration data could not be
+    parsed" — exit 2, naming a file that parsed perfectly well. A programming error in the guard
+    arrived as an accusation against the tree it was scanning.
+
+    `GuardInvariantViolated` is therefore NOT catchable by that handler. It still lands in exit 3
+    (there is no fourth state, r2.28) but it says whose fault it is.
+    """
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.errors import DeclarationDataUnusable, GuardInvariantViolated
+
+    for rel in (rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text('version: "1"\ndeclarations: []\n')
+
+    def boom(_docs):
+        raise GuardInvariantViolated("INTERNAL: the guard's own invariant")
+
+    real = rc._entries_from
+    rc._entries_from = boom
+    try:
+        with pytest.raises(GuardInvariantViolated):
+            rc.DeclarationSurface.read(tmp_path)
+    finally:
+        rc._entries_from = real
+
+    # THE OTHER DIRECTION, or this test would pass against "catch nothing": a genuine declaration
+    # problem must STILL be converted, because rendering the listing beside the reason is E-13.
+    def data_problem(_docs):
+        raise DeclarationDataUnusable("the YAML is malformed")
+
+    rc._entries_from = data_problem
+    try:
+        surface = rc.DeclarationSurface.read(tmp_path)
+    finally:
+        rc._entries_from = real
+    assert surface.structural_error is not None
+    assert surface.entries == () and surface.registry is None
+
+
+def test_each_failure_names_whose_fault_it_is():
+    """The taxonomy as a shape check: three classes, one base, and the guard's own defect is not a
+    subclass of either caller-facing one — otherwise a handler for those would swallow it again.
+    """
+    from chipsim.guards import errors
+
+    assert issubclass(errors.ScanNotPerformed, errors.RecordContentScanError)
+    assert issubclass(errors.DeclarationDataUnusable, errors.RecordContentScanError)
+    assert issubclass(errors.GuardInvariantViolated, errors.RecordContentScanError)
+
+    assert not issubclass(errors.GuardInvariantViolated, errors.DeclarationDataUnusable)
+    assert not issubclass(errors.GuardInvariantViolated, errors.ScanNotPerformed)
+    assert not issubclass(errors.DeclarationDataUnusable, errors.ScanNotPerformed)
+    assert not issubclass(errors.ScanNotPerformed, errors.DeclarationDataUnusable)
+
+
+def test_the_errors_module_is_a_leaf():
+    """It is imported by `repo`, `decoding` and `record_content`, so whichever of them owned it
+    became a dependency of the others — which is why the old placement rule ("the exception belongs
+    with the layer that RAISES it") was really cycle avoidance wearing a principle's clothes. A leaf
+    that imports from the package would reintroduce the cycle it exists to prevent."""
+    import ast
+    from pathlib import Path as _Path
+
+    from chipsim.guards import errors
+
+    tree = ast.parse(_Path(errors.__file__).read_text())
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported |= {a.name for a in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            imported.add(node.module or "")
+
+    assert not [m for m in imported if m.startswith("chipsim")], (
+        f"errors.py imports from the package: {sorted(imported)} — it is no longer a leaf"
+    )
+
+
+def test_the_invariants_raise_the_guards_own_error_not_a_repository_one():
+    """Every `__post_init__` invariant is unreachable unless this module has a bug, so none of them
+    may raise a class that blames the repository."""
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.errors import GuardInvariantViolated
+
+    with pytest.raises(GuardInvariantViolated):
+        rc.ScanRow("docs/x.png", None, "undecodable", "FAILS-HERE")
+
+    with pytest.raises(GuardInvariantViolated):
+        rc.RecordContentScan(
+            root=Path("/r"),
+            package=Path("/r/p.py"),
+            tracked_count=5,
+            failing_count=0,
+            rows=(rc.ScanRow("x.bin", None, "undecodable", "FAILS HERE"),),
+            declaration_counts=(0, 0, 0),
+            defect_count=0,
+            submodules=(),
+            registry_state="declared",
+            structural_error=None,
+            exit_code=0,
+        )

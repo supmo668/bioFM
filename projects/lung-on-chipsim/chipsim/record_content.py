@@ -32,7 +32,8 @@ from pathlib import Path
 # time, which hides the coupling and makes the composition untestable — a composition root should
 # call through its collaborators, not hold copies of them.
 from chipsim.guards import record_content as _guard
-from chipsim.guards.record_content import ContentPolicy, RecordContentScanError
+from chipsim.guards.errors import RecordContentScanError
+from chipsim.guards.record_content import ContentPolicy
 from chipsim.ingest import drugbank_snapshot as _drugbank
 from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
 
