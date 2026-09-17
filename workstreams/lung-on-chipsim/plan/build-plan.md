@@ -219,6 +219,28 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   One throwaway copy **per reviewer**, and each verifies its **interpreter resolves inside that
   copy** before mutating anything. *Sixth in the ambient-state family — the throwaway-copy rule
   telling us its next requirement.*
+- **E6-7 — ONE ENTRY POINT A NON-PYTEST CONSUMER CAN CALL, AND THE FAIL LIVES IN IT** *(stated
+  r2.26; authorised verbally at r2.21 and, until now, WRITTEN NOWHERE HASH-LOCKED)*. Today the four
+  pieces — readability, declarations, ownership, accession content — are composed by the **test
+  suite** and by the **report renderer**, so the invariant is enforced for whoever runs `pytest` and
+  for nobody else. E6-7 is a single public function that runs all four and **fails**, callable by CI,
+  a pre-commit hook, or another project. It **composes** the existing checks and re-implements none
+  of them, so there stays one definition of each. Its outcomes follow the exit-code contract already
+  ruled *(E-13)*: clean, files-fail, could-not-scan — three states, not a boolean.
+  **Why this clause exists as a clause:** the CTO authorised "E6-6/E6-7" in four separate dispatches
+  while E6-7 appeared **zero times** in the signed plan — its only record was the phrase *"a combined
+  entry point with the FAIL in the API"* in provenance log row 20. The agent stopped rather than
+  build to its own reconstruction of the CTO's words across a compaction boundary, which is the
+  correct refusal: *an agent asked to implement a clause that does not exist is being asked to
+  approve it.* This is the project's own "an invariant that lives only in prose" failure, committed
+  by the party that wrote the warning.
+- **A production guard may not be a bare `assert`** *(r2.26)*. `python -O` **strips assert
+  statements**, so under optimisation such a guard does not weaken — it **vanishes**, and in this
+  module a declared readable container would have been cleared in silence. Guards raise the module's
+  own error type explicitly; `AssertionError` is a test-shaped exception and must not surface from
+  production code. Enforced two ways, because one of them can rot: a test that **parses this module's
+  source** and asserts no bare `assert` appears in it, and a test that runs the guard **under `-O` in
+  a subprocess**.
   **For E6-6:** `undecodable_unallowed` reaching into the DrugBank exclusions is the **one
   non-mechanical part** of that extraction. It moves by judgement, not cut-and-paste, and the clause
   says so rather than letting a mechanical move carry it silently.

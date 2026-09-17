@@ -1,13 +1,14 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: c8d32c7
+plan_hash: 302d23e
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-invoked, standing-delegation
 invoked_by: biofm/matthew-mo/cto
 provenance_of_record: workstreams/lung-on-chipsim/plan/plan-approval-log.md
 authorising_rulings:
+  - 'CTO ruling 2026-09-17 stating E6-7, which had been authorised verbally since r2.21 and written nowhere hash-locked (agent refusal to build an unstated clause)'
   - 'CTO rulings 2026-09-17 on the §9 gate escalations E-13 to E-16 (dispatch #149)'
   - 'CTO rulings 2026-09-17 on the §8 gate escalations E-09 to E-12 (dispatch #145)'
   - 'CTO rulings 2026-09-17 on the §7 gate escalations E-01 to E-07 plus CTO finding E-08 (dispatch #143)'
@@ -16,7 +17,7 @@ authorising_rulings:
   - 'CTO rulings 2026-09-16 on §5 escalations E-1 to E-6 (r2.20)'
   - 'principal 2026-09-15 record-content re-ruling — the invariant targets record content and the (accession, name, structure) association'
   - 'principal 2026-09-15 lane ruling, re-confirmed 2026-09-16 — this CTO session owns the lane'
-  - 'r2.25 has NO principal ruling — quality-gate findings; r2.8/r2.9 precedent'
+  - 'r2.26 has NO principal ruling — states a clause the CTO had only ever spoken; r2.8/r2.9 precedent'
 human_approved_hash: de4b812
 human_approved_date: 2026-09-15
 human_approval_source: principal message "approve r2.1 sign and commit flash", other CTO session, 2026-09-15T07:56Z (the 0b8d0c3 marker quoted it as "approve r2.10 sign")
@@ -33,10 +34,11 @@ conditions_amended_since_human_approval:
   - 'Global Constraints + T5a + T14 (r2.20) — record-bearing writers validate destinations against an ALLOW-LIST via one shared helper; the guard may not skip an undecodable file silently; publish via the CLI; fail-closed stated'
   - 'Global Constraints (r2.21) — declarations owned per project with path->sha256 or a derived-from-source claim; readable structured containers always read, never declared; the dispatch waiver covers .md messages only; which half each mechanism enforces is stated'
   - 'Global Constraints (r2.22) — E6-1b: the undeclared-undecodable FAILURE is scoped to the owning project, the LISTING stays repo-wide, and a path owned by NO project fails THIS gate so scoping can never make a file unfailable everywhere; r2.20 fail-closed clause amended to match'
-date: 2026-09-17T08:15
+date: 2026-09-17T08:55
   - 'Global Constraints (r2.23) — allow-list checked by directory IDENTITY not case-folding, with missing-root and outside-root as two distinct failures; roots anchored at runtime; operator-chosen --dest/--out through the same helper with data/raw and the journal declared; the listing RENDERED at the REPO root by a shipped command; owner-gate fiction stated; a repo-root declaration surface for unowned paths; declaration data acknowledged unbuilt'
   - 'Global Constraints (r2.24) — the report proves it scanned something (check=True, count floor, paths resolve); GIT_* dropped and executed config disabled; an owner needs a tracked marker; paths escaped; unresolvable tracked paths counted always and failing only when owned; submodules explicitly NOT scanned; owner registry folded into E-02; topology placement folded into E6-6'
   - 'Global Constraints (r2.25) — a broken declaration file is exit 2 with nothing declared and the listing still rendered, not exit 3; counts kept separate; assertions bind the exit code not the return value; declarations load once through a snapshot; the registry may not police itself; an absent declaration file is not an empty one; all defects per entry in one pass; per-reviewer copies with a verified interpreter'
+  - 'Global Constraints (r2.26) — E6-7 STATED — one entry point a non-pytest consumer can call, composing all four checks with the FAIL in it and the three-state exit contract; and a production guard may not be a bare assert, since python -O strips it'
 ---
 
 # Plan approval: lung-on-chipsim
@@ -45,55 +47,51 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.25 folds the §9 gate, which built E-02's declaration surface and found that **"declared" had been a
-state the code could describe and never reach**: the constant was an empty frozenset nothing
-populated, five tests iterated it zero times, and the behaviour "a declaration clears a file" had no
-test at all for four revisions. Rulings E-13 to E-16. **12 mutants survived the full 851-test suite**,
-including this work's own headline claim, because every defect test asserted on a return value and
-none on the exit code.
+r2.26 writes down **E6-7**, which the CTO had authorised in four separate dispatches while it appeared
+**zero times** in the signed plan — its only record was a phrase in provenance log row 20. The agent
+stopped rather than build to its own reconstruction of the CTO's words across a compaction boundary.
+Also: a production guard may not be a bare `assert`, because `python -O` strips it and the guard does
+not weaken, it **vanishes**.
 
 ---
 
 ## THIS FILE IS NO LONGER THE PROVENANCE OF RECORD
 
 **`plan-approval-log.md` beside it is** (r2.15 item 6). `plan-gate sign` regenerates this file
-wholesale on every sign — **twenty-one times so far** — preserving nothing below the frontmatter.
+wholesale on every sign — **twenty-two times so far** — preserving nothing below the frontmatter.
 
 ## Provenance — how to read this signature
 
-**The headline is that "declared" was unreachable.** `RENDERED_ARTIFACT_DECLARATIONS` was an empty
-frozenset nothing populated: **five** tests iterated it and therefore ran zero times, **four**
-monkeypatched it, and the oldest had been vacuous since the day it was written because its "binary"
-fixture, `b"\xff\xfe not utf-8"`, decodes as UTF-16 — the file was READABLE, so the assertion held
-with or without a declaration. **The behaviour the whole mechanism exists for had no test for four
-revisions.**
+**This revision exists because an agent refused to implement a clause that did not exist.**
+`grep -n "E6-7" build-plan.md` returned **nothing** at `c8d32c7`. E6-6 was in the plan four times;
+E6-7 was in the CTO's dispatches four times and in the plan zero. Its only durable record was the
+phrase *"module extraction and a combined entry point with the FAIL in the API, authorised"* in
+**provenance log row 20** — which is the record of an approval, not a source of conditions.
 
-**The registry policed itself.** Placement was judged against the owner set defined in *the very file
-whose declarations it constrains*, so delisting a project made its subtree unowned and therefore
-repo-root-declarable — **one edit, one file, another team's artifacts cleared, zero defects
-reported**, demonstrated end-to-end against the shipped command (exit 2 → exit 0 with a payload
-present). Two questions now use two sets. Alongside it: an **absent** declaration file read as an
-**empty** one, silently reverting to the pre-r2.24 mitigation with a healthy exit code — *E-02
-reproduced inside the fix for E-02*, in a module that already says an unreadable file is not an empty
-one.
+The agent's reasoning for stopping is the part worth keeping: its wording for E6-7 had been
+reconstructed **across a compaction boundary**, so building to it risked the G-17/E-04 shape —
+implementing an unstated clause and discovering later that the words were its own. **An agent asked
+to implement a clause that does not exist is being asked to approve it.** It did the half that needed
+no clause and stopped.
 
-**12 mutants survived the entire 851-test suite**, including this work's own headline claim that a
-declaration whose claim does not hold fails the gate. Every defect test asserted on the **validator's
-return value**; none on the **exit code**. That is E-08's function-versus-command split reappearing
-as a *testing habit* rather than a call site, and it is now a plan clause.
+**This is the project's own warning, violated by the party who wrote it.** The plan already says *"an
+invariant that lives only in prose is one a docstring can quietly contradict"*. E6-7 lived only in
+prose — in dispatch prose, which is worse, because a dispatch is not even in the repository's
+enforcement surface.
 
-**The ninth and tenth fixture vacuities are the agent's own, written this session after adopting the
-rule that produced them** — `"stale"` and `"container"` are substrings of the `tmp_path` directories
-pytest names after those very tests, proven by substituting an absolute path and watching both still
-pass. It also caught, before reporting it, a probe of its own that "proved" a declaration does not
-exempt content using a synthetic `DB9xxxx` accession the scan excludes by design: a check that could
-never have produced a hit.
+**The `python -O` finding is the sharpest technical item.** `assert_no_container_is_declared`
+enforced E6-2 with a bare `assert`. Under `-O` the statement is **stripped**: the guard does not
+weaken, it disappears, and a declared readable container would be cleared in silence. It also raised
+`AssertionError` — a test-shaped exception — from production code, while every other refusal in the
+module raises the module's own error. The agent scanned every other production module rather than
+assuming, and found no others.
 
-**Rule 13 comes from two instances in one day, in two different repositories.** The agent's own data
-files said `derived_from` is "a claim a reader can check"; the gate checks the source is tracked,
-readable, same-owner and not itself declared — **never that the file derives from it**. The same
-morning, `BioSimEnv`'s docstring claimed every model call is metered by a sealed-tested component
-while `step()` never calls `check()`. Both read as reassurance, which is exactly why both survived.
+**Two further self-catches worth recording.** E-15's fix made `dict(declaration_defects(...))`
+**lossy at 15 test sites** — a dict keeps the last defect, so those assertions would have quietly
+started depending on check *order* rather than behaviour: the vacuity family again, an assertion that
+still passes while meaning something narrower than it reads. And the E6-6 extraction's **first run
+refused to report**, because the moved file was untracked and the §8 witness check declined to speak
+for a tree it could not see itself in — *the guard caught its own extraction.*
 
 **The last direct human approval is `de4b812` (r2.10), 2026-09-15.** No task added or removed since.
 
@@ -122,6 +120,11 @@ not judgement.
 10. **A decision that looks like bookkeeping is still a shape decision if it assigns ownership**
     (2026-09-16, r2.21). Declaring another module's artifacts inside your own source assigns them
     your failure mode and your repair path. **Scoping a failure is the same act** (r2.22).
+14. **A condition an agent is expected to build must exist in the SIGNED PLAN** (2026-09-17, r2.26),
+    not only in a dispatch, a handoff, or the provenance log. The approval log records that a
+    decision was made; it is not where conditions live. Saying "E6-6/E6-7 remain yours" four times
+    does not create E6-7. *An agent asked to implement a clause that does not exist is being asked
+    to approve it* — and after a compaction boundary it cannot even tell whose words it is holding.
 13. **Prose that implies a check the tool does not perform is a false claim** (2026-09-17, r2.25).
     It survives review *because* it reads as reassurance. Two instances in one day: `derived_from`
     "a claim a reader can check" (never verified), and `BioSimEnv`'s "every model call is metered by
@@ -144,12 +147,12 @@ not judgement.
     compliance reports were in my own resolved dispatch list. Rule 7 says cite what you read; rule
     11 says a thing you intend to do is not a thing you have done.
 
-## Incident — `plan-gate sign` destroys this disclosure. TWENTY-ONE occurrences.
+## Incident — `plan-gate sign` destroys this disclosure. TWENTY-TWO occurrences.
 
 **2026-09-03 02:08** · **2026-09-14 13:28 / 15:24** · **2026-09-15 01:01 (`0b8d0c3`, second CTO
 session) / 01:40 / 11:19 / 12:43 / 15:16 / 16:15** · **2026-09-16 14:04 (third CTO session — restored
 from a stale capture, regressing the hash) / 14:08 / 15:00 / 15:04 / 15:36 / 15:38 / 18:28 / 18:59**
-· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15**.
+· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15 / 08:55**.
 
 **Standing procedure:** capture before every sign; restore after; restore onto the **post-sign**
 hash; restore as **valid YAML**; verify the parse, not just the gate; **append the log entry**.
