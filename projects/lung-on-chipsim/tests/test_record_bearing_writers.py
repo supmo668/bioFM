@@ -22,6 +22,7 @@ never by lowercasing a string.
 
 from __future__ import annotations
 
+import argparse
 import ast
 import os
 import tempfile
@@ -137,10 +138,19 @@ def test_the_test_tmp_root_is_allowed(tmp_path):
 def test_a_symlinked_destination_is_refused(tmp_path):
     """Check and write must mean the SAME object: `os.replace` replaces the link itself, so a
     destination symlink pointing into a tracked directory was the §5 bypass."""
-    target = tmp_path / "w.csv"
+    # NOT match="symlink": pytest names tmp_path after the test, so this test's OWN directory
+    # contains the word and the assertion passed with the destination check DELETED — verbatim the
+    # trap the r2.19 test I deleted had documented, reintroduced by my own migration. Assert the
+    # sentence only this branch can produce, and prove the generic refusal is NOT what fired.
+    plain = tmp_path / "x"
+    plain.mkdir()
+    target = plain / "w.csv"
     os.symlink(PROJECT_ROOT / "configs" / "stolen.csv", target)
-    with pytest.raises(OutputRootError, match="symlink"):
+    with pytest.raises(OutputRootError) as exc:
         refuse_unless_declared_output_root(target)
+    message = str(exc.value)
+    assert "the destination is a symlink" in message
+    assert "not inside a declared untracked root" not in message
 
 
 def test_a_symlinked_ANCESTOR_is_refused(tmp_path):
@@ -186,6 +196,76 @@ def test_the_worksheet_writer_refuses_a_tracked_destination(tmp_path):
     assert not target.exists()
 
 
+def test_a_refused_write_does_not_create_the_tracked_directory_first(tmp_path, monkeypatch):
+    """The migration dropped `assert not target.parent.exists()`. Both refusal tests aim at
+    directories that already exist, so an `mkdir` before the guard is invisible to them."""
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    root = _tracked_like(tmp_path, monkeypatch)
+    target = root / "docs" / "new" / "deep" / "w.csv"
+    labels, compounds = _labels_and_compounds()
+    with pytest.raises(OutputRootError):
+        write_adjudication_worksheet(labels, compounds, target)
+    assert not (root / "docs").exists(), "a refused write must not create the tree first"
+
+
+def test_the_refusal_names_the_destination_and_the_remedy(tmp_path, monkeypatch):
+    """`match="data/interim"` is satisfied by the constant the message enumerates, so a message
+    reduced to "refusing. Allowed: ..." passed — losing both the destination and the recovery
+    path the deleted r2.19 test had pinned."""
+    root = _tracked_like(tmp_path, monkeypatch)
+    target = root / "configs" / "pgp_adjudication.csv"
+    with pytest.raises(OutputRootError) as exc:
+        refuse_unless_declared_output_root(target)
+    message = str(exc.value)
+    assert str(target) in message, "the message must name what was refused"
+    assert "export_tracked_adjudication" in message, "and how to publish legitimately"
+
+
+def test_containment_consults_directory_identity_not_string_case(tmp_path, monkeypatch):
+    """A casefolded-string implementation — the PERMISSIVE direction the module forbids — survives
+    on a case-insensitive volume, because the case test computes its expectation from the same rule
+    the implementation uses. Pin that `samestat` is actually consulted."""
+
+    root = _tracked_like(tmp_path, monkeypatch)
+    ok = root / "data" / "interim" / "w.csv"
+    refuse_unless_declared_output_root(ok)
+
+    monkeypatch.setattr(os.path, "samestat", lambda a, b: False)
+    with pytest.raises(OutputRootError):
+        refuse_unless_declared_output_root(ok)
+
+
+def test_the_cli_reports_a_refused_destination_as_a_message_not_a_traceback(
+    tmp_path, monkeypatch, capsys
+):
+    """My own test asserted in PROSE that the CLI has an `except OutputRootError` clause — which
+    did not exist. `chipsim write --out <tracked path>` exited with a raw traceback, journalled as
+    "crashed": the failure mode the sibling command's docstring promises to abolish."""
+    import chipsim.ingest.drugbank_snapshot as ds
+    from chipsim import pipeline
+    from chipsim.harmonize import ids
+
+    root = _tracked_like(tmp_path, monkeypatch)
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+    out = root / "configs" / "drugbank_compounds.parquet"
+
+    # Reach the WRITE: the command loads the snapshot first, and the refusal is what is under test.
+    frame = _compound_frame()
+    monkeypatch.setattr(ds, "load_compounds", lambda *a, **k: frame)
+    monkeypatch.setattr(ids, "add_canonical_identity_excluding", lambda *a, **k: (frame, []))
+    monkeypatch.setattr(ids, "load_preregistered_exclusions", lambda *a, **k: set())
+
+    code = pipeline._cmd_write(
+        argparse.Namespace(raw_dir=tmp_path, out=out, exclusions=tmp_path / "x.yaml")
+    )
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "Traceback" not in captured.err
+    assert "ERROR" in captured.err
+    assert not out.exists()
+
+
 def test_the_compound_writer_refuses_a_tracked_destination():
     """The WORST payload in the project — accession, name, InChI and InChIKey on one row — and
     until r2.20 it validated its columns and never its destination."""
@@ -221,8 +301,35 @@ def inspect_source(function) -> str:
 # --- the registry: a new writer cannot silently opt out ------------------------------------
 
 
+#: The serialization surface actually reachable here. `to_csv`/`to_parquet` alone let a writer
+#: opt out silently: `pq.write_table`, `to_feather`, `to_hdf` and a bare `open(..., "w")` all
+#: survived the registry — and the CLI persisting the complete record via `pq.write_table` with no
+#: destination check survived the FULL SUITE.
+_SERIALISING_CALLS = frozenset(
+    {
+        "to_csv",
+        "to_parquet",
+        "to_feather",
+        "to_hdf",
+        "to_pickle",
+        "to_excel",
+        "to_json",
+        "to_sql",
+        "to_string",
+        "write_table",
+        "write_dataset",
+        "write_feather",
+        "save",
+        "savez",
+        "write_text",
+        "write_bytes",
+        "dump",
+    }
+)
+
+
 def _functions_that_write(module_path: Path) -> set[str]:
-    """Every function in a module that calls `to_csv` / `to_parquet` on something."""
+    """Every function in a module that serialises something."""
     tree = ast.parse(module_path.read_text(encoding="utf-8"))
     writers: set[str] = set()
     for node in ast.walk(tree):
@@ -232,10 +339,53 @@ def _functions_that_write(module_path: Path) -> set[str]:
             if (
                 isinstance(inner, ast.Call)
                 and isinstance(inner.func, ast.Attribute)
-                and inner.func.attr in {"to_csv", "to_parquet"}
+                and inner.func.attr in _SERIALISING_CALLS
+            ):
+                writers.add(f"{module_path.stem}.{node.name}")
+            if (
+                isinstance(inner, ast.Call)
+                and isinstance(inner.func, ast.Name)
+                and inner.func.id == "open"
+                and any(
+                    isinstance(arg, ast.Constant)
+                    and isinstance(arg.value, str)
+                    and "w" in arg.value
+                    for arg in inner.args[1:]
+                )
             ):
                 writers.add(f"{module_path.stem}.{node.name}")
     return writers
+
+
+def test_the_writer_detector_sees_more_than_two_pandas_methods(tmp_path):
+    """Anti-vacuity for the SCANNER, not just for its result: a planted writer using each API must
+    be found. `pq.write_table` in the CLI — persisting accession + name + InChI + InChIKey to any
+    path with no destination check — survived the full suite before this."""
+    module = tmp_path / "planted.py"
+    module.write_text(
+        "import pyarrow.parquet as pq\n"
+        "def a(frame, out):\n    pq.write_table(frame, out)\n"
+        "def b(frame, out):\n    frame.to_feather(out)\n"
+        "def c(frame, out):\n    frame.to_hdf(out, key='x')\n"
+        "def d(frame, out):\n    open(out, 'w').write(frame.to_string())\n"
+        "def e(frame, out):\n    return frame.sum()\n"
+    )
+    found = _functions_that_write(module)
+    assert found == {"planted.a", "planted.b", "planted.c", "planted.d"}
+
+
+def test_no_declared_writer_is_a_phantom():
+    """`merge_report.write_merge_report` was declared and DOES NOT EXIST. Because the assertion was
+    `found <= declared`, a stale declaration passed silently — while the real writer in that module
+    (`main`, via write_text) stayed invisible. The incident this guard's docstrings cite is a merge
+    report that carried 89 real accessions."""
+    found: set[str] = set()
+    for path in sorted((PROJECT_ROOT / "chipsim").rglob("*.py")):
+        found |= _functions_that_write(path)
+    declared = (
+        set(RECORD_BEARING_WRITERS) | set(NOT_RECORD_BEARING) | set(RECORD_BEARING_PENDING_RULING)
+    )
+    assert declared <= found, f"declared writer(s) that do not exist: {sorted(declared - found)}"
 
 
 def test_every_function_that_writes_a_frame_is_classified():
@@ -246,7 +396,9 @@ def test_every_function_that_writes_a_frame_is_classified():
     for path in sorted((PROJECT_ROOT / "chipsim").rglob("*.py")):
         found |= _functions_that_write(path)
 
-    declared = set(RECORD_BEARING_WRITERS) | set(NOT_RECORD_BEARING)
+    declared = (
+        set(RECORD_BEARING_WRITERS) | set(NOT_RECORD_BEARING) | set(RECORD_BEARING_PENDING_RULING)
+    )
     assert found, "anti-vacuity: the AST scan must find the writers that exist"
     assert found <= declared, (
         f"undeclared frame writer(s): {sorted(found - declared)}. Declare each as record-bearing "
@@ -260,13 +412,36 @@ NOT_RECORD_BEARING = {
     "adjudication.export_tracked_adjudication",
     # Verdicts + the generated stereo flag, keyed by canonical InChIKey. No name, no accession.
     "adjudication.adjudicate_pgp_labels",
-    # Merge-report members, identified by canonical InChIKey only (the id/name association goes to
-    # the untracked run journal, never to the report).
-    "merge_report.write_merge_report",
     # Not a writer at all: stringifies a parquet IN MEMORY so the record-content scan can read it.
     # It touches no path. Declared rather than excluded from the scan, because a scan that knows
     # about "the ones that do not really count" stops being a registry.
     "drugbank_snapshot._parquet_chunks",
+    # A hex digest of a file. No compound data of any kind.
+    "drugbank_snapshot.write_digest_sidecar",
+    # Run metadata and config snapshots into the git-ignored journal; no compound rows.
+    "journal.start_run",
+    "pipeline._journal_best_effort",
+    # The ratified barrier panel (protein identifiers + ratifier attribution), T7a's human
+    # artifact. It legitimately writes configs/barrier_panel.yaml and carries no DrugBank content.
+    "pgp_label.seal_panel",
+}
+
+#: Writers whose payload CAN carry record content but whose legitimate destination is NOT a
+#: declared untracked root, so r2.20's helper cannot be applied to them as written. Escalated to
+#: the CTO; recorded here so the registry states the gap instead of hiding it behind a
+#: comfortable classification.
+#:
+#: These were INVISIBLE to the registry until the detector was widened beyond to_csv/to_parquet —
+#: which is exactly the "a new writer cannot silently opt out" property r2.20 asks for, working.
+RECORD_BEARING_PENDING_RULING = {
+    # Writes the raw DrugBank tables to `--dest`, unvalidated: the most record-bearing payload in
+    # the project. Its legitimate home is data/raw/ (DVC-tracked, git-ignored), not a declared root.
+    "drugbank_snapshot.fetch_snapshot",
+    # Writes merge_report.json/.md to an operator-chosen --out. Today it identifies members by
+    # canonical InChIKey only and sends the id/name association to the git-ignored journal — but
+    # "a tracked merge report came to carry 89 real accessions" is the incident this guard's own
+    # docstrings cite, and the destination is unguarded.
+    "merge_report.main",
 }
 
 

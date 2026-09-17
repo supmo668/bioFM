@@ -115,6 +115,7 @@ def _cmd_provenance_tests(ns: argparse.Namespace) -> int:
 
 
 def _cmd_write(ns: argparse.Namespace) -> int:
+    from chipsim.guards.output_roots import OutputRootError
     from chipsim.harmonize.ids import (
         add_canonical_identity_excluding,
         load_preregistered_exclusions,
@@ -125,7 +126,15 @@ def _cmd_write(ns: argparse.Namespace) -> int:
         load_compounds(ns.raw_dir),
         preregistered=load_preregistered_exclusions(Path(ns.exclusions)),
     )
-    write_compounds(compounds, ns.out)
+    # The refusal must arrive as a message and a non-zero exit, not a traceback journalled as
+    # "crashed" — the rule this file already states for `adjudication-export`. The CLI inherits the
+    # CHECK from write_compounds (r2.20 forbids a second one); inheriting a check never meant
+    # inheriting a stack trace. My own test asserted in PROSE that this handler existed.
+    try:
+        write_compounds(compounds, ns.out)
+    except OutputRootError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     print(f"wrote {ns.out} (excluded_unparseable={len(excluded)})")
     return 0
 

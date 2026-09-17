@@ -27,6 +27,7 @@ import requests
 import yaml
 
 from chipsim.guards.output_roots import refuse_unless_declared_output_root
+from chipsim.journal import source_root
 
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
@@ -646,8 +647,11 @@ def _is_readable(target: Path) -> bool:
     return _READABILITY_CACHE[key]
 
 
-#: This module's project. The gate it guards is this project's gate.
-THIS_PROJECT = "lung-on-chipsim"
+#: This module's project, DERIVED. A bare literal bound to nothing meant that renaming the
+#: project directory turned every path this project owns into "somebody else's": failing_undeclared
+#: returns [] and THE GATE GOES GREEN — fail-open, reached by a rename nobody would think of as a
+#: guard change.
+THIS_PROJECT = Path(source_root()).name
 
 #: Which project OWNS a repo-relative path (r2.22, E6-1b). Explicit, because the alternative is a
 #: default, and a default here would silently make somebody else responsible for a failure they
@@ -658,26 +662,41 @@ THIS_PROJECT = "lung-on-chipsim"
 #: project, so a non-.md dispatch payload keeps failing here. Without it, scoping would have made
 #: `dispatches/leak.pdf` listed and unfailable ANYWHERE — re-opening the hole E6-4 closed one
 #: clause above, in the same revision that closed it.
+#: The WHOLE map (r2.22 calls it "an explicit map"). `workstreams/` used to be a hardcoded branch
+#: below, outside the constant whose docstring calls itself the source of truth, so a reader
+#: auditing the map saw two thirds of the rule.
 _OWNERSHIP_PREFIXES = (
     ("projects/", 1),  # projects/<owner>/...
     ("libs/", 1),  # libs/<owner>/...
+    ("workstreams/", 1),  # workstreams/<owner>/...
     ("paper_standalone/", 0),  # the directory IS the project
 )
 
 
 def path_owner(rel: str) -> str | None:
-    """The project owning a repo-relative path, or None when no project owns it."""
+    """The project owning a repo-relative path, or None when no project owns it.
+
+    An owner must own a SUBTREE. `projects/README.pdf` used to return "README.pdf" — an invented
+    project — so a stray file directly under `projects/` failed NOBODY's gate: listed under a
+    fabricated owner, skipped by the accession scan as unreadable, live test green. That is the
+    double-exempt hole E6-4 closed, re-opened one function below the comment calling
+    unowned-fails-here LOAD-BEARING FOR E6-4. `projects/../configs/x` returned ".." the same way.
+
+    Unowned is the SAFE answer here (it fails this gate), so every doubtful shape returns None.
+    """
     parts = Path(rel).parts
+    if not parts or ".." in parts or Path(rel).is_absolute():
+        return None
     for prefix, index in _OWNERSHIP_PREFIXES:
         head = prefix.rstrip("/")
-        if parts and parts[0] == head:
-            if index == 0:
-                return head
-            if len(parts) > index:
-                return parts[index]
-            return None
-    if parts and parts[0] == "workstreams" and len(parts) > 1:
-        return parts[1]
+        if parts[0] != head:
+            continue
+        if index == 0:
+            return head
+        # An owner owns a subtree: there must be a segment AFTER the owner segment.
+        if len(parts) > index + 1:
+            return parts[index]
+        return None
     return None
 
 
