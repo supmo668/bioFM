@@ -275,3 +275,93 @@ def test_both_record_bearing_writers_are_registered():
         "adjudication.write_adjudication_worksheet",
         "drugbank_snapshot.write_compounds",
     }
+
+
+# --- §7: the four EXECUTED bypasses of this very allow-list ----------------------------------
+
+
+def _tracked_like(tmp_path: Path, monkeypatch) -> Path:
+    """A fake project root inside tmp_path, with the declared roots present.
+
+    The refusal tests must NOT aim at the real tracked tree: under a guard regression the suite
+    itself planted a name-bearing worksheet in `configs/` and left it there, poisoning a later run.
+    A red test must never be able to commit the violation it is testing for.
+    """
+    import chipsim.guards.output_roots as guard
+
+    root = tmp_path / "fake_project"
+    (root / "data" / "interim").mkdir(parents=True)
+    (root / "data" / "processed").mkdir(parents=True)
+    (root / "configs").mkdir()
+    monkeypatch.setattr(guard, "source_root", lambda: root)
+    return root
+
+
+def test_the_temp_sibling_cannot_be_redirected_into_a_tracked_path(tmp_path, monkeypatch):
+    """§7 EXECUTED BYPASS. The guard validates `out`; the writer then wrote `out.name + '.tmp'`,
+    and `to_csv` FOLLOWS a symlink. Pre-placing that sibling as a link into `configs/` meant a
+    perfectly legitimate, fully-allowed call wrote the name-bearing worksheet into the tracked
+    directory — check-one-object-write-another, the r2.20 docstring's own bypass #3, moved one
+    filename over."""
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    root = _tracked_like(tmp_path, monkeypatch)
+    victim = root / "configs" / "stolen_via_tmp.csv"
+    out = root / "data" / "interim" / "pgp_adjudication.csv"
+    os.symlink(victim, out.with_name(out.name + ".tmp"))
+
+    labels, compounds = _labels_and_compounds()
+    write_adjudication_worksheet(labels, compounds, out)
+
+    assert not victim.exists(), "the tracked path must not be written through the temp sibling"
+    assert out.is_file() and "name" in pd.read_csv(out, dtype=str).columns
+
+
+def test_a_hardlinked_destination_is_refused(tmp_path, monkeypatch):
+    """§7 EXECUTED BYPASS. Only symlinks were refused. `os.link(configs/victim, data/interim/x)`
+    then `write_compounds(...)` overwrote the TRACKED file in place with accession + name + InChI +
+    InChIKey on one row — no symlink anywhere."""
+    root = _tracked_like(tmp_path, monkeypatch)
+    victim = root / "configs" / "victim_tracked.csv"
+    victim.write_text("original tracked content\n")
+    hard = root / "data" / "interim" / "hard.parquet"
+    os.link(victim, hard)
+
+    with pytest.raises(OutputRootError, match="hard link"):
+        refuse_unless_declared_output_root(hard)
+    assert victim.read_text() == "original tracked content\n"
+
+
+def test_the_declared_tmp_root_cannot_be_redirected_by_an_environment_variable(
+    tmp_path, monkeypatch
+):
+    """§7 EXECUTED BYPASS. The third declared root came from `tempfile.gettempdir()`, i.e. $TMPDIR.
+    Point it at the project and THE WHOLE TRACKED TREE becomes a declared output root — writing
+    accession+name+structure into `configs/` was ACCEPTED. CI runners routinely set TMPDIR inside
+    the workspace.
+
+    `journal.source_root()`'s own docstring refuses exactly this ("a location that can be
+    redirected by an environment variable is one an operator cannot reason about"), and the CTO had
+    flagged this family of defect an hour before I wrote it.
+    """
+    root = _tracked_like(tmp_path, monkeypatch)
+    monkeypatch.setenv("TMPDIR", str(root))
+
+    with pytest.raises(OutputRootError):
+        refuse_unless_declared_output_root(root / "configs" / "leak_via_tmpdir.csv")
+
+
+def test_a_tracked_by_negation_filename_inside_a_declared_root_is_refused(tmp_path, monkeypatch):
+    """§7 EXECUTED BYPASS. The roots are "untracked" BY DIRECTORY, but .gitignore re-includes
+    `!data/**/*.dvc`, `!data/**/.gitkeep` and `!data/processed/*.sha256` — so those names ARE
+    tracked inside the allowed directories. Writing the name-bearing worksheet to
+    `data/processed/pgp_adjudication.sha256` was accepted: no symlink, no env var, no race, just a
+    filename in the directory where `.sha256` is this project's own sidecar convention."""
+    root = _tracked_like(tmp_path, monkeypatch)
+    for rel in ("data/processed/x.sha256", "data/interim/x.dvc", "data/interim/.gitkeep"):
+        with pytest.raises(OutputRootError, match="tracked"):
+            refuse_unless_declared_output_root(root / rel)
+
+    # The ordinary names in the same directories stay allowed.
+    refuse_unless_declared_output_root(root / "data" / "processed" / "x.parquet")
+    refuse_unless_declared_output_root(root / "data" / "interim" / "x.csv")

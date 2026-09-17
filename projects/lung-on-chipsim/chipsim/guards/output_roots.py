@@ -53,11 +53,41 @@ class OutputRootError(RuntimeError):
     """A record-bearing writer was pointed at a destination outside the declared roots."""
 
 
+#: Names that ARE tracked inside the otherwise-untracked roots, because `.gitignore` re-includes
+#: them (`!data/**/*.dvc`, `!data/**/.gitkeep`, `!data/processed/*.sha256`). The roots are
+#: "untracked" BY DIRECTORY; the ignore file makes that false BY SUFFIX, and writing the
+#: name-bearing worksheet to `data/processed/pgp_adjudication.sha256` was ACCEPTED — no symlink, no
+#: env var, no race, just a filename in the directory where `.sha256` is this project's own sidecar
+#: convention.
+_TRACKED_BY_NEGATION = (".dvc", ".sha256")
+_TRACKED_BY_NEGATION_NAMES = (".gitkeep",)
+
+
 def declared_output_roots() -> tuple[Path, ...]:
-    """The resolved roots, including the test tmp root."""
-    project = Path(source_root())
+    """The resolved untracked roots.
+
+    The system temp directory is NOT a root. It used to be, via `tempfile.gettempdir()`, i.e.
+    `$TMPDIR` — so pointing that at the project made the ENTIRE TRACKED TREE a declared output
+    root, and writing accession+name+structure into `configs/` was accepted. A CI runner that
+    clones into `$TMPDIR` hit it with no attacker involved. `journal.source_root()`'s own docstring
+    refuses exactly this shape: "an audit trail whose default location can be redirected by an
+    environment variable is one an operator cannot reason about."
+
+    The temp root survives ONLY as a test-time grant, and only when it is nowhere near the
+    project: under pytest, and refused outright if it contains (or is contained by) the project
+    root, which is precisely the TMPDIR=<project> attack.
+    """
+    project = Path(source_root()).resolve()
     roots = [(project / rel).resolve() for rel in DECLARED_OUTPUT_ROOTS]
-    roots.append(Path(tempfile.gettempdir()).resolve())
+
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        try:
+            tmp = Path(tempfile.gettempdir()).resolve()
+        except OSError:
+            return tuple(roots)
+        overlaps = tmp == project or tmp in project.parents or project in tmp.parents
+        if not overlaps:
+            roots.append(tmp)
     return tuple(roots)
 
 
@@ -114,6 +144,28 @@ def refuse_unless_declared_output_root(out: Path) -> None:
                 f"refusing to write record-bearing output to {out}: its ancestor {parent} is a "
                 "symlink, so the path the check sees is not the path the write reaches."
             )
+
+    try:
+        stat = literal.lstat()
+    except OSError:
+        stat = None
+    if stat is not None and stat.st_nlink > 1:
+        # Symlinks were refused and HARD links were not: `os.link(configs/victim, data/interim/x)`
+        # then a legitimate write overwrote the TRACKED file IN PLACE with the complete record.
+        # No symlink anywhere, so every link check above missed it.
+        raise OutputRootError(
+            f"refusing to write record-bearing output to {out}: it is a hard link "
+            f"({stat.st_nlink} names), so writing it would also write whatever else points at "
+            "that inode — which may be a tracked file."
+        )
+
+    if literal.suffix in _TRACKED_BY_NEGATION or literal.name in _TRACKED_BY_NEGATION_NAMES:
+        raise OutputRootError(
+            f"refusing to write record-bearing output to {out}: `{literal.name}` is TRACKED even "
+            "inside an untracked root, because .gitignore re-includes it "
+            f"({', '.join((*_TRACKED_BY_NEGATION, *_TRACKED_BY_NEGATION_NAMES))}). The roots are "
+            "untracked by DIRECTORY; this name is tracked by SUFFIX."
+        )
 
     try:
         resolved = literal.resolve()

@@ -133,6 +133,22 @@ def _relative_by_key(compounds: pd.DataFrame) -> pd.Series:
     )
 
 
+def _exclusive_temp(out: Path) -> Path:
+    """A fresh, exclusively-created temp file beside `out`, with an unpredictable name.
+
+    The guard validates `out`; the write then went to `out.name + ".tmp"`, a name any caller can
+    predict. Pre-placing THAT as a symlink into the tracked tree meant a fully-allowed write landed
+    the name-bearing worksheet in `configs/` — check-one-object-write-another, the bypass this
+    module's own docstring claims to have closed, moved one filename over. `mkstemp` creates with
+    O_EXCL and never follows an existing link.
+    """
+    import tempfile
+
+    handle, name = tempfile.mkstemp(prefix=f".{out.name}.", suffix=".tmp", dir=out.parent)
+    os.close(handle)
+    return Path(name)
+
+
 def _blank(value: object) -> bool:
     return value is None or pd.isna(value) or str(value).strip() == ""
 
@@ -309,7 +325,7 @@ def write_adjudication_worksheet(
     # write means a disk-full / encoding error / SIGINT during serialization
     # destroys it, and the merged content exists only in memory at that moment.
     # `fetch_snapshot` already stages for exactly this reason.
-    tmp = out.with_name(out.name + ".tmp")
+    tmp = _exclusive_temp(out)
     try:
         fresh.to_csv(tmp, index=False)
         os.replace(tmp, out)
@@ -408,7 +424,7 @@ def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
 
     # Atomic publish, as for the worksheet: `out` is the tracked record of irreplaceable
     # human work, and a half-written tracked file is worse than none.
-    tmp = out.with_name(out.name + ".tmp")
+    tmp = _exclusive_temp(out)
     try:
         tracked.to_csv(tmp, index=False)
         os.replace(tmp, out)
