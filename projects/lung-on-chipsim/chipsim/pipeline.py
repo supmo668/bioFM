@@ -352,15 +352,18 @@ def _cmd_record_content_report(ns) -> int:
     on inside tests, which means it reached nobody — and listing that reaches no one is a silent
     skip with extra steps.
     """
-    from chipsim.ingest.drugbank_snapshot import (
+    from chipsim.guards.record_content import (
         RecordContentScanError,
         render_undeclared_report,
     )
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
 
     # The REPO root, not project_root(): see r2.23 E-08 — passing the project root here made the
     # command print "every tracked file was read" while 23 files had never been read.
     try:
-        text, code = render_undeclared_report()
+        # The POLICY is passed, never imported by the guard: the guard must not know about
+        # DrugBank, and its defaults waive nothing, so forgetting it makes the gate noisier.
+        text, code = render_undeclared_report(DRUGBANK_CONTENT_POLICY)
     except RecordContentScanError as exc:
         # Exit 3, NOT 2. Exit 2 means "files fail this gate"; this means "I could not scan", which
         # is a different fact with a different remedy. Collapsing them is how an unscannable tree
