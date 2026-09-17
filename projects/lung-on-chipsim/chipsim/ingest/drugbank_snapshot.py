@@ -390,25 +390,139 @@ BINARY_ALLOWLIST: frozenset[str] = frozenset(
 )
 
 
-def _scannable_text(target: Path) -> str | None:
-    """The file's content as text for scanning, or None when it cannot be read as any.
+#: Bytes a parquet file starts and ends with. Dispatch on the MAGIC, not on the name (QG §6):
+#: `UP.PARQUET`, `.pq` and an extensionless blob are all real parquet, and a suffix test sent each
+#: of them down the "cannot be decoded — declare it" path, whose remedy would have made a fully
+#: readable record carrier permanently invisible. This repo already closed one case-sensitivity
+#: bypass (84ce8e0); the same shape came back here.
+_PARQUET_MAGIC = b"PAR1"
 
-    PARQUET is read as a FRAME and stringified rather than skipped (CTO ruling, QG §5 E-3): a
-    parquet holding an accession beside a name and an InChI — the complete record — returned NO
-    hits from the old UTF-8 read, while the same content in a CSV was caught. `write_compounds`
-    persists exactly that shape, so the format most likely to carry a whole record was the one
-    format the guard could not see.
+#: Rows per batch when scanning a parquet. Bounded deliberately: a 30 KiB dictionary-encoded file
+#: expanded to 186.9 MiB as one string (6,317x, 592 MiB peak RSS), measured — and a guard that
+#: OOMs produces no verdict at all, which is the same false-clean in a new costume.
+_PARQUET_BATCH_ROWS = 10_000
+
+#: Above this, a file is REPORTED as unscannable rather than read. A reported refusal is
+#: actionable; an OOM mid-scan is not.
+_MAX_SCAN_BYTES = 256 * 1024 * 1024
+
+#: Verdict cache keyed by (path, mtime_ns, size): both callers walk the whole tracked tree, so an
+#: uncached parquet was parsed and stringified TWICE per suite run.
+_READABILITY_CACHE: dict[tuple[str, int, int], bool] = {}
+
+
+def _decode_text(data: bytes) -> str | None:
+    """Decode bytes that are TEXT in some encoding, or None when they are genuinely not text.
+
+    UTF-16 and latin-1 documents carrying a real accession were classified "undecodable" and the
+    only remedy offered was the allow-list — which would have made a PLAIN-TEXT accession carrier
+    permanently invisible (measured on both encodings). UTF-16 in particular is a routine artifact
+    of Windows-authored files.
+
+    latin-1 decodes ANY byte sequence, so it cannot be the last resort unconditionally: a NUL byte
+    or a low printable ratio means binary, and binary must stay REPORTABLE rather than become a
+    string of mojibake that scans clean.
     """
-    if target.suffix == ".parquet":
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
         try:
-            frame = pd.read_parquet(target, engine="pyarrow")
-        except Exception:  # noqa: BLE001 - an unreadable parquet is UNDECODABLE, not clean
+            return data.decode("utf-16")
+        except UnicodeDecodeError:
             return None
-        return frame.to_csv(index=True)
-    try:
-        return target.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
+    for encoding in ("utf-8", "utf-8-sig"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    if b"\x00" in data:
         return None
+    try:
+        text = data.decode("latin-1")
+    except UnicodeDecodeError:  # pragma: no cover - latin-1 decodes every byte
+        return None
+    printable = sum(ch.isprintable() or ch in "\r\n\t" for ch in text)
+    return text if text and printable / len(text) >= 0.9 else None
+
+
+def _parquet_chunks(target: Path):
+    """Every scannable part of a parquet: the FOOTER METADATA first, then the rows in batches.
+
+    The metadata is not decoration. A table whose schema metadata carried
+    {"drugbank_id": <real>, "name": <coined title>, "inchi": ...} scanned as ",harmless\n0,1\n" —
+    the complete record present in the file, absent from the scanned text, and reported by NEITHER
+    half of the guard, so its own tests certified the file clean. `pq.write_table(..., metadata=)`
+    is ordinary, and DuckDB/Spark/Polars stamp metadata by default.
+
+    Rows are yielded per batch rather than as one string, and list/array cells are stringified
+    explicitly: numpy's repr ELIDES above 1000 elements, so an accession at position 1500 of a
+    `groups` list vanished — and `write_compounds` persists `groups` and `atc_codes` as list
+    columns, so that is this project's own shape.
+    """
+    import pyarrow.parquet as pq
+
+    schema = pq.read_schema(target)
+    meta_parts: list[str] = [str(schema)]
+    for holder in (schema.metadata, *(field.metadata for field in schema)):
+        for key, value in (holder or {}).items():
+            meta_parts.append(f"{key.decode('latin-1')}={value.decode('latin-1')}")
+    yield "\n".join(meta_parts)
+
+    def _cell(value):
+        if isinstance(value, (str, bytes)) or not hasattr(value, "__len__"):
+            return value
+        return "[" + ",".join(str(item) for item in value) + "]"
+
+    for batch in pq.ParquetFile(target).iter_batches(batch_size=_PARQUET_BATCH_ROWS):
+        frame = batch.to_pandas()
+        yield frame.map(_cell).to_csv(index=True)
+
+
+def _scan_chunks(target: Path):
+    """Chunks of scannable text for one file, or None when nothing can be read from it.
+
+    None means REPORTABLE — `undecodable_unallowed` turns it into a failure unless the path is
+    declared. It never means "clean".
+    """
+    try:
+        size = target.stat().st_size
+    except OSError:
+        return None
+    if size > _MAX_SCAN_BYTES:
+        return None
+
+    try:
+        head = target.open("rb").read(4)
+    except OSError:
+        return None
+
+    if head == _PARQUET_MAGIC:
+        try:
+            return list(_parquet_chunks(target))
+        except MemoryError:
+            # NOT swallowed with everything else: an exhausted scan must never be remediable by
+            # declaring the file, which is what the generic "undecodable" message invites.
+            raise
+        except ImportError:
+            raise
+        except Exception:  # noqa: BLE001 - an unreadable parquet is REPORTABLE, never clean
+            return None
+
+    try:
+        data = target.read_bytes()
+    except OSError:
+        return None
+    text = _decode_text(data)
+    return None if text is None else [text]
+
+
+def _is_readable(target: Path) -> bool:
+    try:
+        stat = target.stat()
+        key = (str(target), stat.st_mtime_ns, stat.st_size)
+    except OSError:
+        return False
+    if key not in _READABILITY_CACHE:
+        _READABILITY_CACHE[key] = _scan_chunks(target) is not None
+    return _READABILITY_CACHE[key]
 
 
 def undecodable_unallowed(root: Path, paths) -> list[str]:
@@ -417,15 +531,22 @@ def undecodable_unallowed(root: Path, paths) -> list[str]:
     A skipped file is an UNCHECKED file: "no hits" from a file the scan never read is the
     false-clean this project keeps rediscovering. Reporting them is what makes the scan's silence
     mean something.
+
+    Dispatch payloads are skipped — they are waived by ruling (#122 §3) and never scanned either
+    way, so reporting them would be unactionable noise. The LEDGER pair is NOT skipped: its content
+    IS still read (`ledger_tuple_hits`), so its readability is exactly what this check is for. The
+    exclusions exist for accession CONTENT, not for readability.
     """
     unreadable: list[str] = []
     for rel in paths:
-        if is_accession_excluded(rel) or rel in BINARY_ALLOWLIST:
+        if _DISPATCH_PAYLOAD_RE.match(rel) or rel in DRUGBANK_ID_EXCLUDED_FILES:
+            continue
+        if rel in BINARY_ALLOWLIST:
             continue
         target = Path(root) / rel
         if not target.is_file():
             continue
-        if _scannable_text(target) is None:
+        if not _is_readable(target):
             unreadable.append(rel)
     return sorted(unreadable)
 
@@ -435,9 +556,13 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
     carries a real DrugBank ID. `root` is the REPOSITORY root and `paths` are repo-relative
     (CTO #122 §5); the old project-rooted scan never saw `workstreams/` or `.claude/`.
 
-    Parquet is scanned as a frame. A file that cannot be read at all is skipped HERE and reported
-    by `undecodable_unallowed`, which fails unless the file is declared — so a skip is always
-    visible somewhere (QG §5 E-3).
+    Parquet is scanned as frame batches PLUS its footer metadata. A file that cannot be read at all
+    is skipped HERE and reported by `undecodable_unallowed`, which fails unless the file is
+    declared — so a skip is always visible somewhere (QG §5 E-3).
+
+    `BINARY_ALLOWLIST` is deliberately NOT consulted here: it declares that a file cannot be READ,
+    never that its content is exempt. A declared path whose bytes turn out to be readable text is
+    still scanned and still reported.
     """
     hits: list[tuple[str, str]] = []
     for rel in paths:
@@ -446,12 +571,14 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
         target = Path(root) / rel
         if not target.is_file():
             continue
-        text = _scannable_text(target)
-        if text is None:
+        chunks = _scan_chunks(target)
+        if chunks is None:
             continue
-        found = REAL_ACCESSION_RE.search(text)
-        if found:
-            hits.append((rel, found.group(0)))
+        for chunk in chunks:
+            found = REAL_ACCESSION_RE.search(chunk)
+            if found:
+                hits.append((rel, found.group(0)))
+                break
     return hits
 
 

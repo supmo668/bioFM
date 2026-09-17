@@ -33,6 +33,7 @@ from chipsim.ingest.drugbank_snapshot import (
     BINARY_ALLOWLIST,
     DRUGBANK_ID_EXCLUDED_FILES,
     DRUGBANK_ID_LEDGER,
+    _is_readable,
     accession_structure_tuples,
     is_accession_excluded,
     ledger_tuple_hits,
@@ -291,3 +292,204 @@ def test_the_binary_allowlist_is_not_a_blanket():
         assert not rel.endswith("/"), f"{rel} waves through a whole directory"
         assert "*" not in rel, f"{rel} is a glob, not a declared file"
         assert Path(rel).suffix, f"{rel} has no extension — is it really a binary artifact?"
+
+
+# --- §6: what four reviewers proved these tests could NOT catch -----------------------------
+
+
+def _parquet(tmp_path: Path, frame, name: str = "c.parquet") -> Path:
+    path = tmp_path / name
+    frame.to_parquet(path, engine="pyarrow")
+    return path
+
+
+def test_a_parquet_hiding_the_record_in_its_footer_metadata_is_caught(tmp_path):
+    """§6, the HIGH that blocked release. A table whose SCHEMA METADATA carries the accession, the
+    coined name and the structure scanned as ",harmless\n0,1\n": the complete record in the file,
+    absent from the scanned text, and reported by NEITHER half — so the guard's own green tests
+    certified it clean. `pq.write_table(..., metadata=...)` is ordinary, and DuckDB/Spark/Polars
+    stamp metadata by default."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    table = pa.table({"harmless": [1, 2, 3]}).replace_schema_metadata(
+        {b"provenance": f'{{"drugbank_id": "{REAL}", "inchi": "{STRUCTURE}"}}'.encode()}
+    )
+    path = tmp_path / "kv.parquet"
+    pq.write_table(table, path)
+    assert [a for _, a in real_accession_hits(tmp_path, ["kv.parquet"])] == [REAL]
+
+
+def test_a_parquet_hiding_the_record_in_per_field_metadata_is_caught(tmp_path):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    field = pa.field("harmless", pa.int64(), metadata={b"src": REAL.encode()})
+    path = tmp_path / "fieldmeta.parquet"
+    pq.write_table(pa.table([pa.array([1])], schema=pa.schema([field])), path)
+    assert [a for _, a in real_accession_hits(tmp_path, ["fieldmeta.parquet"])] == [REAL]
+
+
+def test_a_long_list_cell_is_scanned_whole_not_elided(tmp_path):
+    """numpy's repr ELIDES above 1000 elements, so an accession at position 1500 of a `groups`
+    list vanished and the file scanned clean. `write_compounds` persists `groups` and `atc_codes`
+    as list columns — this is the project's own shape, not a contrived one."""
+    import pandas as pd
+
+    ids = ["DB90001"] * 2000
+    ids[1500] = REAL
+    path = _parquet(tmp_path, pd.DataFrame({"groups": [ids]}), "lists.parquet")
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_a_deep_row_and_a_middle_column_are_scanned(tmp_path):
+    """A truncating stringifier (`str(frame)`, `.head(1)`) survived every earlier test because the
+    fixture was a ONE-ROW frame. `write_compounds` persists thousands of rows and the accession
+    will almost never be in row 0."""
+    import pandas as pd
+
+    rows = 500
+    frame = pd.DataFrame(
+        {
+            "a": ["DB90001"] * rows,
+            "middle": ["DB90002"] * rows,
+            "z": ["DB90003"] * rows,
+        }
+    )
+    frame.loc[rows - 1, "middle"] = REAL
+    path = _parquet(tmp_path, frame, "deep.parquet")
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_the_parquet_index_is_scanned(tmp_path):
+    import pandas as pd
+
+    frame = pd.DataFrame({"a": [1]}, index=pd.Index([REAL], name="idx"))
+    path = _parquet(tmp_path, frame, "index.parquet")
+    assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL]
+
+
+def test_a_parquet_is_recognised_by_its_MAGIC_not_its_name(tmp_path):
+    """This repo closed a case-sensitivity bypass three commits ago (84ce8e0) and the same shape
+    came back: `.PARQUET`, `.pq` and an extensionless blob fell through to "cannot be decoded",
+    whose remedy — declare it — would make a fully readable record carrier permanently invisible."""
+    import pandas as pd
+
+    frame = pd.DataFrame({"drugbank_id": [REAL], "inchi": [STRUCTURE]})
+    for name in ("UP.PARQUET", "data.pq", "blob"):
+        path = _parquet(tmp_path, frame, name)
+        assert [a for _, a in real_accession_hits(tmp_path, [path.name])] == [REAL], name
+        assert undecodable_unallowed(tmp_path, [path.name]) == [], name
+
+
+def test_text_in_other_encodings_is_scanned_not_declared_away(tmp_path):
+    """A latin-1 or UTF-16 document carrying an accession was classified "undecodable", and the
+    only exit offered was the allow-list — which would make a PLAIN-TEXT carrier invisible for
+    good. UTF-16 is a routine artifact of Windows-authored files."""
+    (tmp_path / "latin1.md").write_bytes(("caf\xe9 " + REAL).encode("latin-1"))
+    (tmp_path / "utf16.md").write_bytes(("x " + REAL).encode("utf-16"))
+    hits = {rel for rel, _ in real_accession_hits(tmp_path, ["latin1.md", "utf16.md"])}
+    assert hits == {"latin1.md", "utf16.md"}
+    assert undecodable_unallowed(tmp_path, ["latin1.md", "utf16.md"]) == []
+
+
+def test_genuine_binary_is_still_reported_not_decoded_into_mojibake(tmp_path):
+    """The other side of the lenient decode: latin-1 decodes ANY bytes, so it must not become an
+    unconditional last resort — a binary that "decodes" is a binary that scans clean."""
+    (tmp_path / "real.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00")
+    assert undecodable_unallowed(tmp_path, ["real.png"]) == ["real.png"]
+
+
+def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_path):
+    """Both a path-suffix match and a basename match survived every earlier test, so
+    `vendor/<declared path>` or any file sharing a declared BASENAME would have been silently
+    exempted. The docstring claimed "exact path"; nothing checked it."""
+    declared = min(BINARY_ALLOWLIST)
+    for rel in (f"vendor/{declared}", f"some/other/dir/{Path(declared).name}"):
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"\x00\xff not text")
+        assert undecodable_unallowed(tmp_path, [rel]) == [rel], rel
+
+
+def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path):
+    """The allow-list declares that a file cannot be READ — never that its content is exempt.
+    Adding `or rel in BINARY_ALLOWLIST` to the accession scan survived the whole suite, which
+    would have turned "somebody looked at this artifact once" into a blanket content waiver."""
+    declared = min(BINARY_ALLOWLIST)
+    target = tmp_path / declared
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(f"see {REAL}\n")
+    assert [a for _, a in real_accession_hits(tmp_path, [declared])] == [REAL]
+    assert undecodable_unallowed(tmp_path, [declared]) == []
+
+
+def test_undecodable_reporting_is_not_limited_to_familiar_extensions(tmp_path):
+    """Limiting the REPORT to known binary suffixes survived — the exact bypass the exact-path
+    rule exists to prevent, rebuilt on the reporting side."""
+    for name in ("weird.bin", "notes.md", "blob_no_ext"):
+        (tmp_path / name).write_bytes(b"\x00\xff\xfe\x00 not text at all")
+    assert undecodable_unallowed(tmp_path, ["weird.bin", "notes.md", "blob_no_ext"]) == [
+        "blob_no_ext",
+        "notes.md",
+        "weird.bin",
+    ]
+
+
+def test_an_empty_file_is_read_not_reported(tmp_path):
+    """Pinned only BY ACCIDENT before: the `is None` vs falsy distinction was covered only because
+    the repo happens to track six empty .gitkeep files."""
+    import pandas as pd
+
+    (tmp_path / "empty.md").write_text("")
+    _parquet(tmp_path, pd.DataFrame({"drugbank_id": pd.Series([], dtype=str)}), "zero.parquet")
+    assert undecodable_unallowed(tmp_path, ["empty.md", "zero.parquet"]) == []
+    assert real_accession_hits(tmp_path, ["empty.md", "zero.parquet"]) == []
+
+
+def test_the_report_is_sorted_so_a_failure_reads_the_same_way_twice(tmp_path):
+    for rel in ("z/c.bin", "m/a.bin", "a/b.bin"):
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"\x00\xff")
+    assert undecodable_unallowed(tmp_path, ["z/c.bin", "m/a.bin", "a/b.bin"]) == [
+        "a/b.bin",
+        "m/a.bin",
+        "z/c.bin",
+    ]
+
+
+def test_an_undecodable_ledger_file_is_reported_but_a_dispatch_payload_is_not(tmp_path):
+    """The ledger's content IS still read (`ledger_tuple_hits` does a bare read_text), so its
+    readability is exactly what this check is for — the exclusion exists for accession CONTENT,
+    not for readability. A dispatch payload is waived by ruling and never scanned either way, so
+    reporting it would be unactionable noise."""
+    ledger = min(DRUGBANK_ID_LEDGER)
+    dispatch = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/attachment.md"
+    for rel in (ledger, dispatch):
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"\x00\xff not text")
+    assert undecodable_unallowed(tmp_path, [ledger, dispatch]) == [ledger]
+
+
+def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
+    """A declaration for a file that does not exist PRE-AUTHORISES whatever later lands at that
+    path, and a declaration for a DECODABLE file hides nothing the scan could not already read.
+    Three junk entries — a deleted figure, a pre-declared `data/processed/compounds.parquet`, and
+    README.md — passed every earlier test. The ledger sets already had this check (above); the new
+    set was simply left out of it."""
+    tracked = set(_tracked_paths())
+    for rel in sorted(BINARY_ALLOWLIST):
+        path = REPO_ROOT / rel
+        assert path.is_file(), f"{rel} is declared but does not exist — a pre-granted exemption"
+        assert rel in tracked, f"{rel} is declared but not tracked"
+        assert not _is_readable(path), (
+            f"{rel} IS readable, so declaring it exempts nothing and hides everything — "
+            "declare only what the scan genuinely cannot read"
+        )
+
+
+def test_no_declared_path_is_also_content_excluded():
+    """A path must never be exempted twice by two different mechanisms."""
+    assert [rel for rel in BINARY_ALLOWLIST if is_accession_excluded(rel)] == []
