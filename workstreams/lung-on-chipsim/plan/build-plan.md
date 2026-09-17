@@ -237,6 +237,20 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
   into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
   halves may not be cited for the fourth.*
+- **THE EXCLUSION SET IS NOT WIDENED FOR COORDINATION FILES** *(r2.31)*. `workstreams/**/plan/**`
+  stays **in scope**. Excluding the coordination files that record the guard's own decisions is the
+  same hole as excluding the test file that tests the scan, ruled against one revision earlier — and
+  the gate would then be blind to exactly the surface where its rulings are written down.
+  **The fix is not to write accession literals into tracked prose in the first place.** Describe the
+  *form* ("an all-zeros five-digit body"), never the value.
+  **And remembering is demonstrably not enough: the CTO wrote two literals into the approval log while
+  recording the ruling that forbids them.** So this is enforced on the **commit path** —
+  `plan-gate` / the coordination-commit route — and **not** by adding paths to the guard's exclusion
+  set. A rule whose only enforcement is the author's attention has already failed once here.
+  **This was the accession half's FIRST LIVE CATCH, and it caught the CTO.** Before §11 the shipped
+  command composed three of four halves and would have reported this tree **clean at exit 0** — the
+  very exit 0 both parties had been citing as evidence. E6-7 earned itself on coordination content
+  written by the person who ruled it.
 - **THE TEST FILE IS IN SCOPE, AND ITS ASSEMBLED CONSTANT IS LOAD-BEARING** *(r2.30)*. The guard's
   own test fixture is **not excluded** from the accession scan — deliberately, because *excluding the
   file that tests the scan is a bigger hole than an assembled constant*, and it is the exact shape of
