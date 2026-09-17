@@ -391,7 +391,9 @@ def _cmd_record_content_report(ns) -> int:
     # nothing in the suite could tell this call from a defaulted one, and two mutants that dropped
     # the policy entirely passed the whole suite.
     try:
-        result = enforce_record_content(_record_content_policy())
+        # WORKTREE for the human-facing report: it describes the files as they sit on disk,
+        # and says so in its header. A commit gate calls with byte_source="staged".
+        result = enforce_record_content(_record_content_policy(), byte_source="worktree")
     except RecordContentViolation as exc:
         # The three states, and no fourth (r2.28). `files-fail` is 2 and `could-not-scan` is 3:
         # "files fail this gate" and "I could not scan" are different facts with different

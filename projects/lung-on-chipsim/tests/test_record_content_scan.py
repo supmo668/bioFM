@@ -74,7 +74,7 @@ def test_the_exit_code_is_assertable_without_parsing_a_string(tmp_path, monkeypa
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert scan.exit_code == 2
     assert isinstance(scan, RecordContentScan)
 
@@ -119,7 +119,7 @@ def test_rows_are_typed_and_carry_their_disposition(tmp_path, monkeypatch):
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     by_path = {row.path: row for row in scan.rows}
 
     assert by_path[mine].disposition == "FAILS HERE"
@@ -140,7 +140,7 @@ def test_rendering_is_derived_from_the_scan_and_changes_no_verdict(tmp_path, mon
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     text, code = render_scan(scan)
     assert code == scan.exit_code
     assert rel in text
@@ -161,7 +161,7 @@ def test_the_shipped_command_still_renders_what_the_scan_says(tmp_path, monkeypa
 
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
-    scan = scan_record_content(ScanContext.build(tmp_path, DRUGBANK_CONTENT_POLICY))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, DRUGBANK_CONTENT_POLICY))
     assert code == scan.exit_code
     assert rel in printed
 
@@ -176,7 +176,7 @@ def test_a_structural_error_is_a_field_not_a_paragraph(tmp_path, monkeypatch):
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert scan.structural_error is not None
     assert scan.exit_code == 2
     assert rc.PROJECT_DECLARATION_FILE in scan.structural_error
@@ -187,7 +187,7 @@ def test_the_live_repository_scans_clean_as_DATA():
     import chipsim.guards.record_content as rc
     from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
 
-    scan = scan_record_content(ScanContext.build(rc.repo_root(), DRUGBANK_CONTENT_POLICY))
+    scan = scan_record_content(ScanContext.for_worktree(rc.repo_root(), DRUGBANK_CONTENT_POLICY))
     assert scan.exit_code == 0
     assert scan.tracked_count > 100
     assert scan.structural_error is None
@@ -304,7 +304,7 @@ def test_a_broken_declaration_file_reads_UNREADABLE_not_zero(tmp_path, monkeypat
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     text, code = render_scan(scan)
     second = text.splitlines()[1]
     assert "UNREADABLE" in second, second
@@ -336,14 +336,22 @@ def test_a_hand_built_context_cannot_skip_the_anti_vacuity_refusal(tmp_path, mon
     )
     surface = rc.DeclarationSurface.read(tmp_path)
 
-    ScanContext(root=tmp_path, paths=(), submodules=(), policy=NOTHING_WAIVED, surface=surface)
+    ScanContext(
+        root=tmp_path,
+        read_root=tmp_path,
+        byte_source="worktree",
+        paths=(),
+        submodules=(),
+        policy=NOTHING_WAIVED,
+        surface=surface,
+    )
     assert seen == [()], (
         "a hand-built context skipped the anti-vacuity refusal — exit 0 over an empty listing, "
         "naming the correct root, through a public API"
     )
 
     seen.clear()
-    ScanContext.build(tmp_path, NOTHING_WAIVED)
+    ScanContext.for_worktree(tmp_path, NOTHING_WAIVED)
     assert seen and seen[0], "and build still runs it, with the real listing"
 
 
@@ -364,6 +372,7 @@ def test_a_scan_cannot_disagree_with_its_own_exit_code(tmp_path, monkeypatch):
             defect_count=0,
             submodules=(),
             declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
+            byte_source="worktree",
             registry_state="declared",
             structural_error=None,
             exit_code=0,
@@ -386,6 +395,7 @@ def test_a_row_in_an_unknown_category_is_still_printed(tmp_path):
         defect_count=0,
         submodules=(),
         declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
+        byte_source="worktree",
         registry_state="declared",
         structural_error=None,
         exit_code=2,
@@ -408,7 +418,7 @@ def test_an_unreadable_registry_is_not_reported_as_marker_backed(tmp_path, monke
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     text, _code = render_scan(scan)
     assert scan.registry_state == "unreadable"
     assert "owner registry: UNREADABLE" in text
@@ -426,7 +436,7 @@ def test_the_structural_error_cannot_break_the_reports_indentation(tmp_path, mon
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     text, _code = render_scan(scan)
     body = text.splitlines()[1:]
     assert body, "no body lines means this `all()` proves nothing about indentation"
@@ -452,8 +462,10 @@ def test_no_constructor_on_the_scan_path_acquires_a_default(tmp_path):
     import chipsim.guards.record_content as rc
 
     for label, fn in (
-        ("ScanContext.build", ScanContext.build),
+        ("ScanContext.for_worktree", ScanContext.for_worktree),
+        ("ScanContext.for_staged", ScanContext.for_staged),
         ("_render_for_root", rc._render_for_root),
+        ("scan_context", rc.scan_context),
         ("scan_record_content", scan_record_content),
         ("render_scan", render_scan),
     ):
@@ -494,7 +506,7 @@ def test_the_scan_root_cannot_come_from_the_environment(tmp_path, tmp_path_facto
     monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(decoy))
     monkeypatch.chdir(decoy)
 
-    text, code = rc._render_for_root(tmp_path, NOTHING_WAIVED)
+    text, code = rc._render_for_root(tmp_path, NOTHING_WAIVED, "worktree")
     assert str(tmp_path) in text, "the report must name the root it was HANDED"
     assert str(decoy) not in text, (
         "the scan answered about a root nobody passed it — the root was resolved from the "
@@ -502,7 +514,7 @@ def test_the_scan_root_cannot_come_from_the_environment(tmp_path, tmp_path_facto
     )
     assert code == 2, "and it is the handed root's verdict, not the decoy's clean one"
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert scan.root == tmp_path.resolve()
 
 
@@ -520,7 +532,7 @@ def test_a_missing_path_is_categorised_missing_not_undecodable(tmp_path, monkeyp
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     by_path = {row.path: row for row in scan.rows}
     assert by_path[ghost].category == "missing-on-disk"
     assert by_path[live].category == "undecodable"
@@ -539,7 +551,7 @@ def test_the_tracked_count_is_the_listing_length_exactly(tmp_path, monkeypatch):
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert scan.tracked_count == len(listing)
     text, _code = render_scan(scan)
     assert f"scanned {len(listing)} tracked files under {tmp_path}" in text
@@ -555,13 +567,13 @@ def test_the_registry_state_is_pinned_in_every_direction(tmp_path, monkeypatch):
 
     listing = _surface(tmp_path, owners=[rc.THIS_PROJECT])
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
-    declared = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    declared = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert declared.registry_state == "declared"
     assert "owner registry: DECLARED" in render_scan(declared)[0]
 
     listing = _surface(tmp_path)  # no `owners:` key at all
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
-    absent = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    absent = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert absent.registry_state == "marker-backed-only"
     assert "MARKER-BACKED ONLY" in render_scan(absent)[0]
 
@@ -586,7 +598,7 @@ def test_a_broken_declaration_row_carries_its_reason_as_a_FIELD(tmp_path, monkey
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     broken = [row for row in scan.rows if row.category == "broken-declaration"]
     assert broken, "the declaration is broken and should have produced a row"
     assert all(row.detail for row in broken)
@@ -633,6 +645,7 @@ def test_no_field_of_a_row_can_forge_a_report_line(category, tmp_path):
         defect_count=1,
         submodules=(f"libs/{FORGERY}",),
         declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
+        byte_source="worktree",
         registry_state="declared",
         structural_error=None,
         exit_code=2,
@@ -691,7 +704,7 @@ def test_the_UNREADABLE_disclosure_does_not_name_the_healthy_file(broken, tmp_pa
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert scan.registry_state == "unreadable"
     text, _code = render_scan(scan)
 
@@ -735,7 +748,7 @@ def test_an_EMPTY_owners_list_narrows_to_nothing_and_is_not_an_absent_registry(
         "an empty `owners:` list is a registry naming NOBODY, not an absent registry"
     )
 
-    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
     assert scan.registry_state == "declared", "the registry EXISTS; it is simply empty"
 
     row = next(r for r in scan.rows if r.path == theirs)
@@ -927,6 +940,7 @@ def test_the_invariants_raise_the_guards_own_error_not_a_repository_one():
             defect_count=0,
             submodules=(),
             declaration_files=(rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE),
+            byte_source="worktree",
             registry_state="declared",
             structural_error=None,
             exit_code=0,
@@ -1007,6 +1021,7 @@ def test_the_renderer_returns_the_scans_exit_code_and_counts_verbatim(tmp_path):
         defect_count=0,
         submodules=(),
         declaration_files=("a/project.yaml", "b/repo.yaml"),
+        byte_source="worktree",
         registry_state="declared",
         structural_error=None,
         exit_code=2,

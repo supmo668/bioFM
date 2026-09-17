@@ -35,6 +35,8 @@ REQUIRED at every call site — the same reasoning this module already applies t
 from __future__ import annotations
 
 import re
+import tempfile
+from contextlib import contextmanager
 
 # Aliased: two loops in this module already bind a variable called `field`, and ruff caught the
 # shadowing the moment the import arrived.
@@ -64,6 +66,7 @@ from chipsim.guards.policy import (  # noqa: F401
 from chipsim.guards.repo import (
     _MINIMUM_PLAUSIBLE_TRACKED,
     _tracked_listing,
+    materialise_index,
     repo_root,
 )
 
@@ -866,7 +869,10 @@ def render_undeclared_report(policy: ContentPolicy) -> tuple[str, int]:
     wrongly. Narrowed scans are `_render_for_root`, whose underscore says that a narrowed scan is
     not a supported product behaviour.
     """
-    return _render_for_root(repo_root(), policy)
+    # WORKTREE: this is the human-facing listing, which describes the files as they sit on
+    # disk and says so in its header. A commit gate goes through `enforce_record_content`
+    # with byte_source="staged".
+    return _render_for_root(repo_root(), policy, "worktree")
 
 
 @dataclass(frozen=True)
@@ -884,6 +890,13 @@ class ScanContext:
     """
 
     root: Path
+    #: WHERE THE BYTES COME FROM, which is not always the tree being reported on. In `staged` mode
+    #: this points at a materialised copy of the index — the bytes a commit would carry — while
+    #: `root` stays the repository the report NAMES. They are equal in `worktree` mode.
+    read_root: Path
+    #: "staged" | "worktree". REQUIRED: which copy the gate certifies is exactly the kind of
+    #: decision that must not be resolvable by omission.
+    byte_source: str
     paths: tuple[str, ...]
     submodules: tuple[str, ...]
     policy: ContentPolicy
@@ -910,23 +923,77 @@ class ScanContext:
     # path and was inverted on the other, decided by whether a caller remembered an argument.
 
     @classmethod
-    def build(cls, root: Path, policy: ContentPolicy) -> ScanContext:
-        """Read the tree ONCE and freeze it. The only constructor a caller needs."""
+    def for_worktree(cls, root: Path, policy: ContentPolicy) -> ScanContext:
+        """The files AS THEY SIT ON DISK. What a human inspecting their own tree wants.
+
+        This is the mode E-10 belongs to: a tracked path can be absent from the worktree, and
+        "tracked but NOT PRESENT ON DISK" is a real state here. It is not a state the staged mode
+        can produce, and the two are kept apart rather than one inheriting the other's failures.
+        """
+        return cls._of(root, policy, byte_source="worktree", read_root=root)
+
+    @classmethod
+    def for_staged(cls, root: Path, policy: ContentPolicy, staged_root: Path) -> ScanContext:
+        """THE BYTES A COMMIT WOULD CARRY, materialised from the index (r2.28).
+
+        `staged_root` comes from `scan_context`, which owns its lifetime — the context is a frozen
+        dataclass and must not own a resource.
+
+        Two named constructors rather than one `build(..., byte_source, read_root)`: that form let a
+        caller pass `byte_source="staged"` with a worktree read_root and get a scan that LIED about
+        which copy it certified. Two fields that can contradict each other is the shape this module
+        keeps removing; the name carries the decision instead.
+        """
+        return cls._of(root, policy, byte_source="staged", read_root=staged_root)
+
+    @classmethod
+    def _of(
+        cls, root: Path, policy: ContentPolicy, byte_source: str, read_root: Path
+    ) -> ScanContext:
+        """Read the tree ONCE and freeze it. Reached through the two named constructors."""
         root = Path(root).resolve()
+        read_root = Path(read_root).resolve()
         paths, submodules = _tracked_listing(root)
         return cls(
             root=root,
+            read_root=read_root,
+            byte_source=byte_source,
             paths=tuple(paths),
             submodules=tuple(submodules),
             policy=policy,
-            surface=DeclarationSurface.read(root),
+            # FROM THE COPY BEING CERTIFIED. The surface carries the root it was read from (§12.1)
+            # and every reader takes its root from the surface — so binding it here is what makes
+            # the whole declaration path follow the byte source, with no second parameter to keep in
+            # sync and no way for the two to disagree.
+            surface=DeclarationSurface.read(read_root),
         )
+
+
+@contextmanager
+def scan_context(root: Path, policy: ContentPolicy, byte_source: str):
+    """A `ScanContext` for either byte source, owning the temporary tree when there is one.
+
+    The context is a FROZEN DATACLASS and must not own a resource — so the temporary directory's
+    lifetime lives here, in a context manager, rather than in the data. In `worktree` mode nothing
+    is materialised and this is just a constructor.
+    """
+    if byte_source == "staged":
+        with tempfile.TemporaryDirectory(prefix="chipsim-staged-") as tmp:
+            staged = materialise_index(Path(root).resolve(), Path(tmp))
+            yield ScanContext.for_staged(root, policy, staged)
+        return
+    if byte_source != "worktree":
+        raise GuardInvariantViolated(
+            f"byte_source={byte_source!r} is neither 'staged' nor 'worktree'"
+        )
+    yield ScanContext.for_worktree(root, policy)
 
 
 def scan_record_content(context: ScanContext) -> RecordContentScan:
     """Run the gate and return its verdict as data. No formatting, no printing, no exit."""
     root, paths, policy, surface = (
-        context.root,
+        # `read_root` for anything that touches bytes; `context.root` is what the report NAMES.
+        context.read_root,
         list(context.paths),
         context.policy,
         context.surface,
@@ -969,7 +1036,8 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
         len({path for path, _ in defects}),
     )
     return RecordContentScan(
-        root=root,
+        root=context.root,
+        byte_source=context.byte_source,
         package=Path(__file__).resolve(),
         tracked_count=len(paths),
         # Derived from the SAME rows the exit code is derived from, so the header number and the
@@ -990,9 +1058,10 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
     )
 
 
-def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
+def _render_for_root(root: Path, policy: ContentPolicy, byte_source: str) -> tuple[str, int]:
     """Kept as the one-call form the CLI and the composition root use."""
-    return render_scan(scan_record_content(ScanContext.build(root, policy)))
+    with scan_context(root, policy, byte_source) as context:
+        return render_scan(scan_record_content(context))
 
 
 def undeclared_report(

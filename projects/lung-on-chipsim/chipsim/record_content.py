@@ -70,7 +70,9 @@ class RecordContentViolation(RuntimeError):
         self.scanned = scanned
 
 
-def enforce_record_content(policy: ContentPolicy = DRUGBANK_CONTENT_POLICY) -> RecordContentResult:
+def enforce_record_content(
+    policy: ContentPolicy = DRUGBANK_CONTENT_POLICY, byte_source: str = "worktree"
+) -> RecordContentResult:
     """Run the whole record-content invariant and RAISE unless it is clean.
 
     Composes, in one call, the four checks that were previously only ever assembled by the test
@@ -89,20 +91,23 @@ def enforce_record_content(policy: ContentPolicy = DRUGBANK_CONTENT_POLICY) -> R
         # the report text came from the second, so one object carried two numbers claiming to be
         # the same thing — E-14's defect reinstated one layer above the fix for it. It also reached
         # into two PRIVATE guard names while the commit that introduced it claimed none remained.
-        context = _guard.ScanContext.build(_guard.repo_root(), policy)
-        scan = _guard.scan_record_content(context)
-        report, code = _guard.render_scan(scan)
+        with _guard.scan_context(_guard.repo_root(), policy, byte_source) as context:
+            scan = _guard.scan_record_content(context)
+            report, code = _guard.render_scan(scan)
+            # The accession half reads bytes too, so it reads the SAME copy — otherwise one half
+            # could certify the staged blobs while the other certified the working files, which is
+            # the split-evidence defect E6-5 is about, one level down.
+            read_root, paths = context.read_root, list(context.paths)
+            hits = _drugbank.real_accession_hits(read_root, paths)
+            ledger = _drugbank.ledger_tuple_hits(read_root)
+        root = context.root
     except RecordContentScanError as exc:
         raise RecordContentViolation("could-not-scan", str(exc)) from exc
-
-    root, paths = context.root, list(context.paths)
 
     # The accession half. The scan above answers "can every tracked file be READ"; this answers
     # "does anything readable CARRY a regulatory identifier", which is the other half of the
     # invariant and the one that had no non-pytest caller at all. Same listing, so a file cannot be
     # seen by one half and missed by the other.
-    hits = _drugbank.real_accession_hits(root, paths)
-    ledger = _drugbank.ledger_tuple_hits(root)
     if hits or ledger:
         lines = [report, "", "REAL ACCESSIONS IN TRACKED CONTENT:"]
         lines += [f"  {rel}: {accession}" for rel, accession in hits]

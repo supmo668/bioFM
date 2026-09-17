@@ -1355,7 +1355,7 @@ def test_the_shipped_command_prints_exactly_what_the_function_renders(capsys):
     from chipsim import pipeline
     from chipsim.guards.record_content import _render_for_root
 
-    expected_text, expected_code = _render_for_root(REPO_ROOT, DRUGBANK_CONTENT_POLICY)
+    expected_text, expected_code = _render_for_root(REPO_ROOT, DRUGBANK_CONTENT_POLICY, "worktree")
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
 
@@ -2660,6 +2660,7 @@ def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch,
     """
     import chipsim.guards.record_content as rc
 
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
     rel = "projects/perturb-seq-eval/paper/fig.parquet"
     _write(tmp_path, rel, b"PAR1" + b"\x00" * 32)
     _write(tmp_path, "projects/perturb-seq-eval/pyproject.toml", b"[project]\n")
@@ -3475,4 +3476,145 @@ def test_a_NUL_FREE_binary_is_still_reported_not_decoded_into_mojibake(tmp_path)
     readable = ("caf\xe9 " * 200).encode("latin-1")
     assert _decoding._decode_text(readable) is not None, (
         "the ratio floor must not reject ordinary latin-1 text"
+    )
+
+
+# --- §12.5 (r2.28): A COMMIT GATE READS THE BYTES IT CERTIFIES ---------------------------------
+
+
+def _diverged_repo(tmp_path, rel, staged: bytes, on_disk: bytes):
+    """A real repo whose INDEX and WORKTREE disagree about one tracked file."""
+    root = _init_repo(tmp_path)
+    for surface_rel in (
+        "config/record_content_declarations.yaml",
+        f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml",
+    ):
+        target = root / surface_rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text('version: "1"\ndeclarations: []\n')
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+
+    payload = root / rel
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_bytes(staged)
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    payload.write_bytes(on_disk)  # ...and the working copy now says something else
+    return root
+
+
+def test_the_gate_reads_the_STAGED_bytes_not_the_working_file(tmp_path, monkeypatch):
+    """r2.28. The guard listed `git ls-files -s` — THE INDEX — and read `root/rel` from the
+    WORKTREE. Reproduced end-to-end before the fix: the index held a payload, the disk held clean
+    text, the guard read clean, and the commit would have carried the payload. A gate certifying
+    bytes other than the ones being committed is not a gate.
+
+    Divergence is deliberately NOT a refusal — that would break ordinary in-progress development,
+    and a control people must disable is not a control. The gate reads the copy it certifies.
+    """
+    import chipsim.guards.record_content as rc
+
+    # The witness refuses a tmp tree because it does not contain this package — correct, and
+    # not what these tests are about. Patched exactly as the rest of the suite does.
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    rel = f"projects/{THIS_PROJECT}/docs/payload.txt"
+    root = _diverged_repo(
+        tmp_path,
+        rel,
+        staged=f"see {REAL} for details\n".encode(),
+        on_disk=b"clean text, nothing to see\n",
+    )
+
+    with rc.scan_context(root, DRUGBANK_CONTENT_POLICY, "staged") as staged_ctx:
+        staged_hits = {
+            r for r, _ in real_accession_hits(staged_ctx.read_root, list(staged_ctx.paths))
+        }
+    with rc.scan_context(root, DRUGBANK_CONTENT_POLICY, "worktree") as work_ctx:
+        worktree_hits = {
+            r for r, _ in real_accession_hits(work_ctx.read_root, list(work_ctx.paths))
+        }
+
+    assert rel in staged_hits, (
+        "the staged mode read the WORKING FILE and cleared an accession the commit WOULD carry"
+    )
+    assert rel not in worktree_hits, (
+        "the fixture no longer reproduces the divergence, so the assertion above proves nothing"
+    )
+
+
+def test_the_report_says_WHICH_COPY_it_read(tmp_path, monkeypatch):
+    """E6-5 applied to WHICH BYTES rather than WHICH HALF: the report may still inspect the
+    worktree, but a reader cannot check a verdict without knowing what was verified."""
+    import chipsim.guards.record_content as rc
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    rel = f"projects/{THIS_PROJECT}/docs/payload.txt"
+    root = _diverged_repo(tmp_path, rel, staged=b"a\n", on_disk=b"b\n")
+
+    rendered = {}
+    for source in ("staged", "worktree"):
+        with rc.scan_context(root, NOTHING_WAIVED, source) as context:
+            rendered[source], _ = rc.render_scan(rc.scan_record_content(context))
+
+    assert "STAGED" in rendered["staged"].upper()
+    assert "WORKTREE" in rendered["worktree"].upper()
+    assert rendered["staged"] != rendered["worktree"], (
+        "both modes render identically — a reader cannot tell which copy was certified"
+    )
+    # And the report still NAMES the repository, not the temporary tree it read from.
+    assert str(root) in rendered["staged"]
+
+
+def test_the_staged_mode_reports_the_repository_not_the_temporary_tree(tmp_path, monkeypatch):
+    """`root` is what the report names; `read_root` is where bytes came from. They differ in staged
+    mode, and leaking the temp path into the report would make every run's output different and
+    name a directory that no longer exists by the time anyone reads it."""
+    import chipsim.guards.record_content as rc
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    root = _diverged_repo(tmp_path, f"projects/{THIS_PROJECT}/docs/p.txt", b"a\n", b"b\n")
+    with rc.scan_context(root, NOTHING_WAIVED, "staged") as context:
+        assert context.read_root != context.root
+        scan = rc.scan_record_content(context)
+        text, _ = rc.render_scan(scan)
+
+    assert scan.root == root.resolve()
+    assert "chipsim-staged-" not in text, "the temporary tree leaked into the report"
+
+
+def test_a_byte_source_that_is_neither_is_refused(tmp_path, monkeypatch):
+    """Which copy the gate certifies must not be resolvable by omission OR by typo."""
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.errors import GuardInvariantViolated
+
+    root = _diverged_repo(tmp_path, f"projects/{THIS_PROJECT}/docs/p.txt", b"a\n", b"b\n")
+    with pytest.raises(GuardInvariantViolated), rc.scan_context(root, NOTHING_WAIVED, "whatever"):
+        pass
+
+
+def test_E10_missing_on_disk_belongs_to_worktree_mode_only(tmp_path, monkeypatch):
+    """r2.28's composition note, stated so it is not rediscovered: a STAGED BLOB ALWAYS EXISTS, so
+    "tracked but not present on disk" is not a state the staged mode can produce. The two modes have
+    different failure sets and neither inherits the other's."""
+    import chipsim.guards.record_content as rc
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    rel = f"projects/{THIS_PROJECT}/docs/vanished.txt"
+    root = _diverged_repo(tmp_path, rel, staged=b"content\n", on_disk=b"content\n")
+    (root / rel).unlink()  # staged, but gone from the worktree
+
+    with rc.scan_context(root, NOTHING_WAIVED, "worktree") as context:
+        worktree_scan = rc.scan_record_content(context)
+    with rc.scan_context(root, NOTHING_WAIVED, "staged") as context:
+        staged_scan = rc.scan_record_content(context)
+
+    missing_in_worktree = [r.path for r in worktree_scan.rows if r.category == "missing-on-disk"]
+    missing_in_staged = [r.path for r in staged_scan.rows if r.category == "missing-on-disk"]
+
+    assert rel in missing_in_worktree, "the worktree mode must still report an absent file (E-10)"
+    assert missing_in_staged == [], (
+        "the staged mode reported a file as missing — a staged blob always exists, so this is "
+        "worktree-mode's failure set leaking into a mode that cannot produce it"
     )

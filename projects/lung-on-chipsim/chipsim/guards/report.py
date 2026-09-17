@@ -113,6 +113,10 @@ class RecordContentScan:
     #: second, so a repository whose registry could not be PARSED printed "no `owners` list in
     #: <file>" — false, the file has one — beside a claim that the marker mitigation was in force,
     #: when in fact every owner had been narrowed away.
+    #: WHICH COPY the bytes came from: "staged" (what a commit would carry) or "worktree" (what
+    #: is on disk). Carried as data because a reader cannot check a verdict without knowing what was
+    #: verified — E6-5 applied to which BYTES rather than which HALF.
+    byte_source: str
     registry_state: str
     #: The two declaration files this scan READ, in (project, repo-root) order. Carried as data for
     #: the same reason `exit_code` is: the renderer named them by reaching for module constants
@@ -144,6 +148,11 @@ class RecordContentScan:
                 f"scan carries exit_code={self.exit_code}, which is not one of the two codes a "
                 f"SCAN can produce (0 clean, 2 files-fail). Exit 3 belongs to the composition "
                 f"root, which raises rather than building a scan."
+            )
+        if self.byte_source not in {"staged", "worktree"}:
+            raise GuardInvariantViolated(
+                f"scan carries byte_source={self.byte_source!r}; a scan reads either the staged "
+                f"blobs or the working tree, and which one is not resolvable by omission."
             )
         counted = sum(1 for row in self.rows if row.disposition == "FAILS HERE")
         if self.failing_count != counted:
@@ -183,7 +192,8 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
             f"undeclared undecodable files: {len(undecodable)} "
             f"(failing this gate: {scan.failing_count}"
             f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if scan.structural_error else ''}) "
-            f"— scanned {scan.tracked_count} tracked files under {render_path(str(scan.root))}, "
+            f"— scanned {scan.tracked_count} tracked files under {render_path(str(scan.root))} "
+            f"[{'STAGED bytes (what a commit would carry)' if scan.byte_source == 'staged' else 'WORKTREE bytes (the files as they sit on disk)'}], "
             f"{len(missing)} not present on disk"
         ),
         (

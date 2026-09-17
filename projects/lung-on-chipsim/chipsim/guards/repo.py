@@ -77,6 +77,25 @@ def _toplevel_of(directory: Path) -> Path | None:
     return Path(run.stdout.strip()).resolve()
 
 
+def materialise_index(root: Path, into: Path) -> Path:
+    """Write every tracked file's STAGED blob into `into`, and return it.
+
+    ONE git call rather than a `cat-file` per path: `checkout-index --all` is what git provides for
+    exactly this, and 790 subprocess launches per scan would make the gate too slow to run — a
+    control people switch off is not a control.
+
+    This is the copy a commit would carry. Reading it is the whole point of r2.28: a gate that
+    certifies the working file certifies bytes that may never be committed.
+    """
+    into.mkdir(parents=True, exist_ok=True)
+    run = _git(["checkout-index", "--all", f"--prefix={into}/"], cwd=root)
+    if run.returncode != 0:
+        raise ScanNotPerformed(
+            f"could not materialise the index under {root}: {run.stderr.strip() or 'no diagnostic'}"
+        )
+    return into
+
+
 def repo_root() -> Path:
     """The REPOSITORY root — the working tree holding this package (r2.23 E-08).
 
