@@ -928,17 +928,60 @@ def test_the_report_is_printed_by_a_command_a_human_can_run(tmp_path, monkeypatc
 
 
 def test_the_report_command_exits_non_zero_when_this_gate_would_fail(tmp_path, monkeypatch, capsys):
+    import chipsim.ingest.drugbank_snapshot as ds
     from chipsim import pipeline
 
     rel = "projects/lung-on-chipsim/data/interim/mystery.bin"
     target = tmp_path / rel
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"\x00\xff")
-    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
 
-    import chipsim.ingest.drugbank_snapshot as ds
-
+    # Steer the ROOT, not an environment variable: r2.23 E-08 makes the command derive the repo
+    # root structurally, precisely so no ambient setting can narrow what it scans.
+    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
     monkeypatch.setattr(ds, "_tracked_paths_for_report", lambda root: [rel])
     code = pipeline.main(["record-content-report"])
     assert code == 2
     assert rel in capsys.readouterr().out
+
+
+# --- r2.23 E-08: the report is rendered at the REPO root -------------------------------------
+
+
+def test_the_report_scans_the_repo_root_not_the_project_root():
+    """r2.23 E-08, BLOCKING. As first shipped the command passed `project_root()`, so it scanned
+    only `projects/lung-on-chipsim/**`, found nothing, and printed "0 — every tracked file was
+    read" WHILE 23 FILES HAD NEVER BEEN READ. The reporting surface built to prevent a false clean
+    produced one.
+
+    #122 had already ruled this exact defect for the accession scan ("it ran git ls-files at
+    cwd=PROJECT_ROOT, so it never saw workstreams/ or .claude/ — run it from the repo root"), so
+    this is that ruling rebuilt one clause later, in the fix for the gap it describes.
+
+    With no other project implementing this gate (E-03), THE LISTING IS THE ENTIRE MECHANISM — a
+    listing that prints 0 is the whole protection failing.
+    """
+    from chipsim.ingest.drugbank_snapshot import render_undeclared_report, repo_root
+
+    root = repo_root()
+    assert root != PROJECT_ROOT, "the repo root is above the project root"
+    assert (root / "projects" / "lung-on-chipsim").is_dir(), root
+    assert (root / ".git").exists(), "the repo root is the directory holding .git"
+
+    text, code = render_undeclared_report(root)
+    assert "every tracked file was read" not in text, (
+        "the report claims a clean scan while other projects' binaries are unread"
+    )
+    assert text.count("owner=") >= 20, text.splitlines()[0]
+    assert code == 0, "none of them falls to this gate"
+
+
+def test_the_shipped_command_renders_the_repo_root_listing(capsys):
+    """The command a HUMAN runs, not the function a test calls. My §7 report said "23 listed with
+    owners" — true of the function as my tests called it, false of the command."""
+    from chipsim import pipeline
+
+    code = pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+    assert code == 0
+    assert printed.count("owner=") >= 20, printed.splitlines()[0]

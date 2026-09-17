@@ -746,6 +746,25 @@ def assert_no_container_is_declared(root: Path) -> None:
     )
 
 
+def repo_root() -> Path:
+    """The REPOSITORY root — the directory holding `.git` above this package (r2.23 E-08).
+
+    Derived by walking up from `source_root()`, never from the cwd or an environment variable: the
+    same ambient-state family that produced the $TMPDIR allow-list, the cwd-sensitive receipt
+    verification, the cwd-derived monitor identity and the quality-config resolution. A worktree's
+    `.git` is a FILE rather than a directory, so this tests existence, not is_dir.
+
+    Why a distinct function: the report first shipped with `project_root()` and therefore scanned
+    only `projects/lung-on-chipsim/**` — it printed "0, every tracked file was read" while 23 files
+    had never been read. #122 had already ruled exactly this for the accession scan.
+    """
+    start = Path(source_root()).resolve()
+    for candidate in (start, *start.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return start
+
+
 def _tracked_paths_for_report(root: Path) -> list[str]:
     """Tracked paths for the human-facing report. Split out so a test can supply its own."""
     import subprocess
@@ -766,12 +785,15 @@ def _tracked_paths_for_report(root: Path) -> list[str]:
     return paths
 
 
-def render_undeclared_report(root: Path) -> tuple[str, int]:
+def render_undeclared_report(root: Path | None = None) -> tuple[str, int]:
     """The report a HUMAN reads, and the exit code this project's gate would produce.
 
     "Listing that reaches no one is functionally a silent skip" (CTO, §6 boundary) — a report only
     ever asserted on inside tests is the declare-and-skip problem wearing a different coat.
     """
+    # THE REPO ROOT, never the project root (r2.23 E-08). Defaulting here rather than at the call
+    # site means a future caller cannot reintroduce the narrow scan by passing the wrong root.
+    root = repo_root() if root is None else Path(root)
     paths = _tracked_paths_for_report(root)
     report = undeclared_report(root, paths)
     failing = set(failing_undeclared(root, paths))
@@ -781,7 +803,7 @@ def render_undeclared_report(root: Path) -> tuple[str, int]:
         mark = "FAILS HERE" if rel in failing else "listed"
         lines.append(f"  {rel}  owner={owner or '<unowned>'}  [{mark}]")
     if not report:
-        lines.append("  (none — every tracked file was read)")
+        lines.append(f"  (none — every tracked file under {root} was read)")
     return "\n".join(lines), (2 if failing else 0)
 
 

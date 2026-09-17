@@ -354,7 +354,9 @@ def _cmd_record_content_report(ns) -> int:
     """
     from chipsim.ingest.drugbank_snapshot import render_undeclared_report
 
-    text, code = render_undeclared_report(project_root())
+    # The REPO root, not project_root(): see r2.23 E-08 — passing the project root here made the
+    # command print "every tracked file was read" while 23 files had never been read.
+    text, code = render_undeclared_report()
     print(text)
     return code
 
