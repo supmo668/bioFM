@@ -33,7 +33,10 @@
 #       derived_from: projects/lung-on-chipsim/configs/panel_seal.yaml
 #       why: >
 #         Preferred form where it applies — the claim stops holding by itself if the source stops
-#         being tracked or stops being readable, so it does not need re-pinning on every rebuild.
+#         being tracked or readable, so it does not need re-pinning on every rebuild.
+#         NOTE: the gate does not check that this file actually derives from that source. It checks
+#         the source is tracked, readable, owned by this project and not itself declared. The
+#         derivation is the claim YOU are making here; `sha256` is the form that pins content.
 #
 # ---------------------------------------------------------------------------------------------
 version: "1"

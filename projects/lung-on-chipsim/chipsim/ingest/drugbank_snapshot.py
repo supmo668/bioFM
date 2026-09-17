@@ -350,6 +350,12 @@ DRUGBANK_ID_EXCLUDED_FILES: frozenset[str] = frozenset()
 #: the whole suite green.
 _DISPATCH_PAYLOAD_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+\.md$")
 
+#: Any file in a dispatches/ directory, whatever its suffix. The waiver pattern above is `.md`-only
+#: by design; THIS one is the never-declarable class. A non-.md payload is exactly what E6-4 keeps
+#: failing here, so matching on the waiver's pattern would have exempted the one file the rule is
+#: for — `leak.pdf` walked straight through it.
+_DISPATCH_DIRECTORY_RE = re.compile(r"^\.claude/usr/(?:[^/]+/)+dispatches/[^/]+$")
+
 #: Union kept for callers that only need membership of the named files.
 DRUGBANK_ID_EXCEPTIONS = DRUGBANK_ID_LEDGER | DRUGBANK_ID_EXCLUDED_FILES
 
@@ -627,7 +633,8 @@ def _scan_chunks(target: Path):
         return None
 
     try:
-        head = target.open("rb").read(8)
+        with target.open("rb") as handle:
+            head = handle.read(8)
     except OSError:
         return None
 
@@ -708,6 +715,36 @@ _OWNERSHIP_PREFIXES = (
 )
 
 
+def marker_backed_owners(paths) -> frozenset[str]:
+    """Projects proved to exist by a TRACKED MARKER alone, independent of any declaration.
+
+    This is the set used to answer "may this path be declared HERE?" — deliberately the WIDER of
+    the two, because for the placement rule widening is the safe direction. Answering placement
+    with the narrowed set made the registry police itself: delisting a project turned its artifacts
+    into "unowned" paths, and unowned paths may legally be declared at the repo root, so one edit to
+    one file cleared another team's artifacts with no defect reported.
+
+    The marker is evidence the registry does not control, which is what breaks that circle.
+    """
+    tracked = set(paths)
+    found: set[str] = set()
+    for prefix, index, marker in _OWNERSHIP_PREFIXES:
+        head = prefix.rstrip("/")
+        if index == 0:
+            if f"{head}/{marker}" in tracked:
+                found.add(head)
+            continue
+        for rel in tracked:
+            parts = Path(rel).parts
+            if (
+                len(parts) > index
+                and parts[0] == head
+                and f"{head}/{parts[index]}/{marker}" in tracked
+            ):
+                found.add(parts[index])
+    return frozenset(found)
+
+
 def recognised_owners(root: Path, paths) -> frozenset[str]:
     """The projects that DEMONSTRABLY exist.
 
@@ -722,26 +759,9 @@ def recognised_owners(root: Path, paths) -> frozenset[str]:
     both reviewable. Until the registry exists the marker stands alone, and it is a MITIGATION, not
     proof: it is addable by anyone who adds a `pyproject.toml`, and the report says so.
     """
-    tracked = set(paths)
-    found: set[str] = set()
-    for prefix, index, marker in _OWNERSHIP_PREFIXES:
-        head = prefix.rstrip("/")
-        if index == 0:
-            # NOT "any path under it": the payload's own path would then prove its owner exists,
-            # which is the self-certification the marker is here to prevent.
-            if f"{head}/{marker}" in tracked:
-                found.add(head)
-            continue
-        for rel in tracked:
-            parts = Path(rel).parts
-            if (
-                len(parts) > index
-                and parts[0] == head
-                and f"{head}/{parts[index]}/{marker}" in tracked
-            ):
-                found.add(parts[index])
+    found = marker_backed_owners(paths)
     declared = declared_owner_registry(root)
-    return frozenset(found) if declared is None else frozenset(found) & declared
+    return found if declared is None else found & declared
 
 
 def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
@@ -777,6 +797,19 @@ def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
     return None
 
 
+class RecordContentScanError(RuntimeError):
+    """The scan could not be PERFORMED — a different answer from "the scan found nothing".
+
+    E-08 was that the report scanned the wrong tree and printed a clean result. The first fix moved
+    the root selection and left every other way of getting the root wrong still ending in
+    "0 (failing this gate: 0)" and exit 0. Four reviewers reproduced that composite, so "I could not
+    determine what to scan" is now an exception with its own exit code rather than an empty list.
+
+    This is E-06's ruling applied to the READ side: a missing declared root fails loudly naming the
+    root, because one message for both states sends a legitimate operator looking for the wrong bug.
+    """
+
+
 #: WHERE declarations live. Per-project data following this module's own `DRUGBANK_ID_LEDGER`
 #: precedent of pointing at `configs/` rather than inlining (r2.21 E6-1), plus a repo-root surface
 #: for paths no project owns (r2.23 E-05). The guard reads the UNION of the two.
@@ -788,6 +821,15 @@ def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
 #: neither own nor can judge.
 PROJECT_DECLARATION_FILE = f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml"
 REPO_DECLARATION_FILE = "config/record_content_declarations.yaml"
+
+#: Declaration files are short lists of claims. The bound is what stops an alias-expansion or
+#: oversized document from making the gate permanently un-runnable, which is the one denial this
+#: mechanism is exposed to.
+_MAX_DECLARATION_BYTES = 1 << 20
+
+#: A content pin is exactly 64 lowercase hex characters. Anything else cannot match a sha256 and
+#: would sit in the data looking like coverage.
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 #: `why` is required. A declaration is a CLAIM, and "none of these is a DrugBank artifact" in a
 #: comment is the thing E6-1 contrasts a checkable claim against.
@@ -801,7 +843,8 @@ def _container_magic(target: Path) -> str | None:
     lines above — and a container named `blob.dat` walks straight through it.
     """
     try:
-        head = target.open("rb").read(8)
+        with target.open("rb") as handle:
+            head = handle.read(8)
     except OSError:
         return None
     if head.startswith(_PARQUET_MAGIC):
@@ -816,9 +859,21 @@ def _declaration_document(root: Path, rel: str) -> dict:
     target = Path(root) / rel
     if not target.is_file():
         return {}
+    size = target.stat().st_size
+    if size > _MAX_DECLARATION_BYTES:
+        # Bounded like every other reader in this guard. `yaml.safe_load` is safe against arbitrary
+        # object construction but not against alias expansion or a huge document, and a declaration
+        # file nobody can parse is the gate held permanently un-runnable.
+        raise RecordContentScanError(
+            f"{rel} is {size} bytes, above the {_MAX_DECLARATION_BYTES}-byte bound for declaration "
+            f"data. A declaration file is a short list of claims; this is something else."
+        )
     try:
         doc = yaml.safe_load(target.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        # ValueError covers UnicodeDecodeError, which read_text raises and which is NOT an OSError.
+        # One non-UTF-8 byte in a declaration file produced a traceback out of the CLI — exit 1 and
+        # no report — from the one command whose contract is that it must never fail silently.
         raise RecordContentScanError(
             f"{rel} could not be read as YAML ({exc}), so the gate cannot tell what is declared. "
             f"Refusing to report: an unreadable declaration file is not an empty one."
@@ -832,7 +887,9 @@ def _declaration_document(root: Path, rel: str) -> dict:
     # a parameter. Checked here so the field is load-bearing: reading a future schema as if it were
     # this one is how a declaration comes to mean something other than what it says.
     version = doc.get("version")
-    if str(version) != "1":
+    # `str(version) != "1"` accepted YAML 1.1 integer spellings — 0x1 and 01 both stringify to
+    # something a reader would not call version 1. The data files quote it, so require the string.
+    if version != "1":
         raise RecordContentScanError(
             f'{rel}: unsupported declaration schema version {version!r} (this gate reads "1"). '
             f"Refusing to interpret it as the schema it is not."
@@ -854,19 +911,46 @@ def _declaration_entries(root: Path) -> list[tuple[str, dict, str]]:
         (REPO_DECLARATION_FILE, "repo-root"),
     ):
         doc = _declaration_document(root, rel)
-        for raw in doc.get("declarations") or []:
+        declared_list = doc.get("declarations") or []
+        if not isinstance(declared_list, list):
+            raise RecordContentScanError(
+                f"{rel}: `declarations` must be a list, got {type(declared_list).__name__}."
+            )
+        for raw in declared_list:
             if not isinstance(raw, dict):
                 raise RecordContentScanError(f"{rel}: every declaration must be a mapping.")
             unknown = set(raw) - _DECLARATION_KEYS
             if unknown:
                 raise RecordContentScanError(
-                    f"{rel}: unknown declaration key(s) {sorted(unknown)}. A key the gate does not "
+                    f"{rel}: unknown declaration key(s) {sorted(map(repr, unknown))}. A key the "
+                    f"gate does not "
                     f"understand may be the one a reader believed was doing the work."
                 )
             path = raw.get("path")
             if not isinstance(path, str) or not path:
                 raise RecordContentScanError(f"{rel}: every declaration needs a `path`.")
-            if bool(raw.get("sha256")) == bool(raw.get("derived_from")):
+            # TYPE before truthiness. `bool(12345)`, `bool(True)` and `bool({"a": 1})` are all
+            # true, so a mistyped field passed the exactly-one-claim check below and then crashed on
+            # a string operation — a traceback out of the CLI, which tells an operator nothing about
+            # which file or which entry to repair. Same defect as the §7 CLI traceback.
+            for field, expected in (("sha256", str), ("derived_from", str), ("why", str)):
+                value = raw.get(field)
+                if value is not None and not isinstance(value, expected):
+                    raise RecordContentScanError(
+                        f"{rel}: `{path}` has `{field}` of type {type(value).__name__}; it must be "
+                        f"a string. YAML supplies whatever was written, and a mistyped field is a "
+                        f"claim nobody can evaluate."
+                    )
+            digest = raw.get("sha256")
+            if digest is not None and not _SHA256_RE.fullmatch(digest):
+                raise RecordContentScanError(
+                    f"{rel}: `{path}` has a `sha256` that is not 64 lowercase hex characters "
+                    f"({digest!r}). A pin that cannot match anything would clear nothing while "
+                    f"looking like coverage."
+                )
+            # PRESENCE, not truthiness: `sha256: null` alongside `derived_from` is two claims,
+            # and testing bool() silently resolved it to the second one.
+            if ("sha256" in raw) == ("derived_from" in raw):
                 raise RecordContentScanError(
                     f"{rel}: `{path}` must carry exactly one of `sha256` (pin the content) or "
                     f"`derived_from` (name a tracked source). Neither is a bare path declaration, "
@@ -887,6 +971,21 @@ def _declaration_entries(root: Path) -> list[tuple[str, dict, str]]:
     return entries
 
 
+def _under_an_ownership_prefix(rel: str) -> bool:
+    """Is this path inside a directory that BELONGS to somebody, registry or no registry?
+
+    `path_owner` answers "which RECOGNISED project owns this", returning None both for a path nobody
+    owns and for a path under an UNREGISTERED project name. Those are different facts, and
+    conflating them let `projects/ghost-lib/payload.bin` be declared at the repo-root surface
+    precisely BECAUSE the registry refused to recognise `ghost-lib`: registering the name made the
+    declaration illegal, and not registering it made it legal.
+    """
+    parts = Path(rel).parts
+    return bool(parts) and any(
+        parts[0] == prefix.rstrip("/") for prefix, _i, _m in _OWNERSHIP_PREFIXES
+    )
+
+
 def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
     """(declared path, what is wrong with the claim) for every entry that does NOT hold.
 
@@ -895,11 +994,15 @@ def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
     repair, and there is no other gate for it to fall to (E-03).
     """
     tracked = set(paths)
-    recognised = recognised_owners(root, paths)
+    # TWO owner sets, answering two different questions (DES-1). Placement asks "may this be
+    # declared here?" and is judged against the MARKER-BACKED set, which the registry cannot shrink;
+    # failure scoping asks "whose gate does this fail?" and uses the narrowed set elsewhere. Using
+    # the narrowed set for BOTH let a delisting legalise declaring another team's artifacts.
+    placement_owners = marker_backed_owners(paths)
     defects: list[tuple[str, str]] = []
 
     for path, entry, surface in _declaration_entries(root):
-        owner = path_owner(path, recognised)
+        owner = path_owner(path, placement_owners)
         if surface == "project" and owner != THIS_PROJECT:
             remedy = (
                 "Another team's artifact declared here inherits this module's failure mode and "
@@ -911,6 +1014,19 @@ def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
                 (
                     path,
                     f"declared in this project's file, but {owner or 'nobody'} owns it. {remedy}",
+                )
+            )
+            continue
+        if surface == "repo-root" and _under_an_ownership_prefix(path):
+            defects.append(
+                (
+                    path,
+                    (
+                        f"declared in the repo-root surface, but `{Path(path).parts[0]}/` is an "
+                        f"OWNERSHIP PREFIX — the path belongs to a project whether or not that "
+                        f"project is in the registry. The repo-root surface is for paths that "
+                        f"belong to nobody; delisting an owner must not turn its subtree into one."
+                    ),
                 )
             )
             continue
@@ -933,6 +1049,33 @@ def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
                         "declared but not tracked — the file was deleted or renamed and the entry "
                         "stayed behind. A declaration nobody checks reads as coverage and clears "
                         "nothing."
+                    ),
+                )
+            )
+            continue
+
+        if _DISPATCH_DIRECTORY_RE.match(path):
+            defects.append(
+                (
+                    path,
+                    (
+                        "declared, but dispatch payloads are the DOUBLE-EXEMPT path class E6-4 "
+                        "closed: `path_owner` returning None for them is what keeps a non-.md "
+                        "payload failing here. A declaration on top would make it fail nowhere."
+                    ),
+                )
+            )
+            continue
+
+        if is_accession_excluded(path) or path in DRUGBANK_ID_EXCLUDED_FILES:
+            defects.append(
+                (
+                    path,
+                    (
+                        "declared AND content-excluded. A path may never be exempted twice by two "
+                        "different mechanisms: the content scan already skips it, so a declaration "
+                        "on top makes it invisible to both halves of the guard — the "
+                        "double-exemption shape E6-4 closed for dispatch payloads."
                     ),
                 )
             )
@@ -969,7 +1112,10 @@ def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
             if not target.is_file():
                 defects.append((path, "declared with a sha256 but absent from disk."))
                 continue
-            actual = hashlib.sha256(target.read_bytes()).hexdigest()
+            # The module's own streaming helper, not read_bytes(): every other reader in this
+            # guard is bounded, and a declared file is by construction a binary — a pinned PDF or a
+            # rendered video is exactly the large-file case.
+            actual = _sha256(target)
             if actual != entry["sha256"]:
                 defects.append(
                     (
@@ -983,7 +1129,51 @@ def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
                 )
             continue
 
+        if not target.is_file():
+            defects.append(
+                (
+                    path,
+                    (
+                        "claims a tracked source, but the declared file itself is absent from disk, "
+                        "so nothing about it has been looked at. `sha256` refuses this case and the "
+                        "two forms must agree."
+                    ),
+                )
+            )
+            continue
+
+        # WHAT THIS VERIFIES, exactly: that the named source is tracked, readable, owned by the
+        # same project, and not itself declared. It does NOT verify that the declared file derives
+        # from it — naming an unrelated same-owner file satisfies the check. The derivation is a
+        # human claim, and `why` is where it is made; the gate narrows who may make it and keeps the
+        # source in scope, which is less than the prose used to imply.
         source = entry["derived_from"]
+        if source in {p for p, _e, _s in _declaration_entries(root)}:
+            defects.append(
+                (
+                    path,
+                    (
+                        f"claims to be derived from `{source}`, which is ITSELF declared. An "
+                        f"exemption may not rest on a file this same report may be calling a "
+                        f"broken claim in the same run."
+                    ),
+                )
+            )
+            continue
+        if path_owner(source, placement_owners) != owner:
+            defects.append(
+                (
+                    path,
+                    (
+                        f"claims to be derived from `{source}`, which belongs to a different owner "
+                        f"({path_owner(source, placement_owners) or 'nobody'} vs "
+                        f"{owner or 'nobody'}). Any tracked readable file would otherwise satisfy "
+                        f"the claim, which puts it back in review — the position `sha256` exists to "
+                        f"escape."
+                    ),
+                )
+            )
+            continue
         if source not in tracked:
             defects.append(
                 (
@@ -1047,19 +1237,6 @@ def assert_no_container_is_declared(root: Path) -> None:
         f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
         "never declared (r2.21 E6-2) — only rendered artifacts may be declared."
     )
-
-
-class RecordContentScanError(RuntimeError):
-    """The scan could not be PERFORMED — a different answer from "the scan found nothing".
-
-    E-08 was that the report scanned the wrong tree and printed a clean result. The first fix moved
-    the root selection and left every other way of getting the root wrong still ending in
-    "0 (failing this gate: 0)" and exit 0. Four reviewers reproduced that composite, so "I could not
-    determine what to scan" is now an exception with its own exit code rather than an empty list.
-
-    This is E-06's ruling applied to the READ side: a missing declared root fails loudly naming the
-    root, because one message for both states sends a legitimate operator looking for the wrong bug.
-    """
 
 
 def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
@@ -1238,6 +1415,27 @@ def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
         )
 
 
+def refuse_an_absent_declaration_surface(root: Path) -> None:
+    """Both declaration files must EXIST, parse, and declare a schema this gate reads.
+
+    An absent file used to read as an empty one, which silently reverted the owner registry to the
+    pre-r2.24 marker-only mitigation — with the same exit code as a healthy run. This module already
+    says "an unreadable declaration file is not an empty one"; an ABSENT one is not either.
+
+    Without this, "the surface exists" is precisely what "declared" was before the surface was
+    built: a state the code can describe and cannot verify. `declarations: []` is a claim somebody
+    made on purpose and the gate checked; a missing file is a scan that could not be performed.
+    """
+    for rel in (PROJECT_DECLARATION_FILE, REPO_DECLARATION_FILE):
+        if not (Path(root) / rel).is_file():
+            raise RecordContentScanError(
+                f"the declaration surface {rel} is ABSENT. An empty `declarations: []` is a claim "
+                f"made on purpose; a missing file is a scan that could not be performed. Refusing "
+                f"to report."
+            )
+        _declaration_document(root, rel)  # parses, and checks the schema version
+
+
 def unresolvable_tracked(root: Path, paths) -> list[str]:
     """Tracked paths that are not present on disk, so the scan cannot read them.
 
@@ -1270,6 +1468,7 @@ def _render_for_root(root: Path) -> tuple[str, int]:
     root = Path(root).resolve()
     paths, submodules = _tracked_listing(root)
     _refuse_a_scan_that_cannot_see_itself(root, paths)
+    refuse_an_absent_declaration_surface(root)
     report = undeclared_report(root, paths)
     failing = set(failing_undeclared(root, paths))
 

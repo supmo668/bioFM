@@ -33,9 +33,15 @@
 # When the pin no longer matches, the entry becomes a STALE declaration: it clears nothing and is
 # printed as a defect. Re-pin it deliberately, having looked at the new artifact.
 #
-# `derived_from` is the self-maintaining alternative and is preferred where it applies: unlike a
-# comment saying "none of these is a DrugBank artifact", it is a claim a reader can check, and it
-# stops holding by itself if the source stops being tracked or stops being readable.
+# `derived_from` is the self-maintaining alternative and is preferred where it applies: it stops
+# holding by itself if the source stops being tracked, stops being readable, changes owner, or is
+# itself declared.
+#
+# BE CLEAR ABOUT WHAT IT DOES NOT DO. The gate does NOT verify that the declared file derives from
+# the named source — naming an unrelated file belonging to the same project satisfies the check.
+# The derivation itself is a human claim and `why` is where it is made. What the gate narrows is
+# WHO may make that claim and whether the source is still in scope. `sha256` is the stronger form
+# and is what to use when the content is what matters.
 #
 # A readable structured container (parquet, HDF5) may NEVER be declared — it is always read
 # (E6-2). Checked by MAGIC, not by suffix, because a container named `blob.dat` walks through a
