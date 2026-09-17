@@ -6,6 +6,7 @@ E-13b happened: no test could assert the exit code cheaply, so twelve mutants su
 defect test asserted on a validator's return value instead.
 """
 
+import pytest
 import yaml
 
 from chipsim.guards.record_content import (
@@ -249,3 +250,122 @@ def test_a_broken_declaration_file_reads_UNREADABLE_not_zero(tmp_path, monkeypat
     assert "UNREADABLE" in second, second
     assert "0 whose claim does not hold" not in text
     assert code == 2
+
+
+# --- r2.27 §11 code review ---------------------------------------------------------------------
+
+
+def test_a_hand_built_context_cannot_skip_the_anti_vacuity_refusal(tmp_path, monkeypatch):
+    """CODE-1, and it was a false clean through a PUBLIC API.
+
+    The witness and the tracked-count floor ran inside `ScanContext.build` only, so
+    `ScanContext(root=real_root, paths=(), ...)` — constructible by anyone, no underscore in sight —
+    produced exit 0 naming the CORRECT root over an empty listing. That is E-08 verbatim, reachable
+    where previously the only door was `_render_for_root`, which always checked.
+    """
+    import chipsim.guards.record_content as rc
+
+    listing = _surface(tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+
+    # Record the refusal rather than fight it: the property is that it runs on EVERY construction,
+    # not only on the ones `build` made.
+    seen: list[tuple] = []
+    monkeypatch.setattr(
+        rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: seen.append(tuple(paths))
+    )
+    surface = rc.DeclarationSurface.read(tmp_path)
+
+    ScanContext(root=tmp_path, paths=(), submodules=(), policy=NOTHING_WAIVED, surface=surface)
+    assert seen == [()], (
+        "a hand-built context skipped the anti-vacuity refusal — exit 0 over an empty listing, "
+        "naming the correct root, through a public API"
+    )
+
+    seen.clear()
+    ScanContext.build(tmp_path, NOTHING_WAIVED)
+    assert seen and seen[0], "and build still runs it, with the real listing"
+
+
+def test_a_scan_cannot_disagree_with_its_own_exit_code(tmp_path, monkeypatch):
+    """CODE-14. `render_scan` returns `exit_code` verbatim and recomputes nothing — which is right,
+    and which meant nothing noticed when the two disagreed. A hand-built scan with a FAILS HERE row
+    and exit_code=0 rendered the row and returned 0."""
+    import chipsim.guards.record_content as rc
+
+    with pytest.raises(rc.RecordContentScanError, match="internally inconsistent"):
+        RecordContentScan(
+            root=tmp_path,
+            package=tmp_path / "pkg.py",
+            tracked_count=500,
+            rows=(rc.ScanRow("x.bin", None, "undecodable", "FAILS HERE"),),
+            declaration_counts=(0, 0, 0),
+            defect_count=0,
+            submodules=(),
+            registry_state="declared",
+            structural_error=None,
+            exit_code=0,
+        )
+
+
+def test_a_row_in_an_unknown_category_is_still_printed(tmp_path):
+    """CODE-5. The renderer partitioned rows by three literal strings with no catch-all, so a row in
+    any other category vanished from every section of the text while still driving the exit code.
+    "A listing that reaches no one is functionally a silent skip" is this module's own standard."""
+    import chipsim.guards.record_content as rc
+
+    scan = RecordContentScan(
+        root=tmp_path,
+        package=tmp_path / "pkg.py",
+        tracked_count=500,
+        rows=(rc.ScanRow("b/new-kind.bin", None, "some-future-category", "FAILS HERE"),),
+        declaration_counts=(0, 0, 0),
+        defect_count=0,
+        submodules=(),
+        registry_state="declared",
+        structural_error=None,
+        exit_code=2,
+    )
+    text, code = render_scan(scan)
+    assert code == 2
+    assert "b/new-kind.bin" in text, "a FAILS HERE row was invisible to the reader"
+    assert "UNRECOGNISED CATEGORY" in text
+
+
+def test_an_unreadable_registry_is_not_reported_as_marker_backed(tmp_path, monkeypatch):
+    """CODE-9. `registry_declared: bool` flattened three states into two, so a repository whose
+    registry could not be PARSED printed "no `owners` list in <file>" — false, the file has one —
+    beside a claim that the marker mitigation was in force, when every owner had been narrowed
+    away."""
+    import chipsim.guards.record_content as rc
+
+    listing = _surface(tmp_path, owners=[rc.THIS_PROJECT])
+    (tmp_path / rc.REPO_DECLARATION_FILE).write_text("owners: [\n")
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    text, _code = render_scan(scan)
+    assert scan.registry_state == "unreadable"
+    assert "owner registry: UNREADABLE" in text
+    assert "MARKER-BACKED ONLY" not in text, "the mitigation was NOT in force"
+
+
+def test_the_structural_error_cannot_break_the_reports_indentation(tmp_path, monkeypatch):
+    """CODE-11. The message is multi-line PyYAML output echoing a tracked file's own text, and its
+    continuation lines landed at column 0 — so attacker-chosen printable content appeared as
+    free-standing report lines. Every path goes through `render_path` for exactly this reason."""
+    import chipsim.guards.record_content as rc
+
+    listing = _surface(tmp_path)
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [ unclosed\n")
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    text, _code = render_scan(scan)
+    body = text.splitlines()[1:]
+    assert all(line.startswith("  ") or line == "" for line in body), (
+        "a line landed at column 0 and reads as a report line of its own:\n"
+        + "\n".join(line for line in body if not line.startswith("  "))
+    )

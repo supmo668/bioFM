@@ -698,7 +698,9 @@ def _adjudicate_once(root: Path, paths, policy: ContentPolicy, surface: Declarat
     Every caller inside one report shares the verdict, so the rows, the header count and the defect
     section cannot be drawn from three different readings of the same files.
     """
-    key = (id(policy), tuple(paths))
+    # The POLICY OBJECT, not its id(): the surface holds no reference to it, so a collected
+    # policy and a new one allocated at the same address would share a memo entry.
+    key = (policy, tuple(paths))
     if key not in surface._verdicts:
         surface._verdicts[key] = _declaration_defects_uncached(root, paths, policy, surface)
     return surface._verdicts[key]
@@ -854,6 +856,18 @@ class ScanContext:
     policy: ContentPolicy
     surface: DeclarationSurface
 
+    def __post_init__(self) -> None:
+        """The anti-vacuity refusal runs on EVERY context, not only the ones `build` made.
+
+        It used to live in `build` alone, so `ScanContext(root=real_root, paths=(), ...)` —
+        constructible by anyone, through a public non-underscore API — produced exit 0 naming the
+        correct root over an empty listing. That is E-08 verbatim ("a scan over the wrong or an
+        empty list reports clean"), reachable where before the only door was `_render_for_root`,
+        which always checked. "The only sanctioned constructor" has to be enforced by the type
+        rather than by convention — the same argument this class makes about `None` defaults.
+        """
+        _refuse_a_scan_that_cannot_see_itself(self.root, list(self.paths))
+
     # NOTE ON THE LAYER BELOW: every function this composes takes `surface` as a REQUIRED argument.
     # It was optional with a resolving fallback until r2.27 §11, which made E-17's own sixth defect
     # — "a declaration surface from a `None` default" — survive inside the fix for it, in seven
@@ -867,7 +881,6 @@ class ScanContext:
         """Read the tree ONCE and freeze it. The only constructor a caller needs."""
         root = Path(root).resolve()
         paths, submodules = _tracked_listing(root)
-        _refuse_a_scan_that_cannot_see_itself(root, paths)
         return cls(
             root=root,
             paths=tuple(paths),
@@ -912,9 +925,30 @@ class RecordContentScan:
     declaration_counts: tuple[int, int, int]  # (project, repo-root, distinct defective)
     defect_count: int
     submodules: tuple[str, ...]
-    registry_declared: bool
+    #: "declared" | "marker-backed-only" | "unreadable". A bool flattened the third into the
+    #: second, so a repository whose registry could not be PARSED printed "no `owners` list in
+    #: <file>" — false, the file has one — beside a claim that the marker mitigation was in force,
+    #: when in fact every owner had been narrowed away.
+    registry_state: str
     structural_error: str | None
     exit_code: int
+
+    def __post_init__(self) -> None:
+        """The contract `render_scan` relies on, checked from the DATA side.
+
+        `render_scan` returns `exit_code` verbatim and recomputes nothing — which is right, and
+        which means nothing anywhere noticed if the two disagreed. A hand-built scan with a
+        FAILS HERE row and `exit_code=0` rendered that row and returned 0.
+        """
+        should_fail = bool(self.structural_error) or any(
+            row.disposition == "FAILS HERE" for row in self.rows
+        )
+        if bool(self.exit_code) != should_fail:
+            raise RecordContentScanError(
+                f"scan is internally inconsistent: exit_code={self.exit_code} with "
+                f"{sum(1 for r in self.rows if r.disposition == 'FAILS HERE')} failing row(s) and "
+                f"structural_error={self.structural_error!r}"
+            )
 
 
 def scan_record_content(context: ScanContext) -> RecordContentScan:
@@ -947,8 +981,12 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
     rows: list[ScanRow] = []
     rows += [ScanRow(rel, owner, "undecodable", mark(rel)) for rel, owner in report]
     rows += [ScanRow(rel, owner, "missing-on-disk", mark(rel)) for rel, owner in missing]
+    # The PLACEMENT set, not the narrowed one: that is the set the defect was adjudicated against
+    # (r2.25 DES-1), so attributing the row with `recognised` made the row contradict its own
+    # `detail` — and under a structural error it made every broken row read `owner=None`.
+    placement = marker_backed_owners(paths)
     rows += [
-        ScanRow(path, path_owner(path, recognised), "broken-declaration", "FAILS HERE", why)
+        ScanRow(path, path_owner(path, placement), "broken-declaration", "FAILS HERE", why)
         for path, why in defects
     ]
 
@@ -966,7 +1004,11 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
         declaration_counts=counts,
         defect_count=len(defects),
         submodules=context.submodules,
-        registry_declared=surface.registry is not None,
+        registry_state=(
+            "unreadable"
+            if surface.structural_error
+            else ("declared" if surface.registry is not None else "marker-backed-only")
+        ),
         structural_error=surface.structural_error,
         exit_code=2 if failing or surface.structural_error else 0,
     )
@@ -1020,7 +1062,12 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
             "direction: more files fail, never fewer. This is exit 2, not exit 3: the scan worked, "
             "only the exemption data is unreadable."
         )
-        lines.append(f"    {scan.structural_error}")
+        # Indented line by line: the message is multi-line PyYAML output whose continuation
+        # lines land at column 0, so attacker-chosen printable text from a tracked file appeared as
+        # free-standing report lines. Every path goes through `render_path` for this reason; this
+        # string was the one interpolation that did not.
+        for line in str(scan.structural_error).splitlines():
+            lines.append(f"    {render_path(line)}")
     for row in undecodable:
         lines.append(
             f"  {render_path(row.path)}  owner={row.owner or '<unowned>'}  [{row.disposition}]"
@@ -1040,15 +1087,33 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
             lines.append(
                 f"    {render_path(row.path)}  owner={row.owner or '<unowned>'}  [{row.disposition}]"
             )
+    known = {"undecodable", "missing-on-disk", "broken-declaration"}
+    unknown = [r for r in scan.rows if r.category not in known]
+    if unknown:
+        # A listing that reaches no one is functionally a silent skip — this module's own standard.
+        # Partitioning by three literal strings with no catch-all dropped any future category from
+        # every section of the text while it still counted toward the exit code.
+        lines.append("  ROWS IN AN UNRECOGNISED CATEGORY — the renderer does not know how to group")
+        lines.append("  these, and a row that reaches no reader is a silent skip:")
+        for row in unknown:
+            lines.append(
+                f"    {render_path(row.path)}  category={row.category!r}  [{row.disposition}]"
+            )
     if scan.submodules:
         lines.append(
             f"  {len(scan.submodules)} submodule(s) NOT scanned (another repository, not files "
             f"here): {', '.join(render_path(rel) for rel in scan.submodules)}"
         )
-    if scan.registry_declared:
+    if scan.registry_state == "declared":
         lines.append(
             f"  owner registry: DECLARED in {REPO_DECLARATION_FILE}, intersected with the tracked "
             "marker — an owner needs both, so neither a declaration nor a file alone mints one."
+        )
+    elif scan.registry_state == "unreadable":
+        lines.append(
+            f"  owner registry: UNREADABLE — {REPO_DECLARATION_FILE} could not be parsed, so EVERY "
+            "owner was narrowed away and every path is unowned. This is not the marker-backed "
+            "mitigation; it is the absence of any registry at all."
         )
     else:
         lines.append(

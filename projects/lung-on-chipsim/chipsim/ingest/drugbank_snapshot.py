@@ -26,7 +26,7 @@ import pandas as pd
 import requests
 import yaml
 
-from chipsim.guards.decoding import decode_text, scan_chunks, sha256_of
+from chipsim.guards.decoding import scan_chunks, sha256_of
 from chipsim.guards.output_roots import refuse_unless_declared_output_root
 from chipsim.guards.record_content import ContentPolicy
 
@@ -348,9 +348,18 @@ DRUGBANK_ID_EXCEPTIONS = DRUGBANK_ID_LEDGER | DRUGBANK_ID_EXCLUDED_FILES
 def _readability_waived(root: Path, rel: str) -> bool:
     """Files whose READABILITY is not the record-content gate's business.
 
-    THE DISPATCH CLAUSE WAS REMOVED IN r2.27 (E-19) BECAUSE IT COULD NEVER FIRE. `_is_dispatch_message`
-    returns True only when the payload DECODES AS TEXT — which is exactly when `_is_readable` is also
-    True, so a waived message was never a candidate for the unreadable list in the first place.
+    THE DISPATCH CLAUSE WAS REMOVED IN r2.27 (E-19). It could not fire FOR ANY FILE THE SCAN WILL
+    READ — `_is_dispatch_message` returns True only when the payload decodes as text, which is
+    exactly when `_is_readable` is also True, so a waived message was never a candidate for the
+    unreadable list.
+
+    I FIRST WROTE "COULD NEVER FIRE", AND THAT WAS TOO STRONG. A reviewer found the gap: the waiver
+    read the file UNBOUNDED while `_is_readable` refuses anything above `_MAX_SCAN_BYTES` before
+    decoding, so a dispatch `.md` above 256 MiB decoded (waived) but was unreadable (reportable).
+    Such a file is now REPORTED, and since `.claude/usr/**/dispatches/` is unowned it fails here and
+    cannot be cleared by a declaration. The direction is fail-closed, so nothing became a false
+    clean — but "never" was a claim about all inputs supported by a measurement over the ones that
+    exist, which is the kind of sentence this project keeps having to correct.
     Measured against the live tree before removing it: the waiver fired on 153 files and changed the
     answer on ZERO of them; the report was 23 files with it and 23 without, difference NONE.
 
@@ -382,28 +391,6 @@ DRUGBANK_CONTENT_POLICY = ContentPolicy(
     readability_waived=_readability_waived,
     content_exempt=_content_exempt,
 )
-
-
-def _is_dispatch_message(root: Path, rel: str) -> bool:
-    """Is this dispatch payload an actual MESSAGE — i.e. does it decode as text?
-
-    #122 §3 waives dispatch payloads because redacting a sent MESSAGE falsifies the audit trail of
-    the rulings it carries. That reasoning is about text a human wrote and sent. A binary blob is
-    not a message whatever it is named, and deciding messagehood by FILENAME meant the same payload
-    that fails as `leak.pdf` was DOUBLE-exempt as `leak.md` — waived from the accession scan and
-    skipped by the undecodable report, listed nowhere. Two reviewers executed it independently.
-
-    This module's own doctrine, two functions away: "dispatch on the MAGIC, not on the name".
-    """
-    if not _DISPATCH_PAYLOAD_RE.match(rel):
-        return False
-    target = Path(root) / rel
-    if not target.is_file():
-        return True  # nothing to read; the path shape is all we have
-    try:
-        return decode_text(target.read_bytes()) is not None
-    except OSError:
-        return False
 
 
 def is_accession_excluded(rel: str) -> bool:
