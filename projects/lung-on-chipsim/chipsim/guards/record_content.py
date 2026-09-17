@@ -20,9 +20,12 @@ That is not one question but TWO, and conflating them would be a defect:
     on top would exempt it twice and make it invisible to both halves of the guard. This one DOES
     cover the ledger.
 
-Both default to refusing nothing, so a caller who forgets to pass them gets a NOISIER gate rather
-than a quieter one — the only safe direction for a default in a mechanism whose failure mode is a
-false clean.
+THE TWO HAVE OPPOSITE SAFE DIRECTIONS, so neither is defaulted. Waiving nothing makes the scan
+NOISIER (more files read); exempting nothing makes it QUIETER (the double-exemption defect never
+fires, so a declaration holds and its file is cleared). An earlier version of this module defaulted
+both to "refuse nothing" and claimed in this docstring that the result was fail-closed. A reviewer
+measured the opposite: the default cleared a file the real policy fails. The policy is therefore
+REQUIRED at every call site — the same reasoning this module already applies to `recognised`.
 """
 
 from __future__ import annotations
@@ -54,9 +57,11 @@ def nothing_is_content_exempt(rel: str) -> bool:
 class ContentPolicy:
     """What the OWNING project waives, injected rather than imported.
 
-    The guard must not know about DrugBank. Both defaults refuse nothing, so a caller who forgets
-    to pass a policy gets a noisier gate rather than a quieter one — the only safe direction for a
-    default in a mechanism whose failure mode is a false clean.
+    The guard must not know about DrugBank. There is NO default: the two predicates have opposite
+    safe directions — waiving nothing makes the scan noisier, exempting nothing makes it QUIETER,
+    because the double-exemption defect stops firing and the declaration it would have broken then
+    holds. A default that is fail-closed for one member and fail-open for the other is worse than
+    no default, because its docstring can only be half true.
     """
 
     #: "This file's readability is not this gate's business." Dispatch payloads are waived by
@@ -68,7 +73,9 @@ class ContentPolicy:
     content_exempt: Callable[[str], bool] = nothing_is_content_exempt
 
 
-DEFAULT_POLICY = ContentPolicy()
+#: Waives nothing and exempts nothing. NOT a default — a caller must choose it deliberately,
+#: because "exempt nothing" is the QUIETER direction for declarations, not the safer one.
+NOTHING_WAIVED = ContentPolicy()
 
 
 #: Any file in a dispatches/ directory, whatever its suffix. The waiver pattern above is `.md`-only
@@ -675,7 +682,7 @@ def _under_an_ownership_prefix(rel: str) -> bool:
 def declaration_defects(
     root: Path,
     paths,
-    policy: ContentPolicy = DEFAULT_POLICY,
+    policy: ContentPolicy,
     surface: DeclarationSurface | None = None,
 ) -> list[tuple[str, str]]:
     """(declared path, what is wrong with the claim) for every entry that does NOT hold.
@@ -908,11 +915,16 @@ class DeclarationSurface:
 
     @classmethod
     def require(cls, root: Path) -> DeclarationSurface:
-        """RAISES on MALFORMED declaration data. For a caller asking one rule a direct question.
+        """RAISES. For a caller asking one rule a direct question.
 
-        It tolerates an ABSENT file — that rule belongs to the report, which is the surface an
-        operator reads, and has always been checked there rather than in the validator.
+        SAME PRECONDITIONS AS `read`, different failure CHANNEL — that is the whole rule, and it is
+        stateable, which the previous split was not. `require` used to tolerate an ABSENT file while
+        `read` refused one, so the function whose name promised strictness was the lenient one: every
+        API caller got absent-as-empty and a marker-only registry, which is the WIDENING direction
+        (more paths acquire an owner, and under E-03 an owned path fails nowhere). The clause that
+        an absent file is not an empty one was enforced on the report path alone.
         """
+        refuse_an_absent_declaration_surface(root)
         docs = {
             rel: _declaration_document(root, rel)
             for rel in (PROJECT_DECLARATION_FILE, REPO_DECLARATION_FILE)
@@ -931,7 +943,6 @@ class DeclarationSurface:
         direction, more files fail and never fewer.
         """
         try:
-            refuse_an_absent_declaration_surface(root)
             return cls.require(root)
         except RecordContentScanError as exc:
             return cls(entries=(), registry=None, structural_error=str(exc))
@@ -940,7 +951,7 @@ class DeclarationSurface:
 def valid_declarations(
     root: Path,
     paths,
-    policy: ContentPolicy = DEFAULT_POLICY,
+    policy: ContentPolicy,
     surface: DeclarationSurface | None = None,
 ) -> frozenset[str]:
     """The declared paths whose claim actually HOLDS. Only these clear a file."""
@@ -1203,7 +1214,7 @@ def unresolvable_tracked(root: Path, paths) -> list[str]:
     return sorted(rel for rel in paths if not (Path(root) / rel).is_file())
 
 
-def render_undeclared_report(policy: ContentPolicy = DEFAULT_POLICY) -> tuple[str, int]:
+def render_undeclared_report(policy: ContentPolicy) -> tuple[str, int]:
     """The report a HUMAN reads, and the exit code this project's gate would produce.
 
     "Listing that reaches no one is functionally a silent skip" (CTO, §6 boundary) — a report only
@@ -1217,7 +1228,7 @@ def render_undeclared_report(policy: ContentPolicy = DEFAULT_POLICY) -> tuple[st
     return _render_for_root(repo_root(), policy)
 
 
-def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tuple[str, int]:
+def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
     root = Path(root).resolve()
     paths, submodules = _tracked_listing(root)
     _refuse_a_scan_that_cannot_see_itself(root, paths)
@@ -1328,7 +1339,7 @@ def _render_for_root(root: Path, policy: ContentPolicy = DEFAULT_POLICY) -> tupl
 def undeclared_report(
     root: Path,
     paths,
-    policy: ContentPolicy = DEFAULT_POLICY,
+    policy: ContentPolicy,
     surface: DeclarationSurface | None = None,
 ) -> list[tuple[str, str | None]]:
     """(path, owning project) for every undeclared undecodable file, repo-wide (r2.22, E6-1b).
@@ -1350,7 +1361,7 @@ def undeclared_report(
 def failing_undeclared(
     root: Path,
     paths,
-    policy: ContentPolicy = DEFAULT_POLICY,
+    policy: ContentPolicy,
     surface: DeclarationSurface | None = None,
 ) -> list[str]:
     """The subset of the report that fails THIS project's gate: files this project owns, plus
@@ -1370,7 +1381,7 @@ def failing_undeclared(
 def undecodable_unallowed(
     root: Path,
     paths,
-    policy: ContentPolicy = DEFAULT_POLICY,
+    policy: ContentPolicy,
     surface: DeclarationSurface | None = None,
 ) -> list[str]:
     """Tracked paths the scan cannot read AND whose declaration does not hold (r2.24 E-02).
