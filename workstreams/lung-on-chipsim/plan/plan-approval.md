@@ -1,13 +1,14 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: db3d598
+plan_hash: c8d32c7
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-invoked, standing-delegation
 invoked_by: biofm/matthew-mo/cto
 provenance_of_record: workstreams/lung-on-chipsim/plan/plan-approval-log.md
 authorising_rulings:
+  - 'CTO rulings 2026-09-17 on the §9 gate escalations E-13 to E-16 (dispatch #149)'
   - 'CTO rulings 2026-09-17 on the §8 gate escalations E-09 to E-12 (dispatch #145)'
   - 'CTO rulings 2026-09-17 on the §7 gate escalations E-01 to E-07 plus CTO finding E-08 (dispatch #143)'
   - 'CTO ruling 2026-09-17 on the E6-1 x r2.20 composition gap escalated by the worktree agent (dispatch #141) — failure scoped per-project, listing repo-wide, unowned paths fail here'
@@ -15,7 +16,7 @@ authorising_rulings:
   - 'CTO rulings 2026-09-16 on §5 escalations E-1 to E-6 (r2.20)'
   - 'principal 2026-09-15 record-content re-ruling — the invariant targets record content and the (accession, name, structure) association'
   - 'principal 2026-09-15 lane ruling, re-confirmed 2026-09-16 — this CTO session owns the lane'
-  - 'r2.24 has NO principal ruling — quality-gate findings; r2.8/r2.9 precedent'
+  - 'r2.25 has NO principal ruling — quality-gate findings; r2.8/r2.9 precedent'
 human_approved_hash: de4b812
 human_approved_date: 2026-09-15
 human_approval_source: principal message "approve r2.1 sign and commit flash", other CTO session, 2026-09-15T07:56Z (the 0b8d0c3 marker quoted it as "approve r2.10 sign")
@@ -32,9 +33,10 @@ conditions_amended_since_human_approval:
   - 'Global Constraints + T5a + T14 (r2.20) — record-bearing writers validate destinations against an ALLOW-LIST via one shared helper; the guard may not skip an undecodable file silently; publish via the CLI; fail-closed stated'
   - 'Global Constraints (r2.21) — declarations owned per project with path->sha256 or a derived-from-source claim; readable structured containers always read, never declared; the dispatch waiver covers .md messages only; which half each mechanism enforces is stated'
   - 'Global Constraints (r2.22) — E6-1b: the undeclared-undecodable FAILURE is scoped to the owning project, the LISTING stays repo-wide, and a path owned by NO project fails THIS gate so scoping can never make a file unfailable everywhere; r2.20 fail-closed clause amended to match'
-date: 2026-09-17T05:45
+date: 2026-09-17T08:15
   - 'Global Constraints (r2.23) — allow-list checked by directory IDENTITY not case-folding, with missing-root and outside-root as two distinct failures; roots anchored at runtime; operator-chosen --dest/--out through the same helper with data/raw and the journal declared; the listing RENDERED at the REPO root by a shipped command; owner-gate fiction stated; a repo-root declaration surface for unowned paths; declaration data acknowledged unbuilt'
   - 'Global Constraints (r2.24) — the report proves it scanned something (check=True, count floor, paths resolve); GIT_* dropped and executed config disabled; an owner needs a tracked marker; paths escaped; unresolvable tracked paths counted always and failing only when owned; submodules explicitly NOT scanned; owner registry folded into E-02; topology placement folded into E6-6'
+  - 'Global Constraints (r2.25) — a broken declaration file is exit 2 with nothing declared and the listing still rendered, not exit 3; counts kept separate; assertions bind the exit code not the return value; declarations load once through a snapshot; the registry may not police itself; an absent declaration file is not an empty one; all defects per entry in one pass; per-reviewer copies with a verified interpreter'
 ---
 
 # Plan approval: lung-on-chipsim
@@ -43,55 +45,55 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-r2.24 folds the §8 gate, whose headline is that **the E-08 fix contained E-08**: the root SELECTION
-was corrected while the root VALIDATION and the file LISTING kept failing silently, composing into
-"0 files, exit 0" printed with the true repo root interpolated. Rulings E-09 to E-12. The anti-vacuity
-guard for precisely this already existed **in the tests and not in the command**.
+r2.25 folds the §9 gate, which built E-02's declaration surface and found that **"declared" had been a
+state the code could describe and never reach**: the constant was an empty frozenset nothing
+populated, five tests iterated it zero times, and the behaviour "a declaration clears a file" had no
+test at all for four revisions. Rulings E-13 to E-16. **12 mutants survived the full 851-test suite**,
+including this work's own headline claim, because every defect test asserted on a return value and
+none on the exit code.
 
 ---
 
 ## THIS FILE IS NO LONGER THE PROVENANCE OF RECORD
 
 **`plan-approval-log.md` beside it is** (r2.15 item 6). `plan-gate sign` regenerates this file
-wholesale on every sign — **twenty times so far** — preserving nothing below the frontmatter.
+wholesale on every sign — **twenty-one times so far** — preserving nothing below the frontmatter.
 
 ## Provenance — how to read this signature
 
-**Rule 12 demonstrated on itself, one revision after it was written.** E-08 was the CTO's finding
-that the shipped report scanned the project root. The agent fixed the root *selection* and left the
-root *validation* and the file *listing* able to fail silently — and they compose: no `.git` above
-the package → silent fallback to the narrow root E-08 *is* → `git ls-files` fails → the listing
-swallows it and returns `[]` → **"0 (failing this gate: 0)", exit 0, printed with the true repo root
-interpolated.** Reproduced end-to-end through the shipped CLI by the agent and independently by all
-four reviewers; reachable with no attacker. **The anti-vacuity guard for exactly this already existed
-IN THE TESTS and not in the command** — `check=True`, a count floor, every path resolving, beneath a
-test titled *"a scan over the wrong or an empty list reports clean"*. The CTO's own E-08 sentence,
-one function below the fix for it.
+**The headline is that "declared" was unreachable.** `RENDERED_ARTIFACT_DECLARATIONS` was an empty
+frozenset nothing populated: **five** tests iterated it and therefore ran zero times, **four**
+monkeypatched it, and the oldest had been vacuous since the day it was written because its "binary"
+fixture, `b"\xff\xfe not utf-8"`, decodes as UTF-16 — the file was READABLE, so the assertion held
+with or without a declaration. **The behaviour the whole mechanism exists for had no test for four
+revisions.**
 
-**A test named after the regression could not detect it.** A reviewer reverted only the call site and
-`test_the_report_scans_the_repo_root_not_the_project_root` stayed **green**: it passed `root`
-explicitly, so it never exercised the default the fix installed, and its assertion was on a string
-the same commit had deleted. Deleted rather than repaired, and replaced by an equality — the command
-prints exactly what the function renders — which holds at 23 and at 0, instead of a `>=20` floor
-under a number this mechanism exists to drive to **zero**.
+**The registry policed itself.** Placement was judged against the owner set defined in *the very file
+whose declarations it constrains*, so delisting a project made its subtree unowned and therefore
+repo-root-declarable — **one edit, one file, another team's artifacts cleared, zero defects
+reported**, demonstrated end-to-end against the shipped command (exit 2 → exit 0 with a payload
+present). Two questions now use two sets. Alongside it: an **absent** declaration file read as an
+**empty** one, silently reverting to the pre-r2.24 mitigation with a healthy exit code — *E-02
+reproduced inside the fix for E-02*, in a module that already says an unreadable file is not an empty
+one.
 
-**Three bypasses survived a correct root**, each executed: `GIT_DIR`/`GIT_INDEX_FILE` steering the
-listing to a foreign index **while the printed root stayed correct** — more misleading than the bug
-being fixed; `core.fsmonitor`, config the scanned tree supplies and git *executes*, running as the
-invoking user (both halves of the `#44` B2 ruling now satisfied); and an owner **minted with
-`mkdir`**, which under E-03 is better for an attacker than a real owner. The agent measured before
-changing ownership semantics — both real projects carry markers — so the 23 live files and E6-1b's
-scoping are unchanged.
+**12 mutants survived the entire 851-test suite**, including this work's own headline claim that a
+declaration whose claim does not hold fails the gate. Every defect test asserted on the **validator's
+return value**; none on the **exit code**. That is E-08's function-versus-command split reappearing
+as a *testing habit* rather than a call site, and it is now a plan clause.
 
-**Evidence, not assertion:** 12 mutants applied one at a time in a throwaway clone, 11 killed on the
-first pass; **M5 survived** and the gap was closed rather than reported as 11/12. M3 is worth
-remembering — `is_dir()` for `exists()` is a **one-character** change that silently reinstates the
-project-root scan **in every worktree**, which is where all this work happens.
+**The ninth and tenth fixture vacuities are the agent's own, written this session after adopting the
+rule that produced them** — `"stale"` and `"container"` are substrings of the `tmp_path` directories
+pytest names after those very tests, proven by substituting an absolute path and watching both still
+pass. It also caught, before reporting it, a probe of its own that "proved" a declaration does not
+exempt content using a synthetic `DB9xxxx` accession the scan excludes by design: a check that could
+never have produced a hit.
 
-**Five §7 assertions were satisfied by the fixture** — two proved by leaving the branch raising and
-deleting only its message. Fourth through seventh in that family, now remedied mechanically rather
-than by memory: strip the tmp path from the haystack, assert what the fixture cannot supply, and
-assert the twin branch's message is **absent** so the test proves which check fired.
+**Rule 13 comes from two instances in one day, in two different repositories.** The agent's own data
+files said `derived_from` is "a claim a reader can check"; the gate checks the source is tracked,
+readable, same-owner and not itself declared — **never that the file derives from it**. The same
+morning, `BioSimEnv`'s docstring claimed every model call is metered by a sealed-tested component
+while `step()` never calls `check()`. Both read as reassurance, which is exactly why both survived.
 
 **The last direct human approval is `de4b812` (r2.10), 2026-09-15.** No task added or removed since.
 
@@ -120,6 +122,11 @@ not judgement.
 10. **A decision that looks like bookkeeping is still a shape decision if it assigns ownership**
     (2026-09-16, r2.21). Declaring another module's artifacts inside your own source assigns them
     your failure mode and your repair path. **Scoping a failure is the same act** (r2.22).
+13. **Prose that implies a check the tool does not perform is a false claim** (2026-09-17, r2.25).
+    It survives review *because* it reads as reassurance. Two instances in one day: `derived_from`
+    "a claim a reader can check" (never verified), and `BioSimEnv`'s "every model call is metered by
+    a component an independent sealed test proved correct" (component proven, use absent). State
+    what is actually verified — E6-5 applied to documentation.
 12. **Implementing a clause is where that clause's own lesson gets rebuilt** (2026-09-17, r2.23).
     The agent's summary of its own gate: *nearly every defect was the lesson of the clause directly
     above it, one level down in my implementation of that clause.* Case-sensitivity closed in
@@ -137,12 +144,12 @@ not judgement.
     compliance reports were in my own resolved dispatch list. Rule 7 says cite what you read; rule
     11 says a thing you intend to do is not a thing you have done.
 
-## Incident — `plan-gate sign` destroys this disclosure. TWENTY occurrences.
+## Incident — `plan-gate sign` destroys this disclosure. TWENTY-ONE occurrences.
 
 **2026-09-03 02:08** · **2026-09-14 13:28 / 15:24** · **2026-09-15 01:01 (`0b8d0c3`, second CTO
 session) / 01:40 / 11:19 / 12:43 / 15:16 / 16:15** · **2026-09-16 14:04 (third CTO session — restored
 from a stale capture, regressing the hash) / 14:08 / 15:00 / 15:04 / 15:36 / 15:38 / 18:28 / 18:59**
-· **2026-09-17 02:40 / 04:55 / 05:45**.
+· **2026-09-17 02:40 / 04:55 / 05:45 / 08:15**.
 
 **Standing procedure:** capture before every sign; restore after; restore onto the **post-sign**
 hash; restore as **valid YAML**; verify the parse, not just the gate; **append the log entry**.
