@@ -164,9 +164,7 @@ def marker_backed_owners(paths) -> frozenset[str]:
     return frozenset(found)
 
 
-def recognised_owners(
-    root: Path, paths, surface: DeclarationSurface | None = None
-) -> frozenset[str]:
+def recognised_owners(root: Path, paths, surface: DeclarationSurface) -> frozenset[str]:
     """The projects that DEMONSTRABLY exist.
 
     TWO independent conditions, and an owner needs BOTH (r2.24 E-11):
@@ -180,7 +178,7 @@ def recognised_owners(
     both reviewable. Until the registry exists the marker stands alone, and it is a MITIGATION, not
     proof: it is addable by anyone who adds a `pyproject.toml`, and the report says so.
     """
-    read = DeclarationSurface.require(root) if surface is None else surface
+    read = surface
     if read.structural_error:
         # UNKNOWN is not "no registry yet". Treating a BROKEN registry as absent fell back to the
         # wider marker-backed set, so paths under an unregistered owner stopped being unowned and
@@ -400,10 +398,10 @@ def declaration_defects(
     root: Path,
     paths,
     policy: ContentPolicy,
-    surface: DeclarationSurface | None = None,
+    surface: DeclarationSurface,
 ) -> list[tuple[str, str]]:
     """Adjudicate every declaration, at most ONCE per (surface, policy). See _adjudicate_once."""
-    read = DeclarationSurface.require(root) if surface is None else surface
+    read = surface
     return _adjudicate_once(root, paths, policy, read)
 
 
@@ -411,7 +409,7 @@ def _declaration_defects_uncached(
     root: Path,
     paths,
     policy: ContentPolicy,
-    surface: DeclarationSurface | None = None,
+    surface: DeclarationSurface,
 ) -> list[tuple[str, str]]:
     """(declared path, what is wrong with the claim) for every entry that does NOT hold.
 
@@ -425,7 +423,7 @@ def _declaration_defects_uncached(
     # failure scoping asks "whose gate does this fail?" and uses the narrowed set elsewhere. Using
     # the narrowed set for BOTH let a delisting legalise declaring another team's artifacts.
     placement_owners = marker_backed_owners(paths)
-    read = DeclarationSurface.require(root) if surface is None else surface
+    read = surface
     defects: list[tuple[str, str]] = []
 
     for path, entry, where in read.entries:
@@ -686,10 +684,10 @@ def valid_declarations(
     root: Path,
     paths,
     policy: ContentPolicy,
-    surface: DeclarationSurface | None = None,
+    surface: DeclarationSurface,
 ) -> frozenset[str]:
     """The declared paths whose claim actually HOLDS. Only these clear a file."""
-    read = DeclarationSurface.require(root) if surface is None else surface
+    read = surface
     broken = {path for path, _ in declaration_defects(root, paths, policy, read)}
     return frozenset(path for path, _, _ in read.entries if path not in broken)
 
@@ -856,6 +854,14 @@ class ScanContext:
     policy: ContentPolicy
     surface: DeclarationSurface
 
+    # NOTE ON THE LAYER BELOW: every function this composes takes `surface` as a REQUIRED argument.
+    # It was optional with a resolving fallback until r2.27 §11, which made E-17's own sixth defect
+    # — "a declaration surface from a `None` default" — survive inside the fix for it, in seven
+    # public functions. Worse than untidy: the fallback built the surface with `require` (RAISES)
+    # while `build` below uses `read` (carries `structural_error`), so ONE broken declaration file
+    # produced exit 2 through the scan and exit 3 through the direct API. E-13's ruling held on one
+    # path and was inverted on the other, decided by whether a caller remembered an argument.
+
     @classmethod
     def build(cls, root: Path, policy: ContentPolicy) -> ScanContext:
         """Read the tree ONCE and freeze it. The only constructor a caller needs."""
@@ -992,10 +998,18 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
             f"{len(missing)} not present on disk"
         ),
         (
-            f"  declarations read: {project_count + repo_count} "
-            f"({project_count} from {PROJECT_DECLARATION_FILE}, "
-            f"{repo_count} from {REPO_DECLARATION_FILE}), "
-            f"{defective} whose claim does not hold ({scan.defect_count} defect(s))"
+            # A count of ZERO and a count that COULD NOT BE TAKEN must not print the same glyph.
+            # E-20 put the structural error on line one and left this line reading "0 whose claim
+            # does not hold" at the moment no claim could be evaluated at all.
+            "  declarations read: UNREADABLE — the declaration data could not be parsed, so "
+            "nothing is declared"
+            if scan.structural_error
+            else (
+                f"  declarations read: {project_count + repo_count} "
+                f"({project_count} from {PROJECT_DECLARATION_FILE}, "
+                f"{repo_count} from {REPO_DECLARATION_FILE}), "
+                f"{defective} whose claim does not hold ({scan.defect_count} defect(s))"
+            )
         ),
         f"  (scan run from package {scan.package})",
     ]
@@ -1054,7 +1068,7 @@ def undeclared_report(
     root: Path,
     paths,
     policy: ContentPolicy,
-    surface: DeclarationSurface | None = None,
+    surface: DeclarationSurface,
 ) -> list[tuple[str, str | None]]:
     """(path, owning project) for every undeclared undecodable file, repo-wide (r2.22, E6-1b).
 
@@ -1064,7 +1078,7 @@ def undeclared_report(
     """
     # The registry is built from the SAME listing the report is rendered from, so an owner cannot
     # be recognised on the strength of a file that this scan never saw.
-    read = DeclarationSurface.require(root) if surface is None else surface
+    read = surface
     recognised = recognised_owners(root, paths, read)
     return sorted(
         (rel, path_owner(rel, recognised))
@@ -1076,7 +1090,7 @@ def failing_undeclared(
     root: Path,
     paths,
     policy: ContentPolicy,
-    surface: DeclarationSurface | None = None,
+    surface: DeclarationSurface,
 ) -> list[str]:
     """The subset of the report that fails THIS project's gate: files this project owns, plus
     every file no project owns.
@@ -1096,7 +1110,7 @@ def undecodable_unallowed(
     root: Path,
     paths,
     policy: ContentPolicy,
-    surface: DeclarationSurface | None = None,
+    surface: DeclarationSurface,
 ) -> list[str]:
     """Tracked paths the scan cannot read AND whose declaration does not hold (r2.24 E-02).
 

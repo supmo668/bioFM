@@ -82,15 +82,24 @@ def enforce_record_content(policy: ContentPolicy = DRUGBANK_CONTENT_POLICY) -> R
     in which order, or which return value means failure.
     """
     try:
-        root = _guard.repo_root()
-        paths, _submodules = _guard._tracked_listing(root)
-        report, code = _guard._render_for_root(root, policy)
+        # ONE reading of the tree, shared by both halves. Until r2.27 §11 this called
+        # `_tracked_listing` AND `_render_for_root`, which listed the repository TWICE: the
+        # `scanned` count on the result came from the first listing and the `scanned` count inside
+        # the report text came from the second, so one object carried two numbers claiming to be
+        # the same thing — E-14's defect reinstated one layer above the fix for it. It also reached
+        # into two PRIVATE guard names while the commit that introduced it claimed none remained.
+        context = _guard.ScanContext.build(_guard.repo_root(), policy)
+        scan = _guard.scan_record_content(context)
+        report, code = _guard.render_scan(scan)
     except RecordContentScanError as exc:
         raise RecordContentViolation("could-not-scan", str(exc)) from exc
 
-    # The accession half. The renderer above answers "can every tracked file be READ"; this answers
+    root, paths = context.root, list(context.paths)
+
+    # The accession half. The scan above answers "can every tracked file be READ"; this answers
     # "does anything readable CARRY a regulatory identifier", which is the other half of the
-    # invariant and the one that had no non-pytest caller at all.
+    # invariant and the one that had no non-pytest caller at all. Same listing, so a file cannot be
+    # seen by one half and missed by the other.
     hits = _drugbank.real_accession_hits(root, paths)
     ledger = _drugbank.ledger_tuple_hits(root)
     if hits or ledger:

@@ -44,6 +44,17 @@ def _surface(tmp_path, owners=None):
     ]
 
 
+def _surface_of(root):
+    """The surface a caller must now pass explicitly.
+
+    `require` rather than `read`, because that is what the deleted `surface=None` fallback built —
+    so every existing test keeps the behaviour it was written against, and the argument is visible.
+    """
+    import chipsim.guards.record_content as _rc
+
+    return _rc.DeclarationSurface.require(root)
+
+
 def _write(tmp_path, rel, data: bytes):
     target = tmp_path / rel
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -179,3 +190,62 @@ def test_the_live_repository_scans_clean_as_DATA():
     assert scan.structural_error is None
     assert [row for row in scan.rows if row.disposition == "FAILS HERE"] == []
     assert len([row for row in scan.rows if row.disposition == "listed"]) >= 20
+
+
+def test_no_public_callable_resolves_a_declaration_surface_for_itself():
+    """DESIGN-1. E-17's sixth named defect — "a declaration surface from a `None` default" — SURVIVED
+    INSIDE THE FIX FOR IT, in seven public functions one layer below `ScanContext`.
+
+    It was not cosmetic. The fallback built the surface with `require` (RAISES) while
+    `ScanContext.build` uses `read` (carries `structural_error`), so ONE broken declaration file gave
+    exit 2 through the scan and exit 3 through the direct API — E-13's ruling holding on one path and
+    inverted on the other, decided by whether a caller remembered an optional argument.
+
+    The test that was supposed to cover this inspected `ScanContext` alone, and a signature check on
+    one class cannot see six functions. This walks the module.
+    """
+    import inspect
+
+    import chipsim.guards.record_content as rc
+
+    offenders = []
+    for name, obj in vars(rc).items():
+        if name.startswith("__") or not callable(obj):
+            continue
+        if getattr(obj, "__module__", None) != rc.__name__:
+            continue
+        try:
+            signature = inspect.signature(obj)
+        except (TypeError, ValueError):  # pragma: no cover - builtins
+            continue
+        for parameter in signature.parameters.values():
+            annotation = str(parameter.annotation)
+            if (
+                "DeclarationSurface" in annotation
+                and parameter.default is not inspect.Parameter.empty
+            ):
+                offenders.append(f"{name}({parameter.name}={parameter.default!r})")
+    assert offenders == [], (
+        f"these resolve a declaration surface for themselves: {offenders} — a context that can find "
+        "itself is the ambient state this clause exists to prevent, and the fallback disagreed with "
+        "ScanContext.build about whether a broken file raises"
+    )
+
+
+def test_a_broken_declaration_file_reads_UNREADABLE_not_zero(tmp_path, monkeypatch):
+    """DESIGN-5. E-20 fixed the first header line and left the second reading "0 whose claim does not
+    hold" — at the moment no claim could be evaluated at all. A count of zero and a count that could
+    not be taken must not print the same glyph."""
+    import chipsim.guards.record_content as rc
+
+    listing = _surface(tmp_path)
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    text, code = render_scan(scan)
+    second = text.splitlines()[1]
+    assert "UNREADABLE" in second, second
+    assert "0 whose claim does not hold" not in text
+    assert code == 2
