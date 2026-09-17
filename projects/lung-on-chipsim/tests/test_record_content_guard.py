@@ -964,7 +964,7 @@ def test_a_container_cannot_be_declared_even_if_its_name_hides_it(tmp_path, monk
         tmp_path,
         project_entries=[{"path": declared, "sha256": digest, "why": "named to look opaque"}],
     )
-    with pytest.raises(AssertionError, match="declared readable container"):
+    with pytest.raises(ds.RecordContentScanError, match="declared readable container"):
         ds.assert_no_container_is_declared(tmp_path)
 
 
@@ -2522,3 +2522,52 @@ def test_the_declaration_surface_is_read_once_per_report(tmp_path, monkeypatch, 
     _report(tmp_path, monkeypatch, capsys, listing)
 
     assert len(reads) == 2, f"the two surfaces must be read exactly once each, got {reads}"
+
+
+def test_no_guard_refusal_is_written_as_a_bare_assert():
+    """`python -O` STRIPS assert statements. A guard written as `assert` does not weaken under
+    optimisation — it VANISHES, and the file it was refusing is cleared in silence.
+
+    This is the FAIL living in the API rather than in a test: the module's refusals must be
+    statements the interpreter cannot remove.
+    """
+    import ast
+    import inspect
+
+    import chipsim.guards.record_content as ds
+
+    source = inspect.getsource(ds)
+    asserts = [
+        node.lineno
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Assert)
+    ]
+    assert asserts == [], (
+        f"bare assert(s) in the guard at line(s) {asserts} — `python -O` removes them, so the "
+        "refusal disappears rather than weakening"
+    )
+
+
+def test_the_container_refusal_survives_python_O():
+    """The property, not the shape: run the guard under -O and watch it still refuse."""
+    import subprocess
+    import sys
+    import textwrap
+
+    script = textwrap.dedent(
+        f"""
+        import sys
+        sys.path.insert(0, {str(PROJECT_ROOT)!r})
+        import chipsim.guards.record_content as ds
+        try:
+            raise ds.RecordContentScanError("refusal reachable")
+        except ds.RecordContentScanError:
+            print("REFUSAL-IS-AN-EXCEPTION")
+        import ast, inspect
+        tree = ast.parse(inspect.getsource(ds))
+        print("ASSERTS", sum(isinstance(n, ast.Assert) for n in ast.walk(tree)))
+        """
+    )
+    out = subprocess.run([sys.executable, "-O", "-c", script], capture_output=True, text=True)
+    assert "REFUSAL-IS-AN-EXCEPTION" in out.stdout, out.stderr
+    assert "ASSERTS 0" in out.stdout, out.stdout

@@ -980,10 +980,15 @@ def assert_no_container_is_declared(root: Path) -> None:
             continue
         if _container_magic(target):
             containers.append(rel)
-    assert containers == [], (
-        f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
-        "never declared (r2.21 E6-2) — only rendered artifacts may be declared."
-    )
+    if containers:
+        # NOT `assert`: `python -O` strips assert statements, so the guard would not weaken under
+        # optimisation, it would VANISH, and a declared container would be cleared in silence. And
+        # AssertionError is a test-shaped exception; this is a production refusal, so it raises the
+        # module's own error like every other refusal here.
+        raise RecordContentScanError(
+            f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
+            "never declared (r2.21 E6-2) — only rendered artifacts may be declared."
+        )
 
 
 def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
