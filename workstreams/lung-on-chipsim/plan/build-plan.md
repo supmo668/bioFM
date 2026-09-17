@@ -132,6 +132,22 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **mitigation, not proof**, and the report says so until the declared registry exists. The coupling
   was flagged **before** E-02 was built rather than discovered after — build the registry and the
   declaration surface together, as one thing.
+  **The declaration data loads ONCE per report, through a snapshot** *(r2.25, E-14)*. Ruled on the
+  correctness half, not the 19 redundant YAML parses: with no snapshot, a concurrent edit yields a
+  **self-contradictory single report** — rows marked FAILS HERE under an owner the footer says fails
+  nobody. A report that disagrees with itself is worse than a slow one. It lives in the guards module
+  so E6-6's extraction is not complicated by it, and it is the home for the **two owner sets** below.
+  **The registry may not police itself** *(r2.25)*. Placement was judged against the owner set
+  defined in *the very file whose declarations it constrains*, so **delisting a project made its
+  subtree unowned and therefore repo-root-declarable** — one edit, one file, another team's artifacts
+  cleared, zero defects reported, demonstrated end-to-end against the shipped command (exit 2 → exit
+  0 with a payload present). Two questions now use **two sets**: a path under an ownership prefix
+  belongs to a project **whether or not that project is registered**.
+  **An ABSENT declaration file is not an EMPTY one** *(r2.25)*, exactly as this module already says an
+  unreadable one is not — reading absent as empty silently reverted the registry to the pre-r2.24
+  marker-only mitigation with a healthy exit code. *E-02 reproduced inside the fix for E-02.*
+  **Every defect in an entry is reported in one pass** *(r2.25, E-15)*: a reader who learns their
+  entry's next problem one gate run at a time is being made to bisect their own data.
   **Topology placement folds into E6-6** *(r2.24, E-09)*. `repo_root()`, `source_root()`,
   `THIS_PROJECT` and E-07's runtime anchor are **not** extracted into a new `chipsim/paths.py` now:
   placement reassigns ownership of a primitive across modules, which is a shape decision (rule 10),
@@ -183,6 +199,29 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   outright makes the report unrunnable in a legitimate sparse checkout. Scoping the *failure* by
   ownership is exactly E6-1b; scoping the *count* would repeat E-08. Exit 3 stays reserved for
   "could not scan at all", distinct from exit 2 (files fail) and 0 (clean).
+  **A BROKEN DECLARATION FILE IS NOT "could not scan at all"** *(r2.25, E-13)*. The scan works; only
+  the exemption data is unreadable. So: **treat nothing as declared** (the fail-closed direction —
+  more files fail, never fewer), **still render the listing**, and **exit 2 with the structural error
+  reported alongside, naming the file**. Turning the whole gate to exit 3 hid which file actually
+  failed. **The header counts declaration defects and undecodable files SEPARATELY**, so the first
+  line adds up on its own; mixing two categories into one `failing` number makes the summary
+  unreadable exactly where a reader checks it first.
+  **Assertions bind the OBSERVABLE the consumer sees, not only the function's return value**
+  *(r2.25, E-13b)*. **12 mutants survived the entire 851-test suite**, including this work's own
+  headline claim that a declaration whose claim does not hold fails the gate — every defect test
+  asserted on the validator's return and none on the **exit code**, so the command could pass while
+  the function was correct. This is E-08's function-versus-command split reappearing as a testing
+  habit rather than a call site.
+  **Reviewer isolation gains a PER-REVIEWER copy and a verified interpreter** *(r2.25, E-16)*. The
+  shared `.venv`'s editable install points at the **worktree**, so a reviewer running a script from
+  the wrong cwd exercises *the tree being hashed* rather than its own copy — a reviewer hit exactly
+  that and disclosed it, and a concurrent reviewer had already destroyed a shared copy mid-session.
+  One throwaway copy **per reviewer**, and each verifies its **interpreter resolves inside that
+  copy** before mutating anything. *Sixth in the ambient-state family — the throwaway-copy rule
+  telling us its next requirement.*
+  **For E6-6:** `undecodable_unallowed` reaching into the DrugBank exclusions is the **one
+  non-mechanical part** of that extraction. It moves by judgement, not cut-and-paste, and the clause
+  says so rather than letting a mechanical move carry it silently.
   **Submodules are NOT scanned from here** *(r2.24, E-12)*. A submodule is a different repository
   with its own gate obligation; scanning it would be the E-03 fiction inverted — gating what we do
   not own. The six are **named in the report** as unscanned, and this is a stated gap, not a covered
