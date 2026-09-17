@@ -906,11 +906,34 @@ Fill `adjudicated_label` and `evidence_doi` for every row. This is the task that
 grouping variable trustworthy, and it **cannot be delegated** — a fabricated DOI here would
 corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the explicit string
 `unknown`; they are **excluded from both calibration groups** rather than guessed into one.
+
+> **r2.19 (G-20) — do not type a compound name into any cell.** `adjudicated_by` takes the
+> reviewer's name; `evidence_doi` takes a DOI. A DrugBank compound name typed into either reaches
+> the **tracked** file and re-creates the `(name, structure)` association the five-column shape
+> exists to prevent. **No column check can catch this** — the column is legitimate, only the value
+> is wrong — so it is stated here as an instruction and recorded as a limit rather than claimed as
+> enforced. Work from `canonical_inchikey`; the generated worksheet shows you the name beside it.
 - **Files:** on completion, move to `configs/pgp_adjudication.csv` — **git-tracked**. r1 left this
   in `data/interim/`, which is git-ignored and DVC-tracked, leaving the plan's most load-bearing
   human artifact unversioned and unattributable (defect 23).
 - **Interfaces (r2.18):**
   ```python
+  # (r2.19) CLI entry, on the `chipsim panel-seal` precedent (C4): a helper whose only
+  # invocation is a Python call loses to hand-deleting columns — the accident it exists to
+  # prevent. `chipsim adjudication-export --worksheet <p> --out <p>`.
+  #
+  # (r2.19, G-15) `write_adjudication_worksheet` REFUSES to write to any resolved path under
+  # `configs/`; `export_tracked_adjudication` is the ONLY writer permitted to target it.
+  # Refuse by PATH, not by shelling out to `git ls-files` from library code — that is slow,
+  # environment-dependent and wrong in a non-git checkout. The worksheet shape carries `name`
+  # at position 2; without this refusal it can be written straight to the tracked path, which
+  # is what makes the r2.18 split load-bearing rather than decorative.
+  #
+  # (r2.19, G-01) The export REFUSES to overwrite a filled tracked file. Measured before the
+  # refusal existed: a BLANK worksheet exported over a filled file left 0 of 24 verdicts and
+  # RETURNED 24 — destruction reporting success. It needs no carelessness: lose `data/interim/`,
+  # T13 regenerates the worksheet blank without error, and a re-export destroys the adjudication.
+  # Defect 22's never-clobber rule covered the worksheet and left the published record unguarded.
   def export_tracked_adjudication(worksheet: Path, out: Path) -> int:
       """Project the reviewer's filled worksheet to the five tracked columns:
       canonical_inchikey, adjudicated_label, evidence_doi, adjudicated_by,
@@ -968,8 +991,10 @@ corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the
       receives it.
 
       Raises if NO row has a non-empty adjudicated_label (a wholly unadjudicated
-      worksheet — r1 returned all-'unknown' and looked identical to a completed
-      one, defect 6).
+      **tracked file** — r1 returned all-'unknown' and looked identical to a
+      completed one, defect 6). *(r2.19: said "worksheet" until the composition
+      check caught it — the fourth clause in this task still describing the input
+      r2.18 changed.)*
       Raises if ANY row has an empty adjudicated_label (partial adjudication).
       Raises if any value is outside {'yes','no','unknown'}.
       Raises if any 'yes'/'no' row lacks evidence_doi or adjudicated_by.
@@ -980,9 +1005,14 @@ corrupt the coverage claim invisibly. Leave genuinely uncertain compounds as the
       """
   ```
   An empty cell is an *incomplete* verdict; the literal string `unknown` is a *completed* one.
-- **Done when** a wholly-blank worksheet raises, a partially-filled worksheet raises, an all-`unknown`
-  worksheet raises, a `no` row with an empty DOI raises, a fully-adjudicated fixture returns a Series
-  over `{yes, no, unknown}`, and the parquet round-trips to an identical Series.
+- **Done when** (r2.19 — the clause now names the **tracked adjudication file**, which is what T15
+  reads since r2.18; it had still said "worksheet" three times) a wholly-blank **tracked file**
+  raises, a partially-filled one raises, an all-`unknown` one raises, a `no` row with an empty DOI
+  raises, a fully-adjudicated fixture returns a Series over `{yes, no, unknown}`, the parquet
+  round-trips to an identical Series, **and `stereo_is_relative` survives that round-trip** — the
+  module's own reader must not drop the flag T15 writes "so T17 receives it" (G-19). Plus: a tracked
+  file carrying **any column outside the five** raises (G-17 — the only checkable reading of
+  "five-column", and a human `cp` bypasses the export helper entirely).
 
 ### T17 · Render the data-provenance block — **CA · 4 min**
 Changed from **(edit)** to **(new)**: `chipsim/eval/card.py` did not exist and no plan creates it;
