@@ -6,6 +6,8 @@ E-13b happened: no test could assert the exit code cheaply, so twelve mutants su
 defect test asserted on a validator's return value instead.
 """
 
+from pathlib import Path
+
 import pytest
 import yaml
 
@@ -365,7 +367,166 @@ def test_the_structural_error_cannot_break_the_reports_indentation(tmp_path, mon
     scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
     text, _code = render_scan(scan)
     body = text.splitlines()[1:]
+    assert body, "no body lines means this `all()` proves nothing about indentation"
     assert all(line.startswith("  ") or line == "" for line in body), (
         "a line landed at column 0 and reads as a report line of its own:\n"
         + "\n".join(line for line in body if not line.startswith("  "))
     )
+
+
+# --- r2.27 §11 test review: the mutants that survived ------------------------------------------
+
+
+def test_no_constructor_on_the_scan_path_acquires_a_default(tmp_path):
+    """MUT-24 and MUT-25. `ScanContext` itself is default-free and the existing test checks that —
+    but it never looked at `ScanContext.build`, which is documented as "the only constructor a caller
+    needs", nor at `_render_for_root`, which is what the shipped non-pytest entry point calls.
+
+    Both survived the whole suite with defaults added. A shape check that inspects one class cannot
+    see the constructors around it.
+    """
+    import inspect
+
+    import chipsim.guards.record_content as rc
+
+    for label, fn in (
+        ("ScanContext.build", ScanContext.build),
+        ("_render_for_root", rc._render_for_root),
+        ("scan_record_content", scan_record_content),
+        ("render_scan", render_scan),
+    ):
+        for parameter in inspect.signature(fn).parameters.values():
+            assert parameter.default is inspect.Parameter.empty, (
+                f"{label}({parameter.name}=...) acquired a default — a scan that can resolve any "
+                "part of itself is the ambient state this clause forbids"
+            )
+
+
+def test_the_scan_root_cannot_come_from_the_environment(tmp_path, tmp_path_factory, monkeypatch):
+    """MUT-5c, and it walks straight around the shape check. An implementation that keeps
+    `ScanContext` default-free and `scan_record_content(context)` mandatory, and then resolves the
+    ROOT from `$CHIPSIM_SCAN_ROOT` inside `_render_for_root`, reinstates the sixth member of the
+    family the clause enumerates ("a tmp root from $TMPDIR") without tripping a signature check.
+
+    MY FIRST VERSION OF THIS TEST DID NOT KILL THE MUTANT. It asserted on the EXIT CODE while
+    patching `_tracked_listing` to return the same listing whatever root it was handed — so the
+    decoy scan reported the same 2 (every path missing on disk, unowned, failing) and the two roots
+    were indistinguishable through the number I was reading. The listing is root-aware here, and the
+    assertion is on WHICH ROOT THE REPORT NAMES, which is the thing the defect actually changes.
+    """
+    import chipsim.guards.record_content as rc
+
+    rel = "docs/payload.bin"
+    _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
+    handed = _surface(tmp_path) + [rel]
+
+    decoy = tmp_path_factory.mktemp("decoy")
+    decoy_listing = _surface(decoy)
+
+    listings = {tmp_path.resolve(): handed, decoy.resolve(): decoy_listing}
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listings[Path(root).resolve()], []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    monkeypatch.setenv("CHIPSIM_SCAN_ROOT", str(decoy))
+    monkeypatch.setenv("TMPDIR", str(decoy))
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(decoy))
+    monkeypatch.chdir(decoy)
+
+    text, code = rc._render_for_root(tmp_path, NOTHING_WAIVED)
+    assert str(tmp_path) in text, "the report must name the root it was HANDED"
+    assert str(decoy) not in text, (
+        "the scan answered about a root nobody passed it — the root was resolved from the "
+        "environment, which is the ambient state this clause forbids"
+    )
+    assert code == 2, "and it is the handed root's verdict, not the decoy's clean one"
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    assert scan.root == tmp_path.resolve()
+
+
+def test_a_missing_path_is_categorised_missing_not_undecodable(tmp_path, monkeypatch):
+    """MUT-8. Building the missing-on-disk rows with `category="undecodable"` survived 219/219 —
+    and the two text tests that appear to cover the section pass while the SECTION IS GONE, because
+    `"not present on disk" in printed` is satisfied by the unconditional header fragment
+    "N not present on disk" even when N is zero."""
+    import chipsim.guards.record_content as rc
+
+    ghost = "docs/ghost_payload.bin"  # in the listing, never written
+    live = "docs/payload.bin"
+    _write(tmp_path, live, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _surface(tmp_path) + [ghost, live]
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    by_path = {row.path: row for row in scan.rows}
+    assert by_path[ghost].category == "missing-on-disk"
+    assert by_path[live].category == "undecodable"
+
+    text, _code = render_scan(scan)
+    assert "tracked but NOT PRESENT ON DISK" in text, "the SECTION, not the header fragment"
+    assert ", 1 not present on disk" in text.splitlines()[0]
+
+
+def test_the_tracked_count_is_the_listing_length_exactly(tmp_path, monkeypatch):
+    """MUT-15. `len(paths) + 1` survived: the only live assertion was a floor (`> 100`), and this is
+    the very number the E-08 finding is about — "scanned N tracked files under ROOT"."""
+    import chipsim.guards.record_content as rc
+
+    listing = _surface(tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    assert scan.tracked_count == len(listing)
+    text, _code = render_scan(scan)
+    assert f"scanned {len(listing)} tracked files under {tmp_path}" in text
+
+
+def test_the_registry_state_is_pinned_in_every_direction(tmp_path, monkeypatch):
+    """MUT-16. A hardcoded registry state survived 219/219, so the report's E-11 disclosure was
+    unpinned BOTH ways: it could claim the marker-only mitigation while a registry was declared
+    (understating the control) or the reverse (overstating it)."""
+    import chipsim.guards.record_content as rc
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    listing = _surface(tmp_path, owners=[rc.THIS_PROJECT])
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    declared = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    assert declared.registry_state == "declared"
+    assert "owner registry: DECLARED" in render_scan(declared)[0]
+
+    listing = _surface(tmp_path)  # no `owners:` key at all
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    absent = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    assert absent.registry_state == "marker-backed-only"
+    assert "MARKER-BACKED ONLY" in render_scan(absent)[0]
+
+
+def test_a_broken_declaration_row_carries_its_reason_as_a_FIELD(tmp_path, monkeypatch):
+    """MUT-21 was killed only through the rendered string — which is the coupling E-17 exists to
+    remove. `detail` is data; assert it as data."""
+    import chipsim.guards.record_content as rc
+
+    gone = f"projects/{rc.THIS_PROJECT}/docs/gone.bin"
+    listing = _surface(tmp_path, owners=[rc.THIS_PROJECT])
+    import yaml as _yaml
+
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text(
+        _yaml.safe_dump(
+            {
+                "version": "1",
+                "declarations": [{"path": gone, "sha256": "a" * 64, "why": "long gone"}],
+            }
+        )
+    )
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.build(tmp_path, NOTHING_WAIVED))
+    broken = [row for row in scan.rows if row.category == "broken-declaration"]
+    assert broken, "the declaration is broken and should have produced a row"
+    assert all(row.detail for row in broken)
+    assert "not tracked" in broken[0].detail
+    assert all(row.disposition == "FAILS HERE" for row in broken)

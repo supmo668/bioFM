@@ -29,18 +29,31 @@ def test_the_live_repository_passes_the_combined_gate():
     assert result.root == REPO_ROOT
 
 
-def test_the_fail_lives_IN_the_entry_point_not_in_the_caller():
-    """The point of the clause. A consumer must not have to know which four checks to run, in what
-    order, and which return value means failure — otherwise the enforcement lives in the caller and
-    every caller re-implements it slightly differently.
+def test_the_fail_lives_IN_the_entry_point_not_in_the_caller(tmp_path, monkeypatch):
+    """The point of the clause: the only way to RECEIVE a value is for the gate to have passed.
 
-    The only way to receive a result is for the gate to have PASSED; failure raises.
+    This test used to assert that the word "raise" appeared in the entry point's own docstring —
+    an assertion on a string the same commit wrote, under a name claiming a control property. The
+    twelfth vacuity of that family, and mine. It asserts the behaviour now.
     """
+    import chipsim.guards.record_content as guard
     import chipsim.record_content as rc
 
-    assert callable(rc.enforce_record_content)
-    signature_ok = "raise" in rc.enforce_record_content.__doc__.lower()
-    assert signature_ok, "the docstring must say that it raises, because that is the contract"
+    rel = "docs/unowned_payload.bin"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"\x00\xff\x80\x81 OPAQUE")
+    listing = _surface(tmp_path) + [rel]
+
+    monkeypatch.setattr(guard, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(guard, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(guard, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    # No return value is reachable for a failing tree — the fail is IN the entry point.
+    with pytest.raises(RecordContentViolation) as exc:
+        rc.enforce_record_content()
+    assert exc.value.exit_code == 2
+    assert rel in exc.value.report
 
 
 def test_a_failing_file_raises_with_the_three_state_status(tmp_path, monkeypatch):

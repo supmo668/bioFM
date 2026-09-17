@@ -182,9 +182,12 @@ _MINIMUM_PLAUSIBLE_TRACKED = 100
 
 
 # --- Public names ------------------------------------------------------------------------------
+# Only the names something OUTSIDE this module actually reads. `tracked_listing` and
+# `MINIMUM_PLAUSIBLE_TRACKED` were minted in the E-18 split and read by nobody: an alias with no
+# reader is an inert mechanism that reads as a supported API, which is the same defect E-19 and
+# CODE-4 were about, one layer down. `record_content` imports the underscore names directly because
+# it is the module this one was split OUT of, not an outside consumer.
 
 run_git = _git
 toplevel_of = _toplevel_of
-tracked_listing = _tracked_listing
 tracked_paths = _tracked_paths_for_report
-MINIMUM_PLAUSIBLE_TRACKED = _MINIMUM_PLAUSIBLE_TRACKED

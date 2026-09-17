@@ -85,6 +85,10 @@ def test_every_named_exception_resolves_at_the_repo_root():
 def test_the_exclusion_boundary_is_exactly_the_ruled_set():
     assert is_accession_excluded(".claude/usr/matthew-mo/cto/dispatches/directive-x.md")
     assert is_accession_excluded(".claude/usr/matthew-mo/lung-on-chipsim/dispatches/d.md")
+    assert DRUGBANK_ID_LEDGER, (
+        "an empty ledger makes this `all()` — and the one in the tuple-check test — pass over "
+        "nothing; a loop with no iterations is the vacuity family in its plainest form"
+    )
     assert all(is_accession_excluded(rel) for rel in DRUGBANK_ID_LEDGER)
     # In scope — the rulings keep these enforced, not excused:
     assert not is_accession_excluded(BUILD_PLAN)
@@ -687,9 +691,13 @@ def test_an_unreadable_container_fails_loudly_rather_than_inviting_a_declaration
     with pytest.MonkeyPatch.context() as patch:
         # The reader moved to chipsim.guards.decoding in E-18; patch where the code READS it.
         import chipsim.guards.decoding as _decoding
+        from chipsim.guards.decoding import MissingContainerReader
 
         patch.setattr(_decoding, "_HDF5_READER", None)
-        with pytest.raises(RuntimeError, match="h5py"):
+
+        # NOT RuntimeError: RecordContentScanError is one too, so the broad form would also pass
+        # on an unrelated scan refusal whose message happened to mention h5py.
+        with pytest.raises(MissingContainerReader, match="no reader is installed"):
             real_accession_hits(tmp_path, [path.name])
 
 
@@ -1541,7 +1549,11 @@ def test_a_tracked_path_that_is_not_on_disk_is_counted_and_reported(tmp_path, mo
     printed = capsys.readouterr().out
 
     assert rel in printed, "a path the scan could not reach must never be silently dropped"
-    assert "not present on disk" in printed
+    # NOT `"not present on disk" in printed`: the header carries "N not present on disk"
+    # unconditionally, so that substring is there even when the section is gone and N is 0. It
+    # passed with the whole section deleted (MUT-8).
+    assert "tracked but NOT PRESENT ON DISK" in printed
+    assert ", 1 not present on disk" in printed.splitlines()[0]
     assert code == 2, "docs/ is owned by no project, and unowned fails here (E6-1b)"
 
 
@@ -1564,7 +1576,11 @@ def test_a_missing_path_another_project_owns_is_listed_but_does_not_fail_this_ga
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
 
-    assert rel in printed and "not present on disk" in printed
+    assert rel in printed
+    assert "tracked but NOT PRESENT ON DISK" in printed  # the section, not the header fragment
+    # 2, not 1: this fixture's OWNERSHIP MARKER is listed and also unmaterialised. Both are counted
+    # repo-wide even though neither fails this gate — scoping the count would be E-08 again.
+    assert ", 2 not present on disk" in printed.splitlines()[0]
     assert code == 0, "another project's missing file is counted here and fails only on their gate"
 
 
@@ -2588,7 +2604,7 @@ def _report(tmp_path, monkeypatch, capsys, listing, policy=None):
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
     monkeypatch.setattr(
-        pipeline, "_record_content_policy", lambda: policy or DRUGBANK_CONTENT_POLICY, raising=False
+        pipeline, "_record_content_policy", lambda: policy or DRUGBANK_CONTENT_POLICY
     )
     code = pipeline.main(["record-content-report"])
     captured = capsys.readouterr()
@@ -2859,9 +2875,7 @@ def test_a_BROKEN_registry_narrows_to_nothing_rather_than_widening(tmp_path, mon
     monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
-    monkeypatch.setattr(
-        pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY, raising=False
-    )
+    monkeypatch.setattr(pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY)
 
     healthy = pipeline.main(["record-content-report"])
     healthy_out = capsys.readouterr().out
@@ -2902,9 +2916,7 @@ def test_the_verdicts_are_adjudicated_once_per_report(tmp_path, monkeypatch, cap
     monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
-    monkeypatch.setattr(
-        pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY, raising=False
-    )
+    monkeypatch.setattr(pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY)
 
     pipeline.main(["record-content-report"])
     capsys.readouterr()
@@ -2930,9 +2942,7 @@ def test_the_header_counts_DECLARATIONS_not_defects(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
     monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
-    monkeypatch.setattr(
-        pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY, raising=False
-    )
+    monkeypatch.setattr(pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY)
 
     pipeline.main(["record-content-report"])
     out = capsys.readouterr().out
@@ -3123,4 +3133,56 @@ def test_no_shipped_module_writes_a_refusal_as_a_bare_assert():
                 offenders.append(f"{path.name}:{node.lineno}")
     assert offenders == [], (
         f"bare assert(s) in shipped code at {offenders} — python -O removes them"
+    )
+
+
+# --- r2.27 §11 test review: the kept half of the waiver was bound by nothing --------------------
+
+
+def test_the_readability_waiver_actually_waives_when_the_set_is_not_empty(tmp_path, monkeypatch):
+    """D1, and the most serious finding of the review. E-19 deleted the dispatch clause and left
+    `rel in DRUGBANK_ID_EXCLUDED_FILES`. Replacing that whole surviving body with `return False`
+    passed every test in the suite — the mechanism I kept was held in place by nothing.
+
+    It is inert today only because the set is EMPTY, which is a fact about the data, not the code:
+    the docstring says "an undecodable file added to it would genuinely be waived here", and that
+    sentence was the only thing asserting it.
+
+    MY FIRST ATTEMPT AT THIS TEST WAS ITSELF VACUOUS, and the mutant caught it. Patching the set
+    also flips `_content_exempt`, which reads the SAME set (a declaration on top of a content
+    exclusion is the double-exemption defect), so the file was cleared by the content half while the
+    waiver returned False — the test passed against the mutant it was written to kill. The two
+    halves cannot be told apart through the set, so the waiver is paired here with a content half
+    that exempts NOTHING: then the only route to a cleared file is the waiver itself.
+    """
+    import chipsim.guards.record_content as rc
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/docs/opaque.bin"
+    other = f"projects/{THIS_PROJECT}/docs/other.bin"
+    _write(tmp_path, rel, b"\x00\xff\x80\x81 not text")
+    _write(tmp_path, other, b"\x00\xff\x80\x81 also not text")
+    listing = _surfaced(tmp_path, [rel, other])
+    surface = _surface_of(tmp_path)
+
+    assert ds.DRUGBANK_ID_EXCLUDED_FILES == frozenset(), (
+        "this test is about what happens when the set is NOT empty; if it has grown, the fixture "
+        "below needs to account for the real entries"
+    )
+
+    # The REAL waiver, and a content half that exempts nothing — so nothing but the waiver can
+    # clear a file here.
+    waiver_only = _rc_policy(
+        readability_waived=ds._readability_waived, content_exempt=_rc_nothing_exempt
+    )
+
+    # Empty set, the live configuration: both files are reported.
+    assert rc.undecodable_unallowed(tmp_path, listing, waiver_only, surface) == [rel, other]
+
+    # Non-empty set: the configuration the surviving branch exists to serve. `rel` is waived and
+    # `other` is not, so the waiver is shown to fire AND to stay a path list rather than a blanket.
+    monkeypatch.setattr(ds, "DRUGBANK_ID_EXCLUDED_FILES", frozenset({rel}))
+    assert rc.undecodable_unallowed(tmp_path, listing, waiver_only, surface) == [other], (
+        "the waiver did not waive — the kept half of `_readability_waived` is inert and `return "
+        "False` is an exact replacement for it"
     )

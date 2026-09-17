@@ -319,11 +319,13 @@ def _container_magic(target: Path) -> str | None:
 
 
 # --- Public names ------------------------------------------------------------------------------
-# The guard and the ingest module both need these. They were private, and `ingest` imported them
-# through the underscore anyway, which is the coupling this move exists to remove.
+# The two `ingest` actually reads. It imported them through the underscore before the E-18 move,
+# which is the coupling the move exists to remove.
+#
+# `decode_text`, `is_readable` and `container_magic` were exported beside them and read by nobody.
+# The comment here used to say "the guard and the ingest module both need these", which was true of
+# two of the five — prose asserting a property nothing checks (rule 13). The guard imports the
+# underscore names directly: it is the module this one was split out of, not an outside consumer.
 
 sha256_of = _sha256
-decode_text = _decode_text
 scan_chunks = _scan_chunks
-is_readable = _is_readable
-container_magic = _container_magic
