@@ -594,3 +594,89 @@ def test_the_label_frame_carries_only_the_two_declared_columns(tmp_path):
     frame.index.name = "canonical_inchikey"
     got = read_pgp_label_frame(_label_parquet(tmp_path, frame))
     assert list(got.columns) == ["adjudicated_label", "stereo_is_relative"]
+
+
+# --- r2.19 G-15: only the export may write under configs/ ------------------------------------
+
+
+def _labels_and_compounds(keys):
+    labels = pd.Series(["yes"] * len(keys), index=keys)
+    labels.index.name = "canonical_inchikey"
+    return labels, _compounds(keys)
+
+
+def test_the_worksheet_writer_refuses_any_path_under_configs(tmp_path):
+    """r2.19 G-15. The worksheet shape carries `name` at position 2, so writing it to the tracked
+    location re-creates the (name, structure) association the five-column split exists to prevent.
+    A reviewer demonstrated it: the writer happily created configs/pgp_adjudication.csv complete
+    with a name column. `export_tracked_adjudication` is the ONLY writer permitted to target it —
+    that asymmetry is what makes the split load-bearing rather than decorative.
+    """
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    target = tmp_path / "configs" / "pgp_adjudication.csv"
+    with pytest.raises(AdjudicationError, match="configs"):
+        write_adjudication_worksheet(labels, compounds, target)
+    assert not target.exists(), "a refused write must leave nothing behind"
+
+
+def test_the_configs_refusal_resolves_the_path_rather_than_matching_the_string(tmp_path):
+    """`data/interim/../../configs/x.csv` IS under configs/. Matching the literal string would
+    miss it, and a relative escape is exactly how a mis-aimed call arrives."""
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    (tmp_path / "configs").mkdir()
+    (tmp_path / "data" / "interim").mkdir(parents=True)
+    sneaky = tmp_path / "data" / "interim" / ".." / ".." / "configs" / "pgp_adjudication.csv"
+    with pytest.raises(AdjudicationError, match="configs"):
+        write_adjudication_worksheet(labels, compounds, sneaky)
+
+
+def test_the_worksheet_writer_still_writes_anywhere_else(tmp_path):
+    """The refusal must be narrow: data/interim/ is where the worksheet belongs."""
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    out = tmp_path / "data" / "interim" / "pgp_adjudication.csv"
+    assert write_adjudication_worksheet(labels, compounds, out) == 3
+    assert "name" in pd.read_csv(out, dtype=str).columns
+
+
+def test_the_export_may_still_target_configs(tmp_path):
+    """The whole point of the asymmetry: the five-column projection IS allowed there."""
+    target = tmp_path / "configs" / "pgp_adjudication.csv"
+    assert export_tracked_adjudication(_worksheet(tmp_path), target) == 24
+    assert tuple(pd.read_csv(target, dtype=str).columns) == FIVE
+
+
+# --- r2.19 G-18: the CLI entry -----------------------------------------------------------------
+
+
+def test_the_cli_exports_the_tracked_file(tmp_path):
+    """r2.19 G-18, on the `chipsim panel-seal` precedent (C4): a helper whose only invocation is a
+    Python call loses to hand-deleting columns — the accident it exists to prevent."""
+    from chipsim import pipeline
+
+    worksheet = _worksheet(tmp_path)
+    out = tmp_path / "configs" / "pgp_adjudication.csv"
+    code = pipeline.main(["adjudication-export", "--worksheet", str(worksheet), "--out", str(out)])
+    assert code == 0
+    assert tuple(pd.read_csv(out, dtype=str).columns) == FIVE
+    assert len(pd.read_csv(out, dtype=str)) == 24
+
+
+def test_the_cli_reports_a_refusal_as_a_non_zero_exit_not_a_traceback(tmp_path, capsys):
+    """The human runs this at the end of a 60-90 minute task; a traceback is not an answer."""
+    from chipsim import pipeline
+
+    worksheet = _worksheet(tmp_path, notes="checked twice")
+    out = tmp_path / "configs" / "pgp_adjudication.csv"
+    code = pipeline.main(["adjudication-export", "--worksheet", str(worksheet), "--out", str(out)])
+    assert code != 0
+    assert not out.exists()
+    assert "notes" in capsys.readouterr().err

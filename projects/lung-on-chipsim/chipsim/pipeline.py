@@ -51,7 +51,9 @@ SUBCOMMANDS = (
 #: Declared separately rather than folded into SUBCOMMANDS so the workflow-export
 #: check keeps comparing against the ETL list exactly. Every registered subcommand
 #: must appear in exactly one of these two tuples — see test_workflow_export.
-NON_ETL_SUBCOMMANDS = ("panel-seal",)
+#: `adjudication-export` (T14, r2.19) publishes a HUMAN artifact, like `panel-seal`: it is an
+#: invocation to be journalled, not an ETL run over the snapshot.
+NON_ETL_SUBCOMMANDS = ("panel-seal", "adjudication-export")
 
 MODULE_PATH = "chipsim.pipeline"
 
@@ -296,6 +298,25 @@ def _cmd_panel_seal(ns) -> int:
     return 0
 
 
+def _cmd_adjudication_export(ns) -> int:
+    """T14's publish step (r2.19, G-18), on the `chipsim panel-seal` precedent (C4).
+
+    A helper whose only invocation is a Python call loses to hand-deleting columns in a
+    spreadsheet — which is the accident it exists to prevent. The reviewer finishing 60-90
+    minutes of adjudication needs a command, and needs a REFUSAL to arrive as a message and a
+    non-zero exit rather than a traceback.
+    """
+    from chipsim.harmonize.adjudication import AdjudicationError, export_tracked_adjudication
+
+    try:
+        rows = export_tracked_adjudication(ns.worksheet, ns.out)
+    except AdjudicationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    print(f"wrote {rows} row(s) to {ns.out}")
+    return 0
+
+
 _HANDLERS = {
     "fetch": _cmd_fetch,
     "hash-verify": _cmd_hash_verify,
@@ -303,6 +324,7 @@ _HANDLERS = {
     "provenance-tests": _cmd_provenance_tests,
     "write": _cmd_write,
     "panel-seal": _cmd_panel_seal,
+    "adjudication-export": _cmd_adjudication_export,
 }
 
 
@@ -341,6 +363,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("configs/unparseable_compounds.yaml"),
         help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
     )
+
+    p = sub.add_parser(
+        "adjudication-export",
+        help="publish the filled T14 worksheet as the tracked five-column file",
+        description=(
+            "Project the reviewer's filled worksheet to the five TRACKED columns "
+            "(canonical_inchikey, adjudicated_label, evidence_doi, adjudicated_by, "
+            "adjudicated_on) and write it to --out. Refuses any extra column the reviewer "
+            "added rather than dropping it, and refuses to blank a verdict the existing "
+            "tracked file already carries. `name` is dropped by design: a name beside a "
+            "structure key must not be tracked."
+        ),
+    )
+    p.add_argument("--worksheet", required=True, type=Path)
+    p.add_argument("--out", required=True, type=Path)
 
     p = sub.add_parser(
         "panel-seal",

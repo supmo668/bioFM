@@ -91,6 +91,12 @@ ADJUDICATED_LABELS = frozenset({"yes", "no", "unknown"})
 CITED_LABELS = frozenset({"yes", "no"})
 
 
+#: The tracked-artifact directory. Only `export_tracked_adjudication` may write here (r2.19,
+#: G-15): the worksheet shape carries `name` at position 2, so writing it to the tracked location
+#: re-creates the (name, structure) association the five-column split exists to prevent.
+TRACKED_DIR_NAME = "configs"
+
+
 class AdjudicationError(RuntimeError):
     """The adjudication worksheet is incomplete, inconsistent, or unusable."""
 
@@ -130,6 +136,25 @@ def _relative_by_key(compounds: pd.DataFrame) -> pd.Series:
         .groupby("canonical_inchikey")["stereo_is_relative"]
         .any()
     )
+
+
+def _refuse_tracked_destination(out: Path) -> None:
+    """Refuse a worksheet write under `configs/` (r2.19, G-15).
+
+    By PATH, not by asking git: a `git ls-files` call from library code is slow,
+    environment-dependent, and simply wrong in a non-git checkout. The path is RESOLVED first,
+    so `data/interim/../../configs/x.csv` is caught — a relative escape is exactly how a
+    mis-aimed call arrives.
+    """
+    if TRACKED_DIR_NAME in Path(out).resolve().parts:
+        raise AdjudicationError(
+            f"refusing to write a worksheet to {out}: anything under {TRACKED_DIR_NAME}/ is the "
+            "TRACKED artifact, and the worksheet shape carries `name` beside `canonical_inchikey` "
+            "— exactly the association the five-column tracked file exists to prevent. Write the "
+            "worksheet under data/interim/ and publish it with "
+            "export_tracked_adjudication(worksheet, out), which is the only writer permitted to "
+            "target that directory."
+        )
 
 
 def _blank(value: object) -> bool:
@@ -206,6 +231,7 @@ def write_adjudication_worksheet(
     Returns row count.
     """
     out = Path(out)
+    _refuse_tracked_destination(out)
 
     if "canonical_inchikey" not in compounds.columns:
         raise AdjudicationError("compounds must carry `canonical_inchikey` (T5b)")
