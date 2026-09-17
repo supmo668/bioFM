@@ -237,6 +237,18 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
   into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
   halves may not be cited for the fourth.*
+- **THE TEST FILE IS IN SCOPE, AND ITS ASSEMBLED CONSTANT IS LOAD-BEARING** *(r2.30)*. The guard's
+  own test fixture is **not excluded** from the accession scan — deliberately, because *excluding the
+  file that tests the scan is a bigger hole than an assembled constant*, and it is the exact shape of
+  defect this iteration repeatedly found. Consequently **any literal shape-valid non-synthetic form in
+  that file turns the live gate RED**, whatever value it holds. Measured: `is_accession_excluded(<the
+  test file>)` → `False`; `REAL_ACCESSION_RE` matches a literal five-digit non-synthetic form → `True`.
+  **So the fragment assembly stays.** The *value* was the problem and has been replaced with an
+  obviously-unassigned one; the assembly never was.
+  **Why this is written down:** the CTO ruled "drop the fragment-assembly and the comment explaining
+  it" **without establishing why the assembly existed**, and the agent measured before complying and
+  refused the half that was wrong. Anyone tidying this later will have the same instinct. The comment
+  now carries **both** reasons, not only the original one.
 - **E6-7 IS NOW MET, and the CTO verified it by FALSIFICATION rather than by reading the call site**
   *(r2.29)*. `enforce_record_content` is reached from the shipped command, and disconnecting it kills
   `test_the_shipped_command_fails_on_a_real_accession_in_tracked_content` — a test that names the
