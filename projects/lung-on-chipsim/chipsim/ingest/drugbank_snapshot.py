@@ -667,6 +667,13 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
     `BINARY_ALLOWLIST` is deliberately NOT consulted here: it declares that a file cannot be READ,
     never that its content is exempt. A declared path whose bytes turn out to be readable text is
     still scanned and still reported.
+
+    **WHICH HALF THIS ENFORCES (r2.21, E6-5).** This scan enforces the ACCESSION half of the
+    principal's invariant. A structure paired with a NAME and no accession is invisible to it BY
+    DESIGN, not by oversight: names are an unbounded vocabulary and there is no detector for them.
+    The name half is enforced elsewhere — by the r2.20 writer allow-list, which stops a
+    name-bearing payload reaching a tracked path in the first place. Neither mechanism claims the
+    other's coverage, because an overclaim about what a guard sees is worse than the gap it hides.
     """
     hits: list[tuple[str, str]] = []
     for rel in paths:

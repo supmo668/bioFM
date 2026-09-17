@@ -12,6 +12,13 @@ r2.19 named the forbidden directory instead, and the §5 reviewers executed thre
 It was also too broad, refusing every write under any `configs` ancestor — including the recovery
 path the error message recommended. A deny-list can only enumerate the attacks someone thought of.
 
+**WHICH HALF THIS ENFORCES (r2.21, E6-5).** This allow-list enforces the NAME half of the
+principal's invariant: it stops a payload carrying a compound NAME beside a structure — or an
+accession, name and structure on one row — from reaching a tracked path at all. It does not scan
+content and makes no claim about accessions already in the tree; that is the repo-wide scan's half.
+Stating the split is the point: a mechanism that implies it covers both is worse than one whose gap
+is written down.
+
 **Case (r2.20 says "case-insensitively"), and why this is NOT a lowercase comparison.** For an
 ALLOW-list, case-insensitive string matching is the PERMISSIVE direction — the exact opposite of
 the deny-list it replaces. `DATA/INTERIM` must be allowed when the filesystem says it IS the

@@ -705,3 +705,27 @@ def test_the_live_report_is_not_vacuous_and_this_gate_is_green():
     owners = {owner for _, owner in report}
     assert owners == {"perturb-seq-eval", "paper_standalone"}, owners
     assert all(owner is not None for _, owner in report), "an unowned file would have to FAIL"
+
+
+# --- r2.21 E6-5: each mechanism states which half it enforces, and neither claims the other ---
+
+
+def test_each_mechanism_states_which_half_of_the_invariant_it_enforces():
+    """The principal's invariant names "a NAME or accession with a structure". Two mechanisms split
+    it: the repo-wide scan enforces the ACCESSION half, the r2.20 writer allow-list enforces the
+    NAME half. A structure plus a name with no accession is invisible to the scan BY DESIGN — and
+    an overclaim about what a guard sees is worse than the gap it hides, which is why I had to
+    narrow my own §5 claim that "the format most likely to carry a whole record" was now visible.
+    """
+    import chipsim.guards.output_roots as writers
+    import chipsim.ingest.drugbank_snapshot as scanner
+
+    scan_doc = (scanner.real_accession_hits.__doc__ or "") + (scanner.__doc__ or "")
+    writer_doc = (writers.__doc__ or "") + (
+        writers.refuse_unless_declared_output_root.__doc__ or ""
+    )
+
+    assert "ACCESSION half" in scan_doc, "the scan must say which half it enforces"
+    assert "NAME half" in writer_doc, "the writer allow-list must say which half it enforces"
+    assert "NAME half" not in scan_doc, "the scan must not claim the name half"
+    assert "ACCESSION half" not in writer_doc, "the writer must not claim the accession half"
