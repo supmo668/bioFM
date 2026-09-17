@@ -617,32 +617,141 @@ def test_the_worksheet_writer_refuses_any_path_under_configs(tmp_path):
     keys = _keys("filled")[:3]
     labels, compounds = _labels_and_compounds(keys)
     target = tmp_path / "configs" / "pgp_adjudication.csv"
-    with pytest.raises(AdjudicationError, match="configs"):
+    # NOT match="configs": the message interpolates the destination, and the destination contains
+    # "configs", so that assertion was satisfied by the PATH. Two mutants proved it — a message
+    # reduced to the bare path SURVIVED, an unrelated "permission denied" echoing the path
+    # SURVIVED, and the correct explanation WITHOUT the path was KILLED. Match the rule instead.
+    with pytest.raises(AdjudicationError, match="export_tracked_adjudication") as exc:
         write_adjudication_worksheet(labels, compounds, target)
+    message = str(exc.value)
+    assert "TRACKED artifact directory" in message
+    assert "data/interim" in message, "the message must say where the worksheet DOES belong"
+    assert str(target) in message, "and it must still name the destination"
     assert not target.exists(), "a refused write must leave nothing behind"
+    assert not target.parent.exists(), "nor may it create the directory first"
 
 
-def test_the_configs_refusal_resolves_the_path_rather_than_matching_the_string(tmp_path):
-    """`data/interim/../../configs/x.csv` IS under configs/. Matching the literal string would
-    miss it, and a relative escape is exactly how a mis-aimed call arrives."""
+def test_the_configs_refusal_resolves_the_path_rather_than_matching_the_string(
+    tmp_path, monkeypatch
+):
+    """The escape `data/interim/../../configs/x.csv` still CONTAINS the literal component, so it
+    could not distinguish a resolving implementation from a substring one: both a no-resolve
+    mutant and a naive `"configs" in str(out)` mutant survived the entire suite.
+
+    A bare filename written while the cwd is inside `configs/` is the only shape that separates
+    them — its string contains no `configs` at all.
+    """
     from chipsim.harmonize.adjudication import write_adjudication_worksheet
 
     keys = _keys("filled")[:3]
     labels, compounds = _labels_and_compounds(keys)
     (tmp_path / "configs").mkdir()
     (tmp_path / "data" / "interim").mkdir(parents=True)
+
     sneaky = tmp_path / "data" / "interim" / ".." / ".." / "configs" / "pgp_adjudication.csv"
-    with pytest.raises(AdjudicationError, match="configs"):
+    with pytest.raises(AdjudicationError, match="export_tracked_adjudication"):
         write_adjudication_worksheet(labels, compounds, sneaky)
+    assert not (tmp_path / "configs" / "pgp_adjudication.csv").exists()
+
+    monkeypatch.chdir(tmp_path / "configs")
+    bare = Path("pgp_adjudication.csv")
+    assert "configs" not in str(bare)
+    with pytest.raises(AdjudicationError, match="export_tracked_adjudication"):
+        write_adjudication_worksheet(labels, compounds, bare)
+    assert not (tmp_path / "configs" / "pgp_adjudication.csv").exists()
 
 
-def test_the_worksheet_writer_still_writes_anywhere_else(tmp_path):
-    """The refusal must be narrow: data/interim/ is where the worksheet belongs."""
+def test_the_refusal_covers_anything_under_configs_not_just_its_immediate_children(tmp_path):
+    """G5-20: every refusal test put the file DIRECTLY in configs/, so a
+    `parent.name == "configs"` implementation survived. The rule is "anything UNDER"."""
     from chipsim.harmonize.adjudication import write_adjudication_worksheet
 
     keys = _keys("filled")[:3]
     labels, compounds = _labels_and_compounds(keys)
-    out = tmp_path / "data" / "interim" / "pgp_adjudication.csv"
+    deep = tmp_path / "configs" / "sub" / "deep" / "w.csv"
+    with pytest.raises(AdjudicationError, match="export_tracked_adjudication"):
+        write_adjudication_worksheet(labels, compounds, deep)
+
+
+def test_a_case_variant_of_configs_is_refused(tmp_path):
+    """G5-01, the worst one: `configs/` was refused and `CONFIGS/` was ALLOWED — and on this
+    project's own case-insensitive volume the file landed IN the real configs directory, with
+    `name` at position 2. One shifted keystroke."""
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    (tmp_path / "configs").mkdir()
+    for spelling in ("CONFIGS", "Configs"):
+        with pytest.raises(AdjudicationError, match="export_tracked_adjudication"):
+            write_adjudication_worksheet(labels, compounds, tmp_path / spelling / "w.csv")
+    assert list((tmp_path / "configs").iterdir()) == []
+
+
+def test_a_symlinked_configs_directory_is_refused(tmp_path):
+    """G5-02: `.resolve()` erased the `configs` component, so the write went THROUGH the link
+    into the target directory, name column included. Resolving alone is not the strengthening."""
+    import os
+
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    (tmp_path / "elsewhere").mkdir()
+    os.symlink(tmp_path / "elsewhere", tmp_path / "configs")
+    with pytest.raises(AdjudicationError, match="export_tracked_adjudication"):
+        write_adjudication_worksheet(labels, compounds, tmp_path / "configs" / "w.csv")
+    assert list((tmp_path / "elsewhere").iterdir()) == [], "nothing may reach the link target"
+
+
+def test_a_symlinked_destination_file_is_refused(tmp_path):
+    """The check resolved the path while the write used the literal one, so `os.replace` REPLACED
+    an existing symlink with a real file inside the tracked directory. Check and write must agree
+    about which object they mean."""
+    import os
+
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    (tmp_path / "safe").mkdir()
+    target = tmp_path / "safe" / "w.csv"
+    os.symlink(tmp_path / "elsewhere.csv", target)
+    with pytest.raises(AdjudicationError, match="symlink"):
+        write_adjudication_worksheet(labels, compounds, target)
+    assert target.is_symlink(), "the link must survive untouched"
+    assert not (tmp_path / "elsewhere.csv").exists()
+
+
+def test_a_symlink_loop_raises_the_modules_own_error_not_a_runtime_error(tmp_path):
+    """G5-04: RuntimeError escapes every `except AdjudicationError`, including the CLI handler's,
+    producing the traceback that handler exists to prevent."""
+    import os
+
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    os.symlink(tmp_path / "b", tmp_path / "a")
+    os.symlink(tmp_path / "a", tmp_path / "b")
+    with pytest.raises(AdjudicationError, match="could not be resolved"):
+        write_adjudication_worksheet(labels, compounds, tmp_path / "a" / "w.csv")
+
+
+@pytest.mark.parametrize(
+    "where",
+    ["data/interim", "myconfigs_backup", "my_configs_archive", "config", "configs2"],
+    ids=["interim", "substring-prefix", "substring-infix", "singular", "suffixed"],
+)
+def test_the_worksheet_writer_still_writes_anywhere_else(tmp_path, where):
+    """The refusal must be narrow: a `configs` COMPONENT, not a substring. A
+    `"configs" in str(out)` implementation survived the old single-case version of this test —
+    it only ever wrote to data/interim/, whose path happened to contain no `configs`."""
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+
+    keys = _keys("filled")[:3]
+    labels, compounds = _labels_and_compounds(keys)
+    out = tmp_path.joinpath(*where.split("/")) / "pgp_adjudication.csv"
     assert write_adjudication_worksheet(labels, compounds, out) == 3
     assert "name" in pd.read_csv(out, dtype=str).columns
 
@@ -657,7 +766,21 @@ def test_the_export_may_still_target_configs(tmp_path):
 # --- r2.19 G-18: the CLI entry -----------------------------------------------------------------
 
 
-def test_the_cli_exports_the_tracked_file(tmp_path):
+@pytest.fixture
+def journalled_elsewhere(tmp_path, monkeypatch):
+    """Redirect the invocation journal into tmp_path.
+
+    Without this, every CLI test wrote GENUINE invocation records into the project's real
+    journal/invocations/ — the trail the repo leans on as mechanical support for "a human ran
+    this" — indistinguishable from a real export except by the tmp path inside argv. Measured:
+    "real +2, scratch +0" without the override. test_panel_seal_tty.py exists because this
+    mistake was made once already; these tests repeated it.
+    """
+    monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(tmp_path))
+    return tmp_path / "journal" / "invocations"
+
+
+def test_the_cli_exports_the_tracked_file(tmp_path, capsys, journalled_elsewhere):
     """r2.19 G-18, on the `chipsim panel-seal` precedent (C4): a helper whose only invocation is a
     Python call loses to hand-deleting columns — the accident it exists to prevent."""
     from chipsim import pipeline
@@ -669,14 +792,95 @@ def test_the_cli_exports_the_tracked_file(tmp_path):
     assert tuple(pd.read_csv(out, dtype=str).columns) == FIVE
     assert len(pd.read_csv(out, dtype=str)) == 24
 
+    # What the operator SEES. Deleting the line, or printing rows+1, both survived before this.
+    printed = capsys.readouterr().out
+    assert "24 row(s)" in printed and str(out) in printed
+    assert "24 carrying a verdict" in printed
 
-def test_the_cli_reports_a_refusal_as_a_non_zero_exit_not_a_traceback(tmp_path, capsys):
+    # And the invocation was journalled HERE, not into the project's real trail.
+    assert len(list(journalled_elsewhere.glob("*adjudication-export.json"))) == 1
+
+
+def test_the_cli_says_how_many_rows_carry_a_verdict(tmp_path, capsys, journalled_elsewhere):
+    """G5-13: a first export of a wholly BLANK worksheet is well-formed and succeeds, and T15
+    rejects it much later. "wrote 24 row(s)" at the moment the human believes they are done is
+    success language for an empty artifact."""
+    from chipsim import pipeline
+
+    blank = pd.read_csv(FIXTURES / "pgp_adjudication_blank.csv", dtype=str, keep_default_na=False)
+    blank.insert(3, "stereo_is_relative", "False")
+    blank.insert(4, "label_disagrees_with_key", "unresolved")
+    worksheet = tmp_path / "blank_worksheet.csv"
+    blank.to_csv(worksheet, index=False)
+
+    out = tmp_path / "configs" / "pgp_adjudication.csv"
+    assert (
+        pipeline.main(["adjudication-export", "--worksheet", str(worksheet), "--out", str(out)])
+        == 0
+    )
+    assert "0 carrying a verdict" in capsys.readouterr().out
+
+
+def test_the_cli_reports_a_refusal_as_a_non_zero_exit_not_a_traceback(
+    tmp_path, capsys, journalled_elsewhere
+):
     """The human runs this at the end of a 60-90 minute task; a traceback is not an answer."""
     from chipsim import pipeline
 
     worksheet = _worksheet(tmp_path, notes="checked twice")
     out = tmp_path / "configs" / "pgp_adjudication.csv"
     code = pipeline.main(["adjudication-export", "--worksheet", str(worksheet), "--out", str(out)])
-    assert code != 0
+    # Pinned to 2, as panel-seal is in two places: `!= 0` let a mutant return 1 unnoticed.
+    assert code == 2
     assert not out.exists()
     assert "notes" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "broken",
+    ["missing", "empty", "directory"],
+)
+def test_the_cli_turns_an_unreadable_worksheet_into_a_message_not_a_traceback(
+    tmp_path, capsys, journalled_elsewhere, broken
+):
+    """G5-23: a transposed letter in --worksheet produced a 25-line pandas traceback and exit 1 —
+    the exact failure mode this command's own docstring promises to abolish, at the worst moment."""
+    from chipsim import pipeline
+
+    if broken == "missing":
+        worksheet = tmp_path / "pgp_adjudicaton.csv"  # transposed letter
+    elif broken == "empty":
+        worksheet = tmp_path / "empty.csv"
+        worksheet.write_text("")
+    else:
+        worksheet = tmp_path / "a_directory.csv"
+        worksheet.mkdir()
+
+    out = tmp_path / "configs" / "pgp_adjudication.csv"
+    code = pipeline.main(["adjudication-export", "--worksheet", str(worksheet), "--out", str(out)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "Traceback" not in captured.err
+    assert "ERROR:" in captured.err
+    assert not out.exists()
+
+
+def test_an_unjournallable_invocation_does_not_publish_the_tracked_file(
+    tmp_path, monkeypatch, journalled_elsewhere
+):
+    """G5-26: `adjudication-export` inherits panel-seal's fail-closed journalling. The consequence
+    that matters is not the exit code but that NOTHING is published when the trail cannot record
+    it — the analogue of panel-seal's `assert sealed == []`."""
+    from chipsim import pipeline
+
+    def unwritable(*args, **kwargs):
+        raise OSError("journal root is read-only")
+
+    monkeypatch.setattr(pipeline, "record_invocation", unwritable)
+    worksheet = _worksheet(tmp_path)
+    out = tmp_path / "configs" / "pgp_adjudication.csv"
+    assert (
+        pipeline.main(["adjudication-export", "--worksheet", str(worksheet), "--out", str(out)])
+        == 2
+    )
+    assert not out.exists(), "an unrecordable export must publish nothing"

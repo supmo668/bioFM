@@ -306,6 +306,8 @@ def _cmd_adjudication_export(ns) -> int:
     minutes of adjudication needs a command, and needs a REFUSAL to arrive as a message and a
     non-zero exit rather than a traceback.
     """
+    import pandas as pd
+
     from chipsim.harmonize.adjudication import AdjudicationError, export_tracked_adjudication
 
     try:
@@ -313,7 +315,24 @@ def _cmd_adjudication_export(ns) -> int:
     except AdjudicationError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
-    print(f"wrote {rows} row(s) to {ns.out}")
+    except (OSError, UnicodeDecodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+        # A mistyped --worksheet is the likeliest operator error at the end of a 60-90 minute
+        # task, and it used to arrive as a 25-line pandas traceback — the failure mode this
+        # command's own docstring promises to abolish.
+        print(f"ERROR: cannot read or write: {exc}", file=sys.stderr)
+        return 2
+
+    # The filled count, not just the row count: a wholly-blank export is well-formed and T15 will
+    # later reject it as "wholly unadjudicated". Saying "24 row(s), 0 carrying a verdict" at the
+    # moment the human believes they are finished is the whole point of printing anything.
+    try:
+        filled = int(
+            (pd.read_csv(ns.out, dtype=str, keep_default_na=False)["adjudicated_label"] != "").sum()
+        )
+    except Exception:  # noqa: BLE001 - reporting must never fail a successful export
+        print(f"wrote {rows} row(s) to {ns.out}")
+        return 0
+    print(f"wrote {rows} row(s) to {ns.out} ({filled} carrying a verdict)")
     return 0
 
 
