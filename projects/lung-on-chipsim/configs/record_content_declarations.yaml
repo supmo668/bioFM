@@ -1,0 +1,46 @@
+# lung-on-chipsim's record-content declarations (r2.21 E6-1, r2.24 E-02).
+#
+# Per-project declaration data, held in `configs/` following this module's own DRUGBANK_ID_LEDGER
+# precedent of pointing at a config file rather than inlining the list in source. The guard reads
+# the UNION of this file and the repo-root surface at config/record_content_declarations.yaml.
+#
+# ---------------------------------------------------------------------------------------------
+# WHAT BELONGS HERE: paths THIS project owns — projects/lung-on-chipsim/** and
+# workstreams/lung-on-chipsim/** — that the content scan cannot decode.
+#
+# Nothing else. 24 paths belonging to perturb-seq-eval and paper_standalone were once declared
+# inside this module's SOURCE, which meant another team adding a figure turned this module's gate
+# red, and the repair landed in a file they neither own nor can judge. That looked like
+# bookkeeping while it was assigning ownership. The guard now refuses a foreign path declared here
+# and names the project that owns it.
+#
+# ENTRY SHAPE: `path`, `why`, and exactly one of `sha256` (pins the content) or `derived_from`
+# (names a tracked source that is itself in scope). A bare path is forbidden — every declared file
+# is a build output, so a path-keyed declaration would go on matching after the artifact was
+# regenerated (E6-3). A readable parquet or HDF5 container may never be declared: it is always
+# read (E6-2), checked by magic rather than by suffix.
+#
+# Worked example, for whoever adds the first real entry:
+#
+#   declarations:
+#     - path: projects/lung-on-chipsim/docs/figures/panel_overview.png
+#       sha256: 3b1f…                      # sha256sum of the file as committed
+#       why: >
+#         Rendered figure. Carries no DrugBank record content: it is drawn from the panel seal,
+#         which is itself tracked and scanned.
+#
+#     - path: projects/lung-on-chipsim/docs/figures/panel_overview.png
+#       derived_from: projects/lung-on-chipsim/configs/panel_seal.yaml
+#       why: >
+#         Preferred form where it applies — the claim stops holding by itself if the source stops
+#         being tracked or stops being readable, so it does not need re-pinning on every rebuild.
+#
+# ---------------------------------------------------------------------------------------------
+version: "1"
+
+# EMPTY, and that is the correct state: this project owns no tracked file the scan cannot decode.
+# The 23 undecodable files in this repository all belong to perturb-seq-eval and paper_standalone;
+# they are LISTED by `chipsim record-content-report` with their owner named, and they fail nobody's
+# gate today, because no other project implements this check (E-03). They are not re-declared here
+# on those teams' behalf.
+declarations: []

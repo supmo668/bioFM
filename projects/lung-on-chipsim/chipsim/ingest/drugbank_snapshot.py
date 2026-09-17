@@ -399,7 +399,13 @@ def is_accession_excluded(rel: str) -> bool:
 #: ownership. They are now LISTED by `undeclared_report` with their owner named, and fail their
 #: owner's gate rather than this one (r2.22 E6-1b). They are NOT re-declared here on those teams'
 #: behalf.
-RENDERED_ARTIFACT_DECLARATIONS: frozenset[str] = frozenset()
+#: RETIRED in r2.24 (E-02). This was an empty frozenset that nothing ever populated: the removal
+#: half of E6-1 shipped and the READ half did not, so "declared" was a state the code could
+#: describe and never reach. Declarations now live in the data files below and are READ, validated
+#: and counted in the report. Every test that monkeypatched this constant was exercising a value
+#: the reader did not consult — and the oldest of them was vacuous even before that, because its
+#: fixture wrote UTF-16 bytes that decode cleanly, so the file was readable and the assertion held
+#: with or without a declaration.
 
 
 #: HDF5's signature. `h5ad` is HDF5, and AnnData's `obs`/`var` carry names and identifiers — the
@@ -702,12 +708,19 @@ _OWNERSHIP_PREFIXES = (
 )
 
 
-def recognised_owners(paths) -> frozenset[str]:
-    """The projects that DEMONSTRABLY exist, read from the tracked listing itself.
+def recognised_owners(root: Path, paths) -> frozenset[str]:
+    """The projects that DEMONSTRABLY exist.
 
-    An owner is recognised only when the repository tracks its marker. Creating the directory
-    cannot mint one, because the attacker's file already had to create the directory — existence of
-    the directory is therefore worth nothing as evidence.
+    TWO independent conditions, and an owner needs BOTH (r2.24 E-11):
+
+    * a tracked MARKER, so the directory alone cannot mint an owner — the attacker's own file had
+      to create the directory, which makes its existence worth nothing as evidence; and
+    * a place in the DECLARED registry at the repo root, once that registry exists.
+
+    The registry NARROWS, never widens. A marker alone does not mint an owner and neither does a
+    declaration alone, so minting one means editing a tracked declaration file AND adding a marker —
+    both reviewable. Until the registry exists the marker stands alone, and it is a MITIGATION, not
+    proof: it is addable by anyone who adds a `pyproject.toml`, and the report says so.
     """
     tracked = set(paths)
     found: set[str] = set()
@@ -727,7 +740,8 @@ def recognised_owners(paths) -> frozenset[str]:
                 and f"{head}/{parts[index]}/{marker}" in tracked
             ):
                 found.add(parts[index])
-    return frozenset(found)
+    declared = declared_owner_registry(root)
+    return frozenset(found) if declared is None else frozenset(found) & declared
 
 
 def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
@@ -763,23 +777,271 @@ def path_owner(rel: str, recognised: frozenset[str]) -> str | None:
     return None
 
 
+#: WHERE declarations live. Per-project data following this module's own `DRUGBANK_ID_LEDGER`
+#: precedent of pointing at `configs/` rather than inlining (r2.21 E6-1), plus a repo-root surface
+#: for paths no project owns (r2.23 E-05). The guard reads the UNION of the two.
+#:
+#: The placement rule is the whole point of E6-1 and is ENFORCED below, not merely documented: the
+#: project file may declare only what THIS project owns, and the repo-root file only what NOBODY
+#: owns. 24 paths belonging to other teams were once declared inside this module's source, so
+#: another team adding a figure turned this module's gate red and the repair landed in a file they
+#: neither own nor can judge.
+PROJECT_DECLARATION_FILE = f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml"
+REPO_DECLARATION_FILE = "config/record_content_declarations.yaml"
+
+#: `why` is required. A declaration is a CLAIM, and "none of these is a DrugBank artifact" in a
+#: comment is the thing E6-1 contrasts a checkable claim against.
+_DECLARATION_KEYS = frozenset({"path", "sha256", "derived_from", "why"})
+
+
+def _container_magic(target: Path) -> str | None:
+    """ "parquet" / "HDF5" when the file IS a structured container, by MAGIC rather than by suffix.
+
+    A suffix filter is name-based dispatch — the anti-pattern this module condemns for parquet 170
+    lines above — and a container named `blob.dat` walks straight through it.
+    """
+    try:
+        head = target.open("rb").read(8)
+    except OSError:
+        return None
+    if head.startswith(_PARQUET_MAGIC):
+        return "parquet"
+    if head.startswith(_HDF5_MAGIC):
+        return "HDF5"
+    return None
+
+
+def _declaration_document(root: Path, rel: str) -> dict:
+    """Parse one declaration file. ABSENT is legitimate and means "nothing declared here"."""
+    target = Path(root) / rel
+    if not target.is_file():
+        return {}
+    try:
+        doc = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise RecordContentScanError(
+            f"{rel} could not be read as YAML ({exc}), so the gate cannot tell what is declared. "
+            f"Refusing to report: an unreadable declaration file is not an empty one."
+        ) from exc
+    if doc is None:
+        return {}
+    if not isinstance(doc, dict):
+        raise RecordContentScanError(f"{rel} must be a mapping, got {type(doc).__name__}.")
+    # Quoted in the data because tests/test_scaffold.py forbids a bare numeric value anywhere under
+    # configs/ — biological numbers are human-owned, and a scanner cannot tell a schema version from
+    # a parameter. Checked here so the field is load-bearing: reading a future schema as if it were
+    # this one is how a declaration comes to mean something other than what it says.
+    version = doc.get("version")
+    if str(version) != "1":
+        raise RecordContentScanError(
+            f'{rel}: unsupported declaration schema version {version!r} (this gate reads "1"). '
+            f"Refusing to interpret it as the schema it is not."
+        )
+    return doc
+
+
+def _declaration_entries(root: Path) -> list[tuple[str, dict, str]]:
+    """(declared path, entry, which surface declared it), with the SHAPE checked.
+
+    A structurally broken entry raises rather than being skipped: the gate cannot evaluate what it
+    cannot parse, and "could not evaluate" must never arrive at the same answer as "nothing to
+    declare". That is exit 3, not exit 2 and certainly not a pass.
+    """
+    entries: list[tuple[str, dict, str]] = []
+    seen: dict[str, str] = {}
+    for rel, surface in (
+        (PROJECT_DECLARATION_FILE, "project"),
+        (REPO_DECLARATION_FILE, "repo-root"),
+    ):
+        doc = _declaration_document(root, rel)
+        for raw in doc.get("declarations") or []:
+            if not isinstance(raw, dict):
+                raise RecordContentScanError(f"{rel}: every declaration must be a mapping.")
+            unknown = set(raw) - _DECLARATION_KEYS
+            if unknown:
+                raise RecordContentScanError(
+                    f"{rel}: unknown declaration key(s) {sorted(unknown)}. A key the gate does not "
+                    f"understand may be the one a reader believed was doing the work."
+                )
+            path = raw.get("path")
+            if not isinstance(path, str) or not path:
+                raise RecordContentScanError(f"{rel}: every declaration needs a `path`.")
+            if bool(raw.get("sha256")) == bool(raw.get("derived_from")):
+                raise RecordContentScanError(
+                    f"{rel}: `{path}` must carry exactly one of `sha256` (pin the content) or "
+                    f"`derived_from` (name a tracked source). Neither is a bare path declaration, "
+                    f"which is what E6-3 forbids; both at once is a claim nobody can adjudicate."
+                )
+            if not raw.get("why"):
+                raise RecordContentScanError(
+                    f"{rel}: `{path}` needs a `why`. A declaration is a claim, and an unexplained "
+                    f"one is the comment E6-1 contrasts a checkable claim against."
+                )
+            if path in seen:
+                raise RecordContentScanError(
+                    f"`{path}` is declared twice ({seen[path]} and {surface}); which claim governs "
+                    f"is not something the gate may pick."
+                )
+            seen[path] = surface
+            entries.append((path, raw, surface))
+    return entries
+
+
+def declaration_defects(root: Path, paths) -> list[tuple[str, str]]:
+    """(declared path, what is wrong with the claim) for every entry that does NOT hold.
+
+    These always fail this gate. Both declaration files are OURS — the project file by ownership,
+    the repo-root file because an unowned path belongs to nobody — so a defect in either is ours to
+    repair, and there is no other gate for it to fall to (E-03).
+    """
+    tracked = set(paths)
+    recognised = recognised_owners(root, paths)
+    defects: list[tuple[str, str]] = []
+
+    for path, entry, surface in _declaration_entries(root):
+        owner = path_owner(path, recognised)
+        if surface == "project" and owner != THIS_PROJECT:
+            remedy = (
+                "Another team's artifact declared here inherits this module's failure mode and "
+                "repair path, in a file they neither own nor can judge."
+                if owner
+                else "An unowned path is declared at the repo-root surface instead (E-05)."
+            )
+            defects.append(
+                (
+                    path,
+                    f"declared in this project's file, but {owner or 'nobody'} owns it. {remedy}",
+                )
+            )
+            continue
+        if surface == "repo-root" and owner is not None:
+            defects.append(
+                (
+                    path,
+                    (
+                        f"declared in the repo-root surface, but {owner} owns it. The repo-root "
+                        f"surface is for paths NOBODY owns; an owned path is declared by its owner."
+                    ),
+                )
+            )
+            continue
+        if path not in tracked:
+            defects.append(
+                (
+                    path,
+                    (
+                        "declared but not tracked — the file was deleted or renamed and the entry "
+                        "stayed behind. A declaration nobody checks reads as coverage and clears "
+                        "nothing."
+                    ),
+                )
+            )
+            continue
+
+        target = Path(root) / path
+        if target.is_file():
+            head = _container_magic(target)
+            if head:
+                defects.append(
+                    (
+                        path,
+                        (
+                            f"declared, but it is a readable {head} container. A structured container is "
+                            f"ALWAYS read, never declared (E6-2) — checked by magic, not by suffix."
+                        ),
+                    )
+                )
+                continue
+
+        if target.is_file() and _is_readable(target):
+            defects.append(
+                (
+                    path,
+                    (
+                        "declared, but the scan CAN read it. A declaration says a file cannot be read; "
+                        "declaring a readable file exempts nothing and hides everything."
+                    ),
+                )
+            )
+            continue
+
+        if entry.get("sha256"):
+            if not target.is_file():
+                defects.append((path, "declared with a sha256 but absent from disk."))
+                continue
+            actual = hashlib.sha256(target.read_bytes()).hexdigest()
+            if actual != entry["sha256"]:
+                defects.append(
+                    (
+                        path,
+                        (
+                            f"STALE declaration: pinned {entry['sha256'][:12]}…, file is {actual[:12]}…. "
+                            f"Every declared file is a build output, so a path-keyed declaration would have "
+                            f"gone on matching this path forever (E6-3)."
+                        ),
+                    )
+                )
+            continue
+
+        source = entry["derived_from"]
+        if source not in tracked:
+            defects.append(
+                (
+                    path,
+                    (
+                        f"claims to be derived from `{source}`, which is not tracked. The claim is only "
+                        f"self-maintaining while the source it names is in scope."
+                    ),
+                )
+            )
+            continue
+        source_target = Path(root) / source
+        if not source_target.is_file() or not _is_readable(source_target):
+            defects.append(
+                (
+                    path,
+                    (
+                        f"claims to be derived from `{source}`, which the scan cannot read — so the source "
+                        f"is not in scope and the claim rests on something nobody has checked either."
+                    ),
+                )
+            )
+    return defects
+
+
+def valid_declarations(root: Path, paths) -> frozenset[str]:
+    """The declared paths whose claim actually HOLDS. Only these clear a file."""
+    broken = {path for path, _ in declaration_defects(root, paths)}
+    return frozenset(path for path, _, _ in _declaration_entries(root) if path not in broken)
+
+
+def declared_owner_registry(root: Path) -> frozenset[str] | None:
+    """The owner names the repo-root surface declares, or None when no registry exists yet."""
+    doc = _declaration_document(root, REPO_DECLARATION_FILE)
+    owners = doc.get("owners")
+    if owners is None:
+        return None
+    if not isinstance(owners, list) or not all(isinstance(o, str) and o for o in owners):
+        raise RecordContentScanError(
+            f"{REPO_DECLARATION_FILE}: `owners` must be a list of project names."
+        )
+    return frozenset(owners)
+
+
 def assert_no_container_is_declared(root: Path) -> None:
     """Raise when a DECLARED path is a readable structured container (r2.21 E6-2).
 
     Checked by MAGIC, not by suffix: a suffix filter is name-based dispatch, the anti-pattern this
     module condemns for parquet 170 lines above, and a container named `blob.dat` walked straight
-    through it.
+    through it. Reads the declaration DATA — before r2.24 it read a constant that was permanently
+    empty, so it could not have failed.
     """
     containers = []
-    for rel in sorted(RENDERED_ARTIFACT_DECLARATIONS):
+    for rel, _entry, _surface in _declaration_entries(root):
         target = Path(root) / rel
         if not target.is_file():
             continue
-        try:
-            head = target.open("rb").read(8)
-        except OSError:
-            continue
-        if head.startswith((_HDF5_MAGIC, _PARQUET_MAGIC)):
+        if _container_magic(target):
             containers.append(rel)
     assert containers == [], (
         f"declared readable container(s): {containers}. A structured container is ALWAYS read, "
@@ -1014,9 +1276,16 @@ def _render_for_root(root: Path) -> tuple[str, int]:
     # Tracked but absent from disk. Listed always; failing only where we own it, or where nobody
     # does — the same predicate failing_undeclared uses, because "unowned fails here" is
     # load-bearing for E6-4 and a missing file is no different in that respect.
-    recognised = recognised_owners(paths)
+    recognised = recognised_owners(root, paths)
     missing = [(rel, path_owner(rel, recognised)) for rel in unresolvable_tracked(root, paths)]
     failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
+
+    # A declaration whose claim does not hold fails this gate outright. Both surfaces are ours —
+    # the project file by ownership, the repo-root file because an unowned path belongs to nobody —
+    # so there is no other gate for a broken claim to fall to (E-03).
+    entries = _declaration_entries(root)
+    defects = declaration_defects(root, paths)
+    failing |= {path for path, _ in defects}
 
     # The root and the denominator go on the header, printed unconditionally. Naming the root only
     # in the all-clear branch left the harder falsehood undetectable: a wrong-but-nonempty root
@@ -1030,6 +1299,16 @@ def _render_for_root(root: Path) -> tuple[str, int]:
             f"— scanned {len(paths)} tracked files under {root}, "
             f"{len(missing)} not present on disk"
         ),
+        (
+            # The failure this clause is about is a mechanism that is easy to MISS because nothing
+            # exercises it: the removal half shipped and the READ half did not, and the scoping kept
+            # the suite green without it. An empty declaration set is the correct state today, and
+            # it has to be a NUMBER rather than something implied by silence.
+            f"  declarations read: {len(entries)} "
+            f"({sum(1 for _, _, s in entries if s == 'project')} from {PROJECT_DECLARATION_FILE}, "
+            f"{sum(1 for _, _, s in entries if s == 'repo-root')} from {REPO_DECLARATION_FILE}), "
+            f"{len(defects)} whose claim does not hold"
+        ),
         f"  (scan run from package {Path(__file__).resolve()})",
     ]
     for rel, owner in report:
@@ -1037,6 +1316,10 @@ def _render_for_root(root: Path) -> tuple[str, int]:
         lines.append(f"  {render_path(rel)}  owner={owner or '<unowned>'}  [{mark}]")
     if not report:
         lines.append("  (none)")
+    if defects:
+        lines.append("  DECLARATIONS WHOSE CLAIM DOES NOT HOLD — these clear nothing:")
+        for path, why in defects:
+            lines.append(f"    {render_path(path)}  [FAILS HERE]  {why}")
     if missing:
         lines.append(
             "  tracked but NOT PRESENT ON DISK, so the scan could not read them (sparse or partial "
@@ -1053,6 +1336,17 @@ def _render_for_root(root: Path) -> tuple[str, int]:
     # E-03, stated where it is read rather than only in the plan: `owner=` names who SHOULD care,
     # not who is enforcing. Saying "listed" to a human 23 times, with an owner beside it, reads as
     # "filed with the team who will fix it" — and no other project implements this check.
+    if declared_owner_registry(root) is None:
+        lines.append(
+            f"  owner registry: MARKER-BACKED ONLY — no `owners` list in {REPO_DECLARATION_FILE}. "
+            "A tracked marker is louder than `mkdir` but is addable by anyone who adds a "
+            "pyproject.toml, so this is a MITIGATION, not proof (E-11)."
+        )
+    else:
+        lines.append(
+            f"  owner registry: DECLARED in {REPO_DECLARATION_FILE}, intersected with the tracked "
+            "marker — an owner needs both, so neither a declaration nor a file alone mints one."
+        )
     lines.append(
         "  exit 2 when a file owned by this project, or owned by none, is undeclared. Files listed "
         "against another project fail NO gate today: no other project implements this check, so "
@@ -1070,7 +1364,7 @@ def undeclared_report(root: Path, paths) -> list[tuple[str, str | None]]:
     """
     # The registry is built from the SAME listing the report is rendered from, so an owner cannot
     # be recognised on the strength of a file that this scan never saw.
-    recognised = recognised_owners(paths)
+    recognised = recognised_owners(root, paths)
     return sorted((rel, path_owner(rel, recognised)) for rel in undecodable_unallowed(root, paths))
 
 
@@ -1090,7 +1384,7 @@ def failing_undeclared(root: Path, paths) -> list[str]:
 
 
 def undecodable_unallowed(root: Path, paths) -> list[str]:
-    """Tracked paths the scan cannot read AND which are not declared in `RENDERED_ARTIFACT_DECLARATIONS`.
+    """Tracked paths the scan cannot read AND whose declaration does not hold (r2.24 E-02).
 
     A skipped file is an UNCHECKED file: "no hits" from a file the scan never read is the
     false-clean this project keeps rediscovering. Reporting them is what makes the scan's silence
@@ -1101,11 +1395,12 @@ def undecodable_unallowed(root: Path, paths) -> list[str]:
     IS still read (`ledger_tuple_hits`), so its readability is exactly what this check is for. The
     exclusions exist for accession CONTENT, not for readability.
     """
+    declared = valid_declarations(root, paths)
     unreadable: list[str] = []
     for rel in paths:
         if _is_dispatch_message(root, rel) or rel in DRUGBANK_ID_EXCLUDED_FILES:
             continue
-        if rel in RENDERED_ARTIFACT_DECLARATIONS:
+        if rel in declared:
             continue
         target = Path(root) / rel
         if not target.is_file():
@@ -1127,7 +1422,7 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
     is skipped HERE and reported by `undecodable_unallowed`, which fails unless the file is
     declared — so a skip is always visible somewhere (QG §5 E-3).
 
-    `RENDERED_ARTIFACT_DECLARATIONS` is deliberately NOT consulted here: it declares that a file cannot be READ,
+    The declaration data is deliberately NOT consulted here: it declares that a file cannot be READ,
     never that its content is exempt. A declared path whose bytes turn out to be readable text is
     still scanned and still reported.
 

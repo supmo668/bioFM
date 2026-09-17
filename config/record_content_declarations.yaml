@@ -1,0 +1,72 @@
+# Repo-root record-content declaration surface (r2.23 E-05, r2.24 E-02/E-11).
+#
+# Read by projects/lung-on-chipsim's record-content guard — TODAY, the only gate that reads it.
+# See `chipsim record-content-report`, which prints how many entries it read, so an empty file is a
+# NUMBER in the output rather than something implied by silence.
+#
+# ---------------------------------------------------------------------------------------------
+# WHAT BELONGS HERE: paths that NO project owns.
+#
+# Ownership is by path prefix — projects/<name>/, libs/<name>/, workstreams/<name>/ and
+# paper_standalone/. Everything else (docs/, config/, research/, tools/, .claude/ and the repo
+# root itself) is UNOWNED, and an unowned undecodable file fails the lung-on-chipsim gate, because
+# scoping failure by ownership must never make a file unfailable everywhere (E6-1b).
+#
+# That left a gap: a new docs/architecture.png from anyone fails that gate, and E6-1's "do not
+# re-declare another team's artifacts" left no legitimate way to clear it. This file IS that way.
+# It is not re-declaring anyone's artifacts: AN UNOWNED PATH BELONGS TO NOBODY, so there is no one
+# else whose ownership is being assumed (rule 9 — state where declaring IS permitted, rather than
+# leaving the permitted case unreachable).
+#
+# A path a project DOES own must be declared by that project, not here. The guard refuses it and
+# says so.
+#
+# ---------------------------------------------------------------------------------------------
+# ENTRY SHAPE. Each entry carries `path`, a `why`, and EXACTLY ONE of:
+#
+#   sha256:       <hex>          # pins the CONTENT, not the path
+#   derived_from: <tracked path> # "derived from tracked source S, and S is in scope"
+#
+# A bare path is forbidden (E6-3). Every declared file is a build output, so a path-keyed
+# declaration goes silent forever the moment the artifact is regenerated with different content —
+# still sitting there, still matching by name, still clearing a file nobody has looked at since.
+# When the pin no longer matches, the entry becomes a STALE declaration: it clears nothing and is
+# printed as a defect. Re-pin it deliberately, having looked at the new artifact.
+#
+# `derived_from` is the self-maintaining alternative and is preferred where it applies: unlike a
+# comment saying "none of these is a DrugBank artifact", it is a claim a reader can check, and it
+# stops holding by itself if the source stops being tracked or stops being readable.
+#
+# A readable structured container (parquet, HDF5) may NEVER be declared — it is always read
+# (E6-2). Checked by MAGIC, not by suffix, because a container named `blob.dat` walks through a
+# suffix filter.
+#
+# ---------------------------------------------------------------------------------------------
+version: "1"
+
+# The OWNER REGISTRY (r2.24 E-11). Before this existed, an owner was recognised purely because the
+# repository tracked a marker under its directory — and before THAT, purely because the directory
+# existed, which meant `libs/ghost-lib/payload.bin` reported `owner=ghost-lib`, listed, exit 0. A
+# payload parked under a name nobody owns failed the only gate there is, and under E-03 an invented
+# owner is strictly better for an attacker than a real one, because nobody is even nominally
+# responsible for it.
+#
+# The registry NARROWS the marker heuristic; it never widens it. An owner is recognised only if it
+# is BOTH listed here AND carries its tracked marker, so minting one takes an edit to this file and
+# a marker — both reviewable — rather than a `mkdir`.
+#
+# Derived by MEASUREMENT against the tracked listing at e73d86c, not by memory. Each marker below
+# is a tracked path a reader can check. Adding a project here is a deliberate act: a new project
+# whose files are undecodable will fail this gate as unowned until it is listed, which is the
+# intended direction of failure.
+owners:
+  - lung-on-chipsim    # projects/lung-on-chipsim/pyproject.toml, workstreams/lung-on-chipsim/plan/build-plan.md
+  - perturb-seq-eval   # projects/perturb-seq-eval/pyproject.toml
+  - paper_standalone   # paper_standalone/README.md
+  - cellforge-agents   # libs/cellforge-agents/pyproject.toml
+  - test-time-compute  # libs/test-time-compute/pyproject.toml
+
+# No unowned undecodable file exists today, and an empty list is the correct state. It is not
+# evidence that the mechanism works — the tests are — but the count is printed by
+# `record-content-report`, so an empty surface stays visible rather than becoming invisible.
+declarations: []

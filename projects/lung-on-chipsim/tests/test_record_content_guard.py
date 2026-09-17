@@ -26,6 +26,7 @@ scope, and a literal real accession would be a self-inflicted hit.
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 from pathlib import Path
 
@@ -34,7 +35,6 @@ import pytest
 from chipsim.ingest.drugbank_snapshot import (
     DRUGBANK_ID_EXCLUDED_FILES,
     DRUGBANK_ID_LEDGER,
-    RENDERED_ARTIFACT_DECLARATIONS,
     THIS_PROJECT,
     _is_readable,
     accession_structure_tuples,
@@ -274,18 +274,30 @@ def test_an_undecodable_file_is_reported_unless_it_is_declared(tmp_path):
     assert undecodable_unallowed(tmp_path, ["docs/figure.pdf"]) == ["docs/figure.pdf"]
 
 
-def test_a_declared_binary_file_is_not_reported(tmp_path, monkeypatch):
-    """RENDERED_ARTIFACT_DECLARATIONS is EMPTY in this repo (E6-1: the foreign declarations left), so the
-    mechanism is exercised with a synthetic declaration owned by THIS project — which is what a
-    real entry here would have to be."""
+def test_a_declared_binary_file_is_not_reported(tmp_path):
+    """The declaration surface is empty in this repo, so the mechanism is exercised with a real
+    declaration FILE owned by this project — which is what a real entry would have to be.
+
+    The version this replaces monkeypatched a constant the reader no longer consults, and was
+    vacuous even before that: its fixture wrote b"\\xff\\xfe not utf-8", which decodes as UTF-16, so
+    the file was READABLE and the assertion held with or without a declaration. Hence the first
+    assertion below — prove the fixture is undecodable, then prove the declaration is what clears
+    it."""
     import chipsim.ingest.drugbank_snapshot as ds
 
-    declared = "projects/lung-on-chipsim/docs/figure.pdf"
-    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
-    target = tmp_path / declared
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(b"\xff\xfe not utf-8")
-    assert undecodable_unallowed(tmp_path, [declared]) == []
+    declared = f"projects/{THIS_PROJECT}/docs/figure.pdf"
+    digest = _write(tmp_path, declared, b"%PDF-1.4\x00\xfe\xff\x80\x81 binary")
+
+    bare = _decl_fixture(tmp_path) + [declared]
+    assert ds.undecodable_unallowed(tmp_path, bare) == [declared], (
+        "the fixture must be genuinely undecodable, or declaring it proves nothing"
+    )
+
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": declared, "sha256": digest, "why": "rendered figure"}],
+    ) + [declared]
+    assert ds.undecodable_unallowed(tmp_path, listing) == []
 
 
 def test_every_undecodable_tracked_file_in_this_repo_is_declared():
@@ -304,12 +316,13 @@ def test_every_undecodable_tracked_file_in_this_repo_is_declared():
     )
 
 
-def test_the_binary_allowlist_is_not_a_blanket():
-    """The shape rules still bind every entry, but EMPTY is now the correct state (E6-1): this
-    project owns no undecodable tracked file, and the other teams' paths are listed by
-    `undeclared_report` rather than declared here. Anti-vacuity moved to the report test, which
-    asserts those files are still counted and named."""
-    for rel in RENDERED_ARTIFACT_DECLARATIONS:
+def test_the_declaration_surface_is_not_a_blanket():
+    """The shape rules bind every entry in the SHIPPED data. Empty is the correct state today, so
+    this loop runs zero times — which is honest rather than reassuring, and is why the live
+    anti-rot test below asserts against the validator instead of against a count."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    for rel, _entry, _surface in ds._declaration_entries(REPO_ROOT):
         assert not rel.endswith("/"), f"{rel} waves through a whole directory"
         assert "*" not in rel, f"{rel} is a glob, not a declared file"
         assert Path(rel).suffix, f"{rel} has no extension — is it really a binary artifact?"
@@ -427,13 +440,18 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
     exempted. The docstring claimed "exact path"; nothing checked it."""
     import chipsim.ingest.drugbank_snapshot as ds
 
-    declared = "projects/lung-on-chipsim/docs/figure.pdf"
-    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
+    declared = f"projects/{THIS_PROJECT}/docs/figure.pdf"
+    digest = _write(tmp_path, declared, b"%PDF-1.4\x00\xfe\xff\x80 binary")
+    entry = {"path": declared, "sha256": digest, "why": "rendered figure"}
+
     for rel in (f"vendor/{declared}", f"some/other/dir/{Path(declared).name}"):
-        target = tmp_path / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(b"\x00\xff not text")
-        assert undecodable_unallowed(tmp_path, [rel]) == [rel], rel
+        _write(tmp_path, rel, b"\x00\xff\x80\x81 not text")
+        listing = _decl_fixture(tmp_path, project_entries=[entry]) + [declared, rel]
+        assert rel in ds.undecodable_unallowed(tmp_path, listing), rel
+        assert declared not in ds.undecodable_unallowed(tmp_path, listing), (
+            "the declared path itself must still be cleared, or this test would pass on a "
+            "declaration mechanism that simply does not work"
+        )
 
 
 def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path, monkeypatch):
@@ -442,13 +460,24 @@ def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path, 
     would have turned "somebody looked at this artifact once" into a blanket content waiver."""
     import chipsim.ingest.drugbank_snapshot as ds
 
-    declared = "projects/lung-on-chipsim/docs/figure.pdf"
-    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
+    declared = f"projects/{THIS_PROJECT}/docs/figure.pdf"
     target = tmp_path / declared
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(f"see {REAL}\n")
-    assert [a for _, a in real_accession_hits(tmp_path, [declared])] == [REAL]
-    assert undecodable_unallowed(tmp_path, [declared]) == []
+    digest = hashlib.sha256(target.read_bytes()).hexdigest()
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": declared, "sha256": digest, "why": "claims to be unreadable"}],
+    ) + [declared]
+
+    # The content scan is untouched by any declaration: a declaration says a file cannot be READ,
+    # never that its content is exempt.
+    assert [a for _, a in real_accession_hits(tmp_path, listing)] == [REAL]
+
+    # ...and declaring a file the scan CAN read is itself a defect: it exempts nothing and hides
+    # everything, which is the shape the live shipped-data test has always asserted.
+    defects = dict(ds.declaration_defects(tmp_path, listing))
+    assert declared in defects and "readable" in defects[declared].lower()
 
 
 def test_undecodable_reporting_is_not_limited_to_familiar_extensions(tmp_path):
@@ -513,8 +542,10 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
     Three junk entries — a deleted figure, a pre-declared `data/processed/compounds.parquet`, and
     README.md — passed every earlier test. The ledger sets already had this check (above); the new
     set was simply left out of it."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
     tracked = set(_tracked_paths())
-    for rel in sorted(RENDERED_ARTIFACT_DECLARATIONS):
+    for rel, _entry, _surface in ds._declaration_entries(REPO_ROOT):
         path = REPO_ROOT / rel
         assert path.is_file(), f"{rel} is declared but does not exist — a pre-granted exemption"
         assert rel in tracked, f"{rel} is declared but not tracked"
@@ -526,7 +557,10 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
 
 def test_no_declared_path_is_also_content_excluded():
     """A path must never be exempted twice by two different mechanisms."""
-    assert [rel for rel in RENDERED_ARTIFACT_DECLARATIONS if is_accession_excluded(rel)] == []
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    declared = [rel for rel, _, _ in ds._declaration_entries(REPO_ROOT)]
+    assert [rel for rel in declared if is_accession_excluded(rel)] == []
 
 
 # --- r2.21 E6-2: a readable structured container is ALWAYS read, never declared -------------
@@ -567,9 +601,11 @@ def test_a_clean_hdf5_container_is_neither_a_hit_nor_undecodable(tmp_path):
 def test_no_readable_structured_container_is_declared():
     """E6-2: only RENDERED artifacts may be declared. A container in the list is the category
     collapse the clause forbids — and the h5ad was exactly that."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
     containers = [
         rel
-        for rel in RENDERED_ARTIFACT_DECLARATIONS
+        for rel, _, _ in ds._declaration_entries(REPO_ROOT)
         if Path(rel).suffix.lower() in {".parquet", ".pq", ".h5", ".h5ad", ".hdf5", ".feather"}
     ]
     assert containers == [], (
@@ -639,7 +675,7 @@ def test_a_non_md_file_in_a_dispatch_directory_is_scanned_and_reported(tmp_path)
 def test_ownership_is_read_from_an_explicit_map(rel, owner):
     """ "A path matching no owner is unowned BY DEFINITION, never 'somebody else's'." The dispatch
     directory is the case that matters: it belongs to no project."""
-    assert path_owner(rel, recognised_owners(_tracked_paths())) == owner
+    assert path_owner(rel, recognised_owners(REPO_ROOT, _tracked_paths())) == owner
 
 
 def test_a_file_this_project_owns_fails_this_gate(tmp_path):
@@ -895,11 +931,13 @@ def test_the_waiver_is_anchored_so_leak_md_pdf_is_not_waived():
 def test_every_declaration_belongs_to_this_project():
     """E6-1's actual invariant, which nothing tested: re-adding all 23 foreign paths would have
     passed every existing test. The clause was enforced by the ABSENCE OF DATA, not by a rule."""
-    _recognised = recognised_owners(_tracked_paths())
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    _recognised = recognised_owners(REPO_ROOT, _tracked_paths())
     foreign = [
         rel
-        for rel in RENDERED_ARTIFACT_DECLARATIONS
-        if path_owner(rel, _recognised) != THIS_PROJECT
+        for rel, _, surface in ds._declaration_entries(REPO_ROOT)
+        if surface == "project" and path_owner(rel, _recognised) != THIS_PROJECT
     ]
     assert foreign == [], (
         f"declared here but owned elsewhere: {foreign}. Declarations live with the project that "
@@ -914,12 +952,16 @@ def test_a_container_cannot_be_declared_even_if_its_name_hides_it(tmp_path, monk
 
     import chipsim.ingest.drugbank_snapshot as ds
 
-    declared = "projects/lung-on-chipsim/docs/blob.dat"
+    declared = f"projects/{THIS_PROJECT}/docs/blob.dat"
     target = tmp_path / declared
     target.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"drugbank_id": [REAL]}).to_parquet(target, engine="pyarrow")
+    digest = hashlib.sha256(target.read_bytes()).hexdigest()
 
-    monkeypatch.setattr(ds, "RENDERED_ARTIFACT_DECLARATIONS", frozenset({declared}))
+    _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": declared, "sha256": digest, "why": "named to look opaque"}],
+    )
     with pytest.raises(AssertionError):
         ds.assert_no_container_is_declared(tmp_path)
 
@@ -1282,7 +1324,7 @@ def test_an_owner_cannot_be_minted_by_making_a_directory():
     from chipsim.ingest.drugbank_snapshot import path_owner, recognised_owners
 
     tracked = _tracked_paths()
-    recognised = recognised_owners(tracked)
+    recognised = recognised_owners(REPO_ROOT, tracked)
 
     assert "perturb-seq-eval" in recognised, "a project with a tracked pyproject.toml is real"
     assert "paper_standalone" in recognised
@@ -1457,3 +1499,280 @@ def test_the_witness_check_is_still_fatal(tmp_path):
     stranger = _init_repo(tmp_path / "stranger")
     with pytest.raises(ds.RecordContentScanError):
         ds._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])
+
+
+# --- r2.24 E-02 / E6-1 / E6-3 / E-05 / E-11: the declaration surface ---------------------------
+#
+# The removal half shipped in r2.22 and the READ half never did: RENDERED_ARTIFACT_DECLARATIONS has
+# been an empty frozenset that nothing populates, and E6-1b's scoping kept the suite green without
+# it — which is precisely why it was easy to miss. I found it by re-reading the clause against the
+# code, not by a failing test, so these tests exist to make the absence of the data VISIBLE rather
+# than convenient.
+
+
+def _decl_fixture(tmp_path, project_entries=None, repo_entries=None, owners=None):
+    """A repo-shaped fixture carrying both declaration files and the markers that make owners real."""
+    import yaml
+
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    proj = tmp_path / "projects" / THIS_PROJECT
+    (proj / "configs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+
+    project_doc = {"version": 1, "declarations": project_entries or []}
+    repo_doc = {"version": 1, "declarations": repo_entries or []}
+    if owners is not None:
+        repo_doc["owners"] = owners
+
+    (proj / "configs" / "record_content_declarations.yaml").write_text(yaml.safe_dump(project_doc))
+    (tmp_path / "config" / "record_content_declarations.yaml").write_text(yaml.safe_dump(repo_doc))
+
+    listing = [
+        ds.PROJECT_DECLARATION_FILE,
+        ds.REPO_DECLARATION_FILE,
+        f"projects/{THIS_PROJECT}/pyproject.toml",
+    ]
+    (proj / "pyproject.toml").write_text("[project]\nname = 'x'\n")
+    return listing
+
+
+def _write(tmp_path, rel, data: bytes):
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    return hashlib.sha256(data).hexdigest()
+
+
+def test_a_declaration_must_pin_the_content_not_just_the_path(tmp_path):
+    """E6-3. Every declared file is a BUILD OUTPUT, so a path-keyed declaration goes silent forever
+    the moment the artifact is regenerated with different content — the declaration would still be
+    sitting there, matching by name, clearing a file nobody has looked at since."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/docs/render.bin"
+    digest = _write(tmp_path, rel, b"\x00\xffOPAQUE")
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[
+            {"path": rel, "sha256": digest, "why": "rendered figure, not a container"}
+        ],
+    ) + [rel]
+
+    assert rel in ds.valid_declarations(tmp_path, listing)
+    assert ds.declaration_defects(tmp_path, listing) == []
+    assert ds.undecodable_unallowed(tmp_path, listing) == [], "a validly declared file is cleared"
+
+
+def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
+    """The whole reason for E6-3. Regenerate the artifact; the declaration must stop clearing it and
+    must SAY SO, rather than silently going on matching by path."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/docs/render.bin"
+    digest = _write(tmp_path, rel, b"\x00\xffOPAQUE")
+    listing = _decl_fixture(
+        tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "rendered figure"}]
+    ) + [rel]
+
+    _write(tmp_path, rel, b"\x00\xffREGENERATED")  # same path, different content
+
+    assert rel not in ds.valid_declarations(tmp_path, listing)
+    defects = dict(ds.declaration_defects(tmp_path, listing))
+    assert rel in defects and "stale" in defects[rel].lower()
+    assert rel in ds.undecodable_unallowed(tmp_path, listing), "a stale declaration clears nothing"
+
+
+def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_path):
+    """The self-maintaining alternative: "derived from tracked source S, and S is in scope" is a
+    claim a reader can CHECK, unlike a comment saying "none of these is a DrugBank artifact"."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
+    src = f"projects/{THIS_PROJECT}/docs/plot_source.csv"
+    _write(tmp_path, rel, b"\x00\xffOPAQUE")
+    _write(tmp_path, src, b"name,value\nalpha,1\n")
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "derived_from": src, "why": "plotted from the tracked csv"}],
+    ) + [rel, src]
+
+    assert rel in ds.valid_declarations(tmp_path, listing)
+
+    # ...and the claim fails when the source is NOT tracked, which is what makes it self-maintaining.
+    listing_without_source = [p for p in listing if p != src]
+    assert rel not in ds.valid_declarations(tmp_path, listing_without_source)
+    defects = dict(ds.declaration_defects(tmp_path, listing_without_source))
+    assert "not tracked" in defects[rel].lower()
+
+
+def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
+    """E6-1, the clause's own "why": 24 paths belonging to perturb-seq-eval and paper_standalone were
+    declared inside this module's source, so another team adding a figure turned THIS gate red and
+    the repair landed in a file they neither own nor can judge."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = "projects/perturb-seq-eval/paper/figure.pdf"
+    digest = _write(tmp_path, rel, b"\x00\xffFOREIGN")
+    listing = _decl_fixture(
+        tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "not mine to declare"}]
+    ) + [rel, "projects/perturb-seq-eval/pyproject.toml"]
+
+    assert rel not in ds.valid_declarations(tmp_path, listing)
+    defects = dict(ds.declaration_defects(tmp_path, listing))
+    assert "perturb-seq-eval" in defects[rel] and "owns" in defects[rel].lower()
+
+
+def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
+    """E-05. Unowned means every repo-root location, so a new docs/architecture.png from anyone fails
+    THIS gate and E6-1's "do not re-declare on their behalf" left no legitimate way to clear it.
+    Rule 9: state where declaring IS permitted rather than leaving the permitted case unreachable."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    unowned = "docs/architecture.png"
+    digest = _write(tmp_path, unowned, b"\x89PNG\r\n\x1a\n\x00\xff")
+    owned = f"projects/{THIS_PROJECT}/docs/mine.bin"
+    owned_digest = _write(tmp_path, owned, b"\x00\xffMINE")
+
+    listing = _decl_fixture(
+        tmp_path,
+        repo_entries=[
+            {"path": unowned, "sha256": digest, "why": "architecture diagram, rendered"},
+            {"path": owned, "sha256": owned_digest, "why": "wrong file for this one"},
+        ],
+    ) + [unowned, owned]
+
+    assert unowned in ds.valid_declarations(tmp_path, listing)
+    defects = dict(ds.declaration_defects(tmp_path, listing))
+    assert owned in defects, "an OWNED path does not belong in the repo-root surface"
+    assert "repo-root" in defects[owned].lower()
+
+
+def test_a_declaration_for_a_path_that_is_not_tracked_is_reported_as_rot(tmp_path):
+    """A declaration nobody checks is rot: it accumulates, it reads as coverage, and it clears
+    nothing. The file it named was deleted or renamed and the entry stayed behind."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/docs/deleted.bin"
+    listing = _decl_fixture(
+        tmp_path, project_entries=[{"path": rel, "sha256": "0" * 64, "why": "long gone"}]
+    )
+
+    defects = dict(ds.declaration_defects(tmp_path, listing))
+    assert rel in defects and "not tracked" in defects[rel].lower()
+
+
+def test_a_readable_container_can_never_be_declared(tmp_path):
+    """E6-2, enforced against the DATA now that the data exists. Checked by MAGIC, not suffix: a
+    suffix filter is name-based dispatch, and a container named blob.dat walks through it."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/data/processed/sneaky.dat"
+    digest = _write(tmp_path, rel, b"PAR1" + b"\x00" * 32)
+    listing = _decl_fixture(
+        tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "claims to be opaque"}]
+    ) + [rel]
+
+    defects = dict(ds.declaration_defects(tmp_path, listing))
+    assert rel in defects and "container" in defects[rel].lower()
+    assert rel not in ds.valid_declarations(tmp_path, listing)
+
+
+def test_an_entry_with_both_claims_or_neither_cannot_be_evaluated(tmp_path):
+    """Malformed declaration DATA is a configuration error the gate cannot evaluate, so it is exit 3
+    (could not scan), not exit 2 (files fail) and certainly not a pass."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    rel = f"projects/{THIS_PROJECT}/docs/x.bin"
+    digest = _write(tmp_path, rel, b"\x00\xff")
+
+    both = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "sha256": digest, "derived_from": "a.csv", "why": "?"}],
+    ) + [rel]
+    with pytest.raises(ds.RecordContentScanError, match="exactly one"):
+        ds.valid_declarations(tmp_path, both)
+
+
+def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_path):
+    """E-11. A tracked marker is louder than mkdir but still addable by anyone who adds a
+    pyproject.toml, so it is a MITIGATION, not proof. The declared registry is authoritative — and
+    it NARROWS: an owner must be both declared AND carry its marker, so neither a declaration alone
+    nor a file alone can mint one."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT, "perturb-seq-eval"]) + [
+        "projects/perturb-seq-eval/pyproject.toml",
+        "projects/undeclared-but-real/pyproject.toml",
+        "projects/declared-but-absent/anything.txt",
+    ]
+
+    recognised = ds.recognised_owners(tmp_path, listing)
+    assert THIS_PROJECT in recognised and "perturb-seq-eval" in recognised
+    assert "undeclared-but-real" not in recognised, "a marker alone does not mint an owner"
+    assert "declared-but-absent" not in recognised, "a declaration alone does not mint one either"
+
+
+def test_the_report_states_how_many_declarations_it_read(capsys):
+    """The failure mode this whole clause is about is a mechanism that is easy to MISS because
+    nothing exercises it. An empty declaration set is the correct state today — and it must be
+    visible as a number rather than implied by silence."""
+    from chipsim import pipeline
+
+    pipeline.main(["record-content-report"])
+    printed = capsys.readouterr().out
+    assert "declarations read:" in printed
+
+
+def test_the_shipped_declaration_files_hold():
+    """ANTI-ROT over the live data. Every shape rule is enforced by the validator rather than by a
+    test walking the list, so this one assertion covers a stale pin, a deleted path, a foreign path
+    declared here, a readable file declared as unreadable, and a container declared at all.
+
+    It is the assertion that stays meaningful when the surface stops being empty — the loops above
+    run zero times today and will quietly keep passing however wrong a future entry is.
+    """
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    assert ds.declaration_defects(REPO_ROOT, _tracked_paths()) == []
+
+
+def test_the_declared_owner_registry_covers_every_project_the_markers_support():
+    """A registry that DROPS a real project does not fail loudly — that project's files silently
+    become UNOWNED, and unowned fails THIS gate, so another team's artifacts would start turning
+    this module red. The registry narrows by design; this is the check that the narrowing was
+    deliberate rather than an omission.
+
+    The oracle is derived here independently, by walking the tracked markers, rather than by asking
+    the module — otherwise it would agree with the code by construction.
+    """
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    tracked = set(_tracked_paths())
+    oracle = set()
+    for rel in tracked:
+        parts = Path(rel).parts
+        if len(parts) > 2 and parts[0] in {"projects", "libs"} and parts[2] == "pyproject.toml":
+            oracle.add(parts[1])
+        if len(parts) > 3 and parts[0] == "workstreams" and parts[2:4] == ("plan", "build-plan.md"):
+            oracle.add(parts[1])
+    if "paper_standalone/README.md" in tracked:
+        oracle.add("paper_standalone")
+
+    declared = ds.declared_owner_registry(REPO_ROOT)
+    assert declared is not None, "the repo-root surface must carry the registry"
+    missing = oracle - declared
+    assert missing == set(), (
+        f"projects with a tracked marker that the registry omits: {sorted(missing)}. Their files "
+        "would be treated as unowned, and unowned fails THIS gate."
+    )
+
+
+def test_the_owner_registry_narrows_rather_than_widens():
+    """Declaring a project that has no marker must not mint it. The registry is an intersection, so
+    a declaration alone is not evidence any more than a `mkdir` was."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    recognised = ds.recognised_owners(REPO_ROOT, _tracked_paths())
+    declared = ds.declared_owner_registry(REPO_ROOT)
+    assert recognised <= declared, "an owner was recognised that the registry does not declare"
