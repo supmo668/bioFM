@@ -562,14 +562,54 @@ def read_pgp_label_frame(parquet_path: Path) -> pd.DataFrame:
     invisible from the suite.
     """
     frame = pd.read_parquet(parquet_path, engine="pyarrow")
-    missing = [c for c in ("adjudicated_label", "stereo_is_relative") if c not in frame.columns]
-    if missing:
+
+    if "adjudicated_label" not in frame.columns:
         raise AdjudicationError(
-            f"{parquet_path} is missing column(s): {missing}. It predates the relative-stereo "
-            "re-key (CTO #122 §0); regenerate it with adjudicate_pgp_labels(..., parquet_out=...)."
+            f"{parquet_path} has no `adjudicated_label` column, so it is not a label set at all. "
+            "Write it with adjudicate_pgp_labels(..., parquet_out=...)."
         )
-    frame.index.name = "canonical_inchikey"
-    frame["stereo_is_relative"] = frame["stereo_is_relative"].astype(bool)
+    if "stereo_is_relative" not in frame.columns:
+        raise AdjudicationError(
+            f"{parquet_path} has no `stereo_is_relative` column: it predates the relative-stereo "
+            "re-key (CTO #122 §0), so T17 could not tell 'this identity is stereo-unspecified' "
+            "from 'this compound is not relative'. Regenerate it with "
+            "adjudicate_pgp_labels(..., parquet_out=...)."
+        )
+
+    # REFUSED, never coerced — the same rule as `_relative_by_key`, and for the same reason
+    # (QG §4). Coercing here re-introduced the defect one file downstream, on the file T17
+    # actually reads: measured, a float column with NaN and a string column holding "False" both
+    # came back as True for EVERY row, with a clean `bool` dtype and no error, so a caller could
+    # not tell fabricated flags from real ones.
+    if not pd.api.types.is_bool_dtype(frame["stereo_is_relative"]):
+        raise AdjudicationError(
+            f"{parquet_path} stores `stereo_is_relative` as {frame['stereo_is_relative'].dtype!r}, "
+            'not a real boolean. Refusing to coerce: every non-empty string (including "False") '
+            "and NaN are truthy, so coercion would report EVERY compound as relative-stereo and "
+            "T17 would receive that as fact. Regenerate the file."
+        )
+
+    # VERIFIED, not assigned. The previous line set the index name unconditionally, manufacturing
+    # the guarantee it appeared to check: a parquet with a RangeIndex came back with integer keys
+    # labelled `canonical_inchikey`, and a caller joining T15 to T17 on that would match nothing
+    # (or the wrong rows) with no error. The same hazard is already documented for
+    # `read_pgp_labels` in tests/test_adjudication.py.
+    if frame.index.name is None:
+        frame.index.name = "canonical_inchikey"
+    elif frame.index.name != "canonical_inchikey":
+        raise AdjudicationError(
+            f"{parquet_path} is indexed by {frame.index.name!r}, not `canonical_inchikey`. "
+            "Refusing to relabel it: a downstream join would silently match nothing."
+        )
+
+    # One compound cannot carry two verdicts — the rule every WRITE path in this module already
+    # enforces. Without it `frame.loc[key, "stereo_is_relative"]` returns a Series and the
+    # natural consumer idiom dies on "truth value of a Series is ambiguous".
+    _reject_duplicate_keys(pd.Series(list(frame.index)), str(parquet_path))
+
+    # Extra columns are dropped rather than refused (unlike the tracked CSV reader, where an
+    # extra column means a forbidden association or a stale carried flag): this file is written
+    # by this module, and a future column here is additive, not evidence of hand-editing.
     return frame.loc[:, ["adjudicated_label", "stereo_is_relative"]]
 
 
@@ -579,6 +619,6 @@ def read_pgp_labels(parquet_path: Path) -> pd.Series:
     Kept returning a Series because that is what T17's counts take. A caller that needs the
     relative-stereo flag uses `read_pgp_label_frame`, which carries both.
     """
-    series = read_pgp_label_frame(parquet_path)["adjudicated_label"]
-    series.index.name = "canonical_inchikey"
-    return series
+    # No index-name fixup here: read_pgp_label_frame has already verified it (QG §4 finding 6 —
+    # the line was dead, and deleting it passed 47/47 tests, which is how it was found).
+    return read_pgp_label_frame(parquet_path)["adjudicated_label"]

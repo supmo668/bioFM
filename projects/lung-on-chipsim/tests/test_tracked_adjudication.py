@@ -506,3 +506,91 @@ def test_a_label_parquet_without_the_flag_is_refused_by_the_frame_reader(tmp_pat
     legacy.to_parquet(path, engine="pyarrow")
     with pytest.raises(AdjudicationError, match="stereo_is_relative"):
         read_pgp_label_frame(path)
+
+
+def _label_parquet(tmp_path: Path, frame: pd.DataFrame, name: str = "labels.parquet") -> Path:
+    path = tmp_path / name
+    frame.to_parquet(path, engine="pyarrow")
+    return path
+
+
+@pytest.mark.parametrize(
+    "values, label",
+    [
+        (["False", "False"], "strings"),
+        ([float("nan"), float("nan")], "nan-floats"),
+    ],
+    ids=["string-flags", "nan-flags"],
+)
+def test_a_label_parquet_whose_flag_is_not_boolean_is_refused(tmp_path, values, label):
+    """QG §4. Coercing here re-introduced G-03 one file downstream, on the file T17 reads:
+    measured, both of these came back True for EVERY row with a clean bool dtype and no error."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame
+
+    frame = pd.DataFrame(
+        {"adjudicated_label": ["yes", "no"], "stereo_is_relative": values},
+        index=["FIXTURECMPDAAA-FIXTUREKEY-N", "FIXTURECMPDAAB-FIXTUREKEY-N"],
+    )
+    frame.index.name = "canonical_inchikey"
+    with pytest.raises(AdjudicationError, match="stereo_is_relative"):
+        read_pgp_label_frame(_label_parquet(tmp_path, frame, f"{label}.parquet"))
+
+
+def test_a_label_parquet_not_indexed_by_the_key_is_refused_rather_than_relabelled(tmp_path):
+    """QG §4. The reader used to ASSIGN the index name, manufacturing the property it appeared to
+    check: a RangeIndex came back as integers labelled `canonical_inchikey`, and a join against
+    that matches nothing, silently."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame
+
+    frame = pd.DataFrame(
+        {"adjudicated_label": ["yes"], "stereo_is_relative": [True]}, index=["WRONGKEY-N"]
+    )
+    frame.index.name = "wrong_key"
+    with pytest.raises(AdjudicationError, match="wrong_key"):
+        read_pgp_label_frame(_label_parquet(tmp_path, frame))
+
+    positional = pd.DataFrame({"adjudicated_label": ["yes"], "stereo_is_relative": [True]})
+    got = read_pgp_label_frame(_label_parquet(tmp_path, positional, "range.parquet"))
+    assert got.index.name == "canonical_inchikey"
+    assert got.index.tolist() == [0], "an unnamed index is labelled, not invented"
+
+
+def test_a_label_parquet_repeating_a_key_is_refused(tmp_path):
+    """QG §4: `.loc[key]` would return a Series, and the consumer idiom dies on an ambiguous
+    truth value. Every WRITE path in this module already rejects duplicates."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame
+
+    key = "FIXTURECMPDAAA-FIXTUREKEY-N"
+    frame = pd.DataFrame(
+        {"adjudicated_label": ["yes", "no"], "stereo_is_relative": [True, False]}, index=[key, key]
+    )
+    frame.index.name = "canonical_inchikey"
+    with pytest.raises(AdjudicationError, match="repeats canonical_inchikey"):
+        read_pgp_label_frame(_label_parquet(tmp_path, frame))
+
+
+def test_a_file_that_is_not_a_label_set_is_diagnosed_as_such(tmp_path):
+    """QG §4: the refusal used to blame the relative-stereo re-key whatever was missing, so a
+    file that was never a label set at all was misdiagnosed."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame
+
+    frame = pd.DataFrame({"stereo_is_relative": [True]}, index=["FIXTURECMPDAAA-FIXTUREKEY-N"])
+    frame.index.name = "canonical_inchikey"
+    with pytest.raises(AdjudicationError) as exc:
+        read_pgp_label_frame(_label_parquet(tmp_path, frame))
+    assert "adjudicated_label" in str(exc.value)
+    assert "re-key" not in str(exc.value), "must not misattribute a non-label file to the re-key"
+
+
+def test_the_label_frame_carries_only_the_two_declared_columns(tmp_path):
+    """QG §4: extras are dropped deliberately (this file is ours to write), and the drop is
+    pinned so `return frame` cannot slip through untested."""
+    from chipsim.harmonize.adjudication import read_pgp_label_frame
+
+    frame = pd.DataFrame(
+        {"adjudicated_label": ["yes"], "stereo_is_relative": [True], "note": ["extra"]},
+        index=["FIXTURECMPDAAA-FIXTUREKEY-N"],
+    )
+    frame.index.name = "canonical_inchikey"
+    got = read_pgp_label_frame(_label_parquet(tmp_path, frame))
+    assert list(got.columns) == ["adjudicated_label", "stereo_is_relative"]
