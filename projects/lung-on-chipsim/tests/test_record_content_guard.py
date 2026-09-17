@@ -3270,3 +3270,73 @@ def test_a_container_of_plain_nested_groups_is_still_read(tmp_path):
     assert chunks, "a normally-nested container must still be READ"
     assert REAL in "\n".join(chunks)
     assert _is_readable(path)
+
+
+# --- r2.28 E6-7: the SHIPPED COMMAND answers the accession question ----------------------------
+
+
+def test_the_shipped_command_fails_on_a_real_accession_in_tracked_content(
+    tmp_path, monkeypatch, capsys
+):
+    """r2.28. E6-7 was DECLARED UNMET: `record-content-report` composed readability, declarations
+    and ownership, and `real_accession_hits` / `ledger_tuple_hits` were unreachable from it, while
+    `enforce_record_content` had no caller outside its own test file. So the accession half was
+    enforced by pytest and by nothing a consumer runs — E6-7's own stated defect, surviving inside
+    the fix for it.
+
+    That was not merely a coverage gap. This command's exit 0 was quoted UPWARD as evidence that
+    the record-content invariant held: by this agent in dispatches and commit bodies, and by the
+    CTO as independent verification. A mechanism enforcing three halves may not be cited for the
+    fourth.
+
+    So the binding assertion is on the COMMAND, not on the composition root: a readable, decodable,
+    perfectly ordinary text file carrying a real accession. Nothing in the other three halves can
+    see it — it decodes, it is not declared, and it is owned — so if this exits 0 the accession
+    half is not running.
+    """
+    rel = f"projects/{THIS_PROJECT}/docs/leak.txt"
+    _plant(tmp_path, rel, f"see {REAL} for details\n")
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [rel]
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+
+    assert code == 2, (
+        "the shipped command exited clean over a tracked file carrying a real accession — the "
+        "accession half is not wired into it, which is E6-7 unmet"
+    )
+    assert "REAL ACCESSIONS IN TRACKED CONTENT:" in out
+    assert rel in out
+    # The file is readable and undeclared-but-owned, so the OTHER three halves clear it. If this
+    # assertion ever fails the fixture has stopped isolating the accession half and the test above
+    # would pass for the wrong reason.
+    assert "undeclared undecodable files: 0" in out.splitlines()[0], (
+        "the fixture must be clean on the other three halves, or exit 2 proves nothing about "
+        "which half produced it"
+    )
+
+
+def test_the_shipped_command_reports_a_LEDGER_tuple_hit_too(tmp_path, monkeypatch, capsys):
+    """The narrower half of the same clause, and the one a mutant deleted with the suite green:
+    `ledger_tuple_hits` could be replaced with `[]` and nothing noticed, because the only entry-
+    point test exercised `real_accession_hits` alone.
+
+    The ledger branch is distinguishable in the output by the LINE NUMBER it emits, which the
+    content branch does not — so this cannot pass on the other half's work.
+    """
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_ID_LEDGER
+
+    ledger_rel = min(DRUGBANK_ID_LEDGER)  # deterministic pick from a frozenset
+    _plant(tmp_path, ledger_rel, f"# {REAL}\n# {STRUCTURE}\n")
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [ledger_rel]
+
+    # Precondition: the ledger half genuinely fires on this fixture. Without this the assertions
+    # below could pass over an empty ledger — the vacuity family this suite keeps counting.
+    assert ledger_tuple_hits(tmp_path), "the fixture does not exercise the ledger half at all"
+
+    code, out, _err = _report(tmp_path, monkeypatch, capsys, listing)
+
+    assert code == 2
+    assert f"{ledger_rel}:1 " in out, (
+        "the ledger branch emits a LINE NUMBER; its absence means the report came from the "
+        "content branch and the ledger half is unbound"
+    )

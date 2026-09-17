@@ -365,27 +365,54 @@ def _cmd_record_content_report(ns) -> int:
     on inside tests, which means it reached nobody — and listing that reaches no one is a silent
     skip with extra steps.
     """
-    from chipsim.guards.record_content import (
-        RecordContentScanError,
-        render_undeclared_report,
-    )
+    from chipsim.guards.repo import RecordContentScanError, render_path
+    from chipsim.record_content import RecordContentViolation, enforce_record_content
 
-    # The REPO root, not project_root(): see r2.23 E-08 — passing the project root here made the
-    # command print "every tracked file was read" while 23 files had never been read.
+    # THIS COMMAND NOW RUNS ALL FOUR HALVES (r2.28, E6-7 declared UNMET).
+    #
+    # It used to call `render_undeclared_report`, which composes readability + declarations +
+    # ownership and NOT the accession half — `real_accession_hits` and `ledger_tuple_hits` were
+    # unreachable from it, and `enforce_record_content` (written precisely because the invariant
+    # "was enforced for whoever runs pytest, and for nobody else: CI, a pre-commit hook and another
+    # project had nothing to call") had no caller outside its own test file. So E6-7's stated defect
+    # survived INSIDE the fix for it: the accession half was still enforced by the suite alone.
+    #
+    # It is worse than a gap in coverage, because the command's exit 0 was quoted UPWARD as evidence
+    # that the record-content invariant held — by this agent in dispatches and commit bodies, and by
+    # the CTO as independent verification. A mechanism enforcing three halves may not be cited for
+    # the fourth (E6-5, applied to its own authors).
+    #
+    # The REPO root, not project_root(): r2.23 E-08 — passing the project root made this command
+    # print "every tracked file was read" while 23 files had never been read.
+    #
+    # The POLICY is passed, never imported by the guard: the guard must not know about DrugBank.
+    # Resolved through a seam so a test can bind WHICH policy the command uses — without one,
+    # nothing in the suite could tell this call from a defaulted one, and two mutants that dropped
+    # the policy entirely passed the whole suite.
     try:
-        # The POLICY is passed, never imported by the guard: the guard must not know about
-        # DrugBank. Resolved through a seam so a test can bind WHICH policy the command uses —
-        # without one, nothing in the suite could tell this call from `render_undeclared_report()`,
-        # and two mutants that dropped the policy entirely passed all 895 tests.
-        text, code = render_undeclared_report(_record_content_policy())
-    except RecordContentScanError as exc:
-        # Exit 3, NOT 2. Exit 2 means "files fail this gate"; this means "I could not scan", which
-        # is a different fact with a different remedy. Collapsing them is how an unscannable tree
-        # came to read as a clean one.
-        print(f"ERROR: the record-content scan could not run: {exc}", file=sys.stderr)
+        result = enforce_record_content(_record_content_policy())
+    except RecordContentViolation as exc:
+        # The three states, and no fourth (r2.28). `files-fail` is 2 and `could-not-scan` is 3:
+        # "files fail this gate" and "I could not scan" are different facts with different
+        # remedies, and collapsing them is how an unscannable tree came to read as a clean one.
+        if exc.status == "could-not-scan":
+            print(
+                f"ERROR: the record-content scan could not run: {render_path(str(exc))}",
+                file=sys.stderr,
+            )
+            return exc.exit_code
+        print(exc.report)
+        return exc.exit_code
+    except RecordContentScanError as exc:  # pragma: no cover - defence in depth
+        # Anything the composition root did not already translate still lands in a declared state
+        # rather than a traceback.
+        print(
+            f"ERROR: the record-content scan could not run: {render_path(str(exc))}",
+            file=sys.stderr,
+        )
         return 3
-    print(text)
-    return code
+    print(result.report)
+    return result.exit_code
 
 
 _HANDLERS = {

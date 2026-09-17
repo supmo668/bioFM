@@ -532,3 +532,81 @@ def test_a_broken_declaration_row_carries_its_reason_as_a_FIELD(tmp_path, monkey
     assert all(row.detail for row in broken)
     assert "not tracked" in broken[0].detail
     assert all(row.disposition == "FAILS HERE" for row in broken)
+
+
+# --- r2.28: EVERY interpolated field is escaped, not just paths --------------------------------
+
+
+FORGERY = (
+    "\x1b[2J\x1b[H\nundeclared undecodable files: 0 (failing this gate: 0) "
+    "— scanned 794 tracked files under /repo, 0 not present on disk\n  (none)"
+)
+
+
+@pytest.mark.parametrize(
+    "category", ["undecodable", "missing-on-disk", "broken-declaration", "some-future-category"]
+)
+def test_no_field_of_a_row_can_forge_a_report_line(category, tmp_path):
+    """r2.28. r2.24 escaped `path` after a filename drew a fake all-clear; `detail` and `owner` were
+    left raw. `detail` is built from `derived_from` — an arbitrary string in a tracked YAML file —
+    so a STRUCTURALLY VALID declaration could draw the forgery, no broken file required.
+
+    Parametrised over every category INCLUDING an unrecognised one, so a section added later that
+    interpolates a field without escaping fails here rather than shipping.
+    """
+    import chipsim.guards.record_content as rc
+
+    row = rc.ScanRow(
+        path=f"docs/{FORGERY}.png",
+        owner=FORGERY,
+        category=category,
+        disposition="FAILS HERE",
+        detail=FORGERY,
+    )
+    scan = rc.RecordContentScan(
+        root=tmp_path,
+        package=tmp_path / "pkg.py",
+        tracked_count=794,
+        failing_count=1,
+        rows=(row,),
+        declaration_counts=(0, 0, 1),
+        defect_count=1,
+        submodules=(f"libs/{FORGERY}",),
+        registry_state="declared",
+        structural_error=None,
+        exit_code=2,
+    )
+    text, code = rc.render_scan(scan)
+    assert code == 2
+
+    assert "\x1b" not in text, "an escape sequence reached the report and can clear the terminal"
+    body = text.splitlines()[1:]
+    stray = [line for line in body if line and not line.startswith(" ")]
+    assert not stray, f"a forged line reached column 0: {stray!r}"
+
+    # The fixture's own precondition — without this the test could pass over a row that never
+    # rendered at all, which is the vacuity family this file keeps finding.
+    assert "control characters" in text, (
+        "nothing was escaped, so either the row is missing from every section or the payload was "
+        "printable after all"
+    )
+
+
+def test_the_escaping_lives_in_the_DATA_not_in_the_renderer(tmp_path):
+    """Where the fix lives is the point. Escaping at the interpolation site means the NEXT section
+    someone adds reintroduces the hole; escaping at construction means no renderer can."""
+    import chipsim.guards.record_content as rc
+
+    row = rc.ScanRow("docs/x.png", FORGERY, "undecodable", "listed", FORGERY)
+    assert "\x1b" not in row.owner, "owner is still raw in the data"
+    assert "\x1b" not in row.detail, "detail is still raw in the data"
+    assert "\n" not in row.detail, "a multi-line detail can still split into report rows"
+
+
+def test_a_row_disposition_outside_the_two_values_is_refused(tmp_path):
+    """`disposition` is one bit spelled as two strings, and the scan's failing-count MATCHES on it.
+    A typo would silently stop a row counting as failing while it still printed."""
+    import chipsim.guards.record_content as rc
+
+    with pytest.raises(rc.RecordContentScanError, match="neither"):
+        rc.ScanRow("docs/x.png", None, "undecodable", "FAILS-HERE")

@@ -925,6 +925,36 @@ class ScanRow:
     #: Only for a broken declaration: why the claim does not hold.
     detail: str | None = None
 
+    def __post_init__(self) -> None:
+        """EVERY interpolated field is escaped, not just the path (r2.28).
+
+        r2.24 escaped `path` after a reviewer forged a complete clean report out of one filename.
+        `detail` and `owner` were left raw — and `detail` is built from `derived_from`, an arbitrary
+        string out of a tracked YAML file, while `owner` is a directory name out of the tracked
+        listing. A STRUCTURALLY VALID declaration file therefore rendered a forged clean-report line
+        at column 0: the same attack, one column over, reachable without even a broken file.
+
+        Escaping happens HERE rather than in the renderer so that no future section can reintroduce
+        it by forgetting — the renderer's own call sites are now belt-and-braces, and `render_path`
+        is idempotent because its output is printable by construction.
+
+        `disposition` is validated because it is one bit spelled as two strings, and the invariant on
+        `RecordContentScan` counts rows by matching it: a typo would silently stop a row counting as
+        failing.
+        """
+        if self.disposition not in {"FAILS HERE", "listed"}:
+            raise RecordContentScanError(
+                f"{self.path}: disposition {self.disposition!r} is neither 'FAILS HERE' nor "
+                f"'listed'. The scan's failing-count matches on this string."
+            )
+        object.__setattr__(self, "path", render_path(self.path))
+        if self.owner is not None:
+            object.__setattr__(self, "owner", render_path(self.owner))
+        if self.detail is not None:
+            # A multi-line detail collapses to one escaped line rather than becoming free-standing
+            # report rows, which is exactly what the structural-error path had to be taught.
+            object.__setattr__(self, "detail", render_path(self.detail))
+
 
 @dataclass(frozen=True)
 class RecordContentScan:
@@ -1084,7 +1114,7 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
             f"undeclared undecodable files: {len(undecodable)} "
             f"(failing this gate: {scan.failing_count}"
             f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if scan.structural_error else ''}) "
-            f"— scanned {scan.tracked_count} tracked files under {scan.root}, "
+            f"— scanned {scan.tracked_count} tracked files under {render_path(str(scan.root))}, "
             f"{len(missing)} not present on disk"
         ),
         (
@@ -1101,7 +1131,7 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
                 f"{defective} whose claim does not hold ({scan.defect_count} defect(s))"
             )
         ),
-        f"  (scan run from package {scan.package})",
+        f"  (scan run from package {render_path(str(scan.package))})",
     ]
     if scan.structural_error:
         lines.append(
