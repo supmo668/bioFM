@@ -35,7 +35,11 @@ import os
 import re
 import subprocess
 from collections.abc import Callable
+
+# Aliased: two loops in this module already bind a variable called `field`, and ruff caught the
+# shadowing the moment the import arrived.
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from pathlib import Path
 
 import yaml
@@ -440,8 +444,16 @@ def recognised_owners(
     both reviewable. Until the registry exists the marker stands alone, and it is a MITIGATION, not
     proof: it is addable by anyone who adds a `pyproject.toml`, and the report says so.
     """
+    read = DeclarationSurface.require(root) if surface is None else surface
+    if read.structural_error:
+        # UNKNOWN is not "no registry yet". Treating a BROKEN registry as absent fell back to the
+        # wider marker-backed set, so paths under an unregistered owner stopped being unowned and
+        # stopped failing — with the report's own banner asserting "more files fail, never fewer"
+        # directly above the rows that had just gone fail-OPEN. Unknown narrows to nothing: every
+        # path becomes unowned, and unowned fails HERE.
+        return frozenset()
     found = marker_backed_owners(paths)
-    declared = (DeclarationSurface.require(root) if surface is None else surface).registry
+    declared = read.registry
     return found if declared is None else found & declared
 
 
@@ -685,6 +697,17 @@ def declaration_defects(
     policy: ContentPolicy,
     surface: DeclarationSurface | None = None,
 ) -> list[tuple[str, str]]:
+    """Adjudicate every declaration, at most ONCE per (surface, policy). See _adjudicate_once."""
+    read = DeclarationSurface.require(root) if surface is None else surface
+    return _adjudicate_once(root, paths, policy, read)
+
+
+def _declaration_defects_uncached(
+    root: Path,
+    paths,
+    policy: ContentPolicy,
+    surface: DeclarationSurface | None = None,
+) -> list[tuple[str, str]]:
     """(declared path, what is wrong with the claim) for every entry that does NOT hold.
 
     These always fail this gate. Both declaration files are OURS — the project file by ownership,
@@ -912,6 +935,12 @@ class DeclarationSurface:
     entries: tuple[tuple[str, dict, str], ...] = ()
     registry: frozenset[str] | None = None
     structural_error: str | None = None
+    #: Adjudication memo, keyed by policy. The YAML was snapshotted but the VERDICTS were not:
+    #: `declaration_defects` ran three times per report and re-read the filesystem each time, so a
+    #: pinned artifact was hashed three times and an artifact rebuilt between passes produced a
+    #: single report that disagreed with itself — the exact failure E-14 claims to prevent,
+    #: surviving inside the fix for E-14. Excluded from equality and repr: it is a cache, not state.
+    _verdicts: dict = dataclass_field(default_factory=dict, compare=False, repr=False)
 
     @classmethod
     def require(cls, root: Path) -> DeclarationSurface:
@@ -958,6 +987,18 @@ def valid_declarations(
     read = DeclarationSurface.require(root) if surface is None else surface
     broken = {path for path, _ in declaration_defects(root, paths, policy, read)}
     return frozenset(path for path, _, _ in read.entries if path not in broken)
+
+
+def _adjudicate_once(root: Path, paths, policy: ContentPolicy, surface: DeclarationSurface):
+    """`declaration_defects`, computed at most once per (surface, policy).
+
+    Every caller inside one report shares the verdict, so the rows, the header count and the defect
+    section cannot be drawn from three different readings of the same files.
+    """
+    key = (id(policy), tuple(paths))
+    if key not in surface._verdicts:
+        surface._verdicts[key] = _declaration_defects_uncached(root, paths, policy, surface)
+    return surface._verdicts[key]
 
 
 def declared_owner_registry(root: Path) -> frozenset[str] | None:
@@ -1179,7 +1220,11 @@ def _refuse_a_scan_that_cannot_see_itself(root: Path, paths: list[str]) -> None:
 
 
 def refuse_an_absent_declaration_surface(root: Path) -> None:
-    """Both declaration files must EXIST, parse, and declare a schema this gate reads.
+    """Both declaration files must EXIST. Parsing and the schema check belong to `require`.
+
+    It used to parse here as well, and the parse moved so the surface is read once (E-14) — but the
+    docstring went on promising "parse, and declare a schema this gate reads", which for a DIRECT
+    caller had become false in the fail-open direction.
 
     An absent file used to read as an empty one, which silently reverted the owner registry to the
     pre-r2.24 marker-only mitigation — with the same exit code as a healthy run. This module already
@@ -1280,7 +1325,7 @@ def _render_for_root(root: Path, policy: ContentPolicy) -> tuple[str, int]:
             f"  declarations read: {len(entries)} "
             f"({sum(1 for _, _, s in entries if s == 'project')} from {PROJECT_DECLARATION_FILE}, "
             f"{sum(1 for _, _, s in entries if s == 'repo-root')} from {REPO_DECLARATION_FILE}), "
-            f"{len(defects)} whose claim does not hold"
+            f"{len({path for path, _ in defects})} whose claim does not hold"
         ),
         f"  (scan run from package {Path(__file__).resolve()})",
     ]

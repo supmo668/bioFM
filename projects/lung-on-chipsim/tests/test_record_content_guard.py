@@ -295,13 +295,13 @@ def test_a_declared_binary_file_is_not_reported(tmp_path):
     the file was READABLE and the assertion held with or without a declaration. Hence the first
     assertion below — prove the fixture is undecodable, then prove the declaration is what clears
     it."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     declared = f"projects/{THIS_PROJECT}/docs/figure.pdf"
     digest = _write(tmp_path, declared, b"%PDF-1.4\x00\xfe\xff\x80\x81 binary")
 
     bare = _decl_fixture(tmp_path) + [declared]
-    assert ds.undecodable_unallowed(tmp_path, bare, NOTHING_WAIVED) == [declared], (
+    assert rc.undecodable_unallowed(tmp_path, bare, NOTHING_WAIVED) == [declared], (
         "the fixture must be genuinely undecodable, or declaring it proves nothing"
     )
 
@@ -309,7 +309,7 @@ def test_a_declared_binary_file_is_not_reported(tmp_path):
         tmp_path,
         project_entries=[{"path": declared, "sha256": digest, "why": "rendered figure"}],
     ) + [declared]
-    assert ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED) == []
+    assert rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED) == []
 
 
 def test_every_undecodable_tracked_file_in_this_repo_is_declared():
@@ -332,9 +332,9 @@ def test_the_declaration_surface_is_not_a_blanket():
     """The shape rules bind every entry in the SHIPPED data. Empty is the correct state today, so
     this loop runs zero times — which is honest rather than reassuring, and is why the live
     anti-rot test below asserts against the validator instead of against a count."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
-    for rel, _entry, _surface in ds._declaration_entries(REPO_ROOT):
+    for rel, _entry, _surface in rc._declaration_entries(REPO_ROOT):
         assert not rel.endswith("/"), f"{rel} waves through a whole directory"
         assert "*" not in rel, f"{rel} is a glob, not a declared file"
         assert Path(rel).suffix, f"{rel} has no extension — is it really a binary artifact?"
@@ -459,7 +459,7 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
     """Both a path-suffix match and a basename match survived every earlier test, so
     `vendor/<declared path>` or any file sharing a declared BASENAME would have been silently
     exempted. The docstring claimed "exact path"; nothing checked it."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     declared = f"projects/{THIS_PROJECT}/docs/figure.pdf"
     digest = _write(tmp_path, declared, b"%PDF-1.4\x00\xfe\xff\x80 binary")
@@ -468,8 +468,8 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
     for rel in (f"vendor/{declared}", f"some/other/dir/{Path(declared).name}"):
         _write(tmp_path, rel, b"\x00\xff\x80\x81 not text")
         listing = _decl_fixture(tmp_path, project_entries=[entry]) + [declared, rel]
-        assert rel in ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), rel
-        assert declared not in ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), (
+        assert rel in rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), rel
+        assert declared not in rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), (
             "the declared path itself must still be cleared, or this test would pass on a "
             "declaration mechanism that simply does not work"
         )
@@ -573,10 +573,10 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
     Three junk entries — a deleted figure, a pre-declared `data/processed/compounds.parquet`, and
     README.md — passed every earlier test. The ledger sets already had this check (above); the new
     set was simply left out of it."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     tracked = set(_tracked_paths())
-    for rel, _entry, _surface in ds._declaration_entries(REPO_ROOT):
+    for rel, _entry, _surface in rc._declaration_entries(REPO_ROOT):
         path = REPO_ROOT / rel
         assert path.is_file(), f"{rel} is declared but does not exist — a pre-granted exemption"
         assert rel in tracked, f"{rel} is declared but not tracked"
@@ -588,9 +588,9 @@ def test_every_declared_path_exists_is_tracked_and_is_genuinely_unreadable():
 
 def test_no_declared_path_is_also_content_excluded():
     """A path must never be exempted twice by two different mechanisms."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
-    declared = [rel for rel, _, _ in ds._declaration_entries(REPO_ROOT)]
+    declared = [rel for rel, _, _ in rc._declaration_entries(REPO_ROOT)]
     assert [rel for rel in declared if is_accession_excluded(rel)] == []
 
 
@@ -632,11 +632,11 @@ def test_a_clean_hdf5_container_is_neither_a_hit_nor_undecodable(tmp_path):
 def test_no_readable_structured_container_is_declared():
     """E6-2: only RENDERED artifacts may be declared. A container in the list is the category
     collapse the clause forbids — and the h5ad was exactly that."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     containers = [
         rel
-        for rel, _, _ in ds._declaration_entries(REPO_ROOT)
+        for rel, _, _ in rc._declaration_entries(REPO_ROOT)
         if Path(rel).suffix.lower() in {".parquet", ".pq", ".h5", ".h5ad", ".hdf5", ".feather"}
     ]
     assert containers == [], (
@@ -647,11 +647,11 @@ def test_no_readable_structured_container_is_declared():
 def test_an_unreadable_container_fails_loudly_rather_than_inviting_a_declaration(tmp_path):
     """If the HDF5 reader is absent the file must NOT quietly become 'undecodable — declare it',
     because declaring a container is precisely what E6-2 forbids."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     path = _hdf5(tmp_path, "x.h5ad", {"obs/p": [b"FIXTURE"]})
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(ds, "_HDF5_READER", None)
+        patch.setattr(rc, "_HDF5_READER", None)
         with pytest.raises(RuntimeError, match="h5py"):
             real_accession_hits(tmp_path, [path.name])
 
@@ -916,12 +916,12 @@ def test_a_parquet_struct_column_is_scanned_by_value_not_by_key(tmp_path):
 def test_the_live_container_is_read_substantially_not_vacuously():
     """The anti-vacuity the elision hid: the repo's own 34.6 MB container must yield far more than
     a summary. Before the fix it produced 4,270 chars for ~41,000 identifiers."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     target = REPO_ROOT / "projects/perturb-seq-eval/data/Adamson2016_pilot.h5ad"
     if not target.is_file():
         pytest.skip("the AnnData artifact is not present in this checkout")
-    chunks = ds._scan_chunks(target)
+    chunks = rc._scan_chunks(target)
     assert chunks is not None
     text = "\n".join(chunks)
     assert "..." not in text, "an elision marker means the container was summarised, not read"
@@ -974,12 +974,12 @@ def test_the_waiver_is_anchored_so_leak_md_pdf_is_not_waived():
 def test_every_declaration_belongs_to_this_project():
     """E6-1's actual invariant, which nothing tested: re-adding all 23 foreign paths would have
     passed every existing test. The clause was enforced by the ABSENCE OF DATA, not by a rule."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _recognised = recognised_owners(REPO_ROOT, _tracked_paths())
     foreign = [
         rel
-        for rel, _, surface in ds._declaration_entries(REPO_ROOT)
+        for rel, _, surface in rc._declaration_entries(REPO_ROOT)
         if surface == "project" and path_owner(rel, _recognised) != THIS_PROJECT
     ]
     assert foreign == [], (
@@ -993,7 +993,7 @@ def test_a_container_cannot_be_declared_even_if_its_name_hides_it(tmp_path, monk
     this module condemns 170 lines earlier. A container named `blob.dat` passed."""
     import pandas as pd
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     declared = f"projects/{THIS_PROJECT}/docs/blob.dat"
     target = tmp_path / declared
@@ -1005,8 +1005,8 @@ def test_a_container_cannot_be_declared_even_if_its_name_hides_it(tmp_path, monk
         tmp_path,
         project_entries=[{"path": declared, "sha256": digest, "why": "named to look opaque"}],
     )
-    with pytest.raises(ds.RecordContentScanError, match="declared readable container"):
-        ds.assert_no_container_is_declared(tmp_path)
+    with pytest.raises(rc.RecordContentScanError, match="declared readable container"):
+        rc.assert_no_container_is_declared(tmp_path)
 
 
 # --- §7 Phase D: the report reaches a human ---------------------------------------------------
@@ -1033,7 +1033,7 @@ def test_the_report_is_printed_by_a_command_a_human_can_run(tmp_path, monkeypatc
 
 
 def test_the_report_command_exits_non_zero_when_this_gate_would_fail(tmp_path, monkeypatch, capsys):
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = "projects/lung-on-chipsim/data/interim/mystery.bin"
@@ -1044,13 +1044,13 @@ def test_the_report_command_exits_non_zero_when_this_gate_would_fail(tmp_path, m
     # Steer the ROOT, not an environment variable: r2.23 E-08 makes the command derive the repo
     # root structurally, precisely so no ambient setting can narrow what it scans.
     listing = [rel, *_decl_fixture(tmp_path, owners=[THIS_PROJECT])]
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
     # This test fabricates a listing under tmp_path, which the witness check refuses BY DESIGN
     # (a listing must contain this module's own tracked file). Disabled here only, so that this
     # test can still say what it is about — the exit code for a file that fails the gate. The
     # witness check has its own tests above.
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
     code = pipeline.main(["record-content-report"])
     assert code == 2
     assert rel in capsys.readouterr().out
@@ -1089,15 +1089,15 @@ def test_repo_root_walks_past_a_directory_that_merely_looks_like_a_repo_root(tmp
     `.git` at all — survived the whole previous suite, because in the live tree those two rules
     name the same directory. Only a fixture can tell them apart.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     outer = _init_repo(tmp_path / "outer")
     package_parent = outer / "nested" / "projects" / "lung-on-chipsim"
     (package_parent / "chipsim").mkdir(parents=True)
     assert not (outer / "nested" / ".git").exists(), "the lookalike must NOT be a repository"
 
-    monkeypatch.setattr(ds, "source_root", lambda: package_parent)
-    assert ds.repo_root() == outer.resolve()
+    monkeypatch.setattr(rc, "source_root", lambda: package_parent)
+    assert rc.repo_root() == outer.resolve()
 
 
 @pytest.mark.parametrize("marker", ["directory", "worktree_file"])
@@ -1108,7 +1108,7 @@ def test_repo_root_accepts_a_worktree_git_file_not_only_a_git_directory(
     that silently reinstates the project-root scan IN EVERY WORKTREE — which is where this repo's
     work actually happens. The commit message claimed this property; nothing tested it, and the
     mutant survived."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     main = _init_repo(tmp_path / "main")
     (main / "seed.txt").write_text("seed\n")
@@ -1128,8 +1128,8 @@ def test_repo_root_accepts_a_worktree_git_file_not_only_a_git_directory(
 
     package_parent = root / "projects" / "lung-on-chipsim"
     (package_parent / "chipsim").mkdir(parents=True)
-    monkeypatch.setattr(ds, "source_root", lambda: package_parent)
-    assert ds.repo_root() == root.resolve()
+    monkeypatch.setattr(rc, "source_root", lambda: package_parent)
+    assert rc.repo_root() == root.resolve()
 
 
 def test_repo_root_refuses_a_broken_git_marker_rather_than_collapsing_to_the_project_root(
@@ -1139,16 +1139,16 @@ def test_repo_root_refuses_a_broken_git_marker_rather_than_collapsing_to_the_pro
     `.git` that git cannot open. Trusting the marker's existence alone collapsed the scan back to
     the project root and restored E-08 verbatim — and this repo DOES use submodules, so a sibling
     of this project is already one."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     outer = _init_repo(tmp_path / "outer")
     package_parent = outer / "projects" / "lung-on-chipsim"
     (package_parent / "chipsim").mkdir(parents=True)
     (package_parent / ".git").write_text("gitdir: /nonexistent/.git/worktrees/gone\n")
 
-    monkeypatch.setattr(ds, "source_root", lambda: package_parent)
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds.repo_root()
+    monkeypatch.setattr(rc, "source_root", lambda: package_parent)
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc.repo_root()
     message = str(exc.value).replace(str(tmp_path), "<tmp>")
     assert "git cannot open a repository" in message
     assert "clean" in message, "the refusal must say why an unscannable tree is not a clean one"
@@ -1158,7 +1158,7 @@ def test_repo_root_refuses_when_no_repository_exists_above_the_package(tmp_path,
     """The fallback that shipped returned `source_root()` — the narrow root the finding is ABOUT.
     Composed with a listing that swallowed its own failure, a non-editable install printed a clean
     report over a tree it had never read. Reproduced end-to-end before this fix."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     bare = tmp_path / "a" / "b"
     bare.mkdir(parents=True)
@@ -1167,9 +1167,9 @@ def test_repo_root_refuses_when_no_repository_exists_above_the_package(tmp_path,
             "this temp directory sits inside a repository, so the no-repo case is untestable here"
         )
 
-    monkeypatch.setattr(ds, "source_root", lambda: bare)
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds.repo_root()
+    monkeypatch.setattr(rc, "source_root", lambda: bare)
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc.repo_root()
     assert "no git repository" in str(exc.value)
 
 
@@ -1178,12 +1178,12 @@ def test_a_listing_that_could_not_be_produced_is_not_an_empty_one(tmp_path):
     "0 (failing this gate: 0)" with exit 0. The test-side twin of this function has used
     `check=True` since the day it was written, beneath a test titled "a scan over the wrong or an
     empty list reports clean" — the guard existed in the suite and not in the command."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     not_a_checkout = tmp_path / "plain"
     not_a_checkout.mkdir()
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds._tracked_paths_for_report(not_a_checkout)
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc._tracked_paths_for_report(not_a_checkout)
     assert "not an all-clear" in str(exc.value)
 
 
@@ -1198,14 +1198,14 @@ def test_a_git_failure_inside_a_real_checkout_is_not_an_empty_listing(tmp_path):
     version of this test used a directory that was not a checkout at all, so it exercised the guard
     above and left this one covered by nothing.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     repo = _init_repo(tmp_path / "corrupt")
     (repo / ".git" / "index").write_bytes(b"this is not an index")
-    assert ds._toplevel_of(repo) == repo.resolve(), "the checkout itself must still resolve"
+    assert rc._toplevel_of(repo) == repo.resolve(), "the checkout itself must still resolve"
 
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds._tracked_paths_for_report(repo)
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc._tracked_paths_for_report(repo)
     message = str(exc.value)
     assert "git ls-files failed" in message
     # git's own diagnostic is what tells the operator WHICH failure this is; the old code captured
@@ -1217,22 +1217,22 @@ def test_an_emptied_listing_cannot_pass_as_a_scan_of_this_tree(monkeypatch):
     """The witness check: the listing must contain THIS module's own tracked file. One assertion
     covering an unrelated enclosing repository, an index read from elsewhere, and a listing emptied
     by any means at all."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: ([], []))
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds.render_undeclared_report(NOTHING_WAIVED)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: ([], []))
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc.render_undeclared_report(NOTHING_WAIVED)
     assert "this module's own file" in str(exc.value)
 
 
 def test_the_scan_refuses_a_repository_that_does_not_contain_this_package(tmp_path, monkeypatch):
     """An unrelated enclosing repository — a dotfiles `$HOME`, a wrapper monorepo — became the scan
     root and the gate reported on THAT repo, exiting on its files rather than ours."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     stranger = _init_repo(tmp_path / "stranger")
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])
     assert "does not contain this package" in str(exc.value)
 
 
@@ -1241,7 +1241,7 @@ def test_git_environment_variables_cannot_steer_the_scan(tmp_path, monkeypatch):
     the report printed the CORRECT root while having listed a different repository's index — more
     misleading than the bug being fixed. The docstring named four members of the ambient-state
     family and claimed immunity while leaving a fifth channel open."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     decoy = _init_repo(tmp_path / "decoy")
     monkeypatch.setenv("GIT_DIR", str(decoy / ".git"))
@@ -1250,12 +1250,12 @@ def test_git_environment_variables_cannot_steer_the_scan(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.fsmonitor")
     monkeypatch.setenv("GIT_CONFIG_VALUE_0", "true")
 
-    assert ds._toplevel_of(REPO_ROOT) == REPO_ROOT, (
+    assert rc._toplevel_of(REPO_ROOT) == REPO_ROOT, (
         "the scan resolved a different tree than the one it was pointed at"
     )
     assert (
         "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py"
-        in ds._tracked_paths_for_report(REPO_ROOT)
+        in rc._tracked_paths_for_report(REPO_ROOT)
     )
 
 
@@ -1264,7 +1264,7 @@ def test_the_scan_does_not_execute_configuration_from_the_repository_it_reads(tm
     repository ran as the invoking user during `record-content-report`. The CTO's B2 ruling (#44)
     requires both that the path be validated as the expected repository and that the invocation not
     honour config from a tree we do not trust."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     hostile = _init_repo(tmp_path / "hostile")
     marker = tmp_path / "it-ran"
@@ -1273,7 +1273,7 @@ def test_the_scan_does_not_execute_configuration_from_the_repository_it_reads(tm
     hook.chmod(0o755)
     subprocess.run(["git", "config", "core.fsmonitor", str(hook)], cwd=hostile, check=True)
 
-    ds._git(["ls-files"], cwd=hostile)
+    rc._git(["ls-files"], cwd=hostile)
     assert not marker.exists(), "the scan executed a command configured by the repository it read"
 
 
@@ -1322,13 +1322,13 @@ def test_the_report_says_that_another_projects_files_are_gated_by_nobody(capsys)
 def test_an_unscannable_tree_exits_differently_from_a_failing_one(tmp_path, monkeypatch, capsys):
     """Exit 2 means "files fail this gate". "I could not scan" is a different fact with a different
     remedy, and collapsing the two is how an unscannable tree came to read as a clean one."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     def refuse(*_args, **_kwargs):
-        raise ds.RecordContentScanError("no repository found in this test")
+        raise rc.RecordContentScanError("no repository found in this test")
 
-    monkeypatch.setattr(ds, "repo_root", refuse)
+    monkeypatch.setattr(rc, "repo_root", refuse)
     code = pipeline.main(["record-content-report"])
     captured = capsys.readouterr()
 
@@ -1427,12 +1427,12 @@ def test_the_report_names_the_package_copy_it_ran_from(capsys):
     """Which tree gets audited follows the copy of `chipsim` that was imported, not where the
     operator is standing. In this review one clone's command reported on a DIFFERENT worktree's
     tree — a routine, silent audit-the-wrong-tree false clean in an org that uses worktrees."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
-    assert str(Path(ds.__file__).resolve()) in printed
+    assert str(Path(rc.__file__).resolve()) in printed
 
 
 # --- r2.24 E-10: a path the scan cannot reach is counted always, and fails only where we own it ---
@@ -1451,9 +1451,9 @@ def _missing_tracked(tmp_path, rel, markers=()):
     The declaration surface is built too: a repository without one cannot be scanned at all
     (exit 3), so a fixture that omitted it was describing a tree the gate would refuse.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
-    witness = Path(ds.__file__).resolve()
+    witness = Path(rc.__file__).resolve()
     base = _decl_fixture(tmp_path, owners=[THIS_PROJECT, "perturb-seq-eval", "paper_standalone"])
     listing = [rel, *markers, *base]
     return listing, witness
@@ -1462,14 +1462,14 @@ def _missing_tracked(tmp_path, rel, markers=()):
 def test_a_tracked_path_that_is_not_on_disk_is_counted_and_reported(tmp_path, monkeypatch, capsys):
     """The original sin was the silent drop: `if not target.is_file(): continue`. A payload
     committed in HEAD but absent from the worktree produced a report that said nothing at all."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = "docs/ghost_payload.bin"
     listing, _ = _missing_tracked(tmp_path, rel)
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
@@ -1484,16 +1484,16 @@ def test_a_missing_path_another_project_owns_is_listed_but_does_not_fail_this_ga
 ):
     """Scoping the FAILURE by ownership is E6-1b; scoping the COUNT would be E-08 again. Another
     team's un-materialised file is visible and counted here, and red on nobody's board but theirs."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = "projects/perturb-seq-eval/paper/ghost.pdf"
     listing, _ = _missing_tracked(
         tmp_path, rel, markers=("projects/perturb-seq-eval/pyproject.toml",)
     )
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
@@ -1503,16 +1503,16 @@ def test_a_missing_path_another_project_owns_is_listed_but_does_not_fail_this_ga
 
 
 def test_a_missing_path_this_project_owns_fails_the_gate(tmp_path, monkeypatch, capsys):
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = f"projects/{THIS_PROJECT}/data/processed/ghost.parquet"
     listing, _ = _missing_tracked(
         tmp_path, rel, markers=(f"projects/{THIS_PROJECT}/pyproject.toml",)
     )
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     code = pipeline.main(["record-content-report"])
     assert rel in capsys.readouterr().out
@@ -1523,14 +1523,14 @@ def test_a_sparse_checkout_can_still_run_the_report(tmp_path, monkeypatch, capsy
     """The reason the ruling went this way: fatal-always made the report unrunnable wherever a
     legitimate sparse or partial checkout is in use, and a control nobody can run is not a control.
     Exit 3 stays reserved for "could not scan AT ALL"."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = "paper_standalone/figures/never_fetched.pdf"
     listing, _ = _missing_tracked(tmp_path, rel, markers=("paper_standalone/README.md",))
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
@@ -1543,11 +1543,11 @@ def test_a_sparse_checkout_can_still_run_the_report(tmp_path, monkeypatch, capsy
 def test_the_witness_check_is_still_fatal(tmp_path):
     """E-10 relaxed the UNRESOLVABLE path, not the witness. A listing that is not a listing of this
     tree is still "could not scan at all" — exit 3, not a report."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     stranger = _init_repo(tmp_path / "stranger")
-    with pytest.raises(ds.RecordContentScanError):
-        ds._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])
+    with pytest.raises(rc.RecordContentScanError):
+        rc._refuse_a_scan_that_cannot_see_itself(stranger, ["some/other/file.txt"])
 
 
 # --- r2.24 E-02 / E6-1 / E6-3 / E-05 / E-11: the declaration surface ---------------------------
@@ -1578,7 +1578,7 @@ def _decl_fixture(tmp_path, project_entries=None, repo_entries=None, owners=None
     """A repo-shaped fixture carrying both declaration files and the markers that make owners real."""
     import yaml
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     proj = tmp_path / "projects" / THIS_PROJECT
     (proj / "configs").mkdir(parents=True, exist_ok=True)
@@ -1596,8 +1596,8 @@ def _decl_fixture(tmp_path, project_entries=None, repo_entries=None, owners=None
     (tmp_path / "config" / "record_content_declarations.yaml").write_text(yaml.safe_dump(repo_doc))
 
     listing = [
-        ds.PROJECT_DECLARATION_FILE,
-        ds.REPO_DECLARATION_FILE,
+        rc.PROJECT_DECLARATION_FILE,
+        rc.REPO_DECLARATION_FILE,
         f"projects/{THIS_PROJECT}/pyproject.toml",
     ]
     (proj / "pyproject.toml").write_text("[project]\nname = 'x'\n")
@@ -1625,7 +1625,7 @@ def test_a_declaration_must_pin_the_content_not_just_the_path(tmp_path):
     """E6-3. Every declared file is a BUILD OUTPUT, so a path-keyed declaration goes silent forever
     the moment the artifact is regenerated with different content — the declaration would still be
     sitting there, matching by name, clearing a file nobody has looked at since."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/render.bin"
     digest = _write(tmp_path, rel, b"\x00\xffOPAQUE")
@@ -1636,9 +1636,9 @@ def test_a_declaration_must_pin_the_content_not_just_the_path(tmp_path):
         ],
     ) + [rel]
 
-    assert rel in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
-    assert ds.declaration_defects(tmp_path, listing, NOTHING_WAIVED) == []
-    assert ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED) == [], (
+    assert rel in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rc.declaration_defects(tmp_path, listing, NOTHING_WAIVED) == []
+    assert rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED) == [], (
         "a validly declared file is cleared"
     )
 
@@ -1646,7 +1646,7 @@ def test_a_declaration_must_pin_the_content_not_just_the_path(tmp_path):
 def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
     """The whole reason for E6-3. Regenerate the artifact; the declaration must stop clearing it and
     must SAY SO, rather than silently going on matching by path."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/render.bin"
     digest = _write(tmp_path, rel, b"\x00\xffOPAQUE")
@@ -1656,7 +1656,7 @@ def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
 
     _write(tmp_path, rel, b"\x00\xffREGENERATED")  # same path, different content
 
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
     defects = _defects(tmp_path, listing)
     # NOT `"stale" in ...lower()`: pytest names tmp_path after the test, so "STALE" is already in
     # this test's own directory name, and a reviewer proved the assertion passes with the whole
@@ -1666,7 +1666,7 @@ def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
     assert defects[rel].startswith("STALE declaration: pinned ")
     assert digest[:12] in defects[rel]
     assert hashlib.sha256((tmp_path / rel).read_bytes()).hexdigest()[:12] in defects[rel]
-    assert rel in ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), (
+    assert rel in rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), (
         "a stale declaration clears nothing"
     )
 
@@ -1674,7 +1674,7 @@ def test_a_declaration_goes_STALE_when_the_artifact_is_regenerated(tmp_path):
 def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_path):
     """The self-maintaining alternative: "derived from tracked source S, and S is in scope" is a
     claim a reader can CHECK, unlike a comment saying "none of these is a DrugBank artifact"."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
     src = f"projects/{THIS_PROJECT}/docs/plot_source.csv"
@@ -1685,11 +1685,11 @@ def test_a_derived_from_claim_must_name_a_tracked_source_that_is_in_scope(tmp_pa
         project_entries=[{"path": rel, "derived_from": src, "why": "plotted from the tracked csv"}],
     ) + [rel, src]
 
-    assert rel in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
     # ...and the claim fails when the source is NOT tracked, which is what makes it self-maintaining.
     listing_without_source = [p for p in listing if p != src]
-    assert rel not in ds.valid_declarations(tmp_path, listing_without_source, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing_without_source, NOTHING_WAIVED)
     defects = _defects(tmp_path, listing_without_source)
     assert "not tracked" in defects[rel].lower()
 
@@ -1698,7 +1698,7 @@ def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
     """E6-1, the clause's own "why": 24 paths belonging to perturb-seq-eval and paper_standalone were
     declared inside this module's source, so another team adding a figure turned THIS gate red and
     the repair landed in a file they neither own nor can judge."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = "projects/perturb-seq-eval/paper/figure.pdf"
     digest = _write(tmp_path, rel, b"\x00\xffFOREIGN")
@@ -1706,7 +1706,7 @@ def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
         tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "not mine to declare"}]
     ) + [rel, "projects/perturb-seq-eval/pyproject.toml"]
 
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
     defects = _defects(tmp_path, listing)
     assert "perturb-seq-eval" in defects[rel] and "owns" in defects[rel].lower()
     # The ownership branch is the FIRST check, so the assertion above holds for a fixture in any
@@ -1718,15 +1718,15 @@ def test_this_project_may_not_declare_another_projects_artifacts(tmp_path):
     control = _decl_fixture(
         tmp_path, project_entries=[{"path": mine, "sha256": mine_digest, "why": "mine"}]
     ) + [mine]
-    assert ds.declaration_defects(tmp_path, control, NOTHING_WAIVED) == []
-    assert mine in ds.valid_declarations(tmp_path, control, NOTHING_WAIVED)
+    assert rc.declaration_defects(tmp_path, control, NOTHING_WAIVED) == []
+    assert mine in rc.valid_declarations(tmp_path, control, NOTHING_WAIVED)
 
 
 def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
     """E-05. Unowned means every repo-root location, so a new docs/architecture.png from anyone fails
     THIS gate and E6-1's "do not re-declare on their behalf" left no legitimate way to clear it.
     Rule 9: state where declaring IS permitted rather than leaving the permitted case unreachable."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     unowned = "docs/architecture.png"
     digest = _write(tmp_path, unowned, b"\x89PNG\r\n\x1a\n\x00\xff")
@@ -1741,7 +1741,7 @@ def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
         ],
     ) + [unowned, owned]
 
-    assert unowned in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert unowned in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
     defects = _defects(tmp_path, listing)
     assert owned in defects, "an OWNED path does not belong in the repo-root surface"
     assert "repo-root" in defects[owned].lower()
@@ -1750,7 +1750,7 @@ def test_the_repo_root_surface_declares_UNOWNED_paths_and_only_those(tmp_path):
 def test_a_declaration_for_a_path_that_is_not_tracked_is_reported_as_rot(tmp_path):
     """A declaration nobody checks is rot: it accumulates, it reads as coverage, and it clears
     nothing. The file it named was deleted or renamed and the entry stayed behind."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/deleted.bin"
     listing = _decl_fixture(
@@ -1760,7 +1760,7 @@ def test_a_declaration_for_a_path_that_is_not_tracked_is_reported_as_rot(tmp_pat
     defects = _defects(tmp_path, listing)
     assert rel in defects and "not tracked" in defects[rel].lower()
     assert len(defects) == 1, defects
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED), (
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED), (
         "rot must clear nothing"
     )
 
@@ -1768,7 +1768,7 @@ def test_a_declaration_for_a_path_that_is_not_tracked_is_reported_as_rot(tmp_pat
 def test_a_readable_container_can_never_be_declared(tmp_path):
     """E6-2, enforced against the DATA now that the data exists. Checked by MAGIC, not suffix: a
     suffix filter is name-based dispatch, and a container named blob.dat walks through it."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/data/processed/sneaky.dat"
     digest = _write(tmp_path, rel, b"PAR1" + b"\x00" * 32)
@@ -1782,13 +1782,13 @@ def test_a_readable_container_can_never_be_declared(tmp_path):
     assert len(defects) == 1, defects
     assert "ALWAYS read, never declared (E6-2)" in defects[rel]
     assert "parquet" in defects[rel], "the kind must come from the magic, not from the suffix"
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_an_entry_with_both_claims_or_neither_cannot_be_evaluated(tmp_path):
     """Malformed declaration DATA is a configuration error the gate cannot evaluate, so it is exit 3
     (could not scan), not exit 2 (files fail) and certainly not a pass."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/x.bin"
     digest = _write(tmp_path, rel, b"\x00\xff")
@@ -1797,8 +1797,8 @@ def test_an_entry_with_both_claims_or_neither_cannot_be_evaluated(tmp_path):
         tmp_path,
         project_entries=[{"path": rel, "sha256": digest, "derived_from": "a.csv", "why": "?"}],
     ) + [rel]
-    with pytest.raises(ds.RecordContentScanError, match="exactly one"):
-        ds.valid_declarations(tmp_path, both, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError, match="exactly one"):
+        rc.valid_declarations(tmp_path, both, NOTHING_WAIVED)
 
 
 def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_path):
@@ -1806,7 +1806,7 @@ def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_pat
     pyproject.toml, so it is a MITIGATION, not proof. The declared registry is authoritative — and
     it NARROWS: an owner must be both declared AND carry its marker, so neither a declaration alone
     nor a file alone can mint one."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT, "perturb-seq-eval"]) + [
         "projects/perturb-seq-eval/pyproject.toml",
@@ -1814,7 +1814,7 @@ def test_the_owner_registry_is_declared_and_narrows_the_marker_heuristic(tmp_pat
         "projects/declared-but-absent/anything.txt",
     ]
 
-    recognised = ds.recognised_owners(tmp_path, listing)
+    recognised = rc.recognised_owners(tmp_path, listing)
     assert THIS_PROJECT in recognised and "perturb-seq-eval" in recognised
     assert "undeclared-but-real" not in recognised, "a marker alone does not mint an owner"
     assert "declared-but-absent" not in recognised, "a declaration alone does not mint one either"
@@ -1828,7 +1828,7 @@ def test_the_report_states_how_many_declarations_it_read(tmp_path, monkeypatch, 
     Asserting only the label was itself the failure: a reviewer hardcoded the count to 999 and the
     test passed. The count is asserted here on a fixture whose contents this test controls.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     mine = f"projects/{THIS_PROJECT}/docs/mine.bin"
@@ -1841,14 +1841,14 @@ def test_the_report_states_how_many_declarations_it_read(tmp_path, monkeypatch, 
         repo_entries=[{"path": unowned, "sha256": unowned_digest, "why": "diagram"}],
     ) + [mine, unowned]
 
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
     assert "declarations read: 2 " in printed, printed
-    assert f"(1 from {ds.PROJECT_DECLARATION_FILE}, 1 from {ds.REPO_DECLARATION_FILE})" in printed
+    assert f"(1 from {rc.PROJECT_DECLARATION_FILE}, 1 from {rc.REPO_DECLARATION_FILE})" in printed
     assert "0 whose claim does not hold" in printed
     assert code == 0, printed
 
@@ -1861,9 +1861,9 @@ def test_the_shipped_declaration_files_hold():
     It is the assertion that stays meaningful when the surface stops being empty — the loops above
     run zero times today and will quietly keep passing however wrong a future entry is.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
-    assert ds.declaration_defects(REPO_ROOT, _tracked_paths(), NOTHING_WAIVED) == []
+    assert rc.declaration_defects(REPO_ROOT, _tracked_paths(), DRUGBANK_CONTENT_POLICY) == []
 
 
 def test_the_declared_owner_registry_covers_every_project_the_markers_support():
@@ -1875,7 +1875,7 @@ def test_the_declared_owner_registry_covers_every_project_the_markers_support():
     The oracle is derived here independently, by walking the tracked markers, rather than by asking
     the module — otherwise it would agree with the code by construction.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     tracked = set(_tracked_paths())
     oracle = set()
@@ -1898,7 +1898,7 @@ def test_the_declared_owner_registry_covers_every_project_the_markers_support():
         "test-time-compute",
     } <= oracle, f"the oracle found {sorted(oracle)} — it is not reading the listing"
 
-    declared = ds.declared_owner_registry(REPO_ROOT)
+    declared = rc.declared_owner_registry(REPO_ROOT)
     assert declared is not None, "the repo-root surface must carry the registry"
     assert declared - oracle == set(), (
         f"declared owners with no tracked marker: {sorted(declared - oracle)}"
@@ -1913,17 +1913,17 @@ def test_the_declared_owner_registry_covers_every_project_the_markers_support():
 def test_the_owner_registry_narrows_rather_than_widens():
     """Declaring a project that has no marker must not mint it. The registry is an intersection, so
     a declaration alone is not evidence any more than a `mkdir` was."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     tracked = _tracked_paths()
-    recognised = ds.recognised_owners(REPO_ROOT, tracked)
-    declared = ds.declared_owner_registry(REPO_ROOT)
+    recognised = rc.recognised_owners(REPO_ROOT, tracked)
+    declared = rc.declared_owner_registry(REPO_ROOT)
 
     # `recognised <= declared` is true BY CONSTRUCTION of the intersection — and true again if the
     # registry is ignored entirely, which a reviewer demonstrated. Pin it concretely instead: a name
     # in neither half must not appear, and adding a payload path must not mint its owner.
-    assert recognised == ds.marker_backed_owners(tracked) & declared
-    assert "ghost-lib" not in ds.recognised_owners(
+    assert recognised == rc.marker_backed_owners(tracked) & declared
+    assert "ghost-lib" not in rc.recognised_owners(
         REPO_ROOT, [*tracked, "libs/ghost-lib/payload.bin"]
     )
 
@@ -1951,7 +1951,7 @@ def test_a_declaration_field_of_the_wrong_TYPE_is_refused_with_a_diagnosis(tmp_p
     which entry to fix. A check written against the clause and not against the lesson that produced
     it (rule 12).
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/x.bin"
     _write(tmp_path, rel, b"\x00\xff\x80\x81")
@@ -1962,8 +1962,8 @@ def test_a_declaration_field_of_the_wrong_TYPE_is_refused_with_a_diagnosis(tmp_p
         entry.pop("sha256")
     listing = _decl_fixture(tmp_path, project_entries=[entry]) + [rel]
 
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
     message = str(exc.value)
     assert rel in message, "the refusal must name the entry the operator has to fix"
     assert field in message, "and the field that is wrong"
@@ -1971,7 +1971,7 @@ def test_a_declaration_field_of_the_wrong_TYPE_is_refused_with_a_diagnosis(tmp_p
 
 def test_a_malformed_declaration_exits_3_rather_than_crashing(tmp_path, monkeypatch, capsys):
     """Through the SHIPPED command, not the function: before this, returncode 1 and a traceback."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = f"projects/{THIS_PROJECT}/docs/x.bin"
@@ -1980,9 +1980,9 @@ def test_a_malformed_declaration_exits_3_rather_than_crashing(tmp_path, monkeypa
         tmp_path, project_entries=[{"path": rel, "sha256": 12345, "why": "?"}]
     ) + [rel]
 
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     code = pipeline.main(["record-content-report"])
     captured = capsys.readouterr()
@@ -2015,7 +2015,7 @@ def test_delisting_a_project_does_not_make_its_artifacts_declarable_here(tmp_pat
     MARKER-BACKED set, where widening is safe. Delisting then makes a project's files fail here —
     loud, and correct — without making them declarable.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     foreign = "projects/perturb-seq-eval/paper/paper.pdf"
     digest = _write(tmp_path, foreign, b"%PDF-1.4\x00\xfe\xff\x80 binary")
@@ -2034,7 +2034,7 @@ def test_delisting_a_project_does_not_make_its_artifacts_declarable_here(tmp_pat
             f"with owners={owners}, delisting turned another team's artifact into a "
             f"repo-root-declarable path"
         )
-        assert foreign not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+        assert foreign not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
         # A sentence only this branch produces — `projects/` is an ownership prefix whether or not
         # the project behind it is registered, which is what breaks the circle.
         assert "OWNERSHIP PREFIX" in defects[foreign]
@@ -2050,14 +2050,14 @@ def test_an_absent_declaration_surface_is_not_an_empty_one(tmp_path, monkeypatch
     one". An ABSENT one is not either. Otherwise "the surface exists" is exactly what "declared" was
     before this commit: a state the code can describe and cannot verify.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path, owners=[THIS_PROJECT])
-    (tmp_path / ds.REPO_DECLARATION_FILE).unlink()
+    (tmp_path / rc.REPO_DECLARATION_FILE).unlink()
 
-    with pytest.raises(ds.RecordContentScanError) as exc:
-        ds.refuse_an_absent_declaration_surface(tmp_path)
-    assert ds.REPO_DECLARATION_FILE in str(exc.value)
+    with pytest.raises(rc.RecordContentScanError) as exc:
+        rc.refuse_an_absent_declaration_surface(tmp_path)
+    assert rc.REPO_DECLARATION_FILE in str(exc.value)
     assert "absent" in str(exc.value).lower() or "missing" in str(exc.value).lower()
 
 
@@ -2065,7 +2065,7 @@ def test_a_pin_is_hashed_with_the_module_s_own_streaming_helper(tmp_path):
     """DES-4. The pin check slurped the whole file with read_bytes(), unlike every other reader in
     this guard, which is bounded. Declared files are by construction binaries — a pinned PDF or a
     rendered video is exactly the large-file case."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/big.bin"
     data = b"\x00\xff\x80\x81" * 100_000
@@ -2076,14 +2076,14 @@ def test_a_pin_is_hashed_with_the_module_s_own_streaming_helper(tmp_path):
     ) + [rel]
 
     calls = []
-    real = ds._sha256
+    real = rc._sha256
     ds_sha = lambda p: (calls.append(p), real(p))[1]
     import pytest as _pytest
 
     monkey = _pytest.MonkeyPatch()
-    monkey.setattr(ds, "_sha256", ds_sha)
+    monkey.setattr(rc, "_sha256", ds_sha)
     try:
-        assert rel in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+        assert rel in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
     finally:
         monkey.undo()
     assert calls, "the pin must go through the module's own bounded, streaming hash helper"
@@ -2132,13 +2132,13 @@ def test_a_BARE_path_declaration_is_refused(tmp_path):
     """E6-3's entire point, and it was untested: the sibling test covers `both` claims only, while
     its name says "or neither". A bare path is the exact form the clause forbids, because every
     declared file is a build output."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/bare.bin"
     _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
     listing = _one_entry(tmp_path, {"path": rel, "why": "bare"})
-    with pytest.raises(ds.RecordContentScanError, match="exactly one"):
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError, match="exactly one"):
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_declared_owner_with_no_tracked_marker_is_not_recognised(tmp_path):
@@ -2147,15 +2147,15 @@ def test_a_declared_owner_with_no_tracked_marker_is_not_recognised(tmp_path):
     assertion held because the name had NEITHER half. Returning the declared set instead of the
     intersection survived the whole suite: minting an owner by editing one YAML line, with no
     marker, was unchecked."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT, "ghost-lib"]) + [
         "libs/ghost-lib/payload.bin"  # note: libs/ghost-lib/pyproject.toml is NOT tracked
     ]
-    recognised = ds.recognised_owners(tmp_path, listing)
+    recognised = rc.recognised_owners(tmp_path, listing)
     assert THIS_PROJECT in recognised
     assert "ghost-lib" not in recognised, "a registry entry alone must not mint an owner"
-    assert ds.path_owner("libs/ghost-lib/payload.bin", recognised) is None
+    assert rc.path_owner("libs/ghost-lib/payload.bin", recognised) is None
 
 
 def test_a_broken_declaration_FAILS_the_gate_and_is_printed(tmp_path, monkeypatch, capsys):
@@ -2166,17 +2166,17 @@ def test_a_broken_declaration_FAILS_the_gate_and_is_printed(tmp_path, monkeypatc
     other rule can be what fails it. (A stale pin would also be undecodable-and-unowned and fail
     anyway, which is why the first attempt at this test did not kill the mutant.)
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
 
     rel = f"projects/{THIS_PROJECT}/docs/deleted.bin"
     listing = _decl_fixture(
         tmp_path, project_entries=[{"path": rel, "sha256": "0" * 64, "why": "long gone"}]
     )
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
-    monkeypatch.setattr(ds, "refuse_an_absent_declaration_surface", lambda root: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "refuse_an_absent_declaration_surface", lambda root: None)
 
     code = pipeline.main(["record-content-report"])
     printed = capsys.readouterr().out
@@ -2191,14 +2191,14 @@ def test_an_unknown_schema_version_is_refused(tmp_path):
     than being read as this one". Nothing tested it."""
     import yaml
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path)
-    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text(
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text(
         yaml.safe_dump({"version": "2", "declarations": []})
     )
-    with pytest.raises(ds.RecordContentScanError, match="unsupported declaration schema version"):
-        ds._declaration_document(tmp_path, ds.PROJECT_DECLARATION_FILE)
+    with pytest.raises(rc.RecordContentScanError, match="unsupported declaration schema version"):
+        rc._declaration_document(tmp_path, rc.PROJECT_DECLARATION_FILE)
 
 
 @pytest.mark.parametrize("spelling", ["1", 1, 1.0, "01", "0x1", True, None])
@@ -2207,129 +2207,129 @@ def test_only_the_string_1_is_accepted_as_the_schema_version(tmp_path, spelling)
     something no reader would call version 1."""
     import yaml
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path)
     doc = {"declarations": []}
     if spelling is not None:
         doc["version"] = spelling
-    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text(yaml.safe_dump(doc))
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text(yaml.safe_dump(doc))
 
     if spelling == "1" and isinstance(spelling, str):
-        assert ds._declaration_document(tmp_path, ds.PROJECT_DECLARATION_FILE)["version"] == "1"
+        assert rc._declaration_document(tmp_path, rc.PROJECT_DECLARATION_FILE)["version"] == "1"
     else:
-        with pytest.raises(ds.RecordContentScanError):
-            ds._declaration_document(tmp_path, ds.PROJECT_DECLARATION_FILE)
+        with pytest.raises(rc.RecordContentScanError):
+            rc._declaration_document(tmp_path, rc.PROJECT_DECLARATION_FILE)
 
 
 def test_an_unparsable_declaration_file_is_not_an_empty_one(tmp_path):
     """FAIL-OPEN was the alternative, and it is the one the module's own comment refuses. With the
     repo-root file unparsable the registry would stop narrowing, so paths under unregistered names
     would become owned by marker-only names and stop failing this gate."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     listing = _decl_fixture(tmp_path)
-    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
-    with pytest.raises(ds.RecordContentScanError, match="not an empty one"):
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
+    with pytest.raises(rc.RecordContentScanError, match="not an empty one"):
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_declaration_file_with_a_non_utf8_byte_is_refused(tmp_path):
     """One byte no UTF-8 decoder accepts produced a traceback out of the CLI — exit 1, no report —
     because read_text raises UnicodeDecodeError, which is a ValueError and not an OSError."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path)
-    (tmp_path / ds.REPO_DECLARATION_FILE).write_bytes(b'version: "1"\ndeclarations: []\n# \xff\n')
-    with pytest.raises(ds.RecordContentScanError, match="not an empty one"):
-        ds.declared_owner_registry(tmp_path)
+    (tmp_path / rc.REPO_DECLARATION_FILE).write_bytes(b'version: "1"\ndeclarations: []\n# \xff\n')
+    with pytest.raises(rc.RecordContentScanError, match="not an empty one"):
+        rc.declared_owner_registry(tmp_path)
 
 
 def test_a_declarations_block_that_is_not_a_list_is_refused(tmp_path):
     """`declarations: 5` was iterated and crashed with an unhandled TypeError."""
     import yaml
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path)
-    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text(
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text(
         yaml.safe_dump({"version": "1", "declarations": 5})
     )
-    with pytest.raises(ds.RecordContentScanError, match="must be a list"):
-        ds._declaration_entries(tmp_path)
+    with pytest.raises(rc.RecordContentScanError, match="must be a list"):
+        rc._declaration_entries(tmp_path)
 
 
 def test_an_entry_missing_its_why_is_refused(tmp_path):
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/x.bin"
     digest = _write(tmp_path, rel, b"\x00\xff\x80\x81")
     listing = _one_entry(tmp_path, {"path": rel, "sha256": digest})
-    with pytest.raises(ds.RecordContentScanError, match="needs a `why`"):
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError, match="needs a `why`"):
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_an_entry_missing_its_path_is_refused(tmp_path):
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     listing = _one_entry(tmp_path, {"sha256": "a" * 64, "why": "no path"})
-    with pytest.raises(ds.RecordContentScanError, match="needs a `path`"):
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError, match="needs a `path`"):
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_an_unknown_declaration_key_is_refused(tmp_path):
     """A key the gate does not understand may be the one a reader believed was doing the work — an
     `expires:` that nothing honours, say."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/x.bin"
     digest = _write(tmp_path, rel, b"\x00\xff\x80\x81")
     listing = _one_entry(
         tmp_path, {"path": rel, "sha256": digest, "why": "w", "expires": "2030-01-01"}
     )
-    with pytest.raises(ds.RecordContentScanError, match="unknown declaration key"):
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError, match="unknown declaration key"):
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_path_declared_on_BOTH_surfaces_is_refused(tmp_path):
     """Which claim governs is not something the gate may pick."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = "docs/shared.bin"
     digest = _write(tmp_path, rel, b"\x00\xff\x80\x81")
     entry = {"path": rel, "sha256": digest, "why": "twice"}
     listing = _decl_fixture(tmp_path, project_entries=[entry], repo_entries=[entry]) + [rel]
-    with pytest.raises(ds.RecordContentScanError, match="declared twice"):
-        ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    with pytest.raises(rc.RecordContentScanError, match="declared twice"):
+        rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_an_owners_registry_of_the_wrong_shape_is_refused(tmp_path):
     import yaml
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path)
-    (tmp_path / ds.REPO_DECLARATION_FILE).write_text(
+    (tmp_path / rc.REPO_DECLARATION_FILE).write_text(
         yaml.safe_dump({"version": "1", "declarations": [], "owners": {"a": 1}})
     )
-    with pytest.raises(ds.RecordContentScanError, match="list of project names"):
-        ds.declared_owner_registry(tmp_path)
+    with pytest.raises(rc.RecordContentScanError, match="list of project names"):
+        rc.declared_owner_registry(tmp_path)
 
 
 def test_a_pinned_path_absent_from_disk_is_a_defect(tmp_path):
     """Tracked, so not caught by the rot rule; absent, so the pin cannot be evaluated."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/gone.bin"
     listing = _one_entry(tmp_path, {"path": rel, "sha256": "a" * 64, "why": "vanished"})
     defects = _defects(tmp_path, listing)
     assert rel in defects and "absent from disk" in defects[rel]
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_derived_from_source_that_cannot_be_READ_is_a_defect(tmp_path):
     """ "…and S is in scope" is the half that was untested: only the tracked half had a test."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/plot.bin"
     src = f"projects/{THIS_PROJECT}/docs/source.bin"
@@ -2338,14 +2338,14 @@ def test_a_derived_from_source_that_cannot_be_READ_is_a_defect(tmp_path):
     listing = _one_entry(tmp_path, {"path": rel, "derived_from": src, "why": "w"}, extra=[src])
     defects = _defects(tmp_path, listing)
     assert rel in defects and "cannot read" in defects[rel]
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_dispatch_payload_cannot_be_declared(tmp_path):
     """The one path class this module singles out as never-exemptible: `path_owner` returning None
     for dispatch payloads is what keeps a non-.md payload failing here (E6-4), and the repo-root
     surface made it declarable."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = ".claude/usr/someone/dispatches/leak.pdf"
     digest = _write(tmp_path, rel, b"%PDF-1.4\x00\xfe\xff\x80")
@@ -2354,17 +2354,17 @@ def test_a_dispatch_payload_cannot_be_declared(tmp_path):
     ) + [rel]
     defects = _defects(tmp_path, listing)
     assert rel in defects and "DOUBLE-EXEMPT" in defects[rel]
-    assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_declared_path_may_not_also_be_content_excluded(tmp_path):
     """A path must never be exempted twice by two different mechanisms. The test that claimed this
     iterated an empty declaration list against an empty exclusion set — vacuous on both sides."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = min(DRUGBANK_ID_LEDGER)
     digest = _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
-    surface = "project" if ds.path_owner(rel, frozenset({THIS_PROJECT})) == THIS_PROJECT else "repo"
+    surface = "project" if rc.path_owner(rel, frozenset({THIS_PROJECT})) == THIS_PROJECT else "repo"
     kwargs = (
         {"project_entries": [{"path": rel, "sha256": digest, "why": "w"}]}
         if surface == "project"
@@ -2373,7 +2373,7 @@ def test_a_declared_path_may_not_also_be_content_excluded(tmp_path):
     listing = _decl_fixture(tmp_path, **kwargs) + [rel]
     defects = _defects(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
     assert rel in defects and "exempted twice" in defects[rel]
-    assert rel not in ds.valid_declarations(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
+    assert rel not in rc.valid_declarations(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
 
 
 def test_a_derived_from_source_may_not_itself_be_declared(tmp_path):
@@ -2403,7 +2403,7 @@ def test_an_OWNED_payload_cannot_be_cleared_at_the_repo_root_surface_by_delistin
     Both halves live in the same file, so it was one edit. The ownership-prefix rule closes it: a
     path under `projects/` belongs to a project whether or not that project is registered.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = f"projects/{THIS_PROJECT}/docs/figures/payload.pdf"
     digest = _write(tmp_path, rel, b"\x00\xff\x80\x81 DB90000\tFakine\tInChI=1S/C4H7NO4")
@@ -2411,10 +2411,10 @@ def test_an_OWNED_payload_cannot_be_cleared_at_the_repo_root_surface_by_delistin
 
     for owners in ([THIS_PROJECT], []):
         listing = _decl_fixture(tmp_path, repo_entries=[entry], owners=owners) + [rel]
-        assert rel not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED), (
+        assert rel not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED), (
             f"cleared with owners={owners}"
         )
-        assert rel in ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), (
+        assert rel in rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED), (
             "and it stays reported"
         )
 
@@ -2422,7 +2422,7 @@ def test_an_OWNED_payload_cannot_be_cleared_at_the_repo_root_surface_by_delistin
 def test_a_fabricated_project_directory_is_not_declarable_at_the_repo_root(tmp_path):
     """The variant that needs no registry edit at all, so the CI coverage oracle cannot see it:
     `projects/ghostproj/` has no marker, so it was 'unowned' and therefore repo-root declarable."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     ghost = "projects/ghostproj/data/blob.pdf"
     digest = _write(tmp_path, ghost, b"\x00\xff\x80\x81 DB90000")
@@ -2432,22 +2432,22 @@ def test_a_fabricated_project_directory_is_not_declarable_at_the_repo_root(tmp_p
 
     defects = _defects(tmp_path, listing)
     assert ghost in defects and "OWNERSHIP PREFIX" in defects[ghost]
-    assert ghost not in ds.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
+    assert ghost not in rc.valid_declarations(tmp_path, listing, NOTHING_WAIVED)
 
 
 def test_a_declaration_file_larger_than_the_bound_is_refused(tmp_path):
     """`yaml.safe_load` is safe against arbitrary object construction but not against alias
     expansion or a huge document, and a declaration file nobody can parse holds the gate
     permanently un-runnable."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     _decl_fixture(tmp_path)
     padding = "# " + ("x" * 80) + "\n"
-    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text(
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text(
         'version: "1"\ndeclarations: []\n' + padding * 20_000
     )
-    with pytest.raises(ds.RecordContentScanError, match="bound for declaration data"):
-        ds._declaration_document(tmp_path, ds.PROJECT_DECLARATION_FILE)
+    with pytest.raises(rc.RecordContentScanError, match="bound for declaration data"):
+        rc._declaration_document(tmp_path, rc.PROJECT_DECLARATION_FILE)
 
 
 def test_the_declaration_files_do_not_overclaim_what_derived_from_verifies():
@@ -2472,13 +2472,13 @@ def _report(tmp_path, monkeypatch, capsys, listing, policy=None):
     E-13b: assertions bind the observable a consumer sees. Every defect test before this asserted
     on the validator's return value, and 12 mutants walked through the whole suite as a result.
     """
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim import pipeline
     from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
 
-    monkeypatch.setattr(ds, "repo_root", lambda: tmp_path)
-    monkeypatch.setattr(ds, "_tracked_listing", lambda root: (listing, []))
-    monkeypatch.setattr(ds, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
     monkeypatch.setattr(
         pipeline, "_record_content_policy", lambda: policy or DRUGBANK_CONTENT_POLICY, raising=False
     )
@@ -2493,18 +2493,18 @@ def test_a_broken_declaration_file_still_renders_the_listing_and_exits_2(
     """E-13. Turning the whole gate to exit 3 hid WHICH file failed. The scan works; only the
     exemption data is unreadable, so: treat nothing as declared (fail-closed — more files fail,
     never fewer), still render the listing, exit 2, and name the file that is broken."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     payload = "docs/payload.bin"
     _write(tmp_path, payload, b"\x00\xff\x80\x81 OPAQUE")
     listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [payload]
-    (tmp_path / ds.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text("declarations: [\n  - path: x\n")
 
     code, out, err = _report(tmp_path, monkeypatch, capsys, listing)
 
     assert code == 2, f"not 3 — the scan worked; only the declaration data is broken\n{out}{err}"
     assert payload in out, "the listing must still be rendered, or the broken data hides it"
-    assert ds.PROJECT_DECLARATION_FILE in out + err, "the broken FILE must be named"
+    assert rc.PROJECT_DECLARATION_FILE in out + err, "the broken FILE must be named"
     assert "nothing is declared" in (out + err).lower()
 
 
@@ -2512,17 +2512,17 @@ def test_an_absent_declaration_file_also_renders_and_exits_2(tmp_path, monkeypat
     """Absent is still not EMPTY — it produces a structural error and nothing declared, where an
     empty `declarations: []` produces a clean zero-count report. The difference is visible; what
     changed is that it no longer costs the operator the listing."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     payload = "docs/payload.bin"
     _write(tmp_path, payload, b"\x00\xff\x80\x81 OPAQUE")
     listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [payload]
-    (tmp_path / ds.REPO_DECLARATION_FILE).unlink()
+    (tmp_path / rc.REPO_DECLARATION_FILE).unlink()
 
     code, out, err = _report(tmp_path, monkeypatch, capsys, listing)
     assert code == 2
     assert payload in out
-    assert ds.REPO_DECLARATION_FILE in out + err
+    assert rc.REPO_DECLARATION_FILE in out + err
 
 
 def test_the_header_counts_declaration_defects_SEPARATELY(tmp_path, monkeypatch, capsys):
@@ -2546,7 +2546,7 @@ def test_the_header_counts_declaration_defects_SEPARATELY(tmp_path, monkeypatch,
 def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch, capsys):
     """E-15. A reader who learns their entry's next problem one gate run at a time is being made to
     bisect their own data. This entry is wrong in three independent ways at once."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     rel = "projects/perturb-seq-eval/paper/fig.parquet"
     _write(tmp_path, rel, b"PAR1" + b"\x00" * 32)
@@ -2559,7 +2559,7 @@ def test_every_defect_in_an_entry_is_reported_in_one_pass(tmp_path, monkeypatch,
 
     reasons = [
         why
-        for path, why in ds.declaration_defects(tmp_path, listing, NOTHING_WAIVED)
+        for path, why in rc.declaration_defects(tmp_path, listing, NOTHING_WAIVED)
         if path == rel
     ]
     assert len(reasons) >= 2, f"only one defect reported for a triply-broken entry: {reasons}"
@@ -2572,17 +2572,17 @@ def test_the_declaration_surface_is_read_once_per_report(tmp_path, monkeypatch, 
     """E-14, on the half that is CORRECTNESS rather than speed: with no snapshot, a concurrent edit
     yields a self-contradictory single report — rows marked FAILS HERE under an owner the footer
     says fails nobody. Reading once makes that impossible rather than unlikely."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT])
     reads: list[str] = []
-    real = ds._declaration_document
+    real = rc._declaration_document
 
     def counting(root, rel):
         reads.append(rel)
         return real(root, rel)
 
-    monkeypatch.setattr(ds, "_declaration_document", counting)
+    monkeypatch.setattr(rc, "_declaration_document", counting)
     _report(tmp_path, monkeypatch, capsys, listing)
 
     assert len(reads) == 2, f"the two surfaces must be read exactly once each, got {reads}"
@@ -2598,9 +2598,9 @@ def test_no_guard_refusal_is_written_as_a_bare_assert():
     import ast
     import inspect
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
-    source = inspect.getsource(ds)
+    source = inspect.getsource(rc)
     asserts = [node.lineno for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Assert)]
     assert asserts == [], (
         f"bare assert(s) in the guard at line(s) {asserts} — `python -O` removes them, so the "
@@ -2618,13 +2618,13 @@ def test_the_container_refusal_survives_python_O():
         f"""
         import sys
         sys.path.insert(0, {str(PROJECT_ROOT)!r})
-        import chipsim.guards.record_content as ds
+        import chipsim.guards.record_content as rc
         try:
-            raise ds.RecordContentScanError("refusal reachable")
-        except ds.RecordContentScanError:
+            raise rc.RecordContentScanError("refusal reachable")
+        except rc.RecordContentScanError:
             print("REFUSAL-IS-AN-EXCEPTION")
         import ast, inspect
-        tree = ast.parse(inspect.getsource(ds))
+        tree = ast.parse(inspect.getsource(rc))
         print("ASSERTS", sum(isinstance(n, ast.Assert) for n in ast.walk(tree)))
         """
     )
@@ -2649,7 +2649,7 @@ def test_the_content_policy_has_no_default_because_one_half_would_be_fail_open()
     """
     import inspect
 
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
 
     for name in (
         "declaration_defects",
@@ -2659,7 +2659,7 @@ def test_the_content_policy_has_no_default_because_one_half_would_be_fail_open()
         "failing_undeclared",
         "render_undeclared_report",
     ):
-        parameter = inspect.signature(getattr(ds, name)).parameters["policy"]
+        parameter = inspect.signature(getattr(rc, name)).parameters["policy"]
         assert parameter.default is inspect.Parameter.empty, (
             f"{name}() defaults its policy again — `content_exempt` defaulting to 'exempt nothing' "
             "CLEARS a file the real policy fails"
@@ -2668,7 +2668,7 @@ def test_the_content_policy_has_no_default_because_one_half_would_be_fail_open()
 
 def test_exempting_nothing_is_the_QUIETER_direction(tmp_path):
     """The measurement itself, so the asymmetry is recorded as behaviour and not only as prose."""
-    import chipsim.guards.record_content as ds
+    import chipsim.guards.record_content as rc
     from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
 
     rel = min(DRUGBANK_ID_LEDGER)
@@ -2676,12 +2676,116 @@ def test_exempting_nothing_is_the_QUIETER_direction(tmp_path):
     listing = _decl_fixture(
         tmp_path, project_entries=[{"path": rel, "sha256": digest, "why": "w"}]
     ) + [rel]
-    if ds.path_owner(rel, frozenset({THIS_PROJECT})) != THIS_PROJECT:
+    if rc.path_owner(rel, frozenset({THIS_PROJECT})) != THIS_PROJECT:
         pytest.skip(
             "this ledger entry is not owned by this project, so the fixture cannot declare it"
         )
 
-    lenient = ds.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED)
-    strict = ds.undecodable_unallowed(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
+    lenient = rc.undecodable_unallowed(tmp_path, listing, NOTHING_WAIVED)
+    strict = rc.undecodable_unallowed(tmp_path, listing, DRUGBANK_CONTENT_POLICY)
     assert rel not in lenient, "exempting nothing CLEARS it — the quieter direction"
     assert rel in strict, "the real policy reports it"
+
+
+def test_a_BROKEN_registry_narrows_to_nothing_rather_than_widening(tmp_path, monkeypatch, capsys):
+    """CODE-1, and the banner was mine. A broken declaration file set `registry=None`, which
+    `recognised_owners` read as "no registry yet" and answered with the WIDER marker-backed set — so
+    a path under an unregistered owner stopped being unowned and stopped failing, while the banner
+    printed directly above it asserted "more files fail, never fewer".
+
+    UNKNOWN is not ABSENT. A registry that cannot be read narrows to nothing: every path is unowned,
+    and unowned fails HERE.
+    """
+    import chipsim.guards.record_content as rc
+    from chipsim import pipeline
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
+
+    payload = "libs/ghost-lib/payload.bin"
+    _write(tmp_path, payload, b"\x00\xff\x80\x81 OPAQUE")
+    _write(tmp_path, "libs/ghost-lib/pyproject.toml", b"[project]\n")
+    listing = _decl_fixture(tmp_path, owners=[THIS_PROJECT]) + [
+        payload,
+        "libs/ghost-lib/pyproject.toml",
+    ]
+
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(
+        pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY, raising=False
+    )
+
+    healthy = pipeline.main(["record-content-report"])
+    healthy_out = capsys.readouterr().out
+    assert "[FAILS HERE]" in healthy_out and healthy == 2
+
+    # The ONLY change: the repo-root declaration file stops parsing.
+    (tmp_path / rc.REPO_DECLARATION_FILE).write_text("owners: [\n")
+    broken = pipeline.main(["record-content-report"])
+    broken_out = capsys.readouterr().out
+
+    assert broken == 2
+    assert "owner=ghost-lib" not in broken_out, (
+        "a broken registry attributed the payload to an unregistered owner and marked it [listed]"
+    )
+    assert "[FAILS HERE]" in broken_out, "the banner promises more files fail, never fewer"
+
+
+def test_the_verdicts_are_adjudicated_once_per_report(tmp_path, monkeypatch, capsys):
+    """CODE-2. The YAML was snapshotted; the VERDICTS were not. `declaration_defects` ran three
+    times per report and re-read the filesystem each time, so a pinned artifact was hashed three
+    times and an artifact rebuilt between passes produced a single report that disagreed with
+    itself — E-14's failure surviving inside the fix for E-14."""
+    import chipsim.guards.record_content as rc
+    from chipsim import pipeline
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
+
+    rel = f"projects/{THIS_PROJECT}/art.bin"
+    digest = _write(tmp_path, rel, b"\x00\xff\x80\x81 ART")
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": rel, "sha256": digest, "why": "pinned"}],
+        owners=[THIS_PROJECT],
+    ) + [rel]
+
+    hashed: list[str] = []
+    real = rc._sha256
+    monkeypatch.setattr(rc, "_sha256", lambda p: (hashed.append(str(p)), real(p))[1])
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(
+        pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY, raising=False
+    )
+
+    pipeline.main(["record-content-report"])
+    capsys.readouterr()
+    assert hashed.count(str(tmp_path / rel)) == 1, (
+        f"the pinned artifact was hashed {hashed.count(str(tmp_path / rel))} times; three passes "
+        "over the filesystem is how one report comes to disagree with itself"
+    )
+
+
+def test_the_header_counts_DECLARATIONS_not_defects(tmp_path, monkeypatch, capsys):
+    """CODE-6. E-15 made defects multi-valued per entry while the header still called them
+    declarations, so ONE bad declaration reported "3 whose claim does not hold"."""
+    import chipsim.guards.record_content as rc
+    from chipsim import pipeline
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY
+
+    rel = "projects/other/gone.bin"
+    listing = _decl_fixture(
+        tmp_path,
+        repo_entries=[{"path": rel, "sha256": "0" * 64, "why": "wrong in several ways"}],
+        owners=[THIS_PROJECT],
+    )
+    monkeypatch.setattr(rc, "repo_root", lambda: tmp_path)
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    monkeypatch.setattr(
+        pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY, raising=False
+    )
+
+    pipeline.main(["record-content-report"])
+    out = capsys.readouterr().out
+    assert "1 whose claim does not hold" in out, out.splitlines()[1]
