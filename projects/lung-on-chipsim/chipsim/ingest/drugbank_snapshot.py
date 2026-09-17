@@ -351,11 +351,94 @@ def is_accession_excluded(rel: str) -> bool:
     return rel in DRUGBANK_ID_EXCEPTIONS or bool(_DISPATCH_PAYLOAD_RE.match(rel))
 
 
+#: Tracked files the scan CANNOT decode as text and which are DECLARED, by exact path, to be
+#: artifacts rather than record carriers (CTO ruling, QG §5 E-3). Declared individually, never by
+#: suffix or directory: a suffix rule waves through the next binary nobody looked at, which is the
+#: silent-skip this list exists to end. A new undecodable tracked file FAILS the guard until
+#: someone reads it and adds it here.
+#:
+#: These 24 are plotting outputs and a typeset paper from OTHER modules (perturb-seq-eval,
+#: paper_standalone) plus one AnnData pilot dataset. None is a DrugBank artifact; all predate this
+#: declaration and were skipped in silence by every scan before it.
+BINARY_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        "paper_standalone/figures/fig1_metric_vs_difficulty.pdf",
+        "paper_standalone/figures/fig1_metric_vs_difficulty.png",
+        "paper_standalone/figures/fig2_calibration_and_ablation.pdf",
+        "paper_standalone/figures/fig2_calibration_and_ablation.png",
+        "paper_standalone/figures/fig3_pareto.pdf",
+        "paper_standalone/figures/fig3_pareto.png",
+        "paper_standalone/figures/fig4_agent_scaling.pdf",
+        "paper_standalone/figures/fig4_agent_scaling.png",
+        "paper_standalone/figures/fig5_probe_to_difficulty.pdf",
+        "paper_standalone/figures/fig5_probe_to_difficulty.png",
+        "paper_standalone/paper.dvi",
+        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig1_metric_heatmap.pdf",
+        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig2_e3_synthetic.pdf",
+        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig3_e3_adamson.pdf",
+        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig4_e3b_task_conditional.pdf",
+        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig5_backbone_msd.pdf",
+        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig6_lifecycle_optimizer.pdf",
+        "projects/perturb-seq-eval/data/Adamson2016_pilot.h5ad",
+        "projects/perturb-seq-eval/paper/figures/fig1_metric_vs_difficulty.pdf",
+        "projects/perturb-seq-eval/paper/figures/fig2_calibration_and_ablation.pdf",
+        "projects/perturb-seq-eval/paper/figures/fig3_pareto.pdf",
+        "projects/perturb-seq-eval/paper/figures/fig4_agent_scaling.pdf",
+        "projects/perturb-seq-eval/paper/figures/fig5_probe_to_difficulty.pdf",
+        "projects/perturb-seq-eval/paper/paper.pdf",
+    }
+)
+
+
+def _scannable_text(target: Path) -> str | None:
+    """The file's content as text for scanning, or None when it cannot be read as any.
+
+    PARQUET is read as a FRAME and stringified rather than skipped (CTO ruling, QG §5 E-3): a
+    parquet holding an accession beside a name and an InChI — the complete record — returned NO
+    hits from the old UTF-8 read, while the same content in a CSV was caught. `write_compounds`
+    persists exactly that shape, so the format most likely to carry a whole record was the one
+    format the guard could not see.
+    """
+    if target.suffix == ".parquet":
+        try:
+            frame = pd.read_parquet(target, engine="pyarrow")
+        except Exception:  # noqa: BLE001 - an unreadable parquet is UNDECODABLE, not clean
+            return None
+        return frame.to_csv(index=True)
+    try:
+        return target.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return None
+
+
+def undecodable_unallowed(root: Path, paths) -> list[str]:
+    """Tracked paths the scan cannot read AND which are not declared in `BINARY_ALLOWLIST`.
+
+    A skipped file is an UNCHECKED file: "no hits" from a file the scan never read is the
+    false-clean this project keeps rediscovering. Reporting them is what makes the scan's silence
+    mean something.
+    """
+    unreadable: list[str] = []
+    for rel in paths:
+        if is_accession_excluded(rel) or rel in BINARY_ALLOWLIST:
+            continue
+        target = Path(root) / rel
+        if not target.is_file():
+            continue
+        if _scannable_text(target) is None:
+            unreadable.append(rel)
+    return sorted(unreadable)
+
+
 def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
-    """(path, first real accession) for every tracked text file outside the ruled
-    exclusions that carries a real DrugBank ID. `root` is the REPOSITORY root and
-    `paths` are repo-relative (CTO #122 §5); the old project-rooted scan never saw
-    `workstreams/` or `.claude/`. Binary files (undecodable as UTF-8) are skipped."""
+    """(path, first real accession) for every tracked file outside the ruled exclusions that
+    carries a real DrugBank ID. `root` is the REPOSITORY root and `paths` are repo-relative
+    (CTO #122 §5); the old project-rooted scan never saw `workstreams/` or `.claude/`.
+
+    Parquet is scanned as a frame. A file that cannot be read at all is skipped HERE and reported
+    by `undecodable_unallowed`, which fails unless the file is declared — so a skip is always
+    visible somewhere (QG §5 E-3).
+    """
     hits: list[tuple[str, str]] = []
     for rel in paths:
         if is_accession_excluded(rel):
@@ -363,9 +446,8 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
         target = Path(root) / rel
         if not target.is_file():
             continue
-        try:
-            text = target.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+        text = _scannable_text(target)
+        if text is None:
             continue
         found = REAL_ACCESSION_RE.search(text)
         if found:

@@ -30,12 +30,14 @@ import subprocess
 from pathlib import Path
 
 from chipsim.ingest.drugbank_snapshot import (
+    BINARY_ALLOWLIST,
     DRUGBANK_ID_EXCLUDED_FILES,
     DRUGBANK_ID_LEDGER,
     accession_structure_tuples,
     is_accession_excluded,
     ledger_tuple_hits,
     real_accession_hits,
+    undecodable_unallowed,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -220,3 +222,72 @@ def test_the_ledger_carries_no_accession_structure_tuple():
         f"accession/structure tuples in the sanctioned ledger: {hits}. Drop the structure "
         "strings, keep the accessions (#120 §4)."
     )
+
+
+# --- E-3: a skipped file is an UNCHECKED file (CTO ruling, QG §5) --------------------------
+
+
+def test_a_parquet_carrying_record_content_is_scanned_not_skipped(tmp_path):
+    """The guard read files as UTF-8 text and skipped whatever failed, so a tracked parquet
+    holding an accession beside a name and a structure — the complete record — returned NO hits,
+    while the same content in a CSV was caught. Measured by the §5 security review.
+    """
+    import pandas as pd
+
+    frame = pd.DataFrame({"drugbank_id": [REAL], "name": ["a compound name"], "inchi": [STRUCTURE]})
+    frame.to_parquet(tmp_path / "compounds.parquet", engine="pyarrow")
+    assert [a for _, a in real_accession_hits(tmp_path, ["compounds.parquet"])] == [REAL]
+
+
+def test_a_parquet_without_record_content_is_clean(tmp_path):
+    import pandas as pd
+
+    pd.DataFrame({"canonical_inchikey": ["FIXTURECMPDAAA-FIXTUREKEY-N"]}).to_parquet(
+        tmp_path / "clean.parquet", engine="pyarrow"
+    )
+    assert real_accession_hits(tmp_path, ["clean.parquet"]) == []
+
+
+def test_a_parquet_that_cannot_be_READ_is_undecodable_not_clean(tmp_path):
+    """A corrupt or truncated parquet must report as UNREADABLE, never as "no hits". Treating a
+    failed read as clean is the same false-clean in a new costume — and it survived the first
+    version of these tests, which is how it was found."""
+    (tmp_path / "broken.parquet").write_bytes(b"PAR1 truncated garbage not really parquet")
+    assert undecodable_unallowed(tmp_path, ["broken.parquet"]) == ["broken.parquet"]
+    assert real_accession_hits(tmp_path, ["broken.parquet"]) == []
+
+
+def test_an_undecodable_file_is_reported_unless_it_is_declared(tmp_path):
+    """Fail-closed on the unknown: a new binary must be DECLARED before the scan passes, so
+    "no hits" can never mean "never read". The declaration is by exact path, not by suffix —
+    a suffix rule would silently admit the next .pdf nobody looked at."""
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "figure.pdf").write_bytes(b"\x89PNG\x00\xff\xfe not utf-8")
+    assert undecodable_unallowed(tmp_path, ["docs/figure.pdf"]) == ["docs/figure.pdf"]
+
+
+def test_a_declared_binary_file_is_not_reported(tmp_path):
+    declared = next(iter(BINARY_ALLOWLIST))
+    target = tmp_path / declared
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"\xff\xfe not utf-8")
+    assert undecodable_unallowed(tmp_path, [declared]) == []
+
+
+def test_every_undecodable_tracked_file_in_this_repo_is_declared():
+    """The live half. A new binary lands -> this fails -> someone looks at it and declares it.
+    24 files were being skipped in silence when this was written (17 .pdf, 5 .png, .dvi, .h5ad)."""
+    undeclared = undecodable_unallowed(REPO_ROOT, _tracked_paths())
+    assert undeclared == [], (
+        f"{len(undeclared)} tracked file(s) cannot be decoded and are not declared in "
+        f"BINARY_ALLOWLIST, so the scan never read them: {undeclared[:5]}"
+    )
+
+
+def test_the_binary_allowlist_is_not_a_blanket():
+    """Anti-vacuity: the allow-list must name paths, not wave through a suffix or a directory."""
+    assert BINARY_ALLOWLIST, "an empty allow-list would make the declaration test vacuous"
+    for rel in BINARY_ALLOWLIST:
+        assert not rel.endswith("/"), f"{rel} waves through a whole directory"
+        assert "*" not in rel, f"{rel} is a glob, not a declared file"
+        assert Path(rel).suffix, f"{rel} has no extension — is it really a binary artifact?"
