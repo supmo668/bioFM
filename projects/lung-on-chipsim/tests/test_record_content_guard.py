@@ -37,9 +37,12 @@ from chipsim.ingest.drugbank_snapshot import (
     DRUGBANK_ID_LEDGER,
     _is_readable,
     accession_structure_tuples,
+    failing_undeclared,
     is_accession_excluded,
     ledger_tuple_hits,
+    path_owner,
     real_accession_hits,
+    undeclared_report,
     undecodable_unallowed,
 )
 
@@ -269,8 +272,14 @@ def test_an_undecodable_file_is_reported_unless_it_is_declared(tmp_path):
     assert undecodable_unallowed(tmp_path, ["docs/figure.pdf"]) == ["docs/figure.pdf"]
 
 
-def test_a_declared_binary_file_is_not_reported(tmp_path):
-    declared = next(iter(BINARY_ALLOWLIST))
+def test_a_declared_binary_file_is_not_reported(tmp_path, monkeypatch):
+    """BINARY_ALLOWLIST is EMPTY in this repo (E6-1: the foreign declarations left), so the
+    mechanism is exercised with a synthetic declaration owned by THIS project — which is what a
+    real entry here would have to be."""
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    declared = "projects/lung-on-chipsim/docs/figure.pdf"
+    monkeypatch.setattr(ds, "BINARY_ALLOWLIST", frozenset({declared}))
     target = tmp_path / declared
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"\xff\xfe not utf-8")
@@ -278,18 +287,26 @@ def test_a_declared_binary_file_is_not_reported(tmp_path):
 
 
 def test_every_undecodable_tracked_file_in_this_repo_is_declared():
-    """The live half. A new binary lands -> this fails -> someone looks at it and declares it.
-    24 files were being skipped in silence when this was written (17 .pdf, 5 .png, .dvi, .h5ad)."""
-    undeclared = undecodable_unallowed(REPO_ROOT, _tracked_paths())
+    """SUPERSEDED IN SCOPE BY r2.22 E6-1b, deliberately kept rather than deleted.
+
+    Until E6-1b this asserted the repo-wide list was EMPTY, which is what forced 23 of another
+    team's paths to be declared inside this module. The failure is now scoped to the files this
+    project owns (plus any file no project owns); the repo-wide LISTING is asserted by
+    `test_the_live_report_is_not_vacuous_and_this_gate_is_green`, because listing is what may never
+    be skipped and failing is what is scoped.
+    """
+    undeclared = failing_undeclared(REPO_ROOT, _tracked_paths())
     assert undeclared == [], (
-        f"{len(undeclared)} tracked file(s) cannot be decoded and are not declared in "
-        f"BINARY_ALLOWLIST, so the scan never read them: {undeclared[:5]}"
+        f"{len(undeclared)} tracked file(s) this project owns (or that no project owns) cannot be "
+        f"decoded and are not declared: {undeclared[:5]}"
     )
 
 
 def test_the_binary_allowlist_is_not_a_blanket():
-    """Anti-vacuity: the allow-list must name paths, not wave through a suffix or a directory."""
-    assert BINARY_ALLOWLIST, "an empty allow-list would make the declaration test vacuous"
+    """The shape rules still bind every entry, but EMPTY is now the correct state (E6-1): this
+    project owns no undecodable tracked file, and the other teams' paths are listed by
+    `undeclared_report` rather than declared here. Anti-vacuity moved to the report test, which
+    asserts those files are still counted and named."""
     for rel in BINARY_ALLOWLIST:
         assert not rel.endswith("/"), f"{rel} waves through a whole directory"
         assert "*" not in rel, f"{rel} is a glob, not a declared file"
@@ -402,11 +419,14 @@ def test_genuine_binary_is_still_reported_not_decoded_into_mojibake(tmp_path):
     assert undecodable_unallowed(tmp_path, ["real.png"]) == ["real.png"]
 
 
-def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_path):
+def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_path, monkeypatch):
     """Both a path-suffix match and a basename match survived every earlier test, so
     `vendor/<declared path>` or any file sharing a declared BASENAME would have been silently
     exempted. The docstring claimed "exact path"; nothing checked it."""
-    declared = min(BINARY_ALLOWLIST)
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    declared = "projects/lung-on-chipsim/docs/figure.pdf"
+    monkeypatch.setattr(ds, "BINARY_ALLOWLIST", frozenset({declared}))
     for rel in (f"vendor/{declared}", f"some/other/dir/{Path(declared).name}"):
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -414,11 +434,14 @@ def test_the_allowlist_is_matched_by_EXACT_path_not_by_suffix_or_basename(tmp_pa
         assert undecodable_unallowed(tmp_path, [rel]) == [rel], rel
 
 
-def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path):
+def test_a_declared_path_is_still_scanned_when_its_bytes_are_readable(tmp_path, monkeypatch):
     """The allow-list declares that a file cannot be READ — never that its content is exempt.
     Adding `or rel in BINARY_ALLOWLIST` to the accession scan survived the whole suite, which
     would have turned "somebody looked at this artifact once" into a blanket content waiver."""
-    declared = min(BINARY_ALLOWLIST)
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    declared = "projects/lung-on-chipsim/docs/figure.pdf"
+    monkeypatch.setattr(ds, "BINARY_ALLOWLIST", frozenset({declared}))
     target = tmp_path / declared
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(f"see {REAL}\n")
@@ -586,3 +609,99 @@ def test_a_non_md_file_in_a_dispatch_directory_is_scanned_and_reported(tmp_path)
     }
     assert hits == {str(base / "leak.csv")}, "the .md message stays waived; the .csv does not"
     assert undecodable_unallowed(tmp_path, [str(base / "leak.pdf")]) == [str(base / "leak.pdf")]
+
+
+# --- r2.22 E6-1b: the FAILURE is scoped to the owner; the LISTING is not --------------------
+
+
+@pytest.mark.parametrize(
+    "rel, owner",
+    [
+        ("projects/lung-on-chipsim/data/x.bin", "lung-on-chipsim"),
+        ("workstreams/lung-on-chipsim/reports/x.bin", "lung-on-chipsim"),
+        ("projects/perturb-seq-eval/paper/fig.pdf", "perturb-seq-eval"),
+        ("paper_standalone/figures/fig.pdf", "paper_standalone"),
+        (".claude/usr/matthew-mo/lung-on-chipsim/dispatches/leak.pdf", None),
+        ("README.md", None),
+        ("config/monitor-pids.json", None),
+    ],
+    ids=["mine-project", "mine-workstream", "other-project", "paper", "dispatch", "root", "config"],
+)
+def test_ownership_is_read_from_an_explicit_map(rel, owner):
+    """ "A path matching no owner is unowned BY DEFINITION, never 'somebody else's'." The dispatch
+    directory is the case that matters: it belongs to no project."""
+    assert path_owner(rel) == owner
+
+
+def test_a_file_this_project_owns_fails_this_gate(tmp_path):
+    rel = "projects/lung-on-chipsim/data/interim/mystery.bin"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"\x00\xff not text")
+    assert failing_undeclared(tmp_path, [rel]) == [rel]
+
+
+def test_a_file_another_project_owns_is_listed_but_does_not_fail_this_gate(tmp_path):
+    """The whole point of E6-1b: another team not yet having adopted the rule must not turn THIS
+    gate red — measured, that was 24 files on day one — while the file stays visible and counted."""
+    rel = "projects/perturb-seq-eval/paper/figures/fig9.pdf"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"%PDF-1.4\x00\xff")
+    assert failing_undeclared(tmp_path, [rel]) == []
+    assert undeclared_report(tmp_path, [rel]) == [(rel, "perturb-seq-eval")]
+
+
+def test_a_path_owned_by_NO_project_fails_this_gate(tmp_path):
+    """LOAD-BEARING FOR E6-4. `.claude/usr/**/dispatches/` belongs to no project, so a non-.md
+    dispatch payload keeps failing here. Drafted without this rule, E6-1b would have made
+    dispatches/leak.pdf listed and UNFAILABLE ANYWHERE — silently re-opening the hole E6-4 closed
+    one clause above, in the same revision that closed it."""
+    rel = ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/leak.pdf"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"%PDF-1.4\x00\xff and a real accession " + REAL.encode())
+    assert failing_undeclared(tmp_path, [rel]) == [rel]
+    assert undeclared_report(tmp_path, [rel]) == [(rel, None)]
+
+
+def test_the_report_names_the_owner_of_every_listed_file(tmp_path):
+    """ "The LISTING stays repo-wide, with the owning project named." Listing is what may never be
+    skipped; failing is what is scoped."""
+    files = {
+        "projects/perturb-seq-eval/a.pdf": "perturb-seq-eval",
+        "paper_standalone/b.pdf": "paper_standalone",
+        "projects/lung-on-chipsim/c.bin": "lung-on-chipsim",
+        ".claude/d.bin": None,
+    }
+    for rel in files:
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"\x00\xff")
+    assert undeclared_report(tmp_path, list(files)) == sorted(files.items())
+
+
+def test_the_accession_scan_does_not_shrink_with_the_failure_scope(tmp_path):
+    """ "The accession scan itself stays repo-wide and does not shrink — this scopes only who a
+    missing DECLARATION blocks." A readable file in another project's tree is still a hit."""
+    rel = "projects/perturb-seq-eval/notes.md"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(f"see {REAL}\n")
+    assert [a for _, a in real_accession_hits(tmp_path, [rel])] == [REAL]
+    assert failing_undeclared(tmp_path, [rel]) == []
+
+
+def test_the_live_report_is_not_vacuous_and_this_gate_is_green():
+    """The live half. Anti-vacuity moved from the declared list (now empty for this project, since
+    none of the 24 was ever ours) to the REPORT: the other teams' artifacts must still be counted
+    and named, not silently dropped by the scoping."""
+    tracked = _tracked_paths()
+    report = undeclared_report(REPO_ROOT, tracked)
+    assert failing_undeclared(REPO_ROOT, tracked) == [], (
+        "this project owns an undeclared undecodable file (or one owned by nobody)"
+    )
+    assert len(report) >= 20, "the other teams' undeclared binaries must stay visible"
+    owners = {owner for _, owner in report}
+    assert owners == {"perturb-seq-eval", "paper_standalone"}, owners
+    assert all(owner is not None for _, owner in report), "an unowned file would have to FAIL"

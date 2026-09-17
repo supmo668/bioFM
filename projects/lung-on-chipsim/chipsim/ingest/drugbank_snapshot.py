@@ -364,44 +364,17 @@ def is_accession_excluded(rel: str) -> bool:
 #: silent-skip this list exists to end. A new undecodable tracked file FAILS the guard until
 #: someone reads it and adds it here.
 #:
-#: RENDERED ARTIFACTS ONLY (r2.21 E6-2): plotting outputs and a typeset paper from other modules.
-#: A readable structured CONTAINER may never be declared — the AnnData pilot dataset that used to
-#: sit in this list is now READ, because it was the one entry here that was not a rendered artifact
-#: and it was filed among figures where no reader would register it.
+#: Files THIS PROJECT declares unreadable — RENDERED ARTIFACTS ONLY (r2.21 E6-2): a readable
+#: structured container is always read, never declared. EMPTY today, and that is the correct state:
+#: this project owns no undecodable tracked file.
 #:
-#: OWNERSHIP (r2.21 E6-1): every path below belongs to `perturb-seq-eval` or `paper_standalone`,
-#: not to this module, which is the defect E6-1 names — another team adding a figure turns THIS
-#: gate red and the repair lands in a file they neither own nor can judge. Moving them to
-#: per-project declaration data is BLOCKED on a composition question sent to the CTO: r2.20 says an
-#: undeclared undecodable file FAILS, so removing these before those projects have declaration
-#: files simply inverts the coupling (measured: 24 files, 0 owned here, my gate red on day one).
-BINARY_ALLOWLIST: frozenset[str] = frozenset(
-    {
-        "paper_standalone/figures/fig1_metric_vs_difficulty.pdf",
-        "paper_standalone/figures/fig1_metric_vs_difficulty.png",
-        "paper_standalone/figures/fig2_calibration_and_ablation.pdf",
-        "paper_standalone/figures/fig2_calibration_and_ablation.png",
-        "paper_standalone/figures/fig3_pareto.pdf",
-        "paper_standalone/figures/fig3_pareto.png",
-        "paper_standalone/figures/fig4_agent_scaling.pdf",
-        "paper_standalone/figures/fig4_agent_scaling.png",
-        "paper_standalone/figures/fig5_probe_to_difficulty.pdf",
-        "paper_standalone/figures/fig5_probe_to_difficulty.png",
-        "paper_standalone/paper.dvi",
-        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig1_metric_heatmap.pdf",
-        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig2_e3_synthetic.pdf",
-        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig3_e3_adamson.pdf",
-        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig4_e3b_task_conditional.pdf",
-        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig5_backbone_msd.pdf",
-        "projects/perturb-seq-eval/artifacts/modal_run/figures/fig6_lifecycle_optimizer.pdf",
-        "projects/perturb-seq-eval/paper/figures/fig1_metric_vs_difficulty.pdf",
-        "projects/perturb-seq-eval/paper/figures/fig2_calibration_and_ablation.pdf",
-        "projects/perturb-seq-eval/paper/figures/fig3_pareto.pdf",
-        "projects/perturb-seq-eval/paper/figures/fig4_agent_scaling.pdf",
-        "projects/perturb-seq-eval/paper/figures/fig5_probe_to_difficulty.pdf",
-        "projects/perturb-seq-eval/paper/paper.pdf",
-    }
-)
+#: The 23 paths that used to sit here belonged to `perturb-seq-eval` and `paper_standalone`, and
+#: declaring another team's artifacts inside this module assigned them this module's failure mode
+#: and repair path (r2.21 E6-1) — a decision that looked like bookkeeping while it assigned
+#: ownership. They are now LISTED by `undeclared_report` with their owner named, and fail their
+#: owner's gate rather than this one (r2.22 E6-1b). They are NOT re-declared here on those teams'
+#: behalf.
+BINARY_ALLOWLIST: frozenset[str] = frozenset()
 
 
 #: HDF5's signature. `h5ad` is HDF5, and AnnData's `obs`/`var` carry names and identifiers — the
@@ -594,6 +567,66 @@ def _is_readable(target: Path) -> bool:
     if key not in _READABILITY_CACHE:
         _READABILITY_CACHE[key] = _scan_chunks(target) is not None
     return _READABILITY_CACHE[key]
+
+
+#: This module's project. The gate it guards is this project's gate.
+THIS_PROJECT = "lung-on-chipsim"
+
+#: Which project OWNS a repo-relative path (r2.22, E6-1b). Explicit, because the alternative is a
+#: default, and a default here would silently make somebody else responsible for a failure they
+#: cannot see. Order matters: the first matching prefix wins.
+#:
+#: A path matching NOTHING is UNOWNED BY DEFINITION, never "somebody else's" — and unowned FAILS
+#: this gate. That rule is LOAD-BEARING FOR E6-4: `.claude/usr/**/dispatches/` belongs to no
+#: project, so a non-.md dispatch payload keeps failing here. Without it, scoping would have made
+#: `dispatches/leak.pdf` listed and unfailable ANYWHERE — re-opening the hole E6-4 closed one
+#: clause above, in the same revision that closed it.
+_OWNERSHIP_PREFIXES = (
+    ("projects/", 1),  # projects/<owner>/...
+    ("libs/", 1),  # libs/<owner>/...
+    ("paper_standalone/", 0),  # the directory IS the project
+)
+
+
+def path_owner(rel: str) -> str | None:
+    """The project owning a repo-relative path, or None when no project owns it."""
+    parts = Path(rel).parts
+    for prefix, index in _OWNERSHIP_PREFIXES:
+        head = prefix.rstrip("/")
+        if parts and parts[0] == head:
+            if index == 0:
+                return head
+            if len(parts) > index:
+                return parts[index]
+            return None
+    if parts and parts[0] == "workstreams" and len(parts) > 1:
+        return parts[1]
+    return None
+
+
+def undeclared_report(root: Path, paths) -> list[tuple[str, str | None]]:
+    """(path, owning project) for every undeclared undecodable file, repo-wide (r2.22, E6-1b).
+
+    The LISTING is never scoped — "listing is what may never be skipped; failing is what is
+    scoped" — so another team's artifacts stay visible and countable here even though they do not
+    fail this gate.
+    """
+    return sorted((rel, path_owner(rel)) for rel in undecodable_unallowed(root, paths))
+
+
+def failing_undeclared(root: Path, paths) -> list[str]:
+    """The subset of the report that fails THIS project's gate: files this project owns, plus
+    every file no project owns.
+
+    Measured before this scoping existed: of 24 declared paths, 0 belonged to this project, and
+    removing them as E6-1 required made this module's live test fail on 24 files owned by two
+    other teams — inverting the coupling instead of removing it.
+    """
+    return [
+        rel
+        for rel, owner in undeclared_report(root, paths)
+        if owner is None or owner == THIS_PROJECT
+    ]
 
 
 def undecodable_unallowed(root: Path, paths) -> list[str]:
