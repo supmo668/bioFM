@@ -1,7 +1,7 @@
 ---
 workstream: lung-on-chipsim
 plan_path: workstreams/lung-on-chipsim/plan/build-plan.md
-plan_hash: 0cbaa2d
+plan_hash: 4e4aff5
 approved: true
 approved_by: Matthew Mo
 approval_route: cto-invoked, standing-delegation

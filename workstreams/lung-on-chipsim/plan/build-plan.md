@@ -237,6 +237,31 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
   into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
   halves may not be cited for the fourth.*
+- **"IS AN ETL RUN" AND "MAY BE INVOKED UNATTENDED" ARE TWO PREDICATES AND MUST NOT SHARE A TUPLE**
+  *(r2.34)*. `SUBCOMMANDS` / `NON_ETL_SUBCOMMANDS` encode a **conjunction**: the comment says
+  *"NOT ETL stages **and** must never appear in the n8n workflow"*, and the ETL list's own comment says
+  *"the workflow export is checked against these keys"*. So the scheme can express *ETL + node* and
+  *non-ETL + non-node*, and **cannot express the combination T13 actually has.**
+  **T13 (`adjudication-worksheet`) is the proof, and the agent's ETL classification is CORRECT**: it
+  reads the snapshot and writes a derived artifact, so it earns the per-run config snapshot and the
+  §16 approval prompt, and it is *not* human-reserved the way `panel-seal` is — it produces a draft
+  **for** a human. **But it must not be a node in an unattended chain**, which could regenerate a
+  worksheet mid-adjudication. Forced to pick one tuple, the correct ETL answer buys a wrong node
+  answer.
+  **This is the rule this plan already carries — *two predicates with opposite safe directions may not
+  share a source* — applied to a tuple rather than a default.** The safe direction for journalling is
+  **include** (more run-records cost nothing); for unattended invocation it is **exclude** (fewer
+  automated entry points). One membership test cannot serve both.
+  **Required:** split into two independent predicates, and have the workflow-export check compare
+  against the **node** list, not the ETL list. Record each command's reason separately — `panel-seal`
+  is non-node because Global Constraint 4 **reserves it to a human**; T13 is non-node because
+  **regenerating mid-adjudication destroys the premise of a 60–90 minute human task**. Same answer,
+  different reasons, and a reader who sees only the tuple cannot recover either.
+  **Severity, stated honestly:** T13 ships in the ETL list, so it IS currently exported as a node. The
+  principal's hours are not at risk — T13's never-clobber rule (defect 22) preserves any non-empty
+  verdict and refuses to drop an adjudicated key. **But that means a guard written for a different
+  purpose is the only thing standing between an automated chain and the human's work, which is
+  defence by coincidence.** Fix the classification; do not let the accidental save justify keeping it.
 - **A GUARD'S SILENCE IS NOT THE PLAN'S APPROVAL, AND THE INFERENCE GETS EASIER THE MORE GUARDS
   EXIST** *(r2.33)*. T5a's artifact was first written to `data/interim/compounds.parquet` — the wrong
   directory **and** the exact filename this plan forbids by name (A&D §1 reserves `compounds.parquet`
