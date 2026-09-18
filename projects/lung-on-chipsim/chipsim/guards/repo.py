@@ -157,6 +157,10 @@ def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
             f"asked to scan {root}, but git resolves that directory to the working tree {top}. "
             f"Refusing to report: the tree scanned and the tree named must be the same one."
         )
+    # `--stage` records carry a STAGE NUMBER, and an unresolved merge emits THREE per path
+    # (stages 1/2/3). Left de-duplicated, `tracked_count` inflated by 2 per conflicted file,
+    # rows duplicated, and the minimum-tracked floor got that much easier to clear — and
+    # `tracked_count` is reported upward as evidence.
     run = _git(["ls-files", "-z", "-s"], cwd=root)
     if run.returncode != 0:
         raise ScanNotPerformed(
@@ -164,8 +168,16 @@ def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
         )
     paths: list[str] = []
     gitlinks: list[str] = []
+    seen: set[str] = set()
     for record in filter(None, run.stdout.split("\0")):
         meta, rel = record.split("\t", 1)
+        # DE-DUPLICATED, order preserved. An unresolved merge emits one record per STAGE — three
+        # for a conflicted path — and every one names the same file. Counting them separately
+        # inflated `tracked_count`, duplicated rows, and made the minimum-tracked floor easier to
+        # clear, all while the report presented the number as the size of the tree.
+        if rel in seen:
+            continue
+        seen.add(rel)
         (gitlinks if meta.split()[0] == "160000" else paths).append(rel)
     return paths, sorted(gitlinks)
 

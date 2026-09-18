@@ -94,9 +94,17 @@ _PARQUET_BATCH_ROWS = 10_000
 #: actionable; an OOM mid-scan is not.
 _MAX_SCAN_BYTES = 256 * 1024 * 1024
 
-#: Verdict cache keyed by (path, mtime_ns, size): both callers walk the whole tracked tree, so an
-#: uncached parquet was parsed and stringified TWICE per suite run.
-_READABILITY_CACHE: dict[tuple[str, int, int], bool] = {}
+#: Verdict cache: both callers walk the whole tracked tree, so an uncached parquet was parsed and
+#: stringified TWICE per suite run.
+#:
+#: KEYED ON MORE THAN (path, mtime, size) — that triple kept a STALE verdict across a same-size
+#: rewrite that preserves mtime, which is not exotic: `cp -p`, `tar -x`, `rsync -t`, a `git
+#: checkout` of a same-size blob, or any `os.utime` all produce it. The dangerous direction is a
+#: stale UNREADABLE, because a file that has since become readable would be cleared and then
+#: skipped, so its content is never scanned. `st_ino`/`st_dev` distinguish a replaced file from an
+#: edited one and `st_ctime_ns` moves on any metadata change, which `st_mtime_ns` can be made not
+#: to.
+_READABILITY_CACHE: dict[tuple[str, int, int, int, int, int], bool] = {}
 
 
 def _decode_text(data: bytes) -> str | None:
@@ -398,7 +406,14 @@ def _scan_chunks(target: Path):
 def _is_readable(target: Path) -> bool:
     try:
         stat = target.stat()
-        key = (str(target), stat.st_mtime_ns, stat.st_size)
+        key = (
+            str(target),
+            stat.st_dev,
+            stat.st_ino,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+            stat.st_size,
+        )
     except OSError:
         return False
     if key not in _READABILITY_CACHE:

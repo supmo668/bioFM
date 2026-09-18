@@ -3740,3 +3740,119 @@ def test_a_derived_from_declaration_WITH_a_pin_still_holds(tmp_path):
     assert declared in stale, (
         "the artifact changed and the declaration still held — the pin is decorative"
     )
+
+
+# --- §12.7: the four findings carried out of §11 -----------------------------------------------
+
+
+def test_the_readability_verdict_is_not_kept_across_a_same_size_rewrite(tmp_path):
+    """S11-22. `_READABILITY_CACHE` was keyed `(path, st_mtime_ns, st_size)`, process-global, never
+    invalidated and never bounded. A same-size rewrite that PRESERVES mtime — `cp -p`, `tar -x`,
+    `rsync -t`, a `git checkout` of a same-size blob, or any `os.utime` — keeps the stale verdict.
+
+    The dangerous direction is a stale UNREADABLE: a `derived_from`-declared file that has become
+    readable would clear adjudication and then be skipped, so its content is never scanned. (That
+    particular route is narrower since §12.6 made the content pin mandatory, but the cache is what
+    should not lie.)
+    """
+    import os
+
+    import chipsim.guards.decoding as _decoding
+
+    target = tmp_path / "blob.bin"
+    target.write_bytes(b"\x00\xff\x80\x81\xfd")  # 5 bytes, undecodable
+    stat_before = target.stat()
+    assert not _decoding._is_readable(target)
+
+    target.write_bytes(b"hello")  # 5 bytes, perfectly readable
+    os.utime(target, ns=(stat_before.st_atime_ns, stat_before.st_mtime_ns))
+    assert target.stat().st_size == stat_before.st_size
+    assert target.stat().st_mtime_ns == stat_before.st_mtime_ns
+
+    assert _decoding._is_readable(target), (
+        "the cache returned a STALE verdict: same size, same mtime, completely different bytes"
+    )
+
+
+def test_a_conflicted_listing_does_not_inflate_the_tracked_count(tmp_path):
+    """S11-23. `git ls-files -s` emits THREE records per path during an unresolved merge (stages
+    1/2/3), so `tracked_count` was inflated by 2 per conflicted file, rows were duplicated, and the
+    minimum-tracked floor was easier to clear. Fail-noisy rather than a false clean — but
+    `tracked_count` is reported upward as evidence, and this is the one way it can disagree with
+    reality."""
+    from chipsim.guards.repo import _tracked_listing
+
+    root = _init_repo(tmp_path)
+    conflicted = root / "f.txt"
+
+    conflicted.write_text("base\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "checkout", "-qb", "other"], cwd=root, check=True, capture_output=True)
+    conflicted.write_text("theirs\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "theirs"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "checkout", "-q", "-"], cwd=root, check=True, capture_output=True)
+    conflicted.write_text("ours\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "ours"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    # `check=False` DELIBERATELY: this merge is SUPPOSED to conflict — that IS the fixture.
+    subprocess.run(["git", "merge", "other"], cwd=root, capture_output=True, check=False)
+
+    raw = subprocess.run(
+        ["git", "ls-files", "-s"], cwd=root, capture_output=True, text=True, check=True
+    ).stdout
+    assert raw.count("f.txt") == 3, "the fixture did not produce a conflicted index"
+
+    paths, _submodules = _tracked_listing(root)
+    assert paths.count("f.txt") == 1, (
+        f"a conflicted path appears {paths.count('f.txt')} times — tracked_count is inflated and "
+        "the anti-vacuity floor is that much easier to clear"
+    )
+
+
+def test_the_frozen_scan_types_can_be_hashed(tmp_path, monkeypatch):
+    """S11-24. `DeclarationSurface` and `ScanContext` are `frozen=True` with `eq=True`, so Python
+    generates `__hash__` over the compared fields — and `entries` is a tuple containing DICTS, which
+    are unhashable, so hashing either raises TypeError.
+
+    A trap rather than a live defect, and it sits directly beside `_adjudicate_once`, which DOES
+    hash the policy and uses the surface as its memo store."""
+    import chipsim.guards.record_content as rc
+
+    # The anti-vacuity witness refuses a tmp root — correct, and not what this test is about.
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    surface = rc.DeclarationSurface(
+        root=tmp_path,
+        entries=(("docs/x.bin", {"path": "docs/x.bin"}, "project"),),
+        registry=None,
+        structural_error=None,
+    )
+    hash(surface)  # must not raise
+
+    context = rc.ScanContext(
+        root=tmp_path,
+        read_root=tmp_path,
+        byte_source="worktree",
+        paths=("a",),
+        submodules=(),
+        policy=NOTHING_WAIVED,
+        surface=surface,
+    )
+    hash(context)

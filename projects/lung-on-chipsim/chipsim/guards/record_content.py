@@ -628,7 +628,11 @@ def _declaration_defects_uncached(
     return defects
 
 
-@dataclass(frozen=True)
+# `eq=False`: identity semantics, which is what a SNAPSHOT wants. With the generated `__eq__`
+# Python also generates `__hash__` over the compared fields — and `entries` is a tuple containing
+# DICTS, so hashing raised TypeError. A trap rather than a live defect, sitting directly beside
+# `_adjudicate_once`, which hashes the policy and uses this object as its memo store (§12.7).
+@dataclass(frozen=True, eq=False)
 class DeclarationSurface:
     """Everything the declaration data says, read ONCE and then immutable (r2.25 E-14).
 
@@ -878,7 +882,9 @@ def render_undeclared_report(policy: ContentPolicy) -> tuple[str, int]:
     return _render_for_root(repo_root(), policy, "worktree")
 
 
-@dataclass(frozen=True)
+# `eq=False` for the same reason as `DeclarationSurface`: it holds one, so its generated hash
+# inherited the same TypeError.
+@dataclass(frozen=True, eq=False)
 class ScanContext:
     """Everything a scan needs, REQUIRED everywhere and RESOLVABLE NOWHERE (r2.27 E-17).
 
