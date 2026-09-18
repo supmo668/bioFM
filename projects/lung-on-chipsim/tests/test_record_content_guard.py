@@ -4089,3 +4089,241 @@ def test_a_numeric_dtype_dataset_carrying_a_record_is_scanned(tmp_path):
     assert REAL in "\n".join(_scan_chunks(path) or []), (
         "a record stored as a numeric buffer was invisible while the container scanned CLEAN"
     )
+
+
+# --- §12.10: the staged path, bound by VERDICTS rather than by a header string ------------------
+
+
+def _two_tree_repo(tmp_path):
+    """A repo whose INDEX and WORKTREE disagree about the declaration surface AND the artifact.
+
+    The existing staged fixtures use `staged=b"a\n"` / `on_disk=b"b\n"` — both readable, so the two
+    modes produce IDENTICAL verdicts and only the header string differs. That is why five mutants
+    against the staged path survived: nothing made the modes disagree about an OUTCOME.
+    """
+    root = _init_repo(tmp_path)
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+
+    artifact = f"projects/{THIS_PROJECT}/docs/artifact.bin"
+    (root / artifact).parent.mkdir(parents=True, exist_ok=True)
+    (root / artifact).write_bytes(b"\x00\xff\x80\x81 STAGED COPY")
+
+    repo_surface = root / "config/record_content_declarations.yaml"
+    repo_surface.parent.mkdir(parents=True, exist_ok=True)
+    repo_surface.write_text(f'version: "1"\nowners: [{THIS_PROJECT}]\ndeclarations: []\n')
+    project_surface = root / f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml"
+    project_surface.parent.mkdir(parents=True, exist_ok=True)
+    project_surface.write_text('version: "1"\ndeclarations: []\n')
+
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+
+    # NOW the worktree diverges: a different artifact, and a declaration pinning THAT copy.
+    worktree_bytes = b"\x00\xff\x80\x81 WORKTREE COPY"
+    (root / artifact).write_bytes(worktree_bytes)
+    digest = hashlib.sha256(worktree_bytes).hexdigest()
+    project_surface.write_text(
+        'version: "1"\ndeclarations:\n'
+        f"  - path: {artifact}\n    sha256: {digest}\n    why: rendered artifact\n"
+    )
+    return root, artifact
+
+
+def test_staged_mode_adjudicates_against_the_STAGED_declaration_surface(tmp_path, monkeypatch):
+    """THE MOST SERIOUS SURVIVING MUTANT: `DeclarationSurface.read(read_root)` -> `read(root)`
+    turned a staged-mode EXIT 2 INTO EXIT 0 with the whole suite green.
+
+    A declaration that was never staged, pinning bytes that were never staged, cleared the bytes a
+    commit WOULD carry. The existing staged tests could not see it: one calls `real_accession_hits`
+    itself and never touches `scan_record_content`, and the other compares two readable files whose
+    verdicts are identical, so its inequality assertion is carried entirely by the header string.
+
+    Both directions are asserted, so this cannot pass against "always read the worktree" either.
+    """
+    import chipsim.guards.record_content as rc
+
+    # The witness refuses a tmp tree because it does not contain this package. That property has
+    # its own live-repository test now (staged AND worktree), so patching it here is not hiding it.
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    root, artifact = _two_tree_repo(tmp_path)
+
+    with rc.scan_context(root, NOTHING_WAIVED, "staged") as ctx:
+        assert Path(ctx.surface.root) == Path(ctx.read_root), (
+            "the surface is bound to the wrong tree"
+        )
+        assert Path(ctx.surface.root) != Path(ctx.root), "staged must not read the worktree surface"
+        assert [p for p, _e, _s in ctx.surface.entries] == [], (
+            "the STAGED surface declares nothing — the declaration exists only in the worktree"
+        )
+        staged = rc.scan_record_content(ctx)
+
+    with rc.scan_context(root, NOTHING_WAIVED, "worktree") as ctx:
+        assert Path(ctx.surface.root) == Path(ctx.root)
+        worktree = rc.scan_record_content(ctx)
+
+    assert staged.exit_code == 2, (
+        "the staged scan was cleared by a declaration that was never staged, pinned to bytes that "
+        "were never staged — exit 2 became exit 0"
+    )
+    assert artifact in [r.path for r in staged.rows if r.disposition == "FAILS HERE"]
+    assert worktree.exit_code == 0, (
+        "the worktree copy IS declared and IS pinned, so that mode must clear it — otherwise this "
+        "test would pass against an implementation that always reads the staged tree"
+    )
+
+
+def test_the_entry_point_reads_the_byte_source_it_was_given(tmp_path, monkeypatch):
+    """`enforce_record_content` gained `byte_source` in this diff and NO TEST EVER PASSED "staged".
+
+    So two mutants survived: the accession half taking `context.root` instead of `context.read_root`,
+    and the same for the ledger half alone — which is the split-evidence shape E6-5 names, with one
+    half certifying the index while the other certifies the working files. The comment promising
+    they read the SAME copy was unbound.
+    """
+    import chipsim.guards.record_content as guard
+    import chipsim.record_content as cr
+
+    root = _init_repo(tmp_path)
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+    for rel in (
+        "config/record_content_declarations.yaml",
+        f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml",
+    ):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text('version: "1"\ndeclarations: []\n')
+
+    leak = f"projects/{THIS_PROJECT}/docs/leak.txt"
+    (root / leak).parent.mkdir(parents=True, exist_ok=True)
+    (root / leak).write_text(f"see {REAL} for details\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    (root / leak).write_text("clean text, nothing to see\n")  # worktree is innocent
+
+    monkeypatch.setattr(guard, "repo_root", lambda: root)
+    monkeypatch.setattr(guard, "_refuse_a_scan_that_cannot_see_itself", lambda r, p: None)
+
+    with pytest.raises(cr.RecordContentViolation) as exc:
+        cr.enforce_record_content(DRUGBANK_CONTENT_POLICY, byte_source="staged")
+    assert "REAL ACCESSIONS" in exc.value.report, (
+        "the accession half read the WORKING FILE — the half that certifies and the half that "
+        "reports are looking at different trees"
+    )
+
+    result = cr.enforce_record_content(DRUGBANK_CONTENT_POLICY, byte_source="worktree")
+    assert result.status == "clean", (
+        "the worktree copy is clean; if this failed too, the test above would prove nothing about "
+        "WHICH copy was read"
+    )
+
+
+def test_the_live_repository_scans_clean_in_STAGED_mode_too(tmp_path):
+    """THE WITNESS AND THE STAGED PATH HAD NEVER MET.
+
+    Every staged test patches `_refuse_a_scan_that_cannot_see_itself` away, so a mutant pointing the
+    witness at `read_root` — which makes EVERY staged scan raise, i.e. the commit gate becomes
+    unrunnable — survived the whole suite. This runs the real thing against the real repository with
+    nothing patched out, the mirror of the worktree-mode live test.
+    """
+    import chipsim.guards.record_content as rc
+    from chipsim.ingest.drugbank_snapshot import DRUGBANK_CONTENT_POLICY as POLICY
+
+    with rc.scan_context(REPO_ROOT, POLICY, "staged") as context:
+        scan = rc.scan_record_content(context)
+
+    assert scan.byte_source == "staged"
+    assert scan.root == REPO_ROOT, "the report names the repository, not the temporary tree"
+    assert scan.tracked_count > 100, "a scan of nothing is not a pass"
+    assert [r.path for r in scan.rows if r.disposition == "FAILS HERE"] == []
+    assert scan.exit_code == 0
+
+
+def test_the_shipped_human_report_certifies_the_WORKTREE(tmp_path):
+    """`render_undeclared_report` passing "staged" instead of "worktree" survived the suite — the
+    human-facing listing silently materialising and certifying the INDEX, while its docstring says
+    it "describes the files as they sit on disk". The one shipped call site of the distinction this
+    whole section exists to make was unpinned."""
+    import chipsim.guards.record_content as rc
+
+    text, _code = rc.render_undeclared_report(NOTHING_WAIVED)
+    assert "WORKTREE bytes (the files as they sit on disk)" in text
+    assert "STAGED bytes" not in text
+
+
+def test_a_scan_cannot_carry_a_byte_source_that_is_neither(tmp_path):
+    """The third `__post_init__` invariant, added in this diff and never tested — unlike its two
+    siblings (`disposition`, `exit_code`), each of which has a dedicated test. Disabling it survived.
+    """
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.errors import GuardInvariantViolated
+
+    for bad in ("stage", "", "WORKTREE"):
+        with pytest.raises(GuardInvariantViolated, match="byte_source"):
+            rc.RecordContentScan(
+                root=tmp_path,
+                package=tmp_path / "p.py",
+                tracked_count=500,
+                failing_count=0,
+                rows=(),
+                declaration_counts=(0, 0, 0),
+                defect_count=0,
+                submodules=(),
+                declaration_files=("a", "b"),
+                byte_source=bad,
+                registry_state="declared",
+                structural_error=None,
+                exit_code=0,
+            )
+
+
+def test_the_LEDGER_half_also_reads_the_byte_source_it_was_given(tmp_path, monkeypatch):
+    """The reviewer said to parametrise over WHICH HALF carries the hit, so neither can be reverted
+    alone. I did not, and the mutant that reverts ONLY `ledger_tuple_hits(read_root)` survived my
+    first version of this test — because it asserts on the CONTENT half's output, which still found
+    the accession.
+
+    That is the split-evidence shape E6-5 names, in the test written to prevent it: one half
+    certifying the index while the other certifies the working files, invisible because the
+    assertion could be satisfied by either.
+    """
+    import chipsim.guards.record_content as guard
+    import chipsim.ingest.drugbank_snapshot as ds
+    import chipsim.record_content as cr
+
+    root = _init_repo(tmp_path)
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+    for rel in (
+        "config/record_content_declarations.yaml",
+        f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml",
+    ):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text('version: "1"\ndeclarations: []\n')
+
+    # ONLY the ledger half can see this: a tuple in a LEDGER file, and nothing else anywhere.
+    ledger_rel = min(ds.DRUGBANK_ID_LEDGER)
+    (root / ledger_rel).parent.mkdir(parents=True, exist_ok=True)
+    (root / ledger_rel).write_text(f"# {REAL}\n# {STRUCTURE}\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    (root / ledger_rel).write_text("# nothing here\n")  # the worktree copy is innocent
+
+    monkeypatch.setattr(guard, "repo_root", lambda: root)
+    monkeypatch.setattr(guard, "_refuse_a_scan_that_cannot_see_itself", lambda r, p: None)
+
+    # Precondition: the ledger half genuinely fires on the STAGED copy and not on the worktree one,
+    # or neither assertion below proves which tree was read.
+    assert ds.ledger_tuple_hits(root) == [], "the worktree copy must be clean for this fixture"
+
+    with pytest.raises(cr.RecordContentViolation) as exc:
+        cr.enforce_record_content(DRUGBANK_CONTENT_POLICY, byte_source="staged")
+    assert f"{ledger_rel}:1 " in exc.value.report, (
+        "the LEDGER half read the working file — it emits a LINE NUMBER, which the content half "
+        "does not, so this cannot be satisfied by the other half's work"
+    )
+
+    assert cr.enforce_record_content(DRUGBANK_CONTENT_POLICY, byte_source="worktree").status == (
+        "clean"
+    )

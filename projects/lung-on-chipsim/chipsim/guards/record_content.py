@@ -893,8 +893,14 @@ def render_undeclared_report(policy: ContentPolicy) -> tuple[str, int]:
     return _render_for_root(repo_root(), policy, "worktree")
 
 
-# `eq=False` for the same reason as `DeclarationSurface`: it holds one, so its generated hash
-# inherited the same TypeError.
+# `eq=False` DELIBERATELY, as identity semantics — a snapshot is identity-valued, and two scans
+# of the same tree are not "the same scan".
+#
+# MY ORIGINAL COMMENT HERE WAS FALSE and a reviewer measured it: it said this inherited
+# `DeclarationSurface`'s TypeError "because it holds one". It does not. `DeclarationSurface` already
+# has `eq=False`, so it hashes by IDENTITY, and a generated `__hash__` here would have worked fine.
+# Half of the §12.7 fix was unnecessary, and the justification was a premise I never checked — the
+# same prose-asserting-a-mechanism defect this module keeps finding, in the fix for one.
 @dataclass(frozen=True, eq=False)
 class ScanContext:
     """Everything a scan needs, REQUIRED everywhere and RESOLVABLE NOWHERE (r2.27 E-17).

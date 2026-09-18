@@ -977,14 +977,17 @@ def test_the_report_module_cannot_read_anything():
             imported.add((node.module or "").split(".")[0])
     imported.discard("__future__")
 
-    forbidden = {"subprocess", "yaml", "os", "shutil", "io", "tempfile", "socket", "requests"}
-    assert not (imported & forbidden), (
-        f"the report module imports {sorted(imported & forbidden)} — it can reach outside the scan "
-        "it was handed, and 'the renderer decides nothing' is back to being a claim"
+    # AN ALLOW-LIST, NOT A DENY-LIST. The deny-list version of this test WAS the hole it was written
+    # to close: it forbade subprocess/yaml/os/... and said nothing about `pathlib`, which this module
+    # imports and which is a complete filesystem read API. A reviewer inserted `Path(p).read_text()`
+    # into `report.py` and this test PASSED. A deny-list can only exclude the ways of reading a file
+    # that somebody thought of.
+    allowed = {"__future__", "dataclasses", "pathlib", "chipsim"}
+    assert imported <= allowed, (
+        f"the report module imports {sorted(imported - allowed)} — the allow-list IS the property; "
+        "extend it deliberately or do not import it"
     )
 
-    package_imports = {m for m in imported if m == "chipsim"}
-    assert package_imports <= {"chipsim"}, sorted(package_imports)
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("chipsim"):
             assert node.module == "chipsim.guards.errors", (
@@ -992,13 +995,41 @@ def test_the_report_module_cannot_read_anything():
                 "dependency stops pointing one way"
             )
 
-    # And it must not call the builtins that read, even without an import.
-    calls = {
-        n.func.id
-        for n in ast.walk(tree)
-        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+    # `pathlib` is allowed because a Path is the natural type for a path — but READING through one
+    # is not. The previous check inspected `ast.Name` callees only, so `Path(x).read_text()` was
+    # invisible to it. A deleted tautology also lived here:
+    # `{m for m in imported if m == "chipsim"} <= {"chipsim"}` is true by construction and could
+    # never fail for any implementation.
+    readers = {
+        "read_text",
+        "read_bytes",
+        "open",
+        "iterdir",
+        "glob",
+        "walk",
+        "stat",
+        "lstat",
+        "exists",
+        "is_file",
+        "is_dir",
     }
-    assert "open" not in calls, "the report module calls open()"
+    reached = sorted(
+        {
+            node.func.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in readers
+        }
+    )
+    assert not reached, f"the report module calls {reached} — it can reach the filesystem"
+
+    bare = {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert "open" not in bare, "the report module calls open()"
 
 
 def test_the_renderer_returns_the_scans_exit_code_and_counts_verbatim(tmp_path):
@@ -1011,14 +1042,25 @@ def test_the_renderer_returns_the_scans_exit_code_and_counts_verbatim(tmp_path):
     """
     import chipsim.guards.record_content as rc
 
+    # TWO rows, of DIFFERENT categories, so `failing_count` and the naive recount DIFFER.
+    #
+    # THE FIXTURE USED TO BE ONE `undecodable` ROW, which made this the fourteenth vacuity: the
+    # field and `len(undecodable) + len(missing)` were the same number, so restoring the r2.27 §11
+    # regression verbatim — the renderer re-deriving the count from a partition that excludes every
+    # broken-declaration row — passed this test. The docstring even said such a fixture "cannot be
+    # constructed" and then asserted anyway. It can: the invariant only requires `failing_count` to
+    # equal the number of FAILS HERE rows.
     scan = rc.RecordContentScan(
         root=tmp_path,
         package=tmp_path / "pkg.py",
         tracked_count=777,
-        failing_count=1,
-        rows=(rc.ScanRow("docs/x.bin", None, "undecodable", "FAILS HERE"),),
-        declaration_counts=(3, 2, 0),
-        defect_count=0,
+        failing_count=2,
+        rows=(
+            rc.ScanRow("docs/x.bin", None, "undecodable", "FAILS HERE"),
+            rc.ScanRow("cfg/y.yaml", None, "broken-declaration", "FAILS HERE", "stale pin"),
+        ),
+        declaration_counts=(3, 2, 1),
+        defect_count=1,
         submodules=(),
         declaration_files=("a/project.yaml", "b/repo.yaml"),
         byte_source="worktree",
@@ -1028,6 +1070,16 @@ def test_the_renderer_returns_the_scans_exit_code_and_counts_verbatim(tmp_path):
     )
     text, code = rc.render_scan(scan)
     header = text.splitlines()[0]
+
+    # The anti-vacuity floor: if the fixture ever degenerates back to one partition, the two
+    # numbers coincide again and this test silently stops discriminating.
+    undecodable_and_missing = len(
+        [r for r in scan.rows if r.category in {"undecodable", "missing-on-disk"}]
+    )
+    assert scan.failing_count != undecodable_and_missing, (
+        "the fixture no longer distinguishes the field from the naive recount, so this test cannot "
+        "see the defect it is named for"
+    )
 
     assert code == scan.exit_code
     assert f"(failing this gate: {scan.failing_count}" in header
