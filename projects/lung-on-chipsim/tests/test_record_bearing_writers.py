@@ -453,6 +453,11 @@ NOT_RECORD_BEARING = {
     # Run metadata and config snapshots into the git-ignored journal; no compound rows.
     "journal.start_run",
     "pipeline._journal_best_effort",
+    # HOW a run was approved — command, mode, whether a tty was attached, timestamp, argv — written
+    # beside the config snapshot in the same git-ignored journal. Same class as the two above: run
+    # metadata, no compound rows. Caught by this registry the moment it existed, which is the
+    # property the registry is for.
+    "pipeline._write_approval_record",
     # The ratified barrier panel (protein identifiers + ratifier attribution), T7a's human
     # artifact. It legitimately writes configs/barrier_panel.yaml and carries no DrugBank content.
     "pgp_label.seal_panel",

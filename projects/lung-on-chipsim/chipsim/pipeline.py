@@ -469,18 +469,130 @@ _HANDLERS = {
 }
 
 
+#: What a human types to let an ETL stage run. A word, not "y": the prompt names the artifacts
+#: about to be written, and a single keystroke is too easy to give to a question you did not read.
+_RUN_CONFIRMATION = "run"
+
+#: The same bound as the seal prompt: long enough for a human who is present, short enough that an
+#: unattended shell does not sit open forever holding a lock on the tree.
+_RUN_CONFIRM_TIMEOUT_S = 120.0
+
+
+def _approval_parent() -> argparse.ArgumentParser:
+    """The `--yes` flag, shared by every ETL subparser so it reads `chipsim parse --yes`.
+
+    A RECORDED ESCAPE, NOT A BYPASS. A gate that cannot be satisfied without a terminal is a gate
+    that gets deleted the first time someone needs to run the stage from a script — so the escape
+    exists, and the run record says which way the run was approved. An UNRECORDED escape would be
+    worse than no gate at all: it would make an unattended run indistinguishable from one a human
+    agreed to, which is the exact shape of false clean this project keeps finding.
+    """
+    parent = argparse.ArgumentParser(add_help=False)
+    parent.add_argument(
+        "--yes",
+        action="store_true",
+        help=(
+            "approve this run non-interactively. Recorded in the run journal as an explicit "
+            "approval mode, so an unattended run is never indistinguishable from an answered one."
+        ),
+    )
+    return parent
+
+
+def _write_approval_record(run_dir, command: str, mode: str, tty: bool, argv: list[str]) -> None:
+    """Record HOW the run was approved, beside the config snapshot it was approved over.
+
+    Written at approval time rather than at the end, because a stage that crashes must still leave
+    evidence of how it came to run. `outcome.json` is written last by design and a crash leaves
+    none — approval is not an outcome.
+    """
+    payload = {
+        "record_type": "approval",
+        "record_schema": 1,
+        "command": command,
+        # "interactive" — a human typed the confirmation at a terminal.
+        # "flag" — `--yes` was passed; nobody was necessarily present.
+        "mode": mode,
+        "stdin_was_a_tty": tty,
+        "approved_at": datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ"),
+        "argv": list(argv),
+    }
+    (Path(run_dir) / "approval.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def _approve_etl_run(ns, run_dir, argv: list[str]) -> bool:
+    """Ask before writing. Returns True when the stage may proceed.
+
+    WHAT THIS IS WORTH, EXACTLY — the same bound as the seal gate, and stated for the same reason.
+    It does NOT identify who approved: whoever types the word is unidentified, and an agent that
+    allocates a pty can type it too. It converts an ACCIDENTAL run into a DELIBERATE one, and it
+    makes the distinction VISIBLE in the journal afterwards. It is not authentication and nothing
+    here may be described as such.
+
+    The prompt goes to STDERR, matching `panel-seal`: on stdout, `chipsim parse > log.txt` swallows
+    the question while the command waits on a read the human cannot see they owe it, which reads as
+    a hang — and a hang is what people work around by piping `yes` into it.
+    """
+    tty = _stdin_is_interactive()
+    if getattr(ns, "yes", False):
+        if run_dir is not None:
+            _write_approval_record(run_dir, ns.command, "flag", tty, argv)
+        return True
+
+    if not tty:
+        print(
+            f"ERROR: refusing to run {ns.command!r} — this stage writes artifacts and no approval "
+            f"was given.\n"
+            f"Pass --yes to approve non-interactively (it is RECORDED in the run journal as such), "
+            f"or run it from a terminal and answer the prompt.",
+            file=sys.stderr,
+        )
+        return False
+
+    print(
+        f"About to run {ns.command!r}, which WRITES ARTIFACTS under this project.\n"
+        f"The exact configs for this run are already snapshotted in {run_dir}.\n"
+        f"Type '{_RUN_CONFIRMATION}' to continue, anything else to abort "
+        f"(waiting up to {_RUN_CONFIRM_TIMEOUT_S:.0f}s): ",
+        end="",
+        file=sys.stderr,
+        flush=True,
+    )
+    answer = _read_confirmation(_RUN_CONFIRM_TIMEOUT_S)
+    if answer.strip().lower() != _RUN_CONFIRMATION:
+        print(
+            f"ERROR: refusing to run {ns.command!r} — approval not given. Nothing was written by "
+            f"the stage. The run record, including its config snapshot, is kept: a declined run is "
+            f"exactly what the trail exists to show.",
+            file=sys.stderr,
+        )
+        return False
+    if run_dir is not None:
+        _write_approval_record(run_dir, ns.command, "interactive", tty, argv)
+    return True
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog=f"python -m {MODULE_PATH}")
     sub = ap.add_subparsers(dest="command", required=True)
+    # Every ETL subparser inherits `--yes`. The NON-ETL commands do not: they are read-only
+    # reports and a human artifact with its own stricter gate, and putting an approval prompt in
+    # front of `record-content-report` would make the quality gate unrunnable, which is how a
+    # control ends up switched off.
+    approval = _approval_parent()
 
-    p = sub.add_parser("fetch", help="download the pinned snapshot")
+    p = sub.add_parser("fetch", help="download the pinned snapshot", parents=[approval])
     p.add_argument("--dest", required=True, type=Path)
     p.add_argument("--commit", required=True)
 
-    p = sub.add_parser("hash-verify", help="recompute sha256s against the manifest")
+    p = sub.add_parser(
+        "hash-verify", help="recompute sha256s against the manifest", parents=[approval]
+    )
     p.add_argument("--dest", required=True, type=Path)
 
-    p = sub.add_parser("parse", help="parse compounds + protein edges")
+    p = sub.add_parser("parse", help="parse compounds + protein edges", parents=[approval])
     p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
     # Defaulted rather than required, which is safe ONLY because the loader raises
     # on a missing or malformed roster. If it returned an empty set instead, a
@@ -492,10 +604,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
     )
 
-    p = sub.add_parser("provenance-tests", help="run the provenance contract suite")
+    p = sub.add_parser(
+        "provenance-tests", help="run the provenance contract suite", parents=[approval]
+    )
     p.add_argument("--tests", default=Path("tests/test_provenance.py"), type=Path)
 
-    p = sub.add_parser("write", help="persist the compound frame")
+    p = sub.add_parser("write", help="persist the compound frame", parents=[approval])
     p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
     p.add_argument("--out", required=True, type=Path)
     p.add_argument(
@@ -732,6 +846,28 @@ def main(argv=None) -> int:
         # attempted exfiltration indistinguishable from a clean run.
         print(f"ERROR: refusing to run {ns.command!r}: {exc}", file=sys.stderr)
         return 2
+
+    # APPROVE ON EXECUTE — AFTER the config snapshot, BEFORE the work.
+    #
+    # The order is deliberate and it mirrors `panel-seal`, which journals the attempt before asking:
+    # a DECLINED run is exactly what the trail exists to show, so it must leave a record carrying
+    # the configs it would have run under. Asking first would make a refusal invisible.
+    #
+    # This closes the second half of the principal's standing instruction — "every run should log /
+    # save the exact config, always create new config copies for run, APPROVE ON EXECUTE". The
+    # first half was already built and working; this half existed only for `panel-seal`, so every
+    # stage that WRITES ARTIFACTS ran unapproved.
+    if not _approve_etl_run(ns, run_dir, argv_recorded):
+        if run_dir is not None:
+            _journal_best_effort(
+                lambda: finish_run(
+                    run_dir, status="declined", detail="approval not given before execute"
+                ),
+                root=root,
+                what="finish_run:declined",
+            )
+        return 2
+
     try:
         code = _normalize_exit(_HANDLERS[ns.command](ns))
     except SystemExit as exc:
