@@ -237,6 +237,42 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
   into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
   halves may not be cited for the fourth.*
+- **THE STAGED TREE MAY NOT LIVE INSIDE THE TREE IT CERTIFIES** *(r2.32)*. The staged reader
+  materialises **every tracked blob**, and `tempfile` honours `$TMPDIR`. A staged root that resolves
+  inside the scanned working tree — or under any `DECLARED_OUTPUT_ROOT` — is therefore **REFUSED**.
+  Without this, pointing one environment variable at the repository makes the gate write a complete
+  copy of the tracked corpus **into the tree it is about to scan**: a self-referential scan, and a
+  copy `git add -A` would stage. **Resolve both sides; never prefix-match** — a staged root reaching
+  the tree through a symlink shares no string prefix with it, and the string-comparison mutant dies
+  on a test for exactly that route.
+  **`declared_output_roots()` is NOT the predicate here.** Under pytest it appends a `$TMPDIR` grant
+  so record-bearing writers may write to tmp during tests; reusing it made the refusal reject every
+  staged tree the suite builds, and the suite caught it on the first run. The grant answers *may this
+  writer write here*; this check answers *may the gate read here*. Two predicates, opposite safe
+  directions — they may not share a source, per the rule already in this plan.
+  **The SIGKILL residual is ACCEPTED, documented, and deliberately NOT swept.** The tree is mode
+  0700, holds a copy of **tracked** blobs already at rest in the same repository, and the OS reclaims
+  the system temp dir; an unattended destructive sweep is a worse risk than a bounded residual, and
+  the standing constraint is PoC-minimal. **Named explicitly so it is not discovered later: when the
+  gate FAILS, the residual holds the record-bearing blob being refused.** That is not an escalation —
+  the blob is in the index either way, which is the thing being refused — but it is stated.
+- **A LISTED PATH WITH NO MATERIALISED BLOB IS FATAL IN STAGED MODE, REGARDLESS OF OWNER — AND
+  GITLINKS ARE OUTSIDE THAT DOMAIN** *(r2.32)*. E-10's ownership escape hatch ("another project owns
+  it, mark it listed") described a state that **cannot arise legitimately** under the blob reader, so
+  it was an escape hatch for what is always a scan defect. *An escape hatch for an impossible state is
+  an inert mechanism, and inert mechanisms are read as permission by whoever arrives next* — the
+  lesson §12 and §13 both paid for.
+  **Recorded with it, because the predicate is owner-blind and the repository has submodules:** a
+  gitlink names a **commit, never a blob**, so mode `160000` entries are excluded from materialisation
+  *before* the predicate applies, and submodules are **DISCLOSED** in the report as "N not scanned"
+  rather than dropped. Measured: **six** gitlink entries here, including `projects/aviary-biosim`.
+  Six repositories silently unscanned inside a confident "798 tracked" header would be this guard's
+  own failure mode. The mutant that stops excluding `160000` dies on a test.
+  **The carried refactor's REASON TO EXIST, written down so nobody deletes it as unmotivated:** the
+  listing and the materialisation are **two `ls-files` calls an instant apart**, and threading one
+  enumeration through both is what closes that race. The fatal predicate makes the race *non-silent*;
+  it does not close it. The refactor is deferred because `_tracked_listing` is monkeypatched with a
+  one-arg lambda in ~40 tests — a deliberate cost decision, not an oversight.
 - **THE EXCLUSION SET IS NOT WIDENED FOR COORDINATION FILES** *(r2.31)*. `workstreams/**/plan/**`
   stays **in scope**. Excluding the coordination files that record the guard's own decisions is the
   same hole as excluding the test file that tests the scan, ruled against one revision earlier — and
