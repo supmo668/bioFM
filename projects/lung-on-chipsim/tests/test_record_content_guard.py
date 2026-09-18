@@ -4006,7 +4006,10 @@ def test_an_unmerged_index_is_REFUSED_rather_than_scanned_around(tmp_path):
     ).stdout
     assert raw.count("f.txt") == 3, "the fixture did not produce an unresolved merge"
 
-    with pytest.raises(ScanNotPerformed, match="unmerged"):
+    # Case-insensitive on purpose: the two enumerators briefly carried DIFFERENT wording for
+    # this refusal ("unmerged" vs "UNMERGED"), which is the duplication showing itself on the
+    # way out. One enumeration now, one message.
+    with pytest.raises(ScanNotPerformed, match="(?i)unmerged"):
         _tracked_listing(root)
 
 
