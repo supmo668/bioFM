@@ -1,12 +1,11 @@
 {
   "name": "bioFM",
-  "description": "A living monorepo workspace for Biological Foundation Models (DNA, RNA, protein, single-cell, multimodal) that pairs a curated research landscape (MODELS.md, a test-time compute primer, pinned upstream submodules) with runnable Python packages: a test-time compute scaling library for BioFM-265M, a 5-agent propose-critique-vote orchestrator (cellforge-agents), and the paper-bearing perturb-seq-eval project on Bayesian agentic hyperparameter tuning. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
+  "description": "The code half of the bioFM workspace: two independent Python packages. `chipsim` is an in-silico lung-on-a-chip exposure and barrier-response pipeline (ingest \u2192 harmonize \u2192 encoders \u2192 heads \u2192 transport \u2192 occupancy \u2192 surface \u2192 uncertainty \u2192 eval \u2192 acquire) built on RDKit, pandas and DVC, with a record-content guard and a `chipsim` CLI. `perturb-eval` is an agentic evaluation harness that pits contextual Bayesian optimization against evolutionary hyperparameter tuning on perturb-seq mean-squared-difference benchmarks, with a Modal-based remote execution layer. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
   "languages": [
-    "bib",
+    "csv",
     "html",
     "json",
     "jsonl",
-    "makefile",
     "markdown",
     "python",
     "tex",
@@ -14,487 +13,544 @@
     "yaml"
   ],
   "frameworks": [
-    "PyTorch",
-    "Transformers",
-    "scikit-learn",
-    "Pydantic",
-    "Typer",
     "pytest",
-    "Modal"
+    "pandas",
+    "NumPy",
+    "SciPy",
+    "scikit-learn",
+    "scikit-optimize",
+    "CMA-ES",
+    "RDKit",
+    "PyArrow",
+    "PyYAML",
+    "Typer",
+    "DVC",
+    "Poetry",
+    "Hatchling",
+    "Ruff",
+    "PyTorch",
+    "Scanpy",
+    "AnnData",
+    "h5py",
+    "Modal",
+    "Matplotlib",
+    "Plotly"
   ],
   "files": [
     {
+      "path": ".aiadlc-coordinator",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
       "path": ".env.example",
       "language": "config",
-      "sizeLines": 43,
+      "sizeLines": 56,
       "fileCategory": "config"
     },
     {
       "path": ".gitmodules",
       "language": "unknown",
-      "sizeLines": 15,
+      "sizeLines": 18,
       "fileCategory": "code"
     },
     {
-      "path": ".understand-anything/.understandignore",
-      "language": "unknown",
-      "sizeLines": 52,
-      "fileCategory": "code"
-    },
-    {
-      "path": ".understand-anything/config.json",
-      "language": "json",
-      "sizeLines": 1,
+      "path": "agency.yaml",
+      "language": "yaml",
+      "sizeLines": 417,
       "fileCategory": "config"
     },
     {
-      "path": ".understand-anything/tmp/ua-scan-stderr.txt",
-      "language": "txt",
-      "sizeLines": 0,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "docs/superpowers/plans/2026-05-15-scilab-virtual-lab.md",
+      "path": "CONTEXT-MAP.md",
       "language": "markdown",
-      "sizeLines": 2583,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "libs/cellforge-agents/examples/perturbation_run.py",
-      "language": "python",
-      "sizeLines": 38,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/pyproject.toml",
-      "language": "toml",
-      "sizeLines": 38,
-      "fileCategory": "config"
-    },
-    {
-      "path": "libs/cellforge-agents/README.md",
-      "language": "markdown",
-      "sizeLines": 75,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "libs/cellforge-agents/requirements.txt",
-      "language": "txt",
-      "sizeLines": 3,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/__init__.py",
-      "language": "python",
       "sizeLines": 12,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/.aiadlc-agent",
+      "language": "unknown",
+      "sizeLines": 1,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/__main__.py",
+      "path": "projects/lung-on-chipsim/.dvc/config",
+      "language": "unknown",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/.dvcignore",
+      "language": "unknown",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/__init__.py",
       "language": "python",
-      "sizeLines": 4,
+      "sizeLines": 75,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/agents/__init__.py",
+      "path": "projects/lung-on-chipsim/chipsim/acquire/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/encoders/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/eval/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/eval/provenance_block.py",
+      "language": "python",
+      "sizeLines": 294,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/harmonize/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/harmonize/adjudication.py",
+      "language": "python",
+      "sizeLines": 286,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/harmonize/contracts.py",
+      "language": "python",
+      "sizeLines": 141,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/harmonize/ids.py",
+      "language": "python",
+      "sizeLines": 127,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/harmonize/pgp_label.py",
+      "language": "python",
+      "sizeLines": 404,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/harmonize/roster.py",
+      "language": "python",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/heads/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/ingest/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py",
+      "language": "python",
+      "sizeLines": 508,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/journal.py",
+      "language": "python",
+      "sizeLines": 1149,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/occupancy/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/pipeline.py",
+      "language": "python",
+      "sizeLines": 540,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/surface/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/transport/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/chipsim/uncertainty/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/configs/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/configs/barrier_panel.yaml",
+      "language": "yaml",
+      "sizeLines": 63,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/configs/env.yaml",
+      "language": "yaml",
+      "sizeLines": 27,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/CONTEXT.md",
+      "language": "markdown",
+      "sizeLines": 215,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/data/interim/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/data/processed/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/data/raw/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/data/raw/drugbank/provenance.yaml",
+      "language": "yaml",
+      "sizeLines": 35,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/data/raw/sources.yaml",
+      "language": "yaml",
+      "sizeLines": 163,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/docs/adr/0001-run-journal-does-not-record-git-state.md",
+      "language": "markdown",
+      "sizeLines": 32,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/docs/adr/0002-poc-conformal-calibration-at-20-per-group.md",
+      "language": "markdown",
+      "sizeLines": 45,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/docs/adr/0003-power-floor-and-stratified-roster.md",
+      "language": "markdown",
+      "sizeLines": 64,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/docs/adr/0004-pair-stratum-is-curated-not-discovered.md",
+      "language": "markdown",
+      "sizeLines": 66,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/journal/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/orchestration/n8n/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/orchestration/n8n/etl_drugbank.json",
+      "language": "json",
+      "sizeLines": 129,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/pyproject.toml",
+      "language": "toml",
+      "sizeLines": 54,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/README.md",
+      "language": "markdown",
+      "sizeLines": 297,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/conftest.py",
+      "language": "python",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/barrier_panel_missing_ratified.yaml",
+      "language": "yaml",
+      "sizeLines": 29,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/barrier_panel_no_abcb1.yaml",
+      "language": "yaml",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/barrier_panel_ratified_no_ratifier.yaml",
+      "language": "yaml",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/barrier_panel_ratified.yaml",
+      "language": "yaml",
+      "sizeLines": 33,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/barrier_panel_unratified.yaml",
+      "language": "yaml",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_all_unknown.csv",
+      "language": "csv",
+      "sizeLines": 25,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_blank.csv",
+      "language": "csv",
+      "sizeLines": 25,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_filled.csv",
+      "language": "csv",
+      "sizeLines": 25,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_no_missing_doi.csv",
+      "language": "csv",
+      "sizeLines": 25,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_partial.csv",
+      "language": "csv",
+      "sizeLines": 25,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_single_group.csv",
+      "language": "csv",
+      "sizeLines": 25,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/poc_compounds_missing_doi.yaml",
+      "language": "yaml",
+      "sizeLines": 34,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/poc_compounds_too_few.yaml",
+      "language": "yaml",
+      "sizeLines": 29,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/poc_compounds_too_many.yaml",
+      "language": "yaml",
+      "sizeLines": 51,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/poc_compounds.yaml",
+      "language": "yaml",
+      "sizeLines": 34,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/provenance_justified_swap.yaml",
+      "language": "yaml",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/provenance_unjustified_swap.yaml",
+      "language": "yaml",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/provenance.yaml",
+      "language": "yaml",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/snapshot/drugbank-slim.tsv",
+      "language": "csv",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/snapshot/drugbank.tsv",
+      "language": "csv",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/snapshot/proteins.tsv",
+      "language": "csv",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/fixtures/snapshot/README.md",
+      "language": "markdown",
+      "sizeLines": 12,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/honesty_scan.py",
+      "language": "python",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_adjudication.py",
+      "language": "python",
+      "sizeLines": 535,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_barrier_panel.py",
+      "language": "python",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_conftest.py",
+      "language": "python",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_contracts.py",
+      "language": "python",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_fixtures.py",
+      "language": "python",
+      "sizeLines": 523,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_journal.py",
+      "language": "python",
+      "sizeLines": 1345,
+      "fileCategory": "code"
+    },
+    {
+      "path": "projects/lung-on-chipsim/tests/test_leakage.py",
       "language": "python",
       "sizeLines": 26,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/agents/architect.py",
-      "language": "python",
-      "sizeLines": 41,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "language": "python",
-      "sizeLines": 29,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
-      "language": "python",
-      "sizeLines": 52,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/agents/literature.py",
-      "language": "python",
-      "sizeLines": 53,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/agents/trainer.py",
-      "language": "python",
-      "sizeLines": 57,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/agents/validator.py",
-      "language": "python",
-      "sizeLines": 49,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/backends/__init__.py",
-      "language": "python",
-      "sizeLines": 4,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/backends/base.py",
+      "path": "projects/lung-on-chipsim/tests/test_monotonicity.py",
       "language": "python",
       "sizeLines": 17,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/backends/mock.py",
+      "path": "projects/lung-on-chipsim/tests/test_panel_seal_tty.py",
       "language": "python",
-      "sizeLines": 49,
+      "sizeLines": 499,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/cli.py",
+      "path": "projects/lung-on-chipsim/tests/test_parse.py",
       "language": "python",
-      "sizeLines": 47,
+      "sizeLines": 359,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/orchestrator.py",
+      "path": "projects/lung-on-chipsim/tests/test_pgp_label.py",
       "language": "python",
-      "sizeLines": 121,
+      "sizeLines": 453,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/problem.py",
+      "path": "projects/lung-on-chipsim/tests/test_provenance.py",
       "language": "python",
-      "sizeLines": 56,
+      "sizeLines": 449,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/tools/__init__.py",
+      "path": "projects/lung-on-chipsim/tests/test_replay_determinism.py",
       "language": "python",
-      "sizeLines": 13,
+      "sizeLines": 210,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
+      "path": "projects/lung-on-chipsim/tests/test_scaffold.py",
       "language": "python",
-      "sizeLines": 57,
+      "sizeLines": 476,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/tools/literature.py",
+      "path": "projects/lung-on-chipsim/tests/test_snapshot_fetch.py",
       "language": "python",
-      "sizeLines": 61,
+      "sizeLines": 341,
       "fileCategory": "code"
     },
     {
-      "path": "libs/cellforge-agents/src/cellforge/tools/omics.py",
+      "path": "projects/lung-on-chipsim/tests/test_workflow_export.py",
       "language": "python",
-      "sizeLines": 43,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/tools/pathway.py",
-      "language": "python",
-      "sizeLines": 48,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/src/cellforge/tools/trainer.py",
-      "language": "python",
-      "sizeLines": 33,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/tests/test_agents.py",
-      "language": "python",
-      "sizeLines": 120,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/tests/test_orchestrator.py",
-      "language": "python",
-      "sizeLines": 64,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/cellforge-agents/tests/test_tools.py",
-      "language": "python",
-      "sizeLines": 76,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/examples/ttc_sweep.py",
-      "language": "python",
-      "sizeLines": 57,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/pyproject.toml",
-      "language": "toml",
-      "sizeLines": 44,
-      "fileCategory": "config"
-    },
-    {
-      "path": "libs/test-time-compute/README.md",
-      "language": "markdown",
-      "sizeLines": 85,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "libs/test-time-compute/requirements.txt",
-      "language": "txt",
-      "sizeLines": 7,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/__init__.py",
-      "language": "python",
-      "sizeLines": 12,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/__main__.py",
-      "language": "python",
-      "sizeLines": 4,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/cli.py",
-      "language": "python",
-      "sizeLines": 145,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/config.py",
-      "language": "python",
-      "sizeLines": 47,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/model_loader.py",
-      "language": "python",
-      "sizeLines": 57,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/runner.py",
-      "language": "python",
-      "sizeLines": 78,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/scoring.py",
-      "language": "python",
-      "sizeLines": 129,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/src/ttc/strategies.py",
-      "language": "python",
-      "sizeLines": 153,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/tests/conftest.py",
-      "language": "python",
-      "sizeLines": 52,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/tests/test_runner_smoke.py",
-      "language": "python",
-      "sizeLines": 31,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/tests/test_scoring.py",
-      "language": "python",
-      "sizeLines": 78,
-      "fileCategory": "code"
-    },
-    {
-      "path": "libs/test-time-compute/tests/test_strategies.py",
-      "language": "python",
-      "sizeLines": 82,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/.github/workflows/latex.yml",
-      "language": "yaml",
-      "sizeLines": 54,
-      "fileCategory": "config"
-    },
-    {
-      "path": "paper_standalone/experiments/generate_tables.py",
-      "language": "python",
-      "sizeLines": 170,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/experiments/plot.py",
-      "language": "python",
-      "sizeLines": 184,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/experiments/simulate.py",
-      "language": "python",
-      "sizeLines": 619,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/Makefile",
-      "language": "makefile",
-      "sizeLines": 44,
-      "fileCategory": "infra"
-    },
-    {
-      "path": "paper_standalone/paper.tex",
-      "language": "tex",
-      "sizeLines": 757,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/README.md",
-      "language": "markdown",
-      "sizeLines": 133,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "paper_standalone/references.bib",
-      "language": "bib",
-      "sizeLines": 239,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/__init__.py",
-      "language": "python",
-      "sizeLines": 34,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/__main__.py",
-      "language": "python",
-      "sizeLines": 4,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/_env.py",
-      "language": "python",
-      "sizeLines": 50,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/adamson_loader.py",
-      "language": "python",
-      "sizeLines": 104,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/backends/__init__.py",
-      "language": "python",
-      "sizeLines": 5,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/backends/openrouter.py",
-      "language": "python",
-      "sizeLines": 161,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/bayesian.py",
-      "language": "python",
-      "sizeLines": 171,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/calibration.py",
-      "language": "python",
-      "sizeLines": 85,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/cli.py",
-      "language": "python",
-      "sizeLines": 54,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/data.py",
-      "language": "python",
-      "sizeLines": 90,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/instrumentation.py",
-      "language": "python",
-      "sizeLines": 102,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/massgen_adapter.py",
-      "language": "python",
-      "sizeLines": 71,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/metrics.py",
-      "language": "python",
-      "sizeLines": 212,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/model.py",
-      "language": "python",
-      "sizeLines": 120,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/probe.py",
-      "language": "python",
-      "sizeLines": 61,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/src/perturb_eval/types.py",
-      "language": "python",
-      "sizeLines": 93,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/tables/tab1_metric_correlations.tex",
-      "language": "tex",
-      "sizeLines": 11,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/tables/tab2_calibration_improvement.tex",
-      "language": "tex",
-      "sizeLines": 8,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/tables/tab3_probe_to_target.tex",
-      "language": "tex",
-      "sizeLines": 8,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/tables/tab4_agent_scaling.tex",
-      "language": "tex",
-      "sizeLines": 9,
-      "fileCategory": "code"
-    },
-    {
-      "path": "paper_standalone/tables/tab5_pareto_samples.tex",
-      "language": "tex",
-      "sizeLines": 11,
+      "sizeLines": 143,
       "fileCategory": "code"
     },
     {
@@ -1638,336 +1694,136 @@
       "fileCategory": "docs"
     },
     {
-      "path": "research/MODELS.md",
-      "language": "markdown",
-      "sizeLines": 127,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/pr_drafts/cellforge_preflight_hook.md",
-      "language": "markdown",
-      "sizeLines": 87,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/pr_drafts/massgen_skill_contribution.md",
-      "language": "markdown",
-      "sizeLines": 113,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/PUBLICATION_EVIDENCE.md",
-      "language": "markdown",
-      "sizeLines": 177,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/PUBLISHING_RUNBOOK.md",
-      "language": "markdown",
-      "sizeLines": 636,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/PUBLISHING_VENUES.md",
-      "language": "markdown",
-      "sizeLines": 408,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/RELEASE_SOCIAL.md",
-      "language": "markdown",
-      "sizeLines": 274,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/test-time-compute-guide/GUIDE.md",
-      "language": "markdown",
-      "sizeLines": 203,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/test-time-compute-guide/README.md",
-      "language": "markdown",
-      "sizeLines": 49,
-      "fileCategory": "docs"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/__init__.py",
-      "language": "python",
-      "sizeLines": 23,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
-      "language": "python",
-      "sizeLines": 99,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/best_of_n.py",
-      "language": "python",
-      "sizeLines": 46,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/iterative_revision.py",
-      "language": "python",
-      "sizeLines": 64,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/majority_vote.py",
-      "language": "python",
-      "sizeLines": 54,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/__init__.py",
-      "language": "python",
-      "sizeLines": 0,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/conftest.py",
-      "language": "python",
-      "sizeLines": 61,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py",
-      "language": "python",
-      "sizeLines": 55,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py",
-      "language": "python",
-      "sizeLines": 28,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py",
-      "language": "python",
-      "sizeLines": 27,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py",
-      "language": "python",
-      "sizeLines": 35,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py",
-      "language": "python",
-      "sizeLines": 39,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/types.py",
-      "language": "python",
-      "sizeLines": 40,
-      "fileCategory": "code"
-    },
-    {
-      "path": "research/test-time-compute-guide/ref_impl/weighted_majority.py",
-      "language": "python",
-      "sizeLines": 64,
-      "fileCategory": "code"
-    },
-    {
-      "path": "scripts/publish/publish.yml.template",
-      "language": "template",
-      "sizeLines": 71,
-      "fileCategory": "code"
-    },
-    {
-      "path": "scripts/publish/submit.py",
-      "language": "python",
-      "sizeLines": 531,
-      "fileCategory": "code"
+      "path": "skills-lock.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
     }
   ],
-  "totalFiles": 294,
-  "filteredByIgnore": 2,
+  "totalFiles": 277,
+  "filteredByIgnore": 353,
   "estimatedComplexity": "large",
   "importMap": {
+    ".aiadlc-coordinator": [],
     ".env.example": [],
     ".gitmodules": [],
-    ".understand-anything/.understandignore": [],
-    ".understand-anything/config.json": [],
-    ".understand-anything/tmp/ua-scan-stderr.txt": [],
-    "docs/superpowers/plans/2026-05-15-scilab-virtual-lab.md": [],
-    "libs/cellforge-agents/examples/perturbation_run.py": [],
-    "libs/cellforge-agents/pyproject.toml": [],
-    "libs/cellforge-agents/README.md": [],
-    "libs/cellforge-agents/requirements.txt": [],
-    "libs/cellforge-agents/src/cellforge/__init__.py": [
-      "libs/cellforge-agents/src/cellforge/orchestrator.py",
-      "libs/cellforge-agents/src/cellforge/problem.py"
+    "agency.yaml": [],
+    "CONTEXT-MAP.md": [],
+    "projects/lung-on-chipsim/.aiadlc-agent": [],
+    "projects/lung-on-chipsim/.dvc/config": [],
+    "projects/lung-on-chipsim/.dvcignore": [],
+    "projects/lung-on-chipsim/chipsim/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/acquire/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/encoders/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/eval/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/eval/provenance_block.py": [
+      "projects/lung-on-chipsim/chipsim/harmonize/adjudication.py",
+      "projects/lung-on-chipsim/chipsim/harmonize/contracts.py"
     ],
-    "libs/cellforge-agents/src/cellforge/__main__.py": [
-      "libs/cellforge-agents/src/cellforge/cli.py"
+    "projects/lung-on-chipsim/chipsim/harmonize/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/harmonize/adjudication.py": [],
+    "projects/lung-on-chipsim/chipsim/harmonize/contracts.py": [],
+    "projects/lung-on-chipsim/chipsim/harmonize/ids.py": [],
+    "projects/lung-on-chipsim/chipsim/harmonize/pgp_label.py": [],
+    "projects/lung-on-chipsim/chipsim/harmonize/roster.py": [],
+    "projects/lung-on-chipsim/chipsim/heads/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/ingest/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py": [],
+    "projects/lung-on-chipsim/chipsim/journal.py": [],
+    "projects/lung-on-chipsim/chipsim/occupancy/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/pipeline.py": [
+      "projects/lung-on-chipsim/chipsim/journal.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/__init__.py": [
-      "libs/cellforge-agents/src/cellforge/agents/architect.py",
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/agents/data_curator.py",
-      "libs/cellforge-agents/src/cellforge/agents/literature.py",
-      "libs/cellforge-agents/src/cellforge/agents/trainer.py",
-      "libs/cellforge-agents/src/cellforge/agents/validator.py"
+    "projects/lung-on-chipsim/chipsim/surface/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/transport/__init__.py": [],
+    "projects/lung-on-chipsim/chipsim/uncertainty/__init__.py": [],
+    "projects/lung-on-chipsim/configs/.gitkeep": [],
+    "projects/lung-on-chipsim/configs/barrier_panel.yaml": [],
+    "projects/lung-on-chipsim/configs/env.yaml": [],
+    "projects/lung-on-chipsim/CONTEXT.md": [],
+    "projects/lung-on-chipsim/data/interim/.gitkeep": [],
+    "projects/lung-on-chipsim/data/processed/.gitkeep": [],
+    "projects/lung-on-chipsim/data/raw/.gitkeep": [],
+    "projects/lung-on-chipsim/data/raw/drugbank/provenance.yaml": [],
+    "projects/lung-on-chipsim/data/raw/sources.yaml": [],
+    "projects/lung-on-chipsim/docs/adr/0001-run-journal-does-not-record-git-state.md": [],
+    "projects/lung-on-chipsim/docs/adr/0002-poc-conformal-calibration-at-20-per-group.md": [],
+    "projects/lung-on-chipsim/docs/adr/0003-power-floor-and-stratified-roster.md": [],
+    "projects/lung-on-chipsim/docs/adr/0004-pair-stratum-is-curated-not-discovered.md": [],
+    "projects/lung-on-chipsim/journal/.gitkeep": [],
+    "projects/lung-on-chipsim/orchestration/n8n/.gitkeep": [],
+    "projects/lung-on-chipsim/orchestration/n8n/etl_drugbank.json": [],
+    "projects/lung-on-chipsim/pyproject.toml": [],
+    "projects/lung-on-chipsim/README.md": [],
+    "projects/lung-on-chipsim/tests/conftest.py": [],
+    "projects/lung-on-chipsim/tests/fixtures/barrier_panel_missing_ratified.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/barrier_panel_no_abcb1.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/barrier_panel_ratified_no_ratifier.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/barrier_panel_ratified.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/barrier_panel_unratified.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_all_unknown.csv": [],
+    "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_blank.csv": [],
+    "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_filled.csv": [],
+    "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_no_missing_doi.csv": [],
+    "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_partial.csv": [],
+    "projects/lung-on-chipsim/tests/fixtures/pgp_adjudication_single_group.csv": [],
+    "projects/lung-on-chipsim/tests/fixtures/poc_compounds_missing_doi.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/poc_compounds_too_few.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/poc_compounds_too_many.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/poc_compounds.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/provenance_justified_swap.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/provenance_unjustified_swap.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/provenance.yaml": [],
+    "projects/lung-on-chipsim/tests/fixtures/snapshot/drugbank-slim.tsv": [],
+    "projects/lung-on-chipsim/tests/fixtures/snapshot/drugbank.tsv": [],
+    "projects/lung-on-chipsim/tests/fixtures/snapshot/proteins.tsv": [],
+    "projects/lung-on-chipsim/tests/fixtures/snapshot/README.md": [],
+    "projects/lung-on-chipsim/tests/honesty_scan.py": [],
+    "projects/lung-on-chipsim/tests/test_adjudication.py": [
+      "projects/lung-on-chipsim/chipsim/eval/provenance_block.py",
+      "projects/lung-on-chipsim/chipsim/harmonize/adjudication.py",
+      "projects/lung-on-chipsim/chipsim/harmonize/roster.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/architect.py": [
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/problem.py",
-      "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py"
+    "projects/lung-on-chipsim/tests/test_barrier_panel.py": [],
+    "projects/lung-on-chipsim/tests/test_conftest.py": [
+      "projects/lung-on-chipsim/tests/conftest.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/base.py": [
-      "libs/cellforge-agents/src/cellforge/problem.py"
+    "projects/lung-on-chipsim/tests/test_contracts.py": [],
+    "projects/lung-on-chipsim/tests/test_fixtures.py": [],
+    "projects/lung-on-chipsim/tests/test_journal.py": [
+      "projects/lung-on-chipsim/chipsim/journal.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/data_curator.py": [
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/problem.py",
-      "libs/cellforge-agents/src/cellforge/tools/omics.py"
+    "projects/lung-on-chipsim/tests/test_leakage.py": [],
+    "projects/lung-on-chipsim/tests/test_monotonicity.py": [],
+    "projects/lung-on-chipsim/tests/test_panel_seal_tty.py": [
+      "projects/lung-on-chipsim/chipsim/__init__.py",
+      "projects/lung-on-chipsim/chipsim/pipeline.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/literature.py": [
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/problem.py",
-      "libs/cellforge-agents/src/cellforge/tools/literature.py"
+    "projects/lung-on-chipsim/tests/test_parse.py": [
+      "projects/lung-on-chipsim/chipsim/harmonize/ids.py",
+      "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/trainer.py": [
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/problem.py",
-      "libs/cellforge-agents/src/cellforge/tools/trainer.py"
+    "projects/lung-on-chipsim/tests/test_pgp_label.py": [
+      "projects/lung-on-chipsim/chipsim/harmonize/ids.py",
+      "projects/lung-on-chipsim/chipsim/harmonize/pgp_label.py",
+      "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py"
     ],
-    "libs/cellforge-agents/src/cellforge/agents/validator.py": [
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/problem.py",
-      "libs/cellforge-agents/src/cellforge/tools/pathway.py"
+    "projects/lung-on-chipsim/tests/test_provenance.py": [
+      "projects/lung-on-chipsim/chipsim/harmonize/contracts.py",
+      "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py"
     ],
-    "libs/cellforge-agents/src/cellforge/backends/__init__.py": [
-      "libs/cellforge-agents/src/cellforge/backends/base.py",
-      "libs/cellforge-agents/src/cellforge/backends/mock.py"
+    "projects/lung-on-chipsim/tests/test_replay_determinism.py": [
+      "projects/lung-on-chipsim/chipsim/harmonize/ids.py",
+      "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py",
+      "projects/lung-on-chipsim/chipsim/journal.py"
     ],
-    "libs/cellforge-agents/src/cellforge/backends/base.py": [],
-    "libs/cellforge-agents/src/cellforge/backends/mock.py": [],
-    "libs/cellforge-agents/src/cellforge/cli.py": [
-      "libs/cellforge-agents/src/cellforge/agents/__init__.py",
-      "libs/cellforge-agents/src/cellforge/orchestrator.py",
-      "libs/cellforge-agents/src/cellforge/problem.py"
+    "projects/lung-on-chipsim/tests/test_scaffold.py": [],
+    "projects/lung-on-chipsim/tests/test_snapshot_fetch.py": [
+      "projects/lung-on-chipsim/chipsim/ingest/__init__.py"
     ],
-    "libs/cellforge-agents/src/cellforge/orchestrator.py": [
-      "libs/cellforge-agents/src/cellforge/agents/base.py",
-      "libs/cellforge-agents/src/cellforge/problem.py"
+    "projects/lung-on-chipsim/tests/test_workflow_export.py": [
+      "projects/lung-on-chipsim/chipsim/pipeline.py"
     ],
-    "libs/cellforge-agents/src/cellforge/problem.py": [],
-    "libs/cellforge-agents/src/cellforge/tools/__init__.py": [
-      "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py",
-      "libs/cellforge-agents/src/cellforge/tools/literature.py",
-      "libs/cellforge-agents/src/cellforge/tools/omics.py",
-      "libs/cellforge-agents/src/cellforge/tools/pathway.py",
-      "libs/cellforge-agents/src/cellforge/tools/trainer.py"
-    ],
-    "libs/cellforge-agents/src/cellforge/tools/biofm_catalog.py": [],
-    "libs/cellforge-agents/src/cellforge/tools/literature.py": [],
-    "libs/cellforge-agents/src/cellforge/tools/omics.py": [],
-    "libs/cellforge-agents/src/cellforge/tools/pathway.py": [],
-    "libs/cellforge-agents/src/cellforge/tools/trainer.py": [],
-    "libs/cellforge-agents/tests/test_agents.py": [],
-    "libs/cellforge-agents/tests/test_orchestrator.py": [],
-    "libs/cellforge-agents/tests/test_tools.py": [],
-    "libs/test-time-compute/examples/ttc_sweep.py": [],
-    "libs/test-time-compute/pyproject.toml": [],
-    "libs/test-time-compute/README.md": [],
-    "libs/test-time-compute/requirements.txt": [],
-    "libs/test-time-compute/src/ttc/__init__.py": [
-      "libs/test-time-compute/src/ttc/config.py",
-      "libs/test-time-compute/src/ttc/runner.py"
-    ],
-    "libs/test-time-compute/src/ttc/__main__.py": [
-      "libs/test-time-compute/src/ttc/cli.py"
-    ],
-    "libs/test-time-compute/src/ttc/cli.py": [
-      "libs/test-time-compute/src/ttc/config.py",
-      "libs/test-time-compute/src/ttc/runner.py"
-    ],
-    "libs/test-time-compute/src/ttc/config.py": [],
-    "libs/test-time-compute/src/ttc/model_loader.py": [],
-    "libs/test-time-compute/src/ttc/runner.py": [
-      "libs/test-time-compute/src/ttc/config.py",
-      "libs/test-time-compute/src/ttc/scoring.py",
-      "libs/test-time-compute/src/ttc/strategies.py"
-    ],
-    "libs/test-time-compute/src/ttc/scoring.py": [],
-    "libs/test-time-compute/src/ttc/strategies.py": [
-      "libs/test-time-compute/src/ttc/config.py",
-      "libs/test-time-compute/src/ttc/scoring.py"
-    ],
-    "libs/test-time-compute/tests/conftest.py": [],
-    "libs/test-time-compute/tests/test_runner_smoke.py": [],
-    "libs/test-time-compute/tests/test_scoring.py": [],
-    "libs/test-time-compute/tests/test_strategies.py": [],
-    "paper_standalone/.github/workflows/latex.yml": [],
-    "paper_standalone/experiments/generate_tables.py": [],
-    "paper_standalone/experiments/plot.py": [],
-    "paper_standalone/experiments/simulate.py": [],
-    "paper_standalone/Makefile": [],
-    "paper_standalone/paper.tex": [],
-    "paper_standalone/README.md": [],
-    "paper_standalone/references.bib": [],
-    "paper_standalone/src/perturb_eval/__init__.py": [
-      "paper_standalone/src/perturb_eval/bayesian.py",
-      "paper_standalone/src/perturb_eval/metrics.py",
-      "paper_standalone/src/perturb_eval/probe.py",
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/__main__.py": [
-      "paper_standalone/src/perturb_eval/cli.py"
-    ],
-    "paper_standalone/src/perturb_eval/_env.py": [],
-    "paper_standalone/src/perturb_eval/adamson_loader.py": [
-      "paper_standalone/src/perturb_eval/data.py"
-    ],
-    "paper_standalone/src/perturb_eval/backends/__init__.py": [
-      "paper_standalone/src/perturb_eval/backends/openrouter.py"
-    ],
-    "paper_standalone/src/perturb_eval/backends/openrouter.py": [],
-    "paper_standalone/src/perturb_eval/bayesian.py": [
-      "paper_standalone/src/perturb_eval/probe.py",
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/calibration.py": [
-      "paper_standalone/src/perturb_eval/metrics.py",
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/cli.py": [
-      "paper_standalone/src/perturb_eval/bayesian.py",
-      "paper_standalone/src/perturb_eval/probe.py"
-    ],
-    "paper_standalone/src/perturb_eval/data.py": [],
-    "paper_standalone/src/perturb_eval/instrumentation.py": [
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/massgen_adapter.py": [
-      "paper_standalone/src/perturb_eval/bayesian.py",
-      "paper_standalone/src/perturb_eval/metrics.py",
-      "paper_standalone/src/perturb_eval/probe.py",
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/metrics.py": [
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/model.py": [],
-    "paper_standalone/src/perturb_eval/probe.py": [
-      "paper_standalone/src/perturb_eval/metrics.py",
-      "paper_standalone/src/perturb_eval/types.py"
-    ],
-    "paper_standalone/src/perturb_eval/types.py": [],
-    "paper_standalone/tables/tab1_metric_correlations.tex": [],
-    "paper_standalone/tables/tab2_calibration_improvement.tex": [],
-    "paper_standalone/tables/tab3_probe_to_target.tex": [],
-    "paper_standalone/tables/tab4_agent_scaling.tex": [],
-    "paper_standalone/tables/tab5_pareto_samples.tex": [],
     "projects/perturb-seq-eval/artifacts/dry_run/e1_overlap.json": [],
     "projects/perturb-seq-eval/artifacts/dry_run/e2_grid.jsonl": [],
     "projects/perturb-seq-eval/artifacts/dry_run/e3_trajectories.json": [],
@@ -2273,65 +2129,6 @@
     "projects/perturb-seq-eval/tests/test_v05_analysis.py": [],
     "projects/perturb-seq-eval/tests/test_validator_critique.py": [],
     "README.md": [],
-    "research/MODELS.md": [],
-    "research/pr_drafts/cellforge_preflight_hook.md": [],
-    "research/pr_drafts/massgen_skill_contribution.md": [],
-    "research/PUBLICATION_EVIDENCE.md": [],
-    "research/PUBLISHING_RUNBOOK.md": [],
-    "research/PUBLISHING_VENUES.md": [],
-    "research/RELEASE_SOCIAL.md": [],
-    "research/test-time-compute-guide/GUIDE.md": [],
-    "research/test-time-compute-guide/README.md": [],
-    "research/test-time-compute-guide/ref_impl/__init__.py": [
-      "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
-      "research/test-time-compute-guide/ref_impl/best_of_n.py",
-      "research/test-time-compute-guide/ref_impl/iterative_revision.py",
-      "research/test-time-compute-guide/ref_impl/majority_vote.py",
-      "research/test-time-compute-guide/ref_impl/types.py",
-      "research/test-time-compute-guide/ref_impl/weighted_majority.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/adaptive_budget.py": [
-      "research/test-time-compute-guide/ref_impl/best_of_n.py",
-      "research/test-time-compute-guide/ref_impl/iterative_revision.py",
-      "research/test-time-compute-guide/ref_impl/types.py",
-      "research/test-time-compute-guide/ref_impl/weighted_majority.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/best_of_n.py": [
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/iterative_revision.py": [
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/majority_vote.py": [
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/tests/__init__.py": [],
-    "research/test-time-compute-guide/ref_impl/tests/conftest.py": [
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/tests/test_adaptive_budget.py": [
-      "research/test-time-compute-guide/ref_impl/adaptive_budget.py",
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/tests/test_best_of_n.py": [
-      "research/test-time-compute-guide/ref_impl/best_of_n.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/tests/test_iterative_revision.py": [
-      "research/test-time-compute-guide/ref_impl/iterative_revision.py",
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/tests/test_majority_vote.py": [
-      "research/test-time-compute-guide/ref_impl/majority_vote.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/tests/test_weighted_majority.py": [
-      "research/test-time-compute-guide/ref_impl/types.py",
-      "research/test-time-compute-guide/ref_impl/weighted_majority.py"
-    ],
-    "research/test-time-compute-guide/ref_impl/types.py": [],
-    "research/test-time-compute-guide/ref_impl/weighted_majority.py": [
-      "research/test-time-compute-guide/ref_impl/types.py"
-    ],
-    "scripts/publish/publish.yml.template": [],
-    "scripts/publish/submit.py": []
+    "skills-lock.json": []
   }
 }
