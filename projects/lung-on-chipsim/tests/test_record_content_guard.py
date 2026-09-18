@@ -4635,3 +4635,178 @@ def test_a_symlink_needs_no_special_case_in_staged_mode(tmp_path, monkeypatch):
         hits = {r for r, _ in real_accession_hits(context.read_root, list(context.paths))}
 
     assert link in hits, "the accession in the committed target string must still be found"
+
+
+def _plain_repo(tmp_path):
+    """A bare checkout with no project scaffolding — these tests exercise the READER, not the gate."""
+    root = tmp_path / "plain"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "t@t"], cwd=root, check=True, capture_output=True
+    )
+    subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True, capture_output=True)
+    return root
+
+
+def _write_blob(root, data: bytes) -> str:
+    run = subprocess.run(
+        ["git", "hash-object", "-w", "--stdin"],
+        cwd=root,
+        input=data,
+        capture_output=True,
+        check=True,
+    )
+    return run.stdout.decode().strip()
+
+
+def _set_index(root, records: list[tuple[str, str, str]]) -> None:
+    """Build an index directly, so a state git will not let you `add` can still be tested."""
+    payload = "".join(f"{mode} {oid}\t{rel}\0" for mode, oid, rel in records)
+    subprocess.run(
+        ["git", "update-index", "-z", "--index-info"],
+        cwd=root,
+        input=payload.encode(),
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_two_tracked_paths_the_filesystem_conflates_are_REFUSED_not_silently_merged(tmp_path):
+    """THE FALSE CLEAN THIS SECTION EXISTS FOR, reproduced before it was fixed.
+
+    `Data.csv` and `data.csv` are two distinct tracked paths. On a case-insensitive volume — APFS
+    by default, and NTFS — they are ONE file in the materialised tree, so the second blob written
+    discards the first and the scan reads the survivor twice. Measured against the previous reader:
+    one file, holding the decoy, and the counter reported "2 of 2" because it counted WRITES rather
+    than files. The record in the other blob was never read and the gate exited 0.
+
+    The same shape applies to NFC/NFD pairs on a normalisation-insensitive volume, which is why the
+    check asks the filesystem (`exists()`) instead of comparing the names itself.
+    """
+    from chipsim.guards.errors import ScanNotPerformed
+    from chipsim.guards.repo import materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    carrying = _write_blob(root, b"UPPER blob carrying DB90001\n")
+    decoy = _write_blob(root, b"lower blob, harmless\n")
+    _set_index(root, [("100644", carrying, "Data.csv"), ("100644", decoy, "data.csv")])
+
+    into = tmp_path / "staged"
+    with pytest.raises(ScanNotPerformed) as caught:
+        materialise_blobs(root, into)
+
+    message = str(caught.value)
+    assert "Data.csv" in message and "data.csv" in message, (
+        "the refusal must name BOTH paths — whoever reads it has to know which pair collided"
+    )
+    assert (into / "Data.csv").read_bytes() == b"UPPER blob carrying DB90001\n", (
+        "the collision must be caught BEFORE the second write. Checking afterwards would find the "
+        "first blob's bytes already discarded, which is the defect, not the detection of it."
+    )
+
+
+def test_blob_bytes_that_do_not_hash_to_the_requested_oid_are_REFUSED(tmp_path):
+    """`refs/replace/*` re-points an OID at other content, and `cat-file` serves the substitute
+    under the REQUESTED oid — the response header echoes what was asked for, so comparing headers
+    cannot see it. Only hashing the payload can.
+
+    This also pins the framing walk: a record consumed at the wrong offset does not hash to the
+    name it was requested under, so the positional read is now checked rather than assumed.
+    """
+    from chipsim.guards.errors import ScanNotPerformed
+    from chipsim.guards.repo import materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    real = _write_blob(root, b"the committed bytes, carrying DB90002\n")
+    substitute = _write_blob(root, b"nothing to see here\n")
+    _set_index(root, [("100644", real, "records.txt")])
+
+    # The guard passes `--no-replace-objects`, so reach past it to prove the HASH is what refuses:
+    # this asserts the second lock independently of the first.
+    subprocess.run(
+        ["git", "replace", "-f", real, substitute], cwd=root, check=True, capture_output=True
+    )
+    from chipsim.guards import repo as repo_module
+
+    original = repo_module._git_argv
+
+    def without_the_replace_guard(args):
+        return [a for a in original(args) if a != "--no-replace-objects"]
+
+    repo_module._git_argv = without_the_replace_guard
+    try:
+        with pytest.raises(ScanNotPerformed) as caught:
+            materialise_blobs(root, tmp_path / "staged")
+    finally:
+        repo_module._git_argv = original
+
+    assert "name the object" in str(caught.value)
+    assert real in str(caught.value), "the refusal must say which object was asked for"
+
+
+def test_the_replace_guard_alone_keeps_the_committed_bytes_visible(tmp_path):
+    """The other half of the pair: with the argv flag in place, a replace ref cannot substitute
+    anything, so the reader sees the real blob and never reaches the hash refusal."""
+    from chipsim.guards.repo import materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    real = _write_blob(root, b"the committed bytes, carrying DB90002\n")
+    substitute = _write_blob(root, b"nothing to see here\n")
+    _set_index(root, [("100644", real, "records.txt")])
+    subprocess.run(
+        ["git", "replace", "-f", real, substitute], cwd=root, check=True, capture_output=True
+    )
+
+    staged = materialise_blobs(root, tmp_path / "staged")
+    assert (staged / "records.txt").read_bytes() == b"the committed bytes, carrying DB90002\n"
+
+
+def test_a_staged_tree_that_is_not_empty_is_REFUSED(tmp_path):
+    """The collision refusal reads "this path already exists", so it can only tell a second write
+    from a pre-existing file if the tree starts empty. `materialise_blobs` is public; a caller
+    handing it a shared directory would silently disarm the guard above rather than trip it."""
+    from chipsim.guards.errors import GuardInvariantViolated
+    from chipsim.guards.repo import materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    _set_index(root, [("100644", _write_blob(root, b"x\n"), "a.txt")])
+
+    into = tmp_path / "staged"
+    into.mkdir()
+    (into / "left-over.txt").write_text("from an earlier run\n")
+
+    with pytest.raises(GuardInvariantViolated):
+        materialise_blobs(root, into)
+
+
+def test_a_truncated_object_stream_is_REFUSED_rather_than_short_read(tmp_path):
+    """If the stream ends mid-payload the remaining entries have no bytes at all. Silence here
+    would be a scan that read a prefix of the repository and reported on all of it."""
+    import io
+
+    from chipsim.guards.errors import ScanNotPerformed
+    from chipsim.guards.repo import _consume_blobs
+
+    entries = [("100644", "0" * 40, "a.txt")]
+    stream = io.BytesIO(b"%s blob 100\nonly-a-few-bytes" % (b"0" * 40))
+
+    with pytest.raises(ScanNotPerformed) as caught:
+        _consume_blobs(stream, entries, tmp_path, lambda: hashlib.sha1(usedforsecurity=False))
+    assert "truncated blob" in str(caught.value)
+
+
+def test_a_record_for_the_wrong_object_is_REFUSED(tmp_path):
+    """The walk is positional. If a record ever arrives for an object other than the one requested,
+    every later payload belongs to the wrong path, so no row in the report means anything."""
+    import io
+
+    from chipsim.guards.errors import ScanNotPerformed
+    from chipsim.guards.repo import _consume_blobs
+
+    entries = [("100644", "a" * 40, "a.txt")]
+    stream = io.BytesIO(b"%s blob 2\nhi\n" % (b"b" * 40))
+
+    with pytest.raises(ScanNotPerformed) as caught:
+        _consume_blobs(stream, entries, tmp_path, lambda: hashlib.sha1(usedforsecurity=False))
+    assert "diverged" in str(caught.value)

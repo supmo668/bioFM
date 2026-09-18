@@ -358,17 +358,33 @@ def _functions_that_write(module_path: Path) -> set[str]:
                 and inner.func.attr in _SERIALISING_CALLS
             ):
                 writers.add(f"{module_path.stem}.{node.name}")
-            if (
-                isinstance(inner, ast.Call)
-                and isinstance(inner.func, ast.Name)
-                and inner.func.id == "open"
-                and any(
-                    isinstance(arg, ast.Constant)
-                    and isinstance(arg.value, str)
-                    and "w" in arg.value
-                    for arg in inner.args[1:]
+            # A WRITE MODE, however the file was opened. `open(p, "w")` is an `ast.Name` call and
+            # `p.open("wb")` is an `ast.Attribute` call, and matching only the first let the reader
+            # that materialises EVERY TRACKED BLOB leave this registry silently — not by being new,
+            # but by changing how it writes. `Path.open` is the same act as `open`; the detector
+            # has to agree.
+            # The MODE SITS IN A DIFFERENT SLOT in the two spellings: `open(path, "w")` carries it
+            # at args[1] because args[0] is the path, while `path.open("wb")` carries it at
+            # args[0] because the path is the receiver. Looking only at args[1:] finds nothing in
+            # the attribute form — which is how the first attempt at this fix still saw zero
+            # writers in the module it was written for.
+            is_open_call = isinstance(inner, ast.Call) and (
+                (isinstance(inner.func, ast.Name) and inner.func.id == "open")
+                or (isinstance(inner.func, ast.Attribute) and inner.func.attr == "open")
+            )
+            mode_args = []
+            if is_open_call:
+                positional = (
+                    inner.args[1:] if isinstance(inner.func, ast.Name) else list(inner.args)
                 )
-            ):
+                mode_args = [*positional, *(kw.value for kw in inner.keywords)]
+            opens_for_write = is_open_call and any(
+                isinstance(arg, ast.Constant)
+                and isinstance(arg.value, str)
+                and ("w" in arg.value or "a" in arg.value or "+" in arg.value)
+                for arg in mode_args
+            )
+            if opens_for_write:
                 writers.add(f"{module_path.stem}.{node.name}")
     return writers
 
@@ -453,21 +469,34 @@ RECORD_BEARING_PENDING_RULING = {
     # Writes the raw DrugBank tables to `--dest`, unvalidated: the most record-bearing payload in
     # the project. Its legitimate home is data/raw/ (DVC-tracked, git-ignored), not a declared root.
     "drugbank_snapshot.fetch_snapshot",
+    # The function that ACTUALLY WRITES the bytes `fetch_snapshot` is registered for: it streams
+    # each remote snapshot file to disk through `target.open("wb")`. Invisible to this registry
+    # until the detector above learned that spelling — the same blind spot, and the same
+    # entry-point-vs-writer split, as `repo._consume_blobs` below, but PRE-EXISTING and nobody's
+    # recent change. It carries the raw DrugBank tables, so it inherits `fetch_snapshot`'s
+    # classification exactly: record-bearing, destination not a declared root.
+    "drugbank_snapshot._download",
     # Writes merge_report.json/.md to an operator-chosen --out. Today it identifies members by
     # canonical InChIKey only and sends the id/name association to the git-ignored journal — but
     # "a tracked merge report came to carry 89 real accessions" is the incident this guard's own
     # docstrings cite, and the destination is unguarded.
     "merge_report.main",
-    # Materialises EVERY TRACKED BLOB into a TemporaryDirectory so the commit gate can read the
-    # bytes a commit would carry (r2.32). Its payload is, by construction, the most record-bearing
-    # thing in the repository — so "not record bearing" would be the comfortable classification this
-    # list exists to refuse — but its destination is a temp tree outside the repository, not a
-    # declared root, so `refuse_unless_declared_output_root` cannot be applied to it as written.
+    # Writes EVERY TRACKED BLOB into a TemporaryDirectory so the commit gate can read the bytes a
+    # commit would carry (r2.32). Its payload is, by construction, the most record-bearing thing in
+    # the repository — so "not record bearing" would be the comfortable classification this list
+    # exists to refuse — but its destination is a temp tree outside the repository, not a declared
+    # root, so `refuse_unless_declared_output_root` cannot be applied to it as written.
     #
     # The security review named the residual: that tree contains exactly the content the gate exists
     # to keep out of the repository, and it survives an abnormal exit. Escalated with the reader
     # change rather than filed as settled.
-    "repo.materialise_blobs",
+    #
+    # REGISTERED UNDER THE FUNCTION THAT ACTUALLY WRITES, not the public entry point
+    # (`repo.materialise_blobs`) that calls it. When the write moved into this helper and changed
+    # from `write_bytes` to a file handle, the detector above stopped seeing it at all and the
+    # entry named here became a phantom — the registry was silently describing a writer that no
+    # longer existed while missing the one that did.
+    "repo._consume_blobs",
 }
 
 

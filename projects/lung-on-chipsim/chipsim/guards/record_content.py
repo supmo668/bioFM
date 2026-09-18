@@ -990,6 +990,15 @@ class ScanContext:
     def for_staged(cls, root: Path, policy: ContentPolicy, staged_root: Path) -> ScanContext:
         """THE BYTES A COMMIT WOULD CARRY, materialised from the index (r2.28).
 
+        THE TWO MODES CAN NOW LEGITIMATELY DISAGREE ABOUT A `sha256` PIN, which they could not
+        under `checkout-index` — that rendered both copies the same way, which was the defect.
+        With any `eol` or `filter` attribute in effect, the worktree digests the rendered bytes and
+        this mode digests the blob, so a pinned declaration can hold in exactly one of them: the
+        report would call it broken while the gate passes, or the reverse. Inert today (no tracked
+        `.gitattributes`, and both declaration surfaces are empty) and NOT a defect — blob bytes
+        are the answer a commit gate wants — but whoever writes the first pin is pinning one
+        specific copy, and needs to know which.
+
         `staged_root` comes from `scan_context`, which owns its lifetime — the context is a frozen
         dataclass and must not own a resource.
 
@@ -1056,12 +1065,24 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
     report = undeclared_report(paths, policy, surface)
     failing = set(failing_undeclared(paths, policy, surface))
 
-    # Tracked but absent from disk. Listed always; failing only where we own it or nobody does —
-    # the same predicate failing_undeclared uses, because "unowned fails here" is load-bearing for
-    # E6-4 and a missing file is no different in that respect.
+    # Tracked but absent from disk. In WORKTREE mode this is an ordinary state — a human can have
+    # a tracked file checked out and then deleted — so it is listed always and fails only where we
+    # own it or nobody does, the same predicate failing_undeclared uses, because "unowned fails
+    # here" is load-bearing for E6-4.
+    #
+    # IN STAGED MODE IT IS ALWAYS A DEFECT OF THE SCAN, and ownership must not soften it. The blob
+    # reader writes a file for every listed non-gitlink entry or refuses, so a listed path with no
+    # bytes behind it means the listing and the materialisation disagree about what is tracked —
+    # they are two `git ls-files` calls a fraction of a second apart, and a path `git add`ed in
+    # that window lands exactly here. Letting another project's ownership turn that into a "listed"
+    # row is E6-4's escape hatch applied to a state that is no longer an ordinary one: the gate
+    # would exit 0 having never read bytes a commit carries.
     recognised = recognised_owners(paths, surface)
     missing = [(rel, path_owner(rel, recognised)) for rel in unresolvable_tracked(root, paths)]
-    failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
+    if context.byte_source == "staged":
+        failing |= {rel for rel, _owner in missing}
+    else:
+        failing |= {rel for rel, owner in missing if owner is None or owner == THIS_PROJECT}
 
     # A declaration whose claim does not hold fails this gate outright: both surfaces are ours, so
     # there is no other gate for a broken claim to fall to (E-03).

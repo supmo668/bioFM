@@ -15,12 +15,21 @@ answer in it was a false-clean at some point:
     never arrive at the same answer as "there are no files".
   * `render_path` escapes unprintable names, because one filename could draw a complete fake clean
     report over the real one.
+  * `materialise_blobs` reads BLOB BYTES rather than the working-tree rendering of the index, and
+    trusts nothing about what comes back: not that two tracked names are two files (a
+    case-insensitive volume made them one and the record in the discarded blob was never scanned),
+    not that the bytes are the object requested (`refs/replace/*` substitutes content under the
+    requested oid), and not that the repository fits in memory (a guard that OOMs gives no verdict,
+    which is a false clean in a new costume).
 """
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
+import tempfile
+import threading
 from pathlib import Path
 
 from chipsim.guards.errors import (  # noqa: F401
@@ -35,8 +44,32 @@ from chipsim.guards.errors import (  # noqa: F401
 # cycle avoidance. Re-exported so existing importers keep working.
 # `render_path` moved to `report` with the rest of presentation; re-exported because callers
 # reach it here and ruff deletes what it cannot see a use for.
-from chipsim.guards.report import render_path  # noqa: F401
+from chipsim.guards.report import render_path
 from chipsim.journal import source_root
+
+
+def _git_argv(args: list[str]) -> list[str]:
+    """The hardened argv EVERY git invocation in this module uses. ONE definition, deliberately.
+
+    `materialise_blobs` cannot call `_git` — that decodes to text, which is right for paths and
+    wrong for blob content — and so it grew its OWN copy of the hardening, in the same change whose
+    entire point was that two definitions of one thing drift. A security review named the
+    consequence before it happened: a future flag added to `_git` would silently not apply to the
+    call that reads repository CONTENT. The bytes/text difference is the only thing that stays
+    local now.
+
+    `--no-replace-objects` because `refs/replace/*` re-points an OID at different content and
+    `cat-file` honours it, echoing the REQUESTED oid in its header — so the substitution is
+    invisible to any check short of hashing the payload (which `materialise_blobs` now also does).
+    It has to be an argv flag: the env sanitiser below drops `GIT_NO_REPLACE_OBJECTS` along with
+    every other `GIT_*`, so the environment is not a place this can be closed from.
+    """
+    return ["git", "--no-replace-objects", "-c", "core.fsmonitor=", *args]
+
+
+def _git_env() -> dict[str, str]:
+    """The environment with every `GIT_*` name dropped — see `_git` for why all of them."""
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
 
 
 def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
@@ -54,11 +87,10 @@ def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
       the invocation not honour config from a tree we do not trust; `-c core.fsmonitor=` is the
       second half, and `repo_root()`'s witness check below is the first.
     """
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     return subprocess.run(
-        ["git", "-c", "core.fsmonitor=", *args],
+        _git_argv(args),
         cwd=cwd,
-        env=env,
+        env=_git_env(),
         capture_output=True,
         text=True,
         # A tracked path need not be valid UTF-8. Strict decoding turned that into a traceback
@@ -77,8 +109,8 @@ def _toplevel_of(directory: Path) -> Path | None:
     return Path(run.stdout.strip()).resolve()
 
 
-def _tracked_entries(root: Path):
-    """(mode, oid, path) for every tracked entry, refusing an unmerged index.
+def _tracked_entries(root: Path) -> list[tuple[str, str, str]]:
+    """(mode, oid, path) for every tracked entry, refusing an unmerged index or a non-toplevel root.
 
     ENUMERATED FROM `git ls-files -s` RATHER THAN FROM `checkout-index` (r2.32 constraint 1). That
     tool skips unmerged entries and still exits 0, so a listing derived from it could not tell "not
@@ -86,6 +118,18 @@ def _tracked_entries(root: Path):
     over a file it never read. Here the STAGE is visible, so refusing a tree mid-merge is a property
     of the enumeration rather than of a downstream check.
     """
+    root = Path(root).resolve()
+    top = _toplevel_of(root)
+    if top is None:
+        raise ScanNotPerformed(
+            f"{root} is not a git checkout, so no tracked-file list could be read. An empty list "
+            f"is not an all-clear."
+        )
+    if top != root:
+        raise ScanNotPerformed(
+            f"asked to scan {root}, but git resolves that directory to the working tree {top}. "
+            f"Refusing to report: the tree scanned and the tree named must be the same one."
+        )
     run = _git(["ls-files", "-z", "-s"], cwd=root)
     if run.returncode != 0:
         raise ScanNotPerformed(
@@ -93,8 +137,17 @@ def _tracked_entries(root: Path):
         )
     entries = []
     for record in filter(None, run.stdout.split("\0")):
-        meta, rel = record.split("\t", 1)
-        mode, oid, stage = meta.split()
+        # A shape git does not produce today must still arrive as a REFUSAL. Unpacking it raised
+        # `ValueError` straight past every caller's `except RecordContentScanError` — the same
+        # traceback-instead-of-a-report failure `_git`'s docstring names two functions above.
+        try:
+            meta, rel = record.split("\t", 1)
+            mode, oid, stage = meta.split()
+        except ValueError as exc:
+            raise ScanNotPerformed(
+                f"could not parse a `git ls-files -s` record under {root}: "
+                f"{render_path(repr(record))} ({exc})"
+            ) from exc
         if stage != "0":
             raise ScanNotPerformed(
                 f"{rel} is UNMERGED in the index (stage {stage}). A tree in the middle of a merge "
@@ -102,6 +155,43 @@ def _tracked_entries(root: Path):
             )
         entries.append((mode, oid, rel))
     return entries
+
+
+def _object_hasher(root: Path):
+    """A constructor for the hash git names objects with in THIS repository, or a refusal.
+
+    Read rather than assumed: a sha256 repository names blobs with 64 hex digits, and a verifier
+    hard-coded to sha1 there would reject every object and call it tampering.
+
+    A CONSTRUCTOR rather than a one-shot function, so the payload can be fed through in chunks and
+    never has to exist in memory whole. Neither hash is used here for collision resistance: the
+    question is only "does this repository call these bytes by this name", and the repository's own
+    answer is the one being checked.
+    """
+    run = _git(["rev-parse", "--show-object-format"], cwd=root)
+    fmt = run.stdout.strip() if run.returncode == 0 else ""
+    if fmt == "sha1":
+        return lambda: hashlib.sha1(usedforsecurity=False)
+    if fmt == "sha256":
+        return lambda: hashlib.sha256(usedforsecurity=False)
+    raise ScanNotPerformed(
+        f"{root} reports object format {fmt!r}, which this reader cannot verify blobs against. "
+        f"Refusing rather than reading bytes it cannot check."
+    )
+
+
+def _feed_oids(pipe, request: bytes) -> None:
+    """Write the request while the main thread drains stdout, so neither waits on the other.
+
+    An `OSError` here means the reader closed the pipe first — it refused something and is already
+    raising. Its exception is the one that describes the problem; this one would replace a precise
+    diagnosis with `EPIPE`.
+    """
+    try:
+        pipe.write(request)
+        pipe.close()
+    except OSError:
+        pass
 
 
 def materialise_blobs(root: Path, into: Path) -> Path:
@@ -118,64 +208,184 @@ def materialise_blobs(root: Path, into: Path) -> Path:
 
     A SYMLINK'S BLOB IS ITS TARGET STRING, so it is written as ordinary content and the staged path
     needs no link-aware reader (constraint 2).
+
+    THREE THINGS THIS FUNCTION NO LONGER TAKES ON TRUST, each of which was a way for the gate to
+    report clean over bytes it never read:
+
+    * THE FILESYSTEM'S IDEA OF A DISTINCT NAME. Two tracked paths differing only in case, or only
+      in Unicode normalisation, are ONE file on APFS and on NTFS. Reproduced: an index holding
+      `Data.csv` (carrying the record) and `data.csv` (a decoy) materialised as a single file
+      holding the decoy, and the counter below said 2 of 2. The filesystem's own equivalence is
+      what conflates them, so `exists()` — which asks the filesystem — is what detects them.
+    * THE BYTES BEING THE ONES ASKED FOR. `refs/replace/*` re-points an OID at other content and
+      the response header echoes the REQUESTED oid, so only hashing the payload can tell. The
+      argv closes the channel and the hash checks that it stayed closed.
+    * THE TREE FITTING IN MEMORY. `capture_output` held every tracked blob at once — measured at
+      ~240 MiB on this repository against 25 MiB for the tool it replaced — while `decoding` sets
+      three explicit ceilings on the argument that a guard which OOMs produces no verdict, and no
+      verdict is a false clean in a new costume. The stream is consumed one blob at a time.
     """
     entries = [(mode, oid, rel) for mode, oid, rel in _tracked_entries(root) if mode != "160000"]
     into.mkdir(parents=True, exist_ok=True)
+    if any(into.iterdir()):
+        raise GuardInvariantViolated(
+            f"{render_path(str(into))} is not empty. The staged tree must start empty or the "
+            f"collision refusal below cannot tell a second write from a pre-existing file."
+        )
     if not entries:
         return into
 
+    new_hasher = _object_hasher(root)
     request = "".join(f"{oid}\n" for _mode, oid, _rel in entries).encode("ascii")
-    # THE SAME ENVIRONMENT SANITISATION `_git` APPLIES — every `GIT_*` dropped and `core.fsmonitor`
-    # neutralised — because this invocation reads repository content, and a planted config steering
-    # it is exactly the channel `_git`'s docstring exists to close. Not routed through `_git`
-    # itself because that decodes to text with surrogateescape, which is right for paths and wrong
-    # for blob content: this must stay bytes (constraint 3).
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    run = subprocess.run(
-        ["git", "-c", "core.fsmonitor=", "cat-file", "--batch"],
-        cwd=root,
-        input=request,
-        capture_output=True,
-        env=env,
-        check=False,
-    )
-    if run.returncode != 0:
-        raise ScanNotPerformed(
-            f"could not read the staged blobs under {root}: "
-            f"{run.stderr.decode('utf-8', 'replace').strip() or 'no diagnostic'}"
+
+    with tempfile.TemporaryFile() as diagnostics:
+        proc = subprocess.Popen(
+            _git_argv(["cat-file", "--batch"]),
+            cwd=root,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=diagnostics,
+            env=_git_env(),
         )
-
-    stream = run.stdout
-    offset = 0
-    written = 0
-    for _mode, oid, rel in entries:
-        newline = stream.find(b"\n", offset)
-        if newline < 0:
-            raise ScanNotPerformed(f"truncated blob stream while reading {rel}")
-        header = stream[offset:newline].split()
-        if len(header) != 3 or header[1] != b"blob":
+        feeder = threading.Thread(target=_feed_oids, args=(proc.stdin, request), daemon=True)
+        feeder.start()
+        try:
+            _consume_blobs(proc.stdout, entries, into, new_hasher)
+            if proc.stdout.read(1):
+                raise ScanNotPerformed(
+                    f"git returned more object records than the {len(entries)} requested under "
+                    f"{root}. Refusing a stream this reader does not understand."
+                )
+        finally:
+            proc.stdout.close()
+            feeder.join(timeout=5)
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait()
+        if proc.returncode != 0:
+            diagnostics.seek(0)
+            detail = diagnostics.read().decode("utf-8", "replace").strip()
             raise ScanNotPerformed(
-                f"{rel}: expected a blob for {oid}, got {stream[offset:newline]!r}"
+                f"could not read the staged blobs under {root}: {detail or 'no diagnostic'}"
             )
-        size = int(header[2])
-        start = newline + 1
-        payload = stream[start : start + size]
-        if len(payload) != size:
-            raise ScanNotPerformed(f"truncated blob for {rel}: {len(payload)} of {size} bytes")
-        offset = start + size + 1  # trailing newline git appends after each object
 
-        target = into / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
-        written += 1
-
-    # CONSTRAINT 4: the count must keep meaning "files whose bytes were read". A mismatch is a
-    # refusal, never a silent skip — the defect `checkout-index` had.
-    if written != len(entries):
+    # CONSTRAINT 4: the count must keep meaning "files whose bytes were read". This asks the
+    # FILESYSTEM how many files exist rather than counting the writes we just made — a counter
+    # incremented once per loop iteration could only ever equal the number of iterations, which is
+    # why the previous version of this check passed over the collision above while a blob was
+    # being lost. Two tracked paths that are one file are visible here and nowhere else.
+    materialised = sum(1 for path in into.rglob("*") if path.is_file())
+    if materialised != len(entries):
         raise ScanNotPerformed(
-            f"materialised {written} of {len(entries)} tracked blobs under {root}"
+            f"materialised {materialised} files for {len(entries)} tracked blobs under {root}"
         )
     return into
+
+
+#: Blob payloads move through the hasher and the file handle in slices of this size, so the peak
+#: cost of the reader is a constant rather than the largest file anyone has committed. Measured:
+#: holding each payload whole cost 94.7 MiB on this repository against a 34.5 MiB largest blob,
+#: because the hash input was a second copy of it.
+_BLOB_CHUNK_BYTES = 1 << 20
+
+
+def _consume_blobs(stream, entries, into: Path, new_hasher) -> None:
+    """Read one `cat-file --batch` record per entry and write its payload. Refuses, never skips."""
+    written: dict[str, str] = {}
+    into_resolved = into.resolve()
+    for _mode, oid, rel in entries:
+        header = stream.readline()
+        if not header.endswith(b"\n"):
+            raise ScanNotPerformed(f"truncated blob stream while reading {render_path(rel)}")
+        fields = header.rstrip(b"\n").split()
+        if len(fields) != 3 or fields[1] != b"blob":
+            raise ScanNotPerformed(
+                f"{render_path(rel)}: expected a blob for {oid}, got {header.rstrip()!r}"
+            )
+        if fields[0] != oid.encode("ascii"):
+            raise ScanNotPerformed(
+                f"{render_path(rel)}: asked for {oid}, got a record for "
+                f"{fields[0].decode('ascii', 'replace')}. The stream and the listing have "
+                f"diverged, so no row in this report can be trusted."
+            )
+        try:
+            size = int(fields[2])
+        except ValueError as exc:
+            raise ScanNotPerformed(
+                f"{render_path(rel)}: unreadable object size in {header.rstrip()!r}"
+            ) from exc
+
+        target = into / rel
+        # NOTHING IS WRITTEN OUTSIDE THE STAGED TREE. git validates index paths and rejected every
+        # `..` entry two reviews could construct, so this has no demonstrated bypass today — which
+        # is exactly why it is written down rather than left implicit. The tool this replaced
+        # enforced path safety in C, and dropping to plain writes moved the whole class onto a
+        # git-side invariant, in the component whose CVE history is that invariant failing.
+        if not target.resolve().is_relative_to(into_resolved):
+            raise ScanNotPerformed(
+                f"{render_path(rel)} resolves outside the staged tree. Refusing to write it: a "
+                f"tracked path may not name a destination the scan does not own."
+            )
+        # ASK THE FILESYSTEM, not `resolve()`: on a case-insensitive or normalisation-insensitive
+        # volume `Path.resolve()` returns the spelling it was given, so it reports two distinct
+        # paths for the one file that is about to be overwritten. `exists()` consults the same
+        # equivalence that causes the collision. Checked BEFORE the file is opened, because
+        # opening for write is itself the destructive act.
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            collides = target.exists() or target.is_symlink()
+        except OSError as exc:
+            raise ScanNotPerformed(
+                f"could not prepare the staged path for {render_path(rel)}: {exc}"
+            ) from exc
+        if collides:
+            clash = written.get(str(target).casefold(), "an earlier entry")
+            raise ScanNotPerformed(
+                f"{render_path(rel)} and {render_path(clash)} are DISTINCT tracked paths that "
+                f"this filesystem treats as one file. Writing the second would discard the "
+                f"first, and the scan would report clean over bytes it never read."
+            )
+
+        digest = new_hasher()
+        digest.update(b"blob %d\0" % size)
+        remaining = size
+        try:
+            with target.open("wb") as sink:
+                while remaining:
+                    chunk = stream.read(min(remaining, _BLOB_CHUNK_BYTES))
+                    if not chunk:
+                        raise ScanNotPerformed(
+                            f"truncated blob for {render_path(rel)}: "
+                            f"{size - remaining} of {size} bytes"
+                        )
+                    digest.update(chunk)
+                    sink.write(chunk)
+                    remaining -= len(chunk)
+        except OSError as exc:
+            # The tool this replaced turned an unwritable name into `ScanNotPerformed` with a
+            # diagnostic; letting `OSError` past here loses the report entirely, because no caller
+            # catches it. Measured: a tracked path whose bytes are not valid UTF-8 is refused by
+            # APFS with Errno 92, and the gate died with a traceback and exit 1.
+            raise ScanNotPerformed(
+                f"could not write the staged blob for {render_path(rel)}: {exc}"
+            ) from exc
+
+        if stream.read(1) != b"\n":
+            raise ScanNotPerformed(
+                f"{render_path(rel)}: the object record is not framed as git frames it"
+            )
+
+        # THE PAYLOAD IS THE OBJECT IT WAS ASKED FOR — not merely labelled as it. This is the only
+        # check that sees through `refs/replace/*`, whose response header carries the REQUESTED
+        # oid, and it is also what makes the positional walk above an assertion rather than an
+        # assumption: a record consumed at the wrong offset does not hash to the right name.
+        actual = digest.hexdigest()
+        if actual != oid:
+            raise ScanNotPerformed(
+                f"{render_path(rel)}: the bytes returned for {oid} name the object {actual}. "
+                f"Refusing to scan content this repository does not agree it stores."
+            )
+        written[str(target).casefold()] = rel
 
 
 def repo_root() -> Path:
@@ -228,17 +438,6 @@ def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
     unscanned can never be drawn from two different readings of the repository.
     """
     root = Path(root).resolve()
-    top = _toplevel_of(root)
-    if top is None:
-        raise ScanNotPerformed(
-            f"{root} is not a git checkout, so no tracked-file list could be read. An empty list "
-            f"is not an all-clear."
-        )
-    if top != root:
-        raise ScanNotPerformed(
-            f"asked to scan {root}, but git resolves that directory to the working tree {top}. "
-            f"Refusing to report: the tree scanned and the tree named must be the same one."
-        )
     # DERIVED FROM `_tracked_entries`, which is the ONE enumeration and the ONE unmerged refusal.
     #
     # The r2.32 blob reader needed mode/OID/stage, so `_tracked_entries` was added — and this
@@ -250,6 +449,11 @@ def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
     # The de-duplication that used to live here is gone with it: a tree with stages is REFUSED
     # before anything could be duplicated, so a `seen` set guarding against repeated records would
     # be dead machinery reading as a live guard.
+    #
+    # The TOPLEVEL WITNESS went the same way, and in the same direction: it used to live here, so
+    # `materialise_blobs` — which calls the enumeration directly — inherited nothing from it, and
+    # was saved only by this function running afterwards. An invariant one call site away from the
+    # thing it protects is an invariant waiting for a second call site.
     paths: list[str] = []
     gitlinks: list[str] = []
     for mode, _oid, rel in _tracked_entries(root):
