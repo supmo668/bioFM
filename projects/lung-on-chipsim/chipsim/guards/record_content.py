@@ -938,6 +938,34 @@ class ScanContext:
         which always checked. "The only sanctioned constructor" has to be enforced by the type
         rather than by convention — the same argument this class makes about `None` defaults.
         """
+        # THE TWO FIELDS MUST AGREE ABOUT WHICH COPY IS CERTIFIED (§12.12).
+        #
+        # The named constructors made the contradictory pair unrepresentable THROUGH THEM — and
+        # this dataclass is public, so `ScanContext(root=R, read_root=R, byte_source="staged", …)`
+        # constructed and reported "STAGED bytes (what a commit would carry)" over the working
+        # tree. That is verbatim the defect `for_staged`'s docstring claims the named-constructor
+        # form removed.
+        #
+        # The lesson was already in this method: the anti-vacuity refusal lived in `build` alone
+        # until a hand-built context produced exit 0 through a public API, and the conclusion was
+        # that "the only sanctioned constructor has to be enforced by the TYPE rather than by
+        # convention". I did not carry it to the field I added.
+        if self.byte_source not in {"staged", "worktree"}:
+            raise GuardInvariantViolated(
+                f"byte_source={self.byte_source!r} is neither 'staged' nor 'worktree'"
+            )
+        same_tree = Path(self.read_root).resolve() == Path(self.root).resolve()
+        if self.byte_source == "staged" and same_tree:
+            raise GuardInvariantViolated(
+                "byte_source='staged' with read_root == root: that IS the working tree, so this "
+                "scan would certify bytes a commit may never carry while reporting otherwise."
+            )
+        if self.byte_source == "worktree" and not same_tree:
+            raise GuardInvariantViolated(
+                f"byte_source='worktree' but read_root ({self.read_root}) is not root "
+                f"({self.root}): the report would name one tree and read another."
+            )
+
         _refuse_a_scan_that_cannot_see_itself(self.root, list(self.paths))
 
     # NOTE ON THE LAYER BELOW: every function this composes takes `surface` as a REQUIRED argument.
@@ -1140,10 +1168,16 @@ def undecodable_unallowed(
     false-clean this project keeps rediscovering. Reporting them is what makes the scan's silence
     mean something.
 
-    Dispatch payloads are skipped — they are waived by ruling (#122 §3) and never scanned either
-    way, so reporting them would be unactionable noise. The LEDGER pair is NOT skipped: its content
-    IS still read (`ledger_tuple_hits`), so its readability is exactly what this check is for. The
-    exclusions exist for accession CONTENT, not for readability.
+    WHAT IS WAIVED IS THE POLICY'S CHOICE, and this docstring must not assert its contents. It used
+    to say that "dispatch payloads are skipped — they are waived by ruling (#122 §3) and never
+    scanned either way". r2.27 E-19 DELETED that clause; the DrugBank policy waives nothing for
+    readability today, so dispatch payloads ARE scanned and, being unowned, DO fail here. This file's
+    own module docstring says so 1,100 lines above — one file asserting a claim and its negation,
+    which is the defect this module keeps finding and which survived a 570-line rewrite of this very
+    file (r2.29 §12.12).
+
+    The naming of DrugBank internals went with it: the whole policy contract belongs to
+    `guards/policy.py`, and this module's charter says it must not know about DrugBank at all.
     """
     declared = valid_declarations(paths, policy, surface)
     root = surface.root  # FROM THE SURFACE (§12), never a separately-passed argument

@@ -129,9 +129,19 @@ _MAX_SCAN_BYTES = 256 * 1024 * 1024
 #: rewrite that preserves mtime, which is not exotic: `cp -p`, `tar -x`, `rsync -t`, a `git
 #: checkout` of a same-size blob, or any `os.utime` all produce it. The dangerous direction is a
 #: stale UNREADABLE, because a file that has since become readable would be cleared and then
-#: skipped, so its content is never scanned. `st_ino`/`st_dev` distinguish a replaced file from an
-#: edited one and `st_ctime_ns` moves on any metadata change, which `st_mtime_ns` can be made not
-#: to.
+#: skipped, so its content is never scanned.
+#:
+#: WHAT ACTUALLY CARRIES THAT IS `st_ctime_ns`, and the rest is DEFENCE IN DEPTH — stated that way
+#: because the stronger version was measured and did not hold. `st_ctime_ns` moves on any inode
+#: change and `os.utime` cannot set it, so on a modern filesystem it alone separates every case I
+#: could construct: neutralising `st_dev`, `st_ino`, `st_mtime_ns` or `st_size` individually
+#: changes no reachable outcome. They earn their place only where `ctime` granularity is COARSE
+#: (HFS+, exFAT, some NFS/SMB mounts), where two rewrites can land inside one granule.
+#:
+#: The earlier comment here claimed `st_ino`/`st_dev` "distinguish a replaced file from an edited
+#: one". They would, if `st_ctime_ns` did not already — so the claim was true of the mechanism and
+#: false about what it contributes, which is the kind of sentence this module keeps having to
+#: correct (§12.12).
 _READABILITY_CACHE: dict[tuple[str, int, int, int, int, int], bool] = {}
 
 
@@ -374,11 +384,21 @@ def _hdf5_chunks(target: Path):
             parts.append(f"{key}={value!r}")
         refuse_links(handle, "", set())
         handle.visititems(visit)
+        # The file must stay open while the parts are yielded, so they are produced inside the
+        # `with` and handed on below rather than being read lazily from a closed handle.
 
-    text = "\n".join(parts)
-    if not text.strip():
+    # YIELDED INCREMENTALLY (§12.12). This used to accumulate every dataset and every attribute
+    # into `parts` and yield ONCE, so `_collect_bounded` — which meters chunk by chunk — saw a
+    # single chunk and could only raise AFTER the whole expansion was already resident, twice over
+    # because of the join. Measured by a reviewer: a 3.4 MB container drove 1,574 MB peak RSS,
+    # ~455x its size on disk, growing linearly in dataset count with no cap on the count.
+    #
+    # `datasets_seen` was incremented and never read: the "per-dataset bound applied N times with
+    # no cap on N" that `_MAX_CONTAINER_BYTES` says it fixed had been fixed on the PARQUET path
+    # only. A guard that OOMs produces no verdict at all.
+    if not any(part.strip() for part in parts):
         raise _UnreadableContainer("the container yielded no scannable content")
-    yield text
+    yield from parts
 
 
 def _collect_bounded(chunks, what: str) -> list[str]:

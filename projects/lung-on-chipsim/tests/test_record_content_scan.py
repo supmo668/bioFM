@@ -1087,3 +1087,100 @@ def test_the_renderer_returns_the_scans_exit_code_and_counts_verbatim(tmp_path):
     # the declaration FILES come from the scan too, so the renderer no longer resolves them
     assert "3 from a/project.yaml" in text
     assert "2 from b/repo.yaml" in text
+
+
+# --- §12.12: the invariants and keys the reviews found unbound ---------------------------------
+
+
+def test_a_context_cannot_claim_STAGED_while_reading_the_worktree(tmp_path, monkeypatch):
+    """The named constructors made the contradictory pair unrepresentable THROUGH THEM — and the
+    dataclass is public, so `ScanContext(root=R, read_root=R, byte_source="staged", ...)`
+    constructs and reports "STAGED bytes (what a commit would carry)" over the working tree.
+
+    That is verbatim the defect `for_staged`'s own docstring claims the named-constructor form
+    removed, and it is the §11 lesson — "the only sanctioned constructor has to be enforced by the
+    TYPE rather than by convention", after `ScanContext(root=real_root, paths=())` produced exit 0
+    through a public API — not carried to the field I added in §12.
+    """
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.errors import GuardInvariantViolated
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    for rel in (rc.PROJECT_DECLARATION_FILE, rc.REPO_DECLARATION_FILE):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text('version: "1"\ndeclarations: []\n')
+    surface = rc.DeclarationSurface.read(tmp_path)
+
+    def build(**kw):
+        return rc.ScanContext(
+            **{
+                "root": tmp_path,
+                "read_root": tmp_path,
+                "byte_source": "worktree",
+                "paths": ("a",),
+                "submodules": (),
+                "policy": NOTHING_WAIVED,
+                "surface": surface,
+                **kw,
+            }
+        )
+
+    # staged with read_root == root is a LIE about which copy is certified
+    with pytest.raises(GuardInvariantViolated, match="staged"):
+        build(byte_source="staged")
+
+    # a value that is neither is refused too
+    with pytest.raises(GuardInvariantViolated, match="byte_source"):
+        build(byte_source="nonsense")
+
+    # and the honest pairs still construct, or this would pass against "refuse everything"
+    build(byte_source="worktree")
+    build(byte_source="staged", read_root=tmp_path / "elsewhere")
+
+
+def test_the_defaults_walk_covers_the_SHARED_constructor_too():
+    """`ScanContext._of` is THE shared constructor — it is where `byte_source` and `read_root` are
+    fixed — and the walk enumerated a hard-coded tuple that omitted it, so
+    `_of(..., byte_source="worktree", read_root=Path())` survived. `DeclarationSurface.require`
+    was missing for the same reason. A hand-maintained list of what to check is a list that drifts
+    from what exists."""
+    import inspect
+
+    import chipsim.guards.record_content as rc
+
+    must_not_default = {"root", "read_root", "byte_source", "policy", "surface", "paths"}
+    examined: list[str] = []
+    offenders: list[str] = []
+
+    def inspect_callable(label, obj):
+        try:
+            signature = inspect.signature(obj)
+        except (TypeError, ValueError):  # pragma: no cover - builtins
+            return
+        for parameter in signature.parameters.values():
+            if parameter.name not in must_not_default:
+                continue
+            examined.append(f"{label}({parameter.name})")
+            if parameter.default is not inspect.Parameter.empty:
+                offenders.append(f"{label}({parameter.name}={parameter.default!r})")
+
+    for name, obj in vars(rc).items():
+        if name.startswith("__"):
+            continue
+        if isinstance(obj, type) and obj.__module__ == rc.__name__:
+            for attr, member in vars(obj).items():
+                target = member.__func__ if isinstance(member, classmethod) else member
+                if callable(target) and (attr == "__init__" or not attr.startswith("__")):
+                    inspect_callable(f"{name}.{attr}", target)
+        elif callable(obj) and getattr(obj, "__module__", None) == rc.__name__:
+            inspect_callable(name, obj)
+
+    assert len(examined) >= 20, (
+        f"the walk examined only {len(examined)} parameters ({sorted(examined)}) — it is supposed "
+        "to cover every constructor and public function on the scan path. A filter that has gone "
+        "blind passes this test loudest."
+    )
+    assert any(e.startswith("ScanContext._of") for e in examined), (
+        "the SHARED constructor is not in the walk — which is how a default on it survived"
+    )
+    assert offenders == [], f"these resolve part of the scan for themselves: {offenders}"

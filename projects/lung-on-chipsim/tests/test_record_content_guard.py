@@ -3065,9 +3065,7 @@ def test_the_readability_waiver_is_consulted_and_obeyed(tmp_path):
         seen.append(candidate)
         return candidate == rel
 
-    waiving = rc.ContentPolicy(
-        readability_waived=waive, content_exempt=rc.nothing_is_content_exempt
-    )
+    waiving = rc.ContentPolicy(readability_waived=waive, content_exempt=rc.nothing_is_content_exempt)
     assert rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [rel], (
         "unwaived: reported"
     )
@@ -4401,4 +4399,141 @@ def test_the_entry_point_will_not_choose_the_byte_source_for_you():
     )
     assert parameter.kind is inspect.Parameter.KEYWORD_ONLY, (
         "keyword-only, so it cannot be passed positionally by accident either"
+    )
+
+
+def test_an_hdf5_container_is_metered_INCREMENTALLY_not_after_the_fact(tmp_path, monkeypatch):
+    """`_hdf5_chunks` accumulates every dataset into one list and yields ONCE, so
+    `_collect_bounded` — which meters chunk by chunk — sees a single chunk and can only raise AFTER
+    the whole expansion is already resident. Measured by the reviewer: a 3.4 MB container drove
+    1,574 MB peak RSS, ~455x on disk, and growth is linear in dataset count with no cap.
+
+    `datasets_seen` was incremented and never read: the "per-dataset bound applied N times with no
+    cap on N" that `_MAX_CONTAINER_BYTES` says it fixed was fixed on the parquet path only.
+
+    A guard that OOMs produces no verdict — this module's own false-clean-in-a-new-costume.
+    """
+    h5py = pytest.importorskip("h5py")
+    import chipsim.guards.decoding as _decoding
+
+    path = tmp_path / "many.h5ad"
+    with h5py.File(path, "w") as handle:
+        for i in range(12):
+            handle.create_dataset(f"g{i}/d", data=[("Z" * 4000).encode()])
+
+    # A budget that ONE dataset fits inside but the container as a whole does not.
+    monkeypatch.setattr(_decoding, "_MAX_CONTAINER_BYTES", 12_000)
+    _decoding._READABILITY_CACHE.clear()
+
+    yielded = []
+    real = _decoding._hdf5_chunks
+
+    def counting(target):
+        for chunk in real(target):
+            yielded.append(len(chunk))
+            yield chunk
+
+    monkeypatch.setattr(_decoding, "_hdf5_chunks", counting)
+    assert _decoding._scan_chunks(path) is None, "the container total is not bounded"
+    assert len(yielded) > 1, (
+        f"the reader yielded {len(yielded)} chunk(s) — it accumulates everything and yields once, "
+        "so the aggregate budget can only fire AFTER the memory is already allocated"
+    )
+
+
+def test_the_adjudication_memo_is_keyed_on_the_LISTING_too(tmp_path):
+    """Both halves of `(policy, tuple(paths))` were inert — dropping either survived the suite. The
+    dangerous direction is dropping `paths`: two different listings against ONE surface would share
+    a verdict, which is precisely the "one report that disagrees with itself" E-14 exists to
+    prevent, reachable through the public `declaration_defects(paths, policy, surface)`.
+    """
+    import chipsim.guards.record_content as rc
+
+    declared = f"projects/{THIS_PROJECT}/docs/artifact.bin"
+    digest = _write(tmp_path, declared, b"\x00\xff\x80\x81 OPAQUE")
+    entry = {"path": declared, "sha256": digest, "why": "rendered artifact"}
+
+    with_declared = _decl_fixture(tmp_path, project_entries=[entry], owners=[THIS_PROJECT]) + [
+        declared
+    ]
+    without_declared = [p for p in with_declared if p != declared]
+
+    surface = _surface_of(tmp_path)  # ONE surface, deliberately shared between the two calls
+    tracked = dict(rc.declaration_defects(with_declared, NOTHING_WAIVED, surface))
+    untracked = dict(rc.declaration_defects(without_declared, NOTHING_WAIVED, surface))
+
+    assert tracked == {}, "the declared path IS tracked in this listing, so the claim holds"
+    assert declared in untracked, (
+        "the same surface with a listing that does NOT track the declared path returned the first "
+        "listing's verdict — the memo is keyed on the policy alone, so one surface answers two "
+        "different questions with one answer"
+    )
+    assert "not tracked" in untracked[declared]
+
+
+def test_the_package_charter_names_every_module_it_has():
+    """The charter has gone stale THREE times, each time because the diff that invalidated it did
+    not open it. A count is the cheapest thing that cannot drift silently: if a module is added or
+    removed and nobody touches the charter, this fails."""
+    import re
+    from pathlib import Path as _Path
+
+    from chipsim import guards
+
+    modules = {p.stem for p in _Path(guards.__file__).parent.glob("*.py") if p.stem != "__init__"}
+    charter = guards.__doc__ or ""
+
+    missing = sorted(m for m in modules if not re.search(rf"\b{re.escape(m)}\b", charter))
+    assert not missing, f"the charter does not mention {missing} — it has gone stale again"
+
+    words = {
+        "ONE": 1,
+        "TWO": 2,
+        "THREE": 3,
+        "FOUR": 4,
+        "FIVE": 5,
+        "SIX": 6,
+        "SEVEN": 7,
+        "EIGHT": 8,
+        "NINE": 9,
+        "TEN": 10,
+    }
+    claimed = [words[w] for w in re.findall(r"\b([A-Z]+) modules live here", charter) if w in words]
+    assert claimed, "the charter no longer states how many modules live here"
+    assert claimed[0] == len(modules), (
+        f"the charter says {claimed[0]} modules and there are {len(modules)}: {sorted(modules)}"
+    )
+
+
+def test_the_memo_distinguishes_two_POLICIES_over_one_surface(tmp_path):
+    """The other inert half of `(policy, tuple(paths))`. Dropping `policy` survived the suite: two
+    different policies against one surface and one listing would share a verdict.
+
+    `content_exempt` is the half that changes an adjudication — a path already exempt by the content
+    mechanism may not ALSO be declared, because that would exempt it twice and make it invisible to
+    both halves of the guard. So two policies differing only there must produce different defects.
+    """
+    import chipsim.guards.record_content as rc
+
+    declared = f"projects/{THIS_PROJECT}/docs/artifact.bin"
+    digest = _write(tmp_path, declared, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _decl_fixture(
+        tmp_path,
+        project_entries=[{"path": declared, "sha256": digest, "why": "rendered artifact"}],
+        owners=[THIS_PROJECT],
+    ) + [declared]
+
+    surface = _surface_of(tmp_path)  # ONE surface, shared deliberately
+    lenient = _rc_policy(readability_waived=_rc_nothing_waived, content_exempt=_rc_nothing_exempt)
+    strict = _rc_policy(
+        readability_waived=_rc_nothing_waived, content_exempt=lambda rel: rel == declared
+    )
+
+    under_lenient = dict(rc.declaration_defects(listing, lenient, surface))
+    under_strict = dict(rc.declaration_defects(listing, strict, surface))
+
+    assert under_lenient == {}, "nothing is content-exempt, so the declaration holds"
+    assert declared in under_strict, (
+        "the same surface and listing under a DIFFERENT policy returned the first policy's verdict "
+        "— the memo is keyed on the listing alone"
     )
