@@ -26,7 +26,7 @@ import pandas as pd
 import requests
 import yaml
 
-from chipsim.guards.decoding import scan_chunks, sha256_of
+from chipsim.guards.decoding import entry_exists, scan_chunks, sha256_of
 from chipsim.guards.output_roots import refuse_unless_declared_output_root
 from chipsim.guards.policy import ContentPolicy
 
@@ -450,7 +450,9 @@ def real_accession_hits(root: Path, paths) -> list[tuple[str, str]]:
         if is_accession_excluded(rel):
             continue
         target = Path(root) / rel
-        if not target.is_file():
+        # `entry_exists`, not `is_file()`: a dangling tracked SYMLINK is present in the index
+        # and its own bytes (the target string) are what a commit carries (§12.8).
+        if not entry_exists(target):
             continue
         chunks = scan_chunks(target)
         if chunks is None:
@@ -505,7 +507,9 @@ def ledger_tuple_hits(root: Path) -> list[tuple[str, int, str]]:
     hits: list[tuple[str, int, str]] = []
     for rel in sorted(DRUGBANK_ID_LEDGER):
         target = Path(root) / rel
-        if not target.is_file():
+        # `entry_exists`, not `is_file()`: a dangling tracked SYMLINK is present in the index
+        # and its own bytes (the target string) are what a commit carries (§12.8).
+        if not entry_exists(target):
             continue
         for line, accession, _ in accession_structure_tuples(target.read_text(encoding="utf-8")):
             hits.append((rel, line, accession))

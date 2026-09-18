@@ -3856,3 +3856,77 @@ def test_the_frozen_scan_types_can_be_hashed(tmp_path, monkeypatch):
         surface=surface,
     )
     hash(context)
+
+
+# --- §12.8: a tracked SYMLINK's committed bytes are its TARGET STRING ---------------------------
+
+
+def test_a_tracked_symlinks_own_bytes_are_scanned_not_its_targets(tmp_path):
+    """A FALSE CLEAN, found while probing the staged-blob work, and it is r2.28's own property
+    failing for a file type nobody considered.
+
+    What git commits for a symlink is THE TARGET PATH STRING — that is the blob. The guard called
+    `open()` on the path, which FOLLOWS the link and reads the target's content instead. So:
+
+      * a symlink whose target path carries an accession is committed WITH that accession and the
+        scan never sees it (measured: hits == [] with the accession in the blob);
+      * a dangling link reads as UNREADABLE — a wrong reason that then invites a declaration;
+      * a link pointing outside the repository made the scan read a file that is not in the tree at
+        all, so the verdict covered bytes the commit does not carry.
+
+    "A commit gate reads the bytes it certifies" (r2.28) has to hold for every entry in the index,
+    not only the regular files.
+    """
+    import chipsim.guards.decoding as _decoding
+
+    accession_in_target = f"./notes-{REAL}-summary.txt"
+    link = tmp_path / "ref"
+    link.symlink_to(accession_in_target)
+    assert not link.exists(), "the fixture's link must dangle, as a committed one often does"
+
+    assert _decoding._is_readable(link), (
+        "a symlink's own bytes are its target string and are perfectly readable — reporting it "
+        "unreadable is a wrong reason that invites a declaration"
+    )
+    chunks = _decoding._scan_chunks(link)
+    assert chunks is not None and accession_in_target in "\n".join(chunks), (
+        "the scan did not read the link's OWN bytes"
+    )
+    assert [a for _, a in real_accession_hits(tmp_path, ["ref"])] == [REAL], (
+        "the accession is in the COMMITTED bytes and the scan missed it"
+    )
+
+
+def test_a_symlink_is_not_followed_out_of_the_tree(tmp_path):
+    """The other half. Following a link meant the verdict could cover a file that is not in the
+    repository at all — and, in staged mode, one the commit certainly does not carry."""
+    import chipsim.guards.decoding as _decoding
+
+    outside = tmp_path / "outside.txt"
+    outside.write_text(f"{REAL} lives here\n")
+    inside = tmp_path / "tree"
+    inside.mkdir()
+    (inside / "ref").symlink_to(outside)
+
+    chunks = _decoding._scan_chunks(inside / "ref")
+    text = "\n".join(chunks or [])
+    assert REAL not in text, (
+        "the scan followed the link and read a file OUTSIDE the tree — the verdict covers bytes "
+        "the repository does not contain"
+    )
+    assert str(outside) in text or "outside.txt" in text, (
+        "it should have read the link's own bytes, which are the target PATH"
+    )
+
+
+def test_a_symlinks_digest_is_of_its_own_bytes(tmp_path):
+    """`sha256` pins a declaration to content. For a symlink, hashing the TARGET would pin a file
+    that is not in the index — and would raise outright when the link dangles."""
+    import chipsim.guards.decoding as _decoding
+
+    link = tmp_path / "ref"
+    link.symlink_to("./nowhere.txt")
+    digest = _decoding._sha256(link)  # must not raise on a dangling link
+    import hashlib
+
+    assert digest == hashlib.sha256(b"./nowhere.txt").hexdigest()

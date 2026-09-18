@@ -19,10 +19,38 @@ identifiers.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 
+def link_bytes(path: Path) -> bytes | None:
+    """A symlink's OWN bytes: the target path, which is exactly what git stores as its blob.
+
+    `open()` follows the link, so every reader here would otherwise be reading the TARGET —
+    content the index does not carry, and for a dangling link, nothing at all (§12.8).
+    """
+    if not path.is_symlink():
+        return None
+    return os.readlink(path).encode("utf-8", "surrogateescape")
+
+
+def entry_exists(path: Path) -> bool:
+    """Is there an ENTRY here — a regular file OR a symlink, dangling or not?
+
+    `Path.is_file()` follows the link, so a dangling tracked symlink answered False and was skipped
+    by the accession scan, skipped by the readability check, and reported as "tracked but not
+    present on disk" — three wrong answers to a question about an entry that is genuinely there and
+    that a commit genuinely carries (§12.8).
+    """
+    return path.is_symlink() or path.is_file()
+
+
 def _sha256(path: Path) -> str:
+    own = link_bytes(path)
+    if own is not None:
+        # The digest of a symlink is the digest of its TARGET STRING. Hashing the target would pin
+        # a file that is not in the index, and would raise outright on a dangling link.
+        return hashlib.sha256(own).hexdigest()
     h = hashlib.sha256()
     with path.open("rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
@@ -355,6 +383,15 @@ def _scan_chunks(target: Path):
     None means REPORTABLE — `undecodable_unallowed` turns it into a failure unless the path is
     declared. It never means "clean".
     """
+    own = link_bytes(target)
+    if own is not None:
+        # A SYMLINK IS NOT ITS TARGET. Its bytes are the target path, and those are what a commit
+        # carries — so those are what the scan reads (§12.8). Following it meant an accession in a
+        # link target was committed and never seen, and a dangling link read as "unreadable",
+        # which is a wrong reason that invites a declaration.
+        text = _decode_text(own)
+        return None if text is None else [text]
+
     try:
         size = target.stat().st_size
     except OSError:
@@ -405,7 +442,11 @@ def _scan_chunks(target: Path):
 
 def _is_readable(target: Path) -> bool:
     try:
-        stat = target.stat()
+        # `lstat`, NOT `stat`: `stat` FOLLOWS a symlink, so a dangling one raised OSError and the
+        # link was reported unreadable — a wrong reason that invites a declaration. The cache key
+        # should describe the ENTRY, which is what the index holds, not whatever it points at.
+        # Identical to `stat` for a regular file (§12.8).
+        stat = target.lstat()
         key = (
             str(target),
             stat.st_dev,

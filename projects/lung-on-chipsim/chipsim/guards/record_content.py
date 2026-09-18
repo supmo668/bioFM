@@ -50,6 +50,7 @@ from chipsim.guards.decoding import (
     _container_magic,
     _is_readable,
     _sha256,
+    entry_exists,
 )
 from chipsim.guards.errors import (  # noqa: F401
     DeclarationDataUnusable,
@@ -862,7 +863,9 @@ def unresolvable_tracked(root: Path, paths) -> list[str]:
     Counted and reported ALWAYS; scoping the count would repeat E-08. The FAILURE is scoped by
     ownership, which is E6-1b exactly (r2.24 E-10).
     """
-    return sorted(rel for rel in paths if not (Path(root) / rel).is_file())
+    # `entry_exists`: a DANGLING SYMLINK is present in the tree and in the index — reporting
+    # it 'not present on disk' was an answer about its TARGET (§12.8).
+    return sorted(rel for rel in paths if not entry_exists(Path(root) / rel))
 
 
 def render_undeclared_report(policy: ContentPolicy) -> tuple[str, int]:
