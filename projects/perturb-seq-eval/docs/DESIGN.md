@@ -35,7 +35,7 @@ one.
 | [`src/perturb_eval/instrumentation.py`](../src/perturb_eval/instrumentation.py) | CellForge-style `ConsensusResult` (as implemented by [`libs/cellforge-agents/`](../../../libs/cellforge-agents/)) | Duck-typed translator: takes any object with `.rounds[*].proposals` and `.rounds[*].critiques` and emits a `RunTrace`. No patching of the orchestrator. |
 | [`src/perturb_eval/massgen_adapter.py`](../src/perturb_eval/massgen_adapter.py) | MassGen skill manifest shape | JSON-in / JSON-out entrypoints (`preflight_skill`, `evaluate_skill`) ready to register in a MassGen skill. |
 | [`src/perturb_eval/model.py`](../src/perturb_eval/model.py) | scGPT public release | `PerturbationPredictor` protocol plus `MockPredictor` (CPU) and `ScGPTPredictor` (lazy-loaded). The latter is a thin wrapper over the existing release. |
-| [`src/perturb_eval/data.py`](../src/perturb_eval/data.py) | Perturb-seq public datasets | Protocol + `SyntheticPerturbSeq` stub + placeholders for Norman/Adamson loaders. |
+| [`src/perturb_eval/data/protocol.py`](../src/perturb_eval/data/protocol.py) | Perturb-seq public datasets | Protocol + `SyntheticPerturbSeq` stub + placeholders for Norman/Adamson loaders. |
 
 ### 1.3 Not yet built (explicit future work)
 

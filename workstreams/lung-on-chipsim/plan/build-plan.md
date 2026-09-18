@@ -237,6 +237,20 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   — but the conclusion rests on the suite, and was attributed to the command. Wire the accession half
   into the entry point, or the clause is unmet. *E6-5 applied to the CTO: a mechanism enforcing three
   halves may not be cited for the fourth.*
+- **A GUARD'S SILENCE IS NOT THE PLAN'S APPROVAL, AND THE INFERENCE GETS EASIER THE MORE GUARDS
+  EXIST** *(r2.33)*. T5a's artifact was first written to `data/interim/compounds.parquet` — the wrong
+  directory **and** the exact filename this plan forbids by name (A&D §1 reserves `compounds.parquet`
+  for the harmonized multi-source S1 artifact, defect 30). **The output-root guard correctly allowed
+  it**, because `data/interim` IS a declared root. That guard answers *where a record-bearing payload
+  may land*; it has never answered *which artifact the plan asked for*, and it was never built to.
+  **The failure mode is the inference, not the guard.** "It passed the gates" is a cheap and
+  increasingly available substitute for reading the done-condition, and this workstream has spent five
+  iterations making the gates more trustworthy — which makes the substitution *more* tempting, not
+  less. A hardened gate is a MECHANISM; the artifact the plan named is the COVERAGE.
+  **Deliberately NO new mechanism.** A path-shape check would encode the plan's prose into the guard
+  and rot on the next revision, and it would answer a question the guard is not the right owner of.
+  What is required instead: **a done-condition naming a path is checked against that path, by reading
+  the plan, before the step is called complete.** Caught here only by going to look.
 - **THE STAGED TREE MAY NOT LIVE INSIDE THE TREE IT CERTIFIES** *(r2.32)*. The staged reader
   materialises **every tracked blob**, and `tempfile` honours `$TMPDIR`. A staged root that resolves
   inside the scanned working tree — or under any `DECLARED_OUTPUT_ROOT` — is therefore **REFUSED**.
