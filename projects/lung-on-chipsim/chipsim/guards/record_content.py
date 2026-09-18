@@ -67,7 +67,7 @@ from chipsim.guards.policy import (  # noqa: F401
 from chipsim.guards.repo import (
     _MINIMUM_PLAUSIBLE_TRACKED,
     _tracked_listing,
-    materialise_index,
+    materialise_blobs,
     repo_root,
 )
 
@@ -1033,7 +1033,7 @@ def scan_context(root: Path, policy: ContentPolicy, byte_source: str):
     """
     if byte_source == "staged":
         with tempfile.TemporaryDirectory(prefix="chipsim-staged-") as tmp:
-            staged = materialise_index(Path(root).resolve(), Path(tmp))
+            staged = materialise_blobs(Path(root).resolve(), Path(tmp))
             yield ScanContext.for_staged(root, policy, staged)
         return
     if byte_source != "worktree":

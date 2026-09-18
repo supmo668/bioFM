@@ -458,6 +458,16 @@ RECORD_BEARING_PENDING_RULING = {
     # "a tracked merge report came to carry 89 real accessions" is the incident this guard's own
     # docstrings cite, and the destination is unguarded.
     "merge_report.main",
+    # Materialises EVERY TRACKED BLOB into a TemporaryDirectory so the commit gate can read the
+    # bytes a commit would carry (r2.32). Its payload is, by construction, the most record-bearing
+    # thing in the repository — so "not record bearing" would be the comfortable classification this
+    # list exists to refuse — but its destination is a temp tree outside the repository, not a
+    # declared root, so `refuse_unless_declared_output_root` cannot be applied to it as written.
+    #
+    # The security review named the residual: that tree contains exactly the content the gate exists
+    # to keep out of the repository, and it survives an abnormal exit. Escalated with the reader
+    # change rather than filed as settled.
+    "repo.materialise_blobs",
 }
 
 

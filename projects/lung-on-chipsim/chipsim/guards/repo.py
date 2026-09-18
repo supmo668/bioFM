@@ -77,21 +77,103 @@ def _toplevel_of(directory: Path) -> Path | None:
     return Path(run.stdout.strip()).resolve()
 
 
-def materialise_index(root: Path, into: Path) -> Path:
-    """Write every tracked file's STAGED blob into `into`, and return it.
+def _tracked_entries(root: Path):
+    """(mode, oid, path) for every tracked entry, refusing an unmerged index.
 
-    ONE git call rather than a `cat-file` per path: `checkout-index --all` is what git provides for
-    exactly this, and 790 subprocess launches per scan would make the gate too slow to run — a
-    control people switch off is not a control.
-
-    This is the copy a commit would carry. Reading it is the whole point of r2.28: a gate that
-    certifies the working file certifies bytes that may never be committed.
+    ENUMERATED FROM `git ls-files -s` RATHER THAN FROM `checkout-index` (r2.32 constraint 1). That
+    tool skips unmerged entries and still exits 0, so a listing derived from it could not tell "not
+    tracked" from "silently not written" — which is exactly how staged mode came to report CLEAN
+    over a file it never read. Here the STAGE is visible, so refusing a tree mid-merge is a property
+    of the enumeration rather than of a downstream check.
     """
-    into.mkdir(parents=True, exist_ok=True)
-    run = _git(["checkout-index", "--all", f"--prefix={into}/"], cwd=root)
+    run = _git(["ls-files", "-z", "-s"], cwd=root)
     if run.returncode != 0:
         raise ScanNotPerformed(
-            f"could not materialise the index under {root}: {run.stderr.strip() or 'no diagnostic'}"
+            f"git ls-files failed under {root}: {run.stderr.strip() or 'no diagnostic'}"
+        )
+    entries = []
+    for record in filter(None, run.stdout.split("\0")):
+        meta, rel = record.split("\t", 1)
+        mode, oid, stage = meta.split()
+        if stage != "0":
+            raise ScanNotPerformed(
+                f"{rel} is UNMERGED in the index (stage {stage}). A tree in the middle of a merge "
+                f"is not one this report can speak for. Resolve the merge and re-run."
+            )
+        entries.append((mode, oid, rel))
+    return entries
+
+
+def materialise_blobs(root: Path, into: Path) -> Path:
+    """Write every tracked entry's BLOB BYTES into `into`, and return it.
+
+    NOT `checkout-index`: that materialises the working-tree RENDERING of the index, applying `eol`
+    and `filter` conversions, so the bytes it produces are not the bytes a commit carries. Measured
+    from COMMITTED configuration alone — `* text eol=crlf` turns `line one\n` into `line one\r\n`,
+    a different sha256 — and with a filter driver, content in the blob can be absent from the
+    materialised copy entirely, which passes a commit that carries it.
+
+    `cat-file --batch` is a BYTE STREAM with a `<oid> <type> <size>` header; the size is
+    authoritative and nothing is decoded here (r2.32 constraint 3).
+
+    A SYMLINK'S BLOB IS ITS TARGET STRING, so it is written as ordinary content and the staged path
+    needs no link-aware reader (constraint 2).
+    """
+    entries = [(mode, oid, rel) for mode, oid, rel in _tracked_entries(root) if mode != "160000"]
+    into.mkdir(parents=True, exist_ok=True)
+    if not entries:
+        return into
+
+    request = "".join(f"{oid}\n" for _mode, oid, _rel in entries).encode("ascii")
+    # THE SAME ENVIRONMENT SANITISATION `_git` APPLIES — every `GIT_*` dropped and `core.fsmonitor`
+    # neutralised — because this invocation reads repository content, and a planted config steering
+    # it is exactly the channel `_git`'s docstring exists to close. Not routed through `_git`
+    # itself because that decodes to text with surrogateescape, which is right for paths and wrong
+    # for blob content: this must stay bytes (constraint 3).
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    run = subprocess.run(
+        ["git", "-c", "core.fsmonitor=", "cat-file", "--batch"],
+        cwd=root,
+        input=request,
+        capture_output=True,
+        env=env,
+        check=False,
+    )
+    if run.returncode != 0:
+        raise ScanNotPerformed(
+            f"could not read the staged blobs under {root}: "
+            f"{run.stderr.decode('utf-8', 'replace').strip() or 'no diagnostic'}"
+        )
+
+    stream = run.stdout
+    offset = 0
+    written = 0
+    for _mode, oid, rel in entries:
+        newline = stream.find(b"\n", offset)
+        if newline < 0:
+            raise ScanNotPerformed(f"truncated blob stream while reading {rel}")
+        header = stream[offset:newline].split()
+        if len(header) != 3 or header[1] != b"blob":
+            raise ScanNotPerformed(
+                f"{rel}: expected a blob for {oid}, got {stream[offset:newline]!r}"
+            )
+        size = int(header[2])
+        start = newline + 1
+        payload = stream[start : start + size]
+        if len(payload) != size:
+            raise ScanNotPerformed(f"truncated blob for {rel}: {len(payload)} of {size} bytes")
+        offset = start + size + 1  # trailing newline git appends after each object
+
+        target = into / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(payload)
+        written += 1
+
+    # CONSTRAINT 4: the count must keep meaning "files whose bytes were read". A mismatch is a
+    # refusal, never a silent skip — the defect `checkout-index` had.
+    if written != len(entries):
+        raise ScanNotPerformed(
+            f"materialised {written} of {len(entries)} tracked blobs under {root}"
         )
     return into
 

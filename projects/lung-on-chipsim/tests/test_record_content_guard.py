@@ -4539,3 +4539,96 @@ def test_the_memo_distinguishes_two_POLICIES_over_one_surface(tmp_path):
         "the same surface and listing under a DIFFERENT policy returned the first policy's verdict "
         "— the memo is keyed on the listing alone"
     )
+
+
+# --- §13 (r2.32): the gate reads BLOB BYTES, not the working-tree rendering of them -------------
+
+
+def test_staged_mode_reads_the_BLOB_not_the_checkout_rendering(tmp_path, monkeypatch):
+    """The CTO constructed the false clean I could not, and I reproduced it before accepting it.
+
+    `git checkout-index` materialises the WORKING-TREE RENDERING of the index, applying `eol` and
+    `filter` conversions. With `* text eol=crlf` in a COMMITTED `.gitattributes` and no local config
+    at all:
+
+        committed blob      b'line one\\nline two\\n'
+        checkout-index gave b'line one\\r\\nline two\\r\\n'      (different sha256)
+
+    So a `sha256` pin verified in staged mode digests bytes the commit does not carry — and with a
+    filter driver, content present in the blob can be absent from the materialised copy entirely,
+    which passes a commit that carries it. That is the guard's core soundness property.
+
+    "There is no `.gitattributes` here today" is a fact about this repository at this moment, not
+    about the gate. `git-lfs` is the everyday case where blob and worktree bytes differ wholesale.
+    """
+    import chipsim.guards.record_content as rc
+
+    root = _init_repo(tmp_path)
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+    for rel in (
+        "config/record_content_declarations.yaml",
+        f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml",
+    ):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text('version: "1"\ndeclarations: []\n')
+
+    (root / ".gitattributes").write_text("* text eol=crlf\n")
+    doc = f"projects/{THIS_PROJECT}/docs/doc.txt"
+    (root / doc).parent.mkdir(parents=True, exist_ok=True)
+    (root / doc).write_bytes(b"line one\nline two\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+
+    blob = subprocess.run(
+        ["git", "cat-file", "blob", f":{doc}"], cwd=root, capture_output=True, check=True
+    ).stdout
+    assert blob == b"line one\nline two\n", "the fixture's blob is not what we think it is"
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda r, p: None)
+    with rc.scan_context(root, NOTHING_WAIVED, "staged") as context:
+        staged_bytes = (Path(context.read_root) / doc).read_bytes()
+
+    assert staged_bytes == blob, (
+        f"staged mode read {staged_bytes!r}, but the commit carries {blob!r} — it is reading the "
+        "working-tree RENDERING of the index, not the bytes it certifies"
+    )
+
+
+def test_a_symlink_needs_no_special_case_in_staged_mode(tmp_path, monkeypatch):
+    """A symlink's committed bytes ARE its target string — which is exactly what its blob contains.
+    Reading raw blobs therefore makes the §12.8 symlink handling correct BY CONSTRUCTION in staged
+    mode: the blob is written as ordinary content and needs no link-aware reader at all.
+
+    (The worktree mode still meets real symlinks on disk and still needs `link_bytes`; this asserts
+    the staged path does not.)
+    """
+    import chipsim.guards.record_content as rc
+
+    root = _init_repo(tmp_path)
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+    for rel in (
+        "config/record_content_declarations.yaml",
+        f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml",
+    ):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text('version: "1"\ndeclarations: []\n')
+
+    link = f"projects/{THIS_PROJECT}/docs/ref"
+    (root / link).parent.mkdir(parents=True, exist_ok=True)
+    (root / link).symlink_to(f"./notes-{REAL}-summary.txt")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda r, p: None)
+    with rc.scan_context(root, NOTHING_WAIVED, "staged") as context:
+        staged = Path(context.read_root) / link
+        assert not staged.is_symlink(), (
+            "the staged copy should be the BLOB — ordinary content holding the target string — so "
+            "no link-aware reader is needed on this path"
+        )
+        assert staged.read_bytes() == f"./notes-{REAL}-summary.txt".encode()
+        hits = {r for r, _ in real_accession_hits(context.read_root, list(context.paths))}
+
+    assert link in hits, "the accession in the committed target string must still be found"

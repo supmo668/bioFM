@@ -28,6 +28,14 @@ def link_bytes(path: Path) -> bytes | None:
 
     `open()` follows the link, so every reader here would otherwise be reading the TARGET —
     content the index does not carry, and for a dangling link, nothing at all (§12.8).
+
+    WORKTREE MODE ONLY, NOW — and the distinction is worth stating because the r2.32 ruling expected
+    this to disappear entirely. In STAGED mode it does: `materialise_blobs` writes a symlink's blob
+    as ordinary content, so the staged path never meets a link and needs no link-aware reader, which
+    a test asserts. In WORKTREE mode the scan meets a real symlink on disk, and removing this was
+    measured to report a dangling link as UNREADABLE — a wrong reason that then invites a
+    declaration. So it is scoped rather than deleted, and the deviation was reported with the
+    measurement rather than half-performed in silence.
     """
     if not path.is_symlink():
         return None
