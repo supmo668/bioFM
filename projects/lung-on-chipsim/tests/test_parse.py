@@ -588,3 +588,49 @@ def test_t6_unexpected_category_raises(tmp_path):
     )
     with pytest.raises(ValueError, match="unexpected edge category"):
         load_protein_edges(tmp_path, min_rows=0)
+
+
+@pytest.mark.integration
+def test_t6_done_condition_holds_against_the_REAL_snapshot():
+    """T6's done-condition, evaluated against the PINNED SNAPSHOT rather than the fixture.
+
+    r2.10: the spec said `organism == 'Homo sapiens'`; the pinned snapshot says `Human` and NOTHING
+    says `Homo sapiens`. As written the loader returned an EMPTY FRAME on the only data this study
+    may use — and every fixture said `Homo sapiens`, so no test could have caught it. The loader now
+    accepts both labels. **The verification still ran only against the fixture**, which is the same
+    class of gap one level up: the done-condition r2.10 calls "why we know" was never checked
+    against the vocabulary it was written about.
+
+    Marked `integration` because it needs the fetched snapshot on disk — the marker's documented
+    purpose — and SKIPS rather than fails when it is absent, so a clone without DVC data is not
+    told it has a defect it does not have.
+
+    NO DRUGBANK ACCESSION IS NAMED. The golden ROW needs one; the golden PROPERTY does not, and the
+    property is what catches a species filter that empties the frame. The ABCB1 accession is
+    RESOLVED FROM THE RATIFIED PANEL rather than written here: composition is configuration, not
+    code (defect 4 / AM-2), and that is exactly why `pgp_substrate_label` refuses to hard-code it.
+    """
+    from chipsim.harmonize.pgp_label import resolve_panel_accession
+
+    raw = PROJECT_ROOT / "data" / "raw" / "drugbank"
+    if not (raw / "proteins.tsv").exists():
+        pytest.skip("pinned snapshot not on disk — `chipsim fetch` / `dvc pull` first")
+
+    edges = load_protein_edges(raw)
+
+    assert len(edges) > 0, (
+        "the real snapshot yielded an EMPTY edge frame — the r2.10 failure exactly, and the one "
+        "state every column-shape assertion passes"
+    )
+    assert set(edges["category"]) == set(EDGE_CATEGORIES), (
+        "EQUALITY, not subset (defect 9): a subset check passes on a frame that lost three of the "
+        "four categories to a bad filter"
+    )
+
+    abcb1 = resolve_panel_accession(PROJECT_ROOT / "configs" / "barrier_panel.yaml", "ABCB1")
+    transporter_edges = edges[(edges["uniprot_id"] == abcb1) & (edges["category"] == "transporter")]
+    assert len(transporter_edges) > 0, (
+        "no transporter edge to the panel's ABCB1 accession survived the species filter in the "
+        "REAL snapshot. This is the golden-row property without a golden-row identifier, and it is "
+        "what the P-gp label depends on."
+    )

@@ -39,6 +39,11 @@ SUBCOMMANDS = (
     "parse",
     "provenance-tests",
     "write",
+    # T13. An ETL stage, not a non-ETL invocation: it READS THE SNAPSHOT and writes a derived
+    # artifact, so it earns a per-run config snapshot and the approval prompt. It is not
+    # human-RESERVED — that is what `panel-seal` is, and why non-ETL exists — it produces a draft
+    # FOR a human. Last, because it runs after the compound frame exists.
+    "adjudication-worksheet",
 )
 
 #: Subcommands that are NOT ETL stages and must never appear in the n8n workflow.
@@ -218,6 +223,81 @@ def _readline_or_empty() -> str:
         return sys.stdin.readline()
     except (OSError, KeyboardInterrupt):
         return ""
+
+
+def _cmd_adjudication_worksheet(ns: argparse.Namespace) -> int:
+    """T13 — emit the adjudication worksheet the principal fills in at T14.
+
+    THE WRITER HAD NO PRODUCTION CALLER. Thirty-odd test call sites and no way for a human to run
+    it; T16's workflow export is descoped, so the CLI is the only invocation path there was going
+    to be. This is that path.
+
+    THE ROSTER IS THE AUTHORITY ON WHICH ROWS EXIST (T13's done-condition: exactly one row per T18
+    entry). It is a HUMAN artifact and `roster.load_poc_roster` validates it without ever
+    generating one, so this command REFUSES when it is absent rather than emitting a worksheet over
+    whatever the snapshot happened to contain — a worksheet with the wrong rows costs T14's 60-90
+    minutes, which is the cost T13's never-clobber rule already exists to protect.
+
+    THE ABCB1 ACCESSION IS RESOLVED FROM THE RATIFIED PANEL, never hard-coded here: composition is
+    configuration, not code (defect 4 / AM-2). This command does not resolve it itself — it passes
+    the panel path down to `pgp_substrate_label`, which owns that resolution.
+    """
+    from chipsim.guards.output_roots import OutputRootError
+    from chipsim.harmonize.adjudication import write_adjudication_worksheet
+    from chipsim.harmonize.ids import (
+        add_canonical_identity_excluding,
+        load_preregistered_exclusions,
+        relative_stereo_keys,
+    )
+    from chipsim.harmonize.label_reference import load_label_reference
+    from chipsim.harmonize.pgp_label import barrier_panel_edges, pgp_substrate_label
+    from chipsim.harmonize.roster import load_poc_roster
+    from chipsim.ingest.drugbank_snapshot import load_compounds, load_protein_edges
+
+    roster_path = Path(ns.roster)
+    if not roster_path.exists():
+        print(
+            f"ERROR: no roster at {roster_path}. T13 emits exactly one row per T18 roster entry, "
+            f"and T18 is human-owned — `load_poc_roster` validates a roster a human wrote and "
+            f"never generates one. Refusing to emit a worksheet over an unratified row set.",
+            file=sys.stderr,
+        )
+        return 2
+
+    compounds, _excluded = add_canonical_identity_excluding(
+        load_compounds(ns.raw_dir),
+        preregistered=load_preregistered_exclusions(Path(ns.exclusions)),
+    )
+    panel_edges = barrier_panel_edges(load_protein_edges(ns.raw_dir), Path(ns.panel))
+    labels = pgp_substrate_label(compounds, panel_edges, Path(ns.panel))
+
+    roster = load_poc_roster(
+        roster_path,
+        snapshot_keys=set(compounds["canonical_inchikey"]),
+        relative_stereo_keys=relative_stereo_keys(compounds),
+    )
+    # The roster SELECTS; it never invents. A key it names that the labeller did not produce is a
+    # disagreement between two human-ratified inputs, and it must surface rather than become a
+    # silently shorter worksheet.
+    missing = [k for k in roster["canonical_inchikey"] if k not in labels.index]
+    if missing:
+        print(
+            f"ERROR: {len(missing)} roster key(s) have no snapshot label. The roster and the "
+            f"snapshot disagree about what exists; emitting the rows that happen to match would "
+            f"hide that.",
+            file=sys.stderr,
+        )
+        return 2
+    labels = labels.loc[list(roster["canonical_inchikey"])]
+
+    reference = load_label_reference(ns.label_reference) if ns.label_reference else None
+    try:
+        rows = write_adjudication_worksheet(labels, compounds, ns.out, label_reference=reference)
+    except OutputRootError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    print(f"wrote {ns.out} (rows={rows})")
+    return 0
 
 
 def _cmd_panel_seal(ns) -> int:
@@ -462,6 +542,7 @@ _HANDLERS = {
     "parse": _cmd_parse,
     "provenance-tests": _cmd_provenance_tests,
     "write": _cmd_write,
+    "adjudication-worksheet": _cmd_adjudication_worksheet,
     "panel-seal": _cmd_panel_seal,
     "adjudication-export": _cmd_adjudication_export,
     "record-content-report": _cmd_record_content_report,
@@ -617,6 +698,27 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("configs/unparseable_compounds.yaml"),
         help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
+    )
+
+    p = sub.add_parser(
+        "adjudication-worksheet",
+        help="T13: emit the adjudication worksheet for T14 (one row per T18 roster entry)",
+        parents=[approval],
+    )
+    p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
+    p.add_argument("--roster", required=True, type=Path)
+    p.add_argument("--panel", required=True, type=Path)
+    p.add_argument("--out", required=True, type=Path)
+    p.add_argument("--exclusions", required=True, type=Path)
+    p.add_argument(
+        "--label-reference",
+        dest="label_reference",
+        type=Path,
+        default=None,
+        help=(
+            "committed label/structure reference. Omitted, `label_disagrees_with_key` is "
+            "'unresolved' rather than silently 'agrees'."
+        ),
     )
 
     sub.add_parser(
