@@ -27,6 +27,7 @@ import requests
 import yaml
 
 from chipsim.guards.decoding import entry_exists, scan_chunks, sha256_of
+from chipsim.guards.errors import DeclarationDataUnusable
 from chipsim.guards.output_roots import refuse_unless_declared_output_root
 from chipsim.guards.policy import ContentPolicy
 
@@ -330,6 +331,10 @@ DRUGBANK_ID_LEDGER = frozenset(
 #: in the row. Once that is the rule, an exclusion means the guard takes a row's "corrected"
 #: claim on trust — a check that cannot see what it certifies. The log was scanned clean
 #: before the exclusion was removed, so the change could not turn a green suite red.
+#: The ledger is a small YAML/py pair; anything larger is not a ledger and must not be read
+#: unbounded. Every other reader in this guard has a bound and says so.
+_MAX_LEDGER_BYTES = 4 * 1024 * 1024
+
 DRUGBANK_ID_EXCLUDED_FILES: frozenset[str] = frozenset()
 
 #: Dispatch payloads at any depth under .claude/usr/ (#122 §3): coordination records.
@@ -511,7 +516,25 @@ def ledger_tuple_hits(root: Path) -> list[tuple[str, int, str]]:
         # and its own bytes (the target string) are what a commit carries (§12.8).
         if not entry_exists(target):
             continue
-        for line, accession, _ in accession_structure_tuples(target.read_text(encoding="utf-8")):
+        # BOUNDED AND GUARDED (§12.9). This was a bare `read_text()`, and §12.8's `entry_exists`
+        # made a DANGLING SYMLINK count as present — so it raised FileNotFoundError, which is not a
+        # RecordContentScanError, leaving the composition root as an exit-1 traceback: THE FOURTH
+        # STATE, reintroduced by my own fix for a different defect. It was also the one reader in
+        # this guard with no size bound, while `_declaration_document` documents having one.
+        try:
+            raw = target.read_bytes()[: _MAX_LEDGER_BYTES + 1]
+        except OSError:
+            # Present in the index but unreadable HERE. The readability half exists for exactly
+            # that and will report it; crashing this half instead loses the whole verdict.
+            continue
+        if len(raw) > _MAX_LEDGER_BYTES:
+            raise DeclarationDataUnusable(
+                f"{rel} is larger than {_MAX_LEDGER_BYTES} bytes, which is not a ledger this gate "
+                f"can read."
+            )
+        for line, accession, _ in accession_structure_tuples(
+            raw.decode("utf-8", "surrogateescape")
+        ):
             hits.append((rel, line, accession))
     return hits
 

@@ -171,6 +171,27 @@ def _tracked_listing(root: Path) -> tuple[list[str], list[str]]:
     seen: set[str] = set()
     for record in filter(None, run.stdout.split("\0")):
         meta, rel = record.split("\t", 1)
+        # STAGE != 0 MEANS AN UNRESOLVED MERGE, AND SUCH A TREE IS REFUSED (§12.9).
+        #
+        # `git checkout-index --all` SILENTLY SKIPS unmerged entries AND RETURNS 0, so staged mode
+        # listed a conflicted path, never materialised it, and then skipped it in every reader.
+        # Measured on a real conflicted repo: worktree -> exit 2 with the accession found; staged ->
+        # CLEAN exit 0, header claiming 794 files scanned in a scan that read 793. For a path
+        # another project owns the row is merely "listed", so the gate exits 0 having never read the
+        # bytes.
+        #
+        # De-duplicating the stage records (§12.7) made the conflicted state survivable by the
+        # LISTING while it remained fatal to the MATERIALISATION — the two halves disagreeing about
+        # what exists. A tree mid-merge is not a tree this report can speak for, and refusing it is
+        # the only answer that makes both halves agree by construction. It also removes the
+        # type-change case, where stage 1 is a gitlink and the merged sides are files.
+        if meta.split()[-1] != "0":
+            raise ScanNotPerformed(
+                f"{rel} is UNMERGED in the index (stage {meta.split()[-1]}). A tree in the middle "
+                f"of a merge is not one this report can speak for: `checkout-index` skips unmerged "
+                f"entries and still exits 0, so the scan would read fewer files than it counted. "
+                f"Resolve the merge and re-run."
+            )
         # DE-DUPLICATED, order preserved. An unresolved merge emits one record per STAGE — three
         # for a conflicted path — and every one names the same file. Counting them separately
         # inflated `tracked_count`, duplicated rows, and made the minimum-tracked floor easier to

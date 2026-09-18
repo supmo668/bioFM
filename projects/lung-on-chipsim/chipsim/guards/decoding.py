@@ -226,6 +226,9 @@ def _hdf5_chunks(target: Path):
     parts: list[str] = []
     datasets_seen = 0
 
+    def nbytes_of(node) -> int:
+        return int(getattr(node, "nbytes", 0) or 0)
+
     def _stringify(values) -> str:
         """Every element, never `repr(array)`.
 
@@ -252,7 +255,33 @@ def _hdf5_chunks(target: Path):
         # of legacy AnnData obs/var recarrays. Skipping them meant a dataset holding the whole
         # record scanned to seven characters.
         readable = dtype.kind in {"O", "S", "U", "V"}
-        if not readable:
+
+        # BYTE-WIDTH INTEGER DATASETS ARE READ AS BYTES (§12.9). They were skipped with every other
+        # numeric dtype, under a comment reasoning that "a 14.7M-element expression matrix cannot
+        # carry a compound name" — true of expression matrices, false of uint8. Measured: a record
+        # written as `np.frombuffer(record.encode(), dtype=np.uint8)` was invisible while
+        # `_is_readable` returned True, so the container was certified as FULLY READ and needed no
+        # declaration. A claim about one dataset SHAPE was justifying a rule about all dtypes.
+        #
+        # Deliberately NOT every numeric dtype: a matrix of doubles genuinely cannot carry text, and
+        # reading one would cost the bound this module exists to keep. A buffer of encoded text is
+        # one byte wide, and that is what is read.
+        byte_buffer = dtype.kind in {"u", "i"} and dtype.itemsize == 1
+        if not readable and not byte_buffer:
+            return
+
+        if byte_buffer:
+            if nbytes_of(node) > _MAX_DATASET_BYTES:
+                raise _UnreadableContainer(
+                    f"{name} is {nbytes_of(node)} bytes of byte-width data, above the scan bound"
+                )
+            try:
+                raw = bytes(memoryview(node[()]).cast("B"))
+            except Exception as exc:
+                raise _UnreadableContainer(f"{name} could not be read: {exc}") from exc
+            text = _decode_text(raw)
+            if text is not None:
+                parts.append(text)
             return
 
         nbytes = getattr(node, "nbytes", 0) or 0

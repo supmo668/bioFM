@@ -519,7 +519,7 @@ def _declaration_defects_uncached(
             )
 
         target = Path(root) / path
-        if target.is_file():
+        if entry_exists(target):
             head = _container_magic(target)
             if head:
                 defects.append(
@@ -533,7 +533,7 @@ def _declaration_defects_uncached(
                 )
                 continue
 
-        if target.is_file() and _is_readable(target):
+        if entry_exists(target) and _is_readable(target):
             defects.append(
                 (
                     path,
@@ -549,7 +549,11 @@ def _declaration_defects_uncached(
         # no longer TERMINAL. It used to `continue` on success because the two forms were
         # exclusive; leaving that in place made `derived_from`'s source checks unreachable for
         # exactly the entries that carry one, and the tests for those checks went quiet.
-        if not target.is_file():
+        # `entry_exists`, not `is_file()` (§12.9): `is_file()` FOLLOWS the link, so a declared
+        # DANGLING SYMLINK was 'present' to `unresolvable_tracked` and 'absent from disk'
+        # here — ONE REPORT, TWO ANSWERS about one path. My §12.8 fix reached the readers my
+        # test touched, not the ones the change reached.
+        if not entry_exists(target):
             defects.append((path, "declared with a sha256 but absent from disk."))
             continue
         # The module's own streaming helper, not read_bytes(): every other reader in this guard is
@@ -777,7 +781,11 @@ def assert_no_container_is_declared(root: Path) -> None:
     containers = []
     for rel, _entry, _surface in _declaration_entries(root):
         target = Path(root) / rel
-        if not target.is_file():
+        # `entry_exists`, not `is_file()` (§12.9): `is_file()` FOLLOWS the link, so a declared
+        # DANGLING SYMLINK was 'present' to `unresolvable_tracked` and 'absent from disk'
+        # here — ONE REPORT, TWO ANSWERS about one path. My §12.8 fix reached the readers my
+        # test touched, not the ones the change reached.
+        if not entry_exists(target):
             continue
         if _container_magic(target):
             containers.append(rel)
@@ -1140,7 +1148,11 @@ def undecodable_unallowed(
         if rel in declared:
             continue
         target = Path(root) / rel
-        if not target.is_file():
+        # `entry_exists`, not `is_file()` (§12.9): `is_file()` FOLLOWS the link, so a declared
+        # DANGLING SYMLINK was 'present' to `unresolvable_tracked` and 'absent from disk'
+        # here — ONE REPORT, TWO ANSWERS about one path. My §12.8 fix reached the readers my
+        # test touched, not the ones the change reached.
+        if not entry_exists(target):
             # Not silent any more: unresolvable_tracked() counts these and the report gives them
             # their own section. Skipping HERE is right — there is nothing to read — but the skip
             # was the whole defect for as long as nothing said it had happened (r2.24 E-10).

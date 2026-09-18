@@ -3774,21 +3774,40 @@ def test_the_readability_verdict_is_not_kept_across_a_same_size_rewrite(tmp_path
     )
 
 
-def test_a_conflicted_listing_does_not_inflate_the_tracked_count(tmp_path):
-    """S11-23. `git ls-files -s` emits THREE records per path during an unresolved merge (stages
-    1/2/3), so `tracked_count` was inflated by 2 per conflicted file, rows were duplicated, and the
-    minimum-tracked floor was easier to clear. Fail-noisy rather than a false clean — but
-    `tracked_count` is reported upward as evidence, and this is the one way it can disagree with
-    reality."""
+def test_de_duplication_alone_was_the_wrong_answer_to_a_conflicted_index(tmp_path):
+    """S11-23, SUPERSEDED BY §12.9 — and the supersession is the point.
+
+    The observation was right: `git ls-files -s` emits THREE records per path during an unresolved
+    merge, so `tracked_count` was inflated by 2 per conflicted file and the minimum-tracked floor
+    got easier to clear. I fixed it by DE-DUPLICATING, which fixed the number and nothing else.
+
+    That made the conflicted state SURVIVABLE BY THE LISTING while it remained FATAL TO THE
+    MATERIALISATION: `git checkout-index --all` silently skips unmerged entries and returns 0. The
+    two halves then disagreed about what exists, and staged mode reported CLEAN over a file it had
+    never read. A number that is right about a tree the scan cannot actually read is not an
+    improvement.
+
+    So the listing REFUSES an unmerged index now. `tracked_count` cannot be inflated by stages
+    because a tree with stages is not scanned at all — which is the same property, established by
+    construction rather than by arithmetic.
+    """
+    from chipsim.guards.errors import ScanNotPerformed
     from chipsim.guards.repo import _tracked_listing
 
     root = _init_repo(tmp_path)
-    conflicted = root / "f.txt"
+    clean = root / "ok.txt"
+    clean.write_text("fine\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
 
+    # A clean index still lists, so this test cannot pass by refusing everything.
+    paths, _ = _tracked_listing(root)
+    assert paths == ["ok.txt"]
+
+    conflicted = root / "f.txt"
     conflicted.write_text("base\n")
     subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     subprocess.run(
-        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"],
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "b"],
         cwd=root,
         check=True,
         capture_output=True,
@@ -3797,7 +3816,7 @@ def test_a_conflicted_listing_does_not_inflate_the_tracked_count(tmp_path):
     conflicted.write_text("theirs\n")
     subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     subprocess.run(
-        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "theirs"],
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "t"],
         cwd=root,
         check=True,
         capture_output=True,
@@ -3806,24 +3825,20 @@ def test_a_conflicted_listing_does_not_inflate_the_tracked_count(tmp_path):
     conflicted.write_text("ours\n")
     subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     subprocess.run(
-        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "ours"],
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "o"],
         cwd=root,
         check=True,
         capture_output=True,
     )
-    # `check=False` DELIBERATELY: this merge is SUPPOSED to conflict — that IS the fixture.
     subprocess.run(["git", "merge", "other"], cwd=root, capture_output=True, check=False)
 
     raw = subprocess.run(
         ["git", "ls-files", "-s"], cwd=root, capture_output=True, text=True, check=True
     ).stdout
-    assert raw.count("f.txt") == 3, "the fixture did not produce a conflicted index"
+    assert raw.count("f.txt") == 3, "the fixture did not produce an unresolved merge"
 
-    paths, _submodules = _tracked_listing(root)
-    assert paths.count("f.txt") == 1, (
-        f"a conflicted path appears {paths.count('f.txt')} times — tracked_count is inflated and "
-        "the anti-vacuity floor is that much easier to clear"
-    )
+    with pytest.raises(ScanNotPerformed, match="UNMERGED"):
+        _tracked_listing(root)
 
 
 def test_the_frozen_scan_types_can_be_hashed(tmp_path, monkeypatch):
@@ -3930,3 +3945,147 @@ def test_a_symlinks_digest_is_of_its_own_bytes(tmp_path):
     import hashlib
 
     assert digest == hashlib.sha256(b"./nowhere.txt").hexdigest()
+
+
+# --- §12.9: the §12 gate's findings ------------------------------------------------------------
+
+
+def test_an_unmerged_index_is_REFUSED_rather_than_scanned_around(tmp_path):
+    """THE CRITICAL FINDING, reached independently by two reviewers and reproduced end-to-end.
+
+    `git checkout-index --all` SILENTLY SKIPS UNMERGED ENTRIES AND RETURNS 0. So in staged mode a
+    conflicted path was listed (the stage records de-duplicate into `paths`, §12.7), never
+    materialised, and then skipped by every reader — `undecodable_unallowed` and the accession scan
+    both `continue` on a path that is not there. Measured on a real conflicted repo:
+
+        worktree -> files-fail exit=2   (the accession was found)
+        staged   -> CLEAN     exit=0    scanned=794
+
+    The header said 794 files were scanned in a scan that read 793. For a path THIS project owns the
+    row at least fails; for a path another project owns it is merely "listed", and the gate exits 0
+    having never read the bytes.
+
+    REFUSED, not scanned around. A tree mid-merge is not a tree the report can speak for, and the
+    listing already parses the stage number and throws it away.
+    """
+    from chipsim.guards.errors import ScanNotPerformed
+    from chipsim.guards.repo import _tracked_listing
+
+    root = _init_repo(tmp_path)
+    conflicted = root / "f.txt"
+    conflicted.write_text("base\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "b"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "checkout", "-qb", "other"], cwd=root, check=True, capture_output=True)
+    conflicted.write_text("theirs\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "t"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "checkout", "-q", "-"], cwd=root, check=True, capture_output=True)
+    conflicted.write_text("ours\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "o"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "merge", "other"], cwd=root, capture_output=True, check=False)
+
+    raw = subprocess.run(
+        ["git", "ls-files", "-s"], cwd=root, capture_output=True, text=True, check=True
+    ).stdout
+    assert raw.count("f.txt") == 3, "the fixture did not produce an unresolved merge"
+
+    with pytest.raises(ScanNotPerformed, match="unmerged"):
+        _tracked_listing(root)
+
+
+def test_the_ledger_read_survives_a_dangling_symlink(tmp_path):
+    """A REGRESSION I INTRODUCED IN §12.8 AND SHIPPED.
+
+    `entry_exists()` correctly made a dangling symlink count as PRESENT — but `ledger_tuple_hits`
+    then calls `read_text()` on it, which raises `FileNotFoundError`. That is not a
+    `RecordContentScanError`, so it escapes `enforce_record_content` as an exit-1 traceback: the
+    FOURTH STATE, which is the defect §12.2 exists to prevent, reintroduced by my own fix for a
+    different one. I checked the sites my test touched, not the sites my change reached.
+    """
+    import chipsim.ingest.drugbank_snapshot as ds
+
+    ledger_rel = min(ds.DRUGBANK_ID_LEDGER)
+    (tmp_path / ledger_rel).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / ledger_rel).symlink_to("./nowhere.txt")
+
+    hits = ds.ledger_tuple_hits(tmp_path)  # must not raise
+    assert hits == [], "a dangling ledger path carries no tuples"
+
+
+def test_a_declared_dangling_symlink_gets_ONE_answer_not_two(tmp_path):
+    """The other half of the same incomplete fix. Declaration adjudication still gated on
+    `target.is_file()`, which FOLLOWS the link — so a declared dangling symlink was simultaneously
+    "present" to `unresolvable_tracked` (via `entry_exists`) and "absent from disk" to the
+    adjudicator. One report, two answers about one path."""
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.decoding import _sha256
+
+    rel = f"projects/{THIS_PROJECT}/docs/link.bin"
+    (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / rel).symlink_to("./nowhere.bin")
+
+    entry = {"path": rel, "sha256": _sha256(tmp_path / rel), "why": "a tracked link"}
+    listing = _decl_fixture(tmp_path, project_entries=[entry], owners=[THIS_PROJECT]) + [rel]
+
+    assert rc.unresolvable_tracked(tmp_path, listing) == [], (
+        "a dangling symlink is PRESENT — it is in the index and a commit carries it"
+    )
+    defects = dict(rc.declaration_defects(listing, NOTHING_WAIVED, _surface_of(tmp_path)))
+    # It IS a defect — but for ONE coherent reason. A symlink's own bytes are its target string and
+    # those are perfectly readable, so declaring it is refused by the rule that a declaration says a
+    # file CANNOT be read. What must not happen is the adjudicator calling it "absent from disk"
+    # while `unresolvable_tracked` calls it present: one report, two answers about one path.
+    assert "absent from disk" not in defects.get(rel, ""), (
+        f"the adjudicator called it absent while unresolvable_tracked called it present: "
+        f"{defects.get(rel)!r}"
+    )
+    assert "CAN read it" in defects[rel], (
+        "the refusal should be the readable-file rule, which is the true statement about a link"
+    )
+
+
+def test_a_numeric_dtype_dataset_carrying_a_record_is_scanned(tmp_path):
+    """A FALSE CLEAN found by the security reviewer, and the dtype filter's comment is the tell.
+
+    `readable = dtype.kind in {"O","S","U","V"}` returns before any read for every other dtype,
+    justified by "a 14.7M-element expression matrix cannot carry a compound name" — TRUE OF
+    EXPRESSION MATRICES, FALSE OF uint8. The comment reasons about one dataset shape; the code
+    applies to all dtypes.
+
+    Measured before the fix: the accession sat in the file's raw bytes, the scanned text was
+    structure names only, and `_is_readable` returned True — so the container was certified as fully
+    READ and needed no declaration, with the record invisible to both halves.
+    """
+    h5py = pytest.importorskip("h5py")
+    import numpy as np
+
+    from chipsim.guards.decoding import _is_readable, _scan_chunks
+
+    record = f"{REAL},SomeCoinedTitle,{STRUCTURE}"
+    path = tmp_path / "matrix.h5ad"
+    with h5py.File(path, "w") as handle:
+        handle.create_dataset("obs/_index", data=[b"cell1"])
+        handle.create_dataset("uns/blob", data=np.frombuffer(record.encode(), dtype=np.uint8))
+
+    assert REAL.encode() in path.read_bytes(), "the fixture must put the record in the file"
+    assert _is_readable(path), "the container is readable either way; that is what makes it a trap"
+    assert REAL in "\n".join(_scan_chunks(path) or []), (
+        "a record stored as a numeric buffer was invisible while the container scanned CLEAN"
+    )
