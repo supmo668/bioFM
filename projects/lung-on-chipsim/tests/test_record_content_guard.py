@@ -3065,7 +3065,9 @@ def test_the_readability_waiver_is_consulted_and_obeyed(tmp_path):
         seen.append(candidate)
         return candidate == rel
 
-    waiving = rc.ContentPolicy(readability_waived=waive, content_exempt=rc.nothing_is_content_exempt)
+    waiving = rc.ContentPolicy(
+        readability_waived=waive, content_exempt=rc.nothing_is_content_exempt
+    )
     assert rc.undecodable_unallowed(listing, NOTHING_WAIVED, _surface_of(tmp_path)) == [rel], (
         "unwaived: reported"
     )
