@@ -57,6 +57,21 @@ class ScanRow:
     disposition: str
     #: Only for a broken declaration: why the claim does not hold.
     detail: str | None = None
+    #: WHICH QUESTION `owner` ANSWERS — "registry" or "placement". The two owner sets differ ON
+    #: PURPOSE and a single path can legitimately appear in rows attributed from both:
+    #:
+    #:   * "registry"  — `recognised_owners`, the NARROWED set (marker AND declared registry).
+    #:                   It answers "who is accountable for this path", so narrowing is the safe
+    #:                   direction and an unrecognised project yields None, which FAILS HERE.
+    #:   * "placement" — `marker_backed_owners`, the WIDER set (marker alone). It answers "may this
+    #:                   path be declared HERE", where widening is the safe direction, and it is
+    #:                   the set the defect was adjudicated against (r2.25 DES-1).
+    #:
+    #: Without this field a consumer reading `rows` — the interface this class exists to provide —
+    #: sees one path with two different owners and no way to tell that both are correct. Measured:
+    #: a marker-backed project absent from the registry produces `owner=None` on its
+    #: `missing-on-disk` row and `owner="alpha"` on its `broken-declaration` rows.
+    owner_basis: str = "registry"
 
     def __post_init__(self) -> None:
         """EVERY interpolated field is escaped, not just the path (r2.28).
@@ -75,6 +90,12 @@ class ScanRow:
         `RecordContentScan` counts rows by matching it: a typo would silently stop a row counting as
         failing.
         """
+        if self.owner_basis not in {"registry", "placement"}:
+            raise GuardInvariantViolated(
+                f"owner_basis={self.owner_basis!r} is neither 'registry' nor 'placement'. A row "
+                f"whose owner cannot say which question it answers is the contradiction this "
+                f"field exists to remove."
+            )
         if self.disposition not in {"FAILS HERE", "listed"}:
             raise GuardInvariantViolated(
                 f"{self.path}: disposition {self.disposition!r} is neither 'FAILS HERE' nor "
@@ -168,6 +189,24 @@ class RecordContentScan:
                 f"structural_error={self.structural_error!r}"
             )
 
+    @property
+    def failing_paths(self) -> int:
+        """DISTINCT FILES that fail, as against `failing_count`'s ROWS.
+
+        One path can carry several findings — measured: a declaration misplaced under an ownership
+        prefix, owned by a project that declares it elsewhere, and pinned to a file absent from
+        disk produced THREE `broken-declaration` rows plus a `missing-on-disk` row for ONE file. The
+        header printed `failing this gate: 4` inside a clause whose subject is FILES, next to
+        `undeclared undecodable files: 0` — zero and four in one sentence, about one file.
+
+        A PROPERTY rather than a field so it cannot disagree with `rows`: the rule this class
+        already states is that the RENDERER must not recompute a number sitting beside the verdict.
+        Deriving it here, from the single source, in the same class as `exit_code`, is that rule
+        honoured rather than worked around — and it needs no constructor argument that a caller
+        could pass inconsistently.
+        """
+        return len({row.path for row in self.rows if row.disposition == "FAILS HERE"})
+
 
 def render_scan(scan: RecordContentScan) -> tuple[str, int]:
     """PRESENTATION. It may reorder, group or drop; it may not decide.
@@ -190,7 +229,12 @@ def render_scan(scan: RecordContentScan) -> tuple[str, int]:
     lines = [
         (
             f"undeclared undecodable files: {len(undecodable)} "
-            f"(failing this gate: {scan.failing_count}"
+            # FILES, then FINDINGS — and only when they differ, so the ordinary "0" is unchanged.
+            # This clause sits inside a sentence whose subject is FILES, so printing a ROW count
+            # here read as "4 files fail" when one file carried four findings. The line below
+            # already says "N whose claim does not hold (M defect(s))"; this now matches it.
+            f"(failing this gate: {scan.failing_paths}"
+            f"{f' file(s), {scan.failing_count} finding(s)' if scan.failing_count != scan.failing_paths else ''}"
             f"{'; DECLARATION DATA UNREADABLE, so nothing is declared' if scan.structural_error else ''}) "
             f"— scanned {scan.tracked_count} tracked files under {render_path(str(scan.root))} "
             f"[{'STAGED bytes (what a commit would carry)' if scan.byte_source == 'staged' else 'WORKTREE bytes (the files as they sit on disk)'}], "

@@ -1184,3 +1184,137 @@ def test_the_defaults_walk_covers_the_SHARED_constructor_too():
         "the SHARED constructor is not in the walk — which is how a default on it survived"
     )
     assert offenders == [], f"these resolve part of the scan for themselves: {offenders}"
+
+
+def _one_path_many_findings(tmp_path, monkeypatch):
+    """A repository where ONE file carries four findings.
+
+    `projects/alpha/` is MARKER-BACKED but absent from the declared registry, so the narrowed
+    `recognised_owners` excludes it while the wider `marker_backed_owners` includes it. Its file is
+    TRACKED BUT NOT ON DISK, and is declared in the REPO-ROOT surface under an ownership prefix.
+    That yields three `broken-declaration` rows and one `missing-on-disk` row for a single path.
+    """
+    import yaml
+
+    import chipsim.guards.record_content as rc
+
+    proj = tmp_path / "projects" / rc.THIS_PROJECT
+    (proj / "configs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (proj / "pyproject.toml").write_text("[project]\n")
+
+    alpha = tmp_path / "projects" / "alpha"
+    alpha.mkdir(parents=True, exist_ok=True)
+    (alpha / "pyproject.toml").write_text("[project]\n")
+
+    victim = "projects/alpha/x.pdf"
+    (tmp_path / rc.PROJECT_DECLARATION_FILE).write_text(
+        yaml.safe_dump({"version": "1", "declarations": []})
+    )
+    (tmp_path / rc.REPO_DECLARATION_FILE).write_text(
+        yaml.safe_dump(
+            {
+                "version": "1",
+                "owners": [rc.THIS_PROJECT],  # `alpha` deliberately absent
+                "declarations": [
+                    {"path": victim, "sha256": "0" * 64, "why": "misplaced on purpose"}
+                ],
+            }
+        )
+    )
+    listing = [
+        rc.PROJECT_DECLARATION_FILE,
+        rc.REPO_DECLARATION_FILE,
+        f"projects/{rc.THIS_PROJECT}/pyproject.toml",
+        "projects/alpha/pyproject.toml",
+        victim,
+    ]
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+    return victim, scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
+
+
+def test_the_headline_counts_FILES_not_rows_when_one_file_carries_several_findings(
+    tmp_path, monkeypatch
+):
+    """MEASURED BEFORE IT WAS FIXED, and the rendered line was its own contradiction:
+
+        undeclared undecodable files: 0 (failing this gate: 4)
+
+    Zero undecodable files and four failing, in one clause, about ONE file. `failing_count` is a
+    ROW count — honest in the data, whose field docstring says so — placed inside a sentence whose
+    subject is FILES. The line directly beneath it already read "1 whose claim does not hold
+    (3 defect(s))", so the report knew how to distinguish things from findings everywhere except
+    the number a human reads first.
+    """
+    from chipsim.guards.report import render_scan
+
+    _victim, scan = _one_path_many_findings(tmp_path, monkeypatch)
+
+    assert scan.failing_paths == 1, "one file fails"
+    assert scan.failing_count == 4, "carrying four findings"
+
+    text, _ = render_scan(scan)
+    headline = text.splitlines()[0]
+    assert "failing this gate: 1 file(s), 4 finding(s)" in headline, headline
+    assert "failing this gate: 4)" not in headline, (
+        "the row count must not stand alone in a clause about files"
+    )
+
+
+def test_the_headline_stays_a_bare_number_when_files_and_findings_agree(tmp_path, monkeypatch):
+    """The ordinary case must not grow noise. When every failing file carries exactly one finding
+    the two counts agree and the header prints what it always printed — which is also why the
+    existing assertions on "failing this gate: 0" elsewhere are untouched."""
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.report import render_scan
+
+    rel = "docs/payload.bin"
+    _write(tmp_path, rel, b"\x00\xff\x80\x81 OPAQUE")
+    listing = _surface(tmp_path) + [rel]
+    monkeypatch.setattr(rc, "_tracked_listing", lambda root: (listing, []))
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
+
+    scan = scan_record_content(ScanContext.for_worktree(tmp_path, NOTHING_WAIVED))
+    assert scan.failing_paths == scan.failing_count
+
+    headline = render_scan(scan)[0].splitlines()[0]
+    assert f"failing this gate: {scan.failing_count})" in headline, headline
+    assert "finding(s)" not in headline
+
+
+def test_a_row_says_WHICH_owner_set_attributed_it(tmp_path, monkeypatch):
+    """One path, two rows, two DIFFERENT owners — and both are correct.
+
+    `missing-on-disk` is attributed from the NARROWED registry set, because that row answers "who
+    is accountable" and narrowing is the safe direction there. `broken-declaration` is attributed
+    from the WIDER placement set, because that row was adjudicated against placement (r2.25 DES-1).
+    The rendered text never showed the conflict — the broken section prints no `owner=` at all — so
+    this lived entirely in `rows`, the structured interface this class exists to provide.
+    """
+    victim, scan = _one_path_many_findings(tmp_path, monkeypatch)
+    rows = [r for r in scan.rows if r.path == victim]
+
+    by_basis = {r.owner_basis for r in rows}
+    assert by_basis == {"registry", "placement"}, by_basis
+
+    registry_rows = [r for r in rows if r.owner_basis == "registry"]
+    placement_rows = [r for r in rows if r.owner_basis == "placement"]
+    assert {r.owner for r in registry_rows} == {None}, "alpha is not in the registry"
+    assert {r.owner for r in placement_rows} == {"alpha"}, "but it is marker-backed"
+
+    assert len({r.owner for r in rows}) > 1, (
+        "the whole point: one path, two owner values — the field is what makes that readable "
+        "instead of a bare contradiction"
+    )
+
+
+def test_a_row_cannot_carry_an_unknown_owner_basis(tmp_path):
+    """The field is one bit spelled as two strings, so an unrecognised third value must refuse
+    rather than render. A row whose owner cannot say which question it answers reintroduces exactly
+    the contradiction this field removes."""
+    import chipsim.guards.record_content as rc
+    from chipsim.guards.errors import GuardInvariantViolated
+
+    with pytest.raises(GuardInvariantViolated):
+        rc.ScanRow("a.txt", "alpha", "undecodable", "listed", None, owner_basis="whatever")

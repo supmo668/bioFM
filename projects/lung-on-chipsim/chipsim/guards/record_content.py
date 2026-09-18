@@ -1100,7 +1100,14 @@ def scan_record_content(context: ScanContext) -> RecordContentScan:
     # `detail` — and under a structural error it made every broken row read `owner=None`.
     placement = marker_backed_owners(paths)
     rows += [
-        ScanRow(path, path_owner(path, placement), "broken-declaration", "FAILS HERE", why)
+        ScanRow(
+            path,
+            path_owner(path, placement),
+            "broken-declaration",
+            "FAILS HERE",
+            why,
+            owner_basis="placement",
+        )
         for path, why in defects
     ]
 
