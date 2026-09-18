@@ -27,6 +27,7 @@ scope, and a literal real accession would be a self-inflicted hit.
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 from pathlib import Path
 
@@ -4810,3 +4811,104 @@ def test_a_record_for_the_wrong_object_is_REFUSED(tmp_path):
     with pytest.raises(ScanNotPerformed) as caught:
         _consume_blobs(stream, entries, tmp_path, lambda: hashlib.sha1(usedforsecurity=False))
     assert "diverged" in str(caught.value)
+
+
+def test_a_staged_root_inside_the_scanned_tree_is_REFUSED(tmp_path, monkeypatch):
+    """CTO Ruling 1 (§13). `tempfile` honours `$TMPDIR`, so pointing it at the working tree makes
+    the gate write A COMPLETE COPY OF EVERY TRACKED BLOB into the tree it is about to scan — a
+    scan that reads its own output, and a copy `git add -A` would stage. Reachable by an
+    environment variable alone, which is why it is refused rather than documented.
+
+    The refusal resolves both sides instead of comparing strings, because `$TMPDIR` is an
+    attacker-controlled string and a declared root may be reached through a symlink.
+    """
+    from chipsim.guards.errors import GuardInvariantViolated
+    from chipsim.guards.repo import materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    _set_index(root, [("100644", _write_blob(root, b"tracked\n"), "a.txt")])
+
+    inside = root / "build" / "staged"
+    monkeypatch.setenv("TMPDIR", str(root))
+
+    with pytest.raises(GuardInvariantViolated) as caught:
+        materialise_blobs(root, inside)
+
+    message = str(caught.value)
+    assert "working tree being scanned" in message
+    assert not inside.exists() or not any(inside.iterdir()), (
+        "the refusal must land BEFORE any blob is written into the scanned tree"
+    )
+
+
+def test_the_staged_root_refusal_survives_a_symlinked_route_in(tmp_path):
+    """Resolved, not prefix-matched: a staged root that REACHES the tree through a symlink names a
+    path that shares no prefix with it. A string comparison passes this and writes the copy anyway.
+    """
+    from chipsim.guards.errors import GuardInvariantViolated
+    from chipsim.guards.repo import materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    _set_index(root, [("100644", _write_blob(root, b"tracked\n"), "a.txt")])
+
+    (root / "real").mkdir()
+    disguised = tmp_path / "elsewhere"
+    disguised.symlink_to(root / "real")
+
+    with pytest.raises(GuardInvariantViolated):
+        materialise_blobs(root, disguised / "staged")
+
+
+def test_submodule_gitlinks_are_DISCLOSED_not_swept_into_the_fatal_predicate(tmp_path, monkeypatch):
+    """The CTO checked this by hand and it should not depend on anyone re-deriving it.
+
+    A gitlink's index entry names a COMMIT, not a blob, so it can never have bytes materialised for
+    it. Staged mode now fails a listed path with no materialised blob REGARDLESS OF OWNER — so if
+    gitlinks reached that predicate, six legitimate paths would hard-fail the gate here. They do
+    not: they are excluded before materialisation, kept separate by the listing, and DISCLOSED in
+    the report as "N submodule(s) NOT scanned". Excluding them quietly would be its own false
+    clean — repositories unscanned inside a confident tracked-file count.
+    """
+    from chipsim.guards.repo import _tracked_listing, materialise_blobs
+
+    root = _plain_repo(tmp_path)
+    blob = _write_blob(root, b"ordinary\n")
+    # A gitlink must point at a REAL commit — the index refuses a dangling one — so make one. That
+    # is also the honest shape: a submodule entry names a commit that exists somewhere.
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@t",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@t",
+        "PATH": os.environ.get("PATH", ""),
+    }
+    empty_tree = subprocess.run(
+        ["git", "mktree"], cwd=root, input="", capture_output=True, text=True, check=True
+    ).stdout.strip()
+    commit = subprocess.run(
+        ["git", "commit-tree", empty_tree, "-m", "submodule head"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    ).stdout.strip()
+    tree = subprocess.run(
+        ["git", "mktree"],
+        cwd=root,
+        input=f"100644 blob {blob}\ta.txt\n160000 commit {commit}\tvendor\n",
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    subprocess.run(["git", "read-tree", tree], cwd=root, check=True, capture_output=True)
+
+    paths, gitlinks = _tracked_listing(root)
+    assert gitlinks == ["vendor"], "a gitlink must be separated, not listed as a file"
+    assert "vendor" not in paths, "a gitlink must never reach the fatal missing-blob predicate"
+
+    staged = materialise_blobs(root, tmp_path / "staged")
+    assert (staged / "a.txt").exists()
+    assert not (staged / "vendor").exists(), (
+        "a commit is not a blob; nothing may be materialised for a gitlink"
+    )

@@ -44,6 +44,7 @@ from chipsim.guards.errors import (  # noqa: F401
 # cycle avoidance. Re-exported so existing importers keep working.
 # `render_path` moved to `report` with the rest of presentation; re-exported because callers
 # reach it here and ruff deletes what it cannot see a use for.
+from chipsim.guards.output_roots import DECLARED_OUTPUT_ROOTS
 from chipsim.guards.report import render_path
 from chipsim.journal import source_root
 
@@ -194,6 +195,43 @@ def _feed_oids(pipe, request: bytes) -> None:
         pass
 
 
+def _refuse_a_staged_root_that_lands_in_the_tree(root: Path, into: Path) -> None:
+    """The staged tree may not live inside the tree being scanned, or under a declared output root.
+
+    `tempfile` honours `$TMPDIR`, so this is reachable by an environment variable alone: point it at
+    the working tree and the gate writes a COMPLETE COPY OF EVERY TRACKED BLOB into the tree it is
+    about to scan. The scan then reads its own copy — and `git add -A` would stage it. A guard whose
+    output lands in its own input is not a guard, and this is the same `TMPDIR=<project>` shape that
+    `output_roots.declared_output_roots` already refuses for the test-time grant.
+
+    RESOLVED ON BOTH SIDES, never compared as strings: a declared root reached through a symlink is
+    exactly the case a prefix match misses, and `$TMPDIR` is an attacker-controlled string.
+    """
+    try:
+        staged = into.resolve()
+        tree = Path(root).resolve()
+    except OSError as exc:  # pragma: no cover - resolution failing is itself a refusal
+        raise ScanNotPerformed(f"could not resolve the staged root {render_path(str(into))}: {exc}")
+
+    # THE DECLARED ROOTS THEMSELVES, not `declared_output_roots()` — that helper appends a
+    # test-time `$TMPDIR` grant so record-bearing writers can write to tmp under pytest, and
+    # reusing it here refused every staged tree the suite builds. The grant answers a different
+    # question than this one does.
+    project = Path(source_root()).resolve()
+    forbidden = [("the working tree being scanned", tree)]
+    forbidden += [
+        ("a declared output root", (project / rel).resolve()) for rel in DECLARED_OUTPUT_ROOTS
+    ]
+    for label, boundary in forbidden:
+        if staged == boundary or boundary in staged.parents:
+            raise GuardInvariantViolated(
+                f"the staged tree would be written to {render_path(str(staged))}, which is inside "
+                f"{label} ({render_path(str(boundary))}). A copy of every tracked blob must not "
+                f"land in the tree this gate scans, or in a directory record-bearing output is "
+                f"written to. `$TMPDIR` is the usual way this happens."
+            )
+
+
 def materialise_blobs(root: Path, into: Path) -> Path:
     """Write every tracked entry's BLOB BYTES into `into`, and return it.
 
@@ -220,6 +258,15 @@ def materialise_blobs(root: Path, into: Path) -> Path:
     * THE BYTES BEING THE ONES ASKED FOR. `refs/replace/*` re-points an OID at other content and
       the response header echoes the REQUESTED oid, so only hashing the payload can tell. The
       argv closes the channel and the hash checks that it stayed closed.
+    THE RESIDUAL THAT IS ACCEPTED RATHER THAN CLOSED (CTO ruling, §13): on `SIGKILL` the staged tree
+    survives in `$TMPDIR`. It is created at mode 0700, and its contents are a copy of TRACKED blobs
+    — content already at rest in the same repository — so it is not a disclosure escalation over the
+    repository itself, and the OS reclaims the system temp directory. No sweeper is installed: an
+    unattended destructive sweep is a worse risk than a bounded residual. THE ONE CASE WORTH SAYING
+    OUT LOUD: when the gate FAILS, that residual holds the record-bearing blob the gate is refusing.
+    Still not an escalation — that blob is in the index either way, which is what is being refused —
+    but a reader deserves to be told rather than to discover it.
+
     * THE TREE FITTING IN MEMORY. `capture_output` held every tracked blob at once — measured at
       ~240 MiB on this repository against 25 MiB for the tool it replaced — while `decoding` sets
       three explicit ceilings on the argument that a guard which OOMs produces no verdict, and no
@@ -227,6 +274,7 @@ def materialise_blobs(root: Path, into: Path) -> Path:
     """
     entries = [(mode, oid, rel) for mode, oid, rel in _tracked_entries(root) if mode != "160000"]
     into.mkdir(parents=True, exist_ok=True)
+    _refuse_a_staged_root_that_lands_in_the_tree(root, into)
     if any(into.iterdir()):
         raise GuardInvariantViolated(
             f"{render_path(str(into))} is not empty. The staged tree must start empty or the "
