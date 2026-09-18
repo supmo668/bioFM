@@ -53,7 +53,12 @@ SUBCOMMANDS = (
 #: must appear in exactly one of these two tuples — see test_workflow_export.
 #: `adjudication-export` (T14, r2.19) publishes a HUMAN artifact, like `panel-seal`: it is an
 #: invocation to be journalled, not an ETL run over the snapshot.
-NON_ETL_SUBCOMMANDS = ("panel-seal", "adjudication-export", "record-content-report")
+NON_ETL_SUBCOMMANDS = (
+    "panel-seal",
+    "adjudication-export",
+    "record-content-report",
+    "record-content-gate",
+)
 
 MODULE_PATH = "chipsim.pipeline"
 
@@ -358,6 +363,39 @@ def _record_content_policy():
     return DRUGBANK_CONTENT_POLICY
 
 
+def _cmd_record_content_gate(ns) -> int:
+    """THE COMMIT GATE (r2.28). Certifies the STAGED BLOBS — the bytes a commit would carry.
+
+    §12.5 built this capability and nothing called it: every staged call site was a test, and the
+    only shipped command passed "worktree". A ruling implemented as a mechanism with no reader is
+    exactly the E6-7 defect ("enforced for whoever runs pytest, and for nobody else") that the
+    previous section fixed, so it gets a caller here rather than a claim.
+    """
+    from chipsim.guards.errors import RecordContentScanError
+    from chipsim.guards.report import render_path
+    from chipsim.record_content import RecordContentViolation, enforce_record_content
+
+    try:
+        result = enforce_record_content(_record_content_policy(), byte_source="staged")
+    except RecordContentViolation as exc:
+        if exc.status == "could-not-scan":
+            print(
+                f"ERROR: the record-content gate could not run: {render_path(str(exc))}",
+                file=sys.stderr,
+            )
+            return exc.exit_code
+        print(exc.report)
+        return exc.exit_code
+    except RecordContentScanError as exc:  # pragma: no cover - defence in depth
+        print(
+            f"ERROR: the record-content gate could not run: {render_path(str(exc))}",
+            file=sys.stderr,
+        )
+        return 3
+    print(result.report)
+    return result.exit_code
+
+
 def _cmd_record_content_report(ns) -> int:
     """Print the repo-wide undeclared-undecodable report (r2.20 listing / r2.22 scoping).
 
@@ -427,6 +465,7 @@ _HANDLERS = {
     "panel-seal": _cmd_panel_seal,
     "adjudication-export": _cmd_adjudication_export,
     "record-content-report": _cmd_record_content_report,
+    "record-content-gate": _cmd_record_content_gate,
 }
 
 
@@ -464,6 +503,18 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("configs/unparseable_compounds.yaml"),
         help="pre-registered unparseable-compound roster (principal's ruling 2026-09-14)",
+    )
+
+    sub.add_parser(
+        "record-content-gate",
+        help="the COMMIT GATE: run the whole record-content invariant against the STAGED blobs",
+        description=(
+            "Reads the bytes a commit would carry — the staged blobs, not the working files — and "
+            "exits 0 (clean), 2 (files fail) or 3 (could not scan). This is the command a "
+            "pre-commit hook or CI job runs. `record-content-report` is its human-facing sibling "
+            "and describes the WORKING TREE; the two say which copy they read, because a reader "
+            "cannot check a verdict without knowing what was verified."
+        ),
     )
 
     sub.add_parser(

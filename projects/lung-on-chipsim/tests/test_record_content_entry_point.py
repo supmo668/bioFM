@@ -22,7 +22,7 @@ REPO_ROOT = PROJECT_ROOT.parent.parent
 
 def test_the_live_repository_passes_the_combined_gate():
     """The whole invariant, in one call, against the real tree."""
-    result = enforce_record_content()
+    result = enforce_record_content(byte_source="worktree")
     assert result.status == "clean"
     assert result.exit_code == 0
     assert result.scanned > 100, "a scan of nothing is not a pass"
@@ -51,7 +51,7 @@ def test_the_fail_lives_IN_the_entry_point_not_in_the_caller(tmp_path, monkeypat
 
     # No return value is reachable for a failing tree — the fail is IN the entry point.
     with pytest.raises(RecordContentViolation) as exc:
-        rc.enforce_record_content()
+        rc.enforce_record_content(byte_source="worktree")
     assert exc.value.exit_code == 2
     assert rel in exc.value.report
 
@@ -72,7 +72,7 @@ def test_a_failing_file_raises_with_the_three_state_status(tmp_path, monkeypatch
     monkeypatch.setattr(guard, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     with pytest.raises(RecordContentViolation) as exc:
-        rc.enforce_record_content()
+        rc.enforce_record_content(byte_source="worktree")
     assert exc.value.status == "files-fail"
     assert exc.value.exit_code == 2
     assert rel in exc.value.report
@@ -90,7 +90,7 @@ def test_a_tree_that_cannot_be_scanned_is_a_DIFFERENT_status(tmp_path, monkeypat
     monkeypatch.setattr(guard, "repo_root", refuse)
 
     with pytest.raises(RecordContentViolation) as exc:
-        rc.enforce_record_content()
+        rc.enforce_record_content(byte_source="worktree")
     assert exc.value.status == "could-not-scan"
     assert exc.value.exit_code == 3
 
@@ -112,7 +112,7 @@ def test_the_entry_point_checks_ACCESSION_CONTENT_too(tmp_path, monkeypatch):
     monkeypatch.setattr(guard, "_refuse_a_scan_that_cannot_see_itself", lambda root, paths: None)
 
     with pytest.raises(RecordContentViolation) as exc:
-        rc.enforce_record_content()
+        rc.enforce_record_content(byte_source="worktree")
     assert exc.value.status == "files-fail"
     assert rel in exc.value.report
     assert "accession" in exc.value.report.lower()
@@ -135,7 +135,7 @@ def test_a_non_pytest_consumer_can_call_it():
     script = (
         f"import sys; sys.path.insert(0, {str(PROJECT_ROOT)!r})\n"
         "from chipsim.record_content import enforce_record_content\n"
-        "r = enforce_record_content()\n"
+        "r = enforce_record_content(byte_source='worktree')\n"
         "print('STATUS', r.status, 'EXIT', r.exit_code, 'SCANNED', r.scanned)\n"
     )
     out = subprocess.run(

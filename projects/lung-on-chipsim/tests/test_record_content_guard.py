@@ -4327,3 +4327,78 @@ def test_the_LEDGER_half_also_reads_the_byte_source_it_was_given(tmp_path, monke
     assert cr.enforce_record_content(DRUGBANK_CONTENT_POLICY, byte_source="worktree").status == (
         "clean"
     )
+
+
+# --- §12.11: r2.28's ruling has a CALLER -------------------------------------------------------
+
+
+def test_a_shipped_command_certifies_the_STAGED_bytes(tmp_path, monkeypatch, capsys):
+    """r2.28 ruled that A COMMIT GATE READS THE BYTES IT CERTIFIES. §12.5 built the capability and
+    NOTHING INVOKED IT: every staged call site was a test, there is no hook, and the only subcommand
+    passed "worktree". A ruling implemented as a mechanism with no reader is E6-7's defect —
+    "enforced for whoever runs pytest, and for nobody else" — ONE ITERATION AFTER I FIXED IT, and it
+    is the "an inert mechanism reads as coverage" rule I have been applying to everyone else.
+
+    `record-content-gate` is that caller. A separate command rather than a flag, for the same reason
+    `for_staged` is a separate constructor: which copy is certified is carried by the NAME.
+    """
+    import chipsim.guards.record_content as rc
+    from chipsim import pipeline
+
+    root = _init_repo(tmp_path)
+    marker = root / f"projects/{THIS_PROJECT}/pyproject.toml"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("[project]\nname = 'x'\n")
+    for rel in (
+        "config/record_content_declarations.yaml",
+        f"projects/{THIS_PROJECT}/configs/record_content_declarations.yaml",
+    ):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text('version: "1"\ndeclarations: []\n')
+
+    leak = f"projects/{THIS_PROJECT}/docs/leak.txt"
+    (root / leak).parent.mkdir(parents=True, exist_ok=True)
+    (root / leak).write_text(f"see {REAL} for details\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    (root / leak).write_text("clean text, nothing to see\n")  # the worktree is innocent
+
+    monkeypatch.setattr(rc, "repo_root", lambda: root)
+    monkeypatch.setattr(rc, "_refuse_a_scan_that_cannot_see_itself", lambda r, p: None)
+    monkeypatch.setattr(pipeline, "_record_content_policy", lambda: DRUGBANK_CONTENT_POLICY)
+
+    gate_code = pipeline.main(["record-content-gate"])
+    gate_out = capsys.readouterr().out
+    report_code = pipeline.main(["record-content-report"])
+    report_out = capsys.readouterr().out
+
+    assert gate_code == 2, (
+        "the COMMIT GATE cleared a staged accession — it is reading the working file, which is the "
+        "defect r2.28 exists to close"
+    )
+    assert "REAL ACCESSIONS" in gate_out
+    assert "STAGED bytes (what a commit would carry)" in gate_out
+
+    assert report_code == 0, (
+        "the human report describes the WORKTREE, which is clean here — if this failed too, the "
+        "assertion above would not show WHICH copy the gate read"
+    )
+    assert "WORKTREE bytes (the files as they sit on disk)" in report_out
+
+
+def test_the_entry_point_will_not_choose_the_byte_source_for_you():
+    """`enforce_record_content` was the one defaulted decision left on this path — at the one door a
+    non-pytest consumer uses, defaulting to the copy r2.28 ruled is NOT what a commit carries.
+    `ScanContext` refuses that default in three places; the rule stopped one layer short of the
+    public API, which is the shape MUT-24/25 named ("a shape check that inspects one class cannot
+    see the constructors around it"), one layer up."""
+    import inspect
+
+    import chipsim.record_content as cr
+
+    parameter = inspect.signature(cr.enforce_record_content).parameters["byte_source"]
+    assert parameter.default is inspect.Parameter.empty, (
+        "byte_source acquired a default — a consumer can now certify the working files by omission"
+    )
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY, (
+        "keyword-only, so it cannot be passed positionally by accident either"
+    )

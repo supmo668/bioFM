@@ -71,7 +71,7 @@ class RecordContentViolation(RuntimeError):
 
 
 def enforce_record_content(
-    policy: ContentPolicy = DRUGBANK_CONTENT_POLICY, byte_source: str = "worktree"
+    policy: ContentPolicy = DRUGBANK_CONTENT_POLICY, *, byte_source: str
 ) -> RecordContentResult:
     """Run the whole record-content invariant and RAISE unless it is clean.
 
