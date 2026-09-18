@@ -104,6 +104,12 @@ and stays in Aviary-BioSim.
 
 ## 🟠 2. `worktree-create --coordinator` is documented but not implemented
 
+> **CLOSED 2026-09-17 — implemented in 0.56.0. Verified here, not taken on report:**
+> `tools/worktree-create` has 4 references to the flag — line 139 parses it
+> (`--coordinator) COORDINATOR="$2"; COORDINATOR_EXPLICIT=1`), lines 151/156 document
+> its precedence ("explicit `--coordinator` wins"), and line 183 prints it in the help.
+> The documented Step 2 happy path now works. No action needed.
+
 **File:** `skills/worktree-agent-create/SKILL.md` (Step 2); `tools/worktree-create`
 
 **Symptom:** Following `/worktree-agent-create` verbatim fails. Step 2 says to run
@@ -124,6 +130,20 @@ from the skill's Step 2 and rely on the auto-assignment the tool already perform
 **Status:** open
 
 ## 🟠 3. `instinct capture` on an existing name reinforces it and silently keeps the stale body
+
+> **Superseded 2026-09-17 — FIXED in aiadlc PR #107 (`cto/instinct-revise`, not yet landed).**
+> Re-found independently during the `/v2r-loop` audit and re-filed with a deterministic repro,
+> the severity arithmetic (base 0.6 + reinforce 0.1 vs `min_confidence` 0.6 ⇒ a wrong lesson
+> crosses the SessionStart surfacing threshold **on the first attempt to correct it**, so this
+> is 🔴 not 🟠), and a concrete patch. See
+> `2026-09-17-instinct-capture-discards-a-correction-and-reinforces-the-stale-body.md`.
+> The landed fix is stricter than the `--replace` flag proposed below: `capture` compares
+> bodies and **refuses** a differing one, and a new `instinct revise` updates text without
+> touching `confidence`/`created`/`last_reinforced`.
+>
+> _Process note: this defect went unfound for four days by a title-based duplicate check,
+> because it is item 3 in a file named for an unrelated defect. One defect per file, or the
+> log is not searchable._
 
 **File:** `tools/instinct` (`capture`); `skills/instinct-capture/SKILL.md`
 
