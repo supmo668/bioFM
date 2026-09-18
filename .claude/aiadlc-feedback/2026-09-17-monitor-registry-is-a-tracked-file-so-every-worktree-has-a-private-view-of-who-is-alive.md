@@ -92,3 +92,71 @@ A registry that can be wrong in both directions cannot support the trust contrac
 dispatch monitor's *silence* its meaning. The remedy in suggested fix 1 (move it out of the work
 tree, into a location all worktrees of a repo share) addresses both, because both arise from each
 tree holding its own copy and appending to it.
+
+## Third failure mode, same day: the prescribed registration command writes a pid that is **dead on arrival**
+
+The two modes above are about *which file* the entry lands in and *how long* it survives. This one is
+about the pid itself, and it is the sharpest of the three because **the documented workflow causes it**.
+
+`tools/monitor-register` line 143:
+
+```bash
+local pid="${MONITOR_PID:-$$}"
+```
+
+It registers `$$` — the pid of the `monitor-register` shell — unless `MONITOR_PID` is set. That is fine
+for the self-registration path, where `dispatch-monitor` registers itself from inside its own process.
+It is wrong for every other caller, because the monitor and the registering shell are **different
+processes**.
+
+And a different process is exactly what the instructions prescribe. `/session-resume` Step 3 says to
+launch the blocker monitor via the Monitor tool and then:
+
+> Register it so `monitor-health` tracks it: `tools/monitor-register blocker`.
+
+Followed literally, that command runs in a short-lived shell which exits the moment it returns. The
+registered pid is dead within milliseconds of being written.
+
+**Measured here.** After re-arming both monitors and following the instruction as written:
+
+| registry entry | pid | actually running? |
+|---|---|---|
+| `dispatch` → cto | 94618 | **no such process** |
+| `blocker` → cto | 5037 | **no such process** |
+| `issue` → cto | 2887 | yes (self-registered at startup) |
+
+The live processes were `dispatch` pid 90574 and `blocker` pid 99423 — neither appeared in the registry.
+The blocker monitor **delivered an event while its registry entry read DEAD**, which is as direct a
+falsification of the entry as one could ask for.
+
+**It is worse than a stale row: it destroys a correct one.** Registration upserts on
+`(monitor_type, agent_address)`. `dispatch-monitor` self-registers correctly on startup, so running
+`monitor-register dispatch` afterwards — as the skill instructs — **overwrites the monitor's own valid
+entry with the calling shell's dead pid.** The prescribed step actively makes the registry worse than
+doing nothing.
+
+Consequence: `monitor-health` (Stop hook) and `monitor-register --verify` both read this registry, so
+turn-end is blocked with "monitor down" while the monitors are demonstrably alive. Since the guidance is
+*never end a turn with a dead monitor*, the operator is pushed to restart healthy monitors — and each
+restart re-runs the same instruction and writes another dead pid.
+
+**Workaround that works today** (verified — all three then pass `--verify`):
+
+```bash
+MONITOR_PID=<real monitor pid> tools/monitor-register <type>
+```
+
+**Suggested fixes, in order:**
+
+1. **Do not default to `$$` for the non-self-registering path.** Either make `MONITOR_PID` required when
+   the caller is not the monitor, or resolve the pid by matching `cmdline_hash` against running
+   processes and refuse to write a pid whose cmdline does not look like that monitor.
+2. **Refuse to register a pid that is about to die** — at minimum, verify the cmdline of `$$` matches the
+   monitor being registered, and error out when it does not. Writing an entry that fails its own
+   `--verify` one millisecond later should be impossible.
+3. **Fix the `/session-resume` instruction**, which currently guarantees the bug for the blocker monitor.
+   If `blocker-sweep --watch` self-registered the way `dispatch-monitor` does, the manual step could be
+   deleted entirely — that is the real fix.
+4. **Make `--verify` say what it checked** (pid, cmdline match, and the file it read). It currently
+   prints nothing on success and nothing useful on failure, which is how three dead entries went
+   unnoticed until liveness was checked by hand against `ps`.
