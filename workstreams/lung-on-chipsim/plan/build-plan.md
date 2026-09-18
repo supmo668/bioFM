@@ -257,11 +257,32 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   is non-node because Global Constraint 4 **reserves it to a human**; T13 is non-node because
   **regenerating mid-adjudication destroys the premise of a 60–90 minute human task**. Same answer,
   different reasons, and a reader who sees only the tuple cannot recover either.
-  **Severity, stated honestly:** T13 ships in the ETL list, so it IS currently exported as a node. The
-  principal's hours are not at risk — T13's never-clobber rule (defect 22) preserves any non-empty
-  verdict and refuses to drop an adjudicated key. **But that means a guard written for a different
-  purpose is the only thing standing between an automated chain and the human's work, which is
-  defence by coincidence.** Fix the classification; do not let the accidental save justify keeping it.
+  **Severity — CORRECTED IN PLACE, r2.35. The original sentence was false.** It read: *"T13 ships in
+  the ETL list, so it IS currently exported as a node."* **It was not exported.**
+  `orchestration/n8n/etl_drugbank.json` carries exactly five nodes — `fetch`, `hash-verify`, `parse`,
+  `provenance-tests`, `write` — and `adjudication-worksheet` is not among them. Measured by parsing the
+  JSON, after the agent reported the error. The conflated tuple made T13 node-**ELIGIBLE**, and nothing
+  forced the JSON to carry a node per ETL command (`test_t16_has_the_five_nodes_in_order` pins it to its
+  own constant), so the hazard was **LATENT — waiting for the next regeneration from the conflated
+  list — not live.** The never-clobber observation stands: a guard written for a different purpose
+  would have been the only thing between an automated chain and the human's work, which is defence by
+  coincidence. **The required fix is unchanged.** Only the urgency was overstated.
+- **CHOOSING THE UNCOMFORTABLE READING IS NOT MEASURING, AND A RULING CAN BE RIGHT ABOUT A DEFECT AND
+  WRONG ABOUT WHETHER IT HAS FIRED** *(r2.35)*. The CTO wrote r2.34's severity sentence as the
+  deliberately *un*comfortable version, on the reasoning that a coordinator should not minimise a
+  hazard in its own ruling. **That reasoning is correct and it did not make the sentence true.** It
+  asserted that an export had happened, without opening the exported file — substituting a disposition
+  (be conservative) for evidence, which is the same substitution as assuming the comfortable reading,
+  wearing more respectable clothes. **A pessimistic claim is still a claim and still needs a
+  measurement.**
+  Stated as the agent put it, because it is the better phrasing: *accepting the uncomfortable-sounding
+  version without checking is the same failure as accepting the comfortable one.* Both parties have now
+  done this in the same section — the agent over-claimed "could never fire" in r2.27 E-19 and corrected
+  it; the CTO over-claimed "is currently exported" here. **It is not a failure mode that respects which
+  direction the error flatters.**
+  **Operational rule:** a severity claim naming a live state — *is exported, is invoked, is reachable*
+  — is checked against the artifact that would carry it before it is signed, exactly as a done-condition
+  naming a path is checked against that path (r2.33). Severity is a done-condition about the world.
 - **A GUARD'S SILENCE IS NOT THE PLAN'S APPROVAL, AND THE INFERENCE GETS EASIER THE MORE GUARDS
   EXIST** *(r2.33)*. T5a's artifact was first written to `data/interim/compounds.parquet` — the wrong
   directory **and** the exact filename this plan forbids by name (A&D §1 reserves `compounds.parquet`
