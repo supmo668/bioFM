@@ -213,7 +213,7 @@ A clean extension of Snell 2024 to group generation: the same "difficulty-condit
 | `src/perturb_eval/probe.py` | preflight probe — runs one shallow round, returns signature |
 | `src/perturb_eval/bayesian.py` | closed-form Gaussian-likelihood recommender + MAP policy |
 | `src/perturb_eval/calibration.py` | fits TDI coefficients + Bayesian likelihood from logged runs |
-| `src/perturb_eval/data.py` | `PerturbSeqDataset` protocol + Norman/Adamson loaders + synthetic stub |
+| `src/perturb_eval/data/protocol.py` | `PerturbSeqDataset` protocol + Norman/Adamson loaders + synthetic stub |
 | `src/perturb_eval/model.py` | `PerturbationPredictor` protocol + `ScGPTPredictor` + `MockPredictor` |
 | `src/perturb_eval/massgen_adapter.py` | expose as a MassGen skill |
 | `src/perturb_eval/cli.py` | `perturb-eval preflight`, `calibrate`, `evaluate` |

@@ -52,7 +52,7 @@ perturb-seq-eval/
 │   ├── probe.py             preflight probe → ProbeSignature
 │   ├── bayesian.py          Gaussian-likelihood recommender + MAP policy
 │   ├── calibration.py       fit TDI + likelihood from logged runs
-│   ├── data.py              PerturbSeqDataset protocol + loaders + stub
+│   ├── data/protocol.py     PerturbSeqDataset protocol + loaders + stub
 │   ├── model.py             PerturbationPredictor + ScGPT/Mock implementations
 │   ├── massgen_adapter.py   MassGen skill entrypoint
 │   └── cli.py               preflight | calibrate | evaluate
