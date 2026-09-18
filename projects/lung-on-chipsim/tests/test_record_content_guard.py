@@ -4912,3 +4912,102 @@ def test_submodule_gitlinks_are_DISCLOSED_not_swept_into_the_fatal_predicate(tmp
     assert not (staged / "vendor").exists(), (
         "a commit is not a blob; nothing may be materialised for a gitlink"
     )
+
+
+def _witness_relative_to(root: Path) -> str:
+    """The path the anti-vacuity check looks for: this guard module, relative to `root`."""
+    import chipsim.guards.record_content as rc_module
+
+    return Path(rc_module.__file__).resolve().relative_to(root).as_posix()
+
+
+def test_a_listing_far_too_short_to_be_this_repository_is_REFUSED(tmp_path):
+    """A listing that collapsed to a handful of paths is a listing that WENT WRONG, not a repository
+    with almost nothing in it — and reporting "0 undeclared" over six files is the same false clean
+    as reporting it over none.
+
+    Carried unpinned since §11. `_MINIMUM_PLAUSIBLE_TRACKED` appears in no test file, so the floor
+    could have been raised, lowered or deleted and the suite would not have noticed.
+
+    The WITNESS must pass first or this asserts the wrong refusal — so the short listing deliberately
+    CONTAINS this module's own file. That is what makes the floor the thing under test.
+    """
+    from chipsim.guards.errors import ScanNotPerformed
+    from chipsim.guards.record_content import _refuse_a_scan_that_cannot_see_itself
+
+    root = Path(REPO_ROOT)
+    witness = _witness_relative_to(root)
+    short = [witness] + [f"projects/{THIS_PROJECT}/filler_{n}.py" for n in range(5)]
+
+    with pytest.raises(ScanNotPerformed) as caught:
+        _refuse_a_scan_that_cannot_see_itself(root, short)
+
+    message = str(caught.value)
+    assert "below the floor" in message
+    assert str(len(short)) in message, "the refusal must say how many it actually saw"
+
+
+def test_a_listing_at_the_floor_is_ACCEPTED(tmp_path):
+    """The other side of the boundary, so the floor cannot be satisfied by refusing everything.
+
+    A guard that says no to every input is not a guard, and this is the assertion that stops the
+    test above from passing against `raise ScanNotPerformed` unconditionally.
+    """
+    from chipsim.guards.record_content import (
+        _MINIMUM_PLAUSIBLE_TRACKED,
+        _refuse_a_scan_that_cannot_see_itself,
+    )
+
+    root = Path(REPO_ROOT)
+    witness = _witness_relative_to(root)
+    at_floor = [witness] + [
+        f"projects/{THIS_PROJECT}/filler_{n}.py" for n in range(_MINIMUM_PLAUSIBLE_TRACKED - 1)
+    ]
+    assert len(at_floor) == _MINIMUM_PLAUSIBLE_TRACKED
+
+    _refuse_a_scan_that_cannot_see_itself(root, at_floor)  # must not raise
+
+
+def test_a_root_that_is_not_a_checkout_is_REFUSED_rather_than_listed_as_empty(tmp_path):
+    """ "I could not list the files" must never arrive at the same answer as "there are no files".
+
+    An empty list from a non-repository would otherwise render as a clean report over a tree the
+    command never read.
+    """
+    from chipsim.guards.errors import ScanNotPerformed as SNP
+    from chipsim.guards.repo import _tracked_listing
+
+    plain = tmp_path / "not-a-repo"
+    plain.mkdir()
+
+    with pytest.raises(SNP) as caught:
+        _tracked_listing(plain)
+    assert "not a git checkout" in str(caught.value)
+    assert "not an all-clear" in str(caught.value)
+
+
+def test_scanning_a_SUBDIRECTORY_while_naming_it_as_the_root_is_REFUSED(tmp_path):
+    """E-08's family, and the reason this refusal exists: run from a subdirectory and `ls-files`
+    returns only what is BELOW it, while the report prints the directory it was handed. That is how
+    the command once printed "every tracked file was read" with 23 tracked files elsewhere unread.
+
+    Unpinned until now — and in §13.2 I MOVED this check from `_tracked_listing` into
+    `_tracked_entries`. Nothing bound it, so the suite would have stayed green had I moved it into a
+    function that never runs.
+    """
+    from chipsim.guards.errors import ScanNotPerformed as SNP
+    from chipsim.guards.repo import _tracked_listing
+
+    root = _plain_repo(tmp_path)
+    _set_index(root, [("100644", _write_blob(root, b"x\n"), "a.txt")])
+    nested = root / "sub" / "deeper"
+    nested.mkdir(parents=True)
+
+    with pytest.raises(SNP) as caught:
+        _tracked_listing(nested)
+
+    message = str(caught.value)
+    assert "working tree" in message
+    assert str(root.resolve()) in message, (
+        "the refusal must name the tree git actually resolved, not only the one it was handed"
+    )
