@@ -104,6 +104,12 @@ and stays in Aviary-BioSim.
 
 ## 🟠 2. `worktree-create --coordinator` is documented but not implemented
 
+> **CLOSED 2026-09-17 — implemented in 0.56.0. Verified here, not taken on report:**
+> `tools/worktree-create` has 4 references to the flag — line 139 parses it
+> (`--coordinator) COORDINATOR="$2"; COORDINATOR_EXPLICIT=1`), lines 151/156 document
+> its precedence ("explicit `--coordinator` wins"), and line 183 prints it in the help.
+> The documented Step 2 happy path now works. No action needed.
+
 **File:** `skills/worktree-agent-create/SKILL.md` (Step 2); `tools/worktree-create`
 
 **Symptom:** Following `/worktree-agent-create` verbatim fails. Step 2 says to run
