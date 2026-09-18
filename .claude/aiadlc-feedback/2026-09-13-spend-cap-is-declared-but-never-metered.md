@@ -125,6 +125,20 @@ from the skill's Step 2 and rely on the auto-assignment the tool already perform
 
 ## 🟠 3. `instinct capture` on an existing name reinforces it and silently keeps the stale body
 
+> **Superseded 2026-09-17 — FIXED in aiadlc PR #107 (`cto/instinct-revise`, not yet landed).**
+> Re-found independently during the `/v2r-loop` audit and re-filed with a deterministic repro,
+> the severity arithmetic (base 0.6 + reinforce 0.1 vs `min_confidence` 0.6 ⇒ a wrong lesson
+> crosses the SessionStart surfacing threshold **on the first attempt to correct it**, so this
+> is 🔴 not 🟠), and a concrete patch. See
+> `2026-09-17-instinct-capture-discards-a-correction-and-reinforces-the-stale-body.md`.
+> The landed fix is stricter than the `--replace` flag proposed below: `capture` compares
+> bodies and **refuses** a differing one, and a new `instinct revise` updates text without
+> touching `confidence`/`created`/`last_reinforced`.
+>
+> _Process note: this defect went unfound for four days by a title-based duplicate check,
+> because it is item 3 in a file named for an unrelated defect. One defect per file, or the
+> log is not searchable._
+
 **File:** `tools/instinct` (`capture`); `skills/instinct-capture/SKILL.md`
 
 **Symptom:** An agent that learns its earlier instinct was wrong re-runs `instinct capture`

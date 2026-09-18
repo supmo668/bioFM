@@ -102,4 +102,18 @@ meaning "this content", not "this filename".
 covers reinforcement-without-discovery and the missing pin primitive. This is a
 third, distinct defect in the same tool: **reinforcement instead of correction.**
 
-**Status:** open
+**⚠ Prior art — this is a re-find, disclosed.** The same defect was already filed on
+2026-09-13 as item 🟠 3 of
+`2026-09-13-spend-cap-is-declared-but-never-metered.md`, with the same root cause and
+the same "correction registers as a recurrence" insight, observed live on the same
+v2r stage-4 instinct. I missed it because my duplicate check matched on file titles
+and that entry lives under an unrelated one. What this filing adds: a deterministic
+repro, the threshold arithmetic that makes it 🔴 rather than 🟠, and the `revise`
+design that was implemented. **Convention lesson: one defect per file** — a real
+defect buried as item N under someone else's title is functionally unfiled.
+
+**Status:** fixed in aiadlc PR #107 (`cto/instinct-revise`) — open until it lands.
+On landing, `capture` with a differing body **fails** instead of reinforcing; any
+caller relying on capture-as-upsert must move to `instinct revise`. Checked
+2026-09-17: bioFM has no such caller — the Stop hook (`instincts-reinforce.sh`)
+calls `reinforce`, and every other reference is prose.
