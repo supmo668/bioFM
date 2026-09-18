@@ -5,9 +5,16 @@ Five subcommands, one per workflow node:
     fetch -> hash-verify -> parse -> provenance-tests -> write
 
 T16's done-condition requires that **each node names a CLI entrypoint that exists
-in the installed package**. `SUBCOMMANDS` is the single source of truth for that:
-the workflow JSON is validated against it, so a node naming a command that was
-renamed or removed fails the test rather than failing at 3am in n8n.
+in the installed package**. `WORKFLOW_NODE_SUBCOMMANDS` is the source of truth for
+that, so a node naming a command that was renamed or removed fails the test rather
+than failing at 3am in n8n.
+
+**It is NOT the same list as `ETL_SUBCOMMANDS`** (r2.34). "Is an ETL run" and "may
+be invoked unattended" are two predicates whose SAFE DIRECTIONS ARE OPPOSITE —
+include for journalling, exclude for automation — and they shared one tuple until
+`adjudication-worksheet` needed to be an ETL stage that no unattended chain may
+start. Each non-node command records its own reason in `NON_NODE_REASONS`; the
+reasons differ and none is recoverable from tuple membership.
 
 **Not in slice 1:** provisioning n8n and executing the workflow end-to-end
 (tracked as T16a, deferred). This module is exercised directly by tests.
@@ -32,32 +39,64 @@ from chipsim.journal import (
     start_run,
 )
 
-#: Node name -> subcommand. The workflow export is checked against these keys.
-SUBCOMMANDS = (
+#: PREDICATE 1 — "IS AN ETL RUN". These read the snapshot and write derived artifacts, so each one
+#: opens a run record with a per-run config snapshot and passes through the §16 approval prompt.
+#: SAFE DIRECTION: **include**. An extra run-record costs nothing; a missing one loses the only
+#: evidence of what a stage ran under.
+ETL_SUBCOMMANDS = (
     "fetch",
     "hash-verify",
     "parse",
     "provenance-tests",
     "write",
-    # T13. An ETL stage, not a non-ETL invocation: it READS THE SNAPSHOT and writes a derived
-    # artifact, so it earns a per-run config snapshot and the approval prompt. It is not
-    # human-RESERVED — that is what `panel-seal` is, and why non-ETL exists — it produces a draft
-    # FOR a human. Last, because it runs after the compound frame exists.
+    # T13. ETL because it reads the snapshot and writes a derived artifact — NOT because it may be
+    # automated. See NON_NODE_REASONS: it is deliberately excluded from the workflow.
     "adjudication-worksheet",
 )
 
-#: Subcommands that are NOT ETL stages and must never appear in the n8n workflow.
-#: `panel-seal` (T7a) writes a tamper-evident digest over a ratified panel. Global
-#: Constraint (4) reserves running it to a human — a STATED RULE the digest cannot
-#: enforce — so it must not sit in an automated pipeline that could invoke it
-#: unattended. Keeping it out of the workflow is one of the few places that rule
-#: gets any mechanical support at all.
-#:
-#: Declared separately rather than folded into SUBCOMMANDS so the workflow-export
-#: check keeps comparing against the ETL list exactly. Every registered subcommand
-#: must appear in exactly one of these two tuples — see test_workflow_export.
-#: `adjudication-export` (T14, r2.19) publishes a HUMAN artifact, like `panel-seal`: it is an
-#: invocation to be journalled, not an ETL run over the snapshot.
+#: PREDICATE 2 — "MAY BE INVOKED UNATTENDED". The ONLY commands the exported n8n workflow may name.
+#: SAFE DIRECTION: **exclude**. This is the opposite direction to the one above, which is precisely
+#: why r2.34 forbids the two sharing a tuple: a command can be a legitimate ETL stage AND a thing no
+#: unattended chain should ever start.
+WORKFLOW_NODE_SUBCOMMANDS = (
+    "fetch",
+    "hash-verify",
+    "parse",
+    "provenance-tests",
+    "write",
+)
+
+#: WHY each registered command is not a node — required for every one of them, because a reader who
+#: sees only tuple membership cannot recover the reason, and the reasons are not the same.
+NON_NODE_REASONS = {
+    "panel-seal": (
+        "Global Constraint 4 RESERVES running it to a human. Keeping it out of the exported "
+        "workflow is the only mechanical support that rule gets: an unattended pipeline must not "
+        "be able to invoke it."
+    ),
+    "adjudication-export": (
+        "Publishes a HUMAN artifact — the adjudicated labels T14 produced. An unattended chain "
+        "must not publish a verdict nobody gave."
+    ),
+    "adjudication-worksheet": (
+        "REGENERATING MID-ADJUDICATION DESTROYS THE PREMISE OF A 60-90 MINUTE HUMAN TASK. It is a "
+        "genuine ETL stage — it reads the snapshot and writes a derived artifact — and it is still "
+        "the last thing an unattended chain should start. That combination is r2.34's whole point. "
+        "Note the never-clobber rule (defect 22) would preserve filled verdicts anyway; that is a "
+        "guard written for a DIFFERENT purpose, and defence by coincidence is not a classification."
+    ),
+    "record-content-report": (
+        "A read-only report. It writes no artifact, so there is nothing for a workflow to run it "
+        "FOR, and §16 deliberately leaves it ungated so every quality boundary stays runnable."
+    ),
+    "record-content-gate": (
+        "The staged-bytes form of the same read-only report, for the same reason."
+    ),
+}
+
+#: Subcommands that are NOT ETL stages: journalled as a bare INVOCATION rather than opening a run
+#: record, and not gated by the §16 approval prompt. DISTINCT from the node question above — every
+#: non-ETL command is also a non-node, but the converse is false, and T13 is the counter-example.
 NON_ETL_SUBCOMMANDS = (
     "panel-seal",
     "adjudication-export",

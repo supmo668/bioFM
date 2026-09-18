@@ -23,9 +23,11 @@ from pathlib import Path
 import pytest
 
 from chipsim.pipeline import (
+    ETL_SUBCOMMANDS,
     MODULE_PATH,
     NON_ETL_SUBCOMMANDS,
-    SUBCOMMANDS,
+    NON_NODE_REASONS,
+    WORKFLOW_NODE_SUBCOMMANDS,
     available_subcommands,
 )
 
@@ -83,12 +85,12 @@ def test_t16_every_node_names_a_real_cli_entrypoint(workflow):
     # running it to a human. That is a stated rule the digest cannot enforce, so
     # keeping it out of the exported workflow is the only mechanical support the
     # rule gets: an unattended pipeline must not be able to invoke it.
-    assert set(registered) == set(SUBCOMMANDS) | set(NON_ETL_SUBCOMMANDS), (
+    assert set(registered) == set(ETL_SUBCOMMANDS) | set(NON_ETL_SUBCOMMANDS), (
         f"registered subcommands {registered} do not match the declared "
-        f"ETL {SUBCOMMANDS} + non-ETL {NON_ETL_SUBCOMMANDS}"
+        f"ETL {ETL_SUBCOMMANDS} + non-ETL {NON_ETL_SUBCOMMANDS}"
     )
-    assert not set(SUBCOMMANDS) & set(NON_ETL_SUBCOMMANDS), "a subcommand is in both categories"
-    assert tuple(c for c in registered if c in SUBCOMMANDS) == SUBCOMMANDS, (
+    assert not set(ETL_SUBCOMMANDS) & set(NON_ETL_SUBCOMMANDS), "a subcommand is in both categories"
+    assert tuple(c for c in registered if c in ETL_SUBCOMMANDS) == ETL_SUBCOMMANDS, (
         "the ETL subcommands must stay registered in pipeline order"
     )
 
@@ -141,3 +143,62 @@ def test_t16_recorded_digest_matches_the_sidecar(tmp_path):
 
     assert read_digest_sidecar(out) == hashlib.sha256(out.read_bytes()).hexdigest()
     assert isinstance(pd.read_parquet(out, engine="pyarrow"), pd.DataFrame)
+
+
+def test_the_node_list_is_a_SEPARATE_predicate_from_the_etl_list():
+    """r2.34. "Is an ETL run" and "may be invoked unattended" have OPPOSITE safe directions —
+    include for journalling, exclude for automation — so one membership test cannot serve both.
+
+    `adjudication-worksheet` is the witness and the reason the rule was written: a genuine ETL stage
+    (it reads the snapshot and writes a derived artifact, so it earns a per-run config snapshot and
+    the §16 approval prompt) that no unattended chain may start, because regenerating a worksheet
+    mid-adjudication destroys the premise of a 60-90 minute human task.
+
+    If this assertion ever reads `set(ETL) == set(NODES)`, the two predicates have silently rejoined.
+    """
+    assert set(WORKFLOW_NODE_SUBCOMMANDS) < set(ETL_SUBCOMMANDS), (
+        "every node must be an ETL stage, and the node list must be STRICTLY smaller — equality "
+        "means the conflation r2.34 removed has come back"
+    )
+    assert "adjudication-worksheet" in ETL_SUBCOMMANDS
+    assert "adjudication-worksheet" not in WORKFLOW_NODE_SUBCOMMANDS
+
+
+def test_every_non_node_command_records_WHY(workflow):
+    """The reasons differ and none is recoverable from tuple membership: `panel-seal` is excluded
+    because Global Constraint 4 reserves it to a human; T13 because regenerating mid-adjudication
+    destroys a human task's premise. A reader who sees only which tuple a command sits in learns
+    neither."""
+    registered = available_subcommands()
+    non_nodes = [c for c in registered if c not in WORKFLOW_NODE_SUBCOMMANDS]
+
+    assert non_nodes, "anti-vacuity: there must be commands outside the node list to explain"
+    for command in non_nodes:
+        assert command in NON_NODE_REASONS, (
+            f"{command!r} is not a workflow node and records no reason. r2.34 requires the reason "
+            f"to be written down, because it cannot be recovered from membership."
+        )
+        assert len(NON_NODE_REASONS[command]) > 40, f"{command!r}'s reason is a placeholder"
+
+    assert set(NON_NODE_REASONS) == set(non_nodes), (
+        "a reason for a command that IS a node, or that is not registered at all, is a stale "
+        "entry — the same phantom the writer registry refuses"
+    )
+
+
+def test_the_exported_workflow_names_only_node_commands(workflow):
+    """The check r2.34 requires: the JSON is validated against the NODE list, not the ETL list.
+
+    Measured when this was written: the exported workflow names exactly the five node commands, and
+    `adjudication-worksheet` was NOT among them — so T13 was never actually exported, though the
+    conflated tuple said it was eligible. The hazard was latent rather than live, and this assertion
+    is what keeps it that way.
+    """
+    for node in workflow["nodes"]:
+        command = re.match(
+            rf"^python -m {re.escape(MODULE_PATH)} (\S+)", node["parameters"]["command"]
+        ).group(1)
+        assert command in WORKFLOW_NODE_SUBCOMMANDS, (
+            f"node {node['name']} invokes {command!r}, which is not declared as a workflow node. "
+            f"Reason it must not be: {NON_NODE_REASONS.get(command, '(none recorded)')}"
+        )
