@@ -47,3 +47,39 @@ not make it is a provenance falsehood. 26 cited candidates for a 20–40 band le
 genuinely open — which is the point.
 
 **Not a full-strength pool.** If the bar is *measured target-site exposure*, the pool is 9, not 26.
+
+---
+
+## FINALIZED — 2026-09-20
+
+**Principal ruling (AskUserQuestion):** roster confirmed at **26 entries** — every candidate
+carrying a resolvable DOI from the evidence ledger above. Selection made by the principal from
+the assembled evidence; no agent selected or filtered candidates.
+
+**Authorship of the tracked file (AskUserQuestion, explicit):** given the PROVENANCE.md precedent
+(human-only authorship reserved even when content is agent-supplied), the principal was asked
+whether the CTO should write `configs/poc_compounds.yaml` directly or supply copy-paste-ready
+content for the principal to commit. **Ruled: the CTO writes it.** Stated grounds — narrower than
+PROVENANCE.md: principal-directed transcription of a decision already made, identity+citation
+only, no biological numbers, no curation judgment by the agent. This is not a change to T18's
+standing ownership rule.
+
+**Verification before hand-off:**
+- 26 recounted independently from this document (26 `class="doi"` rows on the surface).
+- Full InChIKeys resolved fresh from the parquet, cross-checked against the skeleton blocks
+  already committed here — exact match.
+- Schema + snapshot check run against the **actual** `chipsim.harmonize.roster.load_poc_roster`
+  (not a re-implementation) from the worktree's own package: 26/26 pass, all keys resolve in the
+  6,610-key snapshot, zero duplicates, zero empty fields.
+- Relative-stereo check: the real function's `relative_stereo_keys` parameter needs `rdkit`,
+  unavailable in the CTO's verification environment. Substituted by reading `stereo_is_relative`
+  directly off the parquet for all 26 keys against the snapshot's 42 flagged relative-stereo
+  keys — zero overlap. **Not a run of the production check; the lung-on-chipsim agent is
+  directed to re-run it with full deps before treating T18 as gate-clear.**
+- `record-content-gate` was NOT run against the new file by the CTO. Directed to the agent.
+
+**Hand-off:** dispatched to `biofm/matthew-mo/lung-on-chipsim` (directive, high priority) with
+the full validated YAML content. Recipient was idle; woken via `agent-wake` given priority.
+
+**Not done by the CTO:** curation/selection (principal's), final gate verification (agent's, with
+full deps this session lacked).
