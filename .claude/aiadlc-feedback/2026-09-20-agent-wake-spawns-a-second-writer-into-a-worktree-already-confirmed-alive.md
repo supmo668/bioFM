@@ -55,9 +55,20 @@ a **third mechanism** producing the same class of harm: two live sessions, same 
 worktree, same identity, spawned by a coordinator action (`agent-wake`) that should have refused
 or warned instead of proceeding.
 
-The agent's own report noted this "retroactively explains a week of monitor churn ... attributed
-solely to merges" — a defect already filed may have a contributing cause not yet named: routine
-`agent-wake` calls against sessions that were never actually idle.
+**CORRECTED 2026-09-20, same day, before this file left `main`.** This section originally
+repeated the agent's own claim that the collision "retroactively explains a week of monitor
+churn ... attributed solely to merges." **That claim is false and I endorsed it without checking
+the dates myself** — the agent caught and corrected it in a follow-up (dispatch #182) before I
+did. Measured: the headless session's three commits span **13:32:31–13:41:40 on 2026-09-20**,
+nine minutes. The dead-pid findings this was said to explain (pids 54304 etc.) are dated
+**2026-09-16/17** — days before `agent-wake` ran here. The collision this report describes
+explains only its own nine-minute window; the earlier churn is the tracked-runtime-state defect
+already filed on 2026-09-16/17, unrelated to this one.
+
+Leaving the error and this correction both visible rather than silently rewriting the section:
+the failure worth naming is not the agent's over-broad first draft, it is that **I accepted it
+without opening `git log` myself** — the same "check the artifact before asserting a claim about
+a live state" rule (r2.35) both of us were citing at each other in the same exchange.
 
 ## Suggested fixes, in order
 
