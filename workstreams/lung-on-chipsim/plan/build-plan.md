@@ -1525,17 +1525,37 @@ curated for lung-relevance and P-gp evidence; T21 needs compounds with an indepe
 plausible, none is assumed. Conflating two compound lists is exactly defect 3's shape from the
 M0 revision log (§7) — named here so it is not rediscovered the same way.
 
-### S13 · Scaffold `theta_priors.yaml` — **CA · 3 min**
-- **Files:** `configs/theta_priors.yaml` (new — field scaffold, no values)
+### S13 · Scaffold a θ-priors template — **CA · 3 min** *(r2.37 — retargeted, see below)*
+> **Correction, r2.37.** As first written (r2.36) this task's `Files:` was
+> `configs/theta_priors.yaml` — the exact path `S6`'s done-condition asserts **does not exist**
+> (*"deliberately absent — H-owned, no agent may create them"*, enforced by
+> `test_s6_human_owned_configs_are_absent`, green before this task ran). The agent caught it
+> before implementing, read S6 against the path S13 named rather than assuming a fresh task
+> section had already reconciled with an old one, and declined to weaken a passing Global
+> Constraint guard to make a task line true. **Ruled (c) of the three options raised**: absence
+> stays the enforcement mechanism for `configs/theta_priors.yaml` itself; the scaffold moves
+> **outside** `configs/`, where S6's guard says nothing. Global Constraint 1's own text already
+> permits this — *"the agent writes the schema"* — the collision was with S6's chosen
+> *mechanism* (file absence), never with the constraint's substance, and (c) is the one option
+> of the three that leaves that mechanism at full strength rather than trading it for a weaker
+> content check. This is r2.36's first defect, exactly as its own text said to expect, caught
+> before implementation rather than after.
+- **Files:** `configs/templates/theta_priors.scaffold.yaml` (new — field scaffold, no values;
+  outside `configs/` proper so S6's absence guard is untouched)
 - Declares one entry per A&D §1 row-S5 field (`flow_ul_min`, `membrane_um`, `porosity`,
   `strain_pct`, `area_mm2`, `coating`), each as `{value: null, unit: <str>, citation: null,
   assumed: true}` — the "unsourced values flagged `assumed: true`" rule (A&D §1.2), scaffolded
   before any value exists rather than retrofitted.
-- **Done when** the YAML parses, has exactly the six declared fields, and every field starts
-  `assumed: true` with `value: null`.
+- **Done when** the YAML parses, has exactly the six declared fields, every field starts
+  `assumed: true` with `value: null`, **and `configs/theta_priors.yaml` still does not exist**
+  (the S6 invariant, asserted here too so a regression is caught at the task that could cause it,
+  not only at S6's own test).
 
-### T20 · Source literature θ priors — **H · 20–30 min**
-- **Files:** `configs/theta_priors.yaml` (fills S13's scaffold in place)
+### T20 · Source literature θ priors — **H · 20–30 min** *(materializes r2.37's template)*
+- **Files:** `configs/theta_priors.yaml` (new — **the human's own copy of S13's template**,
+  `configs/templates/theta_priors.scaffold.yaml`, filled in). The human copies the template into
+  `configs/`, then fills it — no agent step creates this path, so S6's absence guard covers the
+  full time between S13 and T20, not just up to S13.
 - Fills `value` + `citation` for each field from OSP PK-Sim / PBPK-on-chip-review literature
   (A&D §1 row S5's source list); sets `assumed: false` only where a citation is recorded. A
   field left `assumed: true` is a stated gap, not an error — same posture as T14's `unknown`.
