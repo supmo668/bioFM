@@ -1501,6 +1501,173 @@ across versions). Both are out of reach in slice 1 (defects 27, 28).
 
 ---
 
+## 6a · Tasks — M1 slice (ODE core) — **r2.36, first pass**
+
+**Scope note (r2.36).** `§8 Scope check` ruled *"the next plan should be M0b, not the other
+ingestors"* — that ruling stands for M2–M6, which need ChEMBL/BindingDB/TDC affinity and ADME
+data this plan never fetches. **M1 is the one exception**: A&D §5 scopes it to *"ODE core with
+literature θ, reference compounds"* — it needs only `theta_priors.yaml` (A&D §1 row S5, device/
+physiology literature) and a handful of reference compounds with **published** on-chip transport
+data, neither of which depends on the ingestors plan or on M0b's 80–100 chip-record curation.
+**Principal-directed, 2026-09-22**: scope M1 to full task level now; M2–M6 stay stubs (§6b) until
+their own data dependencies clear. **First pass, same standing as M0's own r1**: written from
+the A&D spec before any M1 implementation exists to push back against it, so expect the same
+defect-driven revision M0 went through (§7), not correctness on the first read. Signed under
+standing-delegation, same as r2.32–r2.35 — this is a plan-authorship act, not a claim that every
+interface below has been implementation-tested.
+
+**Two literature-curation tasks this milestone needs, and neither is T18.** T20 (θ priors) and
+T21 (reference compounds + published ordering) are **new H-owned artifacts**, following the same
+shape as T1/T14/T18 — an agent may research-assist (evidence, cited, `not found` is a valid row)
+but the human signs the claim. **T21's reference-compound set is not T18's PoC roster** — T18 was
+curated for lung-relevance and P-gp evidence; T21 needs compounds with an independently
+*published on-chip transport measurement* to check the M1 gate against. Some overlap is
+plausible, none is assumed. Conflating two compound lists is exactly defect 3's shape from the
+M0 revision log (§7) — named here so it is not rediscovered the same way.
+
+### S13 · Scaffold `theta_priors.yaml` — **CA · 3 min**
+- **Files:** `configs/theta_priors.yaml` (new — field scaffold, no values)
+- Declares one entry per A&D §1 row-S5 field (`flow_ul_min`, `membrane_um`, `porosity`,
+  `strain_pct`, `area_mm2`, `coating`), each as `{value: null, unit: <str>, citation: null,
+  assumed: true}` — the "unsourced values flagged `assumed: true`" rule (A&D §1.2), scaffolded
+  before any value exists rather than retrofitted.
+- **Done when** the YAML parses, has exactly the six declared fields, and every field starts
+  `assumed: true` with `value: null`.
+
+### T20 · Source literature θ priors — **H · 20–30 min**
+- **Files:** `configs/theta_priors.yaml` (fills S13's scaffold in place)
+- Fills `value` + `citation` for each field from OSP PK-Sim / PBPK-on-chip-review literature
+  (A&D §1 row S5's source list); sets `assumed: false` only where a citation is recorded. A
+  field left `assumed: true` is a stated gap, not an error — same posture as T14's `unknown`.
+- **Done when** every filled field carries a resolvable citation, and the file re-parses under
+  T24's validator without raising.
+
+### T21 · Curate M1 reference compounds + published on-chip ordering — **H · 20–30 min**
+- **Files:** `configs/m1_reference_compounds.yaml` (new — schema mirrors T18's roster: a
+  top-level `compounds:` key wrapping `{canonical_inchikey, name, published_transport_value,
+  evidence_doi}` flow-maps)
+- 3–8 well-characterized compounds with a **published** on-chip (organ-on-chip / microfluidic)
+  transport or permeability measurement — the thing T27's gate checks the model against. Not
+  drawn from T18 by default (see scope note above).
+- **Done when** the file has `3 <= n <= 8` entries, every `evidence_doi` resolves, and no
+  `canonical_inchikey` duplicates.
+
+### T22 · Build the transport ODE core — **CA · 5 min**
+- **Files:** `chipsim/transport/ode.py` (new)
+- **Interfaces:**
+  ```python
+  def transport_ode(
+      theta: "ThetaConfig",        # T24 — validated, every field cited or assumed=True
+      drug_params: dict,           # P_app / f_u / sink; M1 uses literature defaults, ADME
+                                    # heads (M2) supply them for real later
+      schedule: dict,
+      t: "np.ndarray",
+  ) -> "np.ndarray":
+      """Two-compartment ODE, 6 parameters — only alpha and the sink coefficient
+      free (A&D §2, objective T3); every other field is FIXED at theta's value.
+      Returns C_free(t) at the tissue face, the ONLY interface a downstream
+      module reads (A&D 'whole design in one picture'). Deterministic given
+      (theta, drug_params, schedule): no unseeded randomness anywhere in solve.
+      """
+  ```
+- **Done when** (1) a smoke fixture integrates to a fixed point for a literature-typical theta
+  without raising; (2) two calls with identical inputs return bit-identical arrays (A&D §2B
+  determinism requirement); (3) increasing schedule dose strictly increases cumulative C_free
+  AUC (the sanity floor T26 exercises for real).
+
+### T23 · Fit routine — MAP in log space — **CA · 5 min**
+- **Files:** `chipsim/transport/fit.py` (new)
+- **Interfaces:**
+  ```python
+  def fit_transport_params(
+      reference_compounds: "pd.DataFrame",  # T21
+      theta: "ThetaConfig",                 # T24
+  ) -> "FitResult":
+      """MAP fit in log space. Only alpha and the sink coefficient are free
+      (A&D §2 T3) — every other theta field stays FIXED at its prior, never a
+      fit target. RAISES if reference_compounds has fewer than 3 rows (A&D
+      §1.3 — no split is meaningful below that), and RAISES if any theta
+      field lacks a citation and is not explicitly assumed=True (never fits
+      against a silently-unsourced prior).
+      """
+  ```
+- **Done when** fitting a synthetic fixture with a known-recoverable `(alpha, sink)` pair
+  recovers both within a stated tolerance; fitting raises on `<3` reference rows; fitting raises
+  on an uncited, unmarked theta field.
+
+### T24 · θ container + validator — **CA · 3 min**
+- **Files:** `chipsim/transport/theta.py` (new)
+- **Interfaces:**
+  ```python
+  @dataclass(frozen=True)
+  class ThetaConfig:
+      """Loads and validates configs/theta_priors.yaml. Every field carries a
+      unit and EITHER a value with a citation OR assumed=True — never silently
+      absent. RAISES on a field missing both (the T1 'unsourced values flagged
+      assumed: true' rule, enforced here rather than only stated in prose).
+      """
+  ```
+- **Done when** loading a fixture with a field missing both citation and `assumed: true` raises;
+  loading a complete fixture succeeds with every field accessible by name; loading is idempotent.
+
+### T25 · Wire the run journal into fit/predict — **CA · 3 min**
+- **Files:** `chipsim/pipeline.py` (edit)
+- Every `fit_transport_params` / `transport_ode` invocation opens a run via S12's
+  `journal.start_run` before touching theta or reference data — the PoC replay form from A&D
+  §4.4a-ii: *same config + same seed reproduces the same scores exactly.* No new journal
+  mechanism; this is the integration point into the one S12 already built.
+- **Done when** two runs from the same config + seed produce manifests whose per-config digests
+  match and whose recorded scores are bit-identical; a run killed mid-fit leaves no
+  `outcome.json` (crash detection — S12 done-when 5, exercised here for real).
+
+### T26 · Implement `test_monotonicity.py` — **CA · 4 min**
+- **Files:** `tests/test_monotonicity.py` (edit — currently `pytest.mark.skip(reason="M1 — ODE
+  solver not yet built")`, S4's own placeholder, now buildable)
+- Replaces the `raise AssertionError("not implemented")` stub with three real assertions against
+  T22's `transport_ode`, using a literature-typical theta from T24 (never a mock): (1) exposure
+  is non-decreasing in dose; (2) higher flow lowers cumulative flux; (3) thicker membrane lowers
+  flux. Sign-knowledge only (A&D §2, objective T7) — no learned monotonicity weight yet; that
+  arrives with M4.
+- **Done when** the skip marker is removed and all three assertions run against real code, not
+  fixtures standing in for it.
+
+### T27 · M1 gate check — **CA · 4 min**
+- **Files:** `chipsim/eval/m1_gate.py` (new), `tests/test_m1_gate.py` (new)
+- **Interfaces:**
+  ```python
+  def check_m1_gate(
+      predicted: "pd.Series",    # transport_ode output, exposure-ranked, indexed by
+                                  # canonical_inchikey
+      reference: "pd.DataFrame", # T21's published ordering
+  ) -> "GateResult":
+      """The M1 milestone gate (A&D §5): predicted on-chip ordering must
+      reproduce the published ordering WITHIN 3-FOLD per compound — not a
+      rank correlation, not an average. Returns per-compound fold-error and
+      a pass/fail veto; never averages away one compound that misses.
+      """
+  ```
+- **Done when** a fixture where every compound is within 3-fold passes; a fixture with one
+  compound at 3.5-fold fails, **naming that compound** in the result.
+
+---
+
+## 6b · M2–M6 — scoping stubs (blocked; sequenced behind M0b + the ingestors plan)
+
+Per `§8 Scope check`'s standing ruling, task-level detail for M2–M6 waits on the ChEMBL/
+BindingDB/TDC/LINCS ingestion plan (affinity + ADME labels) and, for M5's pre-registration, on
+M0b's curated chip records. Listed here only as a shape, not a commitment — each earns the same
+iterative-ruling treatment M0 and M1 got, when its data dependency clears.
+
+| Milestone | What it needs first | Anticipated task shape |
+|---|---|---|
+| **M2** ADME heads (P1–P3) | TDC ADME labels (ingestors plan) | CA: train/CV P_app, f_u, sink heads; H: none anticipated — labels are public benchmark data, not a curated claim |
+| **M3** Occupancy engine | Affinity data (ingestors plan) + M1's theta plumbing | CA: Kd lookup + Boltz-2 fallback + Hill transform; H: panel composition (already T8-adjacent) |
+| **M4** Readout head | M3's occupancy vector; L1000 (ingestors plan, S6) | CA: one channel (barrier_integrity) + FiLM conditioning + adversary; H: channel selection, adversary-result read |
+| **M5** Uncertainty stack | M0b's curated records (AM-6 arithmetic re-check, §7) | CA: L0–L3 per A&D §2D; H: pre-registers the two P-gp groups **before** any coverage is computed |
+| **M6** Acquisition (retrospective replay only) | M5 complete | CA: BALD/BatchBALD over the sealed paper-lab pool; H: releases sealed records on schedule |
+
+---
+
 ## 7 · Revision log (r1 → r2)
 
 **33 plan-validity defects** and the scaffold hole, folded in per CTO directives of 2026-08-26 and
@@ -1579,7 +1746,9 @@ hash moves `737a8d9 → <r2.1>`.
 ## 8 · Scope check
 
 This plan stops at the identity and barrier-panel layer: **29 CA tasks and 5 human tasks**
-(r1: 13 CA / 4 H), roughly 2 hours of agent work and 2 hours of human work.
+(r1: 13 CA / 4 H), roughly 2 hours of agent work and 2 hours of human work. **r2.36 adds M1
+(§6a) as a DRAFT, un-ratified extension: 7 more CA tasks (S13, T22–T27) and 2 more H tasks
+(T20, T21) — see §6a's scope note for why M1 alone doesn't wait on the items below.**
 
 Three adjacent things are **deliberately not here**:
 
@@ -1594,13 +1763,17 @@ Three adjacent things are **deliberately not here**:
 > **The next plan should be M0b, not the other ingestors.** The ingestion pattern is now proven
 > and mechanical; curation is unproven, human-bound, and gates M5 and M6 both. Building more
 > parsers first would feel productive and would move the actual completion date not at all.
+> **This ruling stands for M2–M6 (§6b).** M1 is scoped in §6a as the one exception, because its
+> data dependency (theta_priors literature + a handful of reference compounds) doesn't run
+> through the ingestors plan or M0b at all — see §6a's scope note for the argument, not just
+> the conclusion.
 
 ---
 
 ## Agent execution notes (AIADLC)
 
-- **CA tasks (29)** — S1–S11, S11a, T3, T4, T4a, T5, T5a, T5b, T6, T7, T9, T10, T11, T12, T13, T15, T16, T17, T19. Each has a failing-test done-condition evaluable against committed fixtures.
-- **H tasks** — **T2, T1, T8, T14, T18** (five, up from four). These are blockers the agent must **escalate, not simulate**. T2 gates T1 and T4a; T1 gates T11; T8 gates T9; T18 gates T13; T14 gates T15. The agent builds the code and tests around them, leaves the human artifacts absent, and reports the blocked set at the boundary.
+- **CA tasks (29, M0 slice 1)** — S1–S11, S11a, T3, T4, T4a, T5, T5a, T5b, T6, T7, T9, T10, T11, T12, T13, T15, T16, T17, T19. Each has a failing-test done-condition evaluable against committed fixtures. **Plus 7 in §6a's M1 draft (r2.36, un-ratified)** — S13, T22–T27.
+- **H tasks** — **T2, T1, T8, T14, T18** (five, up from four) in M0 slice 1. **Plus 2 in §6a's M1 draft (r2.36, un-ratified)** — T20, T21. These are blockers the agent must **escalate, not simulate**. T2 gates T1 and T4a; T1 gates T11; T8 gates T9; T18 gates T13; T14 gates T15; T20/T21 gate T23/T27 (M1). The agent builds the code and tests around them, leaves the human artifacts absent, and reports the blocked set at the boundary.
 - **T18 is new and is a human blocker.** It exists because pinning "PoC compound set" to the PVR's curated 20–40 makes the roster a curation claim no agent may write.
 - **The hard rule stands:** no agent-written biological numbers, no agent-created curated records or rosters, no agent edits to the frozen evaluator. T7's panel is drafted `ratified: false` **by design** — drafting accessions is allowed; ratifying them is not.
 - **Fixtures are not human artifacts.** `tests/fixtures/*` exist so CA done-conditions can fail honestly while T1/T2/T8/T14/T18 are outstanding. They live under `tests/`, are never read by a pipeline path, and S5 asserts that.
