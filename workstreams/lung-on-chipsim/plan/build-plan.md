@@ -1344,6 +1344,32 @@ the original scaffold hole, which is why this is an S-task.
 > T13 ETL-vs-node question) and it does **not** touch Global Constraint (4) in any form. A run
 > approved this way is recorded as CTO-approved by explicit delegation, not as principal-approved
 > and not as unattended — the record must say which.
+>
+> **The record cannot yet say which (r2.40, agent-found, ruled).** T13's first real run under
+> this delegation showed `approval.json` records `mode="flag"`, `stdin_was_a_tty=false` — **byte-
+> for-byte what an unsupervised agent run produces**, with no field distinguishing "CTO-approved
+> by explicit delegation" from "nobody was ever asked." The agent correctly declined to patch this
+> itself: the approval schema is S12/r2.34 territory, and r2.38's delegation explicitly does not
+> reach mechanism changes — inventing a field to satisfy an instruction would be the same shape as
+> defaulting Finding D's prior to satisfy a required argument. **New T29 below, ruling the agent's
+> own proposed fix**: an explicit `--approved-by <string>`, recorded **verbatim**, **no default**,
+> **no inference from identity** — the honesty clause already governing this file (*"the manifest
+> digest... does not prove who wrote it"*) extends to this field rather than being quietly eroded
+> by it. Absent the flag, `mode="flag"` keeps meaning exactly what it means today; nothing here
+> changes T13's own already-completed run, whose provenance for now lives in its commit body.
+
+### T29 · Record who supplied approve-on-execute, when it isn't the operator — **CA · 3 min** *(new, r2.40, agent-found)*
+- **Files:** `chipsim/journal.py` (edit — wherever `approval.json`'s `mode`/`stdin_was_a_tty`
+  fields are written) · `tests/test_run_approval.py` (edit)
+- **Interfaces:** an optional `--approved-by <string>` CLI flag, threaded through to
+  `approval.json` as a new field, recorded **exactly as given** — never derived from
+  `agent-identity`, never defaulted, never inferred from `mode` or the absence of a TTY. Omitting
+  the flag leaves the field absent; `mode`/`stdin_was_a_tty` keep their current meaning
+  unconditionally, this is additive only.
+- **Done when** (1) `--approved-by cto` records `approved_by: "cto"` verbatim alongside the
+  existing `mode`/`stdin_was_a_tty` fields; (2) omitting the flag leaves `approved_by` absent, not
+  a default string; (3) every existing `test_run_approval.py` assertion still passes unmodified
+  (additive, not a rewrite of the existing contract).
 
 ### T13 · Emit the adjudication worksheet — **CA · 5 min**
 - **Interfaces:**
@@ -1858,10 +1884,10 @@ hash moves `737a8d9 → <r2.1>`.
 ## 8 · Scope check
 
 This plan stops at the identity and barrier-panel layer: **29 CA tasks and 5 human tasks**
-(r1: 13 CA / 4 H), roughly 2 hours of agent work and 2 hours of human work. **r2.36–r2.39 add M1
-(§6a): 8 more CA tasks (S13, S14, T22–T27) and 3 more H tasks (T20, T21, T28)** — see §6a's scope
-note for why M1 alone doesn't wait on the items below, and the r2.37/r2.39 amendments inline for
-the defects the agent's read-before-implementing caught (S13/S6, T26's fixture question, and the
+(r1: 13 CA / 4 H), roughly 2 hours of agent work and 2 hours of human work. **r2.36–r2.40 add M1
+(§6a): 9 more CA tasks (S13, S14, T22–T27, T29) and 3 more H tasks (T20, T21, T28)** — see §6a's
+scope note for why M1 alone doesn't wait on the items below, and the r2.37/r2.39/r2.40 amendments
+inline for the defects the agent's read-before-implementing caught (S13/S6, T26's fixture question, and the
 (alpha, k_sink) prior's home).
 
 Three adjacent things are **deliberately not here**:
@@ -1886,7 +1912,7 @@ Three adjacent things are **deliberately not here**:
 
 ## Agent execution notes (AIADLC)
 
-- **CA tasks (29, M0 slice 1)** — S1–S11, S11a, T3, T4, T4a, T5, T5a, T5b, T6, T7, T9, T10, T11, T12, T13, T15, T16, T17, T19. Each has a failing-test done-condition evaluable against committed fixtures. **Plus 8 in §6a's M1 slice (r2.36–r2.39)** — S13, S14, T22–T27.
+- **CA tasks (29, M0 slice 1)** — S1–S11, S11a, T3, T4, T4a, T5, T5a, T5b, T6, T7, T9, T10, T11, T12, T13, T15, T16, T17, T19. Each has a failing-test done-condition evaluable against committed fixtures. **Plus 9 in §6a's M1 slice (r2.36–r2.40)** — S13, S14, T22–T27, T29.
 - **H tasks** — **T2, T1, T8, T14, T18** (five, up from four) in M0 slice 1. **Plus 3 in §6a's M1 slice (r2.36–r2.39)** — T20, T21, T28. These are blockers the agent must **escalate, not simulate**. T2 gates T1 and T4a; T1 gates T11; T8 gates T9; T18 gates T13; T14 gates T15; T20/T21 gate T23/T27 (M1); T28 gates T23. The agent builds the code and tests around them, leaves the human artifacts absent, and reports the blocked set at the boundary.
 - **T18 is new and is a human blocker.** It exists because pinning "PoC compound set" to the PVR's curated 20–40 makes the roster a curation claim no agent may write.
 - **The hard rule stands:** no agent-written biological numbers, no agent-created curated records or rosters, no agent edits to the frozen evaluator. T7's panel is drafted `ratified: false` **by design** — drafting accessions is allowed; ratifying them is not.
