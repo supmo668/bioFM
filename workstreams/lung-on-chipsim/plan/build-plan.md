@@ -1617,12 +1617,28 @@ M0 revision log (§7) — named here so it is not rediscovered the same way.
   AUC (the sanity floor T26 exercises for real).
 
 ### T23 · Fit routine — MAP in log space — **CA · 5 min**
+> **Finding D (r2.39) — the (alpha, k_sink) prior's home, ruled.** A&D §2 T3 reads *"MAP fit ...
+> with `theta_priors.yaml` prior"*, which the agent correctly showed cannot mean what it appears
+> to: S13/T24 (r2.37) scaffold `theta_priors.yaml` with **exactly** the six A&D §1 row-S5 fields,
+> equality-enforced, not containment — a deliberate choice (a superset field is a parameter
+> nobody sourced) that leaves no room for `alpha`/`k_sink` in that file without breaking the S6/
+> S13/T24 guards r2.37 just finished protecting. **Ruled: the A&D sentence means "the fit uses
+> theta's fixed values", not "theta_priors.yaml contains the alpha/k_sink prior."** The prior gets
+> its **own** artifact — **new S14 + T28 below**, same scaffold/fill split as S13/T20, because
+> this is the third occurrence of that exact shape (S13 itself, Finding B, now D) and deserves the
+> pattern rather than a fourth ad hoc answer. **The agent's interim implementation is ratified,
+> not just accepted**: `prior` as a **required keyword argument with no default** was the only
+> form that invents nothing — a default here would be the single most consequential unsourced
+> number in the module, exactly what T24 exists to refuse, and would have silently pre-answered
+> this ruling. Keep it required even after T28 exists; T28 supplies the value, the signature does
+> not get a default.
 - **Files:** `chipsim/transport/fit.py` (new)
 - **Interfaces:**
   ```python
   def fit_transport_params(
       reference_compounds: "pd.DataFrame",  # T21
       theta: "ThetaConfig",                 # T24
+      prior: "TransportPrior",              # T28 — REQUIRED, no default (Finding D, r2.39)
   ) -> "FitResult":
       """MAP fit in log space. Only alpha and the sink coefficient are free
       (A&D §2 T3) — every other theta field stays FIXED at its prior, never a
@@ -1634,7 +1650,31 @@ M0 revision log (§7) — named here so it is not rediscovered the same way.
   ```
 - **Done when** fitting a synthetic fixture with a known-recoverable `(alpha, sink)` pair
   recovers both within a stated tolerance; fitting raises on `<3` reference rows; fitting raises
-  on an uncited, unmarked theta field.
+  on an uncited, unmarked theta field. **Plus (Finding E, r2.39, noted not ruled)**: at the A&D
+  §1.3 minimum of 3 reference rows, `(alpha, k_sink)` is only weakly identifiable — the two
+  parameters trade off along a near-degenerate ridge, so the reported pair is substantially
+  prior-determined, not a defect but a property T28's human must weigh seriously, not
+  rubber-stamp. `FitResult` carries its `prior` and `n_reference` so this is never silently lost.
+  If the pair needs to be strongly identified, the lever is T21's schema (more than one
+  observable per compound) — an H-owned change, the principal's call, not a fit-routine fix.
+
+### S14 · Scaffold a transport-prior template — **CA · 2 min** *(new, r2.39, Finding D)*
+- **Files:** `configs/templates/transport_prior.scaffold.yaml` (new — same S13 pattern: outside
+  `configs/` proper, so no absence guard is needed or created for a file S6 never named)
+- Declares `alpha_prior: {mean_log: null, sigma_log: null, citation: null, assumed: true}` and
+  `k_sink_prior: {mean_log: null, sigma_log: null, citation: null, assumed: true}`.
+- **Done when** the YAML parses with exactly those two entries, both `assumed: true`.
+
+### T28 · Source the transport-core MAP prior — **H · 15–20 min** *(new, r2.39, Finding D)*
+- **Files:** `configs/transport_prior.yaml` (new — the human's copy of S14's template, filled)
+- Fills `mean_log`/`sigma_log`/`citation` for `alpha` and `k_sink` from whatever literature
+  supports a transport rate-constant prior for the M1 reference compounds (T21), or states an
+  explicit uninformative prior with `assumed: true` and a stated width — either is legitimate,
+  silence is not. **Read Finding E above before treating this as a formality**: at 3 reference
+  compounds the reported `(alpha, k_sink)` is substantially prior-determined, so this number does
+  real work on the M1 result, not just on satisfying a required argument.
+- **Done when** both fields load through a `TransportPrior` validator (same shape as T24's
+  `ThetaConfig`: value+citation or `assumed: true`, nothing silently absent).
 
 ### T24 · θ container + validator — **CA · 3 min**
 - **Files:** `chipsim/transport/theta.py` (new)
@@ -1652,6 +1692,15 @@ M0 revision log (§7) — named here so it is not rediscovered the same way.
   loading a complete fixture succeeds with every field accessible by name; loading is idempotent.
 
 ### T25 · Wire the run journal into fit/predict — **CA · 3 min**
+> **Finding C (r2.39), ruled.** T25 is **function-level wiring only** — it adds no CLI
+> subcommand. It calls `journal.start_run` from inside `chipsim/pipeline.py`'s existing
+> `fit_transport_params`/`transport_ode` call path; there is no new `chipsim fit` or
+> `chipsim predict` verb at M1. Consequently **r2.34's `ETL_SUBCOMMANDS`/node-vs-non-node split
+> and `NON_NODE_REASONS` do not apply to T25** — nothing to declare, because nothing is exposed.
+> If a later milestone (M2+) does add a CLI entry point for fit/predict, *that* task earns the
+> three declarations at the time it's written, not retroactively here. Stated explicitly because
+> the agent was right that guessing "function-level" to dodge the declarations is exactly how a
+> command later appears with no reason recorded — this is a ruling, not a guess.
 - **Files:** `chipsim/pipeline.py` (edit)
 - Every `fit_transport_params` / `transport_ode` invocation opens a run via S12's
   `journal.start_run` before touching theta or reference data — the PoC replay form from A&D
@@ -1662,15 +1711,37 @@ M0 revision log (§7) — named here so it is not rediscovered the same way.
   `outcome.json` (crash detection — S12 done-when 5, exercised here for real).
 
 ### T26 · Implement `test_monotonicity.py` — **CA · 4 min**
+> **Finding B (r2.39), ruled.** "Literature-typical theta ... never a mock" is retargeted:
+> a **committed synthetic fixture** under `tests/fixtures/` is permitted, ratified here as a
+> general rule rather than a one-off — the agent's own recommendation, and correct for the reason
+> it gave. Global Constraint 1 forbids an agent writing a value into `configs/theta_priors.yaml`
+> (or `configs/assumptions.yaml`) and forbids treating an unsourced number as biology; it does not
+> and was never meant to forbid a dimensionally-plausible, **clearly-labelled-synthetic** fixture
+> whose only job is to exercise a *sign*, not stand in for a citation. T26's three assertions are
+> about direction (dose↑→exposure↑, flow↑→flux↓, membrane↑→flux↓), never about magnitude, so a
+> synthetic fixture proves the code without anyone leaning on its numbers as physics. **Binding
+> conditions, so this permission cannot be read back into T20 or theta_priors.yaml itself**: the
+> fixture must (1) live under `tests/fixtures/`, never `configs/`; (2) be loaded through the real
+> `ThetaConfig`/`transport_ode`, never a mock of either (the "never a mock" clause was right about
+> *this*); (3) carry a filename and an in-file comment stating it is synthetic and not
+> literature-sourced, so no later reader mistakes it for T20's work.
+>
+> **General rule, stated because this is the third occurrence of the same shape (S13, this, and
+> Finding D)**: before a CA done-condition ships, check whether the artifact or value it names is
+> already claimed by a standing guard elsewhere in this plan. The agent's own proposed check — "a
+> cheap read at plan-revision time" — is adopted as practice for future §6-family revisions, not
+> written into the plan as new machinery (this plan already has enough process for its own sake;
+> the fix is reading before writing, not another script).
 - **Files:** `tests/test_monotonicity.py` (edit — currently `pytest.mark.skip(reason="M1 — ODE
   solver not yet built")`, S4's own placeholder, now buildable)
 - Replaces the `raise AssertionError("not implemented")` stub with three real assertions against
-  T22's `transport_ode`, using a literature-typical theta from T24 (never a mock): (1) exposure
-  is non-decreasing in dose; (2) higher flow lowers cumulative flux; (3) thicker membrane lowers
-  flux. Sign-knowledge only (A&D §2, objective T7) — no learned monotonicity weight yet; that
-  arrives with M4.
-- **Done when** the skip marker is removed and all three assertions run against real code, not
-  fixtures standing in for it.
+  T22's `transport_ode`, using a **clearly-synthetic, dimensionally-plausible** theta fixture from
+  T24 (never a mock of T24 or T22 themselves): (1) exposure is non-decreasing in dose; (2) higher
+  flow lowers cumulative flux; (3) thicker membrane lowers flux. Sign-knowledge only (A&D §2,
+  objective T7) — no learned monotonicity weight yet; that arrives with M4.
+- **Done when** the skip marker is removed and all three assertions run against real code (real
+  `ThetaConfig`, real `transport_ode`) fed a fixture that is honestly synthetic, not fixtures
+  standing in for the code under test.
 
 ### T27 · M1 gate check — **CA · 4 min**
 - **Files:** `chipsim/eval/m1_gate.py` (new), `tests/test_m1_gate.py` (new)
@@ -1787,9 +1858,11 @@ hash moves `737a8d9 → <r2.1>`.
 ## 8 · Scope check
 
 This plan stops at the identity and barrier-panel layer: **29 CA tasks and 5 human tasks**
-(r1: 13 CA / 4 H), roughly 2 hours of agent work and 2 hours of human work. **r2.36 adds M1
-(§6a) as a DRAFT, un-ratified extension: 7 more CA tasks (S13, T22–T27) and 2 more H tasks
-(T20, T21) — see §6a's scope note for why M1 alone doesn't wait on the items below.**
+(r1: 13 CA / 4 H), roughly 2 hours of agent work and 2 hours of human work. **r2.36–r2.39 add M1
+(§6a): 8 more CA tasks (S13, S14, T22–T27) and 3 more H tasks (T20, T21, T28)** — see §6a's scope
+note for why M1 alone doesn't wait on the items below, and the r2.37/r2.39 amendments inline for
+the defects the agent's read-before-implementing caught (S13/S6, T26's fixture question, and the
+(alpha, k_sink) prior's home).
 
 Three adjacent things are **deliberately not here**:
 
@@ -1813,8 +1886,8 @@ Three adjacent things are **deliberately not here**:
 
 ## Agent execution notes (AIADLC)
 
-- **CA tasks (29, M0 slice 1)** — S1–S11, S11a, T3, T4, T4a, T5, T5a, T5b, T6, T7, T9, T10, T11, T12, T13, T15, T16, T17, T19. Each has a failing-test done-condition evaluable against committed fixtures. **Plus 7 in §6a's M1 draft (r2.36, un-ratified)** — S13, T22–T27.
-- **H tasks** — **T2, T1, T8, T14, T18** (five, up from four) in M0 slice 1. **Plus 2 in §6a's M1 draft (r2.36, un-ratified)** — T20, T21. These are blockers the agent must **escalate, not simulate**. T2 gates T1 and T4a; T1 gates T11; T8 gates T9; T18 gates T13; T14 gates T15; T20/T21 gate T23/T27 (M1). The agent builds the code and tests around them, leaves the human artifacts absent, and reports the blocked set at the boundary.
+- **CA tasks (29, M0 slice 1)** — S1–S11, S11a, T3, T4, T4a, T5, T5a, T5b, T6, T7, T9, T10, T11, T12, T13, T15, T16, T17, T19. Each has a failing-test done-condition evaluable against committed fixtures. **Plus 8 in §6a's M1 slice (r2.36–r2.39)** — S13, S14, T22–T27.
+- **H tasks** — **T2, T1, T8, T14, T18** (five, up from four) in M0 slice 1. **Plus 3 in §6a's M1 slice (r2.36–r2.39)** — T20, T21, T28. These are blockers the agent must **escalate, not simulate**. T2 gates T1 and T4a; T1 gates T11; T8 gates T9; T18 gates T13; T14 gates T15; T20/T21 gate T23/T27 (M1); T28 gates T23. The agent builds the code and tests around them, leaves the human artifacts absent, and reports the blocked set at the boundary.
 - **T18 is new and is a human blocker.** It exists because pinning "PoC compound set" to the PVR's curated 20–40 makes the roster a curation claim no agent may write.
 - **The hard rule stands:** no agent-written biological numbers, no agent-created curated records or rosters, no agent edits to the frozen evaluator. T7's panel is drafted `ratified: false` **by design** — drafting accessions is allowed; ratifying them is not.
 - **Fixtures are not human artifacts.** `tests/fixtures/*` exist so CA done-conditions can fail honestly while T1/T2/T8/T14/T18 are outstanding. They live under `tests/`, are never read by a pipeline path, and S5 asserts that.
