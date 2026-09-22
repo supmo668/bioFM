@@ -219,6 +219,32 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   One throwaway copy **per reviewer**, and each verifies its **interpreter resolves inside that
   copy** before mutating anything. *Sixth in the ambient-state family — the throwaway-copy rule
   telling us its next requirement.*
+  **E-16 IS SATISFIABLE SUPERFICIALLY, AND WAS — VERIFY THROUGH THE ENTRY POINT THAT MEASURES**
+  *(agent-found, drafted by the worktree agent at the CTO's request, signed r2.41)*.
+  The clause above says "verifies its interpreter resolves inside that copy". That was satisfied
+  literally — with `python -c` — and the measurement was then taken with **`pytest`**, which
+  imported the **original worktree anyway**: the copied `.venv` carries the *editable install*
+  with it, and an editable install points at the tree it was created for, not at whatever
+  directory now contains it. **Four mutants were scored without ever being loaded.** The check
+  passed, the run was meaningless, and nothing in the wording caught it.
+  **The rule therefore has two halves and both are required:** (1) **rebuild the environment in
+  the copy** (`rm -rf .venv && uv sync`) so no editable install survives the copy; and (2) run the
+  verification **through the same entry point as the measurement** — if the mutants are scored by
+  `pytest`, the interpreter check must be made by `pytest`, not by a `python -c` that resolves
+  differently. A verification that takes a different path from the thing it verifies is not a
+  verification of it.
+  **THE GENERAL SHAPE, WHICH IS WHY THIS IS WORTH A PLAN AMENDMENT RATHER THAN A NOTE**: a rule
+  that NAMES a hazard can still be satisfied by a check that does not REACH it, and it then reads
+  as protection while providing none. E-16 named the editable-install hazard in its own first
+  sentence and was still satisfied superficially by the person who wrote the check. *Seventh in
+  the ambient-state family, and the first where the defect was in the guard's own wording rather
+  than in a missing guard.*
+  **Mutating in place in the live worktree avoids the hazard entirely** (nothing is copied, so
+  nothing can resolve to the wrong tree) and is what the M1 transport work used. That is a
+  CLAIM about a run, though, so it was checked rather than assumed: `m.__file__` resolves to the
+  file the mutation script rewrites, and 10 of 11 mutants in that file were killed — positive
+  proof that a mutation of it reaches the test run. Either discipline is acceptable; what is not
+  is a copy whose environment was never rebuilt.
 - **E6-7 — ONE ENTRY POINT A NON-PYTEST CONSUMER CAN CALL, AND THE FAIL LIVES IN IT** *(stated
   r2.26; authorised verbally at r2.21 and, until now, WRITTEN NOWHERE HASH-LOCKED)*. Today the four
   pieces — readability, declarations, ownership, accession content — are composed by the **test
@@ -1358,9 +1384,11 @@ the original scaffold hole, which is why this is an S-task.
 > by it. Absent the flag, `mode="flag"` keeps meaning exactly what it means today; nothing here
 > changes T13's own already-completed run, whose provenance for now lives in its commit body.
 
-### T29 · Record who supplied approve-on-execute, when it isn't the operator — **CA · 3 min** *(new, r2.40, agent-found)*
-- **Files:** `chipsim/journal.py` (edit — wherever `approval.json`'s `mode`/`stdin_was_a_tty`
-  fields are written) · `tests/test_run_approval.py` (edit)
+### T29 · Record who supplied approve-on-execute, when it isn't the operator — **CA · 3 min** *(new, r2.40, agent-found; Files corrected r2.41 — landed at `chipsim/pipeline.py`, not `journal.py`)*
+- **Files:** `chipsim/pipeline.py` (edit — `_write_approval_record`, where `approval.json`'s
+  `mode`/`stdin_was_a_tty` fields are actually written; r2.40's `journal.py` was wrong, caught by
+  the agent reading the done-condition against the real path, same check as S13/S6) ·
+  `tests/test_run_approval.py` (edit)
 - **Interfaces:** an optional `--approved-by <string>` CLI flag, threaded through to
   `approval.json` as a new field, recorded **exactly as given** — never derived from
   `agent-identity`, never defaulted, never inferred from `mode` or the absence of a TTY. Omitting
