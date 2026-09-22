@@ -1324,6 +1324,27 @@ the original scaffold hole, which is why this is an S-task.
   5. a crashed run leaves no `outcome.json`, so it cannot read as success;
   6. a `panel-seal` invocation record carries **no** digest field.
 
+> **Delegation of approve-on-execute authority (r2.38, principal-directed, 2026-09-22).** S12's
+> approve-on-execute flag (`--yes`, `test_run_approval.py`) is a **different mechanism from
+> Global Constraint (4)/T7a's panel-seal TTY gate**, which stays absolute — no flag path exists
+> for it, this delegation does not create one. S12's flag path was always designed to be
+> legitimate (`test_yes_approves_and_is_RECORDED_as_a_flag_not_as_a_human` — the run **succeeds**
+> on the flag, distinctly logged); the open question was **who currently holds standing authority
+> to supply it**, surfaced when the CTO directed the worktree agent to run T13 with `--yes`
+> without noticing that directive reversed the CTO's own prior ruling (dispatch #181: *"the
+> principal's call, not mine or yours"*) — caught and held by the agent before acting, per its own
+> reading of §16's purpose (dispatch #185).
+>
+> **Ruled, on the record, not inferred from a task line**: the principal delegates `--yes`
+> authority for S12-gated, CA-classified tasks (T13 first) to the CTO. **Same shape as the
+> `plan-gate sign` delegation** (`fd2c00d`, 2026-09-10) — *the invocation is delegated, the
+> judgement is not.* This delegation covers supplying the flag once a task is already
+> CA-classified and gated only by S12; it does **not** reach classification decisions (whether a
+> given command should be ETL/CA at all — that stays a plan-authorship ruling, e.g. r2.34/r2.35's
+> T13 ETL-vs-node question) and it does **not** touch Global Constraint (4) in any form. A run
+> approved this way is recorded as CTO-approved by explicit delegation, not as principal-approved
+> and not as unattended — the record must say which.
+
 ### T13 · Emit the adjudication worksheet — **CA · 5 min**
 - **Interfaces:**
   ```python
