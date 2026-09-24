@@ -298,3 +298,196 @@ Stated plainly, so the rewrite does not have to rediscover it:
 Steps 1–3 are substantive and may change conclusions. Step 4 is the language
 pass the principal asked for and should run **last**, once the claims it has to
 describe are settled.
+
+---
+
+# Addendum — code + workflow audit (2026-09-23, same day)
+
+A read-only methods audit of the pipeline ran after the manuscript review above.
+It found defects **more severe than anything in R1–R11**, and — importantly — it
+supplies the *mechanisms* for findings the manuscript review could only observe
+from the outside.
+
+**Every finding below marked CONFIRMED-BY-CTO I re-verified myself** against the
+committed code and artifacts, rather than accepting the audit's account. One of
+its claims was overstated; that is recorded as such.
+
+## The verdict changes
+
+R1–R11 said the empirical argument was unsupported. The audit shows **two
+headline results are artifacts of code defects**, and the v0.5.0 artifact set
+cannot have come from the single run its provenance record describes.
+
+### A1 — The trainer and lifecycle task sets are almost disjoint (CONFIRMED-BY-CTO)
+
+`artifacts/v0.5.0/` — trainer file has 36 tasks, lifecycle file has 36 tasks,
+and they **share exactly 2**: `SRP72` and `SAMD1_ZBTB1`. Trainer-only includes
+`ATF6, BAK1, CAD, CARS, …`; lifecycle-only includes `AARS, AMIGO3, C7orf26,
+CCND3, DDIT3, …`.
+
+`scripts/modal/app_v05.py:234-240,334-338` iterate the *same* `tasks` list in one
+process, so a single run cannot produce this. `provenance.json` nonetheless
+reports both counts under one wall-clock window and one cost figure, and
+`analyse_v05_run` **joins them** — `n_tasks_analysed: 36` comes from the trainer
+file while the entropies come from the lifecycle file.
+
+So `v050_results_filled.tex:30` ("Across 108 lifecycle runs spanning 36 held-out
+tasks") describes a join across two nearly-disjoint task samples. **Every
+statement linking agent behaviour to task difficulty is computed across a 2-task
+intersection.** Probable proximate cause is A6.
+
+### A2 — The 108 lifecycle runs are 36 runs counted three times (CONFIRMED-BY-CTO)
+
+`app_v05.py:340-357` records the loop's `seed` into each record but never passes
+it to `run_agentic_lifecycle`, which has no `seed` parameter; the LLM cache key
+omits it too. Verified: **36 of 36 tasks have byte-identical `final_msd_topk`
+across seeds 2026/2027/2028** (e.g. `AARS` → 0.2796782707371149 three times).
+
+`n = 108`, `n_lifecycle_finite = 108`, and "138 Architect picks" are inflated 3×
+by exact duplicates. Effective n = 36 tasks / 46 picks. Any standard error
+computed on 108 is √3 too narrow.
+
+### A3 — Four of the five "free-acting agents" emitted one identical proposal (CONFIRMED-BY-CTO, with a correction)
+
+Recomputed over all 690 committed lifecycle steps (138 per role):
+
+| role | distinct `proposal_content` |
+|---|---|
+| Architect | 13 |
+| DataCurator | **1** |
+| Literature | **1** |
+| Trainer | **1** |
+| Validator | **1** |
+
+Each of those four equals its Pydantic schema default. So §4.2's claim that
+"agents are not role-rigid executors" is refuted by the project's own trace
+file: four of five roles produced the same default 138 times, and the widened
+configuration space in §3.3 (`hvg_method`, `qc_mito_max`, `split_strategy`,
+`batch_correction`, the dynamic Validator threshold, `which_genes_failed`,
+`suggested_next_config_delta`) is pinned at defaults throughout. The fingerprint
+is `_rule_based_fallback` in `llm_agent_pool.py:90-109`, and `LifecycleStep` has
+**no field distinguishing LLM output from fallback**, so this is unrecoverable
+from the artifact rather than merely unreported.
+
+**Correction to the audit.** It reported `rationale == ""` for 138/138 steps and
+`llm_confidence == 0.7` for 138/138, and inferred from the constant confidence
+that "ACE_norm is identically 1.0 and CSD identically 0, therefore TDI cannot
+correlate with anything." The premise is wrong. Measured across 690 steps:
+**651 empty rationales, 39 non-empty** with genuine LLM text ("MSD@20 = 7.6917
+exceeds threshold…", "HSPA5 encodes BiP/GR…"), and **684 × 0.7 with 6 exceptions
+(3 × 0.82, 3 × 0.68)**. Confidence is 99.1% constant, not identically constant,
+so ACE is near-degenerate rather than degenerate, and that inference does not
+carry. The independently verified mechanism for R1's `n/a` stands on its own:
+`tdi_vs_held_out_msd` is never called, and its default feature path names a field
+present in no schema.
+
+### A4 — A random gene is silently substituted for the perturbation target (CONFIRMED-BY-CTO)
+
+`src/perturb_eval/experiments/norman.py:119-120`:
+```python
+# Target dropped by HVG filter — pick a deterministic fallback.
+target_gene_idx[norm_label] = int(rng.integers(0, len(gene_names)))
+```
+A **random gene** becomes the perturbation target, with no error and no flag, in
+a branch commented as deterministic.
+
+It fires because the doublet guard is the wrong delimiter. `norman.py:110` and
+`app_v05.py:211` test `"+" in label`, but the committed Norman labels use `_`:
+`CBL_UBASH3A, CEBPB_PTPN12, CEBPE_RUNX1T1, KLF1_MAP2K6, SAMD1_TGFBR2,
+SAMD1_ZBTB1, SNAI1_UBASH3B, UBASH3B_PTPN9` — **8 of 15**. So the doublet stratum
+is empty (which is why R3's "15 singletons + 5 doublets" degenerated to 15), and
+those 8 combo labels are not single gene symbols, so each received a random
+target index. They were then trained and scored as ordinary tasks and
+**contribute to `median_msd_norman = 0.131` and to `GATE_NORMAN = PASS`**.
+
+The same fallback exists in `e2_adamson.py:209-212`, and `loop.py:222-226` maps a
+missing target to gene index 0.
+
+### A5 — The config embedding collapses the backbone axis (CONFIRMED-BY-CTO)
+
+`src/perturb_eval/optimizers/base.py:34`:
+```python
+backbone_index = {"scGPT": 0, "scPRINT-2": 1, "scFoundation": 2}.get(phi.backbone, 0)
+```
+Every experiment uses `{linear, mlp, scgpt_small}`. **None is a key**, so all
+three map to index 0 and `config_to_vec` emits an identical vector for all three
+backbones at a given `(N, R)` — 27 configs collapse to 9 distinct embeddings.
+`nearest_config` then breaks the 3-way tie by `argmin`, which always returns
+`linear`.
+
+So the CMA-ES baseline **cannot propose `mlp` or `scgpt_small`** and searches 9
+of 27 configs. The audit derives the retracted 7.6× figure as
+`0.075 / 0.00989 = 7.58` and shows the baseline's per-run MSDs take exactly two
+values matching a linear-restricted optimum — i.e. the headline measured the bug.
+That result is already retracted, but **the same collapsed embedding feeds every
+published γ_T**, and `tests/test_optimizers.py:22-26` builds its space from
+`("scGPT","scPRINT-2")` — the only names the dict recognises — so no test can
+catch it.
+
+### A6 — Task selection is non-deterministic across processes (CONFIRMED-BY-CTO on mechanism)
+
+`app_v05.py:217,224` compute strata as `hash(s) % 3` on Python `str`. `str.__hash__`
+is salted per process unless `PYTHONHASHSEED` is fixed, so the stratum assignment
+— and therefore which tasks `stratified_subsample(seed=2026)` draws — changes on
+every invocation. **The `seed=2026` is cosmetic.** This is the most plausible
+proximate cause of A1.
+
+### A7 — Nothing is checksummed, contradicting the paper (CONFIRMED-BY-CTO)
+
+`src/perturb_eval/data/download.py:34` — `sha256: Optional[str] = field(default=None)`
+for every `DatasetSpec`; `_fetch` logs "already present (no SHA pin) — trust it".
+The only integrity check is a `min_bytes` floor. §3.1 and §9 both claim
+"SHA256-gated" fetchers. The machinery exists; **nothing is pinned.**
+
+## Further findings I did not independently verify
+
+Reported by the audit, mechanism plausible, not re-checked by me — treat as
+leads, not facts, and confirm before acting:
+
+- **The contextual GP is non-contextual in every experiment.** A fresh optimizer
+  per `(task, seed)` with the same `ctx` on all iterations makes the context
+  kernel the all-ones matrix, so no cross-task sharing and no routing is possible
+  even in principle. Offered support: three different probe provenances yield
+  bit-identical trajectories, which `SUPPLEMENT.md:250` notices and attributes to
+  budget saturation. If true, "probe-conditioned routing" is unsupported outright.
+- **The bootstrap resamples pseudo-replicates i.i.d.**, so CI widths are ~4.5×
+  too narrow; under a task-cluster bootstrap the one significant result survives
+  by 0.0017 with an effective n of 2 archetypes.
+- **`load_grid_jsonl` discards the trainer seeds** (last-writer-wins on
+  `(phi, task)`), destroying the per-seed variance `REVIEWER_CRITIQUE.md` MC1
+  specifically asked to retain.
+- **HVG selection runs on the full matrix including held-out cells** before any
+  split, so "held-out" is compromised upstream of the metric.
+- **Temperature is hardcoded 0.3 with no seed**, the cache making runs
+  reproducible is not committed, and two clients disagree (0.3 vs 0.0).
+- **Documented reproduction entry points do not exist** —
+  `scripts/modal/app.py`, `paper/experiments/`, and six CSVs in `DESIGN.md §6.5`
+  are all referenced and all absent.
+- **Orphaned `paper/tables/tab1–tab5.tex` and `figures/fig1–fig5.pdf`** still
+  contain retracted synthetic results (tab2: ρ = +0.918) with no surviving
+  generator. Not `\input` into `paper.tex`, but present in the downloadable
+  artifact.
+
+## What this does to the recommended sequence
+
+The ordering in the main review is superseded. **Nothing about the paper's
+claims can be settled until the artifacts are regenerated from one run**, because
+A1/A2/A6 mean the current artifact set does not describe a single experiment:
+
+1. **A6, then A1** — fix the salted-hash strata; regenerate trainer + lifecycle
+   from one process and assert the task sets are identical. Until this holds,
+   every joined statistic is meaningless.
+2. **A2** — thread the seed, or report n = 36 and delete the seed column.
+3. **A4** — raise on a missing target instead of substituting a random gene; fix
+   the doublet delimiter. `GATE_NORMAN = PASS` is not currently interpretable.
+4. **A3** — add `source: Literal["llm","fallback"]` to `LifecycleStep`; refuse to
+   compute entropy over fallback rows. §4.2 needs retraction either way.
+5. **A5, A7** — derive the backbone one-hot from the actual config space and add
+   the distinct-embedding test; pin the four dataset digests and fail closed.
+6. Only then R1 (compute the correlations or retract the oracle claim), R4/R5
+   (dispersion, nested split), and **last** R7 (the language pass).
+
+**Honest summary for the principal:** this is not a paper that needs a language
+pass and a few CIs. Three of its four empirical claims currently rest on code
+defects, and the dataset gate that passes does so partly on tasks whose
+perturbation target was a randomly chosen gene.
