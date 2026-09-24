@@ -20,3 +20,12 @@ Measured 2026-09-24 on Modal, CPU only, through the REAL loaders with every guar
 Order note: #259 asked for the categorical sweep BEFORE this measurement; the measurement had already been
 launched and completed before #259 was read. The sweep found no second reachable instance (DF-11), so the
 measurement's code path is unaffected.
+
+**Why both-resident and single-dataset peaks are IDENTICAL (17.99 GiB) — not a coincidence (CTO #263).**
+`peak_rss` is `ru_maxrss`, a process HIGH-WATER MARK, not current usage. The mark is set during the Adamson combined
+load, which transiently holds each subset's dense matrix plus the concatenated `X_full` before freeing the per-file
+copies. Norman is loaded afterwards: its own transient (~5.6 GiB matrix plus decode buffers) added to the ~2.7 GiB
+Adamson matrix left resident stays BELOW the mark Adamson already set, so the maximum does not move. The measurement
+therefore still bounds the co-resident configuration. If the load ORDER changed (Norman first), or the Adamson loader
+stopped freeing its per-file copies, the peak could differ; re-measure after either change.
+
