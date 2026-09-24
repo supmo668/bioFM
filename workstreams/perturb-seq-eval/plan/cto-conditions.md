@@ -41,3 +41,14 @@ measures the import, not the agent.
 - Alias test uses `pytest.importorskip("torch")`; every gate report states skips **counted and named**
   (e.g. "N passed, 1 skipped (torch absent: test_alias_scgpt_to_scgpt_small)"), never folded into green.
 - Report back: which local tests pass for the wrong reason without torch (compare suite with vs without torch).
+
+## C-TORCH-3 (CTO #243, RATIFIED + 2 additions) — P2-boundary mini-task + T13/T22
+- **Exact pin, not a floor:** `torch==2.14.0` in pyproject's `scgpt` group AND the Modal image (`app_v05.py`), matching the
+  local CPU venv. If the Modal image cannot take the exact pin (CUDA wheel availability), keep the floor, say why in the
+  report, and the resolved-version record below becomes mandatory.
+- **Provenance (T13):** `lib_versions` records the RESOLVED versions imported at run time (`torch.__version__`,
+  `torch.version.cuda`, numpy, anndata, h5py, scanpy, pandas, pydantic) — never the constraint string.
+- **Skip guards must be seen firing:** `pytest.importorskip("torch")` on `test_alias_scgpt_to_scgpt_small` and
+  `test_architect_choice_entropy_above_gate`; run the suite ONCE in a torch-less venv and capture both reported as
+  SKIPPED by name → `workstreams/perturb-seq-eval/qgr/evidence/C-TORCH-3-skip-guards-fire.txt`.
+- Standing heuristic (CTO): any "if unavailable, use X" is guilty until proven loud — reviewers grep for it at every gate.
