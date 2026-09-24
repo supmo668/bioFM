@@ -73,3 +73,15 @@ measures the import, not the agent.
   literally `ensemble_id` (upstream typo); a missing column RAISES naming expected + found columns — pinned by a test. `KIAA1804` excluded
   "target gene not locatable in the dataset vocabulary under either name".
 - Adamson 21 = 3 bins x 7 must remain fillable; exact-fill assertion as in T11; if unreachable, ESCALATE the number (plan-level quantity).
+
+## PRINCIPAL DIRECTIVES (2026-09-24, direct, AskUserQuestion)
+- **OpenRouter key (G2 resolved):** use `OPENROUTER_API_KEY` from Infisical project **SyntropyHealth App** (`syntropyhealth-app`,
+  id 589d1e3b-5798-48ea-97c0-2d58086a375b), env **dev**. Injected only via
+  `infisical run --projectId 589d1e3b-… --env dev -- modal run …` — never printed, never written to disk. Presence verified with a
+  presence-only check (value not read). Provenance records the SOURCE (project slug + env), never the value. Not in bioFM (CLI 403 / MCP 404).
+- **PR:** principal pushes `main` first; then `/worktree-sync` → gates → `/pr-prep` → `/pr-submit` with only this branch's commits
+  (a PR today would carry 186 unpushed CTO trunk commits — #239).
+- **Title:** question form — "Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of
+  Agentic Hyperparameter Tuning for Perturb-seq Response Prediction". Principal directs the wording/submission-file alignment pass NOW
+  (supersedes the "language pass last" sequencing for setup/method/metadata text). Result numbers are NOT rewritten until the v0.6.0
+  sweep: v0.5.0 result values are marked superseded/pending, never replaced with guesses.
