@@ -31,6 +31,7 @@ def audit() -> dict:
             "perturbation_type": {str(k): int(v) for k, v in obs["perturbation_type"].astype(str).value_counts().items()},
             "n_labels_with_nperts_gt1": len(multi),
             "labels_with_nperts_gt1_sample": dict(list(sorted(multi.items()))[:40]),
+            "all_labels": {k: {"nperts": v, "n_cells": int(n)} for (k, v), n in zip(sorted(per.items()), [int(g.size().loc[k]) for k in sorted(per.index)])},
         }
     return out
 
