@@ -19,3 +19,15 @@ History (raised in reply to #233): #233 permits the trainer sweep to run before 
 would make trainer and lifecycle two processes — the A1 shape #202 forbids. Proposed: one process once the key
 lands; if a split is ruled acceptable, the lifecycle run must load the trainer provenance record and hard-fail
 unless its resolved task list, dataset digests and git SHA are identical.
+
+## C-TORCH-1 (from the #239 alias-test question) — applies to T22 preflight + T0 baseline
+`test_alias_scgpt_to_scgpt_small` is RED because `_canonical_backbone` (`agentic_lifecycle/architect_dispatch.py:25-28`)
+returns `"linear"` whenever the resolved name is not in `available_backbones()`, and `available_backbones()` omits
+`scgpt_small` when torch is not importable (`backbones/__init__.py:28`). The local venv has no torch, so the alias
+resolves `scgpt → scgpt_small → (unavailable) → linear`. The Modal image pins `torch>=2.2` (`app_v05.py:57`), so the
+sweep is not affected TODAY — but the mechanism is a silent substitution in the A4 family: if torch ever fails to
+import on Modal, every Architect `scgpt_small` pick becomes `linear` with no error, and the backbone-entropy figure
+measures the import, not the agent.
+- **T22:** preflight asserts every backbone in the resolved `backbones` kwarg is in `available_backbones()`; fails closed.
+- **Test:** the alias test gets `pytest.importorskip("torch")` (a local-environment skip, never a pass), plus a new
+  torch-independent test that a KNOWN-but-unavailable backbone raises instead of degrading (ruling requested — see reply).
