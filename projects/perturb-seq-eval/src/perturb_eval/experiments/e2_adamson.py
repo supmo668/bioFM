@@ -10,8 +10,12 @@ See docs/SUPPLEMENT_DESIGN.md §4 E2 (Adamson variant).
 
 from __future__ import annotations
 
+import re
 import time
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -89,11 +93,11 @@ def load_adamson_combined(
         for pert in d["perturbations"]:
             if pert not in perturbations:
                 perturbations.append(pert)
-    labels_excluded: list[dict[str, str]] = []
+    labels_excluded = _merge_exclusions(e for d in per_file for e in d["labels_excluded"])
+    guides_per_gene: dict[str, list[str]] = {}
     for d in per_file:
-        for e in d["labels_excluded"]:
-            if e not in labels_excluded:
-                labels_excluded.append(dict(e))
+        for gene, plasmids in d["guides_per_gene"].items():
+            guides_per_gene[gene] = sorted(set(guides_per_gene.get(gene, [])) | set(plasmids))
     gene_to_idx = {g: i for i, g in enumerate(shared_genes)}
     # Raises (listing every (label, gene)) on a target outside the shared vocab.
     target_gene_idx = resolve_with_contract(perturbations, gene_to_idx, contract)
@@ -113,18 +117,118 @@ def load_adamson_combined(
         "gene_names": tuple(shared_genes),
         "hvg_n_top": int(n_top_hvg),
         "labels_excluded": labels_excluded,
+        "guides_per_gene": {g: guides_per_gene[g] for g in sorted(guides_per_gene)},
         "label_contract": contract.to_provenance(),
     }
 
 
-def _normalise_pert_label(raw: str) -> str:
-    """Adamson pilot labels look like ``'DDIT3_pDS263'``; keep the gene name."""
-    return raw.split("_")[0]
+# ---------------------------------------------------------------------------
+# Structural construct parser (CTO #253 a-f)
+# ---------------------------------------------------------------------------
+
+MULTI_GENE_REASON = "multi-gene construct; unsupported by D1"
+MISSING_LABEL = "nan"
+MISSING_ANNOTATION_REASON = "missing perturbation annotation (raw label 'nan')"
+
+_PLASMID_RE = re.compile(r"_(p[A-Z]+[0-9]+(?:-[0-9]+)?)$")
+_ONLY_MARKER = "_only"
+_COMPONENT_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9.\-]*")
+# Control constructs by raw-label prefix, as the real files encode them
+# ('62(mod)_pBA581' in pilot/10X010, '63(mod)_pBA580' in 10X010).
+_CONTROL_PREFIXES = ("62(", "63(")
+_NEG_CTRL_MARK = "neg_ctrl"
+
+ConstructKind = Literal["gene", "multi_gene", "control"]
 
 
-def _is_control(raw: str) -> bool:
-    # Non-targeting guides are encoded as ``'*'`` and ``'62(mod)_pBA581'``.
-    return raw == "*" or raw.startswith("62(")
+@dataclass(frozen=True)
+class AdamsonConstruct:
+    """One raw Adamson ``obs.perturbation`` label, parsed structurally.
+
+    ``components`` are the gene tokens AS WRITTEN (plasmid suffix and ``_only``
+    marker removed); ``kind`` is ``"gene"`` for exactly one component,
+    ``"multi_gene"`` for more, ``"control"`` for a control construct.
+    """
+
+    raw: str
+    components: tuple[str, ...]
+    kind: ConstructKind
+    plasmid: str | None
+
+    @property
+    def gene(self) -> str:
+        if self.kind != "gene":
+            raise ValueError(f"construct {self.raw!r} is {self.kind}, not a single gene")
+        return self.components[0]
+
+
+def parse_adamson_construct(
+    raw: str, contract: LabelContract = ADAMSON_CONTRACT
+) -> AdamsonConstruct:
+    """Parse a raw Adamson label; raise ``ValueError`` naming it if unparseable.
+
+    Strip the plasmid suffix ``_p[A-Z]+[0-9]+(-[0-9]+)?``, then a trailing
+    ``_only`` marker; the remainder split on ``_`` is the component tuple.
+    Controls: ``'*'``, a ``62(``/``63(`` prefix, label text containing
+    ``neg_ctrl``, or a remainder listed in ``contract.structural_controls``
+    (``Gal4-4(mod)``). Nothing is guessed: a non-control label without a
+    plasmid suffix, an empty/odd component, or a stray ``only`` token raises.
+    """
+    if not isinstance(raw, str) or not raw or raw != raw.strip():
+        raise ValueError(f"unparseable Adamson raw label {raw!r}: empty or padded")
+    if raw == "*":
+        return AdamsonConstruct(raw=raw, components=("*",), kind="control", plasmid=None)
+    m = _PLASMID_RE.search(raw)
+    plasmid = m.group(1) if m else None
+    rem = raw[: m.start()] if m else raw
+    if raw.startswith(_CONTROL_PREFIXES) or _NEG_CTRL_MARK in rem \
+            or rem in contract.structural_controls:
+        return AdamsonConstruct(raw=raw, components=tuple(rem.split("_")), kind="control",
+                                plasmid=plasmid)
+    if plasmid is None:
+        raise ValueError(f"unparseable Adamson raw label {raw!r}: no plasmid suffix "
+                         "and not a control construct")
+    if rem.endswith(_ONLY_MARKER):
+        rem = rem[: -len(_ONLY_MARKER)]
+    components = tuple(rem.split("_"))
+    bad = [c for c in components if c == "only" or not _COMPONENT_RE.fullmatch(c)]
+    if bad:
+        raise ValueError(f"unparseable Adamson raw label {raw!r}: component(s) {bad!r}")
+    kind: ConstructKind = "gene" if len(components) == 1 else "multi_gene"
+    return AdamsonConstruct(raw=raw, components=components, kind=kind, plasmid=plasmid)
+
+
+def _merge_exclusions(entries: Iterable[Mapping]) -> list[dict]:
+    """Merge ``{label, reason, raw_labels, n_cells}`` entries by (label, reason)."""
+    merged: dict[tuple[str, str], dict] = {}
+    for e in entries:
+        key = (str(e["label"]), str(e["reason"]))
+        cur = merged.setdefault(key, {"label": key[0], "reason": key[1],
+                                      "raw_labels": [], "n_cells": 0})
+        cur["raw_labels"] = sorted(set(cur["raw_labels"]) | set(e["raw_labels"]))
+        cur["n_cells"] += int(e["n_cells"])
+    return list(merged.values())
+
+
+def eligible_adamson_genes(
+    raw_labels_by_subset: Mapping[str, Iterable[str]],
+    contract: LabelContract = ADAMSON_CONTRACT,
+) -> list[str]:
+    """Sorted single-gene task labels the loaders would keep, from raw labels only.
+
+    Skips ``'nan'``, controls, multi-gene constructs and contract exclusions.
+    Vocabulary membership (and hence resolvability) needs the matrices and is
+    NOT checked here; neither is the |logFC| bin membership.
+    """
+    genes: set[str] = set()
+    for subset in sorted(raw_labels_by_subset):
+        for raw in raw_labels_by_subset[subset]:
+            if raw == MISSING_LABEL:
+                continue
+            c = parse_adamson_construct(raw, contract)
+            if c.kind == "gene" and not contract.is_excluded(c.gene):
+                genes.add(c.gene)
+    return sorted(genes)
 
 
 def load_adamson_matrix(
@@ -144,12 +248,17 @@ def load_adamson_matrix(
     selected per held-out task on training cells only; ``n_top_hvg`` is
     only recorded as ``ds["hvg_n_top"]`` for that step.
 
-    ``contract`` (CTO #250) applies to the NORMALISED label before target
-    resolution: structural controls join ``control_mask``; excluded labels
-    lose their cells and are listed in ``ds["labels_excluded"]`` as
-    ``{"label", "reason"}``; an aliased label keeps its task label but
-    resolves to the alias gene's column. ``ds["label_contract"]`` is
-    ``contract.to_provenance()``. Anything still unresolvable raises.
+    Raw labels are parsed by :func:`parse_adamson_construct` (CTO #253): a
+    single-gene construct's task label is its one component (several plasmids
+    of one gene pool into one task; ``ds["guides_per_gene"]`` =
+    ``{gene: [plasmid, ...]}``); controls join ``control_mask``; multi-gene
+    constructs are excluded (``MULTI_GENE_REASON``, raw label recorded);
+    missing annotations (h5ad code -1 / ``'nan'``) are excluded
+    (``MISSING_ANNOTATION_REASON``). ``contract`` excludes or aliases parsed
+    gene labels. Every ``ds["labels_excluded"]`` entry is ``{"label",
+    "reason", "raw_labels", "n_cells"}`` (cells before downsampling).
+    ``ds["label_contract"]`` is ``contract.to_provenance()``. Anything still
+    unresolvable raises.
     """
     import h5py
 
@@ -159,7 +268,9 @@ def load_adamson_matrix(
         codes = pert_group["codes"][()]  # type: ignore[index]
         cats_raw = pert_group["categories"][()]  # type: ignore[index]
         cats = [c.decode() if isinstance(c, bytes) else c for c in cats_raw]
-        labels_raw = np.asarray([cats[c] for c in codes])
+        # Code -1 is a MISSING annotation; indexing cats[-1] would silently
+        # relabel those cells as the last category.
+        labels_raw = np.asarray([cats[c] if c >= 0 else MISSING_LABEL for c in codes])
 
         # Gene names (scPerturb packaging stores them under var/gene_symbol).
         gene_names_raw = f["var/gene_symbol"][()]  # type: ignore[index]
@@ -188,35 +299,52 @@ def load_adamson_matrix(
     # log-FC prediction task). In place: no second full-size scratch copy.
     np.log1p(dense, out=dense)
 
-    # Downsample cells per perturbation; excluded labels (contract) keep none.
+    # Classify every raw label structurally (CTO #253), then downsample per
+    # raw label; excluded labels keep no cells and are reported with counts.
     rng = np.random.default_rng(2026)
     keep_mask = np.zeros(dense.shape[0], dtype=bool)
-    labels_excluded: list[dict[str, str]] = []
+    exclusions: list[dict] = []
+    constructs: dict[str, AdamsonConstruct] = {}
     for p in np.unique(labels_raw):
-        norm = _normalise_pert_label(str(p))
-        if not _is_control(str(p)) and contract.is_excluded(norm):
-            entry = {"label": norm, "reason": contract.excluded[norm]}
-            if entry not in labels_excluded:
-                labels_excluded.append(entry)
-            continue
+        raw = str(p)
         idx = np.where(labels_raw == p)[0]
+        reason_label: tuple[str, str] | None = None
+        if raw == MISSING_LABEL:
+            reason_label = (MISSING_ANNOTATION_REASON, MISSING_LABEL)
+        else:
+            c = parse_adamson_construct(raw, contract)
+            if c.kind == "multi_gene":
+                reason_label = (MULTI_GENE_REASON, raw)
+            elif c.kind == "gene" and contract.is_excluded(c.gene):
+                reason_label = (contract.excluded[c.gene], c.gene)
+            else:
+                constructs[raw] = c
+        if reason_label is not None:
+            exclusions.append({"label": reason_label[1], "reason": reason_label[0],
+                               "raw_labels": [raw], "n_cells": int(len(idx))})
+            continue
         if len(idx) > max_cells_per_pert:
             idx = rng.choice(idx, size=max_cells_per_pert, replace=False)
         keep_mask[idx] = True
+    labels_excluded = _merge_exclusions(exclusions)
     dense = dense[keep_mask]
     labels_raw = labels_raw[keep_mask]
 
-    # Normalise perturbation labels and resolve targets against the full vocab.
-    labels_norm = np.asarray([_normalise_pert_label(r) for r in labels_raw])
     control_mask = np.asarray(
-        [_is_control(r) or contract.is_control(n) for r, n in zip(labels_raw, labels_norm)],
-        dtype=bool,
+        [constructs[str(r)].kind == "control" for r in labels_raw], dtype=bool
     )
+    labels_norm = np.asarray(
+        [c.gene if c.kind == "gene" else "CTRL"
+         for c in (constructs[str(r)] for r in labels_raw)]
+    )
+    guides: dict[str, set[str]] = {}
+    for c in constructs.values():
+        if c.kind == "gene":
+            guides.setdefault(c.gene, set()).add(str(c.plasmid))
     gene_to_idx = {str(g): i for i, g in enumerate(gene_names)}
-    # Resolve on the NORMALISED gene-level labels: raw guide labels
-    # ("DDIT3_pDS263") carry a '_'-joined plasmid suffix that '_'-parsing
-    # would misread as a doublet. A target outside the vocab raises (A4) —
-    # no random-gene substitute.
+    # Resolve the parsed single-gene task labels: raw guide labels carry a
+    # '_'-joined plasmid suffix that '_'-parsing would misread as a doublet.
+    # A target outside the vocab raises (A4) — no random-gene substitute.
     perturbations: list[str] = []
     seen: set[str] = set()
     for is_ctrl, norm_label in zip(control_mask, labels_norm):
@@ -245,6 +373,7 @@ def load_adamson_matrix(
         "gene_names": tuple(str(g) for g in gene_names),
         "hvg_n_top": int(n_top_hvg),
         "labels_excluded": labels_excluded,
+        "guides_per_gene": {g: sorted(guides[g]) for g in sorted(guides)},
         "label_contract": contract.to_provenance(),
     }
 

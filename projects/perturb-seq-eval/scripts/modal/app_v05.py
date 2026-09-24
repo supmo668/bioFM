@@ -243,6 +243,8 @@ def run_v05_sweep(
             "n_genes": int(ds["X"].shape[1]),
             # CTO #250: the label contract this load applied (aliases + evidence).
             "label_contract": ds["label_contract"],
+            # CTO #253: plasmids pooled into each single-gene task.
+            "guides_per_gene": ds["guides_per_gene"],
         })
         return ds
 

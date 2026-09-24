@@ -231,3 +231,36 @@ def test_d1_identical_across_pythonhashseed() -> None:
     payload = json.loads(outs[0])
     assert len(payload["norman_singletons"]) == 15
     assert len(payload["norman_doublets"]) == 5
+
+
+# ---------------------------------------------------------------------------
+# CTO #253 addition 1 — the plan-level Adamson quantity (3 bins x 7) after the
+# construct parser's exclusions: exact fill, or a real raise naming the pools.
+# ---------------------------------------------------------------------------
+
+_PLAN_BINS = dict(adamson_n_bins=3, adamson_n_per_bin=7)
+_GENES_30 = [f"G{i:02d}" for i in range(30)]
+
+
+def test_adamson_3x7_fills_exactly_and_reports_bin_pools() -> None:
+    summary = {"adamson_full": {g: float(i) / 10 for i, g in enumerate(_GENES_30)}}
+    plan = _plan(summary=summary, **_PLAN_BINS)
+    assert len(plan.adamson) == 21 and len(set(plan.adamson)) == 21
+    bins = [plan.eligible_counts[f"adamson_bin_{b}"] for b in range(3)]
+    assert sum(bins) == 30 and min(bins) >= 7
+
+
+def test_adamson_3x7_short_bin_topped_up_exactly() -> None:
+    # 12 tied at 0.0 fill bins 0 and 1 together; the per-bin draw alone is short.
+    scores = {g: (0.0 if i < 12 else float(i)) for i, g in enumerate(_GENES_30)}
+    plan = _plan(summary={"adamson_full": scores}, **_PLAN_BINS)
+    assert len(plan.adamson) == 21 and len(set(plan.adamson)) == 21
+
+
+def test_adamson_3x7_pool_of_20_raises() -> None:
+    summary = {"adamson_full": {g: float(i) for i, g in enumerate(_GENES_30[:20])}}
+    with pytest.raises(AssertionError) as exc:
+        _plan(summary=summary, **_PLAN_BINS)
+    msg = str(exc.value)
+    assert "adamson: requested 21, got 20" in msg
+    assert "eligible adamson: 20" in msg

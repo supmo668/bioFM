@@ -24,10 +24,11 @@ import numpy as np
 
 from perturb_eval.data.label_contract import (
     NORMAN_CONTRACT,
+    NORMAN_ID_COLUMN,
     LabelContract,
     resolve_with_contract,
 )
-from perturb_eval.data.perturbations import is_doublet
+from perturb_eval.data.perturbations import is_doublet, parse_perturbation
 
 
 _CONTROL_TOKENS = {"non-targeting", "nontargeting", "ctrl", "control", "NT"}
@@ -45,6 +46,57 @@ def _parse_pert_label(raw: str) -> str:
     report on epistasis) and returns the bare gene name for singletons.
     """
     return raw.strip()
+
+
+def _strip_version(ensg: str) -> str:
+    return ensg.split(".", 1)[0]
+
+
+def verify_stable_id_joins(
+    var_columns: "list[str]",
+    id_by_gene: "dict[str, str] | None",
+    perturbations: "list[str]",
+    contract: LabelContract,
+    *,
+    delim: str = "_",
+) -> None:
+    """Check every ``stable_id_join`` alias USED by ``perturbations`` against ``var``.
+
+    The join column is named literally (:data:`NORMAN_ID_COLUMN`, the upstream
+    spelling ``'ensemble_id'``). If an alias is used and the column is absent,
+    raise naming the expected column and listing the columns found. Each used
+    alias's gene must carry, in that column, the ``ensembl_identity`` evidence's
+    ID; the evidence must name the same column. Any mismatch raises.
+    """
+    used = sorted({
+        comp for p in perturbations for comp in parse_perturbation(p, delim)
+        if comp in contract.aliases and contract.aliases[comp].basis == "stable_id_join"
+    })
+    if not used:
+        return
+    if id_by_gene is None or NORMAN_ID_COLUMN not in var_columns:
+        raise ValueError(
+            f"Norman var has no {NORMAN_ID_COLUMN!r} column (the stable-ID join column, "
+            f"named as upstream spells it), needed by alias(es) {used}; "
+            f"var columns found: {list(var_columns)}"
+        )
+    problems: list[str] = []
+    for label in used:
+        alias = contract.aliases[label]
+        found = id_by_gene.get(alias.gene)
+        for ev in alias.evidence:
+            if ev.method != "ensembl_identity":
+                continue
+            if ev.join_column != NORMAN_ID_COLUMN:
+                problems.append(f"{label}->{alias.gene}: evidence join_column "
+                                f"{ev.join_column!r} != {NORMAN_ID_COLUMN!r}")
+            elif found is None:
+                problems.append(f"{label}->{alias.gene}: gene absent from var")
+            elif _strip_version(found) != _strip_version(str(ev.ensembl_id)):
+                problems.append(f"{label}->{alias.gene}: var[{NORMAN_ID_COLUMN!r}]="
+                                f"{found!r} != evidence {ev.ensembl_id!r}")
+    if problems:
+        raise ValueError("stable-ID join check failed: " + "; ".join(problems))
 
 
 def load_norman_matrix(
@@ -70,9 +122,12 @@ def load_norman_matrix(
     perturbation's cells. ``n_top_hvg`` is recorded as ``ds["hvg_n_top"]``
     and applied per held-out task on training cells only.
 
-    ``contract`` (CTO #250/#251): structural controls (whole label) join
+    ``contract`` (CTO #250/#251/#253): structural controls (whole label) join
     ``control_mask``; excluded labels (whole label) lose their cells and are
-    listed in ``ds["labels_excluded"]``; aliases apply PER TUPLE COMPONENT
+    listed in ``ds["labels_excluded"]`` as ``{"label", "reason",
+    "raw_labels", "n_cells"}``; every ``stable_id_join`` alias in use is
+    checked against ``var['ensemble_id']`` (:func:`verify_stable_id_joins`,
+    raises if the column is absent); aliases apply PER TUPLE COMPONENT
     (``A_B`` -> ``apply(A)``, ``apply(B)``) while the task label stays the
     original string. ``ds["label_contract"]`` is ``contract.to_provenance()``.
     """
@@ -102,19 +157,23 @@ def load_norman_matrix(
 
     rng = np.random.default_rng(2026)
     keep_mask = np.zeros(adata.n_obs, dtype=bool)
-    labels_excluded: list[dict[str, str]] = []
+    labels_excluded: list[dict] = []
     for p in np.unique(labels_raw):
         norm = _parse_pert_label(str(p))
-        if not _is_control_label(str(p)) and contract.is_excluded(norm):
-            entry = {"label": norm, "reason": contract.excluded[norm]}
-            if entry not in labels_excluded:
-                labels_excluded.append(entry)
-            continue
         idx = np.where(labels_raw == p)[0]
+        if not _is_control_label(str(p)) and contract.is_excluded(norm):
+            labels_excluded.append({"label": norm, "reason": contract.excluded[norm],
+                                    "raw_labels": [str(p)], "n_cells": int(len(idx))})
+            continue
         if len(idx) > max_cells_per_pert:
             idx = rng.choice(idx, size=max_cells_per_pert, replace=False)
         keep_mask[idx] = True
 
+    var_columns = [str(c) for c in adata.var.columns]
+    id_by_gene = (
+        dict(zip(gene_names.tolist(), adata.var[NORMAN_ID_COLUMN].astype(str).tolist()))
+        if NORMAN_ID_COLUMN in adata.var.columns else None
+    )
     sub = adata[keep_mask]
     labels_raw = labels_raw[keep_mask]
 
@@ -142,6 +201,8 @@ def load_norman_matrix(
         perturbations.append(str(norm_label))
     for p in perturbations:
         is_doublet(p, doublet_delim)  # raises on empty parts / >2 genes
+    verify_stable_id_joins(var_columns, id_by_gene, perturbations, contract,
+                           delim=doublet_delim)
 
     # D1: tuples of target columns, aliased per component; raises on any
     # target (after the contract) outside the vocab.

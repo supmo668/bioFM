@@ -1,4 +1,4 @@
-"""Label -> gene contract for perturbation labels (CTO #250, #251).
+"""Label -> gene contract for perturbation labels (CTO #250, #251, #253).
 
 The fail-closed resolver (:func:`perturb_eval.data.perturbations.resolve_target_indices`)
 refuses any label that is not a symbol in the dataset's gene vocabulary. A
@@ -20,6 +20,19 @@ table, never a fuzzy match:
 Aliases are applied PER TUPLE COMPONENT: a ``_``-joined doublet has each
 component looked up on its own, so an alias key is always a single component.
 
+An alias may also carry an ``expression_crosscheck`` evidence item (CTO #253):
+the candidate gene's own column in the labelled cells vs control cells, with
+the direction the screen's modality predicts and a verdict
+(``corroborated`` / ``inconclusive`` / ``contradicted``). A cross-check never
+upgrades a basis: it satisfies neither ``stable_id_join`` nor
+``evidence_curated``; it is rendered in provenance as ``corroboration``.
+
+Supersession: #253 supersedes #250 ruling 3 — Adamson ``3x`` (raw
+``3x_neg_ctrl_*``) is a STRUCTURAL CONTROL, no longer an exclusion. Adamson
+raw labels are classified structurally by
+:func:`perturb_eval.experiments.e2_adamson.parse_adamson_construct`; the
+contract keys below are the parsed single-gene task labels.
+
 Rule of evidence: an entry records only what the code and the data demonstrate.
 """
 
@@ -34,10 +47,14 @@ from typing import Any, Literal
 
 from perturb_eval.data.perturbations import parse_perturbation, resolve_target_indices
 
-AliasMethod = Literal["knockdown", "ensembl_identity"]
+AliasMethod = Literal["knockdown", "ensembl_identity", "expression_crosscheck"]
 AliasBasis = Literal["stable_id_join", "evidence_curated"]
+Direction = Literal["up", "down"]
+Verdict = Literal["corroborated", "inconclusive", "contradicted"]
 
-_METHODS: frozenset[str] = frozenset({"knockdown", "ensembl_identity"})
+_METHODS: frozenset[str] = frozenset({"knockdown", "ensembl_identity", "expression_crosscheck"})
+_DIRECTIONS: frozenset[str] = frozenset({"up", "down"})
+_VERDICTS: frozenset[str] = frozenset({"corroborated", "inconclusive", "contradicted"})
 _BASES: frozenset[str] = frozenset({"stable_id_join", "evidence_curated"})
 _ENSG_RE = re.compile(r"ENSG\d{11}(\.\d+)?")
 _KNOCKDOWN_FIELDS = (
@@ -49,6 +66,18 @@ _KNOCKDOWN_FIELDS = (
     "delta_rank_among_genes",
 )
 _ENSEMBL_FIELDS = ("ensembl_id", "source_dataset", "source_symbol", "join_column")
+_CROSSCHECK_FIELDS = (
+    "direction_expected",
+    "delta",
+    "delta_rank_among_genes",
+    "n_genes",
+    "verdict",
+)
+_METHOD_FIELDS: dict[str, tuple[str, ...]] = {
+    "knockdown": _KNOCKDOWN_FIELDS,
+    "ensembl_identity": _ENSEMBL_FIELDS,
+    "expression_crosscheck": _CROSSCHECK_FIELDS,
+}
 # |delta - (mean_log_labelled - mean_log_control)| tolerance (rounded evidence).
 _DELTA_ABS_TOL = 1e-4
 # Component delimiter the loaders use for doublets; an alias key never contains it.
@@ -78,7 +107,17 @@ class AliasEvidence:
 
     ``method="ensembl_identity"``: ``source_symbol``'s Ensembl ID in
     ``source_dataset``'s ``var[join_column]`` is ``ensembl_id`` (``ENSG...``),
-    equal to the candidate gene's ID in the target dataset.
+    equal to the candidate gene's ID in the target dataset. ``join_column``
+    names the TARGET dataset's ``var`` column the loader joins on, literally
+    (Norman: ``"ensemble_id"``, the upstream spelling).
+
+    ``method="expression_crosscheck"`` (CTO #253): the candidate gene's own
+    column, labelled minus control (``delta``), ranked ascending among
+    ``n_genes`` genes (``delta_rank_among_genes``: 1 = most negative,
+    ``n_genes`` = most positive), against ``direction_expected`` (CRISPRa ->
+    ``"up"``, CRISPRi -> ``"down"``). ``verdict="corroborated"`` requires
+    ``delta`` to have the expected sign. A cross-check never stands in for the
+    evidence a basis requires.
     """
 
     method: AliasMethod
@@ -94,16 +133,17 @@ class AliasEvidence:
     source_dataset: str | None = None
     source_symbol: str | None = None
     join_column: str | None = None
+    # expression_crosscheck (also uses delta, delta_rank_among_genes)
+    direction_expected: Direction | None = None
+    n_genes: int | None = None
+    verdict: Verdict | None = None
 
     def __post_init__(self) -> None:
         if self.method not in _METHODS:
             _fail(f"AliasEvidence.method must be one of {sorted(_METHODS)}, got {self.method!r}")
-        own, other = (
-            (_KNOCKDOWN_FIELDS, _ENSEMBL_FIELDS)
-            if self.method == "knockdown"
-            else (_ENSEMBL_FIELDS, _KNOCKDOWN_FIELDS)
-        )
-        stray = [f for f in other if getattr(self, f) is not None]
+        own = _METHOD_FIELDS[self.method]
+        every = {f.name for f in fields(self)} - {"method"}
+        stray = sorted(f for f in every - set(own) if getattr(self, f) is not None)
         if stray:
             _fail(f"{self.method} evidence must not set {stray}")
         missing = [f for f in own if getattr(self, f) is None]
@@ -111,8 +151,10 @@ class AliasEvidence:
             _fail(f"{self.method} evidence is missing {missing}")
         if self.method == "knockdown":
             self._validate_knockdown()
-        else:
+        elif self.method == "ensembl_identity":
             self._validate_ensembl()
+        else:
+            self._validate_crosscheck()
 
     def _validate_knockdown(self) -> None:
         if not _is_int(self.n_labelled_cells) or self.n_labelled_cells <= 0:  # type: ignore[operator]
@@ -142,8 +184,31 @@ class AliasEvidence:
             if not isinstance(v, str) or not v.strip():
                 _fail(f"ensembl_identity {f} must be a non-empty str, got {v!r}")
 
+    def _validate_crosscheck(self) -> None:
+        if self.direction_expected not in _DIRECTIONS:
+            _fail(f"expression_crosscheck direction_expected must be one of "
+                  f"{sorted(_DIRECTIONS)}, got {self.direction_expected!r}")
+        if self.verdict not in _VERDICTS:
+            _fail(f"expression_crosscheck verdict must be one of {sorted(_VERDICTS)}, "
+                  f"got {self.verdict!r}")
+        if not _is_finite(self.delta):
+            _fail(f"expression_crosscheck delta must be a finite number, got {self.delta!r}")
+        if not _is_int(self.n_genes) or self.n_genes <= 0:  # type: ignore[operator]
+            _fail(f"expression_crosscheck n_genes must be an int > 0, got {self.n_genes!r}")
+        rank = self.delta_rank_among_genes
+        if not _is_int(rank) or not 1 <= rank <= self.n_genes:  # type: ignore[operator]
+            _fail(f"expression_crosscheck delta_rank_among_genes must be an int in "
+                  f"[1, n_genes={self.n_genes}], got {rank!r}")
+        if self.verdict == "corroborated":
+            expected_sign = self.delta > 0 if self.direction_expected == "up" else self.delta < 0  # type: ignore[operator]
+            if not expected_sign:
+                _fail(f"expression_crosscheck verdict 'corroborated' needs delta in the "
+                      f"expected direction ({self.direction_expected}), got {self.delta!r}")
+
     def to_dict(self) -> dict[str, Any]:
-        return {f.name: getattr(self, f.name) for f in fields(self)}
+        own = set(_METHOD_FIELDS[self.method])
+        return {f.name: getattr(self, f.name) for f in fields(self)
+                if f.name == "method" or f.name in own}
 
 
 @dataclass(frozen=True)
@@ -189,10 +254,25 @@ class LabelAlias:
         if self.basis == "evidence_curated" and "knockdown" not in methods:
             _fail(f"LabelAlias {self.label!r}: basis evidence_curated needs at least one "
                   "knockdown evidence")
+        if sum(e.method == "expression_crosscheck" for e in ev) > 1:
+            _fail(f"LabelAlias {self.label!r}: at most one expression_crosscheck evidence")
 
     @property
     def needs_principal_confirmation(self) -> bool:
         return self.basis == "evidence_curated"
+
+    @property
+    def corroboration(self) -> str:
+        """Plain-text status: the basis, then the cross-check verdict VERBATIM.
+
+        The verdict is never promoted: ``inconclusive`` renders as
+        ``inconclusive``.
+        """
+        head = "join structural" if self.basis == "stable_id_join" else "evidence curated"
+        xc = [e for e in self.evidence if e.method == "expression_crosscheck"]
+        if not xc:
+            return f"{head}, no expression cross-check"
+        return f"{head}, expression cross-check {xc[0].verdict}"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -200,6 +280,7 @@ class LabelAlias:
             "gene": self.gene,
             "basis": self.basis,
             "needs_principal_confirmation": self.needs_principal_confirmation,
+            "corroboration": self.corroboration,
             "evidence": [e.to_dict() for e in self.evidence],
         }
 
@@ -306,29 +387,84 @@ def resolve_with_contract(
     return {lbl: resolved[g] for lbl, g in gene_labels.items() if g in resolved}
 
 
-ADAMSON_EXCLUDED_3X_REASON = (
-    "multi-target construct; composition unconfirmed; triplets unsupported by D1"
+ADAMSON_PERK_IRE1_REASON = (
+    "alias not corroborated: target not detected in this subset (control mean 0.0) and the "
+    "label pools multiple constructs; excluded rather than aliased."
+)
+ADAMSON_3X_CONTROL_BASIS = (
+    "label text classifies it as a negative-control construct ('3x_neg_ctrl'); "
+    "resolves to no gene in the dataset vocabulary"
 )
 
+# Keys are parsed single-gene task labels (parse_adamson_construct); multi-gene
+# constructs are excluded structurally by the parser, not listed here.
 ADAMSON_CONTRACT = LabelContract(
-    aliases={},  # filled from the evidence pass (CTO #250/#251)
+    aliases={},
     structural_controls={
         "Gal4-4(mod)": (
             "resolves to no gene in the dataset vocabulary; matches the existing "
-            "control-construct label shape handled by _is_control"
+            "control-construct label shape handled by parse_adamson_construct"
         ),
+        # CTO #253 supersedes #250 ruling 3 (was: excluded).
+        "3x": ADAMSON_3X_CONTROL_BASIS,
     },
-    excluded={"3x": ADAMSON_EXCLUDED_3X_REASON},
+    excluded={
+        "PERK": ADAMSON_PERK_IRE1_REASON,
+        "IRE1": ADAMSON_PERK_IRE1_REASON,
+    },
 )
 
-NORMAN_CONTRACT = LabelContract(aliases={}, structural_controls={}, excluded={})
+# Norman 2019 is CRISPR activation: an on-target effect is a RISE ("up").
+NORMAN_ID_COLUMN = "ensemble_id"  # upstream spelling of the Norman var column
+NORMAN_KIAA1804_REASON = (
+    "target gene not locatable in the dataset vocabulary under either name"
+)
+_ADAMSON_SOURCE = "Adamson2016_*.h5ad"
+
+
+def _norman_join(label: str, gene: str, ensg: str, xc: AliasEvidence) -> LabelAlias:
+    return LabelAlias(
+        label=label,
+        gene=gene,
+        basis="stable_id_join",
+        evidence=(
+            AliasEvidence(method="ensembl_identity", ensembl_id=ensg,
+                          source_dataset=_ADAMSON_SOURCE, source_symbol=label,
+                          join_column=NORMAN_ID_COLUMN),
+            xc,
+        ),
+    )
+
+
+NORMAN_CONTRACT = LabelContract(
+    aliases={
+        # Measured: label_evidence.json.txt (CTO #251 evidence pass).
+        "C3orf72": _norman_join(
+            "C3orf72", "FOXL2NB", "ENSG00000206262",
+            AliasEvidence(method="expression_crosscheck", direction_expected="up",
+                          delta=0.0061, delta_rank_among_genes=29770, n_genes=33694,
+                          verdict="inconclusive"),
+        ),
+        "C19orf26": _norman_join(
+            "C19orf26", "CBARP", "ENSG00000099625",
+            AliasEvidence(method="expression_crosscheck", direction_expected="up",
+                          delta=0.3013, delta_rank_among_genes=33690, n_genes=33694,
+                          verdict="corroborated"),
+        ),
+    },
+    structural_controls={},
+    excluded={"KIAA1804": NORMAN_KIAA1804_REASON},
+)
 
 
 __all__ = [
+    "ADAMSON_3X_CONTROL_BASIS",
     "ADAMSON_CONTRACT",
-    "ADAMSON_EXCLUDED_3X_REASON",
+    "ADAMSON_PERK_IRE1_REASON",
     "COMPONENT_DELIM",
     "NORMAN_CONTRACT",
+    "NORMAN_ID_COLUMN",
+    "NORMAN_KIAA1804_REASON",
     "PROVENANCE_KEYS",
     "AliasEvidence",
     "LabelAlias",

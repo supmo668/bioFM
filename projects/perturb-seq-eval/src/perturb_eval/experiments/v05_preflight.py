@@ -78,7 +78,7 @@ class PreflightReport:
     # CTO #250: {dataset: label_contract provenance} and
     # ({"dataset", "label", "reason"}, ...) for provenance.tasks_excluded.
     label_contracts: dict[str, Mapping[str, Any]] = field(default_factory=dict)
-    labels_excluded: tuple[dict[str, str], ...] = field(default_factory=tuple)
+    labels_excluded: tuple[dict[str, Any], ...] = field(default_factory=tuple)
 
 
 def openrouter_probe(env: Mapping[str, str]) -> str | None:
@@ -259,8 +259,9 @@ def preflight(
     label_contracts = {
         name: ds["label_contract"] for name, ds in loaded.items() if "label_contract" in ds
     }
+    # CTO #253: raw_labels / n_cells (when the loader records them) pass through.
     labels_excluded = tuple(
-        {"dataset": name, "label": str(e["label"]), "reason": str(e["reason"])}
+        {**dict(e), "dataset": name, "label": str(e["label"]), "reason": str(e["reason"])}
         for name, ds in loaded.items()
         for e in ds.get("labels_excluded", ())
     )

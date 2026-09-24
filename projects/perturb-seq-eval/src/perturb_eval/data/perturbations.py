@@ -10,7 +10,7 @@ the vocabulary is an error, reported for every ``(label, gene)`` pair at once.
 
 Labels must already be gene-level. Raw Adamson guide labels
 (``DDIT3_pDS263``, control ``62(mod)_pBA581``) carry a ``_``-joined plasmid
-suffix and are NOT doublets — normalise them first (``e2_adamson._normalise_pert_label``).
+suffix and are NOT doublets — parse them first (``e2_adamson.parse_adamson_construct``).
 """
 
 from __future__ import annotations

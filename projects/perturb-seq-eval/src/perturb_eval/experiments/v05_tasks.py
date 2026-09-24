@@ -112,6 +112,7 @@ def build_task_lists(
     tfs = np.array([lbl for lbl, _ in pooled], dtype=object)
     strengths = np.array([s for _, s in pooled], dtype=float)
     adamson_n = adamson_n_per_bin * adamson_n_bins
+    bin_pool_sizes: dict[str, int] = {}
     if len(tfs) > adamson_n:
         bin_edges = np.quantile(strengths, np.linspace(0, 1, adamson_n_bins + 1))
         # digitize returns bin ids in [1..n_bins]; clamp to [0..n_bins-1].
@@ -120,6 +121,11 @@ def build_task_lists(
         )
         for lbl, b in zip(tfs, bin_ids):
             strata[f"adamson:{lbl}"] = int(b)
+        # Per-bin pool sizes (CTO #253 addition 1): a bin short of
+        # adamson_n_per_bin is topped up from the others; the total is asserted.
+        bin_pool_sizes = {
+            f"adamson_bin_{b}": int((bin_ids == b).sum()) for b in range(adamson_n_bins)
+        }
         adamson = tuple(
             str(x)
             for x in stratified_subsample(
@@ -180,6 +186,7 @@ def build_task_lists(
             "adamson": len(tfs),
             "norman_singletons": len(singletons),
             "norman_doublets": len(doublets),
+            **bin_pool_sizes,
         },
     )
 
