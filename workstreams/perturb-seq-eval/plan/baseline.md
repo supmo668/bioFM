@@ -69,3 +69,9 @@ back to 2.3.3 and restores the plain-dataset layout.
 | requests | 2.34.2 |
 | cma | 4.5.0 |
 | pytest | 9.1.1 |
+
+## 2026-09-24 — torch added to the local venv (CTO #241 finding)
+Without torch, `available_backbones()` drops `scgpt_small`, so the Architect silently resolves it to `linear`.
+Measured on WIP 9cfb4db: scgpt_small.py coverage 23% (no torch) vs 84% (torch); `test_freedom_e2e::test_architect_choice_entropy_above_gate`
+passed without torch while training linear. Installed CPU `torch==2.14.0` into `.venv`.
+Live tree after P1 WIP + T7/T9/T10: **286 passed, 0 skipped, 0 failed** (`.venv/bin/python -m pytest -q -p no:cacheprovider`).
