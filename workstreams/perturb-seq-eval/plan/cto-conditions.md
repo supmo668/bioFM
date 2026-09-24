@@ -12,7 +12,10 @@ principal-signed plan hash is not drifted; each condition tightens a task, none 
 | C-RG-2 | T8 / T11 (D1) | Same red-then-green standard for the Norman doublet assertion. |
 | D1-confirm | T2/T11/T24 | "Norman keeps 15+5" = the documented design restored: 15 singletons + 5 doublets = 20 Norman tasks; with 21 Adamson = 41 tasks. |
 
-Open with the CTO (raised in reply to #233): #233 permits the trainer sweep to run before the key exists. That
+RESOLVED by CTO #235 — RULED (A): hold the whole sweep until the key exists; run once; do NOT build (B)'s guard.
+If the key has not landed when P0-P4 are done, report at the sweep gate (do not idle) — (B) only as a recorded, expiring exception.
+
+History (raised in reply to #233): #233 permits the trainer sweep to run before the key exists. That
 would make trainer and lifecycle two processes — the A1 shape #202 forbids. Proposed: one process once the key
 lands; if a split is ruled acceptable, the lifecycle run must load the trainer provenance record and hard-fail
 unless its resolved task list, dataset digests and git SHA are identical.
