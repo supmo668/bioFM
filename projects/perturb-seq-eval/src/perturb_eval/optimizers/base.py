@@ -23,26 +23,41 @@ class Observation:
     objective: float             # lower = better (MSD)
 
 
-def config_to_vec(phi: Config) -> np.ndarray:
+def backbones_of(space: tuple[Config, ...]) -> tuple[str, ...]:
+    """Sorted unique backbone names of a config space: the one-hot vocabulary."""
+    return tuple(sorted({c.backbone for c in space}))
+
+
+def config_to_vec(phi: Config, backbones: tuple[str, ...]) -> np.ndarray:
     """Continuous relaxation of a Config: n_agents and n_rounds min-max
-    scaled, backbone one-hot concatenated.
+    scaled, backbone one-hot (over ``backbones``) concatenated.
+
+    ``backbones`` is the vocabulary derived by the caller from its config
+    space via :func:`backbones_of`. A backbone outside it raises
+    ``ValueError`` -- there is no silent default slot (T18 / A5: the old
+    hard-coded ``.get(backbone, 0)`` collapsed every real backbone onto
+    one index).
 
     This is the embedding every optimizer uses internally so that (a) CMA-ES
     can treat Φ as ℝⁿ and (b) the contextual GP has a well-defined distance
     on discrete configs.
     """
-    backbone_index = {"scGPT": 0, "scPRINT-2": 1, "scFoundation": 2}.get(phi.backbone, 0)
-    n_backbones = 3
-    vec = np.zeros(2 + n_backbones, dtype=np.float64)
+    if phi.backbone not in backbones:
+        raise ValueError(
+            f"unknown backbone {phi.backbone!r}; expected one of {backbones!r}"
+        )
+    vec = np.zeros(2 + len(backbones), dtype=np.float64)
     vec[0] = phi.n_agents / 5.0
     vec[1] = phi.n_rounds / 3.0
-    vec[2 + backbone_index] = 1.0
+    vec[2 + backbones.index(phi.backbone)] = 1.0
     return vec
 
 
-def nearest_config(v: np.ndarray, space: tuple[Config, ...]) -> Config:
+def nearest_config(
+    v: np.ndarray, space: tuple[Config, ...], backbones: tuple[str, ...]
+) -> Config:
     """Project a continuous point back onto the finite configuration space."""
-    candidates = np.stack([config_to_vec(c) for c in space], axis=0)
+    candidates = np.stack([config_to_vec(c, backbones) for c in space], axis=0)
     dists = np.linalg.norm(candidates - v, axis=1)
     return space[int(np.argmin(dists))]
 

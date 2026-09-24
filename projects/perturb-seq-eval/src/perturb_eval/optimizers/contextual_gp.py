@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from perturb_eval.optimizers.base import Observation, config_to_vec
+from perturb_eval.optimizers.base import Observation, backbones_of, config_to_vec
 from perturb_eval.types import Config
 
 
@@ -49,13 +49,14 @@ class ContextualGPOptimizer:
         xi: float = 0.01,
     ) -> None:
         self._space = config_space
+        self._backbones = backbones_of(config_space)
         self._rng = np.random.default_rng(seed)
         self._ls_phi = length_scale_phi
         self._ls_x = length_scale_x
         self._noise = noise
         self._xi = xi
         # Precompute embeddings for the finite Φ.
-        self._phi_embed = np.stack([config_to_vec(c) for c in config_space], axis=0)
+        self._phi_embed = np.stack([config_to_vec(c, self._backbones) for c in config_space], axis=0)
 
     def suggest(self, context: np.ndarray, observed: list[Observation]) -> Config:
         context = np.asarray(context, dtype=np.float64).reshape(-1)
@@ -64,7 +65,7 @@ class ContextualGPOptimizer:
             idx = int(self._rng.integers(0, len(self._space)))
             return self._space[idx]
 
-        phi_obs = np.stack([config_to_vec(o.config) for o in observed], axis=0)
+        phi_obs = np.stack([config_to_vec(o.config, self._backbones) for o in observed], axis=0)
         x_obs = np.stack([np.asarray(o.context, dtype=np.float64) for o in observed], axis=0)
         y_obs = np.array([o.objective for o in observed], dtype=np.float64)
         y_mean = float(y_obs.mean())

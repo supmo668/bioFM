@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -28,8 +27,7 @@ from perturb_eval.experiments import (
     run_e3_optimizer_comparison,
     train_grid_cell_synthetic,
 )
-from perturb_eval.experiments.e2_grid_fill import phi_identifier, write_results_jsonl
-from perturb_eval.experiments.e3_optimizer_comparison import _phi_key
+from perturb_eval.experiments.e2_grid_fill import write_results_jsonl
 from perturb_eval.types import Config, RoundTrace, RunTrace
 
 
