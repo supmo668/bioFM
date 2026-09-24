@@ -369,3 +369,121 @@ publishers. **None of them deposits to an academic repository.** So:
 2. **Slack target channel** — unnamed.
 3. **Five of six venue tokens** absent; Zenodo asserted to be in Infisical but still
    unverified (§8).
+
+---
+
+## 12. Generalisation — one pipeline, any project, knowledge carried in the workflow
+
+Principal's requirement (2026-09-24): the pipeline must serve **any project**, not just
+`perturb-seq-eval`, and the **instructions, credential requirements and notes — including
+the human arXiv gap — must live in the workflow itself**, not only in this document.
+
+### 12.1 The per-project contract already exists — generalise it, do not invent one
+
+`scripts/publish/publish.yml.template` is already the right shape: `title`, `description`,
+`version`, `license`, `related_url`, `authors` (with ORCID and affiliation), `keywords`,
+`artifacts` (path + description), and a per-venue block carrying each venue's own
+vocabulary (`upload_type`, `defined_type`, `provider`, `subjects`, licence ids). It even
+says "keep sensitive tokens out of this file". **Build on it.** Four changes make it
+project-agnostic:
+
+1. **Move it from repo root to the project.** Today it is copied to `./publish.yml`, one
+   per *repo*. It becomes `<project>/publish.yml`, one per *project*, and the pipeline
+   takes `PROJECT_PATH` as its input. That is the whole of "works for any project".
+2. **Make `artifacts[].path` project-relative**, so a project directory is self-contained
+   and portable rather than carrying repo-root paths.
+3. **Add `topic:`** — required, **no default** (§4: a defaulted topic silently co-mingles
+   two publications in one folder). It names the asset folder.
+4. **Add the remaining venue blocks**, plus a `manual:` section for the prepare-only
+   venues (§12.3).
+
+A project is then publishable iff it has a valid `publish.yml`. Nothing else about it
+needs to be known — no per-project workflow, no fork, no new nodes.
+
+### 12.2 Where the knowledge lives — three surfaces, all inside the workflow
+
+n8n mechanisms verified against the live instance before specifying them:
+`n8n-nodes-base.stickyNote` exists, as does `n8n-nodes-base.slack`.
+
+| surface | carries | why there |
+|---|---|---|
+| workflow `description` | one paragraph: what this publishes, what it **cannot** do, where the contract lives | it is what a reader sees before opening anything |
+| **sticky notes** on canvas | four blocks, below | visible without reading a single node's parameters |
+| per-node `notes` | that venue's API, auth mechanism, publish-vs-update semantics, and **confidence level** | the detail belongs beside the thing it describes |
+
+The four sticky notes, and they are not decoration — each answers a question an operator
+asks at 2am:
+
+- **RUN VARIABLES** — `PROJECT_PATH`, `TOPIC`, `VERSION`, `MODE`, `VENUES`,
+  `PUBLICATION_ROOT`; which are required; that `TOPIC` has no default and why.
+- **CREDENTIALS REQUIRED** — §12.4. Names and scopes only.
+- **⚠ THE HUMAN GAP** — §12.3. Its own note, not a footnote on another.
+- **FAILURE SEMANTICS** — a run is a failure if any *enabled* venue failed;
+  `PREPARED` never counts as published; partial success is still failure.
+
+Plus one **preflight node** that emits a capability report before anything is sent: which
+credentials are present, which venues are therefore reachable, which are prepare-only. A
+pipeline that can tell you what it is able to do today is worth more than a document that
+says what it could do in principle.
+
+### 12.3 The human arXiv gap is a first-class element, not a caveat
+
+arXiv's public API is read/search only — submission is a web form. bioRxiv has no deposit
+API. **This is permanent and the pipeline must be built as though it is**, because the
+failure mode is a run that *looks* complete.
+
+Four mechanisms, and all four are needed — any one alone degrades:
+
+1. **Its own sticky note**, worded so nobody has to infer it: *"arXiv and bioRxiv cannot
+   be automated. No API exists. This pipeline prepares the bundle and a checklist; a human
+   uploads it. A run where only these ran has published nothing."*
+2. **A dedicated node** that always runs for these venues and always produces the
+   checklist — never a branch that can be skipped when the rest succeeds.
+3. **A status vocabulary in which `PUBLISHED` is unreachable for them.** They can only
+   emit `PREPARED (manual upload required)`. Make it structurally impossible rather than
+   conventionally avoided.
+4. **Separate counting everywhere** — the Slack summary's `3 published · 2 prepared · 1
+   failed` (§6) must never fold prepared into published, and the manifest records them as
+   distinct outcomes.
+
+The checklist lands at `<PUBLICATION_ROOT>/<topic>/receipts/arxiv.checklist.md` with the
+bundle path, the validated metadata the venue will demand, and the submission URL — so
+the human step is five minutes of copying, not a re-derivation.
+
+### 12.4 Credentials: requirements in the workflow, values never
+
+"Keep creds known in the workflow" reads two ways and only one is safe. **The
+requirements are documented in the workflow; the secrets are not in it.**
+
+- The CREDENTIALS sticky note lists, per venue: the **credential name**, the **scopes**
+  needed (e.g. Zenodo's `deposit:write` + `deposit:actions`), and the **Infisical key** it
+  is sourced from. Names and scopes only — never a value, never a fragment of one.
+- Under (a), adapters read the environment, sourced from Infisical; n8n holds **no venue
+  credential at all**, so there is one place to rotate. Under (b), n8n holds a credential
+  object per venue, referenced by id — still never a literal in the workflow JSON.
+- The instance already has this convention: a credential named `Bing Webmaster API key
+  (Infisical…)` states its source in its own name. Follow it.
+- **A missing credential must fail by name**: *"venue `dryad` skipped — credential
+  `DRYAD_TOKEN` not found"*, never a silent skip and never a generic auth error. The
+  preflight node reports this before the run rather than during it.
+
+### 12.5 What this changes about the open (a)/(b) decision
+
+It shifts one argument and leaves the others standing, so I am recording it rather than
+quietly re-recommending.
+
+**For (b):** "knowledge lives in the pipeline" is *easier* under all-HTTP-nodes, because
+there is only one artifact to read.
+
+**Unchanged for (a):** one place to rotate credentials; venue logic testable without a
+live n8n; reviewable diffs; adapters that survive a change of platform.
+
+**The synthesis I would actually build, and it resolves the tension:** keep the adapters
+in Python (a), and make the workflow's sticky notes and node `notes` **generated from the
+adapter source** rather than hand-written. Each adapter declares its API, auth, scopes,
+publish/update semantics and confidence in one structured place; a build step renders
+those into the workflow JSON. Single source of truth, displayed *in* the pipeline, and it
+cannot drift — which hand-maintained documentation in either design always does. That is
+the only version of this requirement that stays true six months later.
+
+**Still blocked on the principal**, and this section does not unblock it.
