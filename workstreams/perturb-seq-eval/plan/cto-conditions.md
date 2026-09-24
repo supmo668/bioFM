@@ -31,3 +31,13 @@ measures the import, not the agent.
 - **T22:** preflight asserts every backbone in the resolved `backbones` kwarg is in `available_backbones()`; fails closed.
 - **Test:** the alias test gets `pytest.importorskip("torch")` (a local-environment skip, never a pass), plus a new
   torch-independent test that a KNOWN-but-unavailable backbone raises instead of degrading (ruling requested — see reply).
+
+## C-TORCH-2 (CTO #241, RULED) — tightens T22 + adds a small task at the P2 boundary
+- `_canonical_backbone`: **known-but-unavailable → raise**; unknown name → `linear` unchanged (documented fallback).
+- (a) Verify no caller swallows it: trace every path from `_canonical_backbone` up through the Architect and the
+  sweep; any broad `except` around config resolution must re-raise. Name the paths in the report.
+- (b) T22 preflight asserts every resolved sweep backbone is in `available_backbones()`, so the raise is dead code
+  in a healthy run. If it can fire during a normal sweep, the preflight is incomplete.
+- Alias test uses `pytest.importorskip("torch")`; every gate report states skips **counted and named**
+  (e.g. "N passed, 1 skipped (torch absent: test_alias_scgpt_to_scgpt_small)"), never folded into green.
+- Report back: which local tests pass for the wrong reason without torch (compare suite with vs without torch).
