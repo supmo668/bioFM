@@ -27,12 +27,18 @@ from perturb_eval.data.hvg import HVG_MODE, all_target_columns, remap_targets
 from perturb_eval.agentic_lifecycle.data_curator_exec import execute_data_curator
 from perturb_eval.agentic_lifecycle.literature_exec import extract_expected_genes
 from perturb_eval.agentic_lifecycle.trainer_exec import execute_trainer
-from perturb_eval.agentic_lifecycle.types import LifecycleRun, LifecycleStep
+from perturb_eval.agentic_lifecycle.types import STEP_SOURCES, LifecycleRun, LifecycleStep
 from perturb_eval.agentic_lifecycle.validator_gate import score_and_gate
 
 
 class AgentPool(Protocol):
-    """Produces structured proposals per role, with optional refinement context."""
+    """Produces structured proposals per role, with optional refinement context.
+
+    ``propose`` returns ``{"content", "rationale", "confidence", "model_id",
+    "source"}``. ``source`` is REQUIRED and must be one of
+    :data:`~perturb_eval.agentic_lifecycle.types.STEP_SOURCES`; the loop
+    raises rather than defaulting it, so no pool can masquerade as "llm".
+    """
 
     def propose(
         self,
@@ -47,7 +53,7 @@ class AgentPool(Protocol):
 
 @dataclass
 class MockAgentPool:
-    """Deterministic offline pool used in unit tests."""
+    """Deterministic offline pool used in unit tests (``source="mock"``)."""
 
     seed: int = 0
 
@@ -60,6 +66,10 @@ class MockAgentPool:
         *,
         seed: int,  # noqa: ARG002 — mock uses self.seed
     ) -> dict:
+        out = self._propose(role, round_index, task_id)
+        return {**out, "model_id": None, "source": "mock"}
+
+    def _propose(self, role: str, round_index: int, task_id: str) -> dict:
         rng = np.random.default_rng(self.seed + round_index * 11 + (abs(hash(role)) % 97))
         if role == "DataCurator":
             return {
@@ -142,6 +152,22 @@ def _remap_held_out_target(
             )
         remapped.append(old_to_new[gene])
     return tuple(remapped)
+
+
+def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str]:
+    """``(model_id, source)`` from a pool's propose output — fail loud (D4)."""
+    source = agent_out["source"]
+    if source not in STEP_SOURCES:
+        raise ValueError(
+            f"{role}: pool returned source={source!r}; expected one of {STEP_SOURCES}"
+        )
+    model_id = agent_out.get("model_id")
+    if (source == "llm") != (model_id is not None):
+        raise ValueError(
+            f"{role}: source={source!r} with model_id={model_id!r} — an 'llm' "
+            "step must name its serving model and only an 'llm' step may"
+        )
+    return model_id, source
 
 
 def run_agentic_lifecycle(
@@ -252,6 +278,7 @@ def run_agentic_lifecycle(
             ("Trainer", trn),
             ("Validator", val),
         ):
+            model_id, source = _step_provenance(role, agent_out)
             steps.append(
                 LifecycleStep(
                     round_index=r,
@@ -262,6 +289,8 @@ def run_agentic_lifecycle(
                     execution_artifact_path=None,
                     wall_time_sec=round_wall,
                     succeeded=tinfo["succeeded"] if role == "Trainer" else True,
+                    model_id=model_id,
+                    source=source,
                 )
             )
 

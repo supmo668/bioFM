@@ -2,9 +2,13 @@
 
 Each of the five agents emits a Pydantic-validated proposal, with the
 validator's structured critique threaded into the next round's Architect
-prompt. On LLM failure (rate-limited, parse error, network), a
-deterministic rule-based fallback keeps the lifecycle runnable — the
-paper's §5 freedom analysis filters those rows out of the entropy calc.
+prompt. On a *documented runtime* LLM failure (see
+:data:`FALLBACK_EXCEPTIONS`) a deterministic rule-based fallback keeps the
+lifecycle runnable; the proposal is tagged ``source="fallback"``,
+``model_id=None`` so the analyser excludes it from entropy (D4) and the
+real sweep can refuse the run (C-KEY-2). Programming errors (TypeError,
+AttributeError, NameError, KeyError, ...) propagate — they never
+masquerade as a fallback.
 """
 
 from __future__ import annotations
@@ -15,6 +19,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+import requests
+from pydantic import ValidationError
+
 from perturb_eval.agentic_lifecycle.proposal_schema import (
     ArchitectProposal,
     DataCuratorProposal,
@@ -23,6 +30,7 @@ from perturb_eval.agentic_lifecycle.proposal_schema import (
     ValidatorProposal,
     parse_proposal,
 )
+from perturb_eval.llm.openrouter_client import ChatResult, OpenRouterError
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +44,24 @@ class _ClientLike(Protocol):
         round_index: int,
         prompt: str,
         seed: int,
-    ) -> dict: ...
+    ) -> ChatResult: ...
+
+
+# The ONLY exceptions that may turn an LLM proposal into a rule-based
+# fallback. Everything else is a bug in our code and must propagate.
+#   * OpenRouterError (incl. RateLimitedError): pool exhausted / every
+#     candidate failed on HTTP status or JSON parse after the reformat retry.
+#   * requests.RequestException: network / HTTP transport failure raised by
+#     ``session.post`` (ConnectionError, Timeout, HTTPError, ...).
+#   * json.JSONDecodeError: unparseable model output reaching us.
+#   * pydantic.ValidationError: the served JSON violates the role schema
+#     (including a non-object payload).
+FALLBACK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    OpenRouterError,
+    requests.RequestException,
+    json.JSONDecodeError,
+    ValidationError,
+)
 
 
 _SYSTEM_PREAMBLE = (
@@ -133,29 +158,35 @@ class LLMAgentPool:
             prompt = _simple_prompt(role, task_id, round_index, context)
 
         try:
-            raw = self.client.chat_json(
+            result = self.client.chat_json(
                 role=role,
                 task_id=task_id,
                 round_index=round_index,
                 prompt=prompt,
                 seed=seed,
             )
-        except Exception as exc:  # noqa: BLE001 — any LLM failure falls back
-            self._log.warning("LLM pool: role=%s fallback (%s)", role, exc)
-            raw = _rule_based_fallback(role, context)
+            parsed = parse_proposal(role, result.content).model_dump()
+        except FALLBACK_EXCEPTIONS as exc:
+            self._log.warning(
+                "LLM pool: role=%s fallback (%s: %s)", role, type(exc).__name__, exc
+            )
+            fallback = _rule_based_fallback(role, context)
+            return {
+                "content": fallback,
+                "rationale": str(fallback.get("rationale", "")),
+                "confidence": 0.7,
+                "model_id": None,
+                "source": "fallback",
+            }
 
-        # Schema-validate. On Pydantic failure, fall back to defaults.
-        try:
-            parsed = parse_proposal(role, raw).model_dump()
-        except Exception as exc:  # noqa: BLE001
-            self._log.warning("LLM pool: role=%s parse fallback (%s)", role, exc)
-            parsed = _rule_based_fallback(role, context)
-
+        raw = result.content
         return {
             "content": parsed,
             "rationale": str(raw.get("rationale", parsed.get("rationale", ""))),
             "confidence": float(raw.get("confidence", 0.7)),
+            "model_id": result.model_id,
+            "source": "llm",
         }
 
 
-__all__ = ["LLMAgentPool"]
+__all__ = ["FALLBACK_EXCEPTIONS", "LLMAgentPool"]

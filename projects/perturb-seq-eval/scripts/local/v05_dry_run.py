@@ -33,10 +33,17 @@ from perturb_eval.data.subsample import (
     stratified_subsample,
 )
 from perturb_eval.experiments.e2_adamson import load_adamson_combined
+from perturb_eval.llm.openrouter_client import ChatResult
 
 
 class _DeterministicStubClient:
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> ChatResult:
+        return ChatResult(
+            content=self._payload(role=role, task_id=task_id, round_index=round_index),
+            model_id="stub/deterministic",
+        )
+
+    def _payload(self, *, role: str, task_id: str, round_index: int) -> dict:
         h = abs(hash((task_id, round_index, role))) % 100
         if role == "DataCurator":
             return {"hvg_method": "seurat", "hvg_count": 500 if h % 2 else 1000}

@@ -52,3 +52,10 @@ measures the import, not the agent.
   `test_architect_choice_entropy_above_gate`; run the suite ONCE in a torch-less venv and capture both reported as
   SKIPPED by name → `workstreams/perturb-seq-eval/qgr/evidence/C-TORCH-3-skip-guards-fire.txt`.
 - Standing heuristic (CTO): any "if unavailable, use X" is guilty until proven loud — reviewers grep for it at every gate.
+
+## Carry-forward into T22 (found integrating P3, 2026-09-24)
+- `app_v05.py` (P3/T13) currently marks a run `partial` when the lifecycle sweep is SKIPPED for lack of a key. That is a
+  trainer-only run — the split shape CTO #235 ruled out. T22 must replace it: key absent (presence check only) or a pool
+  probe with no usable model ⇒ **refuse the whole run in preflight, before any GPU work** (C-KEY-1). No skip path remains.
+- Paper-fill tooling (`scripts/paper/fill_v050_numbers.py`) must refuse any `summary.json` whose `status` is not `ok`
+  (analyser escape hatches produce `*_DIAGNOSTIC_ONLY` summaries with null gates) — noted for the CTO; out of #202 scope.

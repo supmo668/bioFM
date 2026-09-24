@@ -21,10 +21,14 @@ Deploy + run::
         --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
 
 Artifacts land on the ``perturb-eval-data`` volume under
-``/data/v0.5.0/``. Download with::
+``/data/<version>/`` (``--version``, default ``v0.6.0``). Record 0 of
+``trainer_runs.jsonl`` and ``lifecycle_runs.jsonl`` is the run's provenance
+record (``{"record_type": "provenance", ...}``); ``provenance.json`` holds the
+finalized copy. The host-side entrypoint also writes the resolved kwargs to
+``configs/runs/<run_id>.json`` (T17). Download with::
 
-    modal volume get perturb-eval-data /v0.5.0/runs.jsonl \\
-        ./artifacts/v0.5.0/runs.jsonl --force
+    modal volume get perturb-eval-data /v0.6.0/trainer_runs.jsonl \\
+        ./artifacts/v0.6.0/trainer_runs.jsonl --force
 """
 
 from __future__ import annotations
@@ -83,6 +87,13 @@ BIOFM_VOL = modal.Volume.from_name("biofm-cache", create_if_missing=True)
 # A100-40G on Modal — $1.32/hr (2026 rates). Hard-kill budget:
 _A100_HOURLY_USD = 1.32
 _BUDGET_HARD_KILL_USD = 28.0
+_GPU = "A100-40GB"
+
+# Sweep-shape defaults shared by ``run_v05_sweep`` and the host entrypoint so the
+# entrypoint can pass (and record) every resolved kwarg explicitly.
+_DEFAULT_N_SWEEP: tuple[int, ...] = (3, 5)
+_DEFAULT_R_SWEEP: tuple[int, ...] = (1, 2, 3)
+_DEFAULT_BACKBONES: tuple[str, ...] = ("linear", "mlp", "scgpt_small")
 
 
 def _env_secrets() -> dict[str, str]:
@@ -92,7 +103,7 @@ def _env_secrets() -> dict[str, str]:
 
 @app.function(
     image=image,
-    gpu="A100-40GB",
+    gpu=_GPU,
     cpu=4.0,
     memory=32768,
     timeout=21600,  # 6 h ceiling
@@ -106,22 +117,41 @@ def run_v05_sweep(
     adamson_n_per_bin: int = 7,  # 3 bins × 7 = ~21 TFs
     adamson_n_bins: int = 3,
     seeds: int = 3,
-    n_sweep: tuple[int, ...] = (3, 5),
-    r_sweep: tuple[int, ...] = (1, 2, 3),
-    backbones: tuple[str, ...] = ("linear", "mlp", "scgpt_small"),
+    n_sweep: tuple[int, ...] = _DEFAULT_N_SWEEP,
+    r_sweep: tuple[int, ...] = _DEFAULT_R_SWEEP,
+    backbones: tuple[str, ...] = _DEFAULT_BACKBONES,
     include_norman: bool = True,
     include_adamson: bool = True,
     max_tasks_override: int | None = None,
     doublet_delim: str = "_",
+    n_top_hvg: int = 2000,
+    max_cells_per_pert: int = 200,
+    cooldown_sec: float = 60.0,
+    temperature: float = 0.3,
+    version: str = "v0.6.0",
+    git_sha: str = "",
+    git_dirty: bool = False,
+    run_id: str = "",
 ) -> dict:
     """Run the v0.5.0 single-stage sweep on real Adamson + Norman data.
+
+    ``git_sha`` / ``git_dirty`` / ``run_id`` are computed on the host by the
+    local entrypoint (the container has no ``.git``); a direct ``.remote()``
+    call without them fails closed in ``build_provenance``.
 
     Returns
     -------
     dict
-        Provenance summary: ``{n_trainer_runs, n_lifecycle_runs,
-        total_gpu_seconds, total_cost_usd, started_at, finished_at}``.
+        Summary: ``{run_id, status, n_trainer_runs, n_lifecycle_runs,
+        gpu_seconds, gpu_seconds_source, total_cost_usd, started_at, finished_at}``.
     """
+    # Every resolved kwarg, captured before any other local is bound (T13).
+    resolved_kwargs = dict(locals())
+    started_at = time.time()
+
+    import datetime as _dt
+    import hashlib
+    import inspect
 
     from perturb_eval.agentic_lifecycle.freedom_probe import (
         per_agent_field_entropy,
@@ -135,15 +165,48 @@ def run_v05_sweep(
     from perturb_eval.experiments.norman import load_norman_matrix
     from perturb_eval.experiments.v05_sweep import lifecycle_record
     from perturb_eval.experiments.v05_tasks import build_task_lists
+    from perturb_eval.experiments.provenance import (
+        build_provenance,
+        collect_hvg_and_params,
+        finalize_provenance,
+        jsonl_provenance_line,
+    )
     from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
-    out_dir = Path("/data/v0.5.0")
+    out_dir = Path(f"/data/{version}")
     out_dir.mkdir(parents=True, exist_ok=True)
     trainer_out = out_dir / "trainer_runs.jsonl"
     lifecycle_out = out_dir / "lifecycle_runs.jsonl"
     provenance_out = out_dir / "provenance.json"
+    # Record 0 of each JSONL must be this run's provenance: refuse to append to a
+    # previous run's output (checked before any data/GPU work).
+    for _p in (trainer_out, lifecycle_out):
+        if _p.exists() and _p.stat().st_size > 0:
+            raise RuntimeError(
+                f"{_p} already has records from an earlier run; use a new --version "
+                "or move the old files aside"
+            )
 
-    started_at = time.time()
+    # OpenRouterClient currently hardcodes temperature=0.3 in its request body.
+    # Pass the kwarg through if the client accepts it; otherwise refuse any value
+    # the client would silently ignore.
+    _client_params = inspect.signature(OpenRouterClient.__init__).parameters
+    _client_takes_temperature = "temperature" in _client_params
+    if not _client_takes_temperature and temperature != 0.3:
+        raise ValueError(
+            f"temperature={temperature} requested but OpenRouterClient does not accept a "
+            "temperature (hardcoded 0.3)"
+        )
+
+    def _iso(ts: float) -> str:
+        return _dt.datetime.fromtimestamp(ts, _dt.timezone.utc).isoformat()
+
+    def _sha256(path: Path) -> str:
+        h = hashlib.sha256()
+        with Path(path).open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
 
     def _cost_usd_so_far() -> float:
         return (time.time() - started_at) / 3600.0 * _A100_HOURLY_USD
@@ -171,14 +234,23 @@ def run_v05_sweep(
     norman_ds = None
     adamson_summary: dict[str, dict[str, float]] = {}
     norman_labels: list[str] = []
+    dataset_records: list[dict] = []
 
     if include_adamson:
         adamson_paths = fetch_adamson_all(dest_dir=data_dir)
+        adamson_files = [adamson_paths[k] for k in sorted(adamson_paths)]
         adamson_ds = load_adamson_combined(
-            [adamson_paths[k] for k in sorted(adamson_paths)],
-            n_top_hvg=2000,
-            max_cells_per_pert=200,
+            adamson_files,
+            n_top_hvg=n_top_hvg,
+            max_cells_per_pert=max_cells_per_pert,
         )
+        dataset_records.append({
+            "name": "adamson_full",
+            "path": [str(f) for f in adamson_files],
+            "sha256": [_sha256(f) for f in adamson_files],
+            "n_cells": int(adamson_ds["X"].shape[0]),
+            "n_genes": int(adamson_ds["X"].shape[1]),
+        })
         # Per-target |logFC| on the combined dataset → quantile strata.
         adamson_summary["adamson_full"] = mean_abs_logfc_per_target(
             adamson_ds["X"],
@@ -190,9 +262,16 @@ def run_v05_sweep(
     if include_norman:
         norman_path = fetch_norman(dest_dir=data_dir)
         norman_ds = load_norman_matrix(
-            norman_path, n_top_hvg=2000, max_cells_per_pert=200
+            norman_path, n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert
         )
         norman_labels = list(norman_ds["perturbations"])
+        dataset_records.append({
+            "name": "norman",
+            "path": str(norman_path),
+            "sha256": _sha256(norman_path),
+            "n_cells": int(norman_ds["X"].shape[0]),
+            "n_genes": int(norman_ds["X"].shape[1]),
+        })
 
     task_plan = build_task_lists(
         adamson_summary,
@@ -220,6 +299,38 @@ def run_v05_sweep(
         datasets.append(("norman", norman_ds, norman_tasks))
         print(f"[v0.5.0] norman subsampled: {len(norman_tasks)} tasks")
 
+    # ---------- 1b. Provenance record 0 (T13/T14) ----------
+    tasks_excluded: list[dict] = []
+    for dataset_name, ds, tasks in datasets:
+        for i, t in enumerate(tasks):
+            if max_tasks_override is not None and i >= max_tasks_override:
+                tasks_excluded.append({"dataset": dataset_name, "label": t,
+                                       "reason": f"max_tasks_override={max_tasks_override}"})
+            elif t not in ds["target_gene_idx"]:
+                tasks_excluded.append({"dataset": dataset_name, "label": t,
+                                       "reason": "not in target_gene_idx (skipped by trainer + lifecycle)"})
+    prov = build_provenance(
+        run_id=run_id,
+        git_sha=git_sha,
+        git_dirty=git_dirty,
+        entrypoint_kwargs=resolved_kwargs,
+        datasets=dataset_records,
+        task_plan=task_plan,
+        tasks_excluded=tasks_excluded,
+        llm_pool=[m.model_id for m in DEFAULT_POOL.models],
+        gpu=_GPU,
+        hourly_usd=_A100_HOURLY_USD,
+        budget_cap_usd=_BUDGET_HARD_KILL_USD,
+        started_at=_iso(started_at),
+    )
+    prov_line = jsonl_provenance_line(prov)
+    for _p in (trainer_out, lifecycle_out):
+        _p.write_text(prov_line + "\n", encoding="utf-8")
+    provenance_out.write_text(json.dumps(prov, indent=2, default=str))
+    DATA_VOL.commit()
+    trainer_records: list[dict] = []
+    lifecycle_records: list[dict] = []
+
     # ---------- 2. Trainer-only sweep ----------
     print(f"[v0.5.0] trainer sweep start; budget_so_far=${_cost_usd_so_far():.3f}")
     # T8b: the loop body lives in perturb_eval.experiments.heldout so it is
@@ -240,6 +351,7 @@ def run_v05_sweep(
             should_stop=_budget_exceeded,
         ):
             _append(trainer_out, rec)
+            trainer_records.append(rec)
             n_trainer_runs += 1
         if _budget_exceeded():
             print(
@@ -254,15 +366,20 @@ def run_v05_sweep(
 
     # ---------- 3. Lifecycle sweep (real LLMAgentPool, free-tier) ----------
     n_lifecycle_runs = 0
+    lifecycle_skipped = False
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
     if not api_key:
+        lifecycle_skipped = True
         print("[v0.5.0] WARNING: OPENROUTER_API_KEY not set; skipping lifecycle sweep")
     else:
+        client_kwargs: dict = {"cooldown_sec": cooldown_sec}
+        if _client_takes_temperature:
+            client_kwargs["temperature"] = temperature
         client = OpenRouterClient(
             api_key=api_key,
             cache_dir=Path("/biofm_cache/llm"),
             pool=DEFAULT_POOL,
-            cooldown_sec=60.0,
+            **client_kwargs,
         )
         pool = LLMAgentPool(client=client, cache_dir=Path("/biofm_cache/llm"))
 
@@ -297,6 +414,7 @@ def run_v05_sweep(
                             "steps": [],
                         }
                     _append(lifecycle_out, rec)
+                    lifecycle_records.append(rec)
                     n_lifecycle_runs += 1
                 if _budget_exceeded():
                     break
@@ -311,6 +429,8 @@ def run_v05_sweep(
                 try:
                     rec = json.loads(line)
                 except json.JSONDecodeError:
+                    continue
+                if rec.get("record_type") == "provenance":
                     continue
                 traces.append(list(rec.get("steps", [])))
 
@@ -328,21 +448,65 @@ def run_v05_sweep(
     )
 
     finished_at = time.time()
-    summary = {
-        "started_at": started_at,
-        "finished_at": finished_at,
-        "wall_clock_sec": finished_at - started_at,
-        "total_gpu_seconds": finished_at - started_at,  # entire fn ran on GPU
-        "total_cost_usd": _cost_usd_so_far(),
-        "budget_cap_usd": _BUDGET_HARD_KILL_USD,
-        "n_trainer_runs": n_trainer_runs,
-        "n_lifecycle_runs": n_lifecycle_runs,
+    # Modal exposes no per-function GPU-seconds counter inside the container.
+    # This whole function holds the A100 from entry to return, so GPU time is
+    # MEASURED as the wall clock of this function and labelled as such.
+    gpu_seconds = finished_at - started_at
+    gpu_seconds_source = "wall_clock_of_gpu_function"
+    cost_usd = _cost_usd_so_far()
+    budget_hit = cost_usd > _BUDGET_HARD_KILL_USD
+    any_fallback = any(
+        isinstance(s, dict) and s.get("source") == "fallback"
+        for t in traces for s in t
+    )
+    if any_fallback:
+        status = "failed_fallback"  # C-KEY-2
+    elif budget_hit or lifecycle_skipped:
+        status = "partial"
+    else:
+        status = "ok"
+    hvg_n_per_task, params_per_task = collect_hvg_and_params(
+        trainer_records, lifecycle_records
+    )
+    entropies = {
         "architect_backbone_entropy_nats": float(h_backbone),
         "architect_hvg_entropy_nats": float(h_hvg),
         "architect_backbone_distribution": bb_dist,
     }
-    provenance_out.write_text(json.dumps(summary, indent=2, default=str))
+    counts = {
+        "n_trainer_runs": n_trainer_runs,
+        "n_lifecycle_runs": n_lifecycle_runs,
+        "lifecycle_skipped_no_key": lifecycle_skipped,
+    }
+    final = finalize_provenance(
+        prov,
+        finished_at=_iso(finished_at),
+        gpu_seconds=gpu_seconds,
+        gpu_seconds_source=gpu_seconds_source,
+        cost_usd_actual=cost_usd,
+        counts=counts,
+        entropies=entropies,
+        hvg_n_per_task=hvg_n_per_task,
+        params_per_task=params_per_task,
+        budget_hit=budget_hit,
+        status=status,
+    )
+    provenance_out.write_text(json.dumps(final, indent=2, default=str))
     DATA_VOL.commit()
+    summary = {
+        "run_id": run_id,
+        "status": status,
+        "started_at": final["started_at"],
+        "finished_at": final["finished_at"],
+        "wall_clock_sec": final["wall_clock_sec"],
+        "gpu_seconds": gpu_seconds,
+        "gpu_seconds_source": gpu_seconds_source,
+        "total_cost_usd": cost_usd,
+        "budget_cap_usd": _BUDGET_HARD_KILL_USD,
+        "budget_hit": budget_hit,
+        **counts,
+        **entropies,
+    }
     print(json.dumps(summary, indent=2, default=str))
     return summary
 
@@ -358,16 +522,51 @@ def entrypoint(
     include_adamson: bool = True,
     max_tasks_override: int | None = None,
     doublet_delim: str = "_",
+    n_top_hvg: int = 2000,
+    max_cells_per_pert: int = 200,
+    cooldown_sec: float = 60.0,
+    temperature: float = 0.3,
+    version: str = "v0.6.0",
 ) -> None:
-    out = run_v05_sweep.remote(
-        norman_n_singletons=norman_n_singletons,
-        norman_n_doublets=norman_n_doublets,
-        adamson_n_per_bin=adamson_n_per_bin,
-        adamson_n_bins=adamson_n_bins,
-        seeds=seeds,
-        include_norman=include_norman,
-        include_adamson=include_adamson,
-        max_tasks_override=max_tasks_override,
-        doublet_delim=doublet_delim,
+    import sys
+
+    src = PROJECT_DIR_HOST / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    from perturb_eval.experiments.provenance import (
+        git_state,
+        make_run_id,
+        write_run_config,
     )
+
+    # Host side: the Modal container has no .git (T13).
+    git_sha, git_dirty = git_state(PROJECT_DIR_HOST)
+    run_id = make_run_id(git_sha)
+    # Every run_v05_sweep kwarg, passed explicitly so the config copy and the
+    # provenance ``entrypoint_kwargs`` block are the same resolved set.
+    sweep_kwargs = {
+        "norman_n_singletons": norman_n_singletons,
+        "norman_n_doublets": norman_n_doublets,
+        "adamson_n_per_bin": adamson_n_per_bin,
+        "adamson_n_bins": adamson_n_bins,
+        "seeds": seeds,
+        "n_sweep": _DEFAULT_N_SWEEP,
+        "r_sweep": _DEFAULT_R_SWEEP,
+        "backbones": _DEFAULT_BACKBONES,
+        "include_norman": include_norman,
+        "include_adamson": include_adamson,
+        "max_tasks_override": max_tasks_override,
+        "doublet_delim": doublet_delim,
+        "n_top_hvg": n_top_hvg,
+        "max_cells_per_pert": max_cells_per_pert,
+        "cooldown_sec": cooldown_sec,
+        "temperature": temperature,
+        "version": version,
+        "git_sha": git_sha,
+        "git_dirty": git_dirty,
+        "run_id": run_id,
+    }
+    cfg = write_run_config(PROJECT_DIR_HOST, run_id, sweep_kwargs, git_sha)  # T17
+    print(f"[v0.6] run_id={run_id} git_dirty={git_dirty} config={cfg}")
+    out = run_v05_sweep.remote(**sweep_kwargs)
     print(json.dumps(out, indent=2, default=str))

@@ -6,7 +6,20 @@ See docs/plans/2026-04-22-end-to-end-agentic-lifecycle.md Task 1.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Literal, Optional, get_args
+
+# Where a LifecycleStep's proposal came from (D4 / C-KEY-2):
+#   * "llm"      — served by an OpenRouter pool model; ``model_id`` names it.
+#                  The ONLY rows the analyser's per-role entropy counts.
+#   * "fallback" — LLMAgentPool's deterministic rule-based default after a
+#                  documented runtime LLM failure; ``model_id`` is None. Any
+#                  such row in the real sweep marks the run FAILED (C-KEY-2).
+#   * "mock"     — any non-LLM, deterministic pool: MockAgentPool (offline
+#                  tests) and CellForgeAgentPool (CellForge's rule-based
+#                  agents; the seed is unused, no pool model is drawn).
+#                  ``model_id`` is None. Never counted as an LLM choice.
+StepSource = Literal["llm", "fallback", "mock"]
+STEP_SOURCES: tuple[str, ...] = get_args(StepSource)
 
 
 @dataclass(frozen=True)
@@ -50,7 +63,12 @@ class ExecutedValidation:
 
 @dataclass(frozen=True)
 class LifecycleStep:
-    """One agent's contribution within one round (propose + LLM rating)."""
+    """One agent's contribution within one round (propose + LLM rating).
+
+    ``model_id`` / ``source`` record provenance of ``proposal_content`` —
+    see :data:`StepSource`. The loop always writes both from the pool's
+    ``propose`` output; the defaults only serve hand-built steps (tests).
+    """
 
     round_index: int
     agent_name: str
@@ -60,6 +78,8 @@ class LifecycleStep:
     execution_artifact_path: str | None
     wall_time_sec: float
     succeeded: bool
+    model_id: str | None = None
+    source: StepSource = "llm"
 
 
 @dataclass(frozen=True)

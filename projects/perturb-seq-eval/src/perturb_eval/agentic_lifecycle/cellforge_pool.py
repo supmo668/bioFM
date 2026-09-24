@@ -109,4 +109,8 @@ class CellForgeAgentPool:
             "content": dict(proposal.content),
             "rationale": proposal.rationale,
             "confidence": float(proposal.confidence),
+            # CellForge agents are deterministic and draw no pool model, so
+            # they report the non-LLM "mock" source (see types.StepSource).
+            "model_id": None,
+            "source": "mock",
         }

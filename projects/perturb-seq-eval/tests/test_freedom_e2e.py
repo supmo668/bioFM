@@ -16,6 +16,7 @@ import pytest
 from perturb_eval.agentic_lifecycle.freedom_probe import per_agent_field_entropy
 from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
 from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
+from perturb_eval.llm.openrouter_client import ChatResult
 
 
 class VariedMockClient:
@@ -28,7 +29,13 @@ class VariedMockClient:
     def __init__(self, seed: int = 0) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> ChatResult:
+        return ChatResult(
+            content=self._payload(role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed),
+            model_id="stub/varied",
+        )
+
+    def _payload(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
         # Derive a bounded index from (task, round, role) so different
         # (task, seed) pairs give different Architect choices but the
         # same (task, role) is reproducible within a client instance.
@@ -121,7 +128,13 @@ class TestFreedomE2E:
         class ScriptedClient:
             # Round 0 architect: linear. Round 1 architect: keep linear
             # unless a validator critique delta is in the prompt.
-            def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+            def chat_json(self, *, role, task_id, round_index, prompt, seed):
+                return ChatResult(
+                    content=self._payload(role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed),
+                    model_id="stub/scripted",
+                )
+
+            def _payload(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
                 if role == "Architect":
                     if "backbone" in prompt and '"backbone":' in prompt:
                         # Validator delta present → propose a different backbone.

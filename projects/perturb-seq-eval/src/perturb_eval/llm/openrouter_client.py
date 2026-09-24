@@ -133,6 +133,19 @@ DEFAULT_POOL = LLMPool(
 )
 
 
+@dataclass(frozen=True)
+class ChatResult:
+    """One successful :meth:`OpenRouterClient.chat_json` response.
+
+    ``model_id`` is the pool model that actually served ``content`` — after
+    rotation past cooled / failing candidates, and on a disk-cache hit the
+    model whose cache entry was hit (the cache key includes ``model_id``).
+    """
+
+    content: dict
+    model_id: str
+
+
 class OpenRouterError(Exception):
     """All attempts across the rotation pool failed."""
 
@@ -277,8 +290,9 @@ class OpenRouterClient:
         round_index: int,
         prompt: str,
         seed: int,
-    ) -> dict:
-        """Return a parsed JSON object from the first responsive model.
+    ) -> ChatResult:
+        """Return the parsed JSON object from the first responsive model,
+        together with that model's id (:class:`ChatResult`).
 
         ``seed`` is part of the cache key only (A2); it is not sent to the
         provider.
@@ -303,7 +317,7 @@ class OpenRouterClient:
             cached = self._cached(key)
             if cached is not None:
                 logger.debug("cache hit role=%s model=%s", role, model.model_id)
-                return cached
+                return ChatResult(content=cached, model_id=model.model_id)
 
             status, content = self._call(model.model_id, prompt)
             if status in (429, 502, 503, 504):
@@ -335,7 +349,7 @@ class OpenRouterClient:
                     continue
 
             self._save_cache(key, parsed)
-            return parsed
+            return ChatResult(content=parsed, model_id=model.model_id)
 
         raise OpenRouterError(
             f"all candidate models for role={role} failed; last_err={last_err}"

@@ -357,3 +357,132 @@ def test_one_tuple_targets_match_int_targets_exactly(backbone: str) -> None:
     run_tup = _run_lifecycle(as_tuples, backbone=backbone)
     assert np.isfinite(run_int.final_msd_topk)
     assert run_tup.final_msd_topk == run_int.final_msd_topk
+
+
+# --- T12 / D4: model_id + source on every LifecycleStep ----------------------
+
+
+class _StubTransport:
+    """Client stub serving empty-but-valid proposals from pool model ``x/y``."""
+
+    def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+        from perturb_eval.llm.openrouter_client import ChatResult
+        return ChatResult(content={}, model_id="x/y")
+
+
+class _RateLimitedClient:
+    def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+        from perturb_eval.llm.openrouter_client import RateLimitedError
+        raise RateLimitedError("no models available (all cooling)")
+
+
+class _TypeErrorClient:
+    def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+        raise TypeError("programming error inside the client")
+
+
+def _llm_pool(client, tmp_path):
+    from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
+    return LLMAgentPool(client=client, cache_dir=tmp_path)
+
+
+@pytest.mark.unit
+def test_lifecycle_step_defaults_model_id_none_source_llm() -> None:
+    step = LifecycleStep(
+        round_index=0, agent_name="Trainer", proposal_content={}, rationale="",
+        llm_confidence=0.5, execution_artifact_path=None, wall_time_sec=0.0,
+        succeeded=True,
+    )
+    assert step.model_id is None
+    assert step.source == "llm"
+
+
+@pytest.mark.unit
+def test_loop_records_serving_model_id_and_source_llm(tmp_path) -> None:
+    run = _run_with_seed(2026, pool=_llm_pool(_StubTransport(), tmp_path))
+    assert len(run.steps) == 5
+    for step in run.steps:
+        assert step.model_id == "x/y", step
+        assert step.source == "llm", step
+
+
+@pytest.mark.unit
+def test_loop_records_fallback_with_schema_default_content(tmp_path) -> None:
+    from perturb_eval.agentic_lifecycle.proposal_schema import (
+        ArchitectProposal, DataCuratorProposal, LiteratureProposal,
+        TrainerProposal, ValidatorProposal,
+    )
+    defaults = {
+        "DataCurator": DataCuratorProposal, "Literature": LiteratureProposal,
+        "Architect": ArchitectProposal, "Trainer": TrainerProposal,
+        "Validator": ValidatorProposal,
+    }
+    run = _run_with_seed(2026, pool=_llm_pool(_RateLimitedClient(), tmp_path))
+    assert len(run.steps) == 5
+    for step in run.steps:
+        assert step.source == "fallback", step
+        assert step.model_id is None, step
+        assert step.proposal_content == defaults[step.agent_name]().model_dump()
+
+
+@pytest.mark.unit
+def test_loop_propagates_programming_error_from_client(tmp_path) -> None:
+    with pytest.raises(TypeError):
+        _run_with_seed(2026, pool=_llm_pool(_TypeErrorClient(), tmp_path))
+
+
+@pytest.mark.unit
+def test_mock_pool_steps_are_source_mock_not_llm() -> None:
+    run = _run_with_seed(2026)  # _SeedRecordingPool -> MockAgentPool
+    assert run.steps
+    for step in run.steps:
+        assert step.source == "mock", step
+        assert step.model_id is None, step
+
+
+@pytest.mark.unit
+def test_loop_rejects_pool_output_without_source() -> None:
+    from perturb_eval.agentic_lifecycle.loop import MockAgentPool
+
+    class _NoSourcePool(MockAgentPool):
+        def propose(self, role, round_index, task_id, context, *, seed):
+            out = super().propose(role, round_index, task_id, context, seed=seed)
+            out.pop("source", None)
+            return out
+
+    with pytest.raises(KeyError):
+        _run_with_seed(2026, pool=_NoSourcePool(seed=0))
+
+
+@pytest.mark.unit
+def test_loop_rejects_unknown_source_literal() -> None:
+    from perturb_eval.agentic_lifecycle.loop import MockAgentPool
+
+    class _BadSourcePool(MockAgentPool):
+        def propose(self, role, round_index, task_id, context, *, seed):
+            out = super().propose(role, round_index, task_id, context, seed=seed)
+            return {**out, "source": "llm-ish"}
+
+    with pytest.raises(ValueError):
+        _run_with_seed(2026, pool=_BadSourcePool(seed=0))
+
+
+@pytest.mark.unit
+def test_lifecycle_run_jsonl_round_trips_model_id_and_source(tmp_path) -> None:
+    import json
+    from dataclasses import asdict
+
+    llm_run = _run_with_seed(2026, pool=_llm_pool(_StubTransport(), tmp_path / "a"))
+    fb_run = _run_with_seed(2026, pool=_llm_pool(_RateLimitedClient(), tmp_path / "b"))
+    path = tmp_path / "runs.jsonl"
+    path.write_text("".join(json.dumps(asdict(r)) + "\n" for r in (llm_run, fb_run)))
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    for run, row in zip((llm_run, fb_run), rows):
+        back = tuple(LifecycleStep(**s) for s in row["steps"])
+        assert [(s.model_id, s.source) for s in back] == [
+            (s.model_id, s.source) for s in run.steps
+        ]
+    assert {s["source"] for s in rows[0]["steps"]} == {"llm"}
+    assert {s["model_id"] for s in rows[0]["steps"]} == {"x/y"}
+    assert {s["source"] for s in rows[1]["steps"]} == {"fallback"}
+    assert {s["model_id"] for s in rows[1]["steps"]} == {None}

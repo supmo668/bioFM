@@ -116,15 +116,19 @@ class TestAnalyseV05Run:
                 for i in range(5)
             ],
         )
+        # T15: lifecycle task set must equal the trainer task set (was TF* only,
+        # which the old analyser silently partial-joined). T16: steps carry
+        # source="llm" so they count toward entropy.
         _write_lifecycle_jsonl(
             lifecycle,
             [
-                {"task_id": f"TF{i}", "seed": 1,
+                {"task_id": f"{prefix}{i}", "seed": 1,
                  "final_msd_topk": 0.15 + 0.01 * i,
                  "steps": [
-                     {"agent_name": "Architect",
+                     {"agent_name": "Architect", "source": "llm",
                       "proposal_content": {"backbone": ["linear", "mlp", "scgpt_small"][i % 3]}},
                  ]}
+                for prefix in ("TF", "N")
                 for i in range(5)
             ],
         )
@@ -135,7 +139,8 @@ class TestAnalyseV05Run:
         assert "n_trainer_runs" in summary
         assert "n_lifecycle_runs" in summary
         assert summary["n_trainer_runs"] == 10
-        assert summary["n_lifecycle_runs"] == 5
+        assert summary["n_lifecycle_runs"] == 10
+        assert summary["n_tasks_trainer"] == summary["n_tasks_lifecycle"] == 10
         # Gate check fields present (even if gate isn't met on tiny synthetic fixture).
         assert "gate_adamson_median_below_0_20" in summary
         assert "gate_norman_median_below_0_30" in summary

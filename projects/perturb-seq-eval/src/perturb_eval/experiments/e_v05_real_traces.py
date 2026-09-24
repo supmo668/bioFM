@@ -21,6 +21,7 @@ Emits ``summary.json`` with:
 from __future__ import annotations
 
 import json
+import logging
 import math
 import statistics
 from collections import defaultdict
@@ -29,9 +30,14 @@ from pathlib import Path
 from typing import Any
 
 from perturb_eval.agentic_lifecycle.freedom_probe import (
+    choice_entropy,
     per_agent_field_entropy,
     summarise_choice_distribution,
 )
+
+logger = logging.getLogger(__name__)
+
+ROLES: tuple[str, ...] = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
 
 
 @dataclass(frozen=True)
@@ -44,9 +50,15 @@ class BestConfigPerTask:
     n_configs_tried: int
 
 
-def _read_jsonl(path: Path) -> list[dict]:
+def _read_jsonl(path: Path) -> tuple[dict | None, list[dict]]:
+    """Return ``(provenance, rows)``.
+
+    If line 0 is ``{"record_type": "provenance", ...}`` it is returned
+    separately and excluded from ``rows``; otherwise ``provenance`` is
+    ``None`` (a legacy artifact). Malformed lines are skipped.
+    """
     if not path.exists():
-        return []
+        return None, []
     rows: list[dict] = []
     for line in path.read_text().splitlines():
         line = line.strip()
@@ -56,7 +68,13 @@ def _read_jsonl(path: Path) -> list[dict]:
             rows.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    return rows
+    if rows and isinstance(rows[0], dict) and rows[0].get("record_type") == "provenance":
+        return rows[0], rows[1:]
+    return None, rows
+
+
+def _read_rows(path: Path) -> list[dict]:
+    return _read_jsonl(path)[1]
 
 
 def _finite(value: Any) -> bool:
@@ -68,7 +86,7 @@ def _finite(value: Any) -> bool:
 
 def best_config_per_task(trainer_jsonl: Path) -> dict[str, BestConfigPerTask]:
     """Return each task's min-MSD trainer config across all seeds."""
-    rows = _read_jsonl(trainer_jsonl)
+    rows = _read_rows(trainer_jsonl)
     by_task: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
         if not _finite(r.get("msd_topk")):
@@ -96,7 +114,7 @@ def best_config_per_task(trainer_jsonl: Path) -> dict[str, BestConfigPerTask]:
 
 def median_msd_per_config(trainer_jsonl: Path) -> list[dict]:
     """Median MSD per unique ``(dataset, backbone, N, R)``."""
-    rows = _read_jsonl(trainer_jsonl)
+    rows = _read_rows(trainer_jsonl)
     grouped: dict[tuple, list[float]] = defaultdict(list)
     for r in rows:
         if not _finite(r.get("msd_topk")):
@@ -136,7 +154,7 @@ def tdi_vs_held_out_msd(
     per trace and correlates with ``final_msd_topk``.
     """
     agent, field = feature_path
-    rows = _read_jsonl(lifecycle_jsonl)
+    rows = _read_rows(lifecycle_jsonl)
     xs: list[float] = []
     ys: list[float] = []
     for r in rows:
@@ -191,12 +209,143 @@ def _pearson(xs: list[float], ys: list[float]) -> float:
     return num / (dx * dy)
 
 
-def analyse_v05_run(trainer_jsonl: Path, lifecycle_jsonl: Path) -> dict:
-    """End-to-end summary for the paper's §4 rewrite."""
-    trainer_rows = _read_jsonl(trainer_jsonl)
-    lifecycle_rows = _read_jsonl(lifecycle_jsonl)
+def _task_key(row: dict) -> Any:
+    """Trainer rows use ``task``; lifecycle rows use ``task_id``."""
+    return row.get("task", row.get("task_id"))
 
-    # Per-dataset median MSD (best config per task).
+
+def _check_task_sets(trainer_rows: list[dict], lifecycle_rows: list[dict]) -> tuple[set, set]:
+    trainer_tasks = {_task_key(r) for r in trainer_rows}
+    lifecycle_tasks = {_task_key(r) for r in lifecycle_rows}
+    if trainer_tasks != lifecycle_tasks:
+        only_t = sorted(map(str, trainer_tasks - lifecycle_tasks))
+        only_l = sorted(map(str, lifecycle_tasks - trainer_tasks))
+        raise ValueError(
+            f"task sets differ: only-trainer={only_t}, only-lifecycle={only_l}"
+        )
+    return trainer_tasks, lifecycle_tasks
+
+
+def _resolve_provenance(
+    trainer_prov: dict | None,
+    lifecycle_prov: dict | None,
+    trainer_jsonl: Path,
+    trainer_path: Path,
+    lifecycle_path: Path,
+    provenance_json: Path | None,
+) -> dict | None:
+    """Cross-check the two record-0 headers; return the effective provenance.
+
+    The JSONL headers are written at run start (so typically carry no
+    ``finished_at``); the finalised ``provenance.json`` next to the JSONLs
+    (or the explicit ``provenance_json`` path) supplies ``status`` and
+    ``finished_at`` when present, and must agree on ``run_id``/``git_sha``.
+    Returns ``None`` for a legacy run (no headers at all).
+    """
+    if trainer_prov is None and lifecycle_prov is None:
+        logger.warning(
+            "legacy artifact without provenance record: %s, %s",
+            trainer_path, lifecycle_path,
+        )
+        return None
+    if trainer_prov is None or lifecycle_prov is None:
+        raise ValueError(
+            "provenance record present in only one file: "
+            f"trainer={trainer_path} has={trainer_prov is not None}, "
+            f"lifecycle={lifecycle_path} has={lifecycle_prov is not None}"
+        )
+    for key in ("run_id", "git_sha"):
+        tv, lv = trainer_prov.get(key), lifecycle_prov.get(key)
+        if tv is None or tv != lv:
+            raise ValueError(
+                f"provenance {key} mismatch: trainer {trainer_path} {key}={tv!r}, "
+                f"lifecycle {lifecycle_path} {key}={lv!r}"
+            )
+    effective = dict(lifecycle_prov)
+    final_path = provenance_json or (trainer_jsonl.parent / "provenance.json")
+    if final_path.exists():
+        final = json.loads(final_path.read_text())
+        for key in ("run_id", "git_sha"):
+            if final.get(key) != effective.get(key):
+                raise ValueError(
+                    f"provenance.json {final_path} {key}={final.get(key)!r} does not match "
+                    f"JSONL headers {key}={effective.get(key)!r}"
+                )
+        effective.update(final)
+    return effective
+
+
+def _step_source(step: dict) -> str:
+    src = step.get("source")
+    return src if src in ("llm", "fallback", "mock") else "unknown"
+
+
+def _entropy_or_none(traces: list[list[dict]], agent: str, field: str) -> float | None:
+    if not any(s.get("agent_name") == agent and field in s.get("proposal_content", {})
+               for t in traces for s in t):
+        return None
+    return float(per_agent_field_entropy(traces, agent=agent, field=field))
+
+
+def analyse_v05_run(
+    trainer_jsonl: Path,
+    lifecycle_jsonl: Path,
+    *,
+    allow_fallback_for_diagnosis: bool = False,
+    allow_partial: bool = False,
+    provenance_json: Path | None = None,
+) -> dict:
+    """End-to-end summary for the paper's §4 rewrite.
+
+    Refuses (``ValueError``) before any computation when: the trainer and
+    lifecycle task sets differ; the two provenance headers disagree on
+    ``run_id``/``git_sha``; the run is ``failed``; the run used any
+    fallback step or is ``failed_fallback`` (C-KEY-2, unless
+    ``allow_fallback_for_diagnosis``); or the run is partial/unfinished
+    (unless ``allow_partial``). Diagnostic summaries carry a non-``ok``
+    ``status`` and null gate booleans.
+    """
+    trainer_prov, trainer_rows = _read_jsonl(trainer_jsonl)
+    lifecycle_prov, lifecycle_rows = _read_jsonl(lifecycle_jsonl)
+
+    # --- T15: hard-fail before any computation ---------------------------
+    trainer_tasks, lifecycle_tasks = _check_task_sets(trainer_rows, lifecycle_rows)
+    prov = _resolve_provenance(
+        trainer_prov, lifecycle_prov, trainer_jsonl,
+        trainer_jsonl, lifecycle_jsonl, provenance_json,
+    )
+
+    all_steps = [s for r in lifecycle_rows for s in r.get("steps", [])]
+    source_counts = {k: 0 for k in ("llm", "fallback", "mock", "unknown")}
+    for st in all_steps:
+        source_counts[_step_source(st)] += 1
+
+    status = "ok" if prov is not None else "legacy_no_provenance"
+    diagnostic = False
+    prov_status = prov.get("status") if prov is not None else None
+    if prov is not None and prov_status == "failed":
+        raise ValueError(f"run FAILED: provenance status='failed' (run_id={prov.get('run_id')!r})")
+    if source_counts["fallback"] or prov_status == "failed_fallback":
+        msg = (
+            f"run FAILED: {source_counts['fallback']} fallback steps "
+            f"(provenance status={prov_status!r}); C-KEY-2 — analyser refuses "
+            "to summarise a run with fallback rows"
+        )
+        if not allow_fallback_for_diagnosis:
+            raise ValueError(msg)
+        logger.warning("%s — computing DIAGNOSTIC-ONLY summary", msg)
+        status, diagnostic = "FAILED_FALLBACK_DIAGNOSTIC_ONLY", True
+    elif prov is not None and (prov_status != "ok" or prov.get("finished_at") is None):
+        msg = (
+            f"run partial/unfinished: provenance status={prov_status!r}, "
+            f"finished_at={prov.get('finished_at')!r}; analyser refuses to summarise"
+        )
+        if not allow_partial:
+            raise ValueError(msg)
+        logger.warning("%s — computing DIAGNOSTIC-ONLY summary", msg)
+        status, diagnostic = "PARTIAL_DIAGNOSTIC_ONLY", True
+
+    # --- computation ------------------------------------------------------
     best_by_task = best_config_per_task(trainer_jsonl)
     by_dataset: dict[str, list[float]] = defaultdict(list)
     for bc in best_by_task.values():
@@ -212,32 +361,57 @@ def analyse_v05_run(trainer_jsonl: Path, lifecycle_jsonl: Path) -> dict:
         if by_dataset.get("norman") else float("nan")
     )
 
-    # Architect choice entropy on lifecycle traces.
-    traces = [list(r.get("steps", [])) for r in lifecycle_rows]
-    h_backbone = per_agent_field_entropy(traces, agent="Architect", field="backbone")
-    h_hvg = per_agent_field_entropy(traces, agent="Architect", field="hvg_count")
-    bb_dist = summarise_choice_distribution(traces, agent="Architect", field="backbone")
+    # T16: entropy/distribution figures use LLM-sourced steps only. Steps
+    # without a ``source`` field are UNKNOWN and never assumed to be LLM.
+    llm_traces = [
+        [s for s in r.get("steps", []) if _step_source(s) == "llm"]
+        for r in lifecycle_rows
+    ]
+    h_backbone = _entropy_or_none(llm_traces, "Architect", "backbone")
+    h_hvg = _entropy_or_none(llm_traces, "Architect", "hvg_count")
+    bb_dist = summarise_choice_distribution(llm_traces, agent="Architect", field="backbone")
+    entropy_by_role: dict[str, float | None] = {}
+    for role in ROLES:
+        proposals = [
+            s.get("proposal_content", {}) for t in llm_traces for s in t
+            if s.get("agent_name") == role
+        ]
+        # Entropy over whole proposals (canonical JSON) for this role.
+        entropy_by_role[role] = float(choice_entropy(proposals)) if proposals else None
 
-    # Gate booleans per the v0.5.0 plan.
-    gate_adamson = (not math.isnan(median_adamson)) and median_adamson < 0.20
-    gate_norman = (not math.isnan(median_norman)) and median_norman < 0.30
-    gate_entropy = h_backbone >= 0.5
+    gate_adamson: bool | None = (not math.isnan(median_adamson)) and median_adamson < 0.20
+    gate_norman: bool | None = (not math.isnan(median_norman)) and median_norman < 0.30
+    gate_entropy: bool | None = h_backbone is not None and h_backbone >= 0.5
+    if diagnostic:
+        # A diagnostic summary never licenses a gate.
+        gate_adamson = gate_norman = gate_entropy = None
 
     n_finite_lifecycle = sum(1 for r in lifecycle_rows if _finite(r.get("final_msd_topk")))
 
     return {
+        "status": status,
+        "run_id": prov.get("run_id") if prov is not None else None,
+        "git_sha": prov.get("git_sha") if prov is not None else None,
         "n_trainer_runs": len(trainer_rows),
         "n_lifecycle_runs": len(lifecycle_rows),
         "n_lifecycle_finite": n_finite_lifecycle,
         "n_tasks_analysed": len(best_by_task),
+        "n_tasks_trainer": len(trainer_tasks),
+        "n_tasks_lifecycle": len(lifecycle_tasks),
+        "n_lifecycle_runs_unique_tasks": len(lifecycle_tasks),
+        "n_steps_llm": source_counts["llm"],
+        "n_steps_fallback": source_counts["fallback"],
+        "n_steps_mock": source_counts["mock"],
+        "n_steps_unknown": source_counts["unknown"],
         "median_msd_adamson": median_adamson,
         "median_msd_norman": median_norman,
-        "architect_backbone_entropy_nats": float(h_backbone),
-        "architect_hvg_entropy_nats": float(h_hvg),
+        "architect_backbone_entropy_nats": h_backbone,
+        "architect_hvg_entropy_nats": h_hvg,
         "architect_backbone_distribution": bb_dist,
-        "gate_adamson_median_below_0_20": bool(gate_adamson),
-        "gate_norman_median_below_0_30": bool(gate_norman),
-        "gate_architect_entropy_above_0_5_nats": bool(gate_entropy),
+        "entropy_by_role": entropy_by_role,
+        "gate_adamson_median_below_0_20": gate_adamson,
+        "gate_norman_median_below_0_30": gate_norman,
+        "gate_architect_entropy_above_0_5_nats": gate_entropy,
         "best_config_per_task": {
             k: asdict(v) for k, v in best_by_task.items()
         },
@@ -248,9 +422,21 @@ def main(
     trainer_jsonl: Path = Path("artifacts/v0.5.0/trainer_runs.jsonl"),
     lifecycle_jsonl: Path = Path("artifacts/v0.5.0/lifecycle_runs.jsonl"),
     out: Path = Path("artifacts/v0.5.0/summary.json"),
+    *,
+    allow_fallback_for_diagnosis: bool = False,
+    allow_partial: bool = False,
 ) -> dict:
-    """CLI convenience — writes ``summary.json`` next to the inputs."""
-    summary = analyse_v05_run(trainer_jsonl, lifecycle_jsonl)
+    """CLI convenience — writes ``summary.json`` next to the inputs.
+
+    ``summary.json`` is written only after ``analyse_v05_run`` returns; any
+    refusal (``ValueError``) propagates and nothing is written.
+    """
+    summary = analyse_v05_run(
+        trainer_jsonl,
+        lifecycle_jsonl,
+        allow_fallback_for_diagnosis=allow_fallback_for_diagnosis,
+        allow_partial=allow_partial,
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(summary, indent=2, default=str))
     return summary
@@ -263,6 +449,12 @@ if __name__ == "__main__":  # pragma: no cover
     ap.add_argument("--trainer", type=Path, default=Path("artifacts/v0.5.0/trainer_runs.jsonl"))
     ap.add_argument("--lifecycle", type=Path, default=Path("artifacts/v0.5.0/lifecycle_runs.jsonl"))
     ap.add_argument("--out", type=Path, default=Path("artifacts/v0.5.0/summary.json"))
+    ap.add_argument("--allow-fallback-for-diagnosis", action="store_true")
+    ap.add_argument("--allow-partial", action="store_true")
     args = ap.parse_args()
-    s = main(args.trainer, args.lifecycle, args.out)
+    s = main(
+        args.trainer, args.lifecycle, args.out,
+        allow_fallback_for_diagnosis=args.allow_fallback_for_diagnosis,
+        allow_partial=args.allow_partial,
+    )
     print(json.dumps(s, indent=2, default=str))

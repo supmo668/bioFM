@@ -10,6 +10,7 @@ import pytest
 
 from perturb_eval.llm.openrouter_client import (
     DEFAULT_POOL,
+    ChatResult,
     LLMPool,
     OpenRouterClient,
     OpenRouterError,
@@ -84,7 +85,7 @@ class TestOpenRouterClient:
                 prompt="ping",
                 seed=0,
             )
-        assert out == {"a": 1}
+        assert out.content == {"a": 1}
 
     def test_cache_hit_skips_network(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache)
@@ -104,7 +105,7 @@ class TestOpenRouterClient:
         ]
         with patch.object(client._session, "post", side_effect=responses):
             out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
-        assert out == {"ok": True}
+        assert out.content == {"ok": True}
 
     def test_rotation_on_5xx(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
@@ -114,7 +115,7 @@ class TestOpenRouterClient:
         ]
         with patch.object(client._session, "post", side_effect=responses):
             out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
-        assert out == {"ok": True}
+        assert out.content == {"ok": True}
 
     def test_all_models_fail_raises(self, tmp_cache: Path) -> None:
         small_pool = LLMPool(
@@ -139,7 +140,53 @@ class TestOpenRouterClient:
         ]
         with patch.object(client._session, "post", side_effect=responses):
             out = client.chat_json(role="DataCurator", task_id="t", round_index=0, prompt="p", seed=0)
-        assert out == {"fixed": True}
+        assert out.content == {"fixed": True}
+
+    # --- T12: chat_json reports the pool model that actually served -------
+
+    def test_returns_chat_result_with_serving_model_id(self, tmp_cache: Path) -> None:
+        client = OpenRouterClient(api_key="test", cache_dir=tmp_cache)
+        with patch.object(client._session, "post", return_value=self._make_response('{"a": 1}')):
+            out = client.chat_json(role="Architect", task_id="t1", round_index=0, prompt="p", seed=0)
+        assert isinstance(out, ChatResult)
+        assert out.model_id == DEFAULT_POOL.role_preferences["Architect"][0]
+
+    def test_model_id_is_the_rotated_model_not_the_first_candidate(self, tmp_cache: Path) -> None:
+        client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
+        responses = [
+            self._make_response("", status=429),
+            self._make_response('{"ok": true}', status=200),
+        ]
+        with patch.object(client._session, "post", side_effect=responses) as post:
+            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
+        served = post.call_args_list[1].kwargs["json"]["model"]
+        first = post.call_args_list[0].kwargs["json"]["model"]
+        assert out.model_id == served
+        assert out.model_id != first
+
+    def test_cache_hit_returns_the_cached_model_id(self, tmp_cache: Path) -> None:
+        client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
+        responses = [
+            self._make_response("", status=429),
+            self._make_response('{"ok": true}', status=200),
+        ]
+        with patch.object(client._session, "post", side_effect=responses):
+            first = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
+        # Fresh client (no cooldowns): the first candidate has no cache entry
+        # and now fails on the network; the second hits cache.
+        client2 = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
+        with patch.object(
+            client2._session, "post", return_value=self._make_response("", status=429)
+        ) as post2:
+            again = client2.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
+        assert post2.call_count == 1  # first candidate only; second served from cache
+        assert again == first
+        assert again.model_id == first.model_id
+
+    def test_chat_result_is_frozen(self) -> None:
+        r = ChatResult(content={"a": 1}, model_id="x/y")
+        with pytest.raises(Exception):
+            r.model_id = "z"  # type: ignore[misc]
 
     def test_rate_limited_error_surfaces_when_all_cooled(self, tmp_cache: Path) -> None:
         # This is a unit check on the exception type, not behaviour.
