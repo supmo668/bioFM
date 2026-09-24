@@ -50,11 +50,16 @@ Here the receipt reports that a stage ran while the evidence it attests to is ab
 
 ## Suggested fixes, in order
 
-1. **Write findings to a durable path before hashing.** `paths.workstreams_root`
-   already scopes receipts; findings belong beside them, e.g.
-   `workstreams/<ws>/qgr/<receipt-id>/{findings,triage}.md`. The gate already produces
-   the files — the only change is where. This makes B and C verifiable at no cost,
-   which is strictly better than documenting that they are not.
+1. **Write findings to a durable and TRACKED path before hashing.** Findings belong
+   beside the receipt, e.g. `<dir>/<receipt-id>/{raw_findings,triage}.md` — the gate
+   already produces the files, so the only change is where.
+
+   **Correction, same day (see amendment 2 below): `paths.workstreams_root` is NOT a
+   durable path.** My first draft named it, and an agent applied it by hand; in the
+   aviary-biosim submodule `.gitignore:13` ignores `workstreams/`, and
+   `git ls-files workstreams/` is empty. Findings written there survive scratch
+   cleanup but still die with the worktree and are invisible to everyone else. The
+   destination must be a path the repo actually tracks.
 2. **If findings must stay ephemeral, stop hashing them.** A hash of a deleted file
    is worse than no hash: it implies retention. Replace B and C with a plain count
    (`findings: 42, deferred: 19`) so the receipt claims only what it can support.
@@ -72,7 +77,28 @@ one-line description, disposition, raising dispatch id, receipt Hash E, and whet
 live reproduction exists). That is a repo-level fix for a framework-level gap; the
 framework should arguably emit the register itself as part of the gate.
 
+## Amendment 2 — the durable path I named is itself gitignored
+
+The agent applied ranked fix 1 by hand for its next gate: findings and triage now sit
+at `workstreams/aviary-biosim/qgr/<receipt-id>/`, and Hash B and Hash C point at files
+that exist. Verified. **But that directory is gitignored** (`.gitignore:13` in the
+submodule), and nothing under `workstreams/` is tracked, so the evidence is still
+worktree-local and invisible to any other reader.
+
+So the fix improves longevity (it outlives `/private/tmp` cleanup) without achieving
+durability. **My own ranked fix was wrong on its central point**, and wrong in a way
+already filed: `2026-09-17-feedback-filed-from-a-worktree-never-reaches-the-trunk-and-stays-invisible.md`
+records the same shape — an artifact written in a worktree under an untracked path
+stays invisible. I walked into a known trap while proposing a remedy for a related one.
+
+**Revised guidance:** the gate must write findings to a path that is both outside
+scratch *and* tracked by the repo. Which path is a repo-level decision, but
+`paths.workstreams_root` cannot be assumed durable, because in at least this repo it is
+explicitly ignored. A framework fix should either write to a tracked location or state
+plainly that receipts' B and C are worktree-local by design.
+
 ## Status
 
-open. Locally mitigated by authorising a hand-maintained register in the affected
-workstream, which does not help any other workstream.
+open. Locally mitigated by authorising a hand-maintained register in a **tracked**
+location (the submodule's `docs/`, not `workstreams/`), which does not help any other
+workstream.
