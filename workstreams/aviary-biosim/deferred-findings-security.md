@@ -34,6 +34,21 @@ earlier output, hiding text, or setting the window title. The operator is readin
 stream to judge whether a discovery run behaved, so an agent that can repaint it can
 mislead the person supervising it.
 
+**CORROBORATION ADDED 2026-09-24 (PR c8231442, F08 gate) — a SECOND live instance.**
+The `esm_tool` tools echoed `rec["accession"]`, which on the **cached** branch is *file
+content* rather than validated input. A poisoned cache therefore places escape sequences
+in front of the operator. Found and fixed in-gate.
+
+This materially strengthens S-001. The original argument rested on **one** demonstrated
+analogue (the `str`-subclass `__format__` injection in the #215 diff); there are now
+**two**, and the second reaches the operator through a **data path** rather than through
+model output — so the class is not confined to LLM-authored strings, and sanitising only
+what the model writes would not have caught it. S-001 is now the best-evidenced unfixed
+finding in this register.
+
+Priority raised. Still **held** pending the principal (see handoff decision 14's
+neighbouring question); the agent has been told not to act on it.
+
 **Why it is not merely pre-existing.** The same class was demonstrated live in the #215 PR:
 `score_variant` and `embed_sequence` interpolated the *caller's* object into the strings
 returned to the agent, and a `str` subclass overriding `__format__` could inject arbitrary
