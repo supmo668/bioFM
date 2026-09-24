@@ -67,10 +67,11 @@ clause and the sender caught it. The same mechanism can delete a negation.
 
 ## Suggested fixes, in order
 
-1. **Deprecate `--body` in favour of `--body-file`, and eventually refuse it.** This
-   removes the entire class instead of warning about it. The tool already recommends
-   `--body-file` in the warning text; making it the only path is the smallest change
-   that actually closes the hole.
+1. **Make `--body-file` the documented path, and eventually the only one.**
+   `--body-file` **already exists** — 15 references in `tools/dispatch` in both 0.56.0
+   and 0.60.0, with `--body-file -` reading stdin, commented at line 320 as "read the
+   body with ZERO shell interpolation". So this is not a feature request. Deprecating
+   `--body` in favour of it removes the entire class instead of warning about it.
 2. **Echo what was received.** On success, print the stored body's byte count and a
    short SHA256 prefix. A caller who knows they wrote 4,812 bytes can see 4,796 and
    look. This is the cheapest fix that works for callers who keep using `--body`.
@@ -81,6 +82,40 @@ clause and the sender caught it. The same mechanism can delete a negation.
 4. Optionally, detect the *artifacts* of a failed substitution in the received body
    (e.g. a stray `command not found`, or a collapsed double space where a backticked
    span was) and flag for review. Weak and heuristic, but non-zero.
+
+## Amendment (same day) — the real gap is DISCOVERY, not capability
+
+Reported by the same agent in dispatch #212, and verified: **`dispatch create --help`
+does not list `--body-file`.** Its usage line is
+
+```
+Usage: dispatch create --to <addr> --subject <text> --body <text> [--type <type>] ...
+```
+
+so the only safe path is invisible unless you read the source or happen to trip the
+guard at line 98, whose error text does mention it. The agent reached "`--body-file`
+does not exist" from `--help` alone — a reasonable inference from the documentation
+as shipped.
+
+**This is the cheapest and highest-value fix in this file: one line of usage string.**
+It is a different ticket from item 1 and should not be bundled with it — "document the
+flag you have" ships today, "deprecate the unsafe flag" needs a migration.
+
+## Related shell trap, same session, worth its own note
+
+The same agent reached its wrong conclusion partly through a second exit-status
+inversion, which reproduces here:
+
+```bash
+grep -q "NO_SUCH_STRING" file | head -2   # exit 0 — SUCCESS
+grep "NO_SUCH_STRING" file | head -2 || echo "not found"   # prints NOTHING
+```
+
+**A pipeline's exit status is the last command's**, so `| head` discards grep's
+"no match" signal and any `||` fallback never fires. This is the same shape as the
+metacharacter guard above — an instrument whose reassuring output is uncorrelated with
+the thing it appears to report — and it is worth a line in the operator guidance
+wherever `git grep && commit` is already warned about.
 
 ## Status
 
