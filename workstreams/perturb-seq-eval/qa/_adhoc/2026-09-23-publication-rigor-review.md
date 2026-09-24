@@ -491,3 +491,74 @@ A1/A2/A6 mean the current artifact set does not describe a single experiment:
 pass and a few CIs. Three of its four empirical claims currently rest on code
 defects, and the dataset gate that passes does so partly on tasks whose
 perturbation target was a randomly chosen gene.
+
+---
+
+# Addendum 2 — the Adamson median is contaminated too (2026-09-24)
+
+The main review and Addendum 1 left **one** headline MSD number with a confirmed defect
+(Norman's, via random target genes on `_`-delimited combos). **That is now both of them.**
+
+## A2-1 — `_normalise_pert_label` merged four different constructs into the `ATF6` task
+
+`src/perturb_eval/experiments/e2_adamson.py` normalises a perturbation label as
+`raw.split('_')[0]`. The raw 10X005 labels encode *combination constructs*, so:
+
+| normalised | raw labels merged into it |
+|---|---|
+| **`ATF6`** | `ATF6_only_pMJ145`, `ATF6_IRE1_pMJ152`, `ATF6_PERK_pMJ150`, `ATF6_PERK_IRE1_pMJ158` |
+| `PERK` | `PERK_only_pMJ146`, `PERK_IRE1_pMJ154` |
+| `3x` | `3x_neg_ctrl_pMJ144-1`, `3x_neg_ctrl_pMJ144-2` |
+
+One single-gene construct, two doubles and a triple became **one task**.
+
+**`ATF6` is in the v0.5.0 trainer task list.** So the reported **Adamson median
+best-config MSD of 0.147**, and the `PASS` verdict on its pre-registered `< 0.20` gate, were
+computed with a task whose cell population is a mixture of four distinct perturbations.
+
+This is the **first** label defect found today with **confirmed v0.5.0 exposure** — the other
+nine were unexposed by sampling luck rather than by design.
+
+### Why nothing caught it, which is the transferable part
+
+`ATF6` **is** a valid gene symbol. The fail-closed target resolver built to catch the nine
+unresolvable labels is structurally incapable of catching this one, because the label resolves
+correctly and simply *means something else*. **A validator that checks whether a name is
+well-formed cannot detect a name that is well-formed and wrong.** Same family as every other
+finding in this review: the check observes a property adjacent to the one that matters.
+
+Benign by contrast, but currently implicit and now to be recorded: several plasmids for the
+*same* gene already pool into one task (`XBP1` ×2, `CCND3` ×2, `ATF4` ×3, …). That is standard
+gene-level pooling; it just was not stated.
+
+## A2-2 — consequences for the reported numbers
+
+- **Adamson `0.147` and its gate: contaminated.** Not merely uninterpretable — computed on a
+  known mixture.
+- **The Adamson task count will change.** `PERK`, `IRE1` and the four combination constructs
+  leave the eligible pool; `3x` is reclassified as a negative control (its raw label is
+  `3x_neg_ctrl`). The design is 3 quantile bins × 7 TFs = 21, and whether 21 remains fillable
+  is now an open question I have asked to be escalated rather than quietly satisfied with a
+  short bin.
+- **Excluding `PERK`/`IRE1` loses no genes** — 10X010 carries proper `EIF2AK3` and `ERN1`
+  labels, so those genes remain reachable under their current symbols.
+
+## A2-3 — a paper-prose defect the models are immune to
+
+**Norman 2019 is a CRISPR *activation* screen**, so an on-target effect is a **rise**, not a
+knockdown. The backbones name that feature a `dip` internally. The models are unaffected
+because the feature is the signed logfc — but any prose describing an on-target *knockdown*
+is wrong for Norman, and the internal naming teaches the wrong direction to every future
+reader. Registered as a manuscript row.
+
+Corroborating evidence from the same pass, which also validated the Norman stable-ID join:
+`CBARP` at **+0.301, rank 33,690 of 33,694** — the fourth most up-regulated gene — exactly
+the direction an activation screen predicts.
+
+## A2-4 — what this does to the review's verdict
+
+It does not change it; it removes the last reason to soften it. Both pre-registered MSD gates
+that the paper reports as `PASS` now rest on defective task definitions — Norman's on
+randomised targets, Adamson's on a pooled mixture. Combined with the `n/a` correlation table
+(R1) and the confounded entropy result (R2), **no headline empirical claim in v0.5.0 currently
+survives**, and the regeneration is not an improvement exercise but a prerequisite.
