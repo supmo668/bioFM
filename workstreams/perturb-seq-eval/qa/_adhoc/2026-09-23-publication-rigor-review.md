@@ -545,6 +545,13 @@ This is the first label defect found today with confirmed exposure **in a held-o
 > reassuringly. Any future "did this reach the published numbers?" must check **both** the
 > held-out lists **and** the training inputs.
 
+> **CORRECTED A SECOND TIME, same day — and the `nan` half above is RETRACTED ENTIRELY. See
+> §A2-5.** The `nan` account in this block traced every stage *downstream* of label decoding and
+> never checked the decode itself. The pre-fix loader did not use anndata, so the `nan` label
+> reasoned about never existed on the path that ran. The real mechanism is worse and it reached
+> the published numbers. Two corrections to one passage: the first fixed *which* labels were
+> exposed, the second finds that the exposure question had been asked of the wrong code path.
+
 ### Why nothing caught it, which is the transferable part
 
 `ATF6` **is** a valid gene symbol. The fail-closed target resolver built to catch the nine
@@ -588,3 +595,53 @@ that the paper reports as `PASS` now rest on defective task definitions — Norm
 randomised targets, Adamson's on a pooled mixture. Combined with the `n/a` correlation table
 (R1) and the confounded entropy result (R2), **no headline empirical claim in v0.5.0 currently
 survives**, and the regeneration is not an improvement exercise but a prerequisite.
+
+---
+
+## A2-5 — unannotated cells were silently relabelled as a real perturbation (`cats[-1]`)
+
+**This supersedes every earlier statement in this review about the `nan` label.** The eighth
+silent-substitution instance, and the second with confirmed exposure to published numbers.
+
+`e2_adamson.load_adamson_matrix` (`:149-152` @ `228d354`) decoded the raw h5py categorical as:
+
+```python
+labels_raw = [cats[c] for c in codes]
+```
+
+A missing annotation is code **`-1`**. In Python, `cats[-1]` is the **last category**. So every
+unannotated cell was relabelled as whatever perturbation happens to sort last — silently, with
+no error, and in a way no downstream validator could detect, because the resulting label is a
+real gene symbol.
+
+| file | unannotated cells | relabelled as | real cells for that label |
+|---|---|---|---|
+| pilot | 10 | `ZNF326` | 557 → 567 |
+| 10X005 | 296 | `YIPF5` | 1 → 297 |
+| 10X010 | 2,613 | `YIPF5` | 574 → 3,187 |
+| Norman | 0 missing codes | — | unaffected |
+
+After the 200-cells-per-label cap, **v0.5.0's combined `YIPF5` task was ~91% unannotated cells**
+(~363 of 400). `ZNF326` ~1.8%.
+
+### Exposure — both halves
+
+- **Held-out:** `YIPF5` and `ZNF326` are held-out tasks in v0.5.0's `lifecycle_runs.jsonl`.
+  **`YIPF5`'s lifecycle MSD was measured on a mostly-unannotated population.**
+- **Training inputs:** both are real symbols, so both sat in `target_gene_idx` and trained every
+  Adamson task that did not hold them out — the 21 trainer tasks included. `YIPF5`'s
+  "perturbation mean" was mostly unannotated cells.
+- **Affected published numbers:** the **Adamson median 0.147 and `GATE_ADAMSON`** — via training
+  inputs, a **second route entirely independent of A2-1's `ATF6` pooling** — and any lifecycle
+  result including `YIPF5` or `ZNF326`.
+
+### Why this one is the hardest to have caught
+
+A sentinel of `-1` meeting Python's negative indexing produces a *valid* value, not an error.
+Every guard in this codebase — the fail-closed resolver, the vocabulary check, `_is_control` —
+operates on the label *after* decoding, and the label it receives is a real gene symbol. The
+defect is upstream of every check, and it is invisible to all of them by construction.
+
+**Norman had zero missing codes, so the same pattern (if present) would not have fired there.**
+That is luck, not correctness, and it is an open question for the register: *where else does this
+codebase index a raw categorical with an integer that could be `-1`?*
