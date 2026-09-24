@@ -7,6 +7,8 @@ date: 2026-09-24
 scope: plugin / operating-system behavior — NOT repo/app work
 ---
 
+> **Duplicate — canonical filing:** `.claude/aiadlc-feedback/2026-09-18-coord-commit-step-7-stages-precisely-and-step-8-throws-the-index-away-with-git-add-A.md` (on the unpushed trunk; this evidence merged there per CTO #237).
+
 ## 🔴 1. `/coord-commit` stages selectively, but `git-safe-commit` then runs `git add -A` — implementation code lands in `misc:` commits with no QG
 **File:** `tools/git-safe-commit:325-328` (`if [ "$STAGED_ONLY" = false ]; then git add -A; fi`); `skills/coord-commit/SKILL.md` steps 7-8.
 **Symptom:** coord-commit staged only `plan/cto-conditions.md` + dispatch files, yet commit `84a8602` also contains `projects/perturb-seq-eval/pyproject.toml`, `scripts/modal/app_v05.py` (unstaged tracked edits) and `plan/baseline.md` (UNTRACKED) — all written by a concurrently running implementer subagent. Implementation code shipped under a `misc:` coordination commit without a QGR receipt.
