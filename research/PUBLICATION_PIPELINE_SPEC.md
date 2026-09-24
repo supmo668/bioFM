@@ -216,3 +216,83 @@ conflated "no such secret" with "no such membership".
 
 Step 8 is the first step that can touch a live repository. Nothing before it publishes
 anything.
+
+---
+
+## 10. n8n connection notes (2026-09-24)
+
+### 10.1 The instance exists — T16a is partly resolved
+
+Probed without credentials:
+
+| probe | result | meaning |
+|---|---|---|
+| `POST https://n8n.syntropyhealth.bio/mcp-server/http` | **401** | host, TLS and path are all correct; auth required |
+| `GET https://n8n.syntropyhealth.bio/` | **200** | n8n is up and serving |
+
+This contradicts `projects/lung-on-chipsim/README.md:267`, which records T16a as deferred
+because *"standing up n8n is not"* present. **It now is.** That README line is stale and
+should be corrected when lung-on-chipsim next touches it — the deferred half of T16a is
+now only the *end-to-end execution*, not the provisioning.
+
+### 10.2 Connecting the MCP server — the token is the only blocker
+
+The configuration supplied by the principal carries a **placeholder**
+(`<YOUR_ACCESS_TOKEN_HERE>`), so it cannot be used as-is. The real bearer token is needed.
+
+**Add it with the CLI rather than by hand-editing JSON**, so the token never passes through
+a session transcript:
+
+```bash
+claude mcp add --transport http n8n-mcp \
+  https://n8n.syntropyhealth.bio/mcp-server/http \
+  --header "Authorization: Bearer <REAL_TOKEN>"
+```
+
+**Scope matters, for a reason that is easy to miss.** Use the default (`local`) or
+`--scope user` — both store in `~/.claude.json`, outside the repo. Do **not** use
+`--scope project`: that writes `.mcp.json` into the repo, and `.mcp.json` is **not** covered
+by `.gitignore` (checked), so a bearer token placed there is one `git add` away from being
+committed. If a project-scoped server is ever wanted, add `.mcp.json` to `.gitignore` first.
+
+Existing user-level MCP servers, for reference: `heygen`, `infisical`, `kapso`, `logfire`,
+`vibiz`, `wandb`. No n8n server is configured yet.
+
+### 10.3 Migration — staged, and the removal is gated
+
+The principal's instruction is to **place these notes now** and **migrate, removing the
+existing pipeline, after the workflow is created in n8n**. Sequenced:
+
+| stage | gate to enter it |
+|---|---|
+| 1. Connect the n8n MCP server | the real bearer token |
+| 2. Create the workflow in n8n | MCP connected |
+| 3. Prove it end-to-end on **Zenodo sandbox** | workflow exists; principal's go for any live deposit |
+| 4. **Remove the superseded pipeline** | stage 3 demonstrably passed |
+
+**Stage 4 must not precede stage 3.** `scripts/publish/submit.py` and
+`projects/perturb-seq-eval/scripts/publish/submit_to_venues.py` are 49 KB of working code
+covering four venues; deleting them before the replacement has published something leaves
+no path to publish at all. Removal should also be its own reviewable commit, not folded
+into the migration, so it can be reverted independently.
+
+### 10.4 An architectural tension the principal should resolve at stage 2
+
+§2 of this spec put the venue adapters in **Python**, with n8n only sequencing, following
+the `etl_drugbank.json` precedent. "Remove the pipeline" may mean either:
+
+- **(a) remove the *duplication*** — consolidate the two publishers into one CLI that n8n
+  calls. §2 stands unchanged; "the pipeline" that goes away is the redundant second copy.
+- **(b) remove Python entirely** — reimplement all six venues as n8n HTTP nodes.
+
+These are materially different, and (b) has costs worth naming before it is chosen: every
+credential gets duplicated into an n8n credential object, so there are two places to rotate
+instead of one; the venue logic becomes untestable without a live n8n; node-JSON diffs are
+not meaningfully reviewable; and the adapters do not survive a change of platform. (b) also
+departs from the repo's only existing n8n precedent.
+
+I recommend **(a)**. But this is the principal's call, and it should be made **before**
+stage 2, because the workflow built in n8n differs completely between the two.
+
+**Dispatch #203 is written for (a)** and is therefore **on hold** pending this decision —
+it would otherwise have the agent consolidate a CLI that (b) would delete.
