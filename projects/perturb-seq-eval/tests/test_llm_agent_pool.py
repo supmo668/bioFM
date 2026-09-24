@@ -22,7 +22,7 @@ class FakeClient:
         self._responses = {k: list(v) for k, v in responses_by_role.items()}
         self.calls: list[tuple[str, str, int]] = []
 
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str) -> dict:  # noqa: ARG002
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
         self.calls.append((role, task_id, round_index))
         import json
 
@@ -46,7 +46,7 @@ class TestLLMAgentPoolBasics:
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
         for role in ("DataCurator", "Literature", "Architect", "Trainer", "Validator"):
-            out = pool.propose(role, round_index=0, task_id="t1", context={})
+            out = pool.propose(role, round_index=0, task_id="t1", context={}, seed=0)
             assert "content" in out
             assert "rationale" in out
             assert "confidence" in out
@@ -59,7 +59,7 @@ class TestLLMAgentPoolBasics:
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
-        out = pool.propose("Architect", round_index=0, task_id="t1", context={})
+        out = pool.propose("Architect", round_index=0, task_id="t1", context={}, seed=0)
         assert out["content"]["backbone"] == "scgpt_small"
         assert out["content"]["learning_rate"] == 1e-3
 
@@ -69,7 +69,7 @@ class TestLLMAgentPoolBasics:
         failing = MagicMock()
         failing.chat_json = MagicMock(side_effect=OpenRouterError("all cooled"))
         pool = LLMAgentPool(client=failing, cache_dir=tmp_path)
-        out = pool.propose("Architect", round_index=0, task_id="t1", context={})
+        out = pool.propose("Architect", round_index=0, task_id="t1", context={}, seed=0)
         # Fallback still yields a structurally-valid proposal.
         assert "backbone" in out["content"]
 
@@ -80,8 +80,8 @@ class TestLLMAgentPoolBasics:
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
-        pool.propose("Architect", round_index=0, task_id="task_a", context={})
-        pool.propose("Architect", round_index=0, task_id="task_b", context={})
+        pool.propose("Architect", round_index=0, task_id="task_a", context={}, seed=0)
+        pool.propose("Architect", round_index=0, task_id="task_b", context={}, seed=0)
         assert len({c[1] for c in fake.calls}) == 2
 
 
@@ -90,7 +90,7 @@ class TestContextThreading:
         captured_prompts: list[str] = []
 
         class SpyingClient:
-            def chat_json(self, *, role, task_id, round_index, prompt):  # noqa: ARG002
+            def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
                 if role == "Architect":
                     captured_prompts.append(prompt)
                 import json
@@ -104,8 +104,40 @@ class TestContextThreading:
             "validator_failed_genes": ("TP53", "MYC"),
             "literature": {"expected_up": ["JUN"], "expected_down": []},
         }
-        pool.propose("Architect", round_index=1, task_id="t", context=ctx)
+        pool.propose("Architect", round_index=1, task_id="t", context=ctx, seed=0)
         assert captured_prompts, "expected a prompt capture"
         last = captured_prompts[0]
         # The Architect's prompt must mention the prior validator feedback.
         assert "mlp" in last or "TP53" in last or "0.8" in last
+
+
+class TestSeedThreading:
+    """T4 / A2: the lifecycle seed must reach the LLM client."""
+
+    class _RecordingClient:
+        def __init__(self) -> None:
+            self.kwargs: list[dict] = []
+
+        def chat_json(self, **kwargs) -> dict:
+            self.kwargs.append(kwargs)
+            return {"backbone": "mlp"}
+
+    def test_propose_forwards_seed_to_chat_json(self, tmp_path: Path) -> None:
+        client = self._RecordingClient()
+        pool = LLMAgentPool(client=client, cache_dir=tmp_path)
+        pool.propose("Architect", round_index=0, task_id="t", context={}, seed=7)
+        assert client.kwargs and client.kwargs[0]["seed"] == 7
+
+    def test_propose_without_seed_raises(self, tmp_path: Path) -> None:
+        pool = LLMAgentPool(client=self._RecordingClient(), cache_dir=tmp_path)
+        with pytest.raises(TypeError):
+            pool.propose("Architect", round_index=0, task_id="t", context={})  # type: ignore[call-arg]
+
+    def test_fallback_path_accepts_seed(self, tmp_path: Path) -> None:
+        from perturb_eval.llm.openrouter_client import OpenRouterError
+
+        failing = MagicMock()
+        failing.chat_json = MagicMock(side_effect=OpenRouterError("down"))
+        pool = LLMAgentPool(client=failing, cache_dir=tmp_path)
+        out = pool.propose("Architect", round_index=0, task_id="t", context={}, seed=3)
+        assert "backbone" in out["content"]

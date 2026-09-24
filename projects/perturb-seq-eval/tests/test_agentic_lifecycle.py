@@ -103,6 +103,7 @@ def test_trainer_exec_fits_and_returns_meta() -> None:
         backbone=backbone, X=X, labels=labels, control_mask=control_mask,
         target_gene_idx={"A": 2, "B": 5, "C": 7},
         trainer_proposal={"optimizer": "adamw", "lr": 1e-2, "epochs": 50},
+        seed=2026,
     )
     assert meta["succeeded"] is True
     assert meta["n_train_perts"] == 3
@@ -163,9 +164,118 @@ def test_agentic_lifecycle_terminates_and_produces_msd() -> None:
         task_id="hold_C",
         X=X, labels=labels, control_mask=control_mask,
         target_gene_idx=target_gene_idx, held_out="C",
-        agent_pool=pool, max_rounds=2,
+        agent_pool=pool, max_rounds=2, seed=2026,
     )
     assert run.n_rounds <= 2
     assert run.final_msd_topk >= 0.0
     assert run.backbone_used in ("linear", "mlp", "scgpt_small")
     assert len(run.steps) >= 5
+
+
+# --- T5 / A2: the run seed reaches the LLM pool and the trainer -------------
+
+
+def _seed_fixture():
+    """Tiny numpy matrix: controls + four perturbations, each knocking a gene down."""
+    rng = np.random.default_rng(7)
+    n_per, n_genes = 40, 60
+    names = ["CTRL", "A", "B", "C", "D"]
+    X = rng.standard_normal((n_per * len(names), n_genes)) * 0.3 + 2.0
+    labels = np.repeat(np.asarray(names), n_per)
+    target_gene_idx = {"A": 5, "B": 10, "C": 15, "D": 20}
+    for p, g in target_gene_idx.items():
+        X[labels == p, g] -= 2.0
+    control_mask = labels == "CTRL"
+    return X, labels, control_mask, target_gene_idx
+
+
+class _SeedRecordingPool:
+    """Stub pool: MockAgentPool proposals, but records every seed it is handed."""
+
+    def __init__(self) -> None:
+        from perturb_eval.agentic_lifecycle.loop import MockAgentPool
+        self._inner = MockAgentPool(seed=0)
+        self.seeds: list[int] = []
+
+    def propose(self, role, round_index, task_id, context, *, seed):
+        self.seeds.append(seed)
+        return self._inner.propose(role, round_index, task_id, context, seed=seed)
+
+
+def _run_with_seed(seed: int, pool=None):
+    from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
+    X, labels, control_mask, target_gene_idx = _seed_fixture()
+    return run_agentic_lifecycle(
+        task_id="hold_D",
+        X=X, labels=labels, control_mask=control_mask,
+        target_gene_idx=target_gene_idx, held_out="D",
+        agent_pool=pool if pool is not None else _SeedRecordingPool(),
+        max_rounds=1, backbone_override="mlp",
+        validator_threshold_override=0.0,
+        seed=seed,
+    )
+
+
+@pytest.mark.unit
+def test_lifecycle_msd_differs_across_seeds() -> None:
+    run_a = _run_with_seed(2026)
+    run_b = _run_with_seed(2027)
+    assert run_a.backbone_used == "mlp"
+    assert np.isfinite(run_a.final_msd_topk) and np.isfinite(run_b.final_msd_topk)
+    assert run_a.final_msd_topk != run_b.final_msd_topk
+
+
+@pytest.mark.unit
+def test_lifecycle_passes_run_seed_to_agent_pool() -> None:
+    pool = _SeedRecordingPool()
+    _run_with_seed(4242, pool=pool)
+    assert pool.seeds, "pool.propose was never called"
+    assert set(pool.seeds) == {4242}
+
+
+@pytest.mark.unit
+def test_execute_trainer_passes_seed_into_backbone_config() -> None:
+    from perturb_eval.agentic_lifecycle.trainer_exec import execute_trainer
+
+    captured = {}
+
+    class _SpyBackbone:
+        def fit(self, X, labels, control_mask, target_gene_idx, cfg):
+            captured["seed"] = cfg.seed
+
+    X, labels, control_mask, target_gene_idx = _seed_fixture()
+    meta = execute_trainer(
+        backbone=_SpyBackbone(), X=X, labels=labels, control_mask=control_mask,
+        target_gene_idx=target_gene_idx,
+        trainer_proposal={"lr": 1e-2, "epochs": 5, "seed": 9999},
+        seed=31337,
+    )
+    assert meta["succeeded"] is True
+    # The run seed wins; an LLM-supplied "seed" key is ignored.
+    assert captured["seed"] == 31337
+
+
+@pytest.mark.unit
+def test_run_agentic_lifecycle_requires_seed() -> None:
+    from perturb_eval.agentic_lifecycle.loop import MockAgentPool, run_agentic_lifecycle
+    X, labels, control_mask, target_gene_idx = _seed_fixture()
+    with pytest.raises(TypeError):
+        run_agentic_lifecycle(  # type: ignore[call-arg]
+            task_id="hold_D",
+            X=X, labels=labels, control_mask=control_mask,
+            target_gene_idx=target_gene_idx, held_out="D",
+            agent_pool=MockAgentPool(seed=0), max_rounds=1,
+        )
+
+
+@pytest.mark.unit
+def test_execute_trainer_requires_seed() -> None:
+    from perturb_eval.agentic_lifecycle.trainer_exec import execute_trainer
+    from perturb_eval.backbones import build_backbone
+    X, labels, control_mask, target_gene_idx = _seed_fixture()
+    with pytest.raises(TypeError):
+        execute_trainer(  # type: ignore[call-arg]
+            backbone=build_backbone("linear"), X=X, labels=labels,
+            control_mask=control_mask, target_gene_idx=target_gene_idx,
+            trainer_proposal={"lr": 1e-2, "epochs": 5},
+        )

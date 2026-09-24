@@ -149,7 +149,13 @@ def _canonical_prompt(prompt: str) -> str:
 
 
 def _cache_key(
-    *, task_id: str, round_index: int, role: str, prompt: str, model_id: str
+    *,
+    task_id: str,
+    round_index: int,
+    role: str,
+    prompt: str,
+    model_id: str,
+    seed: int,
 ) -> str:
     payload = json.dumps(
         {
@@ -158,6 +164,7 @@ def _cache_key(
             "role": role,
             "prompt": _canonical_prompt(prompt),
             "model_id": model_id,
+            "seed": int(seed),
         },
         sort_keys=True,
     ).encode()
@@ -269,8 +276,12 @@ class OpenRouterClient:
         task_id: str,
         round_index: int,
         prompt: str,
+        seed: int,
     ) -> dict:
         """Return a parsed JSON object from the first responsive model.
+
+        ``seed`` is part of the cache key only (A2); it is not sent to the
+        provider.
 
         Raises :class:`OpenRouterError` if every candidate in the pool
         fails (network, 429, unparseable response).
@@ -287,6 +298,7 @@ class OpenRouterClient:
                 role=role,
                 prompt=prompt,
                 model_id=model.model_id,
+                seed=seed,
             )
             cached = self._cached(key)
             if cached is not None:

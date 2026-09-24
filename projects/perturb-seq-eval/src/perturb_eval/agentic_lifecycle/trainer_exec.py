@@ -18,11 +18,17 @@ def execute_trainer(
     control_mask: np.ndarray,
     target_gene_idx: dict[str, int],
     trainer_proposal: dict[str, Any],
+    seed: int,
 ) -> dict:
-    """Translate the Trainer proposal into ``BackboneTrainConfig`` and fit."""
+    """Translate the Trainer proposal into ``BackboneTrainConfig`` and fit.
+
+    ``seed`` is the run seed, supplied by the caller. The LLM does not choose
+    it: ``TrainerProposal`` has no seed field, and any stray ``"seed"`` key in
+    ``trainer_proposal`` is ignored.
+    """
     cfg = BackboneTrainConfig(
         top_k_genes=int(trainer_proposal.get("top_k_genes", 20)),
-        seed=int(trainer_proposal.get("seed", 2026)),
+        seed=int(seed),
         max_iter=int(trainer_proposal.get("epochs", 100)),
         learning_rate=float(trainer_proposal.get("lr", 1e-2)),
         ridge_lambda=float(trainer_proposal.get("ridge_lambda", 1.0)),

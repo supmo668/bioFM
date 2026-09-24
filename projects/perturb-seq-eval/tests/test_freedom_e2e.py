@@ -28,7 +28,7 @@ class VariedMockClient:
     def __init__(self, seed: int = 0) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str) -> dict:  # noqa: ARG002
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
         # Derive a bounded index from (task, round, role) so different
         # (task, seed) pairs give different Architect choices but the
         # same (task, role) is reproducible within a client instance.
@@ -103,6 +103,7 @@ class TestFreedomE2E:
                 held_out="GENE0",
                 agent_pool=pool,
                 max_rounds=2,
+                seed=2026,
             )
             traces.append(run.steps)
 
@@ -117,7 +118,7 @@ class TestFreedomE2E:
         class ScriptedClient:
             # Round 0 architect: linear. Round 1 architect: keep linear
             # unless a validator critique delta is in the prompt.
-            def chat_json(self, *, role, task_id, round_index, prompt):  # noqa: ARG002
+            def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
                 if role == "Architect":
                     if "backbone" in prompt and '"backbone":' in prompt:
                         # Validator delta present → propose a different backbone.
@@ -144,6 +145,7 @@ class TestFreedomE2E:
             held_out="GENE0",
             agent_pool=pool,
             max_rounds=2,
+            seed=2026,
         )
         architect_by_round = [
             s.proposal_content.get("backbone")

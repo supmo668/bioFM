@@ -36,7 +36,7 @@ from perturb_eval.experiments.e2_adamson import load_adamson_combined
 
 
 class _DeterministicStubClient:
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str) -> dict:  # noqa: ARG002
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
         h = abs(hash((task_id, round_index, role))) % 100
         if role == "DataCurator":
             return {"hvg_method": "seurat", "hvg_count": 500 if h % 2 else 1000}
@@ -127,6 +127,7 @@ def main() -> int:
             held_out=task,
             agent_pool=pool,
             max_rounds=2,
+            seed=2026,  # no per-run seed loop in the dry run; fixed run seed
         )
         runs.append(run)
         print(

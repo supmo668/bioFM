@@ -39,6 +39,8 @@ class AgentPool(Protocol):
         round_index: int,
         task_id: str,
         context: dict,
+        *,
+        seed: int,
     ) -> dict: ...
 
 
@@ -54,6 +56,8 @@ class MockAgentPool:
         round_index: int,
         task_id: str,
         context: dict,
+        *,
+        seed: int,  # noqa: ARG002 — mock uses self.seed
     ) -> dict:
         rng = np.random.default_rng(self.seed + round_index * 11 + (abs(hash(role)) % 97))
         if role == "DataCurator":
@@ -105,6 +109,7 @@ def run_agentic_lifecycle(
     target_gene_idx: dict[str, int],
     held_out: str,
     agent_pool: AgentPool,
+    seed: int,
     max_rounds: int = 2,
     backbone_override: str | None = None,
     validator_threshold_override: float | None = None,
@@ -115,6 +120,10 @@ def run_agentic_lifecycle(
     Architect → Trainer → Validator), executes every proposal, and records
     a :class:`LifecycleStep`. The loop terminates early if the Validator
     accepts the trained model.
+
+    ``seed`` is required: it is passed to every ``agent_pool.propose`` call
+    (and so into the LLM cache key) and to ``execute_trainer`` (and so into
+    ``BackboneTrainConfig.seed``).
     """
     steps: list[LifecycleStep] = []
     context: dict = {}
@@ -127,11 +136,11 @@ def run_agentic_lifecycle(
     train_targets = {p: i for p, i in target_gene_idx.items() if p != held_out}
 
     for r in range(max_rounds):
-        dc = agent_pool.propose("DataCurator", r, task_id, context)
-        lit = agent_pool.propose("Literature", r, task_id, context)
-        arch = agent_pool.propose("Architect", r, task_id, context)
-        trn = agent_pool.propose("Trainer", r, task_id, context)
-        val = agent_pool.propose("Validator", r, task_id, context)
+        dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed)
+        lit = agent_pool.propose("Literature", r, task_id, context, seed=seed)
+        arch = agent_pool.propose("Architect", r, task_id, context, seed=seed)
+        trn = agent_pool.propose("Trainer", r, task_id, context, seed=seed)
+        val = agent_pool.propose("Validator", r, task_id, context, seed=seed)
 
         t0 = time.perf_counter()
         curated = execute_data_curator(
@@ -190,6 +199,7 @@ def run_agentic_lifecycle(
             control_mask=control_mask[train_mask],
             target_gene_idx=train_targets_curated,
             trainer_proposal=trn["content"],
+            seed=seed,
         )
 
         round_wall = time.perf_counter() - t0

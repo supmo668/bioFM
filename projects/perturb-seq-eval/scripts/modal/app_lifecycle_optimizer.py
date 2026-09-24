@@ -137,6 +137,7 @@ def run_live_optimizer(n_iterations: int = 8, n_seeds: int = 1) -> dict:
                 agent_pool=pool, max_rounds=phi.n_rounds,
                 backbone_override=phi.backbone,
                 validator_threshold_override=0.05,
+                seed=seed,
             )
             msd = float(run.final_msd_topk)
         except Exception as e:  # noqa: BLE001

@@ -35,6 +35,7 @@ class _ClientLike(Protocol):
         task_id: str,
         round_index: int,
         prompt: str,
+        seed: int,
     ) -> dict: ...
 
 
@@ -123,6 +124,8 @@ class LLMAgentPool:
         round_index: int,
         task_id: str,
         context: dict,
+        *,
+        seed: int,
     ) -> dict:
         if role == "Architect":
             prompt = _architect_prompt(task_id, round_index, context)
@@ -135,6 +138,7 @@ class LLMAgentPool:
                 task_id=task_id,
                 round_index=round_index,
                 prompt=prompt,
+                seed=seed,
             )
         except Exception as exc:  # noqa: BLE001 — any LLM failure falls back
             self._log.warning("LLM pool: role=%s fallback (%s)", role, exc)

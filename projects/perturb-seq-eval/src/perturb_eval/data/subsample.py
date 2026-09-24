@@ -7,8 +7,27 @@ chosen reproducibly from ``seed``.
 
 from __future__ import annotations
 
+import zlib
+
 import numpy as np
 from numpy.typing import NDArray
+
+
+def deterministic_stratum(label: str, k: int) -> int:
+    """Map ``label`` to a stratum in ``[0, k)`` independent of process state.
+
+    Uses CRC32 of the UTF-8 bytes rather than the built-in string hash,
+    which is salted per interpreter (``PYTHONHASHSEED``) and therefore
+    not reproducible across runs.
+
+    Raises
+    ------
+    ValueError
+        If ``k < 1``.
+    """
+    if k < 1:
+        raise ValueError(f"k must be >= 1, got {k}")
+    return zlib.crc32(label.encode("utf-8")) % k
 
 
 def mean_abs_logfc_per_target(

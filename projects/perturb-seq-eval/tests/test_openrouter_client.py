@@ -52,14 +52,14 @@ class TestCanonicalPrompt:
 
 class TestCacheKey:
     def test_different_fields_different_keys(self) -> None:
-        base = dict(task_id="t1", round_index=0, role="A", prompt="p", model_id="m")
+        base = dict(task_id="t1", round_index=0, role="A", prompt="p", model_id="m", seed=0)
         a = _cache_key(**base)
         b = _cache_key(**{**base, "task_id": "t2"})
         assert a != b
 
     def test_same_fields_same_key(self) -> None:
-        k1 = _cache_key(task_id="t1", round_index=0, role="A", prompt="p", model_id="m")
-        k2 = _cache_key(task_id="t1", round_index=0, role="A", prompt="p", model_id="m")
+        k1 = _cache_key(task_id="t1", round_index=0, role="A", prompt="p", model_id="m", seed=0)
+        k2 = _cache_key(task_id="t1", round_index=0, role="A", prompt="p", model_id="m", seed=0)
         assert k1 == k2
 
 
@@ -82,6 +82,7 @@ class TestOpenRouterClient:
                 task_id="t1",
                 round_index=0,
                 prompt="ping",
+                seed=0,
             )
         assert out == {"a": 1}
 
@@ -89,10 +90,10 @@ class TestOpenRouterClient:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache)
         mock_post = MagicMock(return_value=self._make_response('{"x": 42}'))
         with patch.object(client._session, "post", mock_post):
-            client.chat_json(role="Trainer", task_id="t1", round_index=0, prompt="hi")
+            client.chat_json(role="Trainer", task_id="t1", round_index=0, prompt="hi", seed=0)
             assert mock_post.call_count == 1
             # Second call — same key.
-            client.chat_json(role="Trainer", task_id="t1", round_index=0, prompt="hi")
+            client.chat_json(role="Trainer", task_id="t1", round_index=0, prompt="hi", seed=0)
             assert mock_post.call_count == 1  # still 1; cache hit.
 
     def test_rotation_on_429(self, tmp_cache: Path) -> None:
@@ -102,7 +103,7 @@ class TestOpenRouterClient:
             self._make_response('{"ok": true}', status=200),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p")
+            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
         assert out == {"ok": True}
 
     def test_rotation_on_5xx(self, tmp_cache: Path) -> None:
@@ -112,7 +113,7 @@ class TestOpenRouterClient:
             self._make_response('{"ok": true}', status=200),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p")
+            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0)
         assert out == {"ok": True}
 
     def test_all_models_fail_raises(self, tmp_cache: Path) -> None:
@@ -128,7 +129,7 @@ class TestOpenRouterClient:
             return_value=self._make_response('', status=429),
         ):
             with pytest.raises(OpenRouterError):
-                client.chat_json(role="Architect", task_id="t", round_index=0, prompt="p")
+                client.chat_json(role="Architect", task_id="t", round_index=0, prompt="p", seed=0)
 
     def test_parse_failure_retries_with_reformat(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
@@ -137,7 +138,7 @@ class TestOpenRouterClient:
             self._make_response('{"fixed": true}'),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            out = client.chat_json(role="DataCurator", task_id="t", round_index=0, prompt="p")
+            out = client.chat_json(role="DataCurator", task_id="t", round_index=0, prompt="p", seed=0)
         assert out == {"fixed": True}
 
     def test_rate_limited_error_surfaces_when_all_cooled(self, tmp_cache: Path) -> None:
@@ -156,7 +157,7 @@ class TestCachePersistence:
                 json=lambda: {"choices": [{"message": {"content": '{"n": 7}'}}]},
             ),
         ):
-            client.chat_json(role="Trainer", task_id="t", round_index=0, prompt="p")
+            client.chat_json(role="Trainer", task_id="t", round_index=0, prompt="p", seed=0)
         cache_files = list((tmp_path / "cache").rglob("*.json"))
         assert cache_files, "expected at least one cache file"
         payload = json.loads(cache_files[0].read_text())

@@ -79,6 +79,8 @@ class CellForgeAgentPool:
         round_index: int,
         task_id: str,
         context: dict,
+        *,
+        seed: int,  # noqa: ARG002 — CellForge agents are deterministic; seed unused
     ) -> dict:
         """Delegate to the CellForge agent and normalise the output shape
         to what :func:`run_agentic_lifecycle` expects."""

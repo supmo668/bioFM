@@ -32,7 +32,6 @@ from __future__ import annotations
 import json
 import os
 import time
-from dataclasses import asdict
 from pathlib import Path
 
 import modal
@@ -113,6 +112,7 @@ def run_v05_sweep(
     include_norman: bool = True,
     include_adamson: bool = True,
     max_tasks_override: int | None = None,
+    doublet_delim: str = "_",
 ) -> dict:
     """Run the v0.5.0 single-stage sweep on real Adamson + Norman data.
 
@@ -129,15 +129,13 @@ def run_v05_sweep(
         summarise_choice_distribution,
     )
     from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
-    from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
     from perturb_eval.backbones import BackboneTrainConfig, build_backbone, mean_squared_deviation
     from perturb_eval.data.download import fetch_adamson_all, fetch_norman
-    from perturb_eval.data.subsample import (
-        mean_abs_logfc_per_target,
-        stratified_subsample,
-    )
+    from perturb_eval.data.subsample import mean_abs_logfc_per_target
     from perturb_eval.experiments.e2_adamson import load_adamson_combined
     from perturb_eval.experiments.norman import load_norman_matrix
+    from perturb_eval.experiments.v05_sweep import lifecycle_record
+    from perturb_eval.experiments.v05_tasks import build_task_lists
     from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
     out_dir = Path("/data/v0.5.0")
@@ -168,37 +166,26 @@ def run_v05_sweep(
 
     datasets: list[tuple[str, dict, list[str]]] = []
 
+    # Load datasets, reduce them to plain label/score data, then build the
+    # task lists with the pure, deterministic ``build_task_lists`` (T2).
+    adamson_ds = None
+    norman_ds = None
+    adamson_summary: dict[str, dict[str, float]] = {}
+    norman_labels: list[str] = []
+
     if include_adamson:
         adamson_paths = fetch_adamson_all(dest_dir=data_dir)
         adamson_ds = load_adamson_combined(
-            list(adamson_paths.values()),
+            [adamson_paths[k] for k in sorted(adamson_paths)],
             n_top_hvg=2000,
             max_cells_per_pert=200,
         )
-        # Stratify by per-target |logFC| into ``adamson_n_bins`` quantile
-        # bins, then sample ``adamson_n_per_bin`` TFs per bin (seed=2026).
-        logfc = mean_abs_logfc_per_target(
+        # Per-target |logFC| on the combined dataset → quantile strata.
+        adamson_summary["adamson_full"] = mean_abs_logfc_per_target(
             adamson_ds["X"],
             adamson_ds["labels"],
             adamson_ds["control_mask"],
             adamson_ds["target_gene_idx"],
-        )
-        tfs = np.array(list(logfc.keys()))
-        strengths = np.array([logfc[t] for t in tfs])
-        if len(tfs) > adamson_n_per_bin * adamson_n_bins:
-            bin_edges = np.quantile(strengths, np.linspace(0, 1, adamson_n_bins + 1))
-            # digitize returns bin ids in [1..n_bins]; clamp to [0..n_bins-1].
-            bin_ids = np.clip(np.digitize(strengths, bin_edges[1:-1]), 0, adamson_n_bins - 1)
-            chosen_tfs = stratified_subsample(
-                tfs, bin_ids, n_per_stratum=adamson_n_per_bin, seed=2026,
-            )
-            adamson_tasks = list(chosen_tfs)
-        else:
-            adamson_tasks = list(tfs)
-        datasets.append(("adamson_full", adamson_ds, adamson_tasks))
-        print(
-            f"[v0.5.0] adamson loaded: {len(logfc)} TFs total, "
-            f"subsampled to {len(adamson_tasks)} stratified by |logFC|"
         )
 
     if include_norman:
@@ -206,25 +193,31 @@ def run_v05_sweep(
         norman_ds = load_norman_matrix(
             norman_path, n_top_hvg=2000, max_cells_per_pert=200
         )
-        # Stratify by "is_doublet" for fair balance.
-        all_perts = np.array(list(norman_ds["perturbations"]))
-        is_doublet = np.array([("+" in p) for p in all_perts])
-        singletons = all_perts[~is_doublet]
-        doublets = all_perts[is_doublet]
+        norman_labels = list(norman_ds["perturbations"])
 
-        chosen_singletons = stratified_subsample(
-            singletons,
-            strata=np.array([hash(s) % 3 for s in singletons]),
-            n_per_stratum=max(1, norman_n_singletons // 3),
-            seed=2026,
-        )[:norman_n_singletons]
-        chosen_doublets = stratified_subsample(
-            doublets,
-            strata=np.array([hash(s) % 2 for s in doublets]),
-            n_per_stratum=max(1, norman_n_doublets // 2),
-            seed=2026,
-        )[:norman_n_doublets]
-        norman_tasks = sorted(list(chosen_singletons) + list(chosen_doublets))
+    task_plan = build_task_lists(
+        adamson_summary,
+        norman_labels,
+        norman_n_singletons=norman_n_singletons,
+        norman_n_doublets=norman_n_doublets,
+        adamson_n_per_bin=adamson_n_per_bin,
+        adamson_n_bins=adamson_n_bins,
+        seed=2026,
+        doublet_delim=doublet_delim,
+    )
+
+    if adamson_ds is not None:
+        adamson_tasks = list(task_plan.adamson)
+        datasets.append(("adamson_full", adamson_ds, adamson_tasks))
+        print(
+            f"[v0.5.0] adamson loaded: {task_plan.eligible_counts['adamson']} TFs "
+            f"total, subsampled to {len(adamson_tasks)} stratified by |logFC|"
+        )
+
+    if norman_ds is not None:
+        norman_tasks = sorted(
+            list(task_plan.norman_singletons) + list(task_plan.norman_doublets)
+        )
         datasets.append(("norman", norman_ds, norman_tasks))
         print(f"[v0.5.0] norman subsampled: {len(norman_tasks)} tasks")
 
@@ -342,21 +335,14 @@ def run_v05_sweep(
                         break
                     t0 = time.time()
                     try:
-                        run = run_agentic_lifecycle(
-                            task_id=held,
-                            X=ds["X"],
-                            labels=ds["labels"],
-                            control_mask=ds["control_mask"],
-                            target_gene_idx=ds["target_gene_idx"],
-                            held_out=held,
-                            agent_pool=pool,
+                        rec = lifecycle_record(
+                            task=held,
+                            dataset_name=dataset_name,
+                            ds=ds,
+                            seed=seed,
+                            pool=pool,
                             max_rounds=3,
                         )
-                        rec = asdict(run) | {
-                            "dataset": dataset_name,
-                            "seed": seed,
-                            "wall_sec": time.time() - t0,
-                        }
                     except Exception as e:  # noqa: BLE001
                         rec = {
                             "dataset": dataset_name,
@@ -429,6 +415,7 @@ def entrypoint(
     include_norman: bool = True,
     include_adamson: bool = True,
     max_tasks_override: int | None = None,
+    doublet_delim: str = "_",
 ) -> None:
     out = run_v05_sweep.remote(
         norman_n_singletons=norman_n_singletons,
@@ -439,5 +426,6 @@ def entrypoint(
         include_norman=include_norman,
         include_adamson=include_adamson,
         max_tasks_override=max_tasks_override,
+        doublet_delim=doublet_delim,
     )
     print(json.dumps(out, indent=2, default=str))
