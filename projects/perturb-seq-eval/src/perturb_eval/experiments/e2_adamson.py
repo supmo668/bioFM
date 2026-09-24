@@ -16,7 +16,11 @@ from pathlib import Path
 import numpy as np
 
 from perturb_eval.backbones import BackboneTrainConfig
-from perturb_eval.data.perturbations import resolve_target_indices
+from perturb_eval.data.label_contract import (
+    ADAMSON_CONTRACT,
+    LabelContract,
+    resolve_with_contract,
+)
 from perturb_eval.experiments.common import GridCellResult
 from perturb_eval.experiments.e2_grid_fill import phi_identifier
 from perturb_eval.experiments.heldout import build_view, fit_and_score, hvg_fields, select_for_task
@@ -28,6 +32,7 @@ def load_adamson_combined(
     *,
     n_top_hvg: int = 2000,
     max_cells_per_pert: int = 200,
+    contract: LabelContract = ADAMSON_CONTRACT,
 ) -> dict:
     """Load + concatenate multiple Adamson 10X subsets into one canonical dict.
 
@@ -40,15 +45,19 @@ def load_adamson_combined(
     recorded as ``ds["hvg_n_top"]`` and applied per held-out task on
     training cells only (:mod:`perturb_eval.experiments.heldout`).
 
-    Targets resolve via :func:`resolve_target_indices` against the shared
+    Targets resolve via :func:`resolve_with_contract` against the shared
     vocabulary (D1 tuples); a target gene absent from it raises
-    ``ValueError`` — it is never silently skipped.
+    ``ValueError`` — it is never silently skipped. ``contract`` (CTO #250) is
+    applied by every per-file load; ``labels_excluded`` is the union across
+    files (first-appearance order) and ``label_contract`` its provenance.
     """
     if not h5ad_paths:
         raise ValueError("need at least one h5ad path")
 
     per_file = [
-        load_adamson_matrix(p, n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert)
+        load_adamson_matrix(
+            p, n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert, contract=contract
+        )
         for p in h5ad_paths
     ]
 
@@ -80,9 +89,14 @@ def load_adamson_combined(
         for pert in d["perturbations"]:
             if pert not in perturbations:
                 perturbations.append(pert)
+    labels_excluded: list[dict[str, str]] = []
+    for d in per_file:
+        for e in d["labels_excluded"]:
+            if e not in labels_excluded:
+                labels_excluded.append(dict(e))
     gene_to_idx = {g: i for i, g in enumerate(shared_genes)}
     # Raises (listing every (label, gene)) on a target outside the shared vocab.
-    target_gene_idx = resolve_target_indices(perturbations, gene_to_idx)
+    target_gene_idx = resolve_with_contract(perturbations, gene_to_idx, contract)
     unresolved = [pert for pert in perturbations if pert not in target_gene_idx]
     if unresolved:
         raise ValueError(
@@ -98,6 +112,8 @@ def load_adamson_combined(
         "perturbations": tuple(perturbations),
         "gene_names": tuple(shared_genes),
         "hvg_n_top": int(n_top_hvg),
+        "labels_excluded": labels_excluded,
+        "label_contract": contract.to_provenance(),
     }
 
 
@@ -116,6 +132,7 @@ def load_adamson_matrix(
     *,
     n_top_hvg: int = 2000,
     max_cells_per_pert: int = 400,
+    contract: LabelContract = ADAMSON_CONTRACT,
 ) -> dict:
     """Load Adamson, log1p-normalise, downsample. Keeps the FULL gene vocabulary.
 
@@ -126,6 +143,13 @@ def load_adamson_matrix(
     all cells would include every held-out perturbation's cells. HVG is
     selected per held-out task on training cells only; ``n_top_hvg`` is
     only recorded as ``ds["hvg_n_top"]`` for that step.
+
+    ``contract`` (CTO #250) applies to the NORMALISED label before target
+    resolution: structural controls join ``control_mask``; excluded labels
+    lose their cells and are listed in ``ds["labels_excluded"]`` as
+    ``{"label", "reason"}``; an aliased label keeps its task label but
+    resolves to the alias gene's column. ``ds["label_contract"]`` is
+    ``contract.to_provenance()``. Anything still unresolvable raises.
     """
     import h5py
 
@@ -164,10 +188,17 @@ def load_adamson_matrix(
     # log-FC prediction task). In place: no second full-size scratch copy.
     np.log1p(dense, out=dense)
 
-    # Downsample cells per perturbation.
+    # Downsample cells per perturbation; excluded labels (contract) keep none.
     rng = np.random.default_rng(2026)
     keep_mask = np.zeros(dense.shape[0], dtype=bool)
+    labels_excluded: list[dict[str, str]] = []
     for p in np.unique(labels_raw):
+        norm = _normalise_pert_label(str(p))
+        if not _is_control(str(p)) and contract.is_excluded(norm):
+            entry = {"label": norm, "reason": contract.excluded[norm]}
+            if entry not in labels_excluded:
+                labels_excluded.append(entry)
+            continue
         idx = np.where(labels_raw == p)[0]
         if len(idx) > max_cells_per_pert:
             idx = rng.choice(idx, size=max_cells_per_pert, replace=False)
@@ -177,7 +208,10 @@ def load_adamson_matrix(
 
     # Normalise perturbation labels and resolve targets against the full vocab.
     labels_norm = np.asarray([_normalise_pert_label(r) for r in labels_raw])
-    control_mask = np.asarray([_is_control(r) for r in labels_raw])
+    control_mask = np.asarray(
+        [_is_control(r) or contract.is_control(n) for r, n in zip(labels_raw, labels_norm)],
+        dtype=bool,
+    )
     gene_to_idx = {str(g): i for i, g in enumerate(gene_names)}
     # Resolve on the NORMALISED gene-level labels: raw guide labels
     # ("DDIT3_pDS263") carry a '_'-joined plasmid suffix that '_'-parsing
@@ -185,12 +219,12 @@ def load_adamson_matrix(
     # no random-gene substitute.
     perturbations: list[str] = []
     seen: set[str] = set()
-    for raw_label, norm_label in zip(labels_raw, labels_norm):
-        if _is_control(raw_label) or norm_label in seen:
+    for is_ctrl, norm_label in zip(control_mask, labels_norm):
+        if is_ctrl or norm_label in seen:
             continue
         seen.add(str(norm_label))
         perturbations.append(str(norm_label))
-    target_gene_idx = resolve_target_indices(perturbations, gene_to_idx)
+    target_gene_idx = resolve_with_contract(perturbations, gene_to_idx, contract)
     unresolved = [p for p in perturbations if p not in target_gene_idx]
     if unresolved:
         raise ValueError(
@@ -210,6 +244,8 @@ def load_adamson_matrix(
         "perturbations": tuple(perturbations),
         "gene_names": tuple(str(g) for g in gene_names),
         "hvg_n_top": int(n_top_hvg),
+        "labels_excluded": labels_excluded,
+        "label_contract": contract.to_provenance(),
     }
 
 

@@ -241,6 +241,8 @@ def run_v05_sweep(
             "sha256": [_sha256(f) for f in adamson_files],
             "n_cells": int(ds["X"].shape[0]),
             "n_genes": int(ds["X"].shape[1]),
+            # CTO #250: the label contract this load applied (aliases + evidence).
+            "label_contract": ds["label_contract"],
         })
         return ds
 
@@ -255,6 +257,8 @@ def run_v05_sweep(
             "sha256": _sha256(norman_path),
             "n_cells": int(ds["X"].shape[0]),
             "n_genes": int(ds["X"].shape[1]),
+            # CTO #250: the label contract this load applied (aliases + evidence).
+            "label_contract": ds["label_contract"],
         })
         return ds
 
@@ -330,6 +334,8 @@ def run_v05_sweep(
         datasets=dataset_records,
         task_plan=task_plan,
         tasks_excluded=tasks_excluded,
+        # CTO #250: labels the contract excluded, tagged with their dataset.
+        labels_excluded=report.labels_excluded,
         llm_pool=[m.model_id for m in DEFAULT_POOL.models],
         gpu=_GPU,
         hourly_usd=_A100_HOURLY_USD,

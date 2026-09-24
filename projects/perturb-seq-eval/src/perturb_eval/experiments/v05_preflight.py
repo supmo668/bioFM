@@ -21,7 +21,12 @@ Checks:
   (T11); its error is reported here.
 * every planned task resolves to target columns in its dataset
   (:func:`resolve_target_indices` against the dataset's gene vocabulary AND an
-  entry in ``target_gene_idx``) — the sweep never skips a task.
+  entry in ``target_gene_idx``) — the sweep never skips a task. The gene
+  lookup applies the dataset's ``label_contract`` aliases per component
+  (CTO #250); a task that the contract EXCLUDED is a failure.
+
+The report carries each dataset's ``label_contract`` provenance and every
+``labels_excluded`` entry tagged with its dataset, for the provenance record.
 """
 
 from __future__ import annotations
@@ -33,6 +38,7 @@ from pathlib import Path
 from typing import Any, Union
 
 from perturb_eval.backbones import available_backbones
+from perturb_eval.data.label_contract import gene_label_from_provenance
 from perturb_eval.data.perturbations import resolve_target_indices
 from perturb_eval.experiments.v05_tasks import TaskPlan
 
@@ -69,6 +75,10 @@ class PreflightReport:
     probe_model_id: str
     backbones: tuple[str, ...]
     checks: tuple[str, ...] = field(default_factory=tuple)
+    # CTO #250: {dataset: label_contract provenance} and
+    # ({"dataset", "label", "reason"}, ...) for provenance.tasks_excluded.
+    label_contracts: dict[str, Mapping[str, Any]] = field(default_factory=dict)
+    labels_excluded: tuple[dict[str, str], ...] = field(default_factory=tuple)
 
 
 def openrouter_probe(env: Mapping[str, str]) -> str | None:
@@ -246,6 +256,14 @@ def preflight(
         raise PreflightError([_scrub(f, secret) for f in failures])
 
     assert plan is not None
+    label_contracts = {
+        name: ds["label_contract"] for name, ds in loaded.items() if "label_contract" in ds
+    }
+    labels_excluded = tuple(
+        {"dataset": name, "label": str(e["label"]), "reason": str(e["reason"])}
+        for name, ds in loaded.items()
+        for e in ds.get("labels_excluded", ())
+    )
     for c in checks:
         logger.info("preflight ok: %s", c)
     return PreflightReport(
@@ -255,6 +273,8 @@ def preflight(
         probe_model_id=probe_model_id,
         backbones=backbones,
         checks=tuple(checks),
+        label_contracts=label_contracts,
+        labels_excluded=labels_excluded,
     )
 
 
@@ -270,14 +290,26 @@ def _unresolved_tasks(
     tgi = ds.get("target_gene_idx", {})
     genes = ds.get("gene_names")
     gene_to_idx = {str(g): i for i, g in enumerate(genes)} if genes is not None else None
+    contract = ds.get("label_contract")
+    excluded = {str(e["label"]): str(e["reason"]) for e in ds.get("labels_excluded", ())}
     for task in tasks:
+        if task in excluded:
+            out.append(
+                f"{ds_name}/{pool_name}: task {task!r} is excluded by the label contract "
+                f"({excluded[task]}); it must never be drawn"
+            )
+            continue
         if gene_to_idx is not None:
             try:
-                resolved = resolve_target_indices([task], gene_to_idx, delim=delim)
+                gene_task = (
+                    gene_label_from_provenance(task, contract, delim)
+                    if contract is not None else task
+                )
+                resolved = resolve_target_indices([gene_task], gene_to_idx, delim=delim)
             except ValueError as exc:
                 out.append(f"{ds_name}/{pool_name}: task {task!r} does not resolve: {exc}")
                 continue
-            if task not in resolved:
+            if gene_task not in resolved:
                 out.append(
                     f"{ds_name}/{pool_name}: task {task!r} is a control label, not a target"
                 )

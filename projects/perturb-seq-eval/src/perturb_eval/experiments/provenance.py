@@ -107,6 +107,9 @@ _LIBS: tuple[tuple[str, str, str], ...] = (
     ("modal", "modal", "modal"),
 )
 
+# LabelContract.to_provenance() top-level keys (kept literal: this module is stdlib-only).
+_LABEL_CONTRACT_KEYS: tuple[str, ...] = ("aliases", "structural_controls", "excluded")
+
 _SHA_RE = re.compile(r"[0-9a-f]{40}")
 _CONSTRAINT_RE = re.compile(r"[<>=~!^*,]")
 
@@ -194,6 +197,7 @@ def build_provenance(
     task_plan: Any,
     tasks_excluded: Iterable[Mapping[str, Any]],
     llm_pool: Iterable[str],
+    labels_excluded: Iterable[Mapping[str, Any]] = (),
     gpu: str,
     hourly_usd: float,
     budget_cap_usd: float,
@@ -201,7 +205,13 @@ def build_provenance(
     started_at: str | None = None,
     known_limitations: Iterable[str] = (),
 ) -> dict[str, Any]:
-    """Start-of-run provenance record; validates presence and types."""
+    """Start-of-run provenance record; validates presence and types.
+
+    A dataset entry may carry ``label_contract`` (CTO #250: the loader's
+    ``LabelContract.to_provenance()``); its shape is validated. Every
+    ``labels_excluded`` entry (``{"dataset", "label", "reason"}``, the labels
+    the contract dropped) is appended to ``tasks_excluded``.
+    """
     _require(isinstance(run_id, str) and bool(run_id), "run_id must be a non-empty str")
     _require(isinstance(git_sha, str) and bool(_SHA_RE.fullmatch(git_sha)),
              f"git_sha must be 40 lowercase hex chars, got {git_sha!r}")
@@ -214,9 +224,22 @@ def build_provenance(
     for d in ds_list:
         miss = [k for k in ("name", "path", "sha256", "n_cells", "n_genes") if k not in d]
         _require(not miss, f"dataset entry {d.get('name')!r} missing {miss}")
+        if "label_contract" in d:
+            lc = d["label_contract"]
+            _require(
+                isinstance(lc, Mapping)
+                and all(isinstance(lc.get(k), Mapping) for k in _LABEL_CONTRACT_KEYS),
+                f"dataset {d.get('name')!r} label_contract must map each of "
+                f"{list(_LABEL_CONTRACT_KEYS)} to a dict",
+            )
     excl = [dict(e) for e in tasks_excluded]
     for e in excl:
         _require({"label", "reason"} <= set(e), f"tasks_excluded entry needs label+reason: {e}")
+    for e in labels_excluded:
+        e = dict(e)
+        _require({"dataset", "label", "reason"} <= set(e),
+                 f"labels_excluded entry needs dataset+label+reason: {e}")
+        excl.append(e)
     pool = [str(m) for m in llm_pool]
     _require(isinstance(gpu, str) and bool(gpu), "gpu must be a non-empty str")
     _require(isinstance(hourly_usd, (int, float)), "hourly_usd must be a number")
