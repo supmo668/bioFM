@@ -51,6 +51,8 @@ def test_data_curator_applies_hvg_filter() -> None:
     curated = execute_data_curator(
         X=X, labels=labels,
         proposal={"n_top_hvg": 200, "pct_mito_max": 15.0},
+        # T8b: train_mask is now required (HVG ranked on training rows only).
+        train_mask=np.ones(200, dtype=bool),
     )
     assert curated["X"].shape == (200, 200)
     assert curated["labels"].shape == (200,)

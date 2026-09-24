@@ -22,7 +22,8 @@ from typing import Protocol
 import numpy as np
 
 from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_architect_config
-from perturb_eval.backbones import build_backbone
+from perturb_eval.backbones import build_backbone, count_fitted_params
+from perturb_eval.data.hvg import HVG_MODE, all_target_columns, remap_targets
 from perturb_eval.agentic_lifecycle.data_curator_exec import execute_data_curator
 from perturb_eval.agentic_lifecycle.literature_exec import extract_expected_genes
 from perturb_eval.agentic_lifecycle.trainer_exec import execute_trainer
@@ -186,6 +187,10 @@ def run_agentic_lifecycle(
     targets = {p: _as_target_tuple(t) for p, t in target_gene_idx.items()}
     train_mask = labels != held_out
     train_targets = {p: t for p, t in targets.items() if p != held_out}
+    target_cols = all_target_columns(targets)
+    hvg_n_per_round: list[int] = []
+    hvg_n_forced_per_round: list[int] = []
+    n_params: int | None = None
 
     for r in range(max_rounds):
         dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed)
@@ -195,33 +200,18 @@ def run_agentic_lifecycle(
         val = agent_pool.propose("Validator", r, task_id, context, seed=seed)
 
         t0 = time.perf_counter()
+        # T8b: HVG ranked on training cells only; every target column (training
+        # + held-out) is forced in — its identity comes from the label, not
+        # from held-out expression — so no target can fall outside the cut.
         curated = execute_data_curator(
-            X=X[train_mask],
-            labels=labels[train_mask],
+            X=X,
+            labels=labels,
             proposal=dc["content"],
+            train_mask=train_mask,
+            force_include=target_cols,
         )
-        # Guarantee that every target-gene index survives the HVG filter —
-        # otherwise the Trainer's target_gene_idx table collapses to empty
-        # and the whole round fails. This is a safety net on top of the
-        # DataCurator's proposal (NOT a replacement): we keep its HVG set
-        # and only *add* the target-gene indices that were dropped.
-        top_idx_set = {int(i) for i in curated["top_gene_indices"].tolist()}
-        missing_targets = list(dict.fromkeys(
-            g for t in targets.values() for g in t if g not in top_idx_set
-        ))
-        if missing_targets:
-            augmented = np.concatenate(
-                [curated["top_gene_indices"], np.asarray(missing_targets, dtype=np.int64)]
-            )
-            curated = {
-                "X": X[train_mask][:, augmented],
-                "labels": labels[train_mask],
-                "top_gene_indices": augmented,
-                "execution_meta": {
-                    **curated["execution_meta"],
-                    "added_target_genes": len(missing_targets),
-                },
-            }
+        hvg_n_per_round.append(int(curated["execution_meta"]["hvg_n"]))
+        hvg_n_forced_per_round.append(int(curated["execution_meta"]["hvg_n_forced"]))
         literature = extract_expected_genes(lit["content"])
         # The outer optimizer may override the Architect's backbone choice
         # — this is what lets the contextual-BO search over the backbone
@@ -236,15 +226,11 @@ def run_agentic_lifecycle(
         arch_cfg = resolve_architect_config(arch_content, critique_delta=critique_delta)
         backbone = build_backbone(arch_cfg["backbone"])
         backbone_used = arch_cfg["backbone"]
-        # Remap the target-gene indices through the curated HVG index map.
-        # Skip training perturbations with any target gene discarded by the
-        # DataCurator (n_top_hvg may be much smaller than the original vocab).
-        top_idx_arr = np.asarray(curated["top_gene_indices"])
-        old_to_new = {int(old): new for new, old in enumerate(top_idx_arr.tolist())}
+        # Remap the target-gene indices through the curated HVG index map
+        # (all targets were forced in, so none is dropped).
         train_targets_curated = {
-            p: _to_backbone_target(tuple(old_to_new[g] for g in t))
-            for p, t in train_targets.items()
-            if all(g in old_to_new for g in t)
+            p: _to_backbone_target(t)
+            for p, t in remap_targets(train_targets, curated["top_gene_indices"]).items()
         }
         tinfo = execute_trainer(
             backbone=backbone,
@@ -255,6 +241,8 @@ def run_agentic_lifecycle(
             trainer_proposal=trn["content"],
             seed=seed,
         )
+        if tinfo["succeeded"]:
+            n_params = count_fitted_params(backbone)
 
         round_wall = time.perf_counter() - t0
         for role, agent_out in (
@@ -282,7 +270,8 @@ def run_agentic_lifecycle(
         # but we keep *all* cells (including held-out) so observed log-FC
         # can be computed against real held-out counts.
         top_indices = curated["top_gene_indices"]
-        X_hvg = X[:, top_indices]
+        # float64 view: the real-data loaders return a float32 full-vocab matrix.
+        X_hvg = np.asarray(X[:, top_indices], dtype=np.float64)
         remapped = _to_backbone_target(
             _remap_held_out_target(targets, held_out=held_out, top_indices=top_indices)
         )
@@ -341,4 +330,8 @@ def run_agentic_lifecycle(
         n_rounds=r + 1,
         n_agents=len(_ROLES),
         backbone_used=backbone_used,
+        hvg_n_per_round=tuple(hvg_n_per_round),
+        hvg_n_forced_per_round=tuple(hvg_n_forced_per_round),
+        hvg_mode=HVG_MODE,
+        n_params=n_params,
     )

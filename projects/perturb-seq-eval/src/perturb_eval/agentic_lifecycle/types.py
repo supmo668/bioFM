@@ -73,3 +73,11 @@ class LifecycleRun:
     n_rounds: int
     n_agents: int
     backbone_used: str
+    # T8b provenance: train-only HVG size / forced-target count per round
+    # (the DataCurator may change n_top_hvg between rounds), the selection
+    # mode, and the learned-parameter count of the last successfully fitted
+    # backbone. Defaults keep hand-built runs (tests, stubs) valid.
+    hvg_n_per_round: tuple[int, ...] = ()
+    hvg_n_forced_per_round: tuple[int, ...] = ()
+    hvg_mode: str | None = None
+    n_params: int | None = None

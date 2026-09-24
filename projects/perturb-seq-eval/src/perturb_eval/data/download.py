@@ -224,9 +224,10 @@ def fetch_norman(
 ) -> Path:
     """Download the Norman 2019 h5ad (~120 MB).
 
-    Norman encodes double knockdowns as ``GENE_A+GENE_B`` in
-    ``obs.perturbation``. The loader in
-    :mod:`perturb_eval.experiments.norman` handles both singletons and
-    doublets via the same canonical dict shape as Adamson.
+    Norman (scPerturb bundle) encodes double knockdowns as ``_``-joined
+    symbols (``GENE_A_GENE_B``, e.g. ``CBL_UBASH3A``) in ``obs.perturbation``;
+    singletons are bare symbols. The loader in
+    :mod:`perturb_eval.experiments.norman` (``doublet_delim="_"``) handles
+    both via the same canonical dict shape as Adamson.
     """
     return _fetch(DATASETS["norman"], dest_dir=dest_dir, sha256=sha256, min_bytes=min_bytes)

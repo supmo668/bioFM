@@ -122,17 +122,16 @@ def run_v05_sweep(
         Provenance summary: ``{n_trainer_runs, n_lifecycle_runs,
         total_gpu_seconds, total_cost_usd, started_at, finished_at}``.
     """
-    import numpy as np
 
     from perturb_eval.agentic_lifecycle.freedom_probe import (
         per_agent_field_entropy,
         summarise_choice_distribution,
     )
     from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
-    from perturb_eval.backbones import BackboneTrainConfig, build_backbone, mean_squared_deviation
     from perturb_eval.data.download import fetch_adamson_all, fetch_norman
     from perturb_eval.data.subsample import mean_abs_logfc_per_target
     from perturb_eval.experiments.e2_adamson import load_adamson_combined
+    from perturb_eval.experiments.heldout import iter_trainer_records
     from perturb_eval.experiments.norman import load_norman_matrix
     from perturb_eval.experiments.v05_sweep import lifecycle_record
     from perturb_eval.experiments.v05_tasks import build_task_lists
@@ -223,87 +222,30 @@ def run_v05_sweep(
 
     # ---------- 2. Trainer-only sweep ----------
     print(f"[v0.5.0] trainer sweep start; budget_so_far=${_cost_usd_so_far():.3f}")
+    # T8b: the loop body lives in perturb_eval.experiments.heldout so it is
+    # testable; HVG is selected per held-out task on training cells only and
+    # each record carries hvg_n / hvg_n_forced / hvg_mode / n_params.
     n_trainer_runs = 0
     for dataset_name, ds, tasks in datasets:
         if max_tasks_override is not None:
             tasks = tasks[:max_tasks_override]
-        for backbone_name in backbones:
-            for held in tasks:
-                # Skip doublets for trainer-only (no single target_gene_idx).
-                if held not in ds["target_gene_idx"]:
-                    continue
-                for N in n_sweep:
-                    for R in r_sweep:
-                        for seed in range(2026, 2026 + seeds):
-                            if _budget_exceeded():
-                                print(
-                                    f"[v0.5.0] budget cap hit (${_cost_usd_so_far():.2f})"
-                                    " — stopping trainer sweep"
-                                )
-                                break
-                            t0 = time.time()
-                            try:
-                                train_mask = ds["labels"] != held
-                                train_targets = {
-                                    p: i for p, i in ds["target_gene_idx"].items()
-                                    if p != held
-                                }
-                                bb = build_backbone(backbone_name)
-                                bb.fit(
-                                    ds["X"][train_mask],
-                                    ds["labels"][train_mask].tolist(),
-                                    ds["control_mask"][train_mask],
-                                    train_targets,
-                                    BackboneTrainConfig(
-                                        max_iter=20 + 40 * R,
-                                        learning_rate=1e-2,
-                                        ridge_lambda=1.0,
-                                        seed=seed,
-                                    ),
-                                )
-                                target_idx = ds["target_gene_idx"][held]
-                                n_genes = ds["X"].shape[1]
-                                pred = bb.predict_logfc(
-                                    held, target_idx, n_genes=n_genes
-                                )
-                                mask_p = ds["labels"] == held
-                                mask_c = ds["control_mask"]
-                                truth = np.mean(ds["X"][mask_p], axis=0) - np.mean(
-                                    ds["X"][mask_c], axis=0
-                                )
-                                top_k = np.argsort(-np.abs(truth))[:20]
-                                msd = float(mean_squared_deviation(pred, truth, top_k))
-                                rec = {
-                                    "dataset": dataset_name,
-                                    "task": held,
-                                    "backbone": backbone_name,
-                                    "N": N,
-                                    "R": R,
-                                    "seed": seed,
-                                    "msd_topk": msd,
-                                    "wall_sec": time.time() - t0,
-                                }
-                            except Exception as e:  # noqa: BLE001
-                                rec = {
-                                    "dataset": dataset_name,
-                                    "task": held,
-                                    "backbone": backbone_name,
-                                    "N": N, "R": R, "seed": seed,
-                                    "msd_topk": float("inf"),
-                                    "error": f"{type(e).__name__}: {e}",
-                                    "wall_sec": time.time() - t0,
-                                }
-                            _append(trainer_out, rec)
-                            n_trainer_runs += 1
-                        if _budget_exceeded():
-                            break
-                    if _budget_exceeded():
-                        break
-                if _budget_exceeded():
-                    break
-            if _budget_exceeded():
-                break
+        for rec in iter_trainer_records(
+            dataset_name=dataset_name,
+            ds=ds,
+            tasks=tasks,
+            backbones=backbones,
+            n_sweep=n_sweep,
+            r_sweep=r_sweep,
+            seeds=range(2026, 2026 + seeds),
+            should_stop=_budget_exceeded,
+        ):
+            _append(trainer_out, rec)
+            n_trainer_runs += 1
         if _budget_exceeded():
+            print(
+                f"[v0.5.0] budget cap hit (${_cost_usd_so_far():.2f})"
+                " — stopping trainer sweep"
+            )
             break
     print(
         f"[v0.5.0] trainer sweep done: {n_trainer_runs} runs; "

@@ -15,13 +15,11 @@ from pathlib import Path
 
 import numpy as np
 
-from perturb_eval.backbones import (
-    BackboneTrainConfig,
-    build_backbone,
-    mean_squared_deviation,
-)
+from perturb_eval.backbones import BackboneTrainConfig
+from perturb_eval.data.perturbations import resolve_target_indices
 from perturb_eval.experiments.common import GridCellResult
 from perturb_eval.experiments.e2_grid_fill import phi_identifier
+from perturb_eval.experiments.heldout import build_view, fit_and_score, hvg_fields, select_for_task
 from perturb_eval.types import Config
 
 
@@ -34,22 +32,23 @@ def load_adamson_combined(
     """Load + concatenate multiple Adamson 10X subsets into one canonical dict.
 
     The scPerturb 10X001 (pilot), 10X005, and 10X010 subsets share the
-    same schema but cover different TF perturbation sets. To maximise
-    target-gene retention we load each subset with HVG *disabled*
-    (``n_top_hvg=len(gene_names)``), take the gene-vocab intersection
-    across files, then apply the HVG cut on the concatenated matrix so
-    every subset votes on which genes survive. Target TFs that exist in
-    the shared vocab always survive the HVG cut (we augment the HVG set
-    with every target gene before slicing).
-    """
-    import numpy as np
+    same schema but cover different TF perturbation sets. Each subset is
+    loaded over its full gene vocabulary, re-indexed onto the vocabulary
+    intersection, and concatenated. **No HVG cut happens here** (T8b, CTO
+    #227): ranking genes over the concatenated matrix would let every
+    held-out perturbation's cells vote on the features. ``n_top_hvg`` is
+    recorded as ``ds["hvg_n_top"]`` and applied per held-out task on
+    training cells only (:mod:`perturb_eval.experiments.heldout`).
 
+    Targets resolve via :func:`resolve_target_indices` against the shared
+    vocabulary (D1 tuples); a target gene absent from it raises
+    ``ValueError`` — it is never silently skipped.
+    """
     if not h5ad_paths:
         raise ValueError("need at least one h5ad path")
 
-    # Load each subset with per-file HVG disabled (huge n_top_hvg).
     per_file = [
-        load_adamson_matrix(p, n_top_hvg=10**9, max_cells_per_pert=max_cells_per_pert)
+        load_adamson_matrix(p, n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert)
         for p in h5ad_paths
     ]
 
@@ -70,53 +69,35 @@ def load_adamson_combined(
         all_labels.append(d["labels"])
         all_ctrl.append(d["control_mask"])
 
-    X_full = np.concatenate(Xs, axis=0)
+    X = np.concatenate(Xs, axis=0)
+    del Xs
     labels = np.concatenate(all_labels, axis=0).astype("U32")
     control_mask = np.concatenate(all_ctrl, axis=0)
 
-    # Collect target TF names before HVG cut so every target survives.
-    all_target_tfs: set[str] = set()
-    for d in per_file:
-        all_target_tfs.update(d["perturbations"])
-    gene_to_shared_idx = {g: i for i, g in enumerate(shared_genes)}
-    target_indices_to_keep = {
-        gene_to_shared_idx[tf]
-        for tf in all_target_tfs
-        if tf in gene_to_shared_idx
-    }
-
-    # HVG on the combined matrix.
-    if n_top_hvg < len(shared_genes):
-        gene_var = X_full.var(axis=0)
-        top_by_var = set(np.argsort(-gene_var)[:n_top_hvg].tolist())
-        keep_set = top_by_var | target_indices_to_keep
-        kept = sorted(keep_set)
-        X = X_full[:, kept]
-        final_genes = [shared_genes[i] for i in kept]
-    else:
-        X = X_full
-        final_genes = list(shared_genes)
-
-    gene_to_new_idx = {g: i for i, g in enumerate(final_genes)}
-    target_gene_idx: dict[str, int] = {}
+    # Union of perturbations, first-appearance order across files.
     perturbations: list[str] = []
     for d in per_file:
-        for p in d["perturbations"]:
-            if p in target_gene_idx:
-                continue
-            if p in gene_to_new_idx:
-                target_gene_idx[p] = gene_to_new_idx[p]
-                perturbations.append(p)
-            # else: target dropped from vocab entirely (not present in
-            # shared genes at all) — skip (honest gap).
+        for pert in d["perturbations"]:
+            if pert not in perturbations:
+                perturbations.append(pert)
+    gene_to_idx = {g: i for i, g in enumerate(shared_genes)}
+    # Raises (listing every (label, gene)) on a target outside the shared vocab.
+    target_gene_idx = resolve_target_indices(perturbations, gene_to_idx)
+    unresolved = [pert for pert in perturbations if pert not in target_gene_idx]
+    if unresolved:
+        raise ValueError(
+            f"Adamson perturbation label(s) {unresolved!r} are not controls under the "
+            "Adamson convention but were not resolved to target genes"
+        )
 
     return {
-        "X": X.astype(np.float64),
+        "X": X,
         "labels": labels,
         "control_mask": control_mask,
         "target_gene_idx": target_gene_idx,
         "perturbations": tuple(perturbations),
-        "gene_names": tuple(final_genes),
+        "gene_names": tuple(shared_genes),
+        "hvg_n_top": int(n_top_hvg),
     }
 
 
@@ -136,11 +117,15 @@ def load_adamson_matrix(
     n_top_hvg: int = 2000,
     max_cells_per_pert: int = 400,
 ) -> dict:
-    """Load Adamson, log1p-normalise, downsample, pick top-HVG genes.
+    """Load Adamson, log1p-normalise, downsample. Keeps the FULL gene vocabulary.
 
     The returned dictionary is the canonical input for every backbone on
-    real data: ``{X, labels, control_mask, target_gene_idx, perturbations}``
-    with the same keys the synthetic path uses.
+    real data: ``{X, labels, control_mask, target_gene_idx, perturbations,
+    gene_names, hvg_n_top}``. ``X`` is the raw log1p matrix (float32, all
+    genes). **No HVG cut happens here** (T8b, CTO #227): ranking genes over
+    all cells would include every held-out perturbation's cells. HVG is
+    selected per held-out task on training cells only; ``n_top_hvg`` is
+    only recorded as ``ds["hvg_n_top"]`` for that step.
     """
     import h5py
 
@@ -176,14 +161,8 @@ def load_adamson_matrix(
     # log1p normalisation (counts are raw integers after scanpy's default
     # QC from scPerturb; we keep it simple — no cell-depth scaling here so
     # the HVG picks are depth-dominated but OK for the backbone's relative
-    # log-FC prediction task).
-    dense = np.log1p(dense)
-
-    # Pick top-N most variable genes (Seurat-style on log1p).
-    gene_var = dense.var(axis=0)
-    top_gene_idx = np.argsort(-gene_var)[:n_top_hvg]
-    dense = dense[:, top_gene_idx]
-    gene_names = gene_names[top_gene_idx]
+    # log-FC prediction task). In place: no second full-size scratch copy.
+    np.log1p(dense, out=dense)
 
     # Downsample cells per perturbation.
     rng = np.random.default_rng(2026)
@@ -196,31 +175,41 @@ def load_adamson_matrix(
     dense = dense[keep_mask]
     labels_raw = labels_raw[keep_mask]
 
-    # Normalise perturbation labels and identify targets present in the HVG vocab.
+    # Normalise perturbation labels and resolve targets against the full vocab.
     labels_norm = np.asarray([_normalise_pert_label(r) for r in labels_raw])
     control_mask = np.asarray([_is_control(r) for r in labels_raw])
     gene_to_idx = {str(g): i for i, g in enumerate(gene_names)}
-    target_gene_idx: dict[str, int] = {}
-    perturbations = []
+    # Resolve on the NORMALISED gene-level labels: raw guide labels
+    # ("DDIT3_pDS263") carry a '_'-joined plasmid suffix that '_'-parsing
+    # would misread as a doublet. A target outside the vocab raises (A4) —
+    # no random-gene substitute.
+    perturbations: list[str] = []
+    seen: set[str] = set()
     for raw_label, norm_label in zip(labels_raw, labels_norm):
-        if not _is_control(raw_label) and norm_label not in target_gene_idx:
-            target_gene_idx[str(norm_label)] = gene_to_idx.get(
-                str(norm_label),
-                # Fall back to the most-variable gene if HVG missed the target
-                # (unlikely for Adamson TFs — TF genes are typically in top 2000).
-                int(rng.integers(0, len(gene_names))),
-            )
-            perturbations.append(str(norm_label))
+        if _is_control(raw_label) or norm_label in seen:
+            continue
+        seen.add(str(norm_label))
+        perturbations.append(str(norm_label))
+    target_gene_idx = resolve_target_indices(perturbations, gene_to_idx)
+    unresolved = [p for p in perturbations if p not in target_gene_idx]
+    if unresolved:
+        raise ValueError(
+            f"Adamson perturbation label(s) {unresolved!r} are not controls under the "
+            "Adamson convention but were not resolved to target genes"
+        )
 
     # Controls get label "CTRL" in the uniform convention used by backbones.
     labels_final = np.where(control_mask, "CTRL", labels_norm).astype("U32")
     return {
-        "X": dense.astype(np.float64),
+        # float32: the full vocabulary is ~16x wider than the old 2 000-gene
+        # cut; per-task views are cast to float64 (same values as before).
+        "X": dense,
         "labels": labels_final,
         "control_mask": control_mask,
         "target_gene_idx": target_gene_idx,
         "perturbations": tuple(perturbations),
         "gene_names": tuple(str(g) for g in gene_names),
+        "hvg_n_top": int(n_top_hvg),
     }
 
 
@@ -231,41 +220,29 @@ def train_grid_cell_adamson(
     *,
     h5ad_path: Path | str,
     dataset_cache: dict | None = None,
+    n_hvg: int | None = None,
 ) -> GridCellResult:
     """Train one (phi, task, seed) on real Adamson data.
 
     ``task`` is expected to be one of the normalised perturbation names
     from :func:`load_adamson_matrix`; it becomes the held-out perturbation
-    for this grid cell. ``dataset_cache`` lets callers share the preprocessed
-    dataset across calls (crucial — loading is ~6 s per call otherwise).
+    for this grid cell. ``dataset_cache`` lets callers share the loaded raw
+    dataset across calls (crucial — loading is ~6 s per call otherwise); it
+    holds the full-vocabulary matrix only, never a feature selection.
+
+    HVG (``n_hvg``, default ``ds["hvg_n_top"]``) is selected for THIS
+    held-out task on training cells only (T8b); the result records
+    ``hvg_n``, ``hvg_n_forced``, ``hvg_mode`` and the fitted ``n_params``.
     """
     t0 = time.perf_counter()
     ds = dataset_cache if dataset_cache is not None else load_adamson_matrix(h5ad_path)
 
     held = task
-    if held not in ds["target_gene_idx"]:
-        raise ValueError(
-            f"held-out task {held!r} not in Adamson perturbations "
-            f"{sorted(ds['target_gene_idx'])}"
-        )
-    train_mask = ds["labels"] != held
-    if not train_mask.any():
-        raise ValueError("empty training mask — dataset may be misformed")
-
-    from perturb_eval.backbones import available_backbones
-
-    if phi.backbone not in available_backbones():
-        raise ValueError(
-            f"unknown backbone {phi.backbone!r}; "
-            f"available: {sorted(available_backbones())}"
-        )
-    backbone = build_backbone(phi.backbone)
-    train_targets = {p: idx for p, idx in ds["target_gene_idx"].items() if p != held}
-    backbone.fit(
-        ds["X"][train_mask],
-        ds["labels"][train_mask].tolist(),
-        ds["control_mask"][train_mask],
-        train_targets,
+    sel = select_for_task(ds, held, n_hvg=n_hvg)
+    view = build_view(ds, held, sel)
+    out = fit_and_score(
+        view,
+        phi.backbone,
         BackboneTrainConfig(
             max_iter=20 + 40 * phi.n_rounds,
             learning_rate=1e-2,
@@ -273,22 +250,13 @@ def train_grid_cell_adamson(
             seed=seed,
         ),
     )
-
-    target_idx = ds["target_gene_idx"][held]
-    n_genes = ds["X"].shape[1]
-    pred = backbone.predict_logfc(held, target_idx, n_genes=n_genes)
-
-    # Observed log-FC from held-out perturbation vs control cells.
-    mask_p = ds["labels"] == held
-    mask_c = ds["control_mask"]
-    truth = np.mean(ds["X"][mask_p], axis=0) - np.mean(ds["X"][mask_c], axis=0)
-    top_k = np.argsort(-np.abs(truth))[:20]
-    msd = mean_squared_deviation(pred, truth, top_k)
     return GridCellResult(
         phi_id=phi_identifier(phi),
         task=held,
         seed=seed,
-        msd_topk=msd,
+        msd_topk=out["msd_topk"],
         wall_time_sec=time.perf_counter() - t0,
-        backbone_name=backbone.name,
+        backbone_name=out["backbone"],
+        **hvg_fields(sel),
+        n_params=out["n_params"],
     )

@@ -42,13 +42,14 @@ def mean_abs_logfc_per_target(
     gene's column. Log-space is already applied in the loaders, so this
     is a mean |Δlog1p| — a faithful perturbation-strength stratifier.
     """
-    ctrl_mean = X[control_mask].mean(axis=0)
+    # float64 accumulation: loaders now return float32 full-vocabulary X.
+    ctrl_mean = X[control_mask].mean(axis=0, dtype=np.float64)
     out: dict[str, float] = {}
     for pert, idx in target_gene_idx.items():
         mask_p = labels == pert
         if not mask_p.any():
             continue
-        pert_mean = X[mask_p].mean(axis=0)
+        pert_mean = X[mask_p].mean(axis=0, dtype=np.float64)
         out[pert] = float(abs(pert_mean[idx] - ctrl_mean[idx]))
     return out
 

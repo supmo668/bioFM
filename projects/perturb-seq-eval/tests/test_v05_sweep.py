@@ -20,6 +20,11 @@ _RECORD_KEYS = {
     "n_rounds",
     "n_agents",
     "backbone_used",
+    # T8b provenance fields on LifecycleRun.
+    "hvg_n_per_round",
+    "hvg_n_forced_per_round",
+    "hvg_mode",
+    "n_params",
     "dataset",
     "seed",
     "wall_sec",

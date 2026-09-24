@@ -1,7 +1,7 @@
 """Unit tests for the Norman 2019 loader.
 
-Norman encodes double knockdowns as ``GENE_A+GENE_B`` in the
-``obs.perturbation`` column. Control cells are ``non-targeting`` (or
+Norman (scPerturb bundle) encodes double knockdowns as ``GENE_A_GENE_B``
+(``_``-joined, e.g. ``CBL_UBASH3A``) in the ``obs.perturbation`` column. Control cells are ``non-targeting`` (or
 ``ctrl`` depending on repack). The loader must return the same canonical
 dict shape as :func:`load_adamson_matrix` so all downstream backbones work
 unchanged.
@@ -33,9 +33,9 @@ def _make_norman_fixture(path: Path, *, n_cells: int = 600, n_genes: int = 100) 
         "MYC",
         "KLF4",
         "ELK1",
-        "JUN+FOS",
-        "MYC+KLF4",
-        "JUN+ELK1",
+        "JUN_FOS",
+        "MYC_KLF4",
+        "JUN_ELK1",
     ]
     perturbation = rng.choice(pert_pool, size=n_cells)
 
@@ -101,15 +101,15 @@ class TestLoadNormanMatrix:
 
         ds = load_norman_matrix(norman_h5ad)
         perts = set(ds["perturbations"])
-        # At least one doublet uses the + delimiter and is preserved.
-        doublets = {p for p in perts if "+" in p}
+        # At least one doublet uses the _ delimiter and is preserved.
+        doublets = {p for p in perts if "_" in p}
         assert len(doublets) > 0, f"no doublets found in {perts}"
 
     def test_singleton_targets_indexed(self, norman_h5ad: Path) -> None:
         from perturb_eval.experiments.norman import load_norman_matrix
 
         ds = load_norman_matrix(norman_h5ad)
-        singletons = {p for p in ds["perturbations"] if "+" not in p}
+        singletons = {p for p in ds["perturbations"] if "_" not in p}
         for s in singletons:
             assert s in ds["target_gene_idx"], f"{s} missing from target_gene_idx"
 
@@ -129,6 +129,66 @@ class TestLoadNormanMatrix:
         assert list(ds1["perturbations"]) == list(ds2["perturbations"])
 
 
+class TestNormanDoubletsAndMissingTargets:
+    """C-RG-2 / A4 / D1: ``_``-joined doublets resolve to 2-tuples; a target
+    outside the HVG cut raises instead of being replaced by a random gene."""
+
+    def test_underscore_doublet_maps_to_both_target_columns(self, norman_h5ad: Path) -> None:
+        from perturb_eval.experiments.norman import load_norman_matrix
+
+        ds = load_norman_matrix(norman_h5ad)
+        col = {g: i for i, g in enumerate(ds["gene_names"])}
+        assert ds["target_gene_idx"]["JUN_FOS"] == (col["JUN"], col["FOS"])
+        assert ds["target_gene_idx"]["MYC_KLF4"] == (col["MYC"], col["KLF4"])
+        # Singletons are 1-tuples under the D1 contract.
+        assert ds["target_gene_idx"]["JUN"] == (col["JUN"],)
+        assert "JUN_FOS" in ds["perturbations"]
+
+    # T8b (CTO #227): this test used to assert the OLD behaviour — a zero-variance
+    # target "falls outside" a loader-level HVG cut ranked on ALL cells and
+    # raises. The loader no longer cuts genes (HVG is per held-out task on
+    # training cells only), so that low-variance target now resolves; a target
+    # truly absent from the gene vocabulary still raises.
+    @staticmethod
+    def _write_lowvar(path: Path, gene_names: np.ndarray) -> None:
+        import anndata as ad
+        from scipy.sparse import csr_matrix
+
+        n_genes = len(gene_names)
+        labels = ["non-targeting"] * 20 + ["JUN"] * 20 + ["LOWVAR"] * 20
+        X = np.tile(np.arange(1, n_genes + 1, dtype=np.float32), (len(labels), 1))
+        X[: len(labels) // 2] *= 3.0  # variance in every column ...
+        X[:, 1] = 1.0  # ... except column 1's
+        adata = ad.AnnData(
+            X=csr_matrix(X),
+            obs={"perturbation": np.array(labels)},
+            var={"gene_symbol": gene_names},
+        )
+        adata.write_h5ad(path)
+
+    def test_low_variance_target_is_kept_no_loader_hvg_cut(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.norman import load_norman_matrix
+
+        gene_names = np.array([f"GENE{i:03d}" for i in range(30)])
+        gene_names[0], gene_names[1] = "JUN", "LOWVAR"
+        path = tmp_path / "norman_lowvar.h5ad"
+        self._write_lowvar(path, gene_names)
+        ds = load_norman_matrix(path, n_top_hvg=10)
+        assert ds["X"].shape[1] == 30  # full vocabulary
+        assert ds["target_gene_idx"]["LOWVAR"] == (1,)
+        assert ds["hvg_n_top"] == 10
+
+    def test_singleton_absent_from_vocab_raises(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.norman import load_norman_matrix
+
+        gene_names = np.array([f"GENE{i:03d}" for i in range(30)])
+        gene_names[0] = "JUN"  # "LOWVAR" is not a gene in this vocabulary
+        path = tmp_path / "norman_absent.h5ad"
+        self._write_lowvar(path, gene_names)
+        with pytest.raises(ValueError, match="LOWVAR"):
+            load_norman_matrix(path, n_top_hvg=10)
+
+
 class TestNormanIntegration:
     """End-to-end: Norman loader output must feed LinearBackbone without error."""
 
@@ -137,7 +197,7 @@ class TestNormanIntegration:
         from perturb_eval.experiments.norman import load_norman_matrix
 
         ds = load_norman_matrix(norman_h5ad)
-        singletons = [p for p in ds["perturbations"] if "+" not in p]
+        singletons = [p for p in ds["perturbations"] if "_" not in p]
         assert len(singletons) >= 2
         held = singletons[0]
 
