@@ -66,6 +66,7 @@ DATASETS: dict[str, DatasetSpec] = {
             filename="AdamsonWeissman2016_GSM2406677_10X005.h5ad",
         ),
         min_bytes=50 * 1024 * 1024,  # actual ~133 MB
+        sha256="6c6eca0f53f8887b86597e2a4ff512ff2b2d3d9c78ee7deec9a6e7d6ae859d01",  # T20/T21: Zenodo md5 8657391920e7f8b3e6fd52745777002a verified
     ),
     "adamson_10X010": DatasetSpec(
         name="adamson_10X010",
@@ -76,6 +77,7 @@ DATASETS: dict[str, DatasetSpec] = {
             filename="AdamsonWeissman2016_GSM2406681_10X010.h5ad",
         ),
         min_bytes=200 * 1024 * 1024,  # actual ~450 MB
+        sha256="e70fcd49808cab8d724de8d5a332940911206e1c8ef44cc7b568d048ed795c85",  # T20/T21: Zenodo md5 2fa44ea61a8dd35742af618638ec65fc verified
     ),
     "norman": DatasetSpec(
         name="norman",
@@ -86,6 +88,7 @@ DATASETS: dict[str, DatasetSpec] = {
             filename="NormanWeissman2019_filtered.h5ad",
         ),
         min_bytes=500 * 1024 * 1024,  # actual ~699 MB
+        sha256="efde6f5301fe256725dce1d980f37bd96a13481a9a16135515897368e631affc",  # T20/T21: Zenodo md5 c870e6967d91c017d9da827bab183cd6 verified
     ),
 }
 

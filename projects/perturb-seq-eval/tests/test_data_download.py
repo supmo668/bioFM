@@ -142,8 +142,20 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class TestFailClosedUnpinned:
+    @pytest.fixture(autouse=True)
+    def _norman_unpinned(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # The real norman spec is pinned (T21). These tests exercise the fail-closed
+        # property for an UNPINNED spec, independent of the real pins, so they
+        # substitute an unpinned copy of the spec for the duration of each test.
+        import dataclasses
+        from perturb_eval.data import download
+        monkeypatch.setitem(
+            download.DATASETS, "norman",
+            dataclasses.replace(download.DATASETS["norman"], sha256=None),
+        )
+
     def test_raises_when_cached_file_has_no_sha_pin(self, tmp_path: Path) -> None:
-        # norman has no pin (until T21): a cached file must NOT be trusted.
+        # norman is unpinned here (fixture): a cached file must NOT be trusted.
         cached = tmp_path / "NormanWeissman2019_filtered.h5ad"
         _write_bytes(cached, b"unverified-bytes")
         with patch("perturb_eval.data.download._download") as mock_dl:
@@ -222,12 +234,10 @@ class TestFailClosedUnpinned:
         from perturb_eval.data.download import DATASETS, _sha256_of
         assert _sha256_of(_LOCAL_PILOT) == DATASETS["adamson_pilot"].sha256
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="T21: digests pinned after T20 prints them from the Modal volume",
-    )
-    def test_all_specs_pinned(self) -> None:
-        from perturb_eval.data.download import DATASETS
-        for name, spec in DATASETS.items():
-            assert spec.sha256 is not None and _HEX64.match(spec.sha256), name
-            assert spec.is_pinned(), name
+
+def test_all_specs_pinned() -> None:
+    # Module level on purpose: TestFailClosedUnpinned unpins norman via an autouse fixture.
+    from perturb_eval.data.download import DATASETS
+    for name, spec in DATASETS.items():
+        assert spec.sha256 is not None and _HEX64.match(spec.sha256), name
+        assert spec.is_pinned(), name
