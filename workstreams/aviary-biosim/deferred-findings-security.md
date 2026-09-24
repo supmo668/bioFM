@@ -4,6 +4,13 @@ The public register at `aviary-biosim/docs/deferred-findings.md` carries securit
 id + severity + "held". The detail lives here until the fix ships, then the full row moves
 to the public register and this entry is deleted.
 
+**One exemption, and read it before promoting anything.** That lifecycle assumes the only
+reason for privacy is an unshipped fix. **C-001 is not a security finding and is NOT subject
+to it** — it is held here because stating it descriptively in a public, durable register
+would reproduce the very pairing being withheld. There may never be a "fix" to ship, and
+promoting C-001 on the usual rule would publish exactly what it exists to withhold.
+C-001 moves only on the principal's explicit instruction.
+
 This file is in the **superproject**, which is private and tracks `workstreams/`. It is
 deliberately NOT in the submodule: that repo is public, and its own `workstreams/` is
 gitignored, so a file there would die with the worktree and be invisible to everyone else.
@@ -50,3 +57,42 @@ survive unchanged.
 Mutation counts from the #152 gate and its re-gate are unverified (stale `__pycache__`
 methodology). The fixes are not in doubt; the metric is. Re-earn the figure before it is
 ever published. Full statement in the public register's Method notes.
+
+---
+
+## C-001 — three tracked sites pair an identifier with what it names
+
+**Severity.** Constraint, **not security**. Raised via the constraint relayed in dispatch
+#218; ruled in #220. No live reproduction (not a defect class with one). Disposition
+2026-09-24.
+
+**Status.** **Held.** Retroactivity is with the principal, recorded as handoff decision 14,
+**with a recommendation against**.
+
+**Where.** `aviary-biosim/science/esm_tool.py:161`, `science/run_discovery.py:61`,
+`science/run_experiment.py:42`.
+
+**What.** Each pairs an identifier with what it denotes. **The pairing is deliberately not
+restated here** — a reader re-derives it from the code at those three locations. Recording
+it descriptively is the thing the constraint forbids, and a register is the most durable
+artifact in the system, so it is the worst place to do it.
+
+**Held as ONE decision.** Editing any single site leaves the association standing in the
+other two, so a partial fix buys nothing.
+
+**Two carry consequences beyond wording:**
+
+- `esm_tool.py:161` is the **agent-facing Tool schema** — verified: `Tool.from_function(fn)`
+  at `science/biosim_env.py:115` derives the parameter description from that docstring, so
+  editing it changes what the model is shown. That is a behaviour change to the environment,
+  not a documentation tidy.
+- `run_discovery.py:61` is the prompt the **published measurement run actually asked**. The
+  remedy there is **ANNOTATE, never rewrite**: the historical prompt is evidence, and
+  rewriting it makes the artifact and the code disagree about what was asked — converting a
+  wording preference into a provenance defect, which is a worse fault than the one being
+  corrected.
+
+**Why it is recorded at all.** The constraint's value is prospective: stop accumulating the
+association. This row exists so a future reader does not rediscover the three sites and
+"tidy" them, and so the annotate-not-rewrite distinction survives outside dispatch prose —
+which is where findings go to die, and the reason this register exists.
