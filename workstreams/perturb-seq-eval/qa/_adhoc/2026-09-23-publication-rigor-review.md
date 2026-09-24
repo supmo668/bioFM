@@ -516,8 +516,34 @@ One single-gene construct, two doubles and a triple became **one task**.
 best-config MSD of 0.147**, and the `PASS` verdict on its pre-registered `< 0.20` gate, were
 computed with a task whose cell population is a mixture of four distinct perturbations.
 
-This is the **first** label defect found today with **confirmed v0.5.0 exposure** — the other
-nine were unexposed by sampling luck rather than by design.
+This is the first label defect found today with confirmed exposure **in a held-out task**.
+
+> **CORRECTED 2026-09-24, hours after writing, and the error was mine to propagate.** This
+> paragraph originally read "the other nine were unexposed by sampling luck rather than by
+> design." **That is wrong for five of the nine.** The agent gave me that framing, I wrote it
+> here and passed it to the principal, and neither of us had checked the right thing: the claim
+> was verified only against the **held-out task lists**.
+>
+> Re-checked against the pre-fix code at `228d354` for **training** exposure, it splits by
+> dataset:
+>
+> - **Adamson** (`PERK`, `IRE1`, `3x`, `Gal4-4(mod)`, plus a `nan` label on 2,919 unannotated
+>   cells found in the full inventory): `load_adamson_combined` skipped labels absent from the
+>   shared gene vocabulary (`e2_adamson.py:103-111`), and `LinearBackbone.fit` skips labels
+>   absent from `target_gene_idx` (`linear.py:48`). Their cells trained no model. Exposure is
+>   the all-cells HVG ranking only. **"Unexposed" holds.**
+> - **Norman** (`C3orf72`, `C3orf72_FOXL2`, `KIAA1804`, `C19orf26`, `TGFBR2_C19orf26`): the
+>   per-file loader gave each a **random target index**, which put them *into*
+>   `target_gene_idx` — so they entered the **training set** of every Norman task that did not
+>   hold them out, carrying a random on-target feature. **"Unexposed" is wrong.** It adds five
+>   labels to A4's training-side exposure. It does not change *which* published numbers are
+>   affected, since `median_msd_norman` and `GATE_NORMAN` were already uninterpretable under A4.
+>
+> **The lesson is a checking discipline, and it is why this correction is worth more than the
+> fact it corrects:** *"not a held-out task"* and *"not an input"* are different claims. An
+> impact assessment that checks only the task list answers the wrong question, and answers it
+> reassuringly. Any future "did this reach the published numbers?" must check **both** the
+> held-out lists **and** the training inputs.
 
 ### Why nothing caught it, which is the transferable part
 
