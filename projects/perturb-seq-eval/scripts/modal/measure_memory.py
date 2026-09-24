@@ -37,7 +37,8 @@ DATA_VOL = modal.Volume.from_name("perturb-eval-data")
 
 
 @app.function(image=image, cpu=4.0, memory=SWEEP_MEMORY_MIB, timeout=1800, volumes={"/data": DATA_VOL})
-def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200, datasets: str = "adamson_full,norman") -> dict:
+def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200, datasets: str = "adamson_full,norman",
+            keep_resident: bool = False) -> dict:
     import resource
     import time
 
@@ -54,6 +55,8 @@ def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200, datasets: str 
     out: dict = {"limit_gib": SWEEP_MEMORY_MIB / 1024, "n_top_hvg": n_top_hvg,
                  "max_cells_per_pert": max_cells_per_pert}
     data_dir = Path("/data/datasets")
+    resident: list = []
+    out["keep_resident"] = keep_resident
     for name, load in (
         ("adamson_full", lambda: load_adamson_combined(
             [p for _, p in sorted(fetch_adamson_all(dest_dir=data_dir, trust_unpinned=False).items())],
@@ -77,7 +80,12 @@ def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200, datasets: str 
             "load_plus_hvg_sec": round(time.time() - t0, 1),
             "peak_rss_gib_after": round(peak_gib(), 3),
         }
-        del ds, X
+        if keep_resident:
+            resident.append(ds)  # the sweep keeps every dataset resident (CTO #261)
+        else:
+            del ds
+        del X
+    out["n_resident_datasets"] = len(resident)
     out["peak_rss_gib"] = round(peak_gib(), 3)
     out["headroom_gib"] = round(out["limit_gib"] - out["peak_rss_gib"], 3)
     return out
@@ -89,4 +97,5 @@ def main() -> None:
 
     import os
 
-    print(json.dumps(measure.remote(datasets=os.environ.get("MEASURE_DATASETS", "adamson_full,norman")), indent=2))
+    print(json.dumps(measure.remote(datasets=os.environ.get("MEASURE_DATASETS", "adamson_full,norman"),
+                                     keep_resident=os.environ.get("MEASURE_KEEP_RESIDENT") == "1"), indent=2))
