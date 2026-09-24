@@ -99,6 +99,49 @@ class MockAgentPool:
 
 _ROLES = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
 
+Target = int | tuple[int, ...]
+
+
+def _as_target_tuple(t: Target) -> tuple[int, ...]:
+    """D1: a singleton target is a 1-tuple; normalise ``int`` → ``(int,)``."""
+    return tuple(int(i) for i in t) if isinstance(t, (tuple, list)) else (int(t),)
+
+
+def _to_backbone_target(t: tuple[int, ...]) -> Target:
+    """Hand singletons to the backbone as a plain ``int`` so a 1-tuple takes the
+    exact same code path as today's int targets; multi-target stays a tuple."""
+    return t[0] if len(t) == 1 else t
+
+
+def _remap_held_out_target(
+    target_gene_idx: dict[str, Target],
+    *,
+    held_out: str,
+    top_indices: np.ndarray,
+) -> tuple[int, ...]:
+    """Map the held-out perturbation's target gene(s) into HVG-subset columns.
+
+    Every target gene is remapped element-wise. Raises ``ValueError`` if the
+    held-out label has no target entry, or if ANY of its target genes is not
+    in ``top_indices`` — there is no index-0 fallback (A4).
+    """
+    if held_out not in target_gene_idx:
+        raise ValueError(
+            f"held-out perturbation {held_out!r} has no entry in target_gene_idx"
+        )
+    old_to_new: dict[int, int] = {}
+    for new, old in enumerate(np.asarray(top_indices).tolist()):
+        old_to_new.setdefault(int(old), new)  # first hit, as np.where(...)[0][0]
+    remapped: list[int] = []
+    for gene in _as_target_tuple(target_gene_idx[held_out]):
+        if gene not in old_to_new:
+            raise ValueError(
+                f"held-out perturbation {held_out!r}: target gene index {gene} "
+                f"is not in the HVG subset used for scoring"
+            )
+        remapped.append(old_to_new[gene])
+    return tuple(remapped)
+
 
 def run_agentic_lifecycle(
     *,
@@ -106,7 +149,7 @@ def run_agentic_lifecycle(
     X: np.ndarray,
     labels: np.ndarray,
     control_mask: np.ndarray,
-    target_gene_idx: dict[str, int],
+    target_gene_idx: dict[str, int | tuple[int, ...]],
     held_out: str,
     agent_pool: AgentPool,
     seed: int,
@@ -121,6 +164,10 @@ def run_agentic_lifecycle(
     a :class:`LifecycleStep`. The loop terminates early if the Validator
     accepts the trained model.
 
+    ``target_gene_idx`` values may be an ``int`` or a ``tuple[int, ...]``
+    (D1 multi-target contract; a 1-tuple behaves exactly like the int).
+    A ``held_out`` label absent from ``target_gene_idx`` raises ``ValueError``.
+
     ``seed`` is required: it is passed to every ``agent_pool.propose`` call
     (and so into the LLM cache key) and to ``execute_trainer`` (and so into
     ``BackboneTrainConfig.seed``).
@@ -132,8 +179,13 @@ def run_agentic_lifecycle(
     backbone_used = "linear"
     r = 0
 
+    if held_out not in target_gene_idx:
+        raise ValueError(
+            f"held-out perturbation {held_out!r} has no entry in target_gene_idx"
+        )
+    targets = {p: _as_target_tuple(t) for p, t in target_gene_idx.items()}
     train_mask = labels != held_out
-    train_targets = {p: i for p, i in target_gene_idx.items() if p != held_out}
+    train_targets = {p: t for p, t in targets.items() if p != held_out}
 
     for r in range(max_rounds):
         dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed)
@@ -154,9 +206,9 @@ def run_agentic_lifecycle(
         # DataCurator's proposal (NOT a replacement): we keep its HVG set
         # and only *add* the target-gene indices that were dropped.
         top_idx_set = {int(i) for i in curated["top_gene_indices"].tolist()}
-        missing_targets = [
-            int(i) for i in target_gene_idx.values() if int(i) not in top_idx_set
-        ]
+        missing_targets = list(dict.fromkeys(
+            g for t in targets.values() for g in t if g not in top_idx_set
+        ))
         if missing_targets:
             augmented = np.concatenate(
                 [curated["top_gene_indices"], np.asarray(missing_targets, dtype=np.int64)]
@@ -185,12 +237,14 @@ def run_agentic_lifecycle(
         backbone = build_backbone(arch_cfg["backbone"])
         backbone_used = arch_cfg["backbone"]
         # Remap the target-gene indices through the curated HVG index map.
-        # Skip perturbations whose target gene was discarded by the DataCurator
-        # (n_top_hvg may be much smaller than the original vocab).
+        # Skip training perturbations with any target gene discarded by the
+        # DataCurator (n_top_hvg may be much smaller than the original vocab).
         top_idx_arr = np.asarray(curated["top_gene_indices"])
         old_to_new = {int(old): new for new, old in enumerate(top_idx_arr.tolist())}
         train_targets_curated = {
-            p: old_to_new[i] for p, i in train_targets.items() if int(i) in old_to_new
+            p: _to_backbone_target(tuple(old_to_new[g] for g in t))
+            for p, t in train_targets.items()
+            if all(g in old_to_new for g in t)
         }
         tinfo = execute_trainer(
             backbone=backbone,
@@ -229,12 +283,9 @@ def run_agentic_lifecycle(
         # can be computed against real held-out counts.
         top_indices = curated["top_gene_indices"]
         X_hvg = X[:, top_indices]
-        if held_out in target_gene_idx:
-            real_idx = target_gene_idx[held_out]
-            hits = np.where(top_indices == real_idx)[0]
-            remapped = int(hits[0]) if hits.size else 0
-        else:
-            remapped = 0
+        remapped = _to_backbone_target(
+            _remap_held_out_target(targets, held_out=held_out, top_indices=top_indices)
+        )
         threshold = (
             validator_threshold_override
             if validator_threshold_override is not None

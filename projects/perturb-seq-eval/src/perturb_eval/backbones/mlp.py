@@ -16,12 +16,15 @@ non-trivial nonlinearity over the linear backbone that completes in under
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 
 import numpy as np
 
 from perturb_eval.backbones.base import (
     BackboneFitArtifacts,
     BackboneTrainConfig,
+    TargetIdx,
+    _as_targets,
     log_fold_change,
     per_perturbation_mean,
 )
@@ -38,12 +41,17 @@ class MLPBackbone:
         self._mean_logfc: np.ndarray | None = None
         self._hidden_dim = hidden_dim
 
-    def _featurize(self, target_gene_idx: int, n_genes: int) -> np.ndarray:
-        """One-hot of the target gene index — small, but enough to give
-        the MLP per-target capacity over the shared mean pattern."""
+    def _featurize(self, target_gene_idx: TargetIdx, n_genes: int) -> np.ndarray:
+        """Mean of the one-hots of the target gene indices — small, but
+        enough to give the MLP per-target capacity over the shared mean
+        pattern. A 1-tuple gives the plain one-hot (weight exactly 1.0);
+        a doublet puts 1/2 on each target column (D1: mean over targets)."""
         v = np.zeros(n_genes, dtype=np.float64)
-        if 0 <= target_gene_idx < n_genes:
-            v[target_gene_idx] = 1.0
+        targets = _as_targets(target_gene_idx)
+        w = 1.0 / len(targets)
+        for t in targets:
+            if 0 <= t < n_genes:
+                v[t] = w
         return v
 
     def fit(
@@ -51,7 +59,7 @@ class MLPBackbone:
         expression: np.ndarray,
         perturbation_labels: list[str],
         control_mask: np.ndarray,
-        target_gene_idx: dict[str, int],
+        target_gene_idx: Mapping[str, TargetIdx],
         cfg: BackboneTrainConfig,
     ) -> BackboneFitArtifacts:
         t0 = time.perf_counter()
@@ -116,7 +124,7 @@ class MLPBackbone:
     def predict_logfc(
         self,
         perturbation: str,
-        target_gene_idx: int,
+        target_gene_idx: TargetIdx,
         n_genes: int,
     ) -> np.ndarray:
         if self._W1 is None or self._W2 is None or self._mean_logfc is None:

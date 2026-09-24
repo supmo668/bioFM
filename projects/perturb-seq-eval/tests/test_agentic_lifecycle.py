@@ -279,3 +279,79 @@ def test_execute_trainer_requires_seed() -> None:
             control_mask=control_mask, target_gene_idx=target_gene_idx,
             trainer_proposal={"lr": 1e-2, "epochs": 5},
         )
+
+
+# --- T10 / A4 + D1: held-out target remap raises; tuple targets --------------
+
+
+def _run_lifecycle(target_gene_idx, held_out="D", backbone="linear", seed=2026):
+    from perturb_eval.agentic_lifecycle.loop import MockAgentPool, run_agentic_lifecycle
+    X, labels, control_mask, _ = _seed_fixture()
+    return run_agentic_lifecycle(
+        task_id=f"hold_{held_out}",
+        X=X, labels=labels, control_mask=control_mask,
+        target_gene_idx=target_gene_idx, held_out=held_out,
+        agent_pool=MockAgentPool(seed=0),
+        max_rounds=1, backbone_override=backbone,
+        validator_threshold_override=0.0,
+        seed=seed,
+    )
+
+
+@pytest.mark.unit
+def test_missing_held_out_target_raises() -> None:
+    """No silent index-0 fallback: a held-out label without a target is an error."""
+    _, _, _, target_gene_idx = _seed_fixture()
+    without_d = {p: i for p, i in target_gene_idx.items() if p != "D"}
+    with pytest.raises(ValueError, match="'D'"):
+        _run_lifecycle(without_d, held_out="D")
+
+
+@pytest.mark.unit
+def test_remap_held_out_target_two_tuple_maps_to_two_hvg_columns() -> None:
+    from perturb_eval.agentic_lifecycle.loop import _remap_held_out_target
+    top_indices = np.asarray([7, 3, 9, 12])
+    remapped = _remap_held_out_target(
+        {"A": 7, "AB": (9, 3)}, held_out="AB", top_indices=top_indices,
+    )
+    assert remapped == (2, 1)
+
+
+@pytest.mark.unit
+def test_remap_held_out_target_int_is_one_tuple() -> None:
+    from perturb_eval.agentic_lifecycle.loop import _remap_held_out_target
+    top_indices = np.asarray([7, 3, 9, 12])
+    assert _remap_held_out_target({"A": 12}, held_out="A", top_indices=top_indices) == (3,)
+    assert _remap_held_out_target({"A": (12,)}, held_out="A", top_indices=top_indices) == (3,)
+
+
+@pytest.mark.unit
+def test_remap_held_out_target_outside_hvg_subset_raises() -> None:
+    """Any target gene of the held-out perturbation dropped from the HVG subset → loud."""
+    from perturb_eval.agentic_lifecycle.loop import _remap_held_out_target
+    top_indices = np.asarray([7, 3, 9, 12])
+    with pytest.raises(ValueError, match=r"'AB'.*\b44\b"):
+        _remap_held_out_target(
+            {"AB": (9, 44)}, held_out="AB", top_indices=top_indices,
+        )
+    with pytest.raises(ValueError, match=r"'A'.*\b44\b"):
+        _remap_held_out_target({"A": 44}, held_out="A", top_indices=top_indices)
+
+
+@pytest.mark.unit
+def test_remap_held_out_target_missing_label_raises() -> None:
+    from perturb_eval.agentic_lifecycle.loop import _remap_held_out_target
+    with pytest.raises(ValueError, match="'Z'"):
+        _remap_held_out_target({"A": 7}, held_out="Z", top_indices=np.asarray([7]))
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("backbone", ["linear", "mlp"])
+def test_one_tuple_targets_match_int_targets_exactly(backbone: str) -> None:
+    """A 1-tuple must be byte-identical to today's int path (D1: singletons are 1-tuples)."""
+    _, _, _, target_gene_idx = _seed_fixture()
+    as_tuples = {p: (i,) for p, i in target_gene_idx.items()}
+    run_int = _run_lifecycle(target_gene_idx, backbone=backbone)
+    run_tup = _run_lifecycle(as_tuples, backbone=backbone)
+    assert np.isfinite(run_int.final_msd_topk)
+    assert run_tup.final_msd_topk == run_int.final_msd_topk
