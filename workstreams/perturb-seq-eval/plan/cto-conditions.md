@@ -59,3 +59,17 @@ measures the import, not the agent.
   probe with no usable model ⇒ **refuse the whole run in preflight, before any GPU work** (C-KEY-1). No skip path remains.
 - Paper-fill tooling (`scripts/paper/fill_v050_numbers.py`) must refuse any `summary.json` whose `status` is not `ok`
   (analyser escape hatches produce `*_DIAGNOSTIC_ONLY` summaries with null gates) — noted for the CTO; out of #202 scope.
+
+## LABEL CONTRACT (CTO #250 -> #251 -> #253, binding)
+- Principle: an agent rules on what code/data DEMONSTRATE, never on what literature asserts.
+- Adamson structural parser (#253 a-f): strip plasmid suffix `_p[A-Z]+[0-9]+(-[0-9]+)?`, strip `_only`; one component -> gene task
+  (same-gene plasmids pool; provenance.guides_per_gene); >1 component -> excluded "multi-gene construct; unsupported by D1" (raw label
+  recorded); label containing `neg_ctrl` -> structural control. Red-then-green on the real 10X005 raw labels.
+- `3x` (`3x_neg_ctrl_*`) -> STRUCTURAL CONTROL (#253 supersedes #250 ruling 3). `Gal4-4(mod)` -> structural control.
+- `PERK`/`IRE1` excluded, reason EXACTLY: "alias not corroborated: target not detected in this subset (control mean 0.0) and the label
+  pools multiple constructs; excluded rather than aliased." Never record a claim that the symbols differ.
+- Norman: stable-ID joins `C3orf72`->`FOXL2NB` (ENSG00000206262, corroborated? no — inconclusive: "join structural, expression cross-check
+  inconclusive") and `C19orf26`->`CBARP` (ENSG00000099625, corroborated: +0.301, rank 33,690/33,694, CRISPRa => UP). Join column named
+  literally `ensemble_id` (upstream typo); a missing column RAISES naming expected + found columns — pinned by a test. `KIAA1804` excluded
+  "target gene not locatable in the dataset vocabulary under either name".
+- Adamson 21 = 3 bins x 7 must remain fillable; exact-fill assertion as in T11; if unreachable, ESCALATE the number (plan-level quantity).
