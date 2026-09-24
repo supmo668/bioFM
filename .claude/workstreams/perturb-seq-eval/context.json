@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "workstream": "perturb-seq-eval",
+  "updated_at": "2026-09-24T18:59:36.106126+00:00",
+  "linear": {
+    "initiative_url": "",
+    "initiative_id": ""
+  },
+  "github": {
+    "repo": ""
+  },
+  "phases": {
+    "and": {
+      "status": "approved",
+      "artifact": "workstreams/perturb-seq-eval/AND.md",
+      "linear": "",
+      "gh": "",
+      "commit": "",
+      "qgr": "",
+      "summary": "",
+      "pr": "",
+      "updated_at": "2026-09-24T18:59:36.105857+00:00"
+    }
+  }
+}

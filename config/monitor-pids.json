@@ -22,5 +22,11 @@
     "pid": 3309,
     "cmdline_hash": "69dbd7041b8ae105",
     "agent_address": "biofm/matthew-mo/cto"
+  },
+  {
+    "monitor_type": "dispatch",
+    "pid": 18684,
+    "cmdline_hash": "fdf55b2ebd07c873",
+    "agent_address": "biofm/matthew-mo/perturb-seq-eval"
   }
 ]
