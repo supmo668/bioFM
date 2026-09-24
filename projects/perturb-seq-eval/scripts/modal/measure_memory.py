@@ -13,7 +13,10 @@ from pathlib import Path
 
 import modal
 
-PROJECT_DIR_HOST = Path(__file__).resolve().parents[2]
+try:  # same guard as app_v05: inside the container the module sits at /root/<file>
+    PROJECT_DIR_HOST = Path(__file__).resolve().parents[2]
+except IndexError:
+    PROJECT_DIR_HOST = Path(__file__).resolve().parent
 SWEEP_MEMORY_MIB = 32768  # must match app_v05's @app.function(memory=...)
 
 image = (
@@ -34,7 +37,7 @@ DATA_VOL = modal.Volume.from_name("perturb-eval-data")
 
 
 @app.function(image=image, cpu=4.0, memory=SWEEP_MEMORY_MIB, timeout=1800, volumes={"/data": DATA_VOL})
-def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200) -> dict:
+def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200, datasets: str = "adamson_full,norman") -> dict:
     import resource
     import time
 
@@ -59,6 +62,8 @@ def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200) -> dict:
             fetch_norman(dest_dir=data_dir, trust_unpinned=False),
             n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert)),
     ):
+        if name not in datasets.split(","):
+            continue
         t0 = time.time()
         ds = load()
         X, labels = ds["X"], np.asarray(ds["labels"])
@@ -82,4 +87,6 @@ def measure(n_top_hvg: int = 2000, max_cells_per_pert: int = 200) -> dict:
 def main() -> None:
     import json
 
-    print(json.dumps(measure.remote(), indent=2))
+    import os
+
+    print(json.dumps(measure.remote(datasets=os.environ.get("MEASURE_DATASETS", "adamson_full,norman")), indent=2))
