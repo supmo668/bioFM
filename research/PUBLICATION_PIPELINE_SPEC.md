@@ -296,3 +296,76 @@ stage 2, because the workflow built in n8n differs completely between the two.
 
 **Dispatch #203 is written for (a)** and is therefore **on hold** pending this decision —
 it would otherwise have the agent consolidate a CLI that (b) would delete.
+
+---
+
+## 11. n8n instance inventory (2026-09-24, post-connection)
+
+**Connected.** `n8n-mcp` registered at **user scope** in `~/.claude.json` (outside the repo,
+so no token is committable). `claude mcp list` reports `✔ Connected`. Server identifies as
+**n8n MCP Server v1.1.0** and advertises 26 tools, including `create_workflow_from_code`,
+`validate_workflow`, `test_workflow`, `publish_workflow`, `list_credentials` and
+`get_sdk_reference`. Token stored as `N8N_MCP_TOKEN` in Infisical `bioFM/dev` (v1).
+
+The server's own instructions state: *"You MUST call `get_sdk_reference` … before writing
+workflow code. Do not guess."* Whoever builds the workflow: do that first.
+
+### 11.1 This is shared production infrastructure, not a sandbox
+
+**82 workflows, 49 credentials**, most of them live. The instance hosts at least four
+distinct tenants:
+
+| family | examples | state |
+|---|---|---|
+| XEOs content/social | `00-MAIN: Unified Publisher v5 (master)`, `XEOs — Subwf: <platform> Publisher` ×11 | mostly active |
+| CRA | `cra-w1-cal-sync` … `cra-w8-escalation` | all active |
+| GTM | `[GTM] instrument-read service`, `[GTM] Eden Main Character` | mixed |
+| scratch / held | `ZZ-TEMP …`, `ZZ RELEASE …`, `ZZ-SCRATCH …`, `[template] …` | inactive by convention |
+
+**Consequences for this pipeline, and they are not cosmetic:**
+
+- **Do not create anything unprefixed.** The instance has a working naming convention
+  (`00-MAIN:` masters, `01-` … `06-` stage prefixes, `XEOs — Subwf:` for sub-workflows,
+  `[GTM]` for tenancy, `ZZ-` for scratch). An unlabelled workflow is invisible to the
+  people maintaining the other 82.
+- **bioFM is a different product from SyntropyHealth/XEOs.** Recommend a tenancy prefix:
+  **`[bioFM] 03-PUBLISH: Academic Repositories`**, following the `[GTM]` precedent, and
+  `[bioFM] Subwf: <venue>` for per-venue children if it is split.
+- **Build inactive, and prefer a `ZZ-`/`[template]` name until proven**, per the instance's
+  own convention for unproven work. Do not `publish_workflow` until stage 3 of §10.3 passes.
+- **Other agents operate here** (gtm-xeos, cra, GTM coordinators). Creating or renaming in
+  this instance is a cross-team action, not a private one.
+
+### 11.2 Two blockers resolved, one narrowed
+
+- **Slack is no longer blocked.** A `Slack Bot — NoiseMaker` (`slackApi`) credential already
+  exists in n8n. §6's notification can be built entirely inside n8n using it — the
+  Claude-side Slack MCP (which is still only `authenticate` stubs) is **not needed**. Still
+  needed from the principal: **which channel** to post to.
+- **Asset storage has an existing path.** A `Google Drive account` credential exists, and
+  `04-MEDIA: Drive Bundle (per-round subfolder + assets)` already implements
+  per-run-subfolder asset bundling. If `bioML-publication/<topic>/` should live in Drive
+  rather than on disk, that sub-workflow is the precedent to copy — worth a look before
+  reimplementing.
+- **No academic venue credential exists.** Of 49, none is Zenodo, Figshare, OSF, Dryad,
+  Dataverse or Software Heritage. All six still need tokens. Note the instance already has
+  an Infisical-sourcing convention (`Bing Webmaster API key (Infisical…)`), so follow it.
+
+### 11.3 No academic publishing pipeline exists here — the duplicate question is settled
+
+The instance has a rich *social/content* publishing family — `Unified Publisher v5`,
+`Article Publisher (Ghost + Substack)`, `Social Publisher V3`, eleven per-platform
+publishers. **None of them deposits to an academic repository.** So:
+
+- in **n8n**: no duplicate. Nothing to reuse directly, though `Unified Publisher v5`'s
+  master/fan-out shape and `Drive Bundle`'s asset convention are the right patterns to copy.
+- in the **repo**: two duplicates, as §1 records.
+
+### 11.4 Still blocking
+
+1. **The (a)/(b) fork of §10.4 is unresolved** — consolidate Python vs reimplement in n8n.
+   Nothing should be created in a production instance until this is settled, because the two
+   branches produce entirely different workflows.
+2. **Slack target channel** — unnamed.
+3. **Five of six venue tokens** absent; Zenodo asserted to be in Infisical but still
+   unverified (§8).
