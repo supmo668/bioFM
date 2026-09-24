@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from perturb_eval.backbones import available_backbones, build_backbone
+from perturb_eval.backbones import _REGISTRY, available_backbones, build_backbone
 
 _ALIAS = {
     "scgpt": "scgpt_small",
@@ -22,10 +22,36 @@ _ALIAS = {
 }
 
 
+class BackboneUnavailableError(RuntimeError):
+    """A KNOWN backbone (registry or alias) cannot be built in this environment.
+
+    C-TORCH-2 (CTO #241): never degraded to ``linear`` — that would make the
+    Architect's backbone distribution measure the import, not the agent.
+    """
+
+
 def _canonical_backbone(name: str) -> str:
+    """Canonicalise an Architect backbone name.
+
+    * unknown name (not in the registry, not an alias) -> ``"linear"``
+      (documented fallback for free-text LLM output);
+    * known name not in :func:`available_backbones` -> raises
+      :class:`BackboneUnavailableError` (C-TORCH-2).
+    """
     lower = name.strip().lower()
     resolved = _ALIAS.get(lower, lower)
-    return resolved if resolved in available_backbones() else "linear"
+    if resolved not in _REGISTRY:
+        return "linear"
+    available = available_backbones()
+    if resolved not in available:
+        reason = (
+            "torch is not importable" if resolved == "scgpt_small" else "not available"
+        )
+        raise BackboneUnavailableError(
+            f"backbone {resolved!r} (requested as {name!r}) is known but unavailable in "
+            f"this environment: {reason}; available: {sorted(available)}"
+        )
+    return resolved
 
 
 def resolve_architect_config(
@@ -38,7 +64,8 @@ def resolve_architect_config(
     Returns a fully-populated config dict with keys
     ``{backbone, hvg_count, learning_rate, ridge_lambda, epochs,
     n_agents, n_rounds}``. Unknown backbones are canonicalised via the
-    alias table and fall back to ``linear`` if still unrecognised.
+    alias table and fall back to ``linear`` if still unrecognised; a known
+    backbone that is unavailable here raises :class:`BackboneUnavailableError`.
 
     Parameters
     ----------
@@ -47,8 +74,8 @@ def resolve_architect_config(
         module defaults.
     critique_delta
         Validator's ``suggested_next_config_delta`` from the previous
-        round. Applied after the base proposal; invalid backbone deltas
-        are silently ignored (we fall back to the proposal's backbone).
+        round. Applied after the base proposal; an unrecognised backbone
+        delta canonicalises to ``linear``; a known-but-unavailable one raises.
     """
     cfg: dict[str, Any] = {
         "backbone": "linear",

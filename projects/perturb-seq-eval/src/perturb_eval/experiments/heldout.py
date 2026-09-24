@@ -23,7 +23,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from perturb_eval.agentic_lifecycle.architect_dispatch import BackboneUnavailableError
 from perturb_eval.backbones import (
+    _REGISTRY,
     BackboneTrainConfig,
     available_backbones,
     build_backbone,
@@ -82,6 +84,11 @@ def build_view(ds: dict, held: str, sel: _hvg.HVGSelection) -> HeldOutView:
 def fit_and_score(view: HeldOutView, backbone_name: str, cfg: BackboneTrainConfig) -> dict:
     """Fit on the view's training rows, score the held-out task. Returns
     ``{msd_topk, backbone, n_params}``."""
+    if backbone_name in _REGISTRY and backbone_name not in available_backbones():
+        raise BackboneUnavailableError(
+            f"backbone {backbone_name!r} is known but unavailable in this environment "
+            f"(available: {sorted(available_backbones())})"
+        )
     if backbone_name not in available_backbones():
         raise ValueError(
             f"unknown backbone {backbone_name!r}; available: {sorted(available_backbones())}"
@@ -124,7 +131,9 @@ def iter_trainer_records(
     """Yield one trainer-sweep JSONL record per (backbone, task, N, R, seed) cell.
 
     Loop order and record shape match the former inline loop in
-    ``app_v05.py``; per-cell exceptions become ``error`` records. HVG is
+    ``app_v05.py``; per-cell exceptions become ``error`` records, except
+    :class:`BackboneUnavailableError` and a task absent from
+    ``target_gene_idx``, which raise. HVG is
     selected once per held-out task (cached) and each record carries
     ``hvg_n``, ``hvg_n_forced``, ``hvg_mode`` and (on success) ``n_params``.
     Stops as soon as ``should_stop()`` is true.
@@ -135,7 +144,11 @@ def iter_trainer_records(
     for backbone_name in backbones:
         for held in tasks:
             if held not in ds["target_gene_idx"]:
-                continue
+                # Preflight (T22) guarantees every task resolves; reaching
+                # here mid-run is a bug, never a silent skip.
+                raise ValueError(
+                    f"{dataset_name}: task {held!r} has no entry in target_gene_idx"
+                )
             for N in n_sweep:
                 for R in r_sweep:
                     for seed in seeds:
@@ -168,6 +181,8 @@ def iter_trainer_records(
                                 **hvg_fields(selections[held]),
                                 "n_params": out["n_params"],
                             }
+                        except BackboneUnavailableError:
+                            raise  # C-TORCH-2: never an error record
                         except Exception as e:  # noqa: BLE001 — recorded, as before
                             rec = {
                                 **base,

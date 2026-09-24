@@ -106,7 +106,7 @@ def _env_secrets() -> dict[str, str]:
     gpu=_GPU,
     cpu=4.0,
     memory=32768,
-    timeout=21600,  # 6 h ceiling
+    timeout=28800,  # 8 h ceiling (T22, R-timeout)
     volumes={"/data": DATA_VOL, "/biofm_cache": BIOFM_VOL},
     secrets=[modal.Secret.from_dict(_env_secrets())],
 )
@@ -153,6 +153,7 @@ def run_v05_sweep(
     import hashlib
     import inspect
 
+    from perturb_eval.agentic_lifecycle.architect_dispatch import BackboneUnavailableError
     from perturb_eval.agentic_lifecycle.freedom_probe import (
         per_agent_field_entropy,
         summarise_choice_distribution,
@@ -163,6 +164,7 @@ def run_v05_sweep(
     from perturb_eval.experiments.e2_adamson import load_adamson_combined
     from perturb_eval.experiments.heldout import iter_trainer_records
     from perturb_eval.experiments.norman import load_norman_matrix
+    from perturb_eval.experiments.v05_preflight import preflight
     from perturb_eval.experiments.v05_sweep import lifecycle_record
     from perturb_eval.experiments.v05_tasks import build_task_lists
     from perturb_eval.experiments.provenance import (
@@ -174,18 +176,9 @@ def run_v05_sweep(
     from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
     out_dir = Path(f"/data/{version}")
-    out_dir.mkdir(parents=True, exist_ok=True)
     trainer_out = out_dir / "trainer_runs.jsonl"
     lifecycle_out = out_dir / "lifecycle_runs.jsonl"
     provenance_out = out_dir / "provenance.json"
-    # Record 0 of each JSONL must be this run's provenance: refuse to append to a
-    # previous run's output (checked before any data/GPU work).
-    for _p in (trainer_out, lifecycle_out):
-        if _p.exists() and _p.stat().st_size > 0:
-            raise RuntimeError(
-                f"{_p} already has records from an earlier run; use a new --version "
-                "or move the old files aside"
-            )
 
     # OpenRouterClient currently hardcodes temperature=0.3 in its request body.
     # Pass the kwarg through if the client accepts it; otherwise refuse any value
@@ -222,24 +215,20 @@ def run_v05_sweep(
             fh.flush()
         DATA_VOL.commit()
 
-    # ---------- 1. Data pull + subsample ----------
+    # ---------- 0. Preflight (T22) — before any GPU/model work ----------
+    # Every check is collected and raised once as PreflightError: key presence
+    # + pool probe (C-KEY-1), backbones available (C-TORCH-1), output dir empty,
+    # datasets fetched with digest verification (trust_unpinned=False), task
+    # plan built (build_task_lists asserts stratum counts), every task resolves.
+    # A missing key refuses the WHOLE run — no trainer-only run (CTO #235).
     data_dir = Path("/data/datasets")
     data_dir.mkdir(parents=True, exist_ok=True)
-
-    datasets: list[tuple[str, dict, list[str]]] = []
-
-    # Load datasets, reduce them to plain label/score data, then build the
-    # task lists with the pure, deterministic ``build_task_lists`` (T2).
-    adamson_ds = None
-    norman_ds = None
-    adamson_summary: dict[str, dict[str, float]] = {}
-    norman_labels: list[str] = []
     dataset_records: list[dict] = []
 
-    if include_adamson:
-        adamson_paths = fetch_adamson_all(dest_dir=data_dir)
+    def _load_adamson() -> dict:
+        adamson_paths = fetch_adamson_all(dest_dir=data_dir, trust_unpinned=False)
         adamson_files = [adamson_paths[k] for k in sorted(adamson_paths)]
-        adamson_ds = load_adamson_combined(
+        ds = load_adamson_combined(
             adamson_files,
             n_top_hvg=n_top_hvg,
             max_cells_per_pert=max_cells_per_pert,
@@ -248,41 +237,66 @@ def run_v05_sweep(
             "name": "adamson_full",
             "path": [str(f) for f in adamson_files],
             "sha256": [_sha256(f) for f in adamson_files],
-            "n_cells": int(adamson_ds["X"].shape[0]),
-            "n_genes": int(adamson_ds["X"].shape[1]),
+            "n_cells": int(ds["X"].shape[0]),
+            "n_genes": int(ds["X"].shape[1]),
         })
-        # Per-target |logFC| on the combined dataset → quantile strata.
-        adamson_summary["adamson_full"] = mean_abs_logfc_per_target(
-            adamson_ds["X"],
-            adamson_ds["labels"],
-            adamson_ds["control_mask"],
-            adamson_ds["target_gene_idx"],
-        )
+        return ds
 
-    if include_norman:
-        norman_path = fetch_norman(dest_dir=data_dir)
-        norman_ds = load_norman_matrix(
+    def _load_norman() -> dict:
+        norman_path = fetch_norman(dest_dir=data_dir, trust_unpinned=False)
+        ds = load_norman_matrix(
             norman_path, n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert
         )
-        norman_labels = list(norman_ds["perturbations"])
         dataset_records.append({
             "name": "norman",
             "path": str(norman_path),
             "sha256": _sha256(norman_path),
-            "n_cells": int(norman_ds["X"].shape[0]),
-            "n_genes": int(norman_ds["X"].shape[1]),
+            "n_cells": int(ds["X"].shape[0]),
+            "n_genes": int(ds["X"].shape[1]),
         })
+        return ds
 
-    task_plan = build_task_lists(
-        adamson_summary,
-        norman_labels,
-        norman_n_singletons=norman_n_singletons,
-        norman_n_doublets=norman_n_doublets,
-        adamson_n_per_bin=adamson_n_per_bin,
-        adamson_n_bins=adamson_n_bins,
-        seed=2026,
-        doublet_delim=doublet_delim,
+    dataset_sources: dict = {}
+    if include_adamson:
+        dataset_sources["adamson_full"] = _load_adamson
+    if include_norman:
+        dataset_sources["norman"] = _load_norman
+
+    def _build_plan(loaded: dict):
+        # Per-target |logFC| on the combined Adamson dataset -> quantile strata;
+        # the pure, deterministic build_task_lists (T2/T11) asserts the counts.
+        adamson_summary: dict[str, dict[str, float]] = {}
+        if "adamson_full" in loaded:
+            a = loaded["adamson_full"]
+            adamson_summary["adamson_full"] = mean_abs_logfc_per_target(
+                a["X"], a["labels"], a["control_mask"], a["target_gene_idx"]
+            )
+        norman_labels = list(loaded["norman"]["perturbations"]) if "norman" in loaded else []
+        return build_task_lists(
+            adamson_summary,
+            norman_labels,
+            norman_n_singletons=norman_n_singletons,
+            norman_n_doublets=norman_n_doublets,
+            adamson_n_per_bin=adamson_n_per_bin,
+            adamson_n_bins=adamson_n_bins,
+            seed=2026,
+            doublet_delim=doublet_delim,
+        )
+
+    report = preflight(
+        kwargs=resolved_kwargs,
+        datasets_spec_or_loaded=dataset_sources,
+        task_plan=_build_plan,
+        env=os.environ,
+        out_dir=out_dir,
     )
+    print(f"[v0.6] preflight ok: {len(report.checks)} checks; probe={report.probe_model_id}")
+    task_plan = report.task_plan
+    adamson_ds = report.datasets.get("adamson_full")
+    norman_ds = report.datasets.get("norman")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    datasets: list[tuple[str, dict, list[str]]] = []
 
     if adamson_ds is not None:
         adamson_tasks = list(task_plan.adamson)
@@ -306,9 +320,6 @@ def run_v05_sweep(
             if max_tasks_override is not None and i >= max_tasks_override:
                 tasks_excluded.append({"dataset": dataset_name, "label": t,
                                        "reason": f"max_tasks_override={max_tasks_override}"})
-            elif t not in ds["target_gene_idx"]:
-                tasks_excluded.append({"dataset": dataset_name, "label": t,
-                                       "reason": "not in target_gene_idx (skipped by trainer + lifecycle)"})
     prov = build_provenance(
         run_id=run_id,
         git_sha=git_sha,
@@ -365,61 +376,63 @@ def run_v05_sweep(
     )
 
     # ---------- 3. Lifecycle sweep (real LLMAgentPool, free-tier) ----------
+    # Preflight asserted key presence + a live pool (C-KEY-1); no skip path.
     n_lifecycle_runs = 0
-    lifecycle_skipped = False
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
-    if not api_key:
-        lifecycle_skipped = True
-        print("[v0.5.0] WARNING: OPENROUTER_API_KEY not set; skipping lifecycle sweep")
-    else:
-        client_kwargs: dict = {"cooldown_sec": cooldown_sec}
-        if _client_takes_temperature:
-            client_kwargs["temperature"] = temperature
-        client = OpenRouterClient(
-            api_key=api_key,
-            cache_dir=Path("/biofm_cache/llm"),
-            pool=DEFAULT_POOL,
-            **client_kwargs,
-        )
-        pool = LLMAgentPool(client=client, cache_dir=Path("/biofm_cache/llm"))
+    api_key = os.environ["OPENROUTER_API_KEY"]
+    client_kwargs: dict = {"cooldown_sec": cooldown_sec}
+    if _client_takes_temperature:
+        client_kwargs["temperature"] = temperature
+    client = OpenRouterClient(
+        api_key=api_key,
+        cache_dir=Path("/biofm_cache/llm"),
+        pool=DEFAULT_POOL,
+        **client_kwargs,
+    )
+    pool = LLMAgentPool(client=client, cache_dir=Path("/biofm_cache/llm"))
 
-        for dataset_name, ds, tasks in datasets:
-            if max_tasks_override is not None:
-                tasks = tasks[:max_tasks_override]
-            for held in tasks:
-                if held not in ds["target_gene_idx"]:
-                    continue  # skip doublets; lifecycle target_idx picks a single gene
-                for seed in range(2026, 2026 + seeds):
-                    if _budget_exceeded():
-                        break
-                    t0 = time.time()
-                    try:
-                        rec = lifecycle_record(
-                            task=held,
-                            dataset_name=dataset_name,
-                            ds=ds,
-                            seed=seed,
-                            pool=pool,
-                            max_rounds=3,
-                        )
-                    except Exception as e:  # noqa: BLE001
-                        rec = {
-                            "dataset": dataset_name,
-                            "task_id": held,
-                            "seed": seed,
-                            "error": f"{type(e).__name__}: {e}",
-                            "final_msd_topk": float("inf"),
-                            "n_rounds": 0,
-                            "wall_sec": time.time() - t0,
-                            "steps": [],
-                        }
-                    _append(lifecycle_out, rec)
-                    lifecycle_records.append(rec)
-                    n_lifecycle_runs += 1
+    for dataset_name, ds, tasks in datasets:
+        if max_tasks_override is not None:
+            tasks = tasks[:max_tasks_override]
+        for held in tasks:
+            if held not in ds["target_gene_idx"]:
+                # Preflight guarantees every task resolves; never skip.
+                raise RuntimeError(
+                    f"{dataset_name}: task {held!r} not in target_gene_idx mid-run "
+                    "(preflight should have refused this run)"
+                )
+            for seed in range(2026, 2026 + seeds):
                 if _budget_exceeded():
                     break
+                t0 = time.time()
+                try:
+                    rec = lifecycle_record(
+                        task=held,
+                        dataset_name=dataset_name,
+                        ds=ds,
+                        seed=seed,
+                        pool=pool,
+                        max_rounds=3,
+                    )
+                except BackboneUnavailableError:
+                    raise  # C-TORCH-2: never a per-record error / silent gap
+                except Exception as e:  # noqa: BLE001
+                    rec = {
+                        "dataset": dataset_name,
+                        "task_id": held,
+                        "seed": seed,
+                        "error": f"{type(e).__name__}: {e}",
+                        "final_msd_topk": float("inf"),
+                        "n_rounds": 0,
+                        "wall_sec": time.time() - t0,
+                        "steps": [],
+                    }
+                _append(lifecycle_out, rec)
+                lifecycle_records.append(rec)
+                n_lifecycle_runs += 1
             if _budget_exceeded():
                 break
+        if _budget_exceeded():
+            break
 
     # ---------- 4. Phase-2 gate re-check on real traces ----------
     traces: list[list[dict]] = []
@@ -461,7 +474,7 @@ def run_v05_sweep(
     )
     if any_fallback:
         status = "failed_fallback"  # C-KEY-2
-    elif budget_hit or lifecycle_skipped:
+    elif budget_hit:
         status = "partial"
     else:
         status = "ok"
@@ -476,7 +489,6 @@ def run_v05_sweep(
     counts = {
         "n_trainer_runs": n_trainer_runs,
         "n_lifecycle_runs": n_lifecycle_runs,
-        "lifecycle_skipped_no_key": lifecycle_skipped,
     }
     final = finalize_provenance(
         prov,
