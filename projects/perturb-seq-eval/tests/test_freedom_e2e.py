@@ -87,6 +87,9 @@ def _toy_dataset(n_genes: int = 60, seed: int = 1) -> dict:
 
 class TestFreedomE2E:
     def test_architect_choice_entropy_above_gate(self, tmp_path: Path) -> None:
+        # C-TORCH-3: without torch, scgpt_small silently resolves to linear;
+        # skip visibly rather than pass on the wrong backbone.
+        pytest.importorskip("torch")
         """Phase 2 gate: Architect backbone entropy ≥ 0.5 nats across 5 tasks."""
         client = VariedMockClient(seed=0)
         pool = LLMAgentPool(client=client, cache_dir=tmp_path)

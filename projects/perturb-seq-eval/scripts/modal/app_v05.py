@@ -54,7 +54,7 @@ image = (
         "h5py==3.16.0",
         "anndata==0.12.19",
         "scikit-learn>=1.3",
-        "torch>=2.2",
+        "torch==2.14.0",
         "pydantic>=2.0",
         "requests>=2.31",
         "python-dotenv>=1.0",

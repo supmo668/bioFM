@@ -35,6 +35,9 @@ class TestResolveArchitectConfig:
         assert cfg["learning_rate"] > 0
 
     def test_alias_scgpt_to_scgpt_small(self) -> None:
+        # C-TORCH-3: without torch, scgpt_small silently resolves to linear;
+        # skip visibly rather than pass on the wrong backbone.
+        pytest.importorskip("torch")
         cfg = resolve_architect_config({"backbone": "scgpt"})
         assert cfg["backbone"] == "scgpt_small"
 
