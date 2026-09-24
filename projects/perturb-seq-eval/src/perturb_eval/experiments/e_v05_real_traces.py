@@ -34,6 +34,7 @@ from perturb_eval.agentic_lifecycle.freedom_probe import (
     per_agent_field_entropy,
     summarise_choice_distribution,
 )
+from perturb_eval.experiments.provenance import format_unparseable, read_jsonl_locating
 
 logger = logging.getLogger(__name__)
 
@@ -55,19 +56,16 @@ def _read_jsonl(path: Path) -> tuple[dict | None, list[dict]]:
 
     If line 0 is ``{"record_type": "provenance", ...}`` it is returned
     separately and excluded from ``rows``; otherwise ``provenance`` is
-    ``None`` (a legacy artifact). Malformed lines are skipped.
+    ``None`` (a legacy artifact). Any unparseable line is REFUSED
+    (``ValueError`` naming file, line and byte offset) — CTO #245 Q2, no
+    override.
     """
-    if not path.exists():
-        return None, []
-    rows: list[dict] = []
-    for line in path.read_text().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError:
-            continue
+    rows, bad = read_jsonl_locating(path)
+    if bad:
+        raise ValueError(
+            f"{len(bad)} unparseable JSONL line(s); analyser refuses: "
+            + format_unparseable(path, bad)
+        )
     if rows and isinstance(rows[0], dict) and rows[0].get("record_type") == "provenance":
         return rows[0], rows[1:]
     return None, rows
@@ -287,12 +285,30 @@ def _entropy_or_none(traces: list[list[dict]], agent: str, field: str) -> float 
     return float(per_agent_field_entropy(traces, agent=agent, field=field))
 
 
+def _validate_partial_reason(allow_partial: str | None) -> str | None:
+    """``allow_partial`` is a REASON string (CTO #245 Q1), never a bool."""
+    if allow_partial is None:
+        return None
+    if not isinstance(allow_partial, str):
+        raise TypeError(
+            f"allow_partial must be a non-empty reason string or None, got "
+            f"{type(allow_partial).__name__} {allow_partial!r}"
+        )
+    if not allow_partial.strip():
+        raise ValueError("allow_partial reason must be non-empty (not blank/whitespace)")
+    return allow_partial
+
+
+def _is_error_record(row: dict) -> bool:
+    return "error" in row or "error_class" in row
+
+
 def analyse_v05_run(
     trainer_jsonl: Path,
     lifecycle_jsonl: Path,
     *,
     allow_fallback_for_diagnosis: bool = False,
-    allow_partial: bool = False,
+    allow_partial: str | None = None,
     provenance_json: Path | None = None,
 ) -> dict:
     """End-to-end summary for the paper's §4 rewrite.
@@ -301,10 +317,14 @@ def analyse_v05_run(
     lifecycle task sets differ; the two provenance headers disagree on
     ``run_id``/``git_sha``; the run is ``failed``; the run used any
     fallback step or is ``failed_fallback`` (C-KEY-2, unless
-    ``allow_fallback_for_diagnosis``); or the run is partial/unfinished
-    (unless ``allow_partial``). Diagnostic summaries carry a non-``ok``
-    ``status`` and null gate booleans.
+    ``allow_fallback_for_diagnosis``); either JSONL has an unparseable line,
+    or provenance recorded one (CTO #245 Q2, no override); or the run is
+    partial/unfinished or has ANY error record (unless ``allow_partial`` — a
+    non-empty REASON string, CTO #245 Q1, written to
+    ``summary["allow_partial_reason"]``). Diagnostic summaries carry a
+    non-``ok`` ``status`` and null gate booleans.
     """
+    partial_reason = _validate_partial_reason(allow_partial)
     trainer_prov, trainer_rows = _read_jsonl(trainer_jsonl)
     lifecycle_prov, lifecycle_rows = _read_jsonl(lifecycle_jsonl)
 
@@ -315,6 +335,18 @@ def analyse_v05_run(
         trainer_jsonl, lifecycle_jsonl, provenance_json,
     )
 
+    if prov is not None:
+        recorded = prov.get("unparseable_lines") or {}
+        located = [
+            format_unparseable(name, entries)
+            for name, entries in sorted(recorded.items()) if entries
+        ]
+        if located:
+            raise ValueError(
+                "provenance records unparseable JSONL line(s) seen at run time; "
+                "analyser refuses: " + "; ".join(located)
+            )
+
     all_steps = [s for r in lifecycle_rows for s in r.get("steps", [])]
     source_counts = {k: 0 for k in ("llm", "fallback", "mock", "unknown")}
     for st in all_steps:
@@ -322,6 +354,8 @@ def analyse_v05_run(
 
     status = "ok" if prov is not None else "legacy_no_provenance"
     diagnostic = False
+    used_partial_reason: str | None = None
+    n_error_records = sum(1 for r in trainer_rows + lifecycle_rows if _is_error_record(r))
     prov_status = prov.get("status") if prov is not None else None
     if prov is not None and prov_status == "failed":
         raise ValueError(f"run FAILED: provenance status='failed' (run_id={prov.get('run_id')!r})")
@@ -335,15 +369,26 @@ def analyse_v05_run(
             raise ValueError(msg)
         logger.warning("%s — computing DIAGNOSTIC-ONLY summary", msg)
         status, diagnostic = "FAILED_FALLBACK_DIAGNOSTIC_ONLY", True
-    elif prov is not None and (prov_status != "ok" or prov.get("finished_at") is None):
-        msg = (
+    partial_msgs: list[str] = []
+    if (status != "FAILED_FALLBACK_DIAGNOSTIC_ONLY" and prov is not None
+            and (prov_status != "ok" or prov.get("finished_at") is None)):
+        partial_msgs.append(
             f"run partial/unfinished: provenance status={prov_status!r}, "
-            f"finished_at={prov.get('finished_at')!r}; analyser refuses to summarise"
+            f"finished_at={prov.get('finished_at')!r}"
         )
-        if not allow_partial:
-            raise ValueError(msg)
-        logger.warning("%s — computing DIAGNOSTIC-ONLY summary", msg)
-        status, diagnostic = "PARTIAL_DIAGNOSTIC_ONLY", True
+    if n_error_records:
+        partial_msgs.append(
+            f"{n_error_records} error record(s) present (transient per-cell failures)"
+        )
+    if partial_msgs:
+        msg = "; ".join(partial_msgs) + "; analyser refuses to summarise"
+        if partial_reason is None:
+            raise ValueError(msg + " (pass allow_partial=<reason> for a diagnostic read)")
+        logger.warning("%s — computing DIAGNOSTIC-ONLY summary (reason: %s)", msg, partial_reason)
+        used_partial_reason = partial_reason
+        diagnostic = True
+        if status != "FAILED_FALLBACK_DIAGNOSTIC_ONLY":
+            status = "PARTIAL_DIAGNOSTIC_ONLY"
 
     # --- computation ------------------------------------------------------
     best_by_task = best_config_per_task(trainer_jsonl)
@@ -390,6 +435,8 @@ def analyse_v05_run(
 
     return {
         "status": status,
+        "allow_partial_reason": used_partial_reason,
+        "n_error_records": n_error_records,
         "run_id": prov.get("run_id") if prov is not None else None,
         "git_sha": prov.get("git_sha") if prov is not None else None,
         "n_trainer_runs": len(trainer_rows),
@@ -424,12 +471,14 @@ def main(
     out: Path = Path("artifacts/v0.5.0/summary.json"),
     *,
     allow_fallback_for_diagnosis: bool = False,
-    allow_partial: bool = False,
+    allow_partial: str | None = None,
 ) -> dict:
     """CLI convenience — writes ``summary.json`` next to the inputs.
 
     ``summary.json`` is written only after ``analyse_v05_run`` returns; any
-    refusal (``ValueError``) propagates and nothing is written.
+    refusal (``ValueError``) propagates and nothing is written. A partial
+    summary carries ``status="PARTIAL_DIAGNOSTIC_ONLY"`` and
+    ``allow_partial_reason`` into the written file.
     """
     summary = analyse_v05_run(
         trainer_jsonl,
@@ -450,7 +499,8 @@ if __name__ == "__main__":  # pragma: no cover
     ap.add_argument("--lifecycle", type=Path, default=Path("artifacts/v0.5.0/lifecycle_runs.jsonl"))
     ap.add_argument("--out", type=Path, default=Path("artifacts/v0.5.0/summary.json"))
     ap.add_argument("--allow-fallback-for-diagnosis", action="store_true")
-    ap.add_argument("--allow-partial", action="store_true")
+    ap.add_argument("--allow-partial", metavar="REASON", default=None,
+                    help="non-empty reason; marks summary PARTIAL_DIAGNOSTIC_ONLY")
     args = ap.parse_args()
     s = main(
         args.trainer, args.lifecycle, args.out,

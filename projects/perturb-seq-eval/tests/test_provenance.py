@@ -80,7 +80,8 @@ def _finalize_kwargs() -> dict:
                 entropies={"architect_backbone_entropy_nats": 0.0},
                 hvg_n_per_task={"norman:B": {"trainer": [2000]}},
                 params_per_task={"norman:B": {"trainer": {"linear": [10]}}},
-                budget_hit=False, status="ok")
+                budget_hit=False, status="ok",
+                unparseable_lines={"trainer_runs.jsonl": [], "lifecycle_runs.jsonl": []})
 
 
 # ---------- build ----------
@@ -265,3 +266,48 @@ def test_entrypoint_passes_every_sweep_kwarg():
             keys = {k.value for k in node.value.keys if isinstance(k, ast.Constant)}
     assert keys is not None, "sweep_kwargs dict not found in entrypoint"
     assert keys == set(_sweep_kwarg_names())
+
+
+# ---------- CTO #245 Q2: unparseable_lines ----------
+
+def test_read_jsonl_locating_records_locations(tmp_path):
+    p = tmp_path / "x.jsonl"
+    good = json.dumps({"a": 1}) + "\n"
+    bad = "{broken" + "x" * 200 + "\n"
+    p.write_text(good + "\n" + bad + good)
+    rows, bad_lines = pv.read_jsonl_locating(p)
+    assert rows == [{"a": 1}, {"a": 1}]
+    assert bad_lines == [{"line": 3, "byte_offset": len(good) + 1,
+                          "preview": ("{broken" + "x" * 200)[:80]}]
+
+
+def test_read_jsonl_locating_missing_file(tmp_path):
+    assert pv.read_jsonl_locating(tmp_path / "nope.jsonl") == ([], [])
+
+
+def test_clean_run_writes_explicit_empty_unparseable_lines(tmp_path):
+    for name in ("trainer_runs.jsonl", "lifecycle_runs.jsonl"):
+        (tmp_path / name).write_text(json.dumps({"record_type": "provenance"}) + "\n")
+    scanned = pv.scan_unparseable(tmp_path / "trainer_runs.jsonl",
+                                  tmp_path / "lifecycle_runs.jsonl")
+    kw = _finalize_kwargs() | {"unparseable_lines": scanned}
+    fin = pv.finalize_provenance(_prov(), **kw)
+    assert "unparseable_lines" in fin
+    assert fin["unparseable_lines"] == {"trainer_runs.jsonl": [], "lifecycle_runs.jsonl": []}
+    assert "unparseable_lines" in pv.REQUIRED_FINAL_KEYS
+    assert json.loads(json.dumps(fin))["unparseable_lines"]["trainer_runs.jsonl"] == []
+
+
+@pytest.mark.parametrize("bad", [None, {}, {"trainer_runs.jsonl": []},
+                                 {"trainer_runs.jsonl": [], "lifecycle_runs.jsonl": None}])
+def test_finalize_requires_both_unparseable_keys(bad):
+    kw = _finalize_kwargs() | {"unparseable_lines": bad}
+    with pytest.raises(ValueError, match="unparseable_lines"):
+        pv.finalize_provenance(_prov(), **kw)
+
+
+def test_finalize_has_no_unparseable_default():
+    kw = _finalize_kwargs()
+    del kw["unparseable_lines"]
+    with pytest.raises(TypeError):
+        pv.finalize_provenance(_prov(), **kw)

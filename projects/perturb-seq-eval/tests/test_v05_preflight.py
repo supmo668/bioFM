@@ -239,10 +239,13 @@ def test_app_v05_preflight_before_first_trainer_or_lifecycle_loop() -> None:
         n.lineno for n in ast.walk(fn)
         if isinstance(n, ast.For) and any(
             isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
-            and c.func.id in {"iter_trainer_records", "lifecycle_record"}
+            and c.func.id in {"iter_trainer_records", "lifecycle_record",
+                              "iter_lifecycle_records", "run_guarded"}
             for c in ast.walk(n)
         )
     ]
+    work_loops += [c.lineno for c in calls
+                   if c.func.id in {"run_guarded", "iter_lifecycle_records"}]
     clients = [c.lineno for c in calls if c.func.id == "OpenRouterClient"]
     assert work_loops
     assert min(pre) < min(work_loops + clients)
@@ -258,14 +261,24 @@ def test_app_v05_no_silent_target_skip() -> None:
 
 
 def test_app_v05_lifecycle_except_reraises_backbone_unavailable() -> None:
+    """CTO #245 Q1 moved the lifecycle loop body to
+    ``v05_sweep.iter_lifecycle_records``; app_v05 drives it through
+    ``run_guarded`` and has no try/except of its own around it. The guard
+    (first handler re-raises BackboneUnavailableError) now lives in v05_sweep."""
     fn = _run_v05_sweep(_app_tree())
-    tries = [
-        t for t in ast.walk(fn)
-        if isinstance(t, ast.Try)
-        and any(isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
-                and c.func.id == "lifecycle_record" for c in ast.walk(t))
-    ]
-    assert tries, "lifecycle_record is not wrapped — fine, but this test expects the guard"
+    called = {c.func.id for c in ast.walk(fn)
+              if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+    assert {"iter_lifecycle_records", "run_guarded"} <= called
+    assert "lifecycle_record" not in called
+    assert not any(isinstance(h, ast.ExceptHandler) for h in ast.walk(fn)), (
+        "run_v05_sweep must not catch exceptions itself (abort path is run_guarded)"
+    )
+    sweep_src = (APP_V05.parents[2] / "src" / "perturb_eval" / "experiments"
+                 / "v05_sweep.py").read_text()
+    loop = next(n for n in ast.walk(ast.parse(sweep_src))
+                if isinstance(n, ast.FunctionDef) and n.name == "iter_lifecycle_records")
+    tries = [t for t in ast.walk(loop) if isinstance(t, ast.Try)]
+    assert tries
     for t in tries:
         first = t.handlers[0]
         assert ast.unparse(first.type) == "BackboneUnavailableError"

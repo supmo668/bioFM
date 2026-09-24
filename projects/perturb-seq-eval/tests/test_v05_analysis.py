@@ -157,7 +157,8 @@ class TestRobustToMissingData:
         assert summary["n_trainer_runs"] == 0
         assert summary["n_lifecycle_runs"] == 0
 
-    def test_skips_malformed_lines(self, tmp_path: Path) -> None:
+    def test_refuses_malformed_lines(self, tmp_path: Path) -> None:
+        """CTO #245 Q2: an unparseable line is refused with its location, never skipped."""
         trainer = tmp_path / "trainer.jsonl"
         trainer.write_text(
             '{"dataset": "adamson_full", "task": "TFA", "backbone": "linear", '
@@ -166,8 +167,8 @@ class TestRobustToMissingData:
             '{"dataset": "adamson_full", "task": "TFB", "backbone": "mlp", '
             '"N": 3, "R": 1, "seed": 1, "msd_topk": 0.2}\n'
         )
-        best = best_config_per_task(trainer)
-        assert set(best) == {"TFA", "TFB"}
+        with pytest.raises(ValueError, match=r"line 2 \(byte offset \d+\)"):
+            best_config_per_task(trainer)
 
     def test_skips_infinite_msd(self, tmp_path: Path) -> None:
         trainer = tmp_path / "trainer.jsonl"

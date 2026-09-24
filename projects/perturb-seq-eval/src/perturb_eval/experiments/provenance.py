@@ -77,7 +77,14 @@ REQUIRED_FINAL_KEYS: tuple[str, ...] = REQUIRED_KEYS + (
     "params_per_task",
     "budget_hit",
     "status",
+    # CTO #245 Q2: always written, even as two empty lists — an absent field and
+    # a zero are different claims.
+    "unparseable_lines",
 )
+
+# The two sweep JSONLs whose unparseable lines are located in provenance.
+JSONL_NAMES: tuple[str, str] = ("trainer_runs.jsonl", "lifecycle_runs.jsonl")
+PREVIEW_CHARS = 80
 
 STATUSES: frozenset[str] = frozenset({"ok", "failed_fallback", "partial", "failed"})
 
@@ -255,9 +262,15 @@ def finalize_provenance(
     params_per_task: Mapping[str, Any],
     budget_hit: bool,
     status: str,
+    unparseable_lines: Mapping[str, Any],
     gpu_seconds_source: str = "wall_clock_of_gpu_function",
 ) -> dict[str, Any]:
-    """Return a completed copy of ``prov``; refuses a record without ``started_at``."""
+    """Return a completed copy of ``prov``; refuses a record without ``started_at``.
+
+    ``unparseable_lines`` has no default (CTO #245 Q2): the caller must have
+    scanned both JSONLs (:func:`scan_unparseable`) and passes both keys, even
+    when the lists are empty.
+    """
     _require(bool(prov.get("started_at")), "provenance record has no started_at; refusing to finalize")
     missing = [k for k in REQUIRED_KEYS if k not in prov]
     _require(not missing, f"provenance record missing {missing}")
@@ -265,6 +278,7 @@ def finalize_provenance(
     _require(isinstance(budget_hit, bool), "budget_hit must be bool")
     _require(isinstance(gpu_seconds, (int, float)) and gpu_seconds >= 0,
              "gpu_seconds must be a non-negative number")
+    _validate_unparseable(unparseable_lines)
     started = _dt.datetime.fromisoformat(prov["started_at"])
     finished = _dt.datetime.fromisoformat(finished_at)
     out = copy.deepcopy(dict(prov))
@@ -280,8 +294,83 @@ def finalize_provenance(
         "params_per_task": dict(params_per_task),
         "budget_hit": budget_hit,
         "status": status,
+        "unparseable_lines": {k: [dict(e) for e in unparseable_lines[k]] for k in JSONL_NAMES},
     })
     return out
+
+
+def _validate_unparseable(u: Any) -> None:
+    _require(isinstance(u, Mapping) and set(u) == set(JSONL_NAMES),
+             f"unparseable_lines must have exactly the keys {list(JSONL_NAMES)}, got {u!r}")
+    for k in JSONL_NAMES:
+        _require(isinstance(u[k], list), f"unparseable_lines[{k!r}] must be a list, got {u[k]!r}")
+        for e in u[k]:
+            _require(isinstance(e, Mapping) and {"line", "byte_offset", "preview"} <= set(e),
+                     f"unparseable_lines[{k!r}] entry needs line/byte_offset/preview: {e!r}")
+
+
+def fail_provenance(
+    prov: Mapping[str, Any],
+    exc: BaseException,
+    *,
+    phase: str,
+    **finalize_kwargs: Any,
+) -> dict[str, Any]:
+    """Finalise ``prov`` as ``status="failed"`` for an aborted run (CTO #245 Q1).
+
+    Adds a ``failure`` block ``{phase, error_type, error_class, message,
+    traceback}``. ``finalize_kwargs`` are :func:`finalize_provenance`'s, minus
+    ``status`` and ``entropies`` (an aborted run reports none).
+    """
+    from perturb_eval.experiments.errors import failure_fields  # keeps this module stdlib-only at import
+
+    _require("status" not in finalize_kwargs, "fail_provenance sets status='failed' itself")
+    finalize_kwargs.setdefault("entropies", {})
+    out = finalize_provenance(prov, status="failed", **finalize_kwargs)
+    out["failure"] = failure_fields(exc, phase=phase)
+    return out
+
+
+def read_jsonl_locating(path: str | Path) -> tuple[list[Any], list[dict[str, Any]]]:
+    """Parse a JSONL file; return ``(records, unparseable)`` (CTO #245 Q2).
+
+    Every non-blank line that is not valid JSON is recorded as
+    ``{"line": n, "byte_offset": off, "preview": first 80 chars}`` — ``line`` is
+    1-based, ``byte_offset`` is the offset of the line's first byte in the file.
+    Blank lines are ignored. A missing file yields ``([], [])``.
+    """
+    p = Path(path)
+    if not p.exists():
+        return [], []
+    records: list[Any] = []
+    bad: list[dict[str, Any]] = []
+    offset = 0
+    for n, raw in enumerate(p.read_bytes().split(b"\n"), start=1):
+        start, offset = offset, offset + len(raw) + 1
+        text = raw.decode("utf-8", errors="replace").strip()
+        if not text:
+            continue
+        try:
+            records.append(json.loads(text))
+        except json.JSONDecodeError:
+            bad.append({"line": n, "byte_offset": start, "preview": text[:PREVIEW_CHARS]})
+    return records, bad
+
+
+def scan_unparseable(trainer_jsonl: str | Path, lifecycle_jsonl: str | Path) -> dict[str, list]:
+    """``{"trainer_runs.jsonl": [...], "lifecycle_runs.jsonl": [...]}`` — both keys always."""
+    return {
+        JSONL_NAMES[0]: read_jsonl_locating(trainer_jsonl)[1],
+        JSONL_NAMES[1]: read_jsonl_locating(lifecycle_jsonl)[1],
+    }
+
+
+def format_unparseable(path: str | Path, bad: Iterable[Mapping[str, Any]]) -> str:
+    """Human-readable location list naming file, line and byte offset."""
+    return "; ".join(
+        f"{path}: line {e['line']} (byte offset {e['byte_offset']}): {e['preview']!r}"
+        for e in bad
+    )
 
 
 def _add(bucket: dict, key: str, value: Any) -> None:

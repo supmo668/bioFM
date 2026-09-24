@@ -281,8 +281,9 @@ class TestPartialRefusal:
         prov = _prov(status="partial")
         t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
                     tprov=prov, lprov=prov)
-        s = analyse_v05_run(t, l, allow_partial=True)
+        s = analyse_v05_run(t, l, allow_partial="budget cap hit; diagnostic read only")
         assert s["status"] == "PARTIAL_DIAGNOSTIC_ONLY"
+        assert s["allow_partial_reason"] == "budget cap hit; diagnostic read only"
         assert s["gate_architect_entropy_above_0_5_nats"] is None
 
     def test_status_failed_refuses_without_hatch(self, tmp_path: Path) -> None:
@@ -290,7 +291,7 @@ class TestPartialRefusal:
         t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
                     tprov=prov, lprov=prov)
         with pytest.raises(ValueError, match="status='failed'"):
-            analyse_v05_run(t, l, allow_partial=True, allow_fallback_for_diagnosis=True)
+            analyse_v05_run(t, l, allow_partial="diagnosis", allow_fallback_for_diagnosis=True)
 
     def test_finalised_provenance_json_overrides_header(self, tmp_path: Path) -> None:
         """JSONL record 0 is written at start (no finished_at); the finalised
@@ -309,4 +310,103 @@ class TestPartialRefusal:
         (tmp_path / "provenance.json").write_text(json.dumps(
             {"run_id": "other", "git_sha": "deadbeef", "status": "ok", "finished_at": 9.0}))
         with pytest.raises(ValueError, match="provenance.json"):
+            analyse_v05_run(t, l)
+
+
+# ---------------------------------------------------------------- CTO #245 Q1
+def _err_row(task: str) -> dict:
+    return _trainer_row(task, msd=float("inf")) | {
+        "error": "OutOfMemoryError: CUDA out of memory",
+        "error_type": "torch.OutOfMemoryError", "error_class": "transient",
+        "traceback": "Traceback ...\nOutOfMemoryError: CUDA out of memory\n",
+    }
+
+
+class TestErrorRecordsRefused:
+    def _files(self, tmp_path: Path):
+        return _run(tmp_path, [_trainer_row("T0"), _err_row("T0")],
+                    [_life_row("T0", [_arch("mlp")])], tprov=_prov(), lprov=_prov())
+
+    def test_error_record_refuses(self, tmp_path: Path) -> None:
+        t, l = self._files(tmp_path)
+        with pytest.raises(ValueError, match="error record"):
+            analyse_v05_run(t, l)
+
+    def test_lifecycle_error_record_refuses(self, tmp_path: Path) -> None:
+        life_err = _life_row("T0", [], msd=float("inf")) | {
+            "error": "ConnectionError: x", "error_class": "transient"}
+        t, l = _run(tmp_path, [_trainer_row("T0")], [life_err],
+                    tprov=_prov(), lprov=_prov())
+        with pytest.raises(ValueError, match="error record"):
+            analyse_v05_run(t, l)
+
+    @pytest.mark.parametrize("bad", ["", "   ", "\t\n"])
+    def test_empty_reason_rejected(self, tmp_path: Path, bad: str) -> None:
+        t, l = self._files(tmp_path)
+        with pytest.raises(ValueError, match="allow_partial"):
+            analyse_v05_run(t, l, allow_partial=bad)
+
+    def test_bool_reason_rejected(self, tmp_path: Path) -> None:
+        t, l = self._files(tmp_path)
+        with pytest.raises(TypeError, match="allow_partial"):
+            analyse_v05_run(t, l, allow_partial=True)  # type: ignore[arg-type]
+
+    def test_reason_marks_summary(self, tmp_path: Path) -> None:
+        t, l = self._files(tmp_path)
+        reason = "3 OOM on scgpt_small N=5"
+        s = analyse_v05_run(t, l, allow_partial=reason)
+        assert s["status"] == "PARTIAL_DIAGNOSTIC_ONLY"
+        assert s["allow_partial_reason"] == reason
+        assert s["n_error_records"] == 1
+        for k in ("gate_adamson_median_below_0_20", "gate_norman_median_below_0_30",
+                  "gate_architect_entropy_above_0_5_nats"):
+            assert s[k] is None
+
+    def test_main_writes_marked_summary_json(self, tmp_path: Path) -> None:
+        t, l = self._files(tmp_path)
+        out = tmp_path / "summary.json"
+        main(t, l, out, allow_partial="3 OOM on scgpt_small N=5")
+        written = json.loads(out.read_text())
+        assert written["status"] == "PARTIAL_DIAGNOSTIC_ONLY"
+        assert written["allow_partial_reason"] == "3 OOM on scgpt_small N=5"
+
+    def test_clean_run_has_no_reason(self, tmp_path: Path) -> None:
+        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
+                    tprov=_prov(), lprov=_prov())
+        s = analyse_v05_run(t, l)
+        assert s["status"] == "ok" and s["allow_partial_reason"] is None
+
+
+# ---------------------------------------------------------------- CTO #245 Q2
+class TestUnparseableLinesRefused:
+    def test_corrupt_middle_line_named_by_line_and_offset(self, tmp_path: Path) -> None:
+        l0 = json.dumps(_prov()) + "\n"
+        l1 = json.dumps(_trainer_row("T0")) + "\n"
+        bad = '{"dataset": "adamson_full", "task": "T0", "msd_top\n'
+        l3 = json.dumps(_trainer_row("T0", 0.2)) + "\n"
+        t = tmp_path / "trainer_runs.jsonl"
+        t.write_text(l0 + l1 + bad + l3)
+        l = _write(tmp_path / "lifecycle_runs.jsonl", [_prov(), _life_row("T0", [_arch("mlp")])])
+        offset = len((l0 + l1).encode())
+        with pytest.raises(ValueError) as ei:
+            analyse_v05_run(t, l)
+        msg = str(ei.value)
+        assert "trainer_runs.jsonl" in msg
+        assert "line 3" in msg
+        assert f"byte offset {offset}" in msg
+
+    def test_no_override(self, tmp_path: Path) -> None:
+        t = tmp_path / "trainer_runs.jsonl"
+        t.write_text(json.dumps(_prov()) + "\n{nope\n" + json.dumps(_trainer_row("T0")) + "\n")
+        l = _write(tmp_path / "lifecycle_runs.jsonl", [_prov(), _life_row("T0", [_arch("mlp")])])
+        with pytest.raises(ValueError, match="unparseable"):
+            analyse_v05_run(t, l, allow_partial="anything", allow_fallback_for_diagnosis=True)
+
+    def test_provenance_recorded_unparseable_refuses(self, tmp_path: Path) -> None:
+        prov = _prov(unparseable_lines={
+            "trainer_runs.jsonl": [],
+            "lifecycle_runs.jsonl": [{"line": 7, "byte_offset": 900, "preview": "{x"}]})
+        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
+                    tprov=prov, lprov=prov)
+        with pytest.raises(ValueError, match="line 7"):
             analyse_v05_run(t, l)

@@ -33,6 +33,7 @@ from perturb_eval.backbones import (
     mean_squared_deviation,
 )
 from perturb_eval.data import hvg as _hvg
+from perturb_eval.experiments.errors import classify, transient_error_fields
 
 DEFAULT_N_HVG = 2000
 
@@ -131,9 +132,13 @@ def iter_trainer_records(
     """Yield one trainer-sweep JSONL record per (backbone, task, N, R, seed) cell.
 
     Loop order and record shape match the former inline loop in
-    ``app_v05.py``; per-cell exceptions become ``error`` records, except
-    :class:`BackboneUnavailableError` and a task absent from
-    ``target_gene_idx``, which raise. HVG is
+    ``app_v05.py``. Per-cell exceptions follow the CTO #245 Q1 taxonomy
+    (:mod:`perturb_eval.experiments.errors`): only a TRANSIENT exception
+    becomes an ``error`` record (``msd_topk = inf``, ``error_type``,
+    ``error_class``, ``traceback``) and the loop continues; every other
+    exception — programming, :class:`BackboneUnavailableError`, or anything
+    unclassified — propagates and aborts the run, as does a task absent from
+    ``target_gene_idx``. HVG is
     selected once per held-out task (cached) and each record carries
     ``hvg_n``, ``hvg_n_forced``, ``hvg_mode`` and (on success) ``n_params``.
     Stops as soon as ``should_stop()`` is true.
@@ -183,11 +188,13 @@ def iter_trainer_records(
                             }
                         except BackboneUnavailableError:
                             raise  # C-TORCH-2: never an error record
-                        except Exception as e:  # noqa: BLE001 — recorded, as before
+                        except Exception as e:
+                            if classify(e) != "transient":
+                                raise  # CTO #245 Q1: default is ABORT
                             rec = {
                                 **base,
                                 "msd_topk": float("inf"),
-                                "error": f"{type(e).__name__}: {e}",
+                                **transient_error_fields(e),
                                 "wall_sec": time.time() - t0,
                             }
                             if held in selections:

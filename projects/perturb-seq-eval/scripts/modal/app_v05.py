@@ -153,7 +153,6 @@ def run_v05_sweep(
     import hashlib
     import inspect
 
-    from perturb_eval.agentic_lifecycle.architect_dispatch import BackboneUnavailableError
     from perturb_eval.agentic_lifecycle.freedom_probe import (
         per_agent_field_entropy,
         summarise_choice_distribution,
@@ -165,13 +164,16 @@ def run_v05_sweep(
     from perturb_eval.experiments.heldout import iter_trainer_records
     from perturb_eval.experiments.norman import load_norman_matrix
     from perturb_eval.experiments.v05_preflight import preflight
-    from perturb_eval.experiments.v05_sweep import lifecycle_record
+    from perturb_eval.experiments.v05_sweep import iter_lifecycle_records, run_guarded
     from perturb_eval.experiments.v05_tasks import build_task_lists
     from perturb_eval.experiments.provenance import (
         build_provenance,
         collect_hvg_and_params,
+        fail_provenance,
         finalize_provenance,
         jsonl_provenance_line,
+        read_jsonl_locating,
+        scan_unparseable,
     )
     from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
@@ -342,28 +344,65 @@ def run_v05_sweep(
     trainer_records: list[dict] = []
     lifecycle_records: list[dict] = []
 
+    def _abort(phase: str):
+        # CTO #245 Q1: a non-transient exception in either sweep loop aborts the
+        # run. Finalise provenance as "failed" with type + traceback, then the
+        # caller (run_guarded) re-raises.
+        def on_abort(exc: BaseException) -> None:
+            now = time.time()
+            hvg_n, params = collect_hvg_and_params(trainer_records, lifecycle_records)
+            failed = fail_provenance(
+                prov,
+                exc,
+                phase=phase,
+                finished_at=_iso(now),
+                gpu_seconds=now - started_at,
+                gpu_seconds_source="wall_clock_of_gpu_function",
+                cost_usd_actual=_cost_usd_so_far(),
+                counts={"n_trainer_runs": len(trainer_records),
+                        "n_lifecycle_runs": len(lifecycle_records)},
+                hvg_n_per_task=hvg_n,
+                params_per_task=params,
+                budget_hit=_budget_exceeded(),
+                unparseable_lines=scan_unparseable(trainer_out, lifecycle_out),
+            )
+            provenance_out.write_text(json.dumps(failed, indent=2, default=str))
+            DATA_VOL.commit()
+            print(f"[v0.6] ABORT in {phase}: {failed['failure']['error_type']} — "
+                  "provenance status=failed")
+        return on_abort
+
+    def _sink(path: Path, bucket: list[dict]):
+        def sink(rec: dict) -> None:
+            _append(path, rec)
+            bucket.append(rec)
+        return sink
+
     # ---------- 2. Trainer-only sweep ----------
     print(f"[v0.5.0] trainer sweep start; budget_so_far=${_cost_usd_so_far():.3f}")
     # T8b: the loop body lives in perturb_eval.experiments.heldout so it is
     # testable; HVG is selected per held-out task on training cells only and
     # each record carries hvg_n / hvg_n_forced / hvg_mode / n_params.
+    # CTO #245 Q1: transient per-cell failures become error records; anything
+    # else aborts the run via run_guarded (provenance status "failed").
     n_trainer_runs = 0
     for dataset_name, ds, tasks in datasets:
         if max_tasks_override is not None:
             tasks = tasks[:max_tasks_override]
-        for rec in iter_trainer_records(
-            dataset_name=dataset_name,
-            ds=ds,
-            tasks=tasks,
-            backbones=backbones,
-            n_sweep=n_sweep,
-            r_sweep=r_sweep,
-            seeds=range(2026, 2026 + seeds),
-            should_stop=_budget_exceeded,
-        ):
-            _append(trainer_out, rec)
-            trainer_records.append(rec)
-            n_trainer_runs += 1
+        n_trainer_runs += run_guarded(
+            iter_trainer_records(
+                dataset_name=dataset_name,
+                ds=ds,
+                tasks=tasks,
+                backbones=backbones,
+                n_sweep=n_sweep,
+                r_sweep=r_sweep,
+                seeds=range(2026, 2026 + seeds),
+                should_stop=_budget_exceeded,
+            ),
+            sink=_sink(trainer_out, trainer_records),
+            on_abort=_abort("trainer"),
+        )
         if _budget_exceeded():
             print(
                 f"[v0.5.0] budget cap hit (${_cost_usd_so_far():.2f})"
@@ -377,7 +416,6 @@ def run_v05_sweep(
 
     # ---------- 3. Lifecycle sweep (real LLMAgentPool, free-tier) ----------
     # Preflight asserted key presence + a live pool (C-KEY-1); no skip path.
-    n_lifecycle_runs = 0
     api_key = os.environ["OPENROUTER_API_KEY"]
     client_kwargs: dict = {"cooldown_sec": cooldown_sec}
     if _client_takes_temperature:
@@ -390,62 +428,38 @@ def run_v05_sweep(
     )
     pool = LLMAgentPool(client=client, cache_dir=Path("/biofm_cache/llm"))
 
-    for dataset_name, ds, tasks in datasets:
-        if max_tasks_override is not None:
-            tasks = tasks[:max_tasks_override]
-        for held in tasks:
-            if held not in ds["target_gene_idx"]:
-                # Preflight guarantees every task resolves; never skip.
-                raise RuntimeError(
-                    f"{dataset_name}: task {held!r} not in target_gene_idx mid-run "
-                    "(preflight should have refused this run)"
-                )
-            for seed in range(2026, 2026 + seeds):
-                if _budget_exceeded():
-                    break
-                t0 = time.time()
-                try:
-                    rec = lifecycle_record(
-                        task=held,
-                        dataset_name=dataset_name,
-                        ds=ds,
-                        seed=seed,
-                        pool=pool,
-                        max_rounds=3,
-                    )
-                except BackboneUnavailableError:
-                    raise  # C-TORCH-2: never a per-record error / silent gap
-                except Exception as e:  # noqa: BLE001
-                    rec = {
-                        "dataset": dataset_name,
-                        "task_id": held,
-                        "seed": seed,
-                        "error": f"{type(e).__name__}: {e}",
-                        "final_msd_topk": float("inf"),
-                        "n_rounds": 0,
-                        "wall_sec": time.time() - t0,
-                        "steps": [],
-                    }
-                _append(lifecycle_out, rec)
-                lifecycle_records.append(rec)
-                n_lifecycle_runs += 1
-            if _budget_exceeded():
-                break
-        if _budget_exceeded():
-            break
+    # T6 + CTO #245 Q1: the loop body lives in v05_sweep.iter_lifecycle_records
+    # (testable); BackboneUnavailableError and every non-transient exception
+    # propagate and abort the run; a task missing from target_gene_idx raises.
+    n_lifecycle_runs = run_guarded(
+        iter_lifecycle_records(
+            datasets=[
+                (name, ds, tasks[:max_tasks_override] if max_tasks_override is not None else tasks)
+                for name, ds, tasks in datasets
+            ],
+            seeds=range(2026, 2026 + seeds),
+            pool=pool,
+            max_rounds=3,
+            should_stop=_budget_exceeded,
+        ),
+        sink=_sink(lifecycle_out, lifecycle_records),
+        on_abort=_abort("lifecycle"),
+    )
 
     # ---------- 4. Phase-2 gate re-check on real traces ----------
+    # CTO #245 Q2: every unparseable line is LOCATED (line, byte offset,
+    # preview) and written to provenance — never silently skipped. The
+    # analyser refuses any run that has one.
     traces: list[list[dict]] = []
-    if lifecycle_out.exists():
-        with lifecycle_out.open() as fh:
-            for line in fh:
-                try:
-                    rec = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if rec.get("record_type") == "provenance":
-                    continue
-                traces.append(list(rec.get("steps", [])))
+    lifecycle_rows, _ = read_jsonl_locating(lifecycle_out)
+    for rec in lifecycle_rows:
+        if not isinstance(rec, dict) or rec.get("record_type") == "provenance":
+            continue
+        traces.append(list(rec.get("steps", [])))
+    unparseable_lines = scan_unparseable(trainer_out, lifecycle_out)
+    n_unparseable = sum(len(v) for v in unparseable_lines.values())
+    if n_unparseable:
+        print(f"[v0.6] WARNING: {n_unparseable} unparseable JSONL line(s): {unparseable_lines}")
 
     h_backbone = (
         per_agent_field_entropy(traces, agent="Architect", field="backbone")
@@ -502,6 +516,7 @@ def run_v05_sweep(
         params_per_task=params_per_task,
         budget_hit=budget_hit,
         status=status,
+        unparseable_lines=unparseable_lines,
     )
     provenance_out.write_text(json.dumps(final, indent=2, default=str))
     DATA_VOL.commit()
