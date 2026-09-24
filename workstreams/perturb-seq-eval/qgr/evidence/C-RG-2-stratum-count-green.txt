@@ -1,0 +1,39 @@
+# T11 C-RG-2 stratum-count GREEN (after implementation; uncommitted diff on HEAD 56b26b1291d6f3e3f8f8dc250ec785170cabd404)
+# cmd: .venv/bin/python -m pytest -v -p no:cacheprovider tests/test_v05_tasks.py tests/test_data_subsample.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/.venv/bin/python
+rootdir: /Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval
+configfile: pyproject.toml
+plugins: zarr-3.4.0, cov-7.1.0, fast-array-utils-1.5.1
+collecting ... collected 23 items
+
+tests/test_v05_tasks.py::test_identical_across_pythonhashseed PASSED     [  4%]
+tests/test_v05_tasks.py::test_insertion_order_of_adamson_summary_is_irrelevant PASSED [  8%]
+tests/test_v05_tasks.py::test_underscore_doublets_classified_and_counts_reported PASSED [ 13%]
+tests/test_v05_tasks.py::test_wrong_delim_raises_with_eligible_doublet_count PASSED [ 17%]
+tests/test_v05_tasks.py::test_right_delim_returns_exactly_requested_doublets PASSED [ 21%]
+tests/test_v05_tasks.py::test_previous_underfill_case_now_filled_exactly PASSED [ 26%]
+tests/test_v05_tasks.py::test_singleton_pool_smaller_than_request_raises PASSED [ 30%]
+tests/test_v05_tasks.py::test_adamson_uneven_bins_filled_exactly PASSED  [ 34%]
+tests/test_v05_tasks.py::test_adamson_pool_smaller_than_request_raises PASSED [ 39%]
+tests/test_v05_tasks.py::test_d1_default_is_exactly_15_plus_5 PASSED     [ 43%]
+tests/test_v05_tasks.py::test_d1_identical_across_pythonhashseed PASSED  [ 47%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_determinism_same_seed_same_output PASSED [ 52%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_different_seed_different_output PASSED [ 56%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_exactly_n_per_stratum PASSED [ 60%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_returns_labels_not_indices PASSED [ 65%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_stratum_smaller_than_n_keeps_all PASSED [ 69%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_rejects_mismatched_shapes PASSED [ 73%]
+tests/test_data_subsample.py::TestStratifiedSubsample::test_sorted_output_for_reproducibility PASSED [ 78%]
+tests/test_data_subsample.py::TestStratifiedSubsampleExactFill::test_underfill_topped_up_to_n_total PASSED [ 82%]
+tests/test_data_subsample.py::TestStratifiedSubsampleExactFill::test_n_total_keeps_the_per_stratum_draw PASSED [ 86%]
+tests/test_data_subsample.py::TestStratifiedSubsampleExactFill::test_n_total_caps_at_pool_size PASSED [ 91%]
+tests/test_data_subsample.py::TestMeanAbsLogfcTupleTargets::test_one_tuple_equals_int_exactly PASSED [ 95%]
+tests/test_data_subsample.py::TestMeanAbsLogfcTupleTargets::test_two_tuple_is_mean_over_targets PASSED [100%]
+
+============================== 23 passed in 0.91s ==============================
+
+# sample assertion message (wrong delim):
+AssertionError: task-list stratum count mismatch — norman doublets: requested 5, got 0 (eligible adamson: 30; eligible singletons: 16; eligible doublets: 0; doublet_delim='_')
+# T2 fixture now: 
+('CBL', 'CEBPA', 'IKZF3', 'MAP2K6', 'SPI1', 'UBASH3B') ('CBL_UBASH3A', 'KLF1_MAP2K6') ('ATF6', 'CALR', 'CANX', 'HYOU1', 'PDIA6', 'SEC61A1', 'SPCS3', 'TIMM23', 'XBP1')

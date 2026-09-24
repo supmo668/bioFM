@@ -62,3 +62,59 @@ class TestStratifiedSubsample:
         strata = np.array([0, 0, 1, 1, 1])
         result = stratified_subsample(labels, strata, n_per_stratum=2, seed=2026)
         assert list(result) == sorted(result), "output must be sorted for provenance"
+
+
+class TestStratifiedSubsampleExactFill:
+    """T11: ``n_total`` tops up an under-filled stratified draw to exactly n."""
+
+    def test_underfill_topped_up_to_n_total(self) -> None:
+        labels = np.array([f"lbl{i}" for i in range(10)])
+        strata = np.array([0] * 8 + [1] * 2)
+        # per-stratum 3 -> 3 + 2 = 5; n_total asks for 6.
+        out = stratified_subsample(labels, strata, n_per_stratum=3, seed=2026, n_total=6)
+        assert len(out) == 6 and len(set(out)) == 6
+        assert list(out) == sorted(out)
+        again = stratified_subsample(labels, strata, n_per_stratum=3, seed=2026, n_total=6)
+        assert np.array_equal(out, again)
+
+    def test_n_total_keeps_the_per_stratum_draw(self) -> None:
+        labels = np.array([f"lbl{i}" for i in range(10)])
+        strata = np.array([0] * 8 + [1] * 2)
+        base = stratified_subsample(labels, strata, n_per_stratum=3, seed=2026)
+        topped = stratified_subsample(labels, strata, n_per_stratum=3, seed=2026, n_total=7)
+        assert set(base) <= set(topped)
+
+    def test_n_total_caps_at_pool_size(self) -> None:
+        labels = np.array(["a", "b", "c"])
+        strata = np.array([0, 0, 1])
+        out = stratified_subsample(labels, strata, n_per_stratum=1, seed=2026, n_total=5)
+        assert set(out) == {"a", "b", "c"}
+
+
+class TestMeanAbsLogfcTupleTargets:
+    X = np.array(
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0],   # CTRL
+         [1.5, 0.2, 0.0], [2.5, 0.4, 0.0],   # pA
+         [0.0, -3.0, 1.0], [0.0, -1.0, 3.0]],  # pAB
+        dtype=np.float32,
+    )
+    labels = np.array(["CTRL", "CTRL", "pA", "pA", "pAB", "pAB"])
+
+    def test_one_tuple_equals_int_exactly(self) -> None:
+        from perturb_eval.data import mean_abs_logfc_per_target
+
+        ctrl = self.labels == "CTRL"
+        a = mean_abs_logfc_per_target(self.X, self.labels, ctrl, {"pA": 0, "pAB": 1})
+        b = mean_abs_logfc_per_target(self.X, self.labels, ctrl, {"pA": (0,), "pAB": (1,)})
+        assert a == b  # exact equality, not approx
+        assert a["pA"] == 2.0
+
+    def test_two_tuple_is_mean_over_targets(self) -> None:
+        from perturb_eval.data import mean_abs_logfc_per_target
+
+        ctrl = self.labels == "CTRL"
+        out = mean_abs_logfc_per_target(self.X, self.labels, ctrl, {"pAB": (1, 2)})
+        # |mean col1| = 2.0, |mean col2| = 2.0 -> 2.0; use asymmetric check too
+        assert out["pAB"] == 2.0
+        out2 = mean_abs_logfc_per_target(self.X, self.labels, ctrl, {"pA": (0, 1)})
+        assert out2["pA"] == pytest.approx((2.0 + 0.3) / 2)

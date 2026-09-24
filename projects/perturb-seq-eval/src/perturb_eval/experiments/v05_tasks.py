@@ -20,6 +20,7 @@ from typing import Any
 
 import numpy as np
 
+from perturb_eval.data.perturbations import is_doublet
 from perturb_eval.data.subsample import deterministic_stratum, stratified_subsample
 
 _NORMAN_SINGLETON_STRATA = 3
@@ -57,11 +58,6 @@ class TaskPlan:
         }
 
 
-def is_doublet(label: str, delim: str) -> bool:
-    """Doublet test. Seam for T7: replace with ``parse_perturbation``."""
-    return delim in label
-
-
 def _pool_adamson(
     adamson_summary: Mapping[str, Mapping[str, float]],
 ) -> list[tuple[str, float]]:
@@ -96,9 +92,16 @@ def build_task_lists(
     adamson_summary
         ``{subset name: {perturbation label: mean |logFC| of its target}}``.
         Labels are pooled across subsets and binned into ``adamson_n_bins``
-        quantile bins of score; ``adamson_n_per_bin`` are drawn per bin. If the
-        pool is no larger than ``adamson_n_per_bin * adamson_n_bins`` every
-        label is kept.
+        quantile bins of score; ``adamson_n_per_bin`` are drawn per bin and
+        the draw is topped up to exactly ``adamson_n_per_bin * adamson_n_bins``
+        (uneven bins). A pool of exactly that size is kept whole.
+
+    Raises
+    ------
+    AssertionError
+        (T11 / C-RG-2) if any pool is smaller than its requested count, so
+        the resolved lists can never be silently short. The message gives
+        requested vs got and every eligible-pool size.
     norman_labels
         Non-control Norman perturbation labels (singletons and doublets).
     """
@@ -108,7 +111,8 @@ def build_task_lists(
     pooled = _pool_adamson(adamson_summary)
     tfs = np.array([lbl for lbl, _ in pooled], dtype=object)
     strengths = np.array([s for _, s in pooled], dtype=float)
-    if len(tfs) > adamson_n_per_bin * adamson_n_bins:
+    adamson_n = adamson_n_per_bin * adamson_n_bins
+    if len(tfs) > adamson_n:
         bin_edges = np.quantile(strengths, np.linspace(0, 1, adamson_n_bins + 1))
         # digitize returns bin ids in [1..n_bins]; clamp to [0..n_bins-1].
         bin_ids = np.clip(
@@ -119,7 +123,11 @@ def build_task_lists(
         adamson = tuple(
             str(x)
             for x in stratified_subsample(
-                tfs, bin_ids, n_per_stratum=adamson_n_per_bin, seed=seed
+                tfs,
+                bin_ids,
+                n_per_stratum=adamson_n_per_bin,
+                seed=seed,
+                n_total=adamson_n,
             )
         )
     else:
@@ -141,7 +149,8 @@ def build_task_lists(
             np.array(pool_strata),
             n_per_stratum=max(1, n // k),
             seed=seed,
-        )[:n]
+            n_total=n,
+        )
         return tuple(str(x) for x in chosen)
 
     chosen_singletons = _draw(
@@ -149,6 +158,17 @@ def build_task_lists(
     )
     chosen_doublets = _draw(
         doublets, _NORMAN_DOUBLET_STRATA, norman_n_doublets, "norman_doublets"
+    )
+
+    _check_counts(
+        [
+            ("adamson", "adamson", adamson_n, len(adamson), len(tfs)),
+            ("norman singletons", "singletons", norman_n_singletons,
+             len(chosen_singletons), len(singletons)),
+            ("norman doublets", "doublets", norman_n_doublets,
+             len(chosen_doublets), len(doublets)),
+        ],
+        doublet_delim,
     )
 
     return TaskPlan(
@@ -161,4 +181,23 @@ def build_task_lists(
             "norman_singletons": len(singletons),
             "norman_doublets": len(doublets),
         },
+    )
+
+
+def _check_counts(
+    rows: Sequence[tuple[str, str, int, int, int]], doublet_delim: str
+) -> None:
+    """Raise ``AssertionError`` if any pool resolved short of its request.
+
+    An explicit ``raise`` (not ``assert``) so ``python -O`` cannot strip it.
+    With exact fill this fires only when a pool is genuinely too small.
+    """
+    short = [r for r in rows if r[3] != r[2]]
+    if not short:
+        return
+    pools = "; ".join(f"eligible {tag}: {pool}" for _, tag, _, _, pool in rows)
+    what = "; ".join(f"{name}: requested {req}, got {got}" for name, _, req, got, _ in short)
+    raise AssertionError(
+        f"task-list stratum count mismatch — {what} ({pools}; "
+        f"doublet_delim={doublet_delim!r})"
     )
