@@ -149,6 +149,77 @@ def resolve_lib_versions() -> dict[str, str | None]:
     return out
 
 
+
+_SOURCE_PART = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
+
+
+def llm_key_source(store: str, project_slug: str, env: str, *, home_project: str) -> dict[str, Any]:
+    """Describe WHERE the LLM credential came from — never the credential itself.
+
+    Principal directive (2026-09-24) + CTO #265: the key is injected at run time
+    (``infisical run ... -- modal run``) and provenance records only its source.
+    ``cross_project`` is explicit because a store outside the home project reads,
+    out of context, like a typo for the home one. Each part must look like a slug:
+    anything shaped like a secret (``sk-...``, over-long, empty) is refused, so the
+    value cannot leak into provenance through this field.
+    """
+    for name, part in (("store", store), ("project_slug", project_slug), ("env", env),
+                       ("home_project", home_project)):
+        if not isinstance(part, str) or not _SOURCE_PART.match(part) or part.lower().startswith("sk-"):
+            raise ValueError(f"llm_key_source.{name} must be a short slug, not a credential-shaped value")
+    return {
+        "store": store,
+        "project_slug": project_slug,
+        "env": env,
+        "home_project": home_project,
+        "cross_project": project_slug != home_project,
+    }
+
+
+def parse_key_source(spec: str | None, *, home_project: str) -> dict[str, Any] | None:
+    """Parse ``OPENROUTER_KEY_SOURCE`` (``"<store>:<project_slug>:<env>"``).
+
+    Returns the :func:`llm_key_source` dict, or ``None`` when ``spec`` is
+    missing, malformed, or any part is credential-shaped; the preflight then
+    refuses the run (C-KEY-SOURCE). The value is never echoed.
+    """
+    if not isinstance(spec, str) or any(c.isspace() for c in spec):
+        return None
+    parts = spec.split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        return llm_key_source(*parts, home_project=home_project)
+    except ValueError:
+        return None
+
+
+def preregistration_record(repo_dir: str | Path, rel_path: str) -> dict[str, str]:
+    """Pin the pre-registration the sweep runs under (CTO #265 (a)).
+
+    Returns ``{path, sha256, commit}`` where ``commit`` is the last commit that
+    touched the file. Refuses an untracked file or one with UNCOMMITTED edits:
+    a hypothesis edited after the fact is not a pre-registration.
+    """
+    import hashlib
+
+    repo = Path(repo_dir)
+    f = repo / rel_path
+    if not f.is_file():
+        raise ValueError(f"pre-registration {rel_path!r} does not exist")
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True,
+                              text=True).stdout.strip()
+
+    if not git("ls-files", "--", rel_path):
+        raise ValueError(f"pre-registration {rel_path!r} is not tracked by git")
+    if git("status", "--porcelain", "--", rel_path):
+        raise ValueError(f"pre-registration {rel_path!r} has uncommitted edits; commit it before the sweep")
+    commit = git("log", "-1", "--format=%H", "--", rel_path)
+    return {"path": rel_path, "sha256": hashlib.sha256(f.read_bytes()).hexdigest(), "commit": commit}
+
+
 def git_state(repo_dir: str | Path) -> tuple[str, bool]:
     """``(HEAD sha, working tree dirty?)`` for ``repo_dir``. Raises if not a repo."""
     def _git(*args: str) -> str:
@@ -204,6 +275,8 @@ def build_provenance(
     lib_versions: Mapping[str, str | None] | None = None,
     started_at: str | None = None,
     known_limitations: Iterable[str] = (),
+    llm_key_source: Mapping[str, Any] | None = None,
+    preregistration: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Start-of-run provenance record; validates presence and types.
 
@@ -265,6 +338,11 @@ def build_provenance(
         # per-task n filled at finalize (CTO #227 cond. 3)
         "hvg_selection": {"mode": "train_only"},
         "llm_pool": pool,
+        # Principal directive + CTO #265: credential SOURCE only (never the value),
+        # and the commit that fixed the hypotheses. Always present; the preflight
+        # requires both to be non-null for a real sweep.
+        "llm_key_source": dict(llm_key_source) if llm_key_source is not None else None,
+        "preregistration": dict(preregistration) if preregistration is not None else None,
         "gpu": gpu,
         "hourly_usd": float(hourly_usd),
         "budget_cap_usd": float(budget_cap_usd),

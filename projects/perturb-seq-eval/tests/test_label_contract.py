@@ -426,7 +426,13 @@ def _pf_run(tmp_path: Path, adamson_tasks: tuple, adamson_ds: dict, norman_ds: d
     from perturb_eval.experiments.v05_tasks import TaskPlan
 
     return preflight(
-        kwargs={"backbones": ("linear",), "doublet_delim": "_"},
+        # Principal directive + CTO #265: a runnable sweep supplies both.
+        kwargs={"backbones": ("linear",), "doublet_delim": "_",
+                "llm_key_source": {"store": "infisical", "project_slug": "syntropyhealth-app",
+                                   "env": "dev", "home_project": "biofm",
+                                   "cross_project": True},
+                "preregistration": {"path": "paper/PREREGISTRATION.md",
+                                    "sha256": "a" * 64, "commit": "b" * 40}},
         datasets_spec_or_loaded={"adamson_full": adamson_ds, "norman": norman_ds},
         task_plan=TaskPlan(adamson=adamson_tasks, norman_singletons=("OLDSYM",),
                            norman_doublets=("OLDSYM_FOXL2",)),

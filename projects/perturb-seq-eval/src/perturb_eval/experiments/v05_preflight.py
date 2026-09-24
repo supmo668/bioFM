@@ -13,6 +13,12 @@ Checks:
 * C-TORCH-1 — every backbone in ``kwargs["backbones"]`` is in
   :func:`available_backbones`, so the C-TORCH-2 raise is dead code in a
   healthy run.
+* C-KEY-SOURCE — ``kwargs["llm_key_source"]`` (parsed on the host from
+  ``OPENROUTER_KEY_SOURCE``) is present: provenance records WHERE the credential
+  came from (principal directive 2026-09-24).
+* C-PREREG — ``kwargs["preregistration"]`` (the committed, clean
+  pre-registration pin) is present; ``kwargs["preregistration_error"]`` says
+  why not (CTO #265).
 * the output directory is empty (record 0 of each JSONL is this run's
   provenance).
 * datasets load — the loaders passed in call the fetch path with
@@ -138,7 +144,8 @@ def preflight(
     Parameters
     ----------
     kwargs
-        The resolved ``run_v05_sweep`` kwargs (``backbones``, ``doublet_delim``).
+        The resolved ``run_v05_sweep`` kwargs (``backbones``, ``doublet_delim``,
+        ``llm_key_source``, ``preregistration``, ``preregistration_error``).
     datasets_spec_or_loaded
         ``{dataset name: loaded ds dict | zero-arg loader}``. Loaders run here
         (they must fetch with ``trust_unpinned=False``); any exception is a
@@ -180,6 +187,30 @@ def preflight(
             else:
                 probe_model_id = str(got)
                 checks.append(f"pool probe ok ({probe_model_id})")
+
+    # ---- C-KEY-SOURCE / C-PREREG: principal directive + CTO #265 ----------
+    key_source = kwargs.get("llm_key_source")
+    if not isinstance(key_source, Mapping) or not key_source:
+        failures.append(
+            "C-KEY-SOURCE: OPENROUTER_KEY_SOURCE not set; provenance must record where "
+            "the credential came from (principal directive 2026-09-24)"
+        )
+    else:
+        checks.append(
+            f"key source recorded: {key_source.get('store')}:{key_source.get('project_slug')}"
+            f":{key_source.get('env')}"
+        )
+    prereg = kwargs.get("preregistration")
+    if not isinstance(prereg, Mapping) or not prereg:
+        reason = kwargs.get("preregistration_error") or "no pre-registration record"
+        failures.append(
+            f"C-PREREG: pre-registration not committed/clean ({reason}) — a hypothesis "
+            "fixed after the sweep is not a pre-registration (CTO #265)"
+        )
+    else:
+        checks.append(
+            f"pre-registration pinned: {prereg.get('path')} @ {prereg.get('commit')}"
+        )
 
     # ---- C-TORCH-1: every sweep backbone is available ----------------------
     backbones = tuple(kwargs.get("backbones", ()))

@@ -149,9 +149,14 @@ def test_build_rejects_constraint_string_in_lib_versions():
         _prov(lib_versions={"numpy": ">=1.26"})
 
 
+# Principal directive + CTO #265: resolved (host-computed) sweep inputs.
+PROVENANCE_INPUT_KWARGS = {"llm_key_source", "preregistration", "preregistration_error"}
+
+
 def test_entrypoint_kwargs_contains_every_sweep_kwarg():
     names = _sweep_kwarg_names()
     assert AND_S3_KWARGS <= set(names), AND_S3_KWARGS - set(names)
+    assert PROVENANCE_INPUT_KWARGS <= set(names), PROVENANCE_INPUT_KWARGS - set(names)
     prov = _prov()
     assert set(names) <= set(prov["entrypoint_kwargs"])
     assert AND_S3_KWARGS <= set(prov["entrypoint_kwargs"])
@@ -266,6 +271,7 @@ def test_entrypoint_passes_every_sweep_kwarg():
             keys = {k.value for k in node.value.keys if isinstance(k, ast.Constant)}
     assert keys is not None, "sweep_kwargs dict not found in entrypoint"
     assert keys == set(_sweep_kwarg_names())
+    assert PROVENANCE_INPUT_KWARGS <= keys
 
 
 # ---------- CTO #245 Q2: unparseable_lines ----------
@@ -311,3 +317,65 @@ def test_finalize_has_no_unparseable_default():
     del kw["unparseable_lines"]
     with pytest.raises(TypeError):
         pv.finalize_provenance(_prov(), **kw)
+
+
+# ---- principal directive / CTO #265: credential source + pre-registration ----
+
+def test_llm_key_source_recorded_and_marked_cross_project() -> None:
+    src = pv.llm_key_source("infisical", "syntropyhealth-app", "dev", home_project="biofm")
+    prov = _prov(llm_key_source=src)
+    assert prov["llm_key_source"] == {
+        "store": "infisical", "project_slug": "syntropyhealth-app", "env": "dev",
+        "home_project": "biofm", "cross_project": True,
+    }
+
+
+def test_llm_key_source_rejects_anything_that_looks_like_a_secret() -> None:
+    for bad in ("sk-or-v1-" + "a" * 40, "x" * 201, ""):
+        with pytest.raises(ValueError):
+            pv.llm_key_source("infisical", bad, "dev", home_project="biofm")
+
+
+def test_preregistration_record_from_committed_clean_file(tmp_path) -> None:
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+    f = tmp_path / "PREREGISTRATION.md"
+    f.write_text("H1: ...\n")
+    git("add", "."); git("commit", "-qm", "prereg")
+    rec = pv.preregistration_record(tmp_path, "PREREGISTRATION.md")
+    assert set(rec) == {"path", "sha256", "commit"} and len(rec["commit"]) == 40
+    f.write_text("H1: edited after the fact\n")  # uncommitted edit => not a pre-registration
+    with pytest.raises(ValueError, match="uncommitted"):
+        pv.preregistration_record(tmp_path, "PREREGISTRATION.md")
+    with pytest.raises(ValueError, match="not tracked|does not exist"):
+        pv.preregistration_record(tmp_path, "MISSING.md")
+
+
+def test_provenance_carries_preregistration() -> None:
+    rec = {"path": "paper/PREREGISTRATION.md", "sha256": "a" * 64, "commit": "b" * 40}
+    assert _prov(preregistration=rec)["preregistration"] == rec
+
+
+def test_parse_key_source_valid_spec() -> None:
+    got = pv.parse_key_source("infisical:syntropyhealth-app:dev", home_project="biofm")
+    assert got == {"store": "infisical", "project_slug": "syntropyhealth-app", "env": "dev",
+                   "home_project": "biofm", "cross_project": True}
+    assert pv.parse_key_source("infisical:biofm:prod", home_project="biofm")["cross_project"] is False
+
+
+@pytest.mark.parametrize("spec", [None, "", "infisical", "infisical:app", "a:b:c:d",
+                                  "infisical::dev", " : : ", "infisical:app:dev\n"])
+def test_parse_key_source_malformed_is_none(spec) -> None:
+    assert pv.parse_key_source(spec, home_project="biofm") is None
+
+
+@pytest.mark.parametrize("spec", ["sk-or-v1-" + "a" * 40,
+                                  "infisical:sk-or-v1-" + "a" * 40 + ":dev",
+                                  "sk-proj:app:dev",
+                                  "infisical:app:" + "x" * 201])
+def test_parse_key_source_credential_shaped_is_none(spec) -> None:
+    assert pv.parse_key_source(spec, home_project="biofm") is None

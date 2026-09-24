@@ -96,8 +96,15 @@ _DEFAULT_R_SWEEP: tuple[int, ...] = (1, 2, 3)
 _DEFAULT_BACKBONES: tuple[str, ...] = ("linear", "mlp", "scgpt_small")
 
 
+# The pre-registration the sweep runs under, relative to the git toplevel (CTO #265).
+_PREREGISTRATION_REL = "projects/perturb-seq-eval/paper/PREREGISTRATION.md"
+_HOME_PROJECT = "biofm"
+
+
 def _env_secrets() -> dict[str, str]:
-    keys = ("OPENROUTER_API_KEY",)
+    # OPENROUTER_KEY_SOURCE is NOT a secret ("<store>:<project_slug>:<env>");
+    # it is forwarded so the container sees the same source the host recorded.
+    keys = ("OPENROUTER_API_KEY", "OPENROUTER_KEY_SOURCE")
     return {k: os.environ.get(k, "") for k in keys}
 
 
@@ -132,12 +139,19 @@ def run_v05_sweep(
     git_sha: str = "",
     git_dirty: bool = False,
     run_id: str = "",
+    llm_key_source: dict | None = None,
+    preregistration: dict | None = None,
+    preregistration_error: str | None = None,
 ) -> dict:
     """Run the v0.5.0 single-stage sweep on real Adamson + Norman data.
 
     ``git_sha`` / ``git_dirty`` / ``run_id`` are computed on the host by the
     local entrypoint (the container has no ``.git``); a direct ``.remote()``
-    call without them fails closed in ``build_provenance``.
+    call without them fails closed in ``build_provenance``. Likewise
+    ``llm_key_source`` (parsed from ``OPENROUTER_KEY_SOURCE``) and
+    ``preregistration`` (or ``preregistration_error``) are host-computed; the
+    preflight refuses the run when either is missing (principal directive
+    2026-09-24, CTO #265).
 
     Returns
     -------
@@ -343,6 +357,8 @@ def run_v05_sweep(
         hourly_usd=_A100_HOURLY_USD,
         budget_cap_usd=_BUDGET_HARD_KILL_USD,
         started_at=_iso(started_at),
+        llm_key_source=llm_key_source,
+        preregistration=preregistration,
     )
     prov_line = jsonl_provenance_line(prov)
     for _p in (trainer_out, lifecycle_out):
@@ -563,6 +579,7 @@ def entrypoint(
     temperature: float = 0.3,
     version: str = "v0.6.0",
 ) -> None:
+    import subprocess
     import sys
 
     src = PROJECT_DIR_HOST / "src"
@@ -571,12 +588,30 @@ def entrypoint(
     from perturb_eval.experiments.provenance import (
         git_state,
         make_run_id,
+        parse_key_source,
+        preregistration_record,
         write_run_config,
     )
 
     # Host side: the Modal container has no .git (T13).
     git_sha, git_dirty = git_state(PROJECT_DIR_HOST)
     run_id = make_run_id(git_sha)
+    # Principal directive (2026-09-24): record WHERE the key came from, never the
+    # key. Missing/malformed -> None, which the preflight refuses (C-KEY-SOURCE).
+    llm_key_source = parse_key_source(
+        os.environ.get("OPENROUTER_KEY_SOURCE"), home_project=_HOME_PROJECT
+    )
+    # CTO #265: pin the committed, clean pre-registration (C-PREREG otherwise).
+    toplevel = subprocess.run(
+        ["git", "-C", str(PROJECT_DIR_HOST), "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    preregistration: dict | None = None
+    preregistration_error: str | None = None
+    try:
+        preregistration = preregistration_record(toplevel, _PREREGISTRATION_REL)
+    except ValueError as exc:
+        preregistration_error = str(exc)
     # Every run_v05_sweep kwarg, passed explicitly so the config copy and the
     # provenance ``entrypoint_kwargs`` block are the same resolved set.
     sweep_kwargs = {
@@ -600,6 +635,9 @@ def entrypoint(
         "git_sha": git_sha,
         "git_dirty": git_dirty,
         "run_id": run_id,
+        "llm_key_source": llm_key_source,
+        "preregistration": preregistration,
+        "preregistration_error": preregistration_error,
     }
     cfg = write_run_config(PROJECT_DIR_HOST, run_id, sweep_kwargs, git_sha)  # T17
     print(f"[v0.6] run_id={run_id} git_dirty={git_dirty} config={cfg}")
