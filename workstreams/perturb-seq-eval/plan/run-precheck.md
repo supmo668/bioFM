@@ -8,7 +8,7 @@ Measured 2026-09-24 on Modal, CPU only, through the REAL loaders with every guar
 | Adamson combined matrix | 21,841 cells x 32,738 genes, float32, **2.66 GiB** (load + one HVG pass 44 s) |
 | Norman matrix | 44,423 cells x 33,694 genes, float32, **5.58 GiB** (30 s) |
 | peak RSS (sequential load, each freed) | **17.99 GiB** of the 32 GiB sweep function limit — headroom 14.0 GiB |
-| sweep holds BOTH resident | conservative bound: 2.7 (Adamson resident) + <=18 (Norman load transient) ~= **21 GiB** before training — headroom ~**11 GiB**. Not measured co-resident; stated as a bound. |
+| sweep holds BOTH resident | **MEASURED (CTO #261): peak RSS 17.99 GiB with both datasets resident, headroom 14.0 GiB** before training. The earlier ~21 GiB figure was a conservative bound and is superseded — Norman's load transient fits under the Adamson-load peak. |
 | GPU | A100-40GB @ $1.32/h, Modal timeout 8 h (T22) |
 | task plan | 21 Adamson (3 bins x 7, 97 eligible) + 15 + 5 Norman = **41 tasks** |
 | work | 41 x 54 configs x 3 seeds ~= **2,214 trainer cells** (+14% vs 1,944) + 123 lifecycle runs |
