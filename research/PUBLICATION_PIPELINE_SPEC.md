@@ -297,6 +297,11 @@ stage 2, because the workflow built in n8n differs completely between the two.
 **Dispatch #203 is written for (a)** and is therefore **on hold** pending this decision —
 it would otherwise have the agent consolidate a CLI that (b) would delete.
 
+> **RESOLVED 2026-09-24 — principal chose (a).** Adapters stay in Python, consolidated into one
+> CLI; n8n orchestrates via `executeCommand`. The hold on #203 (#204) is lifted; #203 stays
+> queued behind #202. First project through the pipeline: the v2r-loop / BioSim white paper.
+> Zenodo **sandbox** only until the principal gives an explicit live go.
+
 ---
 
 ## 11. n8n instance inventory (2026-09-24, post-connection)
@@ -363,7 +368,7 @@ publishers. **None of them deposits to an academic repository.** So:
 
 ### 11.4 Still blocking
 
-1. **The (a)/(b) fork of §10.4 is unresolved** — consolidate Python vs reimplement in n8n.
+1. ~~**The (a)/(b) fork of §10.4 is unresolved**~~ — **RESOLVED (a), 2026-09-24.**
    Nothing should be created in a production instance until this is settled, because the two
    branches produce entirely different workflows.
 2. **Slack target channel** — unnamed.
@@ -487,3 +492,71 @@ cannot drift — which hand-maintained documentation in either design always doe
 the only version of this requirement that stays true six months later.
 
 **Still blocked on the principal**, and this section does not unblock it.
+
+---
+
+## 13. DECISION: (b) — reimplement in n8n. Recorded 2026-09-24.
+
+The principal chose **(b)**: all venues as n8n nodes; the Python publishers are retired.
+§10.4's fork is closed. §2's adapters-in-Python design is **superseded**, and §12.5's
+generated-notes synthesis is moot.
+
+**Costs accepted by this choice**, stated once and not re-litigated: credentials exist in
+two places (Infisical *and* an n8n credential object per venue), so rotation touches both;
+venue logic is not testable without a live n8n; node-JSON diffs are not meaningfully
+reviewable. These were the arguments for (a) and they remain true — they are now the price
+of a single system rather than reasons to revisit.
+
+### 13.1 A consequence (b) forces that (a) did not: n8n cannot see the repo
+
+**n8n is remote** (`n8n.syntropyhealth.bio`). Under (a), `executeCommand` ran on a machine
+that had the repository; under (b) there is no local runner, so **the workflow has no
+filesystem access to any project**. The manifest and artifacts have to arrive some other
+way. Options were Drive, a webhook payload, or GitHub — and the instance already holds a
+`GitHub account` credential.
+
+**Resolved: read the manifest and artifacts from GitHub at a pinned `ref`.** Two
+consequences, one good and one that bites today:
+
+- **Good, and it improves on (a):** the pipeline publishes **what is committed**, and the
+  commit SHA returned by the GitHub API becomes the provenance anchor recorded in
+  `manifest.json`. That is a stronger guarantee than a local path, and it is exactly the
+  property the perturb-seq-eval artifacts lacked.
+- **Biting today:** local `main` is ~190 commits ahead of `origin/main`. Until the trunk is
+  pushed, **GitHub is stale**, so the pipeline would publish old content. This is a third
+  independent cost of the unpushed trunk, alongside the review docs being unreachable and
+  worktree agents hand-fast-forwarding (handoff decision 5).
+
+### 13.2 Built: `[bioFM] 03-PUBLISH: Academic Repositories`
+
+Live in the instance, **inactive** (verified), following the tenancy convention of §11.1.
+
+- **id** `t2SmnfD3VwVV11wx` · <https://n8n.syntropyhealth.bio/workflow/t2SmnfD3VwVV11wx>
+- **12 nodes**, of which 4 are sticky notes. `validate_workflow` returned `valid: true`.
+- Chain: Start → **Resolve Run Variables** → **Fetch publish.yml from GitHub** →
+  **Validate Manifest and Classify Venues** (fails closed) → **Preflight Capability
+  Report** → **Prepare Manual-Upload Checklist** → **Summarise Run** → **Notify Slack**.
+- The four sticky notes of §12.2 are in place: RUN VARIABLES, CREDENTIALS REQUIRED,
+  THE HUMAN GAP, FAILURE SEMANTICS — so the instructions, credential requirements and the
+  arXiv gap travel *with the workflow*, which was the principal's requirement.
+- `Slack Bot — NoiseMaker` auto-assigned. The GitHub credential must be attached by hand
+  (the creator skips HTTP Request nodes).
+
+**Generic by construction:** `projectPath` is a run variable and the contract is
+`<projectPath>/publish.yml`. Any project with a valid manifest is publishable; there is no
+per-project workflow and nothing project-specific in the graph.
+
+### 13.3 What remains, in order
+
+1. **Venue deposit nodes** — none implemented yet. Preflight reports each as
+   `NOT YET IMPLEMENTED — venue node pending credential`, which is honest rather than
+   silent. Zenodo first (create → upload → publish, plus the new-version action for
+   `update`).
+2. **Six venue credentials.** Only `ZENODO_TOKEN` is asserted to exist (still unverified,
+   §8). Each needs an n8n credential object named per §12.4's table.
+3. **The Slack channel** — `channelId` is deliberately left as a placeholder;
+   `validate_workflow` flags it, which is the correct signal that it needs a human answer.
+4. **Generalise `publish.yml`** per §12.1 (move to per-project, project-relative artifact
+   paths, `topic`, new venue blocks) — repo-side, so a worktree agent's work.
+5. **Zenodo sandbox end-to-end**, then and only then retire the Python publishers (§10.3
+   stage 4). Nothing is deleted before the replacement has published something.
