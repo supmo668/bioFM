@@ -32,6 +32,7 @@ The on-disk `.v2r/` state is **not drain 1.** `dashboard/seed_demo_run.py` wrote
 **Consequences:**
 - Drain-1 evidence is git history: the skeleton commit + the close commits `28af3c4` (U-001) … `2e00aa3` (U-006), `docs/drain-1-notes.md`, the six instinct files, and any recoverable Weave traces (project `3m-m/Aviary-BioSim`).
 - The paper reports drain 1 as **"reconstructed from version control; the register-written run record was lost"**, not as a verified record.
+- **Also:** the cache read path for sequences had no integrity check when the published numbers were computed (F31, private row). The paper states this under reproducibility.
 - **Fix (build item B1):** the seeder must refuse to write into a live `.v2r/` (use a separate fixture dir, or refuse when a real register exists). This is itself a taxonomy entry: the paper's own evidence nearly failed the paper's own thesis.
 
 ## 4. Build + analysis work (aviary-biosim agent)
@@ -41,7 +42,7 @@ The on-disk `.v2r/` state is **not drain 1.** `dashboard/seed_demo_run.py` wrote
 | B1 | Seeder isolation fix + test | code + test | — |
 | A1 | **Reproduce drain 1 today:** check out the drain-end commit, run the six sealed tests through `tools/referee`, record the verdicts | `paper/evidence/drain1-rerun.json` (+ referee receipt) | *measured (re-run, date)* |
 | A2 | Reconstruct the drain-1 timeline from git (unit, commit, sealed-test path, statement, R<n>) | `paper/evidence/drain1-from-git.csv` | *reconstructed* |
-| A3 | Science numbers: recompute 2,090 / −13.02 / −5.85 / C-peptide values from `science/out/esm/results.json` with a deterministic script | `paper/evidence/science.json` | *measured* if reproduced, else *reported* |
+| A3 | Science numbers **from a verified input** (amended 2026-09-25, #288/F31): fetch the proinsulin record fresh from UniProt, bypassing the cache, and record accession + release + length + sha256 (A3a); compare to the published run's input where recoverable (A3b); re-run ESM-2 650M over the hash-recorded sequence and recompute 2,090 / −13.02 / −5.85 / C-peptide (A3c). Recomputing from `results.json` alone is NOT a measurement: it re-derives outputs and cannot detect a wrong input | `paper/evidence/science.json` + input record | *measured (re-run)* only if A3c matches; mismatch → flag before prose; input unestablished → *reported* |
 | A4 | The 66-measurement agent run: locate its trace/log. If found, extract counts + control choices; if not, state so | `paper/evidence/agent-run.json` or a NOT-FOUND note | *measured* / *reported, trace unavailable* |
 | A5 | Failure-mode taxonomy table from plugin CHANGELOG 0.56–0.60 + drain-1 notes, each row citing its regression test by path | `paper/evidence/taxonomy.csv` | *documented* |
 | A6 | Plugin suite counts at the cited version (re-run, not copied from the changelog) | `paper/evidence/plugin-tests.json` | *measured* |
