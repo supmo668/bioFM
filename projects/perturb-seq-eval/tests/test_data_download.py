@@ -185,15 +185,27 @@ class TestFailClosedUnpinned:
             mock_dl.assert_not_called()
         assert not (tmp_path / "NormanWeissman2019_filtered.h5ad").exists()
 
-    def test_fetch_adamson_all_raises_when_unpinned(self, tmp_path: Path) -> None:
-        for key in ("adamson_pilot", "adamson_10X005", "adamson_10X010"):
-            from perturb_eval.data.download import DATASETS
+    def test_fetch_adamson_all_raises_when_unpinned(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # QG C17: the real Adamson specs are pinned, so without unpinning them this
+        # test raised a SHA256 *mismatch* (after re-downloading) and passed for the
+        # wrong reason. Unpin all three subsets; the refusal must be the no-pin one,
+        # and nothing may be downloaded.
+        import dataclasses
+        from perturb_eval.data import download
+        from perturb_eval.data.download import ADAMSON_SUBSETS, DATASETS, fetch_adamson_all
+        assert set(ADAMSON_SUBSETS) == {"adamson_pilot", "adamson_10X005", "adamson_10X010"}
+        for key in ADAMSON_SUBSETS:
+            monkeypatch.setitem(
+                download.DATASETS, key, dataclasses.replace(DATASETS[key], sha256=None)
+            )
             _write_bytes(tmp_path / DATASETS[key].local_filename, b"cached")
-        from perturb_eval.data.download import fetch_adamson_all
         with patch("perturb_eval.data.download._download") as mock_dl:
             mock_dl.side_effect = lambda url, dest: dest.write_bytes(b"refetched")
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="no SHA256 pin"):
                 fetch_adamson_all(dest_dir=tmp_path, min_bytes=0)
+            mock_dl.assert_not_called()
 
     def test_mismatch_raises_and_does_not_leave_bad_file(self, tmp_path: Path) -> None:
         # Cached file with the wrong digest: re-download, verify, still wrong -> raise,
