@@ -26,17 +26,14 @@ from perturb_eval.data.label_contract import (
     NORMAN_CONTRACT,
     NORMAN_ID_COLUMN,
     LabelContract,
+    is_norman_control,
     resolve_with_contract,
 )
 from perturb_eval.data.perturbations import is_doublet, parse_perturbation
 
 
-_CONTROL_TOKENS = {"non-targeting", "nontargeting", "ctrl", "control", "NT"}
-
-
-def _is_control_label(raw: str) -> bool:
-    lower = raw.lower()
-    return lower in {t.lower() for t in _CONTROL_TOKENS} or lower == "ntc"
+# The Norman control predicate is owned by label_contract (QG C16).
+_is_control_label = is_norman_control
 
 
 def _parse_pert_label(raw: str) -> str:

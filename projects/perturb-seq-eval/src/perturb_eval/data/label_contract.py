@@ -414,6 +414,51 @@ ADAMSON_CONTRACT = LabelContract(
     },
 )
 
+# ---------------------------------------------------------------------------
+# Control predicates: ONE per dataset, owned here (QG C16). The loaders
+# (norman._is_control_label, e2_adamson.parse_adamson_construct) and
+# perturbations.is_control all delegate to these.
+# ---------------------------------------------------------------------------
+
+# Norman 2019 (scPerturb): case-insensitive control tokens; both loaders relabel
+# controls to "CTRL", which the "ctrl" token covers.
+NORMAN_CONTROL_TOKENS: frozenset[str] = frozenset(
+    {"non-targeting", "nontargeting", "ctrl", "control", "nt", "ntc"}
+)
+# Adamson 2016 raw labels: '*', a '62('/'63(' control-construct prefix
+# ('62(mod)_pBA581' in pilot/10X010, '63(mod)_pBA580' in 10X010), label text
+# containing 'neg_ctrl' (CTO #253: '3x_neg_ctrl_*'), or a plasmid-stripped
+# remainder listed in the contract's structural_controls ('Gal4-4(mod)', '3x').
+ADAMSON_CONTROL_PREFIXES: tuple[str, ...] = ("62(", "63(")
+ADAMSON_NEG_CTRL_MARK = "neg_ctrl"
+ADAMSON_PLASMID_RE = re.compile(r"_(p[A-Z]+[0-9]+(?:-[0-9]+)?)$")
+
+
+def strip_adamson_plasmid(raw: str) -> tuple[str, str | None]:
+    """``(remainder, plasmid)``: ``raw`` without its ``_p[A-Z]+[0-9]+(-[0-9]+)?`` suffix."""
+    m = ADAMSON_PLASMID_RE.search(raw)
+    return (raw[: m.start()], m.group(1)) if m else (raw, None)
+
+
+def is_norman_control(label: str) -> bool:
+    """True iff ``label`` is a Norman control token (case-insensitive)."""
+    return label.lower() in NORMAN_CONTROL_TOKENS
+
+
+def is_adamson_control(raw: str, contract: LabelContract = ADAMSON_CONTRACT) -> bool:
+    """True iff the Adamson label ``raw`` (raw or parsed) is a control construct."""
+    if raw == "*":
+        return True
+    rem, _ = strip_adamson_plasmid(raw)
+    return (raw.startswith(ADAMSON_CONTROL_PREFIXES) or ADAMSON_NEG_CTRL_MARK in rem
+            or rem in contract.structural_controls)
+
+
+CONTROL_PREDICATES: Mapping[str, Any] = MappingProxyType({
+    "adamson_full": is_adamson_control,
+    "norman": is_norman_control,
+})
+
 # Norman 2019 is CRISPR activation: an on-target effect is a RISE ("up").
 NORMAN_ID_COLUMN = "ensemble_id"  # upstream spelling of the Norman var column
 NORMAN_KIAA1804_REASON = (
@@ -459,6 +504,14 @@ NORMAN_CONTRACT = LabelContract(
 
 __all__ = [
     "ADAMSON_3X_CONTROL_BASIS",
+    "ADAMSON_CONTROL_PREFIXES",
+    "ADAMSON_NEG_CTRL_MARK",
+    "ADAMSON_PLASMID_RE",
+    "CONTROL_PREDICATES",
+    "NORMAN_CONTROL_TOKENS",
+    "is_adamson_control",
+    "is_norman_control",
+    "strip_adamson_plasmid",
     "ADAMSON_CONTRACT",
     "ADAMSON_PERK_IRE1_REASON",
     "COMPONENT_DELIM",

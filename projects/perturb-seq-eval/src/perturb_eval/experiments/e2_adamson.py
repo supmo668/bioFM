@@ -23,7 +23,9 @@ from perturb_eval.backbones import BackboneTrainConfig
 from perturb_eval.data.label_contract import (
     ADAMSON_CONTRACT,
     LabelContract,
+    is_adamson_control,
     resolve_with_contract,
+    strip_adamson_plasmid,
 )
 from perturb_eval.experiments.common import GridCellResult
 from perturb_eval.experiments.e2_grid_fill import phi_identifier
@@ -130,13 +132,10 @@ MULTI_GENE_REASON = "multi-gene construct; unsupported by D1"
 MISSING_LABEL = "nan"
 MISSING_ANNOTATION_REASON = "missing perturbation annotation (raw label 'nan')"
 
-_PLASMID_RE = re.compile(r"_(p[A-Z]+[0-9]+(?:-[0-9]+)?)$")
 _ONLY_MARKER = "_only"
 _COMPONENT_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9.\-]*")
-# Control constructs by raw-label prefix, as the real files encode them
-# ('62(mod)_pBA581' in pilot/10X010, '63(mod)_pBA580' in 10X010).
-_CONTROL_PREFIXES = ("62(", "63(")
-_NEG_CTRL_MARK = "neg_ctrl"
+# Control constructs ('*', '62(' / '63(' prefixes, 'neg_ctrl', contract
+# structural controls) are classified by label_contract.is_adamson_control (QG C16).
 
 ConstructKind = Literal["gene", "multi_gene", "control"]
 
@@ -178,11 +177,8 @@ def parse_adamson_construct(
         raise ValueError(f"unparseable Adamson raw label {raw!r}: empty or padded")
     if raw == "*":
         return AdamsonConstruct(raw=raw, components=("*",), kind="control", plasmid=None)
-    m = _PLASMID_RE.search(raw)
-    plasmid = m.group(1) if m else None
-    rem = raw[: m.start()] if m else raw
-    if raw.startswith(_CONTROL_PREFIXES) or _NEG_CTRL_MARK in rem \
-            or rem in contract.structural_controls:
+    rem, plasmid = strip_adamson_plasmid(raw)
+    if is_adamson_control(raw, contract):
         return AdamsonConstruct(raw=raw, components=tuple(rem.split("_")), kind="control",
                                 plasmid=plasmid)
     if plasmid is None:

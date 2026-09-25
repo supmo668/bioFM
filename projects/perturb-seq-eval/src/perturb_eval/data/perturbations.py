@@ -17,24 +17,17 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-# Control conventions, copied verbatim from the loaders (not invented here):
-#   Norman  — experiments/norman.py:20-25: case-insensitive match against
-#             {"non-targeting", "nontargeting", "ctrl", "control", "NT"} or "ntc".
-#   Adamson — experiments/e2_adamson.py:128-130: raw == "*" or raw.startswith("62(").
-#   Both loaders relabel controls to "CTRL" (norman.py:123, e2_adamson.py:216),
-#   which the case-insensitive "ctrl" token already covers.
-# Not imported from the loaders: e2_adamson pulls in perturb_eval.backbones,
-# and the data layer must not depend on it.
-_NORMAN_CONTROL_TOKENS = frozenset(
-    t.lower() for t in ("non-targeting", "nontargeting", "ctrl", "control", "NT", "ntc")
-)
-
-
 def is_control(label: str) -> bool:
-    """True iff ``label`` is a control under the Norman or Adamson loader convention."""
-    if label.lower() in _NORMAN_CONTROL_TOKENS:
-        return True
-    return label == "*" or label.startswith("62(")
+    """True iff ``label`` is a control under the Norman OR the Adamson predicate.
+
+    Delegates to the per-dataset predicates owned by
+    :mod:`perturb_eval.data.label_contract` (QG C16); both loaders relabel
+    controls to ``"CTRL"``, which the Norman ``ctrl`` token covers. Imported
+    lazily: ``label_contract`` imports this module.
+    """
+    from perturb_eval.data.label_contract import is_adamson_control, is_norman_control
+
+    return is_norman_control(label) or is_adamson_control(label)
 
 
 def parse_perturbation(label: str, delim: str = "_") -> tuple[str, ...]:
