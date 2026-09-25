@@ -91,3 +91,41 @@ a live state" rule (r2.35) both of us were citing at each other in the same exch
 - Did not call `agent-wake` again this session without first re-checking `lsof -d cwd` myself.
 - Told the agent plainly, in reply, that I caused Finding 2 — not left as an unexplained mystery
   in its own record.
+
+---
+
+## Refinement 2026-09-24 — the `lsof -d cwd` check I proposed will false-positive without a parentage test
+
+Suggested fix 1 above says **`agent-wake` should check `lsof -d cwd` before launching, and
+refuse if a process already has that worktree as its cwd.** Using that check in anger today
+shows it is necessary but, as written, wrong.
+
+Measured: two live pids reported cwd in `worktrees/perturb-seq-eval`, which is the exact
+signature the report above treats as the hazard. It was not.
+
+```
+pid 95075  ppid=75040  claude     started Sep 24 01:37
+pid 91536  ppid=95075  /bin/zsh   started Sep 24 12:35
+```
+
+`91536` is a **shell the agent itself spawned** — a descendant, not a peer. There is exactly
+one writer. A worktree agent doing ordinary work will have shells, editors, test runners and
+sub-sessions all inheriting its cwd, so **the bare cwd match fires constantly during normal
+operation.**
+
+**The check must test parentage, not just cwd.** A cwd match is a hazard only when the matching
+process is **not a descendant of the session doing the checking** (and is not a descendant of
+the other match). Concretely: walk `ppid` to a common ancestor; refuse only on an *independent*
+session.
+
+**Why this matters more than a false alarm:** a guard that fires on the normal case gets
+disabled, or its operator learns to click through it — and then it is not there for the real
+collision. That is the same failure as a warning whose silence means nothing
+(`2026-09-24-dispatch-metachar-warning-fires-in-the-negated-condition.md`), arrived at from the
+opposite direction: one is silent when it matters, the other is loud when it does not, and both
+end with an operator who has stopped reading it.
+
+Also worth recording: the check was still worth running. **Two pids in one worktree is not
+self-interpreting** — it took a `ppid` walk to tell an agent's own shell from a second writer,
+and the report above was written from an incident where nobody made that distinction either.
+
