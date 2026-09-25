@@ -3,6 +3,17 @@
 _Prepared 2026-09-25 by the perturb-seq-eval agent for the CTO to relay (CTO #392). Written in shapes, not values._
 _Receipt: `qgr/…-qgr-phase-complete-20260925-1301-7d3d659.md` (derived from 4a2948a). Its Hash D is recorded as PENDING your approval._
 
+## RULED by the principal — 2026-09-25 20:38Z (AskUserQuestion in session b6e15309, verified from its transcript)
+
+These are GIVEN. Do not re-ask them. They go into pre-registration amendment 2.
+
+- **C1 (2a) — required verbalised confidence:** every role's schema and prompt require a `confidence` in [0,1]. A missing or non-numeric value is a schema failure: the step falls back and the run is invalid (C-KEY-2). It is never imputed.
+- **C3 (2a) — FIXED 3 rounds, no early stop.** This differs from the recommendation below; the ruling governs. The Validator still critiques, and its verdict and chosen threshold are recorded but do not stop the run. Lifecycle MSD is the final round's. ΔC is defined for every run.
+- **C2 + C8 (2b) — APPLY them.** Fix the key names, pass the parsed schemas to the executors, and use the precedence Validator delta > Architect > DataCurator > defaults. A test must drive real parse_proposal output through the executors.
+- **C7 (2d, first half) — DROP N from the trainer sweep.** The oracle is "best over the distinct backbone × R configurations", with the distinct count and the seeds stated.
+
+**STILL OPEN:** Decision 1 (phase boundary / Hash D); 2c NEW-1 (H3 stated vs executed); 2d C13 (DEG gene universe); 2e C25 (stratum-fill wording); 2f C6 (prompt dataset/modality + cache-start); 2g C20 (FWER wording).
+
 ## Decision 1: approve the P0-P5 phase boundary (Hash D)
 
 What the phase delivered:
