@@ -1,18 +1,23 @@
 # Project 3 — Perturb-Seq Agentic Evaluation (Thesis Infrastructure)
 
-Companion code for the thesis at
-[`docs/THESIS.md`](docs/THESIS.md):
-**"Agent Confidence Entropy as an Empirical Difficulty Oracle for Multi-Agent
-Group Generation, with a Bayesian Pre-Test for Agentic Hyperparameter Tuning
-on Perturb-Seq Experimental Design."**
+Companion code for the paper [`paper/paper.tex`](paper/paper.tex) and the
+thesis [`docs/THESIS.md`](docs/THESIS.md):
+**"Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
+Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
+Response Prediction."**
 
-## Thesis in one sentence
+Hypotheses, gates and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
+Results are pending the v0.6.0 sweep; all v0.5.0 values are superseded (see
+the paper's appendix "Corrections relative to v0.5.0").
 
-The per-round joint distribution of agent confidence + critique severity in a
-[CellForge-style 5-agent team](../../libs/cellforge-agents/) is a sufficient statistic
-for task difficulty. A cheap preflight probe of that distribution yields a
-Bayesian recommender for the optimal team size, round count, and backbone —
-turning agentic orchestration into hyperparameter tuning.
+## Question in one sentence
+
+Is the per-round joint distribution of agent confidence + critique severity in a
+[CellForge-style 5-agent team](../../libs/cellforge-agents/) a sufficient statistic
+for task difficulty? If so, a cheap preflight probe of that distribution
+would yield a Bayesian recommender for team size, round count, and backbone —
+turning agentic orchestration into hyperparameter tuning. The paper tests
+this under five pre-registered gates.
 
 Read [`docs/THESIS.md`](docs/THESIS.md) for the full argument.
 
@@ -30,9 +35,10 @@ Read [`docs/THESIS.md`](docs/THESIS.md) for the full argument.
 5. **Calibration harness** — fits TDI coefficients + Bayesian likelihood from
    logged runs on a labelled calibration set.
 6. **Perturb-seq data + model adapters** — `PerturbSeqDataset` protocol,
-   Norman/Adamson loaders + synthetic CI stub; `PerturbationPredictor`
-   protocol with `ScGPTPredictor` (real) and `MockPredictor` (deterministic,
-   CPU-only, used by tests).
+   Norman/Adamson loaders with a recorded label contract; `PerturbationPredictor`
+   protocol with `ScGPTPredictor` (adapter over the public scGPT release; not
+   used by the paper's sweep) and `MockPredictor` (deterministic, CPU-only,
+   used by tests).
 7. **MassGen adapter** — expose the whole thing as a MassGen evaluation skill.
 
 ## Layout
@@ -42,6 +48,9 @@ perturb-seq-eval/
 ├── README.md                (you are here)
 ├── docs/
 │   └── THESIS.md            the thesis — start here
+├── paper/
+│   ├── paper.tex            the manuscript
+│   └── PREREGISTRATION.md   hypotheses, gates, analysis plan
 ├── pyproject.toml
 ├── requirements.txt
 ├── src/perturb_eval/
@@ -55,13 +64,14 @@ perturb-seq-eval/
 │   ├── data/protocol.py     PerturbSeqDataset protocol + loaders + stub
 │   ├── model.py             PerturbationPredictor + ScGPT/Mock implementations
 │   ├── massgen_adapter.py   MassGen skill entrypoint
-│   └── cli.py               preflight | calibrate | evaluate
+│   ├── experiments/         sweep task plan, provenance, analyser (e_v05_real_traces.py)
+│   └── cli.py               preflight | evaluate
 ├── tests/                   pytest suite (stdlib + numpy only)
 ├── examples/
-│   └── end_to_end.py        synthetic end-to-end demo
+│   └── end_to_end.py        toy-trace demo (hand-written RoundTraces)
 └── scripts/
-    ├── make_synthetic.py    build the tiny AnnData stub for CI
-    └── fetch_norman.py      download Norman 2019 (needs network + scanpy)
+    ├── modal/app_v05.py     the sweep: preflight + trainer + lifecycle, one process
+    └── paper/fill_v050_numbers.py  v0.5.0 number filler (targets a file the paper no longer inputs)
 ```
 
 ## Quick start
@@ -73,11 +83,29 @@ pip install -e .
 
 pytest -q                                                    # framework tests
 
-# Synthetic end-to-end demo — no downloads, no GPU
+# Toy-trace demo — hand-written RoundTraces, no downloads, no GPU
 python examples/end_to_end.py
 
-# Preflight probe on a real perturbation (needs the cellforge-agents project installed)
-perturb-eval preflight --perturbation "GSK3B knockout" --modality scRNA-seq
+# Bayesian recommendation from a probe signature
+perturb-eval preflight --ace-norm 0.6 --mean-conf 0.5 --max-conf 0.7 --csd 0.05
+```
+
+`tests/test_no_synthetic_generators.py` is a repository guardrail: it fails if a
+synthetic-cell generator is reintroduced under `src/`, `scripts/` or `paper/`.
+
+## Reproducing the sweep
+
+```bash
+# OPENROUTER_API_KEY must be present in the environment (never written to disk);
+# preflight refuses the whole run without it.
+modal run scripts/modal/app_v05.py::entrypoint
+
+# Analyse the downloaded run files (refuses mismatched task sets, fallback
+# steps, and unfinished runs)
+python -m perturb_eval.experiments.e_v05_real_traces \
+    --trainer artifacts/v0.6.0/trainer_runs.jsonl \
+    --lifecycle artifacts/v0.6.0/lifecycle_runs.jsonl \
+    --out artifacts/v0.6.0/summary.json
 ```
 
 ## Relationship to the other projects

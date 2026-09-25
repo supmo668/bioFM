@@ -1,0 +1,116 @@
+% Results for the v0.6.0 sweep. The sweep has not run: this section states the
+% pre-registered hypotheses, gates and estimators, and marks every value with
+% \pending{} (defined in paper.tex). The v0.5.0 results file
+% (v050_results_filled.tex) is no longer input; its values are superseded
+% (Appendix~\ref{app:corrections}).
+
+\section{Results}\label{sec:results}
+
+\subsection{Pre-registered hypotheses and gates}\label{subsec:prereg}
+
+The hypotheses, gates and analysis plan below are fixed in
+\texttt{paper/PREREGISTRATION.md}; the sweep's provenance record
+(\texttt{git\_sha}, \texttt{git\_dirty}) identifies the revision of that file
+in force when the sweep ran. There are five gates; each is reported as PASS,
+FAIL, or UNEVALUATED with the reason, and the tally is stated out of five.
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{p{0.05\linewidth}p{0.36\linewidth}p{0.2\linewidth}p{0.27\linewidth}}
+\toprule
+& Hypothesis & Gate & Outcome \\
+\midrule
+H1 & Trainer sweep attains low error on Adamson (oracle,
+  \S\ref{subsec:oracle}) & median $<0.20$ & \pending{H1} \\
+H2 & Trainer sweep attains low error on Norman (oracle) & median $<0.30$
+  & \pending{H2} \\
+H3 & Architect exercises its backbone choice (LLM-sourced steps)
+  & entropy $\ge 0.5$ nats & \pending{H3} \\
+H4 & A TDI component ranks tasks by held-out error & Spearman $\rho>0.5$
+  for $\ge 1$ component & \pending{H4} \\
+H5 & Calibrated TDI transfers Adamson $\to$ Norman & Spearman $\rho>0.4$
+  & \pending{H5} \\
+\bottomrule
+\end{tabular}
+\caption{Pre-registered hypotheses and gates. Estimators are given in the
+subsections below and in \texttt{paper/PREREGISTRATION.md}.}
+\label{tab:gates}
+\end{table}
+
+\subsection{Attainable error of the trainer sweep (H1, H2)}\label{subsec:h12}
+
+Estimator: per task, the minimum MSD on the top-$20$ DEGs over the $54$
+trainer configurations (an oracle, \S\ref{subsec:oracle}); the gate is the
+median over tasks in each dataset. Reported with the median: $n$, IQR,
+maximum, the fraction of tasks above the threshold, and a bootstrap CI over
+tasks; Norman is also split into singletons and doublets.
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{lp{0.5\linewidth}}
+\toprule
+Dataset & Oracle best-of-54 MSD (median; IQR; max; fraction over gate; CI) \\
+\midrule
+Adamson 2016 ($21$ tasks) & \pending{Adamson oracle MSD summary} \\
+Norman 2019 ($15$ singletons, $5$ doublets) & \pending{Norman oracle MSD summary} \\
+\bottomrule
+\end{tabular}
+\caption{Oracle (best of $54$ configurations, selected on the evaluation
+split) MSD on the top-$20$ DEGs. Gates: Adamson median $<0.20$, Norman
+median $<0.30$.}
+\label{tab:headline-msd}
+\end{table}
+
+\subsection{Architect configuration choices (H3)}\label{subsec:h3}
+
+Estimator: the Shannon entropy (nats) of the Architect's \texttt{backbone}
+picks over all LLM-sourced Architect steps, pooled across tasks, seeds and
+rounds ($\ln 3$ ceiling). Reported with it: pick counts per backbone, the
+number of LLM-sourced Architect steps, the number of distinct serving models
+and a per-\texttt{model\_id} breakdown, and the number of distinct proposals
+per role. Backbone-choice entropy: \pending{Architect backbone entropy (nats)
+and pick counts}. Per-role proposal diversity and per-model breakdown:
+\pending{per-role distinct proposals and per-model\_id counts}.
+
+\subsection{Trace metrics against held-out error (H4)}\label{sec:tdi-real}
+
+Estimator: the unit is the task; per task, each component (ACE, $1-\Delta C$,
+CSD, WFR, and TDI with the default weights of \S\ref{sec:metrics}) and the
+lifecycle's final MSD are the medians over the task's three seeds; Spearman
+$\rho$ is computed over tasks and reported for all five components with $n$
+and a bootstrap CI. A component the trace cannot supply is reported as not
+computable, with the reason.
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{lp{0.55\linewidth}}
+\toprule
+Component & Spearman $\rho$ vs held-out MSD ($n$, CI) \\
+\midrule
+ACE              & \pending{rho ACE} \\
+$1-\Delta C$     & \pending{rho 1-dC} \\
+CSD              & \pending{rho CSD} \\
+WFR              & \pending{rho WFR} \\
+TDI (default weights) & \pending{rho TDI} \\
+\bottomrule
+\end{tabular}
+\caption{Pre-registered gate: $\rho>0.5$ for at least one component.}
+\label{tab:tdi-real}
+\end{table}
+
+\subsection{Cross-dataset transfer (H5)}\label{subsec:h5}
+
+Estimator: TDI weights are fitted by ridge regression on the Adamson tasks
+and applied unchanged to the Norman tasks; the gate is Spearman $\rho$
+between Norman TDI and Norman held-out MSD. Transfer $\rho$:
+\pending{cross-dataset rho with n and CI}.
+
+\subsection{Run record}\label{subsec:runrecord}
+
+Fallback steps (a valid run has none): \pending{fallback-step count}.
+Held-out tasks analysed per dataset: \pending{n tasks per dataset from
+summary.json}. Exclusions under the label contract:
+\pending{excluded labels and cell counts from provenance}.

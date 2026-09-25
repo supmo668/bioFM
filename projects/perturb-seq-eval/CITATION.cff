@@ -3,8 +3,20 @@ message: >-
   If you use this software or results, please cite the supplement and
   the upstream references below.
 title: >-
-  perturb-seq-eval: contextual Bayesian optimisation of multi-agent
-  hyperparameters on Perturb-Seq
+  Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
+  Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
+  Response Prediction
+abstract: >-
+  Code and pre-registration for a test of whether multi-agent confidence and
+  critique traces predict task difficulty in Perturb-seq response
+  prediction. Five pre-registered hypotheses with gates (oracle best-of-54
+  error on Adamson 2016 and Norman 2019, Architect backbone-choice entropy
+  over LLM-sourced steps, TDI-component rank correlation with held-out
+  error, cross-dataset TDI transfer) on 41 deterministically drawn held-out
+  K562 tasks, with a provenance record per run (git revision, resolved
+  configuration, library versions, dataset SHA-256 digests, task plan,
+  label contract, per-step serving model). Gate outcomes are pending the
+  v0.6.0 sweep; all v0.5.0 values are superseded.
 authors:
   - family-names: "Mo"
     given-names: "Mangyin"
@@ -51,7 +63,7 @@ keywords:
   - multi-agent LLM
   - test-time compute
   - biological foundation model
-  - scGPT
+  - pre-registration
   - Adamson 2016
   - CellForge
 references:

@@ -4,6 +4,17 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
+## [Unreleased] — v0.6.0 regeneration (manuscript aligned; sweep not yet run)
+
+### Changed (title and framing)
+
+- **Title** (principal's choice), propagated to `paper/paper.tex`, `docs/THESIS.md`, `publish.yml`, `CITATION.cff`, `README.md`, `paper/README.md`: *Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction*. The question form makes a null result publishable; a null answer is not to be traded back into a claim title.
+- **`paper/PREREGISTRATION.md` added**: five hypotheses and gates (Adamson oracle median < 0.20, Norman < 0.30, Architect backbone entropy ≥ 0.5 nats over LLM-sourced steps, TDI ρ > 0.5 for ≥ 1 component, cross-dataset ρ > 0.4), estimators, and the analysis-plan conventions. H4/H5 have no analyser estimator yet (flagged in the file).
+- **Results are placeholders.** Every result value in the manuscript is `\pending{...}`; `sections/v050_results_filled.tex` is no longer input. All v0.5.0 values are superseded; the new appendix `sections/corrections.tex` maps each to the register rows that supersede it (A1, A2, A3, A4, A7, DF-06, DF-07, DF-10, #227, R1–R3, R9).
+- **Setup rewritten to the rebuilt experiment**: 41 tasks (21 Adamson = 3 bins × 7; Norman 15 singletons + 5 doublets) from one deterministic draw (CRC32 strata, seed 2026) in one process; structural Adamson label contract and Ensembl-ID Norman joins recorded in provenance; Norman described as CRISPR activation, Adamson as CRISPR interference; train-only HVG per task; top-20-DEG evaluation genes stated as the CPA/GEARS convention; best-of-54 relabelled an oracle; LLM condition stated as a rotating OpenRouter pool with per-step `model_id` and `source`, fallback runs invalid; `scgpt_small` described once as a from-scratch 2.1 M-parameter transformer.
+- **Removed** from the manuscript: the real/synthetic framing and its LaTeX comments, "Nemotron-30B" and "for demonstration purposes", the byte-equivalence claim (now "re-run at the recorded SHA and configuration"), and the claim that pretrained SCFMs are configurable backbones.
+- `docs/REVIEWER_CRITIQUE.md` re-scoped to v0.4.1 (retracted line); `README.md` / `paper/README.md` entry points corrected to `scripts/modal/app_v05.py` and the `e_v05_real_traces` analyser.
+
 ## [0.5.0+layout] — 2026-04-24 (post-publish housekeeping)
 
 ### Repository structure

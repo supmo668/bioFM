@@ -1,98 +1,67 @@
-# Paper — Bayesian Agentic Hyperparameter Tuning for Multi-Agent Perturb-Seq Design
+# Paper — Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction
 
-Peer-review-ready manuscript for the thesis at
-[`../docs/THESIS.md`](../docs/THESIS.md).
+Manuscript for the thesis at [`../docs/THESIS.md`](../docs/THESIS.md).
+
+**Status:** hypotheses, gates and design are fixed; every result value is a
+`\pending{...}` placeholder until the v0.6.0 sweep runs. All v0.5.0 values are
+superseded — the appendix "Corrections relative to v0.5.0"
+(`sections/corrections.tex`) maps each one to the register row that supersedes it.
 
 ## What's here
 
 ```text
 paper/
-├── README.md                (you are here)
-├── paper.tex                the manuscript (10 pages, compiled)
-├── paper.pdf                compiled output (produced by the commands below)
-├── references.bib           verified BibTeX bibliography
-├── experiments/
-│   ├── simulate.py          seeded synthetic DGP + all 5 (+2 followups) experiments
-│   ├── plot.py              renders fig1..fig5 from CSVs → figures/
-│   ├── generate_tables.py   emits LaTeX snippets → tables/
-│   └── out/                 CSV artifacts produced by simulate.py (6 files)
-├── figures/                 fig1..fig5 as PDF + PNG (for LaTeX includegraphics)
-├── tables/                  tab1..tab5 as .tex snippets, \input'd by paper.tex
-└── sections/                (reserved for future split-file LaTeX)
+├── README.md                    (you are here)
+├── PREREGISTRATION.md           five hypotheses, gates, estimators, analysis plan
+├── paper.tex                    the manuscript
+├── references.bib               BibTeX bibliography
+├── sections/
+│   ├── experimental_setup.tex   \input by paper.tex
+│   ├── results.tex              \input by paper.tex (hypotheses + \pending placeholders)
+│   ├── corrections.tex          \input by paper.tex (appendix)
+│   ├── v050_experimental_setup.tex   NOT input — superseded v0.5.0 text
+│   ├── v050_results.tex              NOT input — v0.5.0 {{TOKEN}} template
+│   └── v050_results_filled.tex       NOT input — superseded v0.5.0 values
+├── figures/fig1..fig5.pdf       NOT referenced by paper.tex — retracted v0.4.1 results, no generator
+└── tables/tab1..tab5.tex        NOT input by paper.tex — retracted v0.4.1 results, no generator
 ```
 
-## Reproduce end-to-end
-
-Total runtime: ~10 s on a CPU. No network, no GPU, deterministic (seed 2026).
+## Pipeline that will produce the results
 
 ```bash
 cd projects/perturb-seq-eval
 
-# 1. Run the simulation study — writes CSVs to paper/experiments/out/
-python3 paper/experiments/simulate.py
+# 1. The sweep: preflight + trainer sweep + lifecycle sweep in one process.
+#    OPENROUTER_API_KEY must be present in the environment; preflight refuses
+#    the whole run without it.
+modal run scripts/modal/app_v05.py::entrypoint
 
-# 2. Generate figures and LaTeX tables
-python3 paper/experiments/plot.py
-python3 paper/experiments/generate_tables.py
-
-# 3. Compile the paper (2× pdflatex around 1× bibtex, then a third pass
-#    for natbib cross-refs)
-cd paper
-pdflatex -interaction=nonstopmode paper.tex
-bibtex paper
-pdflatex -interaction=nonstopmode paper.tex
-pdflatex -interaction=nonstopmode paper.tex
+# 2. Analyse the downloaded run files -> summary.json
+python -m perturb_eval.experiments.e_v05_real_traces \
+    --trainer artifacts/v0.6.0/trainer_runs.jsonl \
+    --lifecycle artifacts/v0.6.0/lifecycle_runs.jsonl \
+    --out artifacts/v0.6.0/summary.json
 ```
 
-## What the experiments cover
+`scripts/paper/fill_v050_numbers.py` fills `sections/v050_results.tex`, which
+`paper.tex` no longer inputs. No tool currently fills the `\pending{...}`
+placeholders; their values come from `summary.json` and `provenance.json`.
 
-| Experiment | Script entry | Figures | Tables |
-|---|---|---|---|
-| E1  — per-metric rank correlation with latent difficulty $d$ (n=300) | `run_experiment_1_metric_validation` | Fig.\,1 | Tab.\,1 |
-| E1b — TDI coefficient calibration (80/20 split) | `run_experiment_1b_tdi_calibration` | Fig.\,2 (left) | Tab.\,2 |
-| E2  — probe $\to$ TDI ridge regression | `run_experiment_2_probe_to_tdi`   | — | Tab.\,3 (top row) |
-| E2b — probe $\to$ latent $d$ regression | `run_experiment_2b_probe_to_difficulty` | Fig.\,5 | Tab.\,3 (bottom row) |
-| E3  — Pareto frontier: uniform / minimal / adaptive policies | `run_experiment_3_pareto` | Fig.\,3 | Tab.\,5 |
-| E4  — agent-count sweep $N\!\in\!\{2,3,4,5,6,8,10\}$ | `run_experiment_4_agent_scaling` | Fig.\,4 | Tab.\,4 |
-| E5  — univariate ablation of TDI features | `run_experiment_5_tdi_ablation` | Fig.\,2 (right) | Tab.\,1 |
+## Compile
 
-## Reviewer-facing honest findings
+Requires a TeX distribution with `latexmk` (not verified in the development
+environment used for this revision).
 
-The paper reports both successes and constraints explicitly. Highlights:
+```bash
+cd paper
+latexmk -pdf -interaction=nonstopmode paper.tex
+```
 
-1. **Calibrated TDI** reaches Spearman $\rho = +0.918$ against the latent
-   difficulty label on the held-out $20\%$; the default (heuristic) TDI
-   reaches only $+0.524$. Calibration matters.
-2. **One signal dominates**: the convergence feature $1 - \Delta C$ alone
-   attains $\rho = +0.916$ — the ridge calibration concentrates nearly all
-   weight on it $(\gamma \approx 0.93)$.
-3. **The minimal probe is weak**: single-round probe $\to$ latent $d$
-   regression achieves only $R^2 = 0.16$ / $\rho = +0.36$ on held-out tasks.
-   This bounds how strongly the Bayesian recommender can outperform uniform
-   allocation — the paper's most important limitation.
-4. **Agent-count scaling is tier-dependent**: easy tasks gain $+0.21$ AUROC
-   going from $N=2$ to $N=10$; hard tasks gain only $+0.06$ — which is
-   precisely why adaptive allocation is worth the engineering effort, even
-   with the currently weak probe.
+## Referenced datasets
 
-## External dependencies used by the simulation
-
-- `numpy` — core tensor math.
-- `matplotlib` — figures (rendered as PDF + PNG).
-- TeXLive (`pdflatex`, `bibtex`) for compilation. `algorithm`/`algpseudocode`
-  are **not** required — the manuscript uses a plain boxed pseudocode block.
-
-No `scipy`, no `scikit-learn`, no `pandas`: keeps the reproducibility surface
-small.
-
-## Referenced datasets (for the follow-up empirical validation plan)
-
-- Norman et al., 2019 Perturb-seq K562 combinatorial screen — [GSE133344](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE133344)
-- Adamson et al., 2016 UPR Perturb-seq — [GSE90546](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE90546)
-- Replogle et al., 2022 genome-scale Perturb-seq — [GSE264667 (primary set)](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE264667)
-
-See [`../docs/THESIS.md`](../docs/THESIS.md) §6 and the paper's
-Section §7 + §9 for how a real-data run would be structured.
+- Adamson et al., 2016 UPR Perturb-seq (CRISPR interference) — [GSE90546](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE90546)
+- Norman et al., 2019 Perturb-seq K562 combinatorial screen (CRISPR activation) — [GSE133344](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE133344)
+- Both are consumed through the scPerturb repackaging, Zenodo record 13350497, with SHA-256-pinned fetchers.
 
 ## License
 
