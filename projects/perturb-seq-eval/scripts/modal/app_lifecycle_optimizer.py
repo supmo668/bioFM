@@ -138,6 +138,7 @@ def run_live_optimizer(n_iterations: int = 8, n_seeds: int = 1) -> dict:
                 backbone_override=phi.backbone,
                 validator_threshold_override=0.05,
                 seed=seed,
+                dataset="adamson_full",
             )
             msd = float(run.final_msd_topk)
         except Exception as e:  # noqa: BLE001

@@ -80,6 +80,10 @@ class LifecycleStep:
     succeeded: bool
     model_id: str | None = None
     source: StepSource = "llm"
+    # QG C6: True when the LLM reply was served from the disk cache (not a
+    # fresh call), False for a fresh call; None for non-LLM pools (mock /
+    # fallback / CellForge) that have no cache.
+    cache_hit: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -95,9 +99,18 @@ class LifecycleRun:
     backbone_used: str
     # T8b provenance: train-only HVG size / forced-target count per round
     # (the DataCurator may change n_top_hvg between rounds), the selection
-    # mode, and the learned-parameter count of the last successfully fitted
-    # backbone. Defaults keep hand-built runs (tests, stubs) valid.
+    # mode, and the learned-parameter count. Defaults keep hand-built runs
+    # (tests, stubs) valid.
     hvg_n_per_round: tuple[int, ...] = ()
     hvg_n_forced_per_round: tuple[int, ...] = ()
     hvg_mode: str | None = None
+    # QG C15: ``n_params`` is the LAST round's count (None if that round's fit
+    # failed) and ``n_params_per_round`` pairs each round's backbone with its
+    # own count, so no count is ever filed under another round's backbone.
     n_params: int | None = None
+    n_params_per_round: tuple[tuple[str, int | None], ...] = ()
+    # QG C4: error-record fields of the first TRANSIENT trainer failure in the
+    # run (``error``, ``error_type``, ``error_class``, ``traceback``), or None.
+    # ``lifecycle_record`` flattens them into the JSONL record so the analyser
+    # counts the run as an error record.
+    error_fields: dict[str, Any] | None = None

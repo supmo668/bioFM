@@ -167,6 +167,7 @@ def test_agentic_lifecycle_terminates_and_produces_msd() -> None:
         X=X, labels=labels, control_mask=control_mask,
         target_gene_idx=target_gene_idx, held_out="C",
         agent_pool=pool, max_rounds=2, seed=2026,
+        dataset="adamson_full",
     )
     assert run.n_rounds <= 2
     assert run.final_msd_topk >= 0.0
@@ -199,9 +200,9 @@ class _SeedRecordingPool:
         self._inner = MockAgentPool(seed=0)
         self.seeds: list[int] = []
 
-    def propose(self, role, round_index, task_id, context, *, seed):
+    def propose(self, role, round_index, task_id, context, *, seed, dataset):
         self.seeds.append(seed)
-        return self._inner.propose(role, round_index, task_id, context, seed=seed)
+        return self._inner.propose(role, round_index, task_id, context, seed=seed, dataset=dataset)
 
 
 def _run_with_seed(seed: int, pool=None):
@@ -215,6 +216,7 @@ def _run_with_seed(seed: int, pool=None):
         max_rounds=1, backbone_override="mlp",
         validator_threshold_override=0.0,
         seed=seed,
+        dataset="adamson_full",
     )
 
 
@@ -267,6 +269,7 @@ def test_run_agentic_lifecycle_requires_seed() -> None:
             X=X, labels=labels, control_mask=control_mask,
             target_gene_idx=target_gene_idx, held_out="D",
             agent_pool=MockAgentPool(seed=0), max_rounds=1,
+            dataset="adamson_full",
         )
 
 
@@ -297,6 +300,7 @@ def _run_lifecycle(target_gene_idx, held_out="D", backbone="linear", seed=2026):
         max_rounds=1, backbone_override=backbone,
         validator_threshold_override=0.0,
         seed=seed,
+        dataset="adamson_full",
     )
 
 
@@ -365,19 +369,19 @@ def test_one_tuple_targets_match_int_targets_exactly(backbone: str) -> None:
 class _StubTransport:
     """Client stub serving empty-but-valid proposals from pool model ``x/y``."""
 
-    def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+    def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):  # noqa: ARG002
         from perturb_eval.llm.openrouter_client import ChatResult
         return ChatResult(content={}, model_id="x/y")
 
 
 class _RateLimitedClient:
-    def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+    def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):  # noqa: ARG002
         from perturb_eval.llm.openrouter_client import RateLimitedError
         raise RateLimitedError("no models available (all cooling)")
 
 
 class _TypeErrorClient:
-    def chat_json(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+    def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):  # noqa: ARG002
         raise TypeError("programming error inside the client")
 
 
@@ -445,8 +449,8 @@ def test_loop_rejects_pool_output_without_source() -> None:
     from perturb_eval.agentic_lifecycle.loop import MockAgentPool
 
     class _NoSourcePool(MockAgentPool):
-        def propose(self, role, round_index, task_id, context, *, seed):
-            out = super().propose(role, round_index, task_id, context, seed=seed)
+        def propose(self, role, round_index, task_id, context, *, seed, dataset):
+            out = super().propose(role, round_index, task_id, context, seed=seed, dataset=dataset)
             out.pop("source", None)
             return out
 
@@ -459,8 +463,8 @@ def test_loop_rejects_unknown_source_literal() -> None:
     from perturb_eval.agentic_lifecycle.loop import MockAgentPool
 
     class _BadSourcePool(MockAgentPool):
-        def propose(self, role, round_index, task_id, context, *, seed):
-            out = super().propose(role, round_index, task_id, context, seed=seed)
+        def propose(self, role, round_index, task_id, context, *, seed, dataset):
+            out = super().propose(role, round_index, task_id, context, seed=seed, dataset=dataset)
             return {**out, "source": "llm-ish"}
 
     with pytest.raises(ValueError):

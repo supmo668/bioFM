@@ -44,6 +44,7 @@ class _ClientLike(Protocol):
         round_index: int,
         prompt: str,
         seed: int,
+        dataset: str,
     ) -> ChatResult: ...
 
 
@@ -151,7 +152,10 @@ class LLMAgentPool:
         context: dict,
         *,
         seed: int,
+        dataset: str,
     ) -> dict:
+        # ``dataset`` goes into the client's cache key only (QG C6); the
+        # prompt text is unchanged pending the principal ruling.
         if role == "Architect":
             prompt = _architect_prompt(task_id, round_index, context)
         else:
@@ -164,6 +168,7 @@ class LLMAgentPool:
                 round_index=round_index,
                 prompt=prompt,
                 seed=seed,
+                dataset=dataset,
             )
             parsed = parse_proposal(role, result.content).model_dump()
         except FALLBACK_EXCEPTIONS as exc:
@@ -186,6 +191,7 @@ class LLMAgentPool:
             "confidence": float(raw.get("confidence", 0.7)),
             "model_id": result.model_id,
             "source": "llm",
+            "cache_hit": bool(result.cache_hit),
         }
 
 

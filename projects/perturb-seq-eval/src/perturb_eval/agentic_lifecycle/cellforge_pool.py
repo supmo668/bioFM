@@ -81,6 +81,7 @@ class CellForgeAgentPool:
         context: dict,
         *,
         seed: int,  # noqa: ARG002 — CellForge agents are deterministic; seed unused
+        dataset: str,  # noqa: ARG002 — no LLM cache
     ) -> dict:
         """Delegate to the CellForge agent and normalise the output shape
         to what :func:`run_agentic_lifecycle` expects."""

@@ -43,6 +43,8 @@ REQUIRED_ENTRYPOINT_KWARGS: tuple[str, ...] = (
     "doublet_delim",
     "cooldown_sec",
     "temperature",
+    # CTO #283 condition 3 (gate finding OWN-1): the stop-and-report spend.
+    "spend_stop_usd",
 )
 
 REQUIRED_KEYS: tuple[str, ...] = (
@@ -277,8 +279,14 @@ def build_provenance(
     known_limitations: Iterable[str] = (),
     llm_key_source: Mapping[str, Any] | None = None,
     preregistration: Mapping[str, str] | None = None,
+    device: str | None = None,
+    llm_cache_dir: str | None = None,
 ) -> dict[str, Any]:
     """Start-of-run provenance record; validates presence and types.
+
+    ``device`` is the torch device the run trains on (``"cuda"``/``"cpu"``;
+    QG C9) and ``llm_cache_dir`` the LLM disk cache the run reads and writes
+    (QG C6); both are always present, ``None`` when not supplied.
 
     A dataset entry may carry ``label_contract`` (CTO #250: the loader's
     ``LabelContract.to_provenance()``); its shape is validated. Every
@@ -343,6 +351,8 @@ def build_provenance(
         # requires both to be non-null for a real sweep.
         "llm_key_source": dict(llm_key_source) if llm_key_source is not None else None,
         "preregistration": dict(preregistration) if preregistration is not None else None,
+        "device": device,
+        "llm_cache_dir": llm_cache_dir,
         "gpu": gpu,
         "hourly_usd": float(hourly_usd),
         "budget_cap_usd": float(budget_cap_usd),
@@ -365,18 +375,24 @@ def finalize_provenance(
     status: str,
     unparseable_lines: Mapping[str, Any],
     gpu_seconds_source: str = "wall_clock_of_gpu_function",
+    stop_reason: str | None = None,
+    cost_usd_at_stop: float | None = None,
 ) -> dict[str, Any]:
     """Return a completed copy of ``prov``; refuses a record without ``started_at``.
 
     ``unparseable_lines`` has no default (CTO #245 Q2): the caller must have
     scanned both JSONLs (:func:`scan_unparseable`) and passes both keys, even
-    when the lists are empty.
+    when the lists are empty. ``stop_reason`` (``"spend_stop"`` /
+    ``"hard_kill"``) and ``cost_usd_at_stop`` record why and at what spend the
+    sweep stopped early (CTO #283 / OWN-1); both ``None`` for a full run.
     """
     _require(bool(prov.get("started_at")), "provenance record has no started_at; refusing to finalize")
     missing = [k for k in REQUIRED_KEYS if k not in prov]
     _require(not missing, f"provenance record missing {missing}")
     _require(status in STATUSES, f"status must be one of {sorted(STATUSES)}, got {status!r}")
     _require(isinstance(budget_hit, bool), "budget_hit must be bool")
+    _require((stop_reason is None) == (cost_usd_at_stop is None),
+             "stop_reason and cost_usd_at_stop are set together")
     _require(isinstance(gpu_seconds, (int, float)) and gpu_seconds >= 0,
              "gpu_seconds must be a non-negative number")
     _validate_unparseable(unparseable_lines)
@@ -395,6 +411,8 @@ def finalize_provenance(
         "params_per_task": dict(params_per_task),
         "budget_hit": budget_hit,
         "status": status,
+        "stop_reason": stop_reason,
+        "cost_usd_at_stop": float(cost_usd_at_stop) if cost_usd_at_stop is not None else None,
         "unparseable_lines": {k: [dict(e) for e in unparseable_lines[k]] for k in JSONL_NAMES},
     })
     return out
@@ -492,7 +510,10 @@ def collect_hvg_and_params(
     Keys are ``"<dataset>:<task>"``. Values list the distinct observed values:
     ``hvg[k]["trainer"|"lifecycle"] = {"hvg_n": [...], "hvg_n_forced": [...],
     "hvg_mode": [...]}``; ``params[k]["trainer"|"lifecycle"] = {backbone: [n_params...]}``.
-    Records whose ``record_type`` is ``"provenance"`` are ignored.
+    A lifecycle record's counts come from its ``n_params_per_round``
+    ``[backbone, n_params]`` pairs when present (QG C15), else from
+    ``(backbone_used, n_params)``. Records whose ``record_type`` is
+    ``"provenance"`` are ignored.
     """
     hvg: dict[str, Any] = {}
     params: dict[str, Any] = {}
@@ -521,9 +542,12 @@ def collect_hvg_and_params(
         for n in r.get("hvg_n_forced_per_round") or ():
             _add(h, "hvg_n_forced", n)
         _add(h, "hvg_mode", r.get("hvg_mode"))
-        if r.get("n_params") is not None:
-            _add(params.setdefault(k, {}).setdefault("lifecycle", {}),
-                 str(r.get("backbone_used")), r["n_params"])
+        pairs = r.get("n_params_per_round")
+        if pairs is None:
+            pairs = [(r.get("backbone_used"), r.get("n_params"))]
+        for backbone, n in pairs:
+            if n is not None:
+                _add(params.setdefault(k, {}).setdefault("lifecycle", {}), str(backbone), n)
     return hvg, params
 
 

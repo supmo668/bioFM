@@ -181,8 +181,8 @@ class TestTrainOnlyPropertyThroughRealPaths:
         from perturb_eval.agentic_lifecycle.loop import MockAgentPool, run_agentic_lifecycle
 
         class _SmallHvgPool(MockAgentPool):
-            def propose(self, role, round_index, task_id, context, *, seed):
-                out = super().propose(role, round_index, task_id, context, seed=seed)
+            def propose(self, role, round_index, task_id, context, *, seed, dataset):
+                out = super().propose(role, round_index, task_id, context, seed=seed, dataset=dataset)
                 if role == "DataCurator":
                     out = {**out, "content": {**out["content"], "n_top_hvg": N_HVG}}
                 return out
@@ -198,6 +198,7 @@ class TestTrainOnlyPropertyThroughRealPaths:
                 control_mask=group == "CTRL", target_gene_idx=targets,
                 held_out=held, agent_pool=_SmallHvgPool(seed=0), seed=0,
                 max_rounds=1, backbone_override="linear",
+                dataset="adamson_full",
             )
         assert "GA" not in _genes_in_fit(rec.expressions[0], "TFA")
         assert "GA" in _genes_in_fit(rec.expressions[1], "TFB")
@@ -313,6 +314,7 @@ class TestEveryPathRoutesThroughHelper:
             control_mask=group == "CTRL", target_gene_idx={"TFA": (0,), "TFB": (1,)},
             held_out="TFA", agent_pool=MockAgentPool(seed=0), seed=0,
             max_rounds=2, backbone_override="linear", validator_threshold_override=-1.0,
+            dataset="adamson_full",
         )
         assert run.n_rounds == 2
         assert spy.calls == 2

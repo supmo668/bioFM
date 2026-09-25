@@ -24,6 +24,8 @@ AND_S3_KWARGS = {
     "norman_n_singletons", "norman_n_doublets", "adamson_n_per_bin", "adamson_n_bins",
     "seeds", "n_top_hvg", "max_cells_per_pert", "n_sweep", "r_sweep", "backbones",
     "doublet_delim", "cooldown_sec", "temperature",
+    # CTO #283 / OWN-1: the $12 stop-and-report spend is a recorded sweep kwarg.
+    "spend_stop_usd",
 }
 
 

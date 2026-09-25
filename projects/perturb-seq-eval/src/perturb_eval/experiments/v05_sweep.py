@@ -1,17 +1,28 @@
-"""One v0.5 lifecycle-sweep iteration as a testable function (build-plan T6).
+"""The v0.6 sweep's testable pieces (build-plan T6; QG C14, C22, OWN-1).
 
-Moved verbatim from the lifecycle loop in ``scripts/modal/app_v05.py`` (which
-imports ``modal`` at module top and so cannot be imported by tests), with one
-change: ``seed`` is now passed to :func:`run_agentic_lifecycle`, which requires
-it (T5), instead of only being written into the record.
+``scripts/modal/app_v05.py`` imports ``modal`` at module top and so cannot be
+imported by tests; everything it decides lives here instead:
+
+* :func:`lifecycle_record` / :func:`iter_lifecycle_records` — the lifecycle
+  loop body (``seed`` and ``dataset`` are passed to
+  :func:`run_agentic_lifecycle`, which requires both);
+* :func:`spend_guard` — the CTO #283 spend stop ($12, stop-and-report) and the
+  $28 hard kill, used as the loops' ``should_stop``;
+* :func:`derive_status` / :func:`provenance_entropies` — the ONE producer of
+  the final provenance status and of its entropy figures (LLM-sourced steps
+  only, via the analyser's own function);
+* :func:`validate_version` / :func:`version_out_dir` — ``--version`` is a
+  release tag and the output dir stays under ``/data``.
 """
 
 from __future__ import annotations
 
+import re
 import time
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import asdict
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 
 from perturb_eval.agentic_lifecycle.architect_dispatch import BackboneUnavailableError
 from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
@@ -33,7 +44,10 @@ def lifecycle_record(
     ``run_fn`` defaults to :func:`run_agentic_lifecycle` (injectable for tests).
     ``lifecycle_kwargs`` are forwarded to it; ``max_rounds`` defaults to 3 as in
     the v0.5 sweep. The record is ``asdict(run)`` plus ``dataset``, ``seed``
-    and ``wall_sec``.
+    and ``wall_sec``; a run that carried a transient trainer failure has its
+    ``error_fields`` flattened into the record (``error``, ``error_type``,
+    ``error_class``, ``traceback``) so the analyser counts it as an error
+    record (QG C4).
     """
     fn = run_fn or run_agentic_lifecycle
     lifecycle_kwargs.setdefault("max_rounds", 3)
@@ -47,9 +61,12 @@ def lifecycle_record(
         held_out=task,
         agent_pool=pool,
         seed=seed,
+        dataset=dataset_name,
         **lifecycle_kwargs,
     )
-    return asdict(run) | {
+    rec = asdict(run)
+    error_fields = rec.pop("error_fields", None) or {}
+    return rec | dict(error_fields) | {
         "dataset": dataset_name,
         "seed": seed,
         "wall_sec": time.time() - t0,
@@ -127,3 +144,99 @@ def run_guarded(
         on_abort(exc)
         raise
     return n
+
+
+# ---------------------------------------------------------------------------
+# Spend guard (CTO #283 condition 3; gate finding OWN-1)
+# ---------------------------------------------------------------------------
+
+SpendAction = Literal["spend_stop", "hard_kill"]
+
+
+def spend_guard(cost_usd: float, *, stop_usd: float, kill_usd: float) -> SpendAction | None:
+    """``None`` while ``cost_usd <= stop_usd``; ``"spend_stop"`` once it passes
+    ``stop_usd`` (stop and report); ``"hard_kill"`` once it passes ``kill_usd``.
+    Both boundaries are strict (``>``): spend exactly at a limit does not trip it.
+    """
+    if stop_usd > kill_usd:
+        raise ValueError(f"spend stop ${stop_usd} is above the hard kill ${kill_usd}")
+    if cost_usd > kill_usd:
+        return "hard_kill"
+    if cost_usd > stop_usd:
+        return "spend_stop"
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Final status + entropies: one producer (QG C14)
+# ---------------------------------------------------------------------------
+
+def _steps(records: Iterable[Mapping[str, Any]]) -> Iterator[Mapping[str, Any]]:
+    for rec in records:
+        if not isinstance(rec, Mapping) or rec.get("record_type") == "provenance":
+            continue
+        for st in rec.get("steps") or ():
+            if isinstance(st, Mapping):
+                yield st
+
+
+def derive_status(
+    lifecycle_records: Iterable[Mapping[str, Any]],
+    *,
+    cost_usd: float,
+    kill_usd: float,
+    stop_reason: str | None = None,
+) -> str:
+    """Final provenance ``status`` of a sweep that ran to its end or was stopped.
+
+    ``"failed_fallback"`` if any lifecycle step is a fallback (C-KEY-2; beats
+    everything else); else ``"partial"`` if the sweep was stopped
+    (``stop_reason``, e.g. the $12 spend stop) or spent strictly more than
+    ``kill_usd``; else ``"ok"``. Transient per-cell error records do not change
+    the status: the analyser refuses them on its own (CTO #245 Q1).
+    """
+    if any(st.get("source") == "fallback" for st in _steps(lifecycle_records)):
+        return "failed_fallback"
+    if stop_reason is not None or cost_usd > kill_usd:
+        return "partial"
+    return "ok"
+
+
+def provenance_entropies(lifecycle_records: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """The provenance ``entropies`` block, computed by the analyser's own
+    LLM-only function (:func:`e_v05_real_traces.architect_entropies`): ``None``
+    (never ``0.0``) when no LLM-sourced Architect step carries the field."""
+    from perturb_eval.experiments.e_v05_real_traces import architect_entropies
+
+    rows = [r for r in lifecycle_records
+            if isinstance(r, Mapping) and r.get("record_type") != "provenance"]
+    return architect_entropies(rows)
+
+
+# ---------------------------------------------------------------------------
+# --version -> output dir (QG C22)
+# ---------------------------------------------------------------------------
+
+VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+[A-Za-z0-9._-]*$")
+DATA_ROOT = Path("/data")
+
+
+def validate_version(version: str) -> str:
+    """Return ``version`` if it is a release tag (``v<maj>.<min>.<patch>[suffix]``,
+    suffix ``[A-Za-z0-9._-]``); raise ``ValueError`` otherwise."""
+    if not isinstance(version, str) or not VERSION_RE.fullmatch(version):
+        raise ValueError(
+            f"--version {version!r} must match {VERSION_RE.pattern} (e.g. v0.6.0)"
+        )
+    return version
+
+
+def version_out_dir(version: str, *, root: Path = DATA_ROOT) -> Path:
+    """``<root>/<version>`` after :func:`validate_version`; refuses any result
+    that does not resolve to a direct child of ``root``."""
+    validate_version(version)
+    base = Path(root).resolve()
+    out = (base / version).resolve()
+    if out.parent != base:
+        raise ValueError(f"--version {version!r} resolves outside {base}: {out}")
+    return out

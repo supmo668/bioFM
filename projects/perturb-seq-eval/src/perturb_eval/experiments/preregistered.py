@@ -197,6 +197,17 @@ def _finite(v: Any) -> bool:
         return False
 
 
+def task_key(row: Mapping) -> tuple[str, str] | None:
+    """``(dataset, task)`` for a trainer (``task``) or lifecycle (``task_id``) row;
+    ``None`` when the row names no task. The ONE task-identity helper (QG C5/C27):
+    a gene symbol can be a task in both Adamson and Norman (e.g. SNAI1, SPI1),
+    so a bare task name is never an identity."""
+    task = row.get("task_id", row.get("task"))
+    if task is None:
+        return None
+    return str(row.get("dataset", "unknown")), str(task)
+
+
 def per_task_table(lifecycle_rows: Iterable[Mapping]) -> list[dict]:
     """One row per ``(dataset, task)``: seed medians of each component and of MSD.
 
@@ -206,10 +217,10 @@ def per_task_table(lifecycle_rows: Iterable[Mapping]) -> list[dict]:
     """
     groups: dict[tuple[str, str], list[Mapping]] = defaultdict(list)
     for r in lifecycle_rows:
-        task = r.get("task_id", r.get("task"))
-        if task is None:
+        key = task_key(r)
+        if key is None:
             continue
-        groups[(str(r.get("dataset", "unknown")), str(task))].append(r)
+        groups[key].append(r)
     table = []
     for (dataset, task) in sorted(groups):
         runs = groups[(dataset, task)]
@@ -247,13 +258,18 @@ def _avg_rank(a: np.ndarray) -> np.ndarray:
     return (cum - (cnt - 1) / 2.0)[inv]
 
 
-def _rho(x: np.ndarray, y: np.ndarray) -> float | None:
+def rho(x: np.ndarray, y: np.ndarray) -> float | None:
+    """Average-rank Spearman rho; ``None`` when either rank vector is constant."""
     rx, ry = _avg_rank(x), _avg_rank(y)
     rx, ry = rx - rx.mean(), ry - ry.mean()
     den = math.sqrt(float(rx @ rx) * float(ry @ ry))
     if den == 0.0:
         return None
     return float(rx @ ry) / den
+
+
+# Kept: PREREGISTRATION.md cites ``preregistered._rho`` by name.
+_rho = rho
 
 
 def _percentile_ci(stats: list[float]) -> tuple[float | None, float | None]:
@@ -282,17 +298,17 @@ def spearman_with_ci(x: Sequence[float], y: Sequence[float], *,
     if n < MIN_TASKS:
         out["reason"] = f"n={n} < {MIN_TASKS} tasks"
         return out
-    rho = _rho(xa, ya)
-    if rho is None:
+    rho_hat = rho(xa, ya)
+    if rho_hat is None:
         out["reason"] = "constant ranks: Spearman rho undefined"
         return out
     rng = np.random.default_rng(seed)
     boots: list[float] = []
     for idx in rng.integers(0, n, size=(B, n)):
-        r = _rho(xa[idx], ya[idx])
+        r = rho(xa[idx], ya[idx])
         if r is not None:
             boots.append(r)
-    out["rho"] = rho
+    out["rho"] = rho_hat
     out["n_boot_valid"] = len(boots)
     out["ci_low"], out["ci_high"] = _percentile_ci(boots)
     return out

@@ -1,7 +1,8 @@
-"""v0.5.0 single-stage Modal sweep: real Adamson + Norman, A100, budget-capped.
+"""v0.6.0 single-stage Modal sweep: real Adamson + Norman, A100, budget-capped.
 
 Design:
-  * A100-40G ($1.32/hr Modal) with hard kill at $28.
+  * A100-40G ($1.32/hr Modal). Spend guard (CTO #283): stop and report once
+    actual spend passes $12 (``--spend-stop-usd``); hard kill at $28.
   * Data pulled in by the script (Phase 1 fetchers) — no manual h5ad.
   * Adamson uses all 3 scPerturb subsets (pilot + 10X005 + 10X010) via
     ``load_adamson_combined``, then stratified-subsampled to ~20 TFs by
@@ -12,13 +13,18 @@ Design:
   * Lifecycle sweep: ``n_tasks × 3 seeds`` with the real OpenRouter
     LLMAgentPool (free-tier rotation; $0 LLM cost).
 
-Deploy + run::
+Run (from ``projects/perturb-seq-eval``; the key is injected by Infisical at
+run time and never written to disk; ``OPENROUTER_KEY_SOURCE`` records where it
+came from, and preflight refuses the run without it)::
 
-    set -a; source .env; set +a
-    cd projects/perturb-seq-eval
-    modal deploy scripts/modal/app_v05.py
-    modal run scripts/modal/app_v05.py::entrypoint \\
+    OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \\
+        --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \\
+        modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \\
         --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
+
+Preflight also requires the pinned pre-registration:
+``paper/PREREGISTRATION.md`` must be tracked and committed with no local edits
+(its commit + sha256 are recorded in provenance).
 
 Artifacts land on the ``perturb-eval-data`` volume under
 ``/data/<version>/`` (``--version``, default ``v0.6.0``). Record 0 of
@@ -87,7 +93,10 @@ BIOFM_VOL = modal.Volume.from_name("biofm-cache", create_if_missing=True)
 # A100-40G on Modal — $1.32/hr (2026 rates). Hard-kill budget:
 _A100_HOURLY_USD = 1.32
 _BUDGET_HARD_KILL_USD = 28.0
+# CTO #283 condition 3: stop and report once actual spend passes this (2x the estimate).
+_SPEND_STOP_USD = 12.0
 _GPU = "A100-40GB"
+_LLM_CACHE_DIR = "/biofm_cache/llm"
 
 # Sweep-shape defaults shared by ``run_v05_sweep`` and the host entrypoint so the
 # entrypoint can pass (and record) every resolved kwarg explicitly.
@@ -136,6 +145,7 @@ def run_v05_sweep(
     cooldown_sec: float = 60.0,
     temperature: float = 0.3,
     version: str = "v0.6.0",
+    spend_stop_usd: float = 12.0,
     git_sha: str = "",
     git_dirty: bool = False,
     run_id: str = "",
@@ -143,7 +153,7 @@ def run_v05_sweep(
     preregistration: dict | None = None,
     preregistration_error: str | None = None,
 ) -> dict:
-    """Run the v0.5.0 single-stage sweep on real Adamson + Norman data.
+    """Run the v0.6.0 single-stage sweep on real Adamson + Norman data.
 
     ``git_sha`` / ``git_dirty`` / ``run_id`` are computed on the host by the
     local entrypoint (the container has no ``.git``); a direct ``.remote()``
@@ -152,6 +162,11 @@ def run_v05_sweep(
     ``preregistration`` (or ``preregistration_error``) are host-computed; the
     preflight refuses the run when either is missing (principal directive
     2026-09-24, CTO #265).
+
+    Spend (CTO #283): both sweep loops stop as soon as :func:`spend_guard`
+    trips — ``spend_stop_usd`` (default $12, stop and report) or the $28 hard
+    kill. A stopped run finalises provenance ``status="partial"`` with
+    ``stop_reason`` and ``cost_usd_at_stop``.
 
     Returns
     -------
@@ -167,18 +182,22 @@ def run_v05_sweep(
     import hashlib
     import inspect
 
-    from perturb_eval.agentic_lifecycle.freedom_probe import (
-        per_agent_field_entropy,
-        summarise_choice_distribution,
-    )
     from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
+    from perturb_eval.backbones.scgpt_small import training_device
     from perturb_eval.data.download import fetch_adamson_all, fetch_norman
     from perturb_eval.data.subsample import mean_abs_logfc_per_target
     from perturb_eval.experiments.e2_adamson import load_adamson_combined
     from perturb_eval.experiments.heldout import iter_trainer_records
     from perturb_eval.experiments.norman import load_norman_matrix
     from perturb_eval.experiments.v05_preflight import preflight
-    from perturb_eval.experiments.v05_sweep import iter_lifecycle_records, run_guarded
+    from perturb_eval.experiments.v05_sweep import (
+        derive_status,
+        iter_lifecycle_records,
+        provenance_entropies,
+        run_guarded,
+        spend_guard,
+        version_out_dir,
+    )
     from perturb_eval.experiments.v05_tasks import build_task_lists
     from perturb_eval.experiments.provenance import (
         build_provenance,
@@ -191,7 +210,8 @@ def run_v05_sweep(
     )
     from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
-    out_dir = Path(f"/data/{version}")
+    # QG C22: --version is a release tag and the output stays under /data.
+    out_dir = version_out_dir(version)
     trainer_out = out_dir / "trainer_runs.jsonl"
     lifecycle_out = out_dir / "lifecycle_runs.jsonl"
     provenance_out = out_dir / "provenance.json"
@@ -222,6 +242,26 @@ def run_v05_sweep(
 
     def _budget_exceeded() -> bool:
         return _cost_usd_so_far() > _BUDGET_HARD_KILL_USD
+
+    # Refuse a spend stop above the kill before any work (spend_guard raises).
+    spend_guard(0.0, stop_usd=spend_stop_usd, kill_usd=_BUDGET_HARD_KILL_USD)
+
+    # CTO #283 / OWN-1: the loops' should_stop. The first trip is latched with
+    # the spend at that moment; later calls keep returning True.
+    stop_state: dict = {"reason": None, "cost_usd": None}
+
+    def _should_stop() -> bool:
+        if stop_state["reason"] is not None:
+            return True
+        cost = _cost_usd_so_far()
+        reason = spend_guard(cost, stop_usd=spend_stop_usd, kill_usd=_BUDGET_HARD_KILL_USD)
+        if reason is not None:
+            stop_state.update(reason=reason, cost_usd=cost)
+            print(f"[v0.6.0] SPEND {reason}: ${cost:.2f} > "
+                  f"${spend_stop_usd if reason == 'spend_stop' else _BUDGET_HARD_KILL_USD:.2f}"
+                  " — stopping and reporting")
+            return True
+        return False
 
     def _append(path: Path, rec: dict) -> None:
         # Atomic-ish append: build line, open-append, flush.
@@ -312,7 +352,7 @@ def run_v05_sweep(
         env=os.environ,
         out_dir=out_dir,
     )
-    print(f"[v0.6] preflight ok: {len(report.checks)} checks; probe={report.probe_model_id}")
+    print(f"[v0.6.0] preflight ok: {len(report.checks)} checks; probe={report.probe_model_id}")
     task_plan = report.task_plan
     adamson_ds = report.datasets.get("adamson_full")
     norman_ds = report.datasets.get("norman")
@@ -324,7 +364,7 @@ def run_v05_sweep(
         adamson_tasks = list(task_plan.adamson)
         datasets.append(("adamson_full", adamson_ds, adamson_tasks))
         print(
-            f"[v0.5.0] adamson loaded: {task_plan.eligible_counts['adamson']} TFs "
+            f"[v0.6.0] adamson loaded: {task_plan.eligible_counts['adamson']} TFs "
             f"total, subsampled to {len(adamson_tasks)} stratified by |logFC|"
         )
 
@@ -333,7 +373,7 @@ def run_v05_sweep(
             list(task_plan.norman_singletons) + list(task_plan.norman_doublets)
         )
         datasets.append(("norman", norman_ds, norman_tasks))
-        print(f"[v0.5.0] norman subsampled: {len(norman_tasks)} tasks")
+        print(f"[v0.6.0] norman subsampled: {len(norman_tasks)} tasks")
 
     # ---------- 1b. Provenance record 0 (T13/T14) ----------
     tasks_excluded: list[dict] = []
@@ -359,6 +399,8 @@ def run_v05_sweep(
         started_at=_iso(started_at),
         llm_key_source=llm_key_source,
         preregistration=preregistration,
+        device=training_device(),  # QG C9: the device every scgpt_small fit uses
+        llm_cache_dir=_LLM_CACHE_DIR,  # QG C6
     )
     prov_line = jsonl_provenance_line(prov)
     for _p in (trainer_out, lifecycle_out):
@@ -389,10 +431,12 @@ def run_v05_sweep(
                 params_per_task=params,
                 budget_hit=_budget_exceeded(),
                 unparseable_lines=scan_unparseable(trainer_out, lifecycle_out),
+                stop_reason=stop_state["reason"],
+                cost_usd_at_stop=stop_state["cost_usd"],
             )
             provenance_out.write_text(json.dumps(failed, indent=2, default=str))
             DATA_VOL.commit()
-            print(f"[v0.6] ABORT in {phase}: {failed['failure']['error_type']} — "
+            print(f"[v0.6.0] ABORT in {phase}: {failed['failure']['error_type']} — "
                   "provenance status=failed")
         return on_abort
 
@@ -403,7 +447,7 @@ def run_v05_sweep(
         return sink
 
     # ---------- 2. Trainer-only sweep ----------
-    print(f"[v0.5.0] trainer sweep start; budget_so_far=${_cost_usd_so_far():.3f}")
+    print(f"[v0.6.0] trainer sweep start; budget_so_far=${_cost_usd_so_far():.3f}")
     # T8b: the loop body lives in perturb_eval.experiments.heldout so it is
     # testable; HVG is selected per held-out task on training cells only and
     # each record carries hvg_n / hvg_n_forced / hvg_mode / n_params.
@@ -422,19 +466,19 @@ def run_v05_sweep(
                 n_sweep=n_sweep,
                 r_sweep=r_sweep,
                 seeds=range(2026, 2026 + seeds),
-                should_stop=_budget_exceeded,
+                should_stop=_should_stop,
             ),
             sink=_sink(trainer_out, trainer_records),
             on_abort=_abort("trainer"),
         )
-        if _budget_exceeded():
+        if _should_stop():
             print(
-                f"[v0.5.0] budget cap hit (${_cost_usd_so_far():.2f})"
-                " — stopping trainer sweep"
+                f"[v0.6.0] spend guard tripped ({stop_state['reason']} at "
+                f"${stop_state['cost_usd']:.2f}) — stopping trainer sweep"
             )
             break
     print(
-        f"[v0.5.0] trainer sweep done: {n_trainer_runs} runs; "
+        f"[v0.6.0] trainer sweep done: {n_trainer_runs} runs; "
         f"budget_so_far=${_cost_usd_so_far():.3f}"
     )
 
@@ -446,11 +490,11 @@ def run_v05_sweep(
         client_kwargs["temperature"] = temperature
     client = OpenRouterClient(
         api_key=api_key,
-        cache_dir=Path("/biofm_cache/llm"),
+        cache_dir=Path(_LLM_CACHE_DIR),
         pool=DEFAULT_POOL,
         **client_kwargs,
     )
-    pool = LLMAgentPool(client=client, cache_dir=Path("/biofm_cache/llm"))
+    pool = LLMAgentPool(client=client, cache_dir=Path(_LLM_CACHE_DIR))
 
     # T6 + CTO #245 Q1: the loop body lives in v05_sweep.iter_lifecycle_records
     # (testable); BackboneUnavailableError and every non-transient exception
@@ -464,7 +508,7 @@ def run_v05_sweep(
             seeds=range(2026, 2026 + seeds),
             pool=pool,
             max_rounds=3,
-            should_stop=_budget_exceeded,
+            should_stop=_should_stop,
         ),
         sink=_sink(lifecycle_out, lifecycle_records),
         on_abort=_abort("lifecycle"),
@@ -474,29 +518,17 @@ def run_v05_sweep(
     # CTO #245 Q2: every unparseable line is LOCATED (line, byte offset,
     # preview) and written to provenance — never silently skipped. The
     # analyser refuses any run that has one.
-    traces: list[list[dict]] = []
     lifecycle_rows, _ = read_jsonl_locating(lifecycle_out)
-    for rec in lifecycle_rows:
-        if not isinstance(rec, dict) or rec.get("record_type") == "provenance":
-            continue
-        traces.append(list(rec.get("steps", [])))
+    lifecycle_rows = [r for r in lifecycle_rows
+                      if isinstance(r, dict) and r.get("record_type") != "provenance"]
     unparseable_lines = scan_unparseable(trainer_out, lifecycle_out)
     n_unparseable = sum(len(v) for v in unparseable_lines.values())
     if n_unparseable:
-        print(f"[v0.6] WARNING: {n_unparseable} unparseable JSONL line(s): {unparseable_lines}")
+        print(f"[v0.6.0] WARNING: {n_unparseable} unparseable JSONL line(s): {unparseable_lines}")
 
-    h_backbone = (
-        per_agent_field_entropy(traces, agent="Architect", field="backbone")
-        if traces else 0.0
-    )
-    h_hvg = (
-        per_agent_field_entropy(traces, agent="Architect", field="hvg_count")
-        if traces else 0.0
-    )
-    bb_dist = (
-        summarise_choice_distribution(traces, agent="Architect", field="backbone")
-        if traces else {}
-    )
+    # QG C14: one producer — the analyser's LLM-only figures (None, not 0.0,
+    # when no LLM-sourced Architect step carries the field).
+    entropies = provenance_entropies(lifecycle_rows)
 
     finished_at = time.time()
     # Modal exposes no per-function GPU-seconds counter inside the container.
@@ -506,24 +538,12 @@ def run_v05_sweep(
     gpu_seconds_source = "wall_clock_of_gpu_function"
     cost_usd = _cost_usd_so_far()
     budget_hit = cost_usd > _BUDGET_HARD_KILL_USD
-    any_fallback = any(
-        isinstance(s, dict) and s.get("source") == "fallback"
-        for t in traces for s in t
-    )
-    if any_fallback:
-        status = "failed_fallback"  # C-KEY-2
-    elif budget_hit:
-        status = "partial"
-    else:
-        status = "ok"
+    # C-KEY-2 fallback > spend stop / hard kill > ok (QG C14 / OWN-1).
+    status = derive_status(lifecycle_rows, cost_usd=cost_usd,
+                           kill_usd=_BUDGET_HARD_KILL_USD, stop_reason=stop_state["reason"])
     hvg_n_per_task, params_per_task = collect_hvg_and_params(
         trainer_records, lifecycle_records
     )
-    entropies = {
-        "architect_backbone_entropy_nats": float(h_backbone),
-        "architect_hvg_entropy_nats": float(h_hvg),
-        "architect_backbone_distribution": bb_dist,
-    }
     counts = {
         "n_trainer_runs": n_trainer_runs,
         "n_lifecycle_runs": n_lifecycle_runs,
@@ -541,6 +561,8 @@ def run_v05_sweep(
         budget_hit=budget_hit,
         status=status,
         unparseable_lines=unparseable_lines,
+        stop_reason=stop_state["reason"],
+        cost_usd_at_stop=stop_state["cost_usd"],
     )
     provenance_out.write_text(json.dumps(final, indent=2, default=str))
     DATA_VOL.commit()
@@ -555,6 +577,9 @@ def run_v05_sweep(
         "total_cost_usd": cost_usd,
         "budget_cap_usd": _BUDGET_HARD_KILL_USD,
         "budget_hit": budget_hit,
+        "spend_stop_usd": spend_stop_usd,
+        "stop_reason": stop_state["reason"],
+        "cost_usd_at_stop": stop_state["cost_usd"],
         **counts,
         **entropies,
     }
@@ -578,6 +603,7 @@ def entrypoint(
     cooldown_sec: float = 60.0,
     temperature: float = 0.3,
     version: str = "v0.6.0",
+    spend_stop_usd: float = _SPEND_STOP_USD,
 ) -> None:
     import subprocess
     import sys
@@ -585,6 +611,9 @@ def entrypoint(
     src = PROJECT_DIR_HOST / "src"
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
+    from perturb_eval.experiments.v05_sweep import validate_version
+
+    validate_version(version)  # QG C22: fail on the host, before any Modal work
     from perturb_eval.experiments.provenance import (
         git_state,
         make_run_id,
@@ -632,6 +661,7 @@ def entrypoint(
         "cooldown_sec": cooldown_sec,
         "temperature": temperature,
         "version": version,
+        "spend_stop_usd": spend_stop_usd,
         "git_sha": git_sha,
         "git_dirty": git_dirty,
         "run_id": run_id,
@@ -640,6 +670,6 @@ def entrypoint(
         "preregistration_error": preregistration_error,
     }
     cfg = write_run_config(PROJECT_DIR_HOST, run_id, sweep_kwargs, git_sha)  # T17
-    print(f"[v0.6] run_id={run_id} git_dirty={git_dirty} config={cfg}")
+    print(f"[v0.6.0] run_id={run_id} git_dirty={git_dirty} config={cfg}")
     out = run_v05_sweep.remote(**sweep_kwargs)
     print(json.dumps(out, indent=2, default=str))

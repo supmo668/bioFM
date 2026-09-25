@@ -32,6 +32,9 @@ def _prov(**over) -> dict:
         "tasks": ["T0", "T1"],
         "status": "ok",
         "finished_at": 1234.0,
+        # QG C10: a licensed run carries its pre-registration pin in record 0.
+        "preregistration": {"path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
+                            "sha256": "a" * 64, "commit": "b" * 40},
     }
     rec.update(over)
     return rec
@@ -58,8 +61,11 @@ def _step(role: str, content: dict, source: str | None = "llm") -> dict:
     return s
 
 
-def _life_row(task: str, steps: list[dict], msd: float = 0.2) -> dict:
-    return {"task_id": task, "seed": 1, "final_msd_topk": msd, "steps": steps}
+def _life_row(task: str, steps: list[dict], msd: float = 0.2,
+              dataset: str = "adamson_full") -> dict:
+    # QG C5: lifecycle records carry their dataset; task identity is (dataset, task).
+    return {"dataset": dataset, "task_id": task, "seed": 1, "final_msd_topk": msd,
+            "steps": steps}
 
 
 def _run(tmp_path: Path, trainer_rows, life_rows, *, tprov=None, lprov=None):
@@ -108,8 +114,8 @@ class TestTaskSetHardFail:
             analyse_v05_run(t, l)
         msg = str(ei.value)
         assert "task sets differ" in msg
-        assert "only-trainer=['A']" in msg
-        assert "only-lifecycle=['C']" in msg
+        assert "only-trainer=['adamson_full:A']" in msg
+        assert "only-lifecycle=['adamson_full:C']" in msg
 
     def test_check_happens_before_any_computation(self, tmp_path: Path, monkeypatch) -> None:
         import perturb_eval.experiments.e_v05_real_traces as mod

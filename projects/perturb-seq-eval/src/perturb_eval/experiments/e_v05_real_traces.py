@@ -1,4 +1,4 @@
-"""Analyse v0.5.0 Modal-run JSONL traces for the paper's §4 tables.
+"""Analyse v0.6.0 (and legacy v0.5.0) Modal-run JSONL traces for the paper's §4 tables.
 
 Consumes two files written by ``scripts/modal/app_v05.py``:
 
@@ -17,6 +17,21 @@ Emits ``summary.json`` with:
     (``paper/PREREGISTRATION.md``), computed by
     :mod:`perturb_eval.experiments.preregistered`, with a PASS/FAIL/UNEVALUATED tally
   * ``preregistration``: the pre-registration pin copied from record 0
+
+A task's identity is ``(dataset, task)`` (:func:`preregistered.task_key`): a
+gene symbol can be a task in both Adamson and Norman (QG C5).
+
+Gates are licensed only for a pinned, finished, clean run: a run whose record 0
+carries no ``preregistration`` pin is summarised as ``status="UNPINNED"``, and
+a legacy run without provenance as ``legacy_no_provenance`` — both diagnostic,
+every gate ``pass=None`` (QG C10). Headers whose pins differ are refused.
+
+CLI::
+
+    python -m perturb_eval.experiments.e_v05_real_traces [ARTIFACTS_DIR]
+
+reads ``ARTIFACTS_DIR/{trainer_runs,lifecycle_runs}.jsonl`` (default
+``artifacts/v0.6.0``) and writes ``ARTIFACTS_DIR/summary.json``.
 """
 
 from __future__ import annotations
@@ -36,21 +51,25 @@ from perturb_eval.agentic_lifecycle.freedom_probe import (
     summarise_choice_distribution,
 )
 from perturb_eval.experiments import preregistered as prereg
+from perturb_eval.experiments.preregistered import task_key
 from perturb_eval.experiments.provenance import format_unparseable, read_jsonl_locating
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_ARTIFACTS_DIR = Path("artifacts/v0.6.0")
 
 ROLES: tuple[str, ...] = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
 
 
 @dataclass(frozen=True)
 class BestConfigPerTask:
-    """Best (min-MSD) trainer configuration for a single task."""
+    """Best (min-MSD) trainer configuration for a single ``(dataset, task)``."""
 
     task: str
     best_msd: float
     best_config: dict[str, Any]
     n_configs_tried: int
+    dataset: str | None = None
 
 
 def _read_jsonl(path: Path) -> tuple[dict | None, list[dict]]:
@@ -84,18 +103,18 @@ def _finite(value: Any) -> bool:
         return False
 
 
-def best_config_per_task(trainer_jsonl: Path) -> dict[str, BestConfigPerTask]:
-    """Return each task's min-MSD trainer config across all seeds."""
+def best_config_per_task(trainer_jsonl: Path) -> dict[tuple[str, str], BestConfigPerTask]:
+    """Return each ``(dataset, task)``'s min-MSD trainer config across all seeds."""
     rows = _read_rows(trainer_jsonl)
-    by_task: dict[str, list[dict]] = defaultdict(list)
+    by_task: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in rows:
         if not _finite(r.get("msd_topk")):
             continue
         if "task" not in r:
             continue
-        by_task[r["task"]].append(r)
-    out: dict[str, BestConfigPerTask] = {}
-    for task, entries in by_task.items():
+        by_task[task_key(r)].append(r)
+    out: dict[tuple[str, str], BestConfigPerTask] = {}
+    for (dataset, task), entries in by_task.items():
         # Minimum across all (backbone, N, R, seed).
         best = min(entries, key=lambda x: float(x["msd_topk"]))
         cfg = {
@@ -103,11 +122,12 @@ def best_config_per_task(trainer_jsonl: Path) -> dict[str, BestConfigPerTask]:
             for k in ("backbone", "N", "R", "seed", "dataset")
             if k in best
         }
-        out[task] = BestConfigPerTask(
+        out[(dataset, task)] = BestConfigPerTask(
             task=task,
             best_msd=float(best["msd_topk"]),
             best_config=cfg,
             n_configs_tried=len(entries),
+            dataset=dataset,
         )
     return out
 
@@ -141,17 +161,17 @@ def median_msd_per_config(trainer_jsonl: Path) -> list[dict]:
     return out
 
 
-def _task_key(row: dict) -> Any:
-    """Trainer rows use ``task``; lifecycle rows use ``task_id``."""
-    return row.get("task", row.get("task_id"))
+def _fmt_key(key: tuple[str, str] | None) -> str:
+    return "None" if key is None else f"{key[0]}:{key[1]}"
 
 
 def _check_task_sets(trainer_rows: list[dict], lifecycle_rows: list[dict]) -> tuple[set, set]:
-    trainer_tasks = {_task_key(r) for r in trainer_rows}
-    lifecycle_tasks = {_task_key(r) for r in lifecycle_rows}
+    """Both files must cover the same ``(dataset, task)`` set (QG C5)."""
+    trainer_tasks = {task_key(r) for r in trainer_rows}
+    lifecycle_tasks = {task_key(r) for r in lifecycle_rows}
     if trainer_tasks != lifecycle_tasks:
-        only_t = sorted(map(str, trainer_tasks - lifecycle_tasks))
-        only_l = sorted(map(str, lifecycle_tasks - trainer_tasks))
+        only_t = sorted(map(_fmt_key, trainer_tasks - lifecycle_tasks))
+        only_l = sorted(map(_fmt_key, lifecycle_tasks - trainer_tasks))
         raise ValueError(
             f"task sets differ: only-trainer={only_t}, only-lifecycle={only_l}"
         )
@@ -219,6 +239,27 @@ def _entropy_or_none(traces: list[list[dict]], agent: str, field: str) -> float 
     return float(per_agent_field_entropy(traces, agent=agent, field=field))
 
 
+def llm_traces_of(lifecycle_rows: list[dict]) -> list[list[dict]]:
+    """Per run, its LLM-sourced steps only (T16). Steps without a ``source``
+    are UNKNOWN and never assumed to be LLM."""
+    return [[s for s in r.get("steps", []) if _step_source(s) == "llm"]
+            for r in lifecycle_rows]
+
+
+def architect_entropies(lifecycle_rows: list[dict]) -> dict[str, Any]:
+    """Architect backbone / hvg_count entropy (nats) and backbone distribution
+    over LLM-sourced steps only; an entropy is ``None`` when no LLM-sourced
+    Architect step carries the field. The one producer used by both this
+    analyser and the sweep's provenance (QG C14)."""
+    traces = llm_traces_of(lifecycle_rows)
+    return {
+        "architect_backbone_entropy_nats": _entropy_or_none(traces, "Architect", "backbone"),
+        "architect_hvg_entropy_nats": _entropy_or_none(traces, "Architect", "hvg_count"),
+        "architect_backbone_distribution": summarise_choice_distribution(
+            traces, agent="Architect", field="backbone"),
+    }
+
+
 def _validate_partial_reason(allow_partial: str | None) -> str | None:
     """``allow_partial`` is a REASON string (CTO #245 Q1), never a bool."""
     if allow_partial is None:
@@ -238,13 +279,17 @@ def _is_error_record(row: dict) -> bool:
 
 
 def _preregistration_pin(trainer_prov: dict | None, lifecycle_prov: dict | None) -> dict | None:
-    """The ``preregistration`` record from record 0 (both headers must agree)."""
+    """The ``preregistration`` record from record 0.
+
+    Refuses (``ValueError``) when the two headers' pins differ — including one
+    pinned and one not (QG C10). ``None`` means the run is UNPINNED.
+    """
     t = (trainer_prov or {}).get("preregistration")
     lc = (lifecycle_prov or {}).get("preregistration")
-    if t is not None and lc is not None and t != lc:
+    if t != lc:
         raise ValueError(f"preregistration pin differs between headers: trainer={t!r}, "
                          f"lifecycle={lc!r}")
-    return lc if lc is not None else t
+    return lc or None
 
 
 def _norman_strata(prov: dict | None) -> dict[str, str] | None:
@@ -304,8 +349,11 @@ def analyse_v05_run(
     or provenance recorded one (CTO #245 Q2, no override); or the run is
     partial/unfinished or has ANY error record (unless ``allow_partial`` — a
     non-empty REASON string, CTO #245 Q1, written to
-    ``summary["allow_partial_reason"]``). Diagnostic summaries carry a
-    non-``ok`` ``status`` and null gate booleans.
+    ``summary["allow_partial_reason"]``); or the two headers' pre-registration
+    pins differ (QG C10). Diagnostic summaries carry a non-``ok`` ``status``
+    and null gate booleans: besides the escape hatches above, a legacy run
+    without provenance and an ``UNPINNED`` run (no pre-registration pin in
+    record 0) are always diagnostic (QG C10).
     """
     partial_reason = _validate_partial_reason(allow_partial)
     trainer_prov, trainer_rows = _read_jsonl(trainer_jsonl)
@@ -317,6 +365,7 @@ def analyse_v05_run(
         trainer_prov, lifecycle_prov, trainer_jsonl,
         trainer_jsonl, lifecycle_jsonl, provenance_json,
     )
+    pin = _preregistration_pin(trainer_prov, lifecycle_prov)
 
     if prov is not None:
         recorded = prov.get("unparseable_lines") or {}
@@ -336,7 +385,8 @@ def analyse_v05_run(
         source_counts[_step_source(st)] += 1
 
     status = "ok" if prov is not None else "legacy_no_provenance"
-    diagnostic = False
+    # QG C10: a legacy run (no provenance) is never licensed.
+    diagnostic = prov is None
     used_partial_reason: str | None = None
     n_error_records = sum(1 for r in trainer_rows + lifecycle_rows if _is_error_record(r))
     prov_status = prov.get("status") if prov is not None else None
@@ -372,12 +422,19 @@ def analyse_v05_run(
         diagnostic = True
         if status != "FAILED_FALLBACK_DIAGNOSTIC_ONLY":
             status = "PARTIAL_DIAGNOSTIC_ONLY"
+    if prov is not None and pin is None:
+        # QG C10: the pre-registration is enforced at analysis time — a run
+        # with no pin in record 0 is summarised but never licenses a gate.
+        logger.warning("run has no preregistration pin in record 0 — DIAGNOSTIC-ONLY summary")
+        diagnostic = True
+        if status == "ok":
+            status = "UNPINNED"
 
     # --- computation ------------------------------------------------------
     best_by_task = best_config_per_task(trainer_jsonl)
     best_by_dataset: dict[str, dict[str, float]] = defaultdict(dict)
-    for task, bc in best_by_task.items():
-        best_by_dataset[str(bc.best_config.get("dataset", "unknown"))][task] = bc.best_msd
+    for (dataset, task), bc in best_by_task.items():
+        best_by_dataset[dataset][task] = bc.best_msd
 
     median_adamson = (
         float(statistics.median(best_by_dataset["adamson_full"].values()))
@@ -390,13 +447,11 @@ def analyse_v05_run(
 
     # T16: entropy/distribution figures use LLM-sourced steps only. Steps
     # without a ``source`` field are UNKNOWN and never assumed to be LLM.
-    llm_traces = [
-        [s for s in r.get("steps", []) if _step_source(s) == "llm"]
-        for r in lifecycle_rows
-    ]
-    h_backbone = _entropy_or_none(llm_traces, "Architect", "backbone")
-    h_hvg = _entropy_or_none(llm_traces, "Architect", "hvg_count")
-    bb_dist = summarise_choice_distribution(llm_traces, agent="Architect", field="backbone")
+    llm_traces = llm_traces_of(lifecycle_rows)
+    arch_ent = architect_entropies(lifecycle_rows)
+    h_backbone = arch_ent["architect_backbone_entropy_nats"]
+    h_hvg = arch_ent["architect_hvg_entropy_nats"]
+    bb_dist = arch_ent["architect_backbone_distribution"]
     entropy_by_role: dict[str, float | None] = {}
     for role in ROLES:
         proposals = [
@@ -450,17 +505,17 @@ def analyse_v05_run(
         "gate_norman_median_below_0_30": gate_norman,
         "gate_architect_entropy_above_0_5_nats": gate_entropy,
         "preregistered": {**gates, "tally": prereg.tally(gates)},
-        "preregistration": _preregistration_pin(trainer_prov, lifecycle_prov),
+        "preregistration": pin,
         "best_config_per_task": {
-            k: asdict(v) for k, v in best_by_task.items()
+            _fmt_key(k): asdict(v) for k, v in best_by_task.items()
         },
     }
 
 
 def main(
-    trainer_jsonl: Path = Path("artifacts/v0.5.0/trainer_runs.jsonl"),
-    lifecycle_jsonl: Path = Path("artifacts/v0.5.0/lifecycle_runs.jsonl"),
-    out: Path = Path("artifacts/v0.5.0/summary.json"),
+    trainer_jsonl: Path = DEFAULT_ARTIFACTS_DIR / "trainer_runs.jsonl",
+    lifecycle_jsonl: Path = DEFAULT_ARTIFACTS_DIR / "lifecycle_runs.jsonl",
+    out: Path = DEFAULT_ARTIFACTS_DIR / "summary.json",
     *,
     allow_fallback_for_diagnosis: bool = False,
     allow_partial: str | None = None,
@@ -483,17 +538,31 @@ def main(
     return summary
 
 
-if __name__ == "__main__":  # pragma: no cover
+def parse_cli(argv: list[str] | None = None) -> Any:
+    """CLI arguments: an optional positional artifacts dir (default
+    ``artifacts/v0.6.0``) supplies ``trainer_runs.jsonl``,
+    ``lifecycle_runs.jsonl`` and ``summary.json``; ``--trainer``,
+    ``--lifecycle`` and ``--out`` override each path."""
     import argparse
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--trainer", type=Path, default=Path("artifacts/v0.5.0/trainer_runs.jsonl"))
-    ap.add_argument("--lifecycle", type=Path, default=Path("artifacts/v0.5.0/lifecycle_runs.jsonl"))
-    ap.add_argument("--out", type=Path, default=Path("artifacts/v0.5.0/summary.json"))
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("artifacts_dir", nargs="?", type=Path, default=DEFAULT_ARTIFACTS_DIR)
+    ap.add_argument("--trainer", type=Path, default=None)
+    ap.add_argument("--lifecycle", type=Path, default=None)
+    ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--allow-fallback-for-diagnosis", action="store_true")
     ap.add_argument("--allow-partial", metavar="REASON", default=None,
                     help="non-empty reason; marks summary PARTIAL_DIAGNOSTIC_ONLY")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
+    d = args.artifacts_dir
+    args.trainer = args.trainer or d / "trainer_runs.jsonl"
+    args.lifecycle = args.lifecycle or d / "lifecycle_runs.jsonl"
+    args.out = args.out or d / "summary.json"
+    return args
+
+
+if __name__ == "__main__":  # pragma: no cover
+    args = parse_cli()
     s = main(
         args.trainer, args.lifecycle, args.out,
         allow_fallback_for_diagnosis=args.allow_fallback_for_diagnosis,

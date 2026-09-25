@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 
 from perturb_eval.backbones import BackboneTrainConfig
+from perturb_eval.experiments.errors import classify, transient_error_fields
 
 
 def execute_trainer(
@@ -25,6 +26,12 @@ def execute_trainer(
     ``seed`` is the run seed, supplied by the caller. The LLM does not choose
     it: ``TrainerProposal`` has no seed field, and any stray ``"seed"`` key in
     ``trainer_proposal`` is ignored.
+
+    Failures follow the CTO #245 Q1 taxonomy (:func:`errors.classify`, QG C4):
+    only a TRANSIENT exception is caught — the result then has
+    ``succeeded=False`` and ``error_fields`` (``error``, ``error_type``,
+    ``error_class``, ``traceback``). Programming errors,
+    :class:`BackboneUnavailableError` and anything unclassified propagate.
     """
     cfg = BackboneTrainConfig(
         top_k_genes=int(trainer_proposal.get("top_k_genes", 20)),
@@ -34,16 +41,17 @@ def execute_trainer(
         ridge_lambda=float(trainer_proposal.get("ridge_lambda", 1.0)),
     )
     t0 = time.perf_counter()
+    error_fields: dict[str, Any] | None = None
     try:
         backbone.fit(X, labels.tolist(), control_mask, target_gene_idx, cfg)
-        succeeded = True
-        err_msg = ""
-    except Exception as e:  # noqa: BLE001
-        succeeded = False
-        err_msg = f"{type(e).__name__}: {e}"
+    except Exception as e:
+        if classify(e) != "transient":
+            raise  # CTO #245 Q1: default is ABORT
+        error_fields = transient_error_fields(e)
     return {
-        "succeeded": succeeded,
-        "error": err_msg,
+        "succeeded": error_fields is None,
+        "error": error_fields["error"] if error_fields else "",
+        "error_fields": error_fields,
         "n_train_perts": len(target_gene_idx),
         "wall_time_sec": time.perf_counter() - t0,
         "applied_config": {

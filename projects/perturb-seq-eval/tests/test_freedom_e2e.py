@@ -29,7 +29,7 @@ class VariedMockClient:
     def __init__(self, seed: int = 0) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> ChatResult:
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str) -> ChatResult:
         return ChatResult(
             content=self._payload(role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed),
             model_id="stub/varied",
@@ -114,6 +114,7 @@ class TestFreedomE2E:
                 agent_pool=pool,
                 max_rounds=2,
                 seed=2026,
+                dataset="adamson_full",
             )
             traces.append(run.steps)
 
@@ -128,7 +129,7 @@ class TestFreedomE2E:
         class ScriptedClient:
             # Round 0 architect: linear. Round 1 architect: keep linear
             # unless a validator critique delta is in the prompt.
-            def chat_json(self, *, role, task_id, round_index, prompt, seed):
+            def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):
                 return ChatResult(
                     content=self._payload(role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed),
                     model_id="stub/scripted",
@@ -162,6 +163,7 @@ class TestFreedomE2E:
             agent_pool=pool,
             max_rounds=2,
             seed=2026,
+            dataset="adamson_full",
         )
         architect_by_round = [
             s.proposal_content.get("backbone")

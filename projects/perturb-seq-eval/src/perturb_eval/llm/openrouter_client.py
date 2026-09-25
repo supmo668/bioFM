@@ -6,8 +6,9 @@ Policy:
     (Gemini Flash) — no strict priority outside role preference.
   * Per-model cooldown on 429 / 5xx / transient network error.
   * Per-day cap (``daily quota exceeded``) triggers a 6-hour cooldown.
-  * sha256 disk cache keyed on (task, round, role, canonical prompt,
-    model_id). Re-runs are cheap and resumable.
+  * sha256 disk cache keyed on (dataset, task, round, role, canonical
+    prompt, model_id, seed). Re-runs are cheap and resumable; every
+    :class:`ChatResult` says whether it was a cache hit.
   * Parse failures get one retry with an explicit reformat prompt; then
     the caller must fall back to a rule-based default.
 
@@ -140,10 +141,13 @@ class ChatResult:
     ``model_id`` is the pool model that actually served ``content`` — after
     rotation past cooled / failing candidates, and on a disk-cache hit the
     model whose cache entry was hit (the cache key includes ``model_id``).
+    ``cache_hit`` is True when ``content`` was replayed from the disk cache
+    rather than served by a fresh call (QG C6).
     """
 
     content: dict
     model_id: str
+    cache_hit: bool = False
 
 
 class OpenRouterError(Exception):
@@ -163,6 +167,7 @@ def _canonical_prompt(prompt: str) -> str:
 
 def _cache_key(
     *,
+    dataset: str,
     task_id: str,
     round_index: int,
     role: str,
@@ -172,6 +177,8 @@ def _cache_key(
 ) -> str:
     payload = json.dumps(
         {
+            # QG C6: a gene symbol can be a task in two datasets (SNAI1, SPI1).
+            "dataset": dataset,
             "task_id": task_id,
             "round_index": int(round_index),
             "role": role,
@@ -290,12 +297,13 @@ class OpenRouterClient:
         round_index: int,
         prompt: str,
         seed: int,
+        dataset: str,
     ) -> ChatResult:
         """Return the parsed JSON object from the first responsive model,
         together with that model's id (:class:`ChatResult`).
 
-        ``seed`` is part of the cache key only (A2); it is not sent to the
-        provider.
+        ``seed`` and ``dataset`` are part of the cache key only (A2, QG C6);
+        they are not sent to the provider.
 
         Raises :class:`OpenRouterError` if every candidate in the pool
         fails (network, 429, unparseable response).
@@ -307,6 +315,7 @@ class OpenRouterClient:
         last_err: Optional[str] = None
         for model in candidates:
             key = _cache_key(
+                dataset=dataset,
                 task_id=task_id,
                 round_index=round_index,
                 role=role,
@@ -317,7 +326,7 @@ class OpenRouterClient:
             cached = self._cached(key)
             if cached is not None:
                 logger.debug("cache hit role=%s model=%s", role, model.model_id)
-                return ChatResult(content=cached, model_id=model.model_id)
+                return ChatResult(content=cached, model_id=model.model_id, cache_hit=True)
 
             status, content = self._call(model.model_id, prompt)
             if status in (429, 502, 503, 504):
@@ -349,7 +358,7 @@ class OpenRouterClient:
                     continue
 
             self._save_cache(key, parsed)
-            return ChatResult(content=parsed, model_id=model.model_id)
+            return ChatResult(content=parsed, model_id=model.model_id, cache_hit=False)
 
         raise OpenRouterError(
             f"all candidate models for role={role} failed; last_err={last_err}"

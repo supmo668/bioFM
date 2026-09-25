@@ -25,6 +25,8 @@ _RECORD_KEYS = {
     "hvg_n_forced_per_round",
     "hvg_mode",
     "n_params",
+    # QG C15: (backbone, n_params) per round.
+    "n_params_per_round",
     "dataset",
     "seed",
     "wall_sec",
@@ -70,6 +72,7 @@ def test_lifecycle_record_passes_seed_and_records_it() -> None:
     assert len(stub.calls) == 1
     call = stub.calls[0]
     assert call["seed"] == 7
+    assert call["dataset"] == "adamson"  # QG C6: the lifecycle knows its dataset
     assert call["task_id"] == "GENEA"
     assert call["held_out"] == "GENEA"
     assert call["agent_pool"] is pool

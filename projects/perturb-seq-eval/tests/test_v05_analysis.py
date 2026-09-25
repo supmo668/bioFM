@@ -48,9 +48,11 @@ class TestBestConfigPerTask:
             ],
         )
         best = best_config_per_task(trainer)
-        assert best["TFA"].best_msd == pytest.approx(0.2)
-        assert best["TFA"].best_config["backbone"] == "mlp"
-        assert best["TFB"].best_msd == pytest.approx(0.8)
+        # QG C5: keyed on (dataset, task).
+        assert best[("adamson_full", "TFA")].best_msd == pytest.approx(0.2)
+        assert best[("adamson_full", "TFA")].best_config["backbone"] == "mlp"
+        assert best[("adamson_full", "TFB")].best_msd == pytest.approx(0.8)
+        assert best[("adamson_full", "TFA")].dataset == "adamson_full"
 
     def test_aggregates_median_across_seeds(self, tmp_path: Path) -> None:
         trainer = tmp_path / "trainer.jsonl"
@@ -93,13 +95,13 @@ class TestAnalyseV05Run:
         _write_lifecycle_jsonl(
             lifecycle,
             [
-                {"task_id": f"{prefix}{i}", "seed": 1,
+                {"dataset": ds, "task_id": f"{prefix}{i}", "seed": 1,
                  "final_msd_topk": 0.15 + 0.01 * i,
                  "steps": [
                      {"agent_name": "Architect", "source": "llm",
                       "proposal_content": {"backbone": ["linear", "mlp", "scgpt_small"][i % 3]}},
                  ]}
-                for prefix in ("TF", "N")
+                for prefix, ds in (("TF", "adamson_full"), ("N", "norman"))
                 for i in range(5)
             ],
         )
@@ -153,7 +155,7 @@ class TestRobustToMissingData:
             ],
         )
         best = best_config_per_task(trainer)
-        assert best["TFA"].best_msd == pytest.approx(0.2)
+        assert best[("adamson_full", "TFA")].best_msd == pytest.approx(0.2)
 
 
 class TestBestConfigPerTaskDTO:

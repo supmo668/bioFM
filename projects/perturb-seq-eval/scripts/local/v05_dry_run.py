@@ -37,7 +37,7 @@ from perturb_eval.llm.openrouter_client import ChatResult
 
 
 class _DeterministicStubClient:
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> ChatResult:
+    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str) -> ChatResult:
         return ChatResult(
             content=self._payload(role=role, task_id=task_id, round_index=round_index),
             model_id="stub/deterministic",
@@ -135,6 +135,7 @@ def main() -> int:
             agent_pool=pool,
             max_rounds=2,
             seed=2026,  # no per-run seed loop in the dry run; fixed run seed
+            dataset="adamson_full",
         )
         runs.append(run)
         print(

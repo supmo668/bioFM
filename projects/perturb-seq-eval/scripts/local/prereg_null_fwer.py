@@ -18,7 +18,7 @@ import json
 
 import numpy as np
 
-from perturb_eval.experiments.preregistered import _rho, tdi_lifecycle
+from perturb_eval.experiments.preregistered import rho, tdi_lifecycle
 
 SEED, THRESH = 2026, 0.5
 N_PERM, N_SIM = 200_000, 100_000
@@ -28,7 +28,7 @@ N_ADAMSON, N_NORMAN, N_POOLED = 21, 20, 41
 def per_test_null(n: int, rng: np.random.Generator) -> float:
     x = np.arange(n, dtype=float)
     y = np.arange(n, dtype=float)
-    hits = sum((_rho(x, rng.permutation(y)) or -2.0) > THRESH for _ in range(N_PERM))
+    hits = sum((rho(x, rng.permutation(y)) or -2.0) > THRESH for _ in range(N_PERM))
     return hits / N_PERM
 
 
@@ -37,7 +37,7 @@ def one_dataset_fires(n: int, rng: np.random.Generator, dependence: str) -> bool
     ace = rng.random(n)
     omdc = ace.copy() if dependence == "identical" else rng.random(n)
     tdi = np.array([tdi_lifecycle(a, b) for a, b in zip(ace, omdc)])
-    return any((_rho(q, msd) or -2.0) > THRESH for q in (ace, omdc, tdi))
+    return any((rho(q, msd) or -2.0) > THRESH for q in (ace, omdc, tdi))
 
 
 def gate_fwer(rng: np.random.Generator, dependence: str) -> float:
@@ -52,7 +52,7 @@ def gate_fwer(rng: np.random.Generator, dependence: str) -> float:
 def main() -> None:
     rng = np.random.default_rng(SEED)
     out = {"seed": SEED, "threshold": THRESH, "n_perm": N_PERM, "n_sim": N_SIM,
-           "estimator": "perturb_eval.experiments.preregistered._rho (average-rank Spearman)",
+           "estimator": "perturb_eval.experiments.preregistered.rho (average-rank Spearman; alias _rho)",
            "per_test_null_P(rho>0.5)": {str(n): per_test_null(n, rng) for n in (N_NORMAN, N_ADAMSON, N_POOLED)},
            "gate_fwer_6_tests": {"components_independent": gate_fwer(rng, "independent"),
                                  "components_identical_ranks": gate_fwer(rng, "identical")}}

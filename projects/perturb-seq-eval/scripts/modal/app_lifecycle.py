@@ -132,6 +132,7 @@ def run_lifecycle_adamson(
                         backbone_override=backbone,
                         validator_threshold_override=validator_threshold,
                         seed=seed,
+                        dataset="adamson_full",
                     )
                     rec = asdict(run) | {
                         "seed": seed,

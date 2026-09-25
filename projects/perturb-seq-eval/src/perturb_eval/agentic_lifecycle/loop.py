@@ -16,6 +16,7 @@ See docs/plans/2026-04-22-end-to-end-agentic-lifecycle.md Task 7.
 from __future__ import annotations
 
 import time
+import zlib
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -35,9 +36,13 @@ class AgentPool(Protocol):
     """Produces structured proposals per role, with optional refinement context.
 
     ``propose`` returns ``{"content", "rationale", "confidence", "model_id",
-    "source"}``. ``source`` is REQUIRED and must be one of
+    "source"}`` plus an optional ``cache_hit`` (bool; LLM pools only).
+    ``source`` is REQUIRED and must be one of
     :data:`~perturb_eval.agentic_lifecycle.types.STEP_SOURCES`; the loop
     raises rather than defaulting it, so no pool can masquerade as "llm".
+    ``dataset`` names the dataset the task is held out from; an LLM pool puts
+    it in its cache key (QG C6: the same gene symbol is a task in both
+    Adamson and Norman).
     """
 
     def propose(
@@ -48,6 +53,7 @@ class AgentPool(Protocol):
         context: dict,
         *,
         seed: int,
+        dataset: str,
     ) -> dict: ...
 
 
@@ -65,12 +71,17 @@ class MockAgentPool:
         context: dict,
         *,
         seed: int,  # noqa: ARG002 — mock uses self.seed
+        dataset: str,  # noqa: ARG002 — mock has no cache
     ) -> dict:
         out = self._propose(role, round_index, task_id)
         return {**out, "model_id": None, "source": "mock"}
 
     def _propose(self, role: str, round_index: int, task_id: str) -> dict:
-        rng = np.random.default_rng(self.seed + round_index * 11 + (abs(hash(role)) % 97))
+        # zlib.crc32, not hash(): str hashes are salted per process
+        # (PYTHONHASHSEED), which made the mock's draws differ run to run (QG C27).
+        rng = np.random.default_rng(
+            self.seed + round_index * 11 + (zlib.crc32(role.encode()) % 97)
+        )
         if role == "DataCurator":
             return {
                 "content": {"n_top_hvg": 40, "pct_mito_max": 12.0},
@@ -154,8 +165,8 @@ def _remap_held_out_target(
     return tuple(remapped)
 
 
-def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str]:
-    """``(model_id, source)`` from a pool's propose output — fail loud (D4)."""
+def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str, bool | None]:
+    """``(model_id, source, cache_hit)`` from a pool's propose output — fail loud (D4)."""
     source = agent_out["source"]
     if source not in STEP_SOURCES:
         raise ValueError(
@@ -167,7 +178,10 @@ def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str]:
             f"{role}: source={source!r} with model_id={model_id!r} — an 'llm' "
             "step must name its serving model and only an 'llm' step may"
         )
-    return model_id, source
+    cache_hit = agent_out.get("cache_hit")
+    if cache_hit is not None and not isinstance(cache_hit, bool):
+        raise ValueError(f"{role}: cache_hit must be bool or None, got {cache_hit!r}")
+    return model_id, source, cache_hit
 
 
 def run_agentic_lifecycle(
@@ -180,6 +194,7 @@ def run_agentic_lifecycle(
     held_out: str,
     agent_pool: AgentPool,
     seed: int,
+    dataset: str,
     max_rounds: int = 2,
     backbone_override: str | None = None,
     validator_threshold_override: float | None = None,
@@ -197,7 +212,12 @@ def run_agentic_lifecycle(
 
     ``seed`` is required: it is passed to every ``agent_pool.propose`` call
     (and so into the LLM cache key) and to ``execute_trainer`` (and so into
-    ``BackboneTrainConfig.seed``).
+    ``BackboneTrainConfig.seed``). ``dataset`` (the dataset ``held_out`` is
+    drawn from) is required for the same reason (QG C6).
+
+    Trainer failures (QG C4): a programming / unclassified exception from the
+    backbone fit propagates; a TRANSIENT one fails that round's Trainer step
+    and its error fields are carried on ``LifecycleRun.error_fields``.
     """
     steps: list[LifecycleStep] = []
     context: dict = {}
@@ -217,13 +237,20 @@ def run_agentic_lifecycle(
     hvg_n_per_round: list[int] = []
     hvg_n_forced_per_round: list[int] = []
     n_params: int | None = None
+    n_params_per_round: list[tuple[str, int | None]] = []
+    error_fields: dict | None = None
 
     for r in range(max_rounds):
-        dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed)
-        lit = agent_pool.propose("Literature", r, task_id, context, seed=seed)
-        arch = agent_pool.propose("Architect", r, task_id, context, seed=seed)
-        trn = agent_pool.propose("Trainer", r, task_id, context, seed=seed)
-        val = agent_pool.propose("Validator", r, task_id, context, seed=seed)
+        dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed,
+                                  dataset=dataset)
+        lit = agent_pool.propose("Literature", r, task_id, context, seed=seed,
+                                  dataset=dataset)
+        arch = agent_pool.propose("Architect", r, task_id, context, seed=seed,
+                                  dataset=dataset)
+        trn = agent_pool.propose("Trainer", r, task_id, context, seed=seed,
+                                  dataset=dataset)
+        val = agent_pool.propose("Validator", r, task_id, context, seed=seed,
+                                  dataset=dataset)
 
         t0 = time.perf_counter()
         # T8b: HVG ranked on training cells only; every target column (training
@@ -267,8 +294,12 @@ def run_agentic_lifecycle(
             trainer_proposal=trn["content"],
             seed=seed,
         )
-        if tinfo["succeeded"]:
-            n_params = count_fitted_params(backbone)
+        # QG C15: reset every round — a failed fit never inherits the count of
+        # an earlier round's (possibly different) backbone.
+        n_params = count_fitted_params(backbone) if tinfo["succeeded"] else None
+        n_params_per_round.append((backbone_used, n_params))
+        if tinfo.get("error_fields") and error_fields is None:
+            error_fields = dict(tinfo["error_fields"])
 
         round_wall = time.perf_counter() - t0
         for role, agent_out in (
@@ -278,7 +309,7 @@ def run_agentic_lifecycle(
             ("Trainer", trn),
             ("Validator", val),
         ):
-            model_id, source = _step_provenance(role, agent_out)
+            model_id, source, cache_hit = _step_provenance(role, agent_out)
             steps.append(
                 LifecycleStep(
                     round_index=r,
@@ -291,6 +322,7 @@ def run_agentic_lifecycle(
                     succeeded=tinfo["succeeded"] if role == "Trainer" else True,
                     model_id=model_id,
                     source=source,
+                    cache_hit=cache_hit,
                 )
             )
 
@@ -363,4 +395,6 @@ def run_agentic_lifecycle(
         hvg_n_forced_per_round=tuple(hvg_n_forced_per_round),
         hvg_mode=HVG_MODE,
         n_params=n_params,
+        n_params_per_round=tuple(n_params_per_round),
+        error_fields=error_fields,
     )

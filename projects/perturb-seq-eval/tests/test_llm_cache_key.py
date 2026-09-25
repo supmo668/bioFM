@@ -8,7 +8,8 @@ import pytest
 
 from perturb_eval.llm.openrouter_client import OpenRouterClient, _cache_key
 
-_BASE = dict(task_id="t1", round_index=0, role="Architect", prompt="p", model_id="m")
+_BASE = dict(dataset="adamson_full", task_id="t1", round_index=0, role="Architect",
+             prompt="p", model_id="m")
 
 
 def test_different_seeds_give_different_keys() -> None:

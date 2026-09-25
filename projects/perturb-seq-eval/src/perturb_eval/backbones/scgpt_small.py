@@ -34,6 +34,18 @@ from perturb_eval.backbones.base import (
 HAS_TORCH = importlib.util.find_spec("torch") is not None
 
 
+def training_device() -> str:
+    """``"cuda"`` when ``torch.cuda.is_available()``, else ``"cpu"`` (QG C9).
+
+    The sweep function holds an A100; before this, the model and its tensors
+    never left the CPU. The chosen device is recorded on the fit artifacts
+    (``extra["device"]``) and in the run provenance (``device``).
+    """
+    import torch
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
 @dataclass
 class _ArchitectureConfig:
     n_bins: int = 21
@@ -60,10 +72,11 @@ class SCGPTSmallBackbone:
         self._model = None
         self._n_genes_used = 0
         self._fitted = False
+        self.device: str | None = None
 
     @staticmethod
-    def _pad_targets(target_ids: list[tuple[int, ...]]):
-        """Right-pad target tuples to a (B, T) index tensor + (B, T, 1) mask."""
+    def _pad_targets(target_ids: list[tuple[int, ...]], device: str = "cpu"):
+        """Right-pad target tuples to a (B, T) index tensor + (B, T, 1) mask on ``device``."""
         import torch
 
         width = max(len(t) for t in target_ids)
@@ -72,7 +85,7 @@ class SCGPTSmallBackbone:
         for r, t in enumerate(target_ids):
             idx[r, : len(t)] = torch.tensor(t, dtype=torch.long)
             mask[r, : len(t)] = 1.0
-        return idx, mask
+        return idx.to(device), mask.to(device)
 
     def _rank_bin(self, X: "np.ndarray") -> "np.ndarray":
         """Assign each cell's genes to discrete expression-rank bins."""
@@ -98,6 +111,7 @@ class SCGPTSmallBackbone:
         import torch.nn as nn
 
         torch.manual_seed(cfg.seed)
+        device = training_device()
         labels = np.asarray(perturbation_labels)
         means = per_perturbation_mean(expression, labels)
         mean_ctrl = np.mean(expression[control_mask], axis=0)
@@ -147,7 +161,8 @@ class SCGPTSmallBackbone:
                 if target_idx.dim() == 1:                       # (B,) singletons
                     target_idx = target_idx.unsqueeze(1)
                 if mask is None:
-                    mask = torch.ones((*target_idx.shape, 1), dtype=torch.float32)
+                    mask = torch.ones((*target_idx.shape, 1), dtype=torch.float32,
+                                      device=target_idx.device)
                 # D1: mean-pool the target embeddings over each row's targets.
                 # For a 1-tuple this is emb * 1.0 / 1.0 — identical to the
                 # former single-embedding lookup.
@@ -163,11 +178,11 @@ class SCGPTSmallBackbone:
             h=self._arch.n_heads,
             nl=self._arch.n_layers,
             ff=self._arch.ffn_dim,
-        )
+        ).to(device)
         opt = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
-        target_tensor, target_mask = self._pad_targets(target_ids)
+        target_tensor, target_mask = self._pad_targets(target_ids, device)
         # Truncate gene axis for tensor ops — the residual mean still holds the full-length prediction.
-        Yr_trunc = torch.tensor(Yr[:, :n_genes_used], dtype=torch.float32)
+        Yr_trunc = torch.tensor(Yr[:, :n_genes_used], dtype=torch.float32).to(device)
         for _ in range(cfg.max_iter):
             opt.zero_grad()
             pred = model(target_tensor, target_mask)
@@ -178,7 +193,7 @@ class SCGPTSmallBackbone:
         # Cache per-target predictions as numpy (inference is cheap).
         model.eval()
         with torch.no_grad():
-            all_targets = torch.arange(n_genes_used)
+            all_targets = torch.arange(n_genes_used).to(device)
             preds_all = model(all_targets).cpu().numpy()  # (n_genes_used, n_genes_used)
         self._target_embeddings = {
             i: self._pad_to_full(preds_all[i], n_genes)
@@ -187,11 +202,12 @@ class SCGPTSmallBackbone:
         self._model = model
         self._n_genes_used = n_genes_used
         self._fitted = True
+        self.device = device
         return BackboneFitArtifacts(
             backbone_name=self.name,
             n_train_perturbations=len(Ys),
             train_seconds=time.perf_counter() - t0,
-            extra={"n_genes_used": n_genes_used},
+            extra={"n_genes_used": n_genes_used, "device": device},
         )
 
     @staticmethod
@@ -222,7 +238,7 @@ class SCGPTSmallBackbone:
         else:
             import torch
 
-            idx, mask = self._pad_targets([in_vocab])
+            idx, mask = self._pad_targets([in_vocab], self.device or "cpu")
             with torch.no_grad():
                 short = self._model(idx, mask).cpu().numpy()[0]
             residual = self._pad_to_full(short, n_genes)
