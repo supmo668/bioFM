@@ -364,3 +364,34 @@ def test_analyse_v05_run_carries_preregistered_block(tmp_path: Path) -> None:
 def test_dead_estimator_removed() -> None:
     import perturb_eval.experiments.e_v05_real_traces as mod
     assert not hasattr(mod, "tdi_vs_held_out_msd")
+
+
+class TestH4ReportAllSix:
+    """CTO #269 (b): all six rho are reported with their n REGARDLESS of outcome, so a single-test
+    PASS is self-evident from the table and selective reporting is structurally impossible."""
+
+    def test_all_six_rows_present_when_pass_by_one_test_and_others_undefined(self) -> None:
+        # Adamson: ACE ranks MSD perfectly (one passing test); Norman: only 2 tasks -> every Norman test undefined.
+        table = _table([(f"a{i}", "adamson_full", 0.1 * i, 0.5, 0.01 * i) for i in range(1, 8)]
+                       + [("n1", "norman", 0.2, 0.3, 0.1), ("n2", "norman", 0.4, 0.6, 0.2)])
+        res = pr.h4(table, B=200, seed=3)
+        rows = res["all_six"]
+        assert len(rows) == 6
+        assert {(r["dataset"], r["component"]) for r in rows} == {
+            (ds, k) for ds in ("adamson_full", "norman") for k in ("ace_norm", "one_minus_delta_c", "tdi_lifecycle")}
+        for r in rows:
+            assert set(r) >= {"dataset", "component", "rho", "n", "ci_low", "ci_high", "reason", "passes"}
+            assert (r["rho"] is None) == (r["reason"] is not None)
+        norman = [r for r in rows if r["dataset"] == "norman"]
+        assert all(r["rho"] is None and r["n"] == 2 and r["passes"] is None for r in norman)
+        # 1-dC is constant here, so TDI_lifecycle inherits ACE's ranking exactly: TWO tests pass, not one.
+        # That is the within-dataset dependence the pre-registration states (TDI is built from the other two).
+        assert res["pass"] is True and res["n_tests_passing"] == 2
+        passing = {(r["dataset"], r["component"]) for r in res["all_six"] if r["passes"]}
+        assert passing == {("adamson_full", "ace_norm"), ("adamson_full", "tdi_lifecycle")}
+
+    def test_all_six_rows_present_on_fail(self) -> None:
+        table = _table([(f"a{i}", "adamson_full", 0.1 * i, 0.1 * i, 0.07 - 0.01 * i) for i in range(1, 8)]
+                       + [(f"n{i}", "norman", 0.1 * i, 0.1 * i, 0.07 - 0.01 * i) for i in range(1, 8)])
+        res = pr.h4(table, B=200, seed=3)
+        assert len(res["all_six"]) == 6 and res["pass"] is False and res["n_tests_passing"] == 0

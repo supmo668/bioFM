@@ -1,0 +1,20 @@
+# H4 gate null false-positive rates via the pre-registered estimator (CTO #269)
+2026-09-25T07:24:01Z
+{
+  "seed": 2026,
+  "threshold": 0.5,
+  "n_perm": 200000,
+  "n_sim": 100000,
+  "estimator": "perturb_eval.experiments.preregistered._rho (average-rank Spearman)",
+  "per_test_null_P(rho>0.5)": {
+    "20": 0.01319,
+    "21": 0.01067,
+    "41": 0.000475
+  },
+  "gate_fwer_6_tests": {
+    "components_independent": 0.05812,
+    "components_identical_ranks": 0.02354
+  },
+  "pooled_single_test_n41": 0.000475,
+  "ratio_gate_upper_to_pooled": 122.3578947368421
+}

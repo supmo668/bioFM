@@ -411,7 +411,16 @@ def h4(task_table: Sequence[Mapping], *, B: int = BOOTSTRAP_B, seed: int = BOOTS
         missing = {f"{ds}:{k}": per_dataset[ds][k]["reason"] for ds in H4_DATASETS
                    for k in H4_COMPONENTS if (ds, k) not in rhos}
         passed, reason = None, f"test(s) not evaluable and none passes: {missing}"
+    # CTO #269 (b): report ALL SIX with their n regardless of outcome (pass, fail or undefined), so a
+    # single-test PASS is self-evident and selective reporting is structurally impossible.
+    all_six = [
+        {"dataset": ds, "component": k, "rho": c["rho"], "n": c["n"],
+         "ci_low": c["ci_low"], "ci_high": c["ci_high"], "reason": c["reason"],
+         "passes": None if c["rho"] is None else bool(c["rho"] > threshold)}
+        for ds in H4_DATASETS for k, c in ((k, per_dataset[ds][k]) for k in H4_COMPONENTS)
+    ]
     return _gate("H4", best, threshold, passed, reason, per_dataset=per_dataset,
+                 all_six=all_six, n_tests_passing=sum(1 for r in all_six if r["passes"]),
                  pooled_descriptive=pooled, exclusions=exclusions, n_tests=n_tests,
                  structurally_undefined=dict(STRUCTURALLY_UNDEFINED),
                  tdi_lifecycle_weights=dict(TDI_LIFECYCLE_WEIGHTS),
