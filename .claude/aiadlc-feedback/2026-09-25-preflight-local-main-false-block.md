@@ -76,3 +76,12 @@ This belongs to the "mechanism reports success while the property is absent" fam
 - `commit-precheck` treats a timeout (rc 124, 120s for tests) as **allow commit** with a warning. A slow or hung suite passes the gate: fail-open. Fix: a timeout is a failure, and the timeout is configurable per key.
 - The per-role convention is documented only in a comment in `agency.yaml`, which cites `quality.test_command_<agent>` as if it were implemented everywhere.
 - `hooks/quality-check.sh` `run_check`: the failure message interpolates the bare `$key` (`quality.test_command`) even when the per-role `${key}_${ROLE}` is the command that ran and failed. An operator inspects an empty global key and concludes the hook is misconfigured. Fix: track the resolved key name and report it. Found by aviary-biosim #346 via a direct hook proof (planted assert → exit 2 block; reverted → exit 0), CTO-confirmed by reading the source.
+
+---
+
+# worktree-sync leaks a stash on every --auto sync of a dirty tree, and its cleanup trap can pop ANOTHER session's stash (perturb-seq-eval #361, CTO-verified by reading the source)
+
+- `:154` runs a bare `git stash`. `:153/:155` capture the entry as a commit SHA (`--pretty=format:"%H"`).
+- `:216-217` restore with `git stash apply "$STASH_REF"` (fine: apply accepts a commit), then `git stash drop "$STASH_REF" ... || true`. `drop` requires a stash reflog entry (`stash@{n}`), not a commit SHA, so it fails, and `|| true` hides it. **Every dirty --auto sync leaks one entry onto the SHARED stash stack.** (lung-on-chipsim has 12 "WIP on" entries consistent with this.)
+- `:54-56` `_cleanup` trap: `git stash pop` with **no ref**, which pops the TOP of a stack shared by every worktree and concurrent session. If another session pushed after this one, the trap pops (and removes) the other session's work.
+- **Fix:** `git stash push -u -m "worktree-sync:<run-id>"`, resolve `stash@{n}` by that message, apply by SHA, then drop by the re-found `stash@{n}`. The trap must apply and drop the same tagged entry, never a bare pop. Better still: replace the stash with a temporary WIP commit on the branch.
