@@ -156,12 +156,16 @@ scales, so a between-dataset difference could produce a ranking with no within-d
 
 The six tests are not independent. Within a dataset, TDI_lifecycle is a fixed, hand-weighted sum of the other
 two quantities, so each dataset contributes closer to two effective tests than three. Across datasets the tests
-use disjoint tasks. The effective number of tests is therefore about four, and at most six. When no quantity
-carries real signal, the chance that the gate passes by luck is roughly 1 − (1 − p)⁴, where p is the chance that
-one quantity exceeds ρ = 0.5 by chance. That is about 4p for small p, and at most 1 − (1 − p)⁶. It is also
-higher than a pooled test would give, because p is larger at n ≈ 20 than at n = 41. **No multiplicity correction
-was pre-registered.** The gate is reported as specified, with this stated alongside it, and a PASS driven by a
-single one of the six tests must be described as such.
+use disjoint tasks. Let **p** denote the probability, under the null (no association), that a single test's ρ̂ exceeds 0.5 — the gate thresholds the **statistic**, not a p-value. Measured by permutation **through the pre-registered estimator itself** (`preregistered._rho`, average-rank Spearman; `scripts/local/prereg_null_fwer.py`, seed 2026, 200,000 permutations; amendment 2026-09-25, CTO #269):
+
+| quantity | null false-positive rate |
+|---|---|
+| one test, n = 20 (Norman) | p = 1.32 % |
+| one test, n = 21 (Adamson) | p = 1.07 % |
+| **the pre-registered six-test gate** (Monte Carlo of the whole gate, 100,000 draws; TDI_lifecycle built from the other two exactly as in the estimator) | **2.35 % – 5.81 %** |
+| a single pooled test, n = 41 | 0.0475 % |
+
+The gate's range is bracketed, not estimated: 5.81 % if ACE_norm and 1−ΔC are independent under the null, 2.35 % if their ranks are identical; the true value lies between and depends on their unknown dependence. The gate therefore carries a false-positive rate roughly **50× to 120× that of a single pooled test** — the price of testing within datasets at n ≈ 20, which we accept because a pooled ρ can be produced by the between-dataset difference alone (the committed fixture in `tests/test_preregistered.py`: pooled ρ = 0.543 while every within-dataset ρ = −1, gate FAIL). **No multiplicity correction was pre-registered.** Instead, **all six ρ are reported with their n regardless of outcome — pass, fail or undefined** (`h4(...)["all_six"]`, always six rows, with `n_tests_passing`), so a PASS carried by a single test is self-evident from the table and selective reporting is structurally impossible rather than discouraged.
 
 ### Required alongside each gate
 

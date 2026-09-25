@@ -128,11 +128,17 @@ $n$ and a bootstrap CI, and each needs at least $3$ tasks. The gate passes if
 any of the six exceeds $0.5$. The $\rho$ pooled over all $41$ tasks is
 descriptive only and never gates. The six tests are dependent:
 $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a fixed combination of the other two
-within each dataset, so the effective number of tests is about four (at most
-six). That raises the gate's chance false-positive rate to roughly
-$1-(1-p)^4$, where $p$ is the chance that a single quantity exceeds
-$\rho=0.5$ by chance. No correction was pre-registered, and the gate is
-reported as specified.
+within each dataset. Let $p$ be the null probability that a single test's
+$\hat\rho$ exceeds $0.5$ (the gate thresholds the statistic, not a $p$-value).
+Measured by permutation through the pre-registered estimator itself
+(\texttt{scripts/local/prereg\_null\_fwer.py}, seed 2026): $p = 1.32\%$ at
+$n=20$ and $1.07\%$ at $n=21$; a Monte Carlo of the whole six-test gate gives a
+false-positive rate between $2.35\%$ (ACE$_{\mathrm{norm}}$ and $1-\Delta C$
+with identical ranks) and $5.81\%$ (independent), against $0.0475\%$ for a
+single pooled test at $n=41$ --- roughly $50\times$ to $120\times$ higher, the
+price of testing within datasets. No correction was pre-registered; instead all
+six $\rho$ are reported with their $n$ whatever the outcome, so a pass carried
+by one test is visible in the table.
 
 \begin{table}[h]
 \small
