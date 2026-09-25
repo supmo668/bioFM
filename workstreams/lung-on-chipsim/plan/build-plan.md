@@ -391,6 +391,22 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **command**, not the function. The binding is a fixture clean on the other three halves, so exit 2
   can only arrive via the accession half. *The CTO read a call site and called it verified once
   already; reading the code is how the previous claim passed.*
+- **E-21 — A CONSUMER TEST THAT ONLY EVER ASSERTS THE HAPPY PATH CANNOT SEE A DISABLED GATE**
+  *(r2.42, agent-drafted #303, signed verbatim)*. *Found by rule 4 (#298): disabling
+  `enforce_record_content` outright left `test_a_non_pytest_consumer_can_call_it` GREEN, because it
+  asserts `"STATUS clean EXIT 0"` and a disabled gate returns exactly that. The contract itself
+  remains bound by `test_the_shipped_command_fails_on_a_real_accession_in_tracked_content` (E6-7,
+  r2.29, MET and re-corroborated by the same run), so this is a redundant test providing no binding,
+  not an unmet obligation.* **Done when:** the non-pytest consumer test runs a fresh interpreter, with
+  no pytest imported, against a tree that MUST fail, and asserts the consumer OBSERVES the violation —
+  `RecordContentViolation` raised or a non-zero exit, **and** the violation named in the consumer's
+  own output. The existing clean-path assertion is KEPT; one direction is half a contract, and
+  deleting the happy path to add the sad one would just move the hole. **Verified by:** re-running
+  rule 4 in a scratch git worktree and showing `test_record_content_entry_point.py`'s survivors drop
+  **2 → 1**, the remaining survivor named as `test_it_RE_IMPLEMENTS_none_of_the_pieces` and stated
+  as correctly scoped (a negative assertion over source text, a different property, which cannot and
+  should not notice a disable). Kill set and exit code per mutant, no pipe; live + retired + reasons
+  form.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
