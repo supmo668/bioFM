@@ -439,6 +439,52 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **Explicitly NOT in scope:** scanning decoded literals rather than source text — considered and
   declined with reason: the defect is the boundary, not the decoding; a decoded scan changes what
   "the bytes a commit carries" means (§12.8) and earns its own clause if wanted.
+- **E-22(b) AMENDED — THE MATRIX IS REPLACED BY A DIFFERENTIAL ORACLE AGAINST A SPEC-WRITTEN
+  REFERENCE** *(r2.44; agent-drafted #370 after three failed enumerated matrices; signed with ONE
+  CTO change, marked; SUPERSEDES E-22 done-condition (b)'s enumerated-row wording. E-22 (a), (c),
+  (d) and the pattern itself are unchanged)*. *Three enumerated matrices each pinned the axis the
+  last reviewer named and left the unnamed one. Decisive: a 9-way alternation of the matrix's own
+  probe bodies passed every test in the file. An enumerated probe set's coverage is its author's
+  imagination.*
+  **SPEC SENTENCE** *(CTO change: the agent's draft said "exactly five digits, the first of which is
+  not `9`". CTO-measured that the shipped pattern matches the first five digits of `DB000001` and
+  matches a leading Arabic-Indic nine. Both are fail-closed and correct, but the sentence as drafted
+  described neither, and the sentence is the one thing a human checks)*: **an accession is the two
+  ASCII characters `DB` (case-sensitive) followed by five characters that are each a Unicode decimal
+  digit, the first of which is not the ASCII digit `9`; digits beyond the fifth are not part of the
+  match; it is recognised whatever precedes or follows it; scanning is left to right and matches do
+  not overlap.** Residual risk: reference and regex share a wrong spec. That is smaller than a wrong
+  implementation, and checkable by reading this line.
+  **Done when:** (a) a reference scanner implements the spec sentence in plain Python with **no
+  regex**, returning match spans for a whole string; (b) the test asserts
+  `[m.span() for m in REAL_ACCESSION_RE.finditer(s)] == reference(s)` over whole strings (verdict,
+  span, overlap and multiplicity in one assertion); (c) input is GENERATED, not listed. **Axis 1:**
+  `DB` + every digit string of length 0..6, exhausted, bare context (default tier, ~1.1M strings,
+  ~0.8 s measured). **Extended tier: length 0..7, required in every quality gate run and recorded in
+  the receipt.** **Axis 2:** every left × right pair from the stated alphabet, crossed with a seeded
+  body sample. **Axis 3:** seeded fuzz, **seed printed before the run starts**. The body samples on
+  axes 2/3 include non-ASCII decimal digits; (d) `KNOWN_WRONG` is RENAMED as a regression museum,
+  documented as inheriting the oracle's coverage and not extending it, and a test asserts the oracle
+  **fails** on every entry (rule 3b applied to a test); (e) `test_the_matrix_covers_both_axes` is
+  DELETED.
+  **Measured before signing (#370):** 7,466,645 generated strings; the shipped pattern agrees with
+  the reference (0 disagreements); all 17 known-wrong patterns are killed, including the
+  lookup-table pattern (4,458,001 disagreements), the three trailing-blind survivors, `\d{4}[0-8]`,
+  and the `(?![a-z])` and `(?![0-9])` trailing guards (killed behaviourally on `DB00014z` /
+  `DB000147`).
+  **STATED CONTEXT ALPHABET, on BOTH sides** (its incompleteness is a recorded limit): empty, letter,
+  digit, underscore, quote, hyphen, dot, comma, colon, paren, space, newline, backslash-`n`/`t`/`r`,
+  a `\x` hex escape, a `\u` escape, a hex digit pair. **RECORDED LIMIT:** the token axis is closed;
+  the context axis is unbounded and covered only as far as this alphabet reaches.
+  **DOCSTRING RULE:** every sentence in a test docstring that asserts a property names the test or
+  measurement that establishes it, or the sentence goes.
+  **RECORDED NEGATIVES (do not re-argue):** the seeded oracle cannot degenerate; `_failures` runs
+  production, so a self-guard ignoring the pattern cannot be written by accident; the span pin
+  catches span-shifting mutants; the end-to-end scanner row is kept; the three-state taxonomy cannot
+  be collapsed without a test going red.
+  **NOT in this clause:** the consumer-contract half (randomised bytes, a constructed clean tree,
+  recording doubles, exact `accession_scanned`, the must-match probe at `:107`). It is signed
+  separately as r2.45, once its byte-sniff-stub kill is MEASURED.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
