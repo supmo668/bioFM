@@ -33,3 +33,7 @@ Also note a documentation conflict. The CTO handoff tells operators to register 
 # Separate item: mutation-gate evidence can be hollow (aviary-biosim #284)
 
 A frozen-mutant runner scored "killed" on any non-zero pytest exit, including 4 (usage error) and 5 (no tests collected). It ran with `-x` and kept no kill set. So "31/31 killed" survived both a renamed test file and edits to the frozen specification. If the plugin grows a mutation-gate primitive (or `REFERENCE-SEALED-TDD` covers mutation evidence), it should: require unmutated-green first; credit a kill only on exit 1 plus a named failure; record kill sets; report "live + retired" instead of a ratio; and diff frozen entries against their frozen form. Same family as the referee skip/--sign defects.
+
+## Idea: an isolated disable-the-guard primitive (aviary-biosim #297)
+
+Fleet rule 4 (disable the guard, count what still passes) needs an isolated copy. Hand-rolled attempts in a live tree get correctly refused by the Claude Code security classifier (lung-on-chipsim #293). Proposed plugin tool: copy HEAD to a temp dir, apply a named neuter, run the suite, verify the tests imported the copy (`m.__file__`), report the survivor count and names, then delete the copy. The goal is a rule that is easier to follow correctly than incorrectly. Plugin-level, not per-module.
