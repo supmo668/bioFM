@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from perturb_eval.experiments.e_v05_real_traces import (
@@ -18,7 +17,6 @@ from perturb_eval.experiments.e_v05_real_traces import (
     analyse_v05_run,
     best_config_per_task,
     median_msd_per_config,
-    tdi_vs_held_out_msd,
 )
 
 
@@ -68,33 +66,6 @@ class TestBestConfigPerTask:
         # (linear, 3, 1) median = 0.2
         entry = next(r for r in median if r["backbone"] == "linear")
         assert entry["median_msd"] == pytest.approx(0.2)
-
-
-class TestTDIVsHeldOutMSD:
-    def test_returns_spearman_float_per_feature(self, tmp_path: Path) -> None:
-        lifecycle = tmp_path / "lifecycle.jsonl"
-        # Build traces where ACE correlates with MSD.
-        rows = []
-        rng = np.random.default_rng(0)
-        for task_i in range(20):
-            # fake ACE feature in steps; msd scales with it
-            ace = 0.1 + task_i * 0.04
-            msd = ace * 5 + rng.normal(0, 0.05)
-            rows.append(
-                {
-                    "task_id": f"t{task_i}",
-                    "seed": 1,
-                    "final_msd_topk": float(msd),
-                    "steps": [
-                        {"agent_name": "Architect", "proposal_content": {"ace_proxy": float(ace)}},
-                    ],
-                }
-            )
-        _write_lifecycle_jsonl(lifecycle, rows)
-        corr = tdi_vs_held_out_msd(lifecycle, feature_path=("Architect", "ace_proxy"))
-        # Positive Spearman since ace_proxy grows with msd.
-        assert corr["spearman"] > 0.8
-        assert corr["n"] == 20
 
 
 class TestAnalyseV05Run:

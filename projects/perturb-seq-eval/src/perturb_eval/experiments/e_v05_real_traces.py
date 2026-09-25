@@ -13,9 +13,10 @@ Emits ``summary.json`` with:
   * best-config-per-task MSD
   * per-dataset medians (Adamson, Norman)
   * Architect choice entropy (backbone + hvg_count fields)
-  * cross-dataset TDI transfer (ρ trained on Adamson applied to Norman)
-  * three pre-registered gate booleans (see Phase 3 gates in
-    ``.claude/plans/v0.5.0-real-perturb-seq.md``)
+  * ``preregistered``: the five pre-registered gates H1-H5
+    (``paper/PREREGISTRATION.md``), computed by
+    :mod:`perturb_eval.experiments.preregistered`, with a PASS/FAIL/UNEVALUATED tally
+  * ``preregistration``: the pre-registration pin copied from record 0
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ from perturb_eval.agentic_lifecycle.freedom_probe import (
     per_agent_field_entropy,
     summarise_choice_distribution,
 )
+from perturb_eval.experiments import preregistered as prereg
 from perturb_eval.experiments.provenance import format_unparseable, read_jsonl_locating
 
 logger = logging.getLogger(__name__)
@@ -139,74 +141,6 @@ def median_msd_per_config(trainer_jsonl: Path) -> list[dict]:
     return out
 
 
-def tdi_vs_held_out_msd(
-    lifecycle_jsonl: Path,
-    *,
-    feature_path: tuple[str, str] = ("Architect", "ace_proxy"),
-) -> dict[str, float]:
-    """Spearman correlation between a lifecycle-trace feature and final MSD.
-
-    ``feature_path`` is ``(agent_name, proposal_field)`` — e.g.
-    ``("Architect", "ace_proxy")`` looks up
-    ``step.proposal_content["ace_proxy"]`` from the first Architect step
-    per trace and correlates with ``final_msd_topk``.
-    """
-    agent, field = feature_path
-    rows = _read_rows(lifecycle_jsonl)
-    xs: list[float] = []
-    ys: list[float] = []
-    for r in rows:
-        if not _finite(r.get("final_msd_topk")):
-            continue
-        feat_val = None
-        for step in r.get("steps", []):
-            if step.get("agent_name") == agent:
-                feat_val = step.get("proposal_content", {}).get(field)
-                break
-        if feat_val is None:
-            continue
-        try:
-            fv = float(feat_val)
-        except (TypeError, ValueError):
-            continue
-        xs.append(fv)
-        ys.append(float(r["final_msd_topk"]))
-    if len(xs) < 3:
-        return {"spearman": float("nan"), "n": len(xs)}
-    # Spearman via rank correlation.
-    rank_x = _rankdata(xs)
-    rank_y = _rankdata(ys)
-    return {"spearman": float(_pearson(rank_x, rank_y)), "n": len(xs)}
-
-
-def _rankdata(x: list[float]) -> list[float]:
-    # Average-rank ties.
-    idx_sorted = sorted(range(len(x)), key=lambda i: x[i])
-    ranks = [0.0] * len(x)
-    i = 0
-    while i < len(x):
-        j = i
-        while j + 1 < len(x) and x[idx_sorted[j + 1]] == x[idx_sorted[i]]:
-            j += 1
-        avg_rank = (i + j) / 2 + 1.0
-        for k in range(i, j + 1):
-            ranks[idx_sorted[k]] = avg_rank
-        i = j + 1
-    return ranks
-
-
-def _pearson(xs: list[float], ys: list[float]) -> float:
-    n = len(xs)
-    mx = sum(xs) / n
-    my = sum(ys) / n
-    num = sum((a - mx) * (b - my) for a, b in zip(xs, ys))
-    dx = math.sqrt(sum((a - mx) ** 2 for a in xs))
-    dy = math.sqrt(sum((b - my) ** 2 for b in ys))
-    if dx == 0 or dy == 0:
-        return 0.0
-    return num / (dx * dy)
-
-
 def _task_key(row: dict) -> Any:
     """Trainer rows use ``task``; lifecycle rows use ``task_id``."""
     return row.get("task", row.get("task_id"))
@@ -303,6 +237,55 @@ def _is_error_record(row: dict) -> bool:
     return "error" in row or "error_class" in row
 
 
+def _preregistration_pin(trainer_prov: dict | None, lifecycle_prov: dict | None) -> dict | None:
+    """The ``preregistration`` record from record 0 (both headers must agree)."""
+    t = (trainer_prov or {}).get("preregistration")
+    lc = (lifecycle_prov or {}).get("preregistration")
+    if t is not None and lc is not None and t != lc:
+        raise ValueError(f"preregistration pin differs between headers: trainer={t!r}, "
+                         f"lifecycle={lc!r}")
+    return lc if lc is not None else t
+
+
+def _norman_strata(prov: dict | None) -> dict[str, str] | None:
+    tasks = (prov or {}).get("tasks") or {}
+    if "norman_singletons" not in tasks and "norman_doublets" not in tasks:
+        return None
+    strata = {t: "singleton" for t in tasks.get("norman_singletons") or []}
+    strata.update({t: "doublet" for t in tasks.get("norman_doublets") or []})
+    return strata
+
+
+def preregistered_results(
+    best_by_dataset: dict[str, dict[str, float]],
+    lifecycle_rows: list[dict],
+    llm_traces: list[list[dict]],
+    *,
+    h_backbone: float | None,
+    backbone_counts: dict[str, int],
+    norman_strata: dict[str, str] | None,
+) -> dict:
+    """H1-H5 in the gate-result shape of :mod:`preregistered`, plus a tally."""
+    arch = [s for t in llm_traces for s in t if s.get("agent_name") == "Architect"]
+    table = prereg.per_task_table(lifecycle_rows)
+    results = {
+        "H1": prereg.h1_h2_stats(best_by_dataset.get("adamson_full", {}),
+                                 prereg.H1_THRESHOLD, gate="H1"),
+        "H2": prereg.h1_h2_stats(best_by_dataset.get("norman", {}), prereg.H2_THRESHOLD,
+                                 gate="H2", strata=norman_strata),
+        "H3": prereg.h3(h_backbone, pick_counts=backbone_counts,
+                        n_llm_steps=sum("backbone" in s.get("proposal_content", {}) for s in arch),
+                        n_distinct_model_ids=len({s.get("model_id") for s in arch
+                                                  if s.get("model_id")})),
+        "H4": prereg.h4(table),
+        "H5": prereg.h5([r for r in table if r["dataset"] == "adamson_full"],
+                        [r for r in table if r["dataset"] == "norman"]),
+    }
+    if norman_strata is None:
+        results["H2"]["strata_reason"] = "no Norman task plan in provenance"
+    return results
+
+
 def analyse_v05_run(
     trainer_jsonl: Path,
     lifecycle_jsonl: Path,
@@ -392,18 +375,17 @@ def analyse_v05_run(
 
     # --- computation ------------------------------------------------------
     best_by_task = best_config_per_task(trainer_jsonl)
-    by_dataset: dict[str, list[float]] = defaultdict(list)
-    for bc in best_by_task.values():
-        ds = str(bc.best_config.get("dataset", "unknown"))
-        by_dataset[ds].append(bc.best_msd)
+    best_by_dataset: dict[str, dict[str, float]] = defaultdict(dict)
+    for task, bc in best_by_task.items():
+        best_by_dataset[str(bc.best_config.get("dataset", "unknown"))][task] = bc.best_msd
 
     median_adamson = (
-        float(statistics.median(by_dataset["adamson_full"]))
-        if by_dataset.get("adamson_full") else float("nan")
+        float(statistics.median(best_by_dataset["adamson_full"].values()))
+        if best_by_dataset.get("adamson_full") else float("nan")
     )
     median_norman = (
-        float(statistics.median(by_dataset["norman"]))
-        if by_dataset.get("norman") else float("nan")
+        float(statistics.median(best_by_dataset["norman"].values()))
+        if best_by_dataset.get("norman") else float("nan")
     )
 
     # T16: entropy/distribution figures use LLM-sourced steps only. Steps
@@ -424,12 +406,20 @@ def analyse_v05_run(
         # Entropy over whole proposals (canonical JSON) for this role.
         entropy_by_role[role] = float(choice_entropy(proposals)) if proposals else None
 
-    gate_adamson: bool | None = (not math.isnan(median_adamson)) and median_adamson < 0.20
-    gate_norman: bool | None = (not math.isnan(median_norman)) and median_norman < 0.30
-    gate_entropy: bool | None = h_backbone is not None and h_backbone >= 0.5
+    # Pre-registered gates H1-H5 (paper/PREREGISTRATION.md).
+    gates = preregistered_results(
+        best_by_dataset, lifecycle_rows, llm_traces,
+        h_backbone=h_backbone, backbone_counts=bb_dist,
+        norman_strata=_norman_strata(prov),
+    )
     if diagnostic:
         # A diagnostic summary never licenses a gate.
-        gate_adamson = gate_norman = gate_entropy = None
+        gates = {k: prereg.not_licensed(v, f"diagnostic summary (status={status}) "
+                                           "never licenses a gate")
+                 for k, v in gates.items()}
+    gate_adamson = gates["H1"]["pass"]
+    gate_norman = gates["H2"]["pass"]
+    gate_entropy = gates["H3"]["pass"]
 
     n_finite_lifecycle = sum(1 for r in lifecycle_rows if _finite(r.get("final_msd_topk")))
 
@@ -459,6 +449,8 @@ def analyse_v05_run(
         "gate_adamson_median_below_0_20": gate_adamson,
         "gate_norman_median_below_0_30": gate_norman,
         "gate_architect_entropy_above_0_5_nats": gate_entropy,
+        "preregistered": {**gates, "tally": prereg.tally(gates)},
+        "preregistration": _preregistration_pin(trainer_prov, lifecycle_prov),
         "best_config_per_task": {
             k: asdict(v) for k, v in best_by_task.items()
         },

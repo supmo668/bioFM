@@ -217,7 +217,8 @@ class TestLlmOnlyEntropy:
         assert s["architect_backbone_entropy_nats"] is None
         assert s["architect_hvg_entropy_nats"] is None
         assert s["architect_backbone_distribution"] == {}
-        assert s["gate_architect_entropy_above_0_5_nats"] is False
+        # Not evaluable (no LLM-sourced Architect step) -> None, never False by default.
+        assert s["gate_architect_entropy_above_0_5_nats"] is None
 
     def test_all_fallback_diagnostic_entropy_null(self, tmp_path: Path) -> None:
         t, l = _run(tmp_path, [_trainer_row("T0")],
