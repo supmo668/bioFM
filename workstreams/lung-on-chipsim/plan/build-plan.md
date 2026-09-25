@@ -447,7 +447,7 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   probe bodies passed every test in the file. An enumerated probe set's coverage is its author's
   imagination.*
   **SPEC SENTENCE** *(CTO change: the agent's draft said "exactly five digits, the first of which is
-  not `9`". CTO-measured that the shipped pattern matches the first five digits of `DB000001` and
+  not `9`". CTO-measured that the shipped pattern matches the first five digits of a six-digit run and
   matches a leading Arabic-Indic nine. Both are fail-closed and correct, but the sentence as drafted
   described neither, and the sentence is the one thing a human checks)*: **an accession is the two
   ASCII characters `DB` (case-sensitive) followed by five characters that are each a Unicode decimal
@@ -470,12 +470,17 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **Measured before signing (#370):** 7,466,645 generated strings; the shipped pattern agrees with
   the reference (0 disagreements); all 17 known-wrong patterns are killed, including the
   lookup-table pattern (4,458,001 disagreements), the three trailing-blind survivors, `\d{4}[0-8]`,
-  and the `(?![a-z])` and `(?![0-9])` trailing guards (killed behaviourally on `DB00014z` /
-  `DB000147`).
+  and the `(?![a-z])` and `(?![0-9])` trailing guards (killed behaviourally: on a token followed by a lowercase letter, and on a token followed by a sixth digit).
   **STATED CONTEXT ALPHABET, on BOTH sides** (its incompleteness is a recorded limit): empty, letter,
   digit, underscore, quote, hyphen, dot, comma, colon, paren, space, newline, backslash-`n`/`t`/`r`,
   a `\x` hex escape, a `\u` escape, a hex digit pair. **RECORDED LIMIT:** the token axis is closed;
   the context axis is unbounded and covered only as far as this alphabet reaches.
+  **SHAPES, NOT VALUES (r2.44 re-sign):** plan, clause and dispatch text describes example tokens by
+  SHAPE (e.g. "a token followed by a lowercase letter"), never as contiguous accession-shaped values.
+  Concrete values live only in test code, under the assembled-fragment convention
+  (`test_record_content_guard.py:70-74`). Dispatches are content-exempt, so a value that looks safe
+  there becomes a live-gate failure when it is copied into a non-exempt file. Never pay for an example
+  with a ledger exemption of the plan itself.
   **DOCSTRING RULE:** every sentence in a test docstring that asserts a property names the test or
   measurement that establishes it, or the sentence goes.
   **RECORDED NEGATIVES (do not re-argue):** the seeded oracle cannot degenerate; `_failures` runs
