@@ -51,6 +51,8 @@ The on-disk `.v2r/` state is **not drain 1.** `dashboard/seed_demo_run.py` wrote
 | W1 | Draft `paper/main.tex` (D3/D4 structure, §5) | TeX + PDF | — |
 | P1 | `paper/publish.yml` per `PUBLICATION_PIPELINE_SPEC.md` §12 (`topic` required, no default; authors/ORCID **principal-supplied at the publish gate**, no placeholders) | yml | — |
 
+**Evidence-location rule (added 2026-09-25, #290):** `science/out/` is gitignored and does not exist in worktrees. A3/A4 read published inputs from an explicit absolute main-checkout path passed as an argument. A missing or empty input directory is an **error**, never a finding of "unrecoverable". "Unrecoverable" may be reported only after checking the right location, and must name the path checked. A3c's torch + ESM-2 650M install is authorised inside the #272 plan: project-scoped environment only, versions and weights sha256 recorded, weights never committed.
+
 Every run logs and saves its exact config (git SHA, model ids, seeds, versions) next to its output. This is a standing rule.
 
 ## 5. Paper outline
