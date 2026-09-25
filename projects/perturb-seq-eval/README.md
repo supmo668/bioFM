@@ -96,16 +96,19 @@ synthetic-cell generator is reintroduced under `src/`, `scripts/` or `paper/`.
 ## Reproducing the sweep
 
 ```bash
-# OPENROUTER_API_KEY must be present in the environment (never written to disk);
-# preflight refuses the whole run without it.
-modal run scripts/modal/app_v05.py::entrypoint
+# From projects/perturb-seq-eval. OPENROUTER_API_KEY is injected by Infisical at
+# run time (never written to disk); OPENROUTER_KEY_SOURCE records where it came
+# from. Preflight refuses the whole run without either, and also requires the
+# pinned pre-registration: paper/PREREGISTRATION.md tracked and committed with
+# no local edits. Spend: stop-and-report above $12, hard kill at $28.
+OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
+    --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \
+    modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
+    --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
 
-# Analyse the downloaded run files (refuses mismatched task sets, fallback
-# steps, and unfinished runs)
-python -m perturb_eval.experiments.e_v05_real_traces \
-    --trainer artifacts/v0.6.0/trainer_runs.jsonl \
-    --lifecycle artifacts/v0.6.0/lifecycle_runs.jsonl \
-    --out artifacts/v0.6.0/summary.json
+# Analyse the downloaded run files (refuses mismatched (dataset, task) sets,
+# fallback steps, unfinished or unpinned runs); defaults to artifacts/v0.6.0
+python -m perturb_eval.experiments.e_v05_real_traces artifacts/v0.6.0
 ```
 
 ## Relationship to the other projects

@@ -79,6 +79,9 @@ validation/test split.
 
 \subsection{Agentic lifecycle}\label{subsec:lifecycle}
 
+% PENDING principal ruling C2/C3/C8: the DataCurator, Architect and Validator
+% items below describe the schema fields; whether each field is applied by the
+% executors is under ruling and this list is revised after it.
 Five agents --- DataCurator, Literature, Architect, Trainer, Validator ---
 produce Pydantic-validated proposals over the following configuration space:
 
@@ -87,9 +90,10 @@ produce Pydantic-validated proposals over the following configuration space:
   \texttt{hvg\_count}$\in$\{500, 1000, 2000, 5000\},
   \texttt{qc\_mito\_max}, \texttt{split\_strategy}$\in$\{per\_pert\_holdout, unseen\_gene\},
   \texttt{batch\_correction}$\in$\{none, combat, harmony\}.
-  \item \textbf{Literature}: BioGPT mechanism retrieval plus PubMed
-  E-utilities and STRING-DB neighbour queries; output is a structured pathway
-  prior and PPI neighbours for the Architect.
+  \item \textbf{Literature}: an LLM prompt with no retrieval tools (no
+  database or search access); its JSON reply is validated against the Literature
+  schema (pathway prior, expected up/down-regulated genes), and the expected
+  genes are passed to the next round's Architect prompt.
   \item \textbf{Architect}: backbone $\in$\{linear, mlp, scgpt\_small\},
   \texttt{n\_agents}$\in$[2,8], \texttt{n\_rounds}$\in$[1,5],
   \texttt{hvg\_count}, \texttt{learning\_rate}$>0$,
