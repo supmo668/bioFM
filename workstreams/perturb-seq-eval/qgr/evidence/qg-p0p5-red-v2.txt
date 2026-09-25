@@ -1,0 +1,195 @@
+# QG P0-P5 RED re-run (CTO #363/#390). Supersedes VOID qg-p0p5-red.txt.
+# Scratch git worktree at 451f730 (pre-fix) + ONLY tests/test_qg_p0p5_fixes.py; fresh uv venv (live freeze, editable).
+# Provenance from inside pytest: /private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/__init__.py
+# No reviewer alive. pytest exit read directly: 1. Result: 68 failed, 6 passed.
+# Classification: 44 API-surface reds (33 missing symbol ImportError/AttributeError, 11 missing kwarg TypeError),
+#   24 behavioural reds (DID NOT RAISE x6, assert/AssertionError x15, KeyError x3). No collection/env errors.
+# 6 pre-fix passes = negative controls (already-correct invariants that must hold before AND after):
+#   test_clean_run_record_is_not_an_error_record, test_pinned_fixture_is_evaluable, test_pins_differ_raise,
+#   test_partial_diagnostic_withdraws_all_five, test_tally_counts_none_as_unevaluated, test_non_preregistered_version_may_shrink
+## --tb=line transcript
+FFF.FFFFFFFFFFFFFFFFF.FF.F..FFF.FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF [ 97%]
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+E   AssertionError: Regex pattern did not match.
+      Expected regex: 'bad arg'
+      Actual message: "run_agentic_lifecycle() got an unexpected keyword argument 'dataset'"
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:90: AssertionError: Regex pattern did not match.
+E   TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:62: TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+E   AssertionError: assert False
+     +  where False = <function _is_error_record at 0x10d62f2e0>({'task_id': 'D', 'steps': ({'round_index': 0, 'agent_name': 'DataCurator', 'proposal_content': {'n_top_hvg': 40, 'pct_...reshold_msd': 0.5}, 'rationale': 'stub validator', ...}), 'final_msd_topk': inf, 'final_validator_agreement': 0.0, ...})
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:106: AssertionError: assert False
+E   TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:62: TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+E   TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:62: TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+E   KeyError: 'norman:B'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:160: KeyError: 'norman:B'
+E   TypeError: _cache_key() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:170: TypeError: _cache_key() got an unexpected keyword argument 'dataset'
+E   Failed: DID NOT RAISE TypeError
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:176: Failed: DID NOT RAISE TypeError
+E   TypeError: OpenRouterClient.chat_json() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:190: TypeError: OpenRouterClient.chat_json() got an unexpected keyword argument 'dataset'
+E   TypeError: LLMAgentPool.propose() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:214: TypeError: LLMAgentPool.propose() got an unexpected keyword argument 'dataset'
+E   TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:62: TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+E   TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:62: TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+E   Failed: DID NOT RAISE TypeError
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:238: Failed: DID NOT RAISE TypeError
+E   TypeError: build_provenance() got an unexpected keyword argument 'llm_cache_dir'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:261: TypeError: build_provenance() got an unexpected keyword argument 'llm_cache_dir'
+E   ImportError: cannot import name 'training_device' from 'perturb_eval.backbones.scgpt_small' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:276: ImportError: cannot import name 'training_device' from 'perturb_eval.backbones.scgpt_small' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py)
+E   AssertionError: assert 'cuda' in []
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:299: AssertionError: assert 'cuda' in []
+E   TypeError: build_provenance() got an unexpected keyword argument 'device'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:261: TypeError: build_provenance() got an unexpected keyword argument 'device'
+E   KeyError: 'adamson_full:SNAI1'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:360: KeyError: 'adamson_full:SNAI1'
+E   Failed: DID NOT RAISE ValueError
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:371: Failed: DID NOT RAISE ValueError
+E   AttributeError: module 'perturb_eval.experiments.preregistered' has no attribute 'task_key'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:376: AttributeError: module 'perturb_eval.experiments.preregistered' has no attribute 'task_key'
+E   AssertionError: assert 'ok' == 'UNPINNED'
+      
+      - UNPINNED
+      + ok
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:416: AssertionError: assert 'ok' == 'UNPINNED'
+E   AssertionError: assert 'ok' == 'UNPINNED'
+      
+      - UNPINNED
+      + ok
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:422: AssertionError: assert 'ok' == 'UNPINNED'
+E   AssertionError: H1
+    assert True is None
+------------------------------ Captured log call -------------------------------
+WARNING  perturb_eval.experiments.e_v05_real_traces:e_v05_real_traces.py:178 legacy artifact without provenance record: /private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-1503/test_legacy_no_provenance_is_d0/trainer_runs.jsonl, /private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-1503/test_legacy_no_provenance_is_d0/lifecycle_runs.jsonl
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:408: AssertionError: H1
+E   Failed: DID NOT RAISE PreflightError
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:471: Failed: DID NOT RAISE PreflightError
+E   Failed: DID NOT RAISE PreflightError
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:471: Failed: DID NOT RAISE PreflightError
+E   Failed: DID NOT RAISE PreflightError
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:471: Failed: DID NOT RAISE PreflightError
+E   ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:487: ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:494: ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:499: ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:505: ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'provenance_entropies' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:510: ImportError: cannot import name 'provenance_entropies' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'provenance_entropies' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:521: ImportError: cannot import name 'provenance_entropies' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   AssertionError: assert {'derive_stat...ce_entropies'} <= {'LLMAgentPoo..._append', ...}
+      
+      Extra items in the left set:
+      'derive_status'
+      'provenance_entropies'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:535: AssertionError: assert {'derive_stat...ce_entropies'} <= {'LLMAgentPoo..._append', ...}
+E   ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:544: ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:544: ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:544: ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:544: ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:544: ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:544: ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   KeyError: 'spend_stop_usd'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:551: KeyError: 'spend_stop_usd'
+E   TypeError: finalize_provenance() got an unexpected keyword argument 'stop_reason'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:562: TypeError: finalize_provenance() got an unexpected keyword argument 'stop_reason'
+E   AttributeError: module 'perturb_eval.data.label_contract' has no attribute 'CONTROL_PREDICATES'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:576: AttributeError: module 'perturb_eval.data.label_contract' has no attribute 'CONTROL_PREDICATES'
+E   AssertionError: 63(mod)_pBA580
+    assert False
+     +  where False = <function is_control at 0x10d8336a0>('63(mod)_pBA580')
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:590: AssertionError: 63(mod)_pBA580
+E   AttributeError: module 'perturb_eval.data.label_contract' has no attribute 'is_norman_control'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:596: AttributeError: module 'perturb_eval.data.label_contract' has no attribute 'is_norman_control'
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:607: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:607: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:607: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:607: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:614: ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   ImportError: cannot import name 'version_out_dir' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:621: ImportError: cannot import name 'version_out_dir' from 'perturb_eval.experiments.v05_sweep' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py)
+E   AssertionError: assert 'version_out_dir' in {'LLMAgentPool', 'OpenRouterClient', 'Path', 'ValueError', '_abort', '_append', ...}
+     +  where {'LLMAgentPool', 'OpenRouterClient', 'Path', 'ValueError', '_abort', '_append', ...} = _called_names(<ast.FunctionDef object at 0x11f6b1d10>)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:626: AssertionError: assert 'version_out_dir' in {'LLMAgentPool', 'OpenRouterClient', 'Path', 'ValueError', '_abort', '_append', ...}
+E   AssertionError: scripts/modal/app_v05.py
+    assert 'OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b...dal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3' in '"""v0.5.0 single-stage Modal sweep: real Adamson + Norman, A100, budget-capped. Design: * A100-40G ($1.32/hr Modal) w...ty={git_dirty} config={cfg}") out = run_v05_sweep.remote(**sweep_kwargs) print(json.dumps(out, indent=2, default=str))'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:637: AssertionError: scripts/modal/app_v05.py
+E   AssertionError: README.md
+    assert 'OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b...dal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3' in '# Project 3 — Perturb-Seq Agentic Evaluation (Thesis Infrastructure) Companion code for the paper [`paper/paper.tex`]...ang-lab/scGPT](https://github.com/bowang-lab/scGPT) - MassGen, [Leezekun/MassGen](https://github.com/Leezekun/MassGen)'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:637: AssertionError: README.md
+E   AssertionError: paper/README.md
+    assert 'OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b...dal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3' in '# Paper — Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agenti...erturb repackaging, Zenodo record 13350497, with SHA-256-pinned fetchers. ## License Apache-2.0 (see repository root).'
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:637: AssertionError: paper/README.md
+E   ImportError: cannot import name 'parse_cli' from 'perturb_eval.experiments.e_v05_real_traces' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:642: ImportError: cannot import name 'parse_cli' from 'perturb_eval.experiments.e_v05_real_traces' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py)
+E   ImportError: cannot import name 'parse_cli' from 'perturb_eval.experiments.e_v05_real_traces' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py)
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:652: ImportError: cannot import name 'parse_cli' from 'perturb_eval.experiments.e_v05_real_traces' (/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py)
+E   assert '[v0.5.0]' not in '"""v0.5.0 s...ault=str))\n'
+      
+      '[v0.5.0]' is contained here:
+                f"[v0.5.0] adamson loaded: {task_plan.eligible_counts['adamson']} TFs "
+      ?           ++++++++
+                    f"total, subsampled to {len(adamson_tasks)} stratified by |logFC|"
+                )
+        ...
+      
+      ...Full output truncated (315 lines hidden), use '-vv' to show
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:661: assert '[v0.5.0]' not in '"""v0.5.0 s...ault=str))\n'
+E   AssertionError: BioGPT
+    assert 'BioGPT' not in '% Experimen...nce.json}.\n'
+      
+      'BioGPT' is contained here:
+        erature}: BioGPT mechanism retrieval plus PubMed
+      ?           ++++++
+          E-utilities and STRING-DB neighbour queries; output is a structured pathway
+          prior and PPI neighbours for the Architect.
+          \item \textbf{Architect}: backbone $\in$\{linear, mlp, scgpt\_small\},...
+      
+      ...Full output truncated (41 lines hidden), use '-vv' to show
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:669: AssertionError: BioGPT
+E   subprocess.CalledProcessError: Command '['/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/.venv/bin/python', '-c', "from perturb_eval.agentic_lifecycle.loop import MockAgentPool;print(MockAgentPool(seed=0).propose('DataCurator', 0, 't', {}, seed=0, dataset='d')['confidence'])"]' returned non-zero exit status 1.
+/opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py:571: subprocess.CalledProcessError: Command '['/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/.venv/bin/python', '-c', "from perturb_eval.agentic_lifecycle.loop import MockAgentPool;print(MockAgentPool(seed=0).propose('DataCurator', 0, 't', {}, seed=0, dataset='d')['confidence'])"]' returned non-zero exit status 1.
+E   AttributeError: module 'perturb_eval.experiments.preregistered' has no attribute 'rho'. Did you mean: '_rho'?
+/private/tmp/claude-501/pse-red/projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py:688: AttributeError: module 'perturb_eval.experiments.preregistered' has no attribute 'rho'. Did you mean: '_rho'?
+==================================== PASSES ====================================
+____ TestC10C18PinAndDiagnostic.test_partial_diagnostic_withdraws_all_five _____
+------------------------------ Captured log call -------------------------------
+WARNING  perturb_eval.experiments.e_v05_real_traces:e_v05_real_traces.py:370 run partial/unfinished: provenance status='partial', finished_at=1.0; analyser refuses to summarise — computing DIAGNOSTIC-ONLY summary (reason: diagnosis)
+68 failed, 6 passed in 23.41s

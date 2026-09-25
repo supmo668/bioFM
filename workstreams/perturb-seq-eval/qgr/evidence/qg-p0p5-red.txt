@@ -1,0 +1,84 @@
+# QG P0-P5 accepted-finding fixes — RED transcript
+# pre-fix tree: git 451f730 (+ new tests only), 2026-09-25T10:15:52Z
+
+## 1. .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_qg_p0p5_fixes.py tests/test_data_download.py -rf --tb=no
+FAILED tests/test_qg_p0p5_fixes.py::TestC4TrainerErrorTaxonomy::test_type_error_propagates - AssertionError: Regex pattern did not match.
+FAILED tests/test_qg_p0p5_fixes.py::TestC4TrainerErrorTaxonomy::test_backbone_unavailable_propagates - TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC4TrainerErrorTaxonomy::test_memory_error_gives_flagged_error_record - AssertionError: assert False
+FAILED tests/test_qg_p0p5_fixes.py::TestC15ParamsPerRound::test_backbone_and_params_recorded_per_round - TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC15ParamsPerRound::test_n_params_reset_when_last_round_fails - TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC15ParamsPerRound::test_collect_params_uses_per_round_pairs - KeyError: 'norman:B'
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_dataset_is_in_the_cache_key - TypeError: _cache_key() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_dataset_is_required - Failed: DID NOT RAISE TypeError
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_chat_result_flags_cache_hit - TypeError: OpenRouterClient.chat_json() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_pool_threads_dataset_and_flags_cache_hit - TypeError: LLMAgentPool.propose() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_loop_passes_dataset_and_records_cache_hit_on_step - TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_mock_steps_have_no_cache_flag - TypeError: run_agentic_lifecycle() got an unexpected keyword argument 'dataset'
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_run_requires_dataset - Failed: DID NOT RAISE TypeError
+FAILED tests/test_qg_p0p5_fixes.py::TestC6CacheKeyAndFlag::test_provenance_records_cache_dir - TypeError: build_provenance() got an unexpected keyword argument 'llm_cache_dir'
+FAILED tests/test_qg_p0p5_fixes.py::TestC9ScgptDevice::test_cpu_device_recorded - ImportError: cannot import name 'training_device' from 'perturb_eval.backbones.scgpt_small' (src/perturb_eval/backbones/scgpt_small.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC9ScgptDevice::test_cuda_available_moves_model_and_tensors - AssertionError: assert 'cuda' in []
+FAILED tests/test_qg_p0p5_fixes.py::TestC9ScgptDevice::test_provenance_records_device - TypeError: build_provenance() got an unexpected keyword argument 'device'
+FAILED tests/test_qg_p0p5_fixes.py::TestC5DatasetTaskKey::test_snai1_in_both_datasets_counts_once_each - KeyError: 'adamson_full:SNAI1'
+FAILED tests/test_qg_p0p5_fixes.py::TestC5DatasetTaskKey::test_same_task_name_in_different_datasets_raises - Failed: DID NOT RAISE ValueError
+FAILED tests/test_qg_p0p5_fixes.py::TestC5DatasetTaskKey::test_one_task_key_helper - AttributeError: module 'perturb_eval.experiments.preregistered' has no attribute 'task_key'
+FAILED tests/test_qg_p0p5_fixes.py::TestC10C18PinAndDiagnostic::test_unpinned_run_is_diagnostic - AssertionError: assert 'ok' == 'UNPINNED'
+FAILED tests/test_qg_p0p5_fixes.py::TestC10C18PinAndDiagnostic::test_null_pin_is_unpinned - AssertionError: assert 'ok' == 'UNPINNED'
+FAILED tests/test_qg_p0p5_fixes.py::TestC10C18PinAndDiagnostic::test_legacy_no_provenance_is_diagnostic - AssertionError: H1
+FAILED tests/test_qg_p0p5_fixes.py::TestC12PreregisteredDesignLocked::test_preregistered_version_refuses_shrunk_design[over0] - Failed: DID NOT RAISE PreflightError
+FAILED tests/test_qg_p0p5_fixes.py::TestC12PreregisteredDesignLocked::test_preregistered_version_refuses_shrunk_design[over1] - Failed: DID NOT RAISE PreflightError
+FAILED tests/test_qg_p0p5_fixes.py::TestC12PreregisteredDesignLocked::test_preregistered_version_refuses_shrunk_design[over2] - Failed: DID NOT RAISE PreflightError
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_fallback_beats_budget - ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_exactly_at_cap_is_ok - ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_transient_errors_alone_are_ok - ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_stop_reason_is_partial - ImportError: cannot import name 'derive_status' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_entropies_none_without_llm_steps - ImportError: cannot import name 'provenance_entropies' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_entropies_match_the_analyser_llm_only - ImportError: cannot import name 'provenance_entropies' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC14StatusAndEntropies::test_app_v05_uses_the_single_producers - AssertionError: assert {'derive_stat...ce_entropies'} <= {'LLMAgentPoo..._append', ...}
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_spend_guard_boundaries_strict[0.0-None] - ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_spend_guard_boundaries_strict[12.0-None] - ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_spend_guard_boundaries_strict[12.0001-spend_stop] - ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_spend_guard_boundaries_strict[28.0-spend_stop] - ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_spend_guard_boundaries_strict[28.0001-hard_kill] - ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_spend_guard_boundaries_strict[100.0-hard_kill] - ImportError: cannot import name 'spend_guard' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_sweep_kwarg_default_and_recorded - KeyError: 'spend_stop_usd'
+FAILED tests/test_qg_p0p5_fixes.py::TestOwn1SpendStop::test_finalize_records_stop_reason_and_cost - TypeError: finalize_provenance() got an unexpected keyword argument 'stop_reason'
+FAILED tests/test_qg_p0p5_fixes.py::TestC16ControlPredicates::test_one_predicate_per_dataset_in_label_contract - AttributeError: module 'perturb_eval.data.label_contract' has no attribute 'CONTROL_PREDICATES'
+FAILED tests/test_qg_p0p5_fixes.py::TestC16ControlPredicates::test_perturbations_is_control_delegates - AssertionError: 63(mod)_pBA580
+FAILED tests/test_qg_p0p5_fixes.py::TestC16ControlPredicates::test_loaders_use_the_contract_predicates - AttributeError: module 'perturb_eval.data.label_contract' has no attribute 'is_norman_control'
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_good[v0.6.0] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_good[v0.6.0-smoke] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_good[v1.2.3rc1] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_good[v0.6.0.a_b] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[v0.6] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[0.6.0] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[../etc] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[v0.6.0/../../etc] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[/abs] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[v0.6.0 x] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[v0.6.0/sub] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_bad[v0.6.0\n] - ImportError: cannot import name 'validate_version' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_resolves_under_root - ImportError: cannot import name 'version_out_dir' from 'perturb_eval.experiments.v05_sweep' (src/perturb_eval/experiments/v05_sweep.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC22VersionValidated::test_app_v05_uses_it - AssertionError: assert 'version_out_dir' in {'LLMAgentPool', 'OpenRouterClient', 'Path', 'ValueError', '_abort', '_append', ...}
+FAILED tests/test_qg_p0p5_fixes.py::TestC23C24DocsAndCli::test_exact_command_documented[scripts/modal/app_v05.py] - AssertionError: scripts/modal/app_v05.py
+FAILED tests/test_qg_p0p5_fixes.py::TestC23C24DocsAndCli::test_exact_command_documented[README.md] - AssertionError: README.md
+FAILED tests/test_qg_p0p5_fixes.py::TestC23C24DocsAndCli::test_exact_command_documented[paper/README.md] - AssertionError: paper/README.md
+FAILED tests/test_qg_p0p5_fixes.py::TestC23C24DocsAndCli::test_cli_defaults_to_v060 - ImportError: cannot import name 'parse_cli' from 'perturb_eval.experiments.e_v05_real_traces' (src/perturb_eval/experiments/e_v05_real_traces.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC23C24DocsAndCli::test_cli_positional_dir - ImportError: cannot import name 'parse_cli' from 'perturb_eval.experiments.e_v05_real_traces' (src/perturb_eval/experiments/e_v05_real_traces.py)
+FAILED tests/test_qg_p0p5_fixes.py::TestC23C24DocsAndCli::test_no_v050_log_tags - assert '[v0.5.0]' not in '"""v0.5.0 s...ault=str))\n'
+FAILED tests/test_qg_p0p5_fixes.py::TestC11LiteratureParagraph::test_literature_role_is_a_bare_prompt - AssertionError: BioGPT
+FAILED tests/test_qg_p0p5_fixes.py::TestC27Nits::test_mock_pool_is_hashseed_independent - subprocess.CalledProcessError: Command '['.venv/bin/python', '-c', "from perturb_eval.agentic_lifecycle.loop import MockAgentPool;print(MockAgentPool(seed=0).propose('Dat
+FAILED tests/test_qg_p0p5_fixes.py::TestC27Nits::test_rho_is_public_with_private_alias - AttributeError: module 'perturb_eval.experiments.preregistered' has no attribute 'rho'. Did you mean: '_rho'?
+68 failed, 28 passed in 17.51s
+
+## 2. Behavioural probes with the PRE-FIX API (reds above that fail on the new 'dataset' kw first)
+C4 RED: TypeError from backbone.fit did NOT propagate; final_msd_topk = inf ; trainer succeeded = [False]
+C15 RED: round0=mlp ok, round1=linear failed -> backbone_used = linear n_params = 1410 (mlp count filed under linear); per-round field: False
+C27 RED PYTHONHASHSEED=0 -> DataCurator confidence 0.7099040746296228
+C27 RED PYTHONHASHSEED=1 -> DataCurator confidence 0.7727331425430098
+C27 RED PYTHONHASHSEED=12345 -> DataCurator confidence 0.7505135871454225
+
+## 3. C17 (test-only defect): the OLD test's scenario raised a SHA256 *mismatch* after calling _download
+C17 RED: ValueError = SHA256 mismatch for /var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/tmp52ujiu3j/Adamson2016_pilot.h5ad | _download called: True
+(the rewritten test unpins all three specs and asserts match='no SHA256 pin' + _download not called; it passes on the pre-fix production code because the defect was in the test)

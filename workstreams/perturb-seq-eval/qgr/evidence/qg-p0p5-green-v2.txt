@@ -1,0 +1,123 @@
+# QG P0-P5 GREEN re-run on a verified tree (CTO #363/#390). Supersedes VOID qg-p0p5-green.txt.
+# No reviewer or other agent running; the other session (b6e15309) has been idle since 13:33Z.
+pytest_exit=0  bracketA_rc=0  bracketE_rc=0  A_vs_E_diff_rc=0 (0 = byte-identical)
+--- pytest summary
+........................................................................ [ 96%]
+............................                                             [100%]
+748 passed in 36.77s
+--- bracket A
+## bracket A  2026-09-25T19:46:06Z  HEAD=83c647bbfc65ce4a86aa7f429ae7599ac058995c  gated=37
+### status (excluding monitor-pids + evidence)
+ M projects/perturb-seq-eval/README.md
+ M projects/perturb-seq-eval/paper/README.md
+ M projects/perturb-seq-eval/paper/sections/experimental_setup.tex
+ M projects/perturb-seq-eval/scripts/local/prereg_null_fwer.py
+ M projects/perturb-seq-eval/scripts/local/run_lifecycle_dryrun.py
+ M projects/perturb-seq-eval/scripts/local/v05_dry_run.py
+ M projects/perturb-seq-eval/scripts/modal/app_lifecycle.py
+ M projects/perturb-seq-eval/scripts/modal/app_lifecycle_optimizer.py
+ M projects/perturb-seq-eval/scripts/modal/app_v05.py
+ M projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/cellforge_pool.py
+ M projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/llm_agent_pool.py
+ M projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py
+ M projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py
+ M projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py
+ M projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py
+ M projects/perturb-seq-eval/src/perturb_eval/data/label_contract.py
+ M projects/perturb-seq-eval/src/perturb_eval/data/perturbations.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/norman.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/preregistered.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/provenance.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/v05_preflight.py
+ M projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py
+ M projects/perturb-seq-eval/src/perturb_eval/llm/openrouter_client.py
+ M projects/perturb-seq-eval/tests/test_agentic_lifecycle.py
+ M projects/perturb-seq-eval/tests/test_data_download.py
+ M projects/perturb-seq-eval/tests/test_e_v05_real_traces.py
+ M projects/perturb-seq-eval/tests/test_freedom_e2e.py
+ M projects/perturb-seq-eval/tests/test_hvg.py
+ M projects/perturb-seq-eval/tests/test_llm_agent_pool.py
+ M projects/perturb-seq-eval/tests/test_llm_cache_key.py
+ M projects/perturb-seq-eval/tests/test_openrouter_client.py
+ M projects/perturb-seq-eval/tests/test_provenance.py
+ M projects/perturb-seq-eval/tests/test_v05_analysis.py
+ M projects/perturb-seq-eval/tests/test_v05_sweep.py
+?? projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py
+### digests
+78973d35faced8aece5a73190e6f0161caf7995014e369d915196d13c31de238  projects/perturb-seq-eval/paper/README.md
+38164d9c4e2c2674ce6dc9032d6a1ad002fe1eea7fb3deb3d7ab1cb31d09f10c  projects/perturb-seq-eval/paper/sections/experimental_setup.tex
+46f8f4a741cc4f0d7835b2e53890b07670c9770e110fcc3a68b944d24a4f21c1  projects/perturb-seq-eval/README.md
+2dbfc9168396511ba5e63199b61310472fb87a61506621c43525b27505f6959a  projects/perturb-seq-eval/scripts/local/prereg_null_fwer.py
+13e7b0c4e71eeff0941fbad3d1a5892fede5f360eb3f9e68d53511df035c6865  projects/perturb-seq-eval/scripts/local/run_lifecycle_dryrun.py
+4a8323340394dc8560c39814c8d9ab982212f7fbe88656fb753057a82d0c5881  projects/perturb-seq-eval/scripts/local/v05_dry_run.py
+eda9264bf1dac9cbecb89912d0d922f9b4b6ba21adad2b8b1c448ae4fb299e83  projects/perturb-seq-eval/scripts/modal/app_lifecycle_optimizer.py
+b6e5da39d682a874657e687f8fdc8295664312e808288849490caca1fdd043a1  projects/perturb-seq-eval/scripts/modal/app_lifecycle.py
+db08a0d89d7fc3d674f7c6d69de96785635cdd86b6f47762889b1ebea3aa05db  projects/perturb-seq-eval/scripts/modal/app_v05.py
+b806aae4bebc385ca9d2c281730bc89007a24d3859b7ffec56de338ba36eaa66  projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/cellforge_pool.py
+a1c11863f906491181a09f8f75568649cea7d3754a4adf1fe582a11e0fd14ca0  projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/llm_agent_pool.py
+84088ddeff59b63f3faaa093c70f4ff4b523f76e29abc221bfa0cb274a965e71  projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/loop.py
+47c898425de32affcc92d78b7d3957dd72ae9a5e86bf9009221dc9d667975fe6  projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/trainer_exec.py
+8b2097dc606ce28652cf10f60ac2af04da6e624debe08272c6e2c561a040a68f  projects/perturb-seq-eval/src/perturb_eval/agentic_lifecycle/types.py
+4a65f78e3700122c07d91282a389e59a3b189890ec38fe1d7abbc1d3bc833e40  projects/perturb-seq-eval/src/perturb_eval/backbones/scgpt_small.py
+24a9656b1f8e4ca961ee871b42f5936fd6e94f2e84651bb7b8562f4dfb8bc405  projects/perturb-seq-eval/src/perturb_eval/data/label_contract.py
+ca10cd318487b2294091ab13b22563f11c8fe6c152245943b94f5602d6c64f32  projects/perturb-seq-eval/src/perturb_eval/data/perturbations.py
+16796c0d1017f5561b4fc189e2e4a36268f588d0152e4303748ef8086f28dd4e  projects/perturb-seq-eval/src/perturb_eval/experiments/e_v05_real_traces.py
+c8d61d2a9cf034fac5f55f65ff7aa9195b4fa46b85e42384d94058aede84a19a  projects/perturb-seq-eval/src/perturb_eval/experiments/e2_adamson.py
+c19e9ce7dce2b188224d913511552cfef1e856f8e57da68deb946fdbdbe880b6  projects/perturb-seq-eval/src/perturb_eval/experiments/norman.py
+5b5d5241be835bcacc358667c2e75c08659724d6d2e2e4024d3bb14a13ba22c9  projects/perturb-seq-eval/src/perturb_eval/experiments/preregistered.py
+5853a25878214bbeaedc3beecedbc5454971d93732c3ee3aef1e563d26a9abe2  projects/perturb-seq-eval/src/perturb_eval/experiments/provenance.py
+e8c757f3e7e907181ab67e07dc2aaa12ac8e1a5a9c65fbd41fe19d7edca3a8f6  projects/perturb-seq-eval/src/perturb_eval/experiments/v05_preflight.py
+2ff6badfa55b8537819ddec60847fd2402b33f9811d4afc363d02fbe08baa428  projects/perturb-seq-eval/src/perturb_eval/experiments/v05_sweep.py
+8b1341f1ddeacda99df67f788831ccd38b7deb5ff7a7f0b5cfd9fd05b6e972a4  projects/perturb-seq-eval/src/perturb_eval/llm/openrouter_client.py
+2190332aea3ff16dc77e1dfca8eb7aa22ceec8a2ebf313c5d21e411cb32907b3  projects/perturb-seq-eval/tests/test_agentic_lifecycle.py
+1d22e9236cca994911b320b1fdd13936db45a5a4cce3b6129c6868efe6bc0609  projects/perturb-seq-eval/tests/test_data_download.py
+aa0d8f25cc9f3bb4c99f33941f51e28e919c85df518f9877a4a2cc6e0bc79001  projects/perturb-seq-eval/tests/test_e_v05_real_traces.py
+56ecb153cab07629cef3bcbe8e8d28a86ffc224e4d9d32db872dbac9f204fdd6  projects/perturb-seq-eval/tests/test_freedom_e2e.py
+c4a33c224d9009bc27268f5076603fa21775a070e494ef58e0d2b56b07583337  projects/perturb-seq-eval/tests/test_hvg.py
+c0431633b01eaf00a753e86abb93a4ceee1372e164082ef0ffe5d19c0a5cbeae  projects/perturb-seq-eval/tests/test_llm_agent_pool.py
+d6c721116117441a51947ac45cf620626d748ddfd4d1dc5557de1399de8de8ee  projects/perturb-seq-eval/tests/test_llm_cache_key.py
+a540693ab659d8c92a1d34d9dee23571a8a2fde744e828c72d63f88578fbd64f  projects/perturb-seq-eval/tests/test_openrouter_client.py
+bd4c30e58b931f0b5b50c304fa08f529e7ef54ba8a20fb6151ba60f58e7a808a  projects/perturb-seq-eval/tests/test_provenance.py
+2a4bd98325663fbeb08b77e1a91f111780b4cb9f486360d1b63bdf534d12ec3d  projects/perturb-seq-eval/tests/test_v05_analysis.py
+26ed782652cba61531d63a75d521ade1166a72f28f1057d30c96d1b9caed4879  projects/perturb-seq-eval/tests/test_v05_sweep.py
+8a4fea69d34d4e64cee9060d42969fccfabc2be08e71741f5ce48d1d268fbf3d  projects/perturb-seq-eval/tests/test_qg_p0p5_fixes.py
+### worktrees
+worktree /Users/mo/github/personal/bioFM
+worktree /private/tmp/claude-501/-Users-mo-github-personal-bioFM-worktrees-lung-on-chipsim/abe82a15-02b1-4427-8fec-ef8b93ce281b/scratchpad/g4-code
+worktree /private/tmp/claude-501/-Users-mo-github-personal-bioFM-worktrees-lung-on-chipsim/abe82a15-02b1-4427-8fec-ef8b93ce281b/scratchpad/g4-design
+worktree /private/tmp/claude-501/-Users-mo-github-personal-bioFM-worktrees-lung-on-chipsim/abe82a15-02b1-4427-8fec-ef8b93ce281b/scratchpad/g4-sec
+worktree /private/tmp/claude-501/-Users-mo-github-personal-bioFM-worktrees-lung-on-chipsim/abe82a15-02b1-4427-8fec-ef8b93ce281b/scratchpad/g4-test
+worktree /Users/mo/github/personal/bioFM/worktrees/cellforge-agents
+worktree /Users/mo/github/personal/bioFM/worktrees/lung-on-chipsim
+worktree /Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval
+worktree /Users/mo/github/personal/bioFM/worktrees/v2r-loop
+### branches
+cellforge-agents 228d354
+cto/coord-flush-20260911 b698206
+cto/coord-flush-20260914 0b8d0c3
+cto/untrack-agent-marker 17774b8
+lung-on-chipsim e5d5a2d
+main 774dbfe
+perturb-seq-eval 83c647b
+v2r-loop 7f5ff4d
+### tags
+v0.3.0
+### stashes (shared stack: delta = investigate, not abort)
+13206b69dd9f0031ba184ca6a5a907b95a12acbd WIP on perturb-seq-eval: 451f730 perturb-seq-eval/perturb-seq-eval: misc(perturb-seq-eval): record CTO #283 sweep GO conditions
+63427b2257eab688b21b6413e68975220d56f433 WIP on lung-on-chipsim: 9bdf74c Merge branch 'main' into lung-on-chipsim
+23366bc64ca114f0b6dcf058bd8a9fca5fac50c1 WIP on lung-on-chipsim: b681f89 lung-on-chipsim/lung-on-chipsim: coord: correction to the CTO — my second-writer explanation covered nine minutes, not a week
+c698b3224d9194f1ef1485a489e585bbe34a447f WIP on lung-on-chipsim: 4137feb Merge branch 'main' into lung-on-chipsim
+d6f92e1e11512fc4a162a34186eb573b502c1d7d WIP on lung-on-chipsim: 2349966 Merge branch 'main' into lung-on-chipsim
+72080e1944887f5667c974286e70140e08417a6a WIP on lung-on-chipsim: 4c30f24 Merge branch 'main' into lung-on-chipsim
+1577f0a0b7ab457183a8074688b0fee6a68b3c02 WIP on lung-on-chipsim: 5dcca00 lung-on-chipsim/lung-on-chipsim: misc(lung-on-chipsim): dispatch #96 — T4 ruling cannot meet (b)/(c) as signed; not executed
+45a14bc9398c4a1d7b43620eef367c74d130ce4c WIP on lung-on-chipsim: 242e2a2 TASK-chipsim-lbm-audit-R9 - lung-on-chipsim/lung-on-chipsim for matthew-mo: R9 projects from MEASURED throughput and halts pre-emptively; the 0.80 floor gets a scope
+dcfa4bb67f494e05862041a76555f8ad54236b6d WIP on lung-on-chipsim: 60d6640 TASK-chipsim-lbm-audit-R5 - lung-on-chipsim/lung-on-chipsim for matthew-mo: R5 pair-count power curve — measured, not chosen; and clustering barely moves it
+03eec1b07b45469263813fd0bb60a95a939ca260 WIP on lung-on-chipsim: 06da9c8 lung-on-chipsim/lung-on-chipsim: docs(lung-on-chipsim): dev-log — A&D r1.0 + S12 and its QG cycle
+c548703d12e2be4510b7c23dad8c27624e1704ea WIP on lung-on-chipsim: 03d51ab Merge branch 'main' into lung-on-chipsim
+b6c4309dc9859d6b816b7b46b08c850931828e8c WIP on lung-on-chipsim: e24ae14 TASK-lung-on-chipsim-T3 - lung-on-chipsim/lung-on-chipsim for matthew-mo: fix: use datetime.UTC alias (ruff UP017)
+3828e26fca7ea36d85d8d8d01c940a54e4d2cfe8 WIP on lung-on-chipsim: 10d98aa Merge branch 'main' into lung-on-chipsim
+--- bracket E header
+## bracket E  2026-09-25T19:46:46Z  HEAD=83c647bbfc65ce4a86aa7f429ae7599ac058995c  gated=37
+--- A vs E diff
