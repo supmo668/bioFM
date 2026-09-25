@@ -67,3 +67,11 @@ The `reviewer-*` agent types have Bash, so they can write. In one roster launche
 3. Consider making `reviewer-*` read-only by default (tool allowlist or a PreToolUse hook denying writes outside a declared scratch path).
 
 This belongs to the "mechanism reports success while the property is absent" family. It came one step from being signed.
+
+---
+
+# Quality commands: per-role overrides are only half-implemented, and a timeout lets the commit through
+
+- `hooks/quality-check.sh` resolves `quality.<check>_command_<role>`. But `/quality-gate` Step 8 (`tools/config get quality.test_command`) and `tools/commit-precheck` (`run_quality_cmd ... quality.test_command`) read only the GLOBAL key. In a monorepo with `project.modules` set, the global key must stay empty (it would run sibling modules' suites), so **the gate's test step is structurally always skipped for worktree agents.** Every receipt in this repo attests a gate whose test step never ran. Fix: every consumer resolves `<key>_<role>` first, then the global key.
+- `commit-precheck` treats a timeout (rc 124, 120s for tests) as **allow commit** with a warning. A slow or hung suite passes the gate: fail-open. Fix: a timeout is a failure, and the timeout is configurable per key.
+- The per-role convention is documented only in a comment in `agency.yaml`, which cites `quality.test_command_<agent>` as if it were implemented everywhere.

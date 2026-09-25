@@ -84,6 +84,11 @@ quality:
   lint_command: ""                     # e.g. "pnpm exec oxlint"
   typecheck_command: ""                # e.g. "pnpm exec tsc --noEmit"
   test_command: ""                     # e.g. "pnpm exec jest"
+  # Per-role overrides (read by hooks/quality-check.sh as <key>_<role>; NOT yet by /quality-gate
+  # Step 8 or commit-precheck, which read only the global key; see .claude/aiadlc-feedback).
+  # aviary-biosim (#329): tests proven able to fail (planted assert -> exit 1). format/lint/typecheck
+  # deliberately unset: ruff defaults fail 93 pre-existing errors; lint adoption is scoped work after F08.
+  test_command_aviary-biosim: "uv run --with pytest --with pyyaml --with fhaviary --with openai --with weave --with requests python -B -m pytest science/tests -q && uv run --with pytest --with pyyaml python -B -m pytest .claude/skills/v2r-loop/scripts/tests -q"
   # Definition of Done (Scrum) — the explicit, shared statement of what "complete"
   # means, checked at /phase-complete by tools/dod-check. Recognised MECHANICAL
   # keys are verified automatically (qg-receipt, docs-ticket-linked, ticket-linked,
