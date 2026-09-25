@@ -84,6 +84,21 @@ quality:
   lint_command: ""                     # e.g. "pnpm exec oxlint"
   typecheck_command: ""                # e.g. "pnpm exec tsc --noEmit"
   test_command: ""                     # e.g. "pnpm exec jest"
+  # perturb-seq-eval per-agent keys (CTO #328/#365; precedent 6011dec). Globals stay "".
+  # Anchored with `cd`: quality-check.sh / commit-precheck run from the WORKTREE ROOT.
+  # FORMAT is WORKING-TREE scoped (changed-vs-HEAD + untracked .py). The branch-vs-origin/main
+  # shape was measured RED (70 of 79 branch .py files unformatted, repo-wide debt: 97 files at
+  # 451f730), so it would block every turn. Proven: no .py change -> 0; planted mis-format in a
+  # tracked or untracked file -> 1; reverted -> 0. xargs -r = no-op on an empty list.
+  # LINT is the narrow correctness subset (green at baseline; planted F821 -> 1).
+  # TEST: the full suite (674 at 451f730, 748 after P0-P5). Integration-marked paths needing
+  # scGPT weights/network PASS ONLY BECAUSE they are mocked/skipped - not evidence for those paths.
+  # These keys feed the Stop hook only; /quality-gate Step 8 reads the empty global, so the
+  # suite is still run by hand in every gate.
+  format_command_perturb-seq-eval: "cd projects/perturb-seq-eval && { git diff --name-only --diff-filter=ACMR HEAD -- '*.py'; git ls-files --others --exclude-standard -- '*.py'; } | sed 's|^projects/perturb-seq-eval/||' | xargs -r .venv/bin/ruff format --check"
+  lint_command_perturb-seq-eval: "cd projects/perturb-seq-eval && .venv/bin/ruff check --select E9,F63,F7,F82 src tests scripts"
+  typecheck_command_perturb-seq-eval: ""
+  test_command_perturb-seq-eval: "cd projects/perturb-seq-eval && .venv/bin/python -m pytest -q -p no:cacheprovider tests"
   # Definition of Done (Scrum) — the explicit, shared statement of what "complete"
   # means, checked at /phase-complete by tools/dod-check. Recognised MECHANICAL
   # keys are verified automatically (qg-receipt, docs-ticket-linked, ticket-linked,
