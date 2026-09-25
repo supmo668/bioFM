@@ -605,8 +605,12 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **Evidence discipline:** before any gate, the bracket command and its digests are written to
   `qgr/evidence/` BEFORE the reviewers start, so compaction cannot lose them.
   **WI-2 (no clause)** is acknowledged as scoped: false docstrings and messages; two literals
-  replaced by the documented probe; a collection-count assertion (a suite that collects zero tests
-  FAILS); the empty-payload recorder; try/finally on sparse files; coverage-line format; a grep
+  replaced by the documented probe; ~~a collection-count assertion (a suite that collects zero tests
+  FAILS)~~ *[CORRECTED r2.47a (#397): pytest EXITS 2 on a collection error, measured; there is no silent
+  pass. The premise was an unmeasured consequence that both the agent's verdict and the CTO's scope
+  ruling repeated. Replaced by: import the reference by the path the project owns
+  (`tests.readability_reference`), which resolves regardless of import mode, from a foreign cwd,
+  and if `tests/` ever gains an `__init__.py`]*; the empty-payload recorder; try/finally on sparse files; coverage-line format; a grep
   showing every property claim names an existing test.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
