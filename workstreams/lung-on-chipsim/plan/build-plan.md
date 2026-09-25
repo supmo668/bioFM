@@ -523,6 +523,41 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   a belief about the decoder; the agent measured that its hand-picked "undecodable" payloads were
   silently readable. A character ALPHABET adjacent in source can trip the live guard just as an
   example token can: shapes-not-values extends to alphabets (assemble them).
+- **E-22(d) AMENDED — THE FIXTURE'S READABILITY GROUND TRUTH COMES FROM AN INDEPENDENT REFERENCE,
+  NOT FROM THE DECODER** *(r2.46; agent-drafted #379, supersedes r2.45(d); signed with CTO changes,
+  marked)*. *r2.45(d) was already corrected once. The draft measured it: with the decoder replaced by
+  a byte proxy, the old fixture's classes merely MOVED (from four and four to five and one) and every
+  set equality held. The independent reference kills that mutant.*
+  **READABILITY SPEC SENTENCE** *(plain byte files only, not parquet/HDF5 datasets. CTO change: the
+  draft said "UTF-16 if BOM; failing that as UTF-8", which reads as a fallback. The CTO read
+  `guards/decoding.py::_decode_text` and found a BOM-prefixed file that fails UTF-16 is NOT text,
+  with no fallback. The two numbers are stated here because the module documents them only as "a low
+  printable ratio" and a code constant)*: **a plain file is READABLE TEXT when it is at most 256 MiB
+  on disk and EITHER its bytes begin with a UTF-16 byte-order mark (either byte order) and decode as
+  UTF-16, in which case there is no other route: a BOM-prefixed file that fails UTF-16 is not text;
+  OR they do not begin with one and decode as UTF-8 (with or without a UTF-8 BOM); OR, failing
+  UTF-8, they contain no NUL byte and, decoded as latin-1, are non-empty with at least nine tenths of
+  their characters printable or tab, carriage return or line feed. Everything else, including any
+  file over the ceiling, is not text and is reportable rather than scanned.** This is CURRENT
+  behaviour, including BOM-less UTF-16/32, which currently decodes as UTF-8 when the bytes happen to
+  be valid UTF-8. **E-24 changes that, and E-24 must update this sentence and the reference in the
+  same commit.**
+  **Done when:** (a) a reference readability predicate implements the sentence in plain Python,
+  importing NO production decoding code; (b) the consumer fixture classifies its payload classes with
+  the REFERENCE, failing loudly if a class is empty; (c) a differential test asserts production
+  `scan_chunks` agrees with the reference over a generated, seeded byte corpus (seed printed before
+  the run), and the corpus MUST include *(CTO change)* the boundary shapes: empty file; BOM followed
+  by invalid UTF-16 (odd length, lone surrogate); UTF-8-BOM files; latin-1 exactly at and just below
+  the nine-tenths ratio; a NUL in otherwise valid UTF-8; and the size ceiling, exactly at and one byte
+  over it (sparse files, so the test stays cheap); (d) `_decode_text`'s docstring is updated to state
+  the ratio and cite the ceiling constant, so the documentation owns the numbers the reference
+  depends on; (e) E-24 is named as the clause that must change sentence and reference together.
+  **Verified by:** the decoder-replaced-by-byte-proxy mutant KILLED by the differential test. The
+  disagreement count and corpus size are recorded FROM THE IN-TREE RUN *(CTO change: the draft's
+  figures did not reconcile, a 6,016-string corpus against "451 of 3,009"; a signed clause does not
+  carry a number that disagrees with itself)*. Production agrees with the reference on the full corpus.
+  **Recorded:** the reference's two numbers were read from code constants, not prose. This clause is
+  what makes them documented rule, and (d) closes the gap at the source.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
