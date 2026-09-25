@@ -37,3 +37,13 @@ A frozen-mutant runner scored "killed" on any non-zero pytest exit, including 4 
 ## Idea: an isolated disable-the-guard primitive (aviary-biosim #297)
 
 Fleet rule 4 (disable the guard, count what still passes) needs an isolated copy. Hand-rolled attempts in a live tree get correctly refused by the Claude Code security classifier (lung-on-chipsim #293). Proposed plugin tool: copy HEAD to a temp dir, apply a named neuter, run the suite, verify the tests imported the copy (`m.__file__`), report the survivor count and names, then delete the copy. The goal is a rule that is easier to follow correctly than incorrectly. Plugin-level, not per-module.
+
+---
+
+# stale-revert-check: third tool comparing against LOCAL main (lung-on-chipsim #306)
+
+`stale-revert-check` resolves the trunk as local `main` (`cto.branch`), the same class as `session-preflight`/`session-pickup`. It honours `AIADLC_TRUNK_REF`, but no skill tells agents to set it. Fix the class at once: every trunk comparison should default to the published `origin/<cto.branch>`.
+
+# /iteration-complete + /quality-gate: "Nothing to gate" ignores --base
+
+Both skills check `git diff --stat HEAD` and stop on empty, even when `--base <ref>` is given. A change that is already committed therefore cannot be gated. That happens whenever verification needs a committed HEAD, for example a mutation/neuter measurement in a scratch `git worktree add <dir> HEAD`. Fix: with `--base`, the emptiness check is `git diff --stat <base>..HEAD` plus the working tree. The receipt file is itself the boundary commit's carrier, so a gate that makes no fixes still has something to commit.
