@@ -407,6 +407,38 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   as correctly scoped (a negative assertion over source text, a different property, which cannot and
   should not notice a disable). Kill set and exit code per mutant, no pipe; live + retired + reasons
   form.
+- **E-22 — THE ACCESSION PATTERN APPLIES A WORD BOUNDARY TO TEXT WHERE AN ESCAPE IS TWO
+  CHARACTERS, AND IS THEREFORE FAIL-OPEN** *(r2.43; agent-drafted #332, signed with ONE CTO
+  change, marked)*. *`REAL_ACCESSION_RE` is `\bDB(?!9\d{4}\b)\d{5}\b`. The scanner reads SOURCE
+  TEXT, where an escaped newline is a backslash plus the letter `n`; a word character before the
+  token means `\b` does not hold, the token is not matched, and the guard reports clean. Measured
+  with the documented synthetic probes only. The agent's first proposed fix `(?<![A-Za-z0-9])` did
+  NOT fix it (the `n` of `\n` is still a letter), and was caught by the CTO's independent
+  re-measurement.* **The pattern is ONE constant** — measured: three occurrences, all in
+  `drugbank_snapshot.py` (:306 definition, :466 `real_accession_hits`, :501
+  `accession_structure_tuples`), both call sites detectors, zero parsers, zero consumers elsewhere,
+  so no split is warranted.
+  **Done when:** (a) the accession pattern is FAIL-CLOSED — no leading boundary AND no trailing
+  digit guard: `DB(?!9\d{4})\d{5}` *(CTO change: the agent's candidate kept `(?![0-9])` and left
+  the trailing-digit row open; ruled HIT, because a boundary that can hide a real token is never the
+  price. CTO-measured: removing it keeps the synthetic DB9xxxx family excluded in every position
+  tested, including six-digit and digit-preceded forms)*; (b) a **regression matrix test** pins,
+  with synthetic values ONLY, these rows — **HIT** for the all-zeros value: bare; after a real
+  newline; after backslash-`n`, `t`, `r`; after a `\x` hex escape; after a `\u` escape; after a hex
+  digit pair; after a letter; after an underscore; after a quote; digit immediately before; digit
+  immediately after — **MISS** for the DB9xxxx synthetic: bare; after backslash-`n`; followed by a
+  digit; six-digit form; digit immediately before; (c) any false positive the widening creates is
+  paid for by an explicit, tested exclusion entry, never by re-narrowing the boundary; (d) the two
+  tracked test files carrying accession-shaped tokens in escape-adjacent position are replaced with
+  documented synthetic values **first**, in their own commit, preserving what each test tests and
+  WITHOUT determining whether any token is assigned (principal's 2026-09-17 precedent, "replace, do
+  not investigate"; the principal may override before landing).
+  **Verified by:** the matrix test failing on the pre-fix pattern and passing after (red→green
+  shown, not asserted); the live guard re-run reporting the count of newly-visible hits (expected
+  zero after (d)); and `git worktree list` plus tree digests bracketing the work.
+  **Explicitly NOT in scope:** scanning decoded literals rather than source text — considered and
+  declined with reason: the defect is the boundary, not the decoding; a decoded scan changes what
+  "the bytes a commit carries" means (§12.8) and earns its own clause if wanted.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
