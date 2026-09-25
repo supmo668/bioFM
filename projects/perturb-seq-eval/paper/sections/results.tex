@@ -139,6 +139,15 @@ single pooled test at $n=41$ --- roughly $50\times$ to $120\times$ higher, the
 price of testing within datasets. No correction was pre-registered; instead all
 six $\rho$ are reported with their $n$ whatever the outcome, so a pass carried
 by one test is visible in the table.
+The dependence is mechanical, not hypothetical: in a committed fixture
+(\texttt{tests/test\_preregistered.py}, \texttt{TestH4ReportAllSix}) with
+$1-\Delta C$ held constant, $\mathrm{TDI}_{\mathrm{lifecycle}}$ inherits the
+ranking of ACE$_{\mathrm{norm}}$, so a single real signal produces \emph{two}
+passing tests. This is why the gate is reported as a six-row table rather than
+a pass count, and why the false-positive rate is given as a range: its two
+endpoints are the two extremes of a dependence between ACE$_{\mathrm{norm}}$
+and $1-\Delta C$ that cannot be measured without assuming the structure
+under test.
 
 \begin{table}[h]
 \small
