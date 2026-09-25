@@ -112,7 +112,17 @@ rule-based default the pool returns after an LLM failure. A run with any
 fallback step is invalid by construction: it is marked failed and the
 analyser refuses to summarise it. Agent-choice statistics are computed over
 LLM-sourced steps only. Each task runs the lifecycle with three seeds; the
-seed is passed to the trainer and into the LLM cache key.
+seed is passed to the trainer and into the LLM cache key. The per-task seed
+medians used for H4 and H5 depend on this: in the v0.5.0 artifacts the seed
+did not reach the lifecycle run, and the three seeds were identical runs.
+
+\paragraph{What the lifecycle trace records.} Each step records its role,
+round, proposal, LLM confidence, \texttt{source} and \texttt{model\_id}. The
+five roles do not critique each other, and no round has a winner. The trace
+therefore has no critique matrix and no winner sequence, so CSD, WFR and the
+four-component TDI of \S\ref{sec:metrics} cannot be computed on this testbed.
+H4 and H5 use only the confidence-derived quantities
+(\S\ref{sec:tdi-real}).
 
 \subsection{Compute}\label{subsec:compute}
 

@@ -11,8 +11,16 @@
 The hypotheses, gates and analysis plan below are fixed in
 \texttt{paper/PREREGISTRATION.md}; the sweep's provenance record
 (\texttt{git\_sha}, \texttt{git\_dirty}) identifies the revision of that file
-in force when the sweep ran. There are five gates; each is reported as PASS,
-FAIL, or UNEVALUATED with the reason, and the tally is stated out of five.
+in force when the sweep ran, and \texttt{summary.json} carries the
+pre-registration pin (path, SHA-256, commit) copied from record~0. There are
+five gates; each is reported as PASS, FAIL, or UNEVALUATED with the reason, and
+the tally is stated out of five. An unevaluable gate (fewer than $3$ tasks, an
+undefined statistic, or a diagnostic run) is UNEVALUATED, never FAIL. Every
+estimator is implemented in
+\texttt{src/perturb\_eval/experiments/preregistered.py} and called from
+\texttt{analyse\_v05\_run}; the function named in each subsection below is the
+estimator. Bootstrap CIs are percentile intervals over \emph{tasks}
+($B=10\,000$ resamples, \texttt{numpy.random.default\_rng(2026)}, 95\%).
 
 \begin{table}[h]
 \small
@@ -27,10 +35,12 @@ H2 & Trainer sweep attains low error on Norman (oracle) & median $<0.30$
   & \pending{H2} \\
 H3 & Architect exercises its backbone choice (LLM-sourced steps)
   & entropy $\ge 0.5$ nats & \pending{H3} \\
-H4 & A TDI component ranks tasks by held-out error & Spearman $\rho>0.5$
-  for $\ge 1$ component & \pending{H4} \\
-H5 & Calibrated TDI transfers Adamson $\to$ Norman & Spearman $\rho>0.4$
-  & \pending{H5} \\
+H4 & A trace feature ($\mathrm{ACE}_{\mathrm{norm}}$, $1-\Delta C$ or
+  $\mathrm{TDI}_{\mathrm{lifecycle}}$) ranks tasks by held-out error
+  & Spearman $\rho>0.5$ for $\ge 1$ of the three, within Adamson or within
+  Norman & \pending{H4} \\
+H5 & Ridge-calibrated $\mathrm{TDI}_{\mathrm{lifecycle}}$ transfers
+  Adamson $\to$ Norman & Spearman $\rho>0.4$ & \pending{H5} \\
 \bottomrule
 \end{tabular}
 \caption{Pre-registered hypotheses and gates. Estimators are given in the
@@ -44,7 +54,8 @@ Estimator: per task, the minimum MSD on the top-$20$ DEGs over the $54$
 trainer configurations (an oracle, \S\ref{subsec:oracle}); the gate is the
 median over tasks in each dataset. Reported with the median: $n$, IQR,
 maximum, the fraction of tasks above the threshold, and a bootstrap CI over
-tasks; Norman is also split into singletons and doublets.
+tasks; Norman is also split into singletons and doublets
+(\texttt{preregistered.h1\_h2\_stats}).
 
 \begin{table}[h]
 \small
@@ -70,43 +81,93 @@ picks over all LLM-sourced Architect steps, pooled across tasks, seeds and
 rounds ($\ln 3$ ceiling). Reported with it: pick counts per backbone, the
 number of LLM-sourced Architect steps, the number of distinct serving models
 and a per-\texttt{model\_id} breakdown, and the number of distinct proposals
-per role. Backbone-choice entropy: \pending{Architect backbone entropy (nats)
+per role. The gate is \texttt{preregistered.h3}. Backbone-choice entropy: \pending{Architect backbone entropy (nats)
 and pick counts}. Per-role proposal diversity and per-model breakdown:
 \pending{per-role distinct proposals and per-model\_id counts}.
 
 \subsection{Trace metrics against held-out error (H4)}\label{sec:tdi-real}
 
-Estimator: the unit is the task; per task, each component (ACE, $1-\Delta C$,
-CSD, WFR, and TDI with the default weights of \S\ref{sec:metrics}) and the
-lifecycle's final MSD are the medians over the task's three seeds; Spearman
-$\rho$ is computed over tasks and reported for all five components with $n$
-and a bootstrap CI. A component the trace cannot supply is reported as not
-computable, with the reason.
+\paragraph{Which quantities.} The four-component TDI of
+equation~(\ref{eq:tdi}) is \emph{not evaluated}. Two of its components are
+structurally undefined for the five-role lifecycle: CSD needs a critique
+matrix and WFR needs a per-round winner, and the lifecycle records neither. The
+four-component TDI was therefore never computable on this testbed. H4 uses the
+components that lifecycle traces do supply. For each run, with $C(r)$ the
+confidences of the LLM-sourced steps in round $r$:
+$\mathrm{ACE}_{\mathrm{norm}}$ of the final round
+(\texttt{metrics.ace\_norm}); $1-\min(\max(\Delta C,0),1)$ with
+$\Delta C=\overline{C}(\text{last})-\overline{C}(\text{first})$
+(\texttt{metrics.delta\_mean\_confidence}, for runs with at least two rounds);
+and
+\begin{equation}
+  \mathrm{TDI}_{\mathrm{lifecycle}} = \tfrac{7}{12}\,\mathrm{ACE}_{\mathrm{norm}}
+    + \tfrac{5}{12}\,\bigl(1-\min(\max(\Delta C,0),1)\bigr),
+\end{equation}
+the default weights $\alpha=0.35$ and $\gamma=0.25$ renormalised over the
+two terms. $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a \emph{different quantity}
+from the four-component TDI, and its $\rho$ is not comparable with the
+v0.4.1 TDI $\rho$. A round with fewer than two LLM-sourced steps leaves the
+component undefined for that run. For a one-round run, $\Delta C$ (and so
+$1-\Delta C$ and $\mathrm{TDI}_{\mathrm{lifecycle}}$) is undefined rather
+than set to $0$. The $\Delta C=0$ convention would score immediate
+convergence as maximal difficulty, a built-in bias against H4.
+$\mathrm{ACE}_{\mathrm{norm}}$ is unaffected. Undefined values are reported
+with the reason and are not imputed
+(\texttt{preregistered.per\_run\_components}). A task with no defined value
+drops out of that component's $\rho$ and is counted: \pending{per-dataset
+exclusion counts (runs undefined, single-round runs, tasks dropped)}.
+
+\paragraph{Estimator.} The unit is the task. Per task, each component and
+the lifecycle's final MSD are the medians over the task's three seeds
+(\texttt{preregistered.per\_task\_table}). This relies on the seed reaching
+the lifecycle run: before that fix, the three seeds were identical. Spearman
+$\rho$ is computed \emph{within} Adamson ($21$ tasks) and \emph{within}
+Norman ($20$ tasks) separately, with default weights and no in-sample
+calibration (\texttt{preregistered.h4}). All six values are reported with
+$n$ and a bootstrap CI, and each needs at least $3$ tasks. The gate passes if
+any of the six exceeds $0.5$. The $\rho$ pooled over all $41$ tasks is
+descriptive only and never gates. The six tests are dependent:
+$\mathrm{TDI}_{\mathrm{lifecycle}}$ is a fixed combination of the other two
+within each dataset, so the effective number of tests is about four (at most
+six). That raises the gate's chance false-positive rate to roughly
+$1-(1-p)^4$, where $p$ is the chance that a single quantity exceeds
+$\rho=0.5$ by chance. No correction was pre-registered, and the gate is
+reported as specified.
 
 \begin{table}[h]
 \small
 \centering
-\begin{tabular}{lp{0.55\linewidth}}
+\begin{tabular}{p{0.27\linewidth}p{0.2\linewidth}p{0.2\linewidth}p{0.2\linewidth}}
 \toprule
-Component & Spearman $\rho$ vs held-out MSD ($n$, CI) \\
+Component & Adamson $\rho$ ($n$, CI) & Norman $\rho$ ($n$, CI) & Pooled $\rho$ (descriptive) \\
 \midrule
-ACE              & \pending{rho ACE} \\
-$1-\Delta C$     & \pending{rho 1-dC} \\
-CSD              & \pending{rho CSD} \\
-WFR              & \pending{rho WFR} \\
-TDI (default weights) & \pending{rho TDI} \\
+$\mathrm{ACE}_{\mathrm{norm}}$ (final round) & \pending{rho ACE-norm, Adamson}
+  & \pending{rho ACE-norm, Norman} & \pending{rho ACE-norm, pooled} \\
+$1-\Delta C$ & \pending{rho 1-dC, Adamson} & \pending{rho 1-dC, Norman}
+  & \pending{rho 1-dC, pooled} \\
+$\mathrm{TDI}_{\mathrm{lifecycle}}$ (default weights)
+  & \pending{rho TDI-lifecycle, Adamson} & \pending{rho TDI-lifecycle, Norman}
+  & \pending{rho TDI-lifecycle, pooled} \\
+\midrule
+CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (not evaluated)} \\
 \bottomrule
 \end{tabular}
-\caption{Pre-registered gate: $\rho>0.5$ for at least one component.}
+\caption{Pre-registered gate: $\rho>0.5$ for at least one of the three
+computable quantities within Adamson or within Norman (six tests; pooled
+$\rho$ descriptive only). The four-component TDI is not evaluated.}
 \label{tab:tdi-real}
 \end{table}
 
 \subsection{Cross-dataset transfer (H5)}\label{subsec:h5}
 
-Estimator: TDI weights are fitted by ridge regression on the Adamson tasks
-and applied unchanged to the Norman tasks; the gate is Spearman $\rho$
-between Norman TDI and Norman held-out MSD. Transfer $\rho$:
-\pending{cross-dataset rho with n and CI}.
+Estimator (\texttt{preregistered.h5}): weights for
+$\mathrm{ACE}_{\mathrm{norm}}$ and $1-\Delta C$ are fitted by ridge regression
+on the Adamson tasks, with ridge parameter $\alpha=1.0$ fixed in advance.
+Each feature is standardised with the Adamson mean and s.d., and the target is
+the per-task lifecycle MSD. The fitted weights and the Adamson standardisation
+are then applied \emph{unchanged} to the Norman tasks, so no Norman value
+enters the fit. The gate is Spearman $\rho$ between Norman TDI and Norman
+held-out MSD. Transfer $\rho$: \pending{cross-dataset rho with n and CI}.
 
 \subsection{Run record}\label{subsec:runrecord}
 
