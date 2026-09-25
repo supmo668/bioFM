@@ -85,3 +85,13 @@ measures the import, not the agent.
   Agentic Hyperparameter Tuning for Perturb-seq Response Prediction". Principal directs the wording/submission-file alignment pass NOW
   (supersedes the "language pass last" sequencing for setup/method/metadata text). Result numbers are NOT rewritten until the v0.6.0
   sweep: v0.5.0 result values are marked superseded/pending, never replaced with guesses.
+
+## SWEEP GO (CTO #283, 2026-09-25) — conditions, all binding
+1. Gates first: the sweep runs only from the RECEIPTED P0-P5 boundary SHA; if any gate fix touches the trainer or
+   lifecycle path, from the post-fix receipted SHA, never an earlier one.
+2. One process, fully logged: git SHA, pre-registration hash (0c2932a), seeds, full config, model_id PER CALL (R2);
+   manifest beside the outputs.
+3. Spend: $28 in-loop kill stays; ADDITIONALLY stop and report if actual spend passes **$12** (2x estimate) — the
+   estimate model was wrong. Report actual spend + GPU-hours at the end.
+4. Report: receipted SHA, manifest path, actual spend, every failed/skipped task NAMED individually.
+Gate-stage finding OWN-1: the $12 stop is not implemented (only the $28 kill exists) — fixed inside this gate.
