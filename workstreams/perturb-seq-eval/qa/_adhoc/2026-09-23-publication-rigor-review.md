@@ -645,3 +645,47 @@ defect is upstream of every check, and it is invisible to all of them by constru
 **Norman had zero missing codes, so the same pattern (if present) would not have fired there.**
 That is luck, not correctness, and it is an open question for the register: *where else does this
 codebase index a raw categorical with an integer that could be `-1`?*
+
+---
+
+## A2-6 — half the metric family is *structurally undefined* for the system that was measured
+
+This reframes **R1**. The empty correlation table was not only an omission — **two of TDI's four
+components cannot be computed for the agentic lifecycle at all.**
+
+The paper's Problem Setup requires both a critique matrix and a winner:
+
+- `paper.tex:182-183` — "every other agent emits a critique with severity $S_{ij}(r)$ … A winner
+  index $w(r)$ is assigned by the orchestrator"
+- `:221` — $\mathrm{CSD}(r) = \mathrm{Var}(\mathbf{S}(r))$ — requires the critique matrix
+- `:233` — $\mathrm{WFR} = \frac{1}{R-1}\sum \mathbb{1}[w(r) \neq w(r-1)]$ — requires the winner
+
+Verified: `critique_matrix` and `winner_index` appear in `src/perturb_eval/metrics.py`,
+`instrumentation.py` and `types.py` — the **consensus-round** framework, which
+`instrumentation.py` projects from a CellForge-style `ConsensusResult`. They appear **nowhere in
+`src/perturb_eval/agentic_lifecycle/`**.
+
+The agentic lifecycle is a **role pipeline** — DataCurator → Literature → Architect → Trainer →
+Validator. It has no propose-critique-vote round, so there is no $N\times(N-1)$ critique matrix
+and no winner to flip. Its Validator emits a single `StructuredCritique` to the pipeline, which
+is not the object CSD is the variance of.
+
+**So the metric family is well-defined for the architecture the paper describes, and undefined
+for the system the paper measured.** TDI as published — $\alpha\,\mathrm{ACE} + \beta\,\mathrm{CSD}
++ \gamma(1-\Delta C) + \delta\,\mathrm{WFR}$ — was never computable on its own testbed.
+
+### Consequences
+
+- **R1 is deeper than reported.** "The correlations were never computed" is true; "two of them
+  could not have been" is the reason. `tdi_vs_held_out_msd` being dead code is a symptom.
+- **The revision must not silently redefine TDI.** A two-component index over ACE and $1-\Delta C$
+  is a *different quantity* from the published four-component TDI. It is correctly being named
+  `TDI_lifecycle`, and the paper must state plainly that **the four-component TDI is not
+  evaluated** — not merely that two components are unavailable. Otherwise a reader compares
+  numbers across versions that are not the same metric.
+- **It does not sink the paper.** The title question — does agent confidence entropy predict task
+  difficulty? — turns on ACE and $\Delta C$, both of which the lifecycle does produce. The
+  honest framing is a narrower instrument fully specified, rather than a wide one half-inapplicable.
+- **A referee would find this in one pass**, by reading §3's definitions against the
+  implementation. Declaring it up front converts the worst kind of finding into a stated scope
+  limit.
