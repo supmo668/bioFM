@@ -47,3 +47,9 @@ Fleet rule 4 (disable the guard, count what still passes) needs an isolated copy
 # /iteration-complete + /quality-gate: "Nothing to gate" ignores --base
 
 Both skills check `git diff --stat HEAD` and stop on empty, even when `--base <ref>` is given. A change that is already committed therefore cannot be gated. That happens whenever verification needs a committed HEAD, for example a mutation/neuter measurement in a scratch `git worktree add <dir> HEAD`. Fix: with `--base`, the emptiness check is `git diff --stat <base>..HEAD` plus the working tree. The receipt file is itself the boundary commit's carrier, so a gate that makes no fixes still has something to commit.
+
+## Class sweep (aviary-biosim #310)
+
+- `tools/change-scope:103-104` prefers `origin/$trunk`, but **silently** falls back to the local `$trunk` merge-base when the origin ref doesn't resolve (never-fetched clone, mirror without remote refs, shallow/refless CI). It doesn't honour `AIADLC_TRUNK_REF`. Fix: warn on fallback, and honour the override.
+- `tools/agent-identity:166` `|| echo "main"` is a branch-name default, not a trunk comparison. It is not in the class.
+- `session-pickup` shells to `session-preflight`, so the class is two direct comparisons (`session-preflight:88`, `stale-revert-check:14`) plus the conditional `change-scope` fallback.
