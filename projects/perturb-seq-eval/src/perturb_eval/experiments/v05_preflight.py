@@ -19,6 +19,9 @@ Checks:
 * C-PREREG — ``kwargs["preregistration"]`` (the committed, clean
   pre-registration pin) is present; ``kwargs["preregistration_error"]`` says
   why not (CTO #265).
+* C-DESIGN (QG C12) — a PRE-REGISTERED version (:data:`PREREGISTERED_VERSIONS`)
+  runs the pre-registered design only: ``max_tasks_override``,
+  ``include_norman=False`` and ``include_adamson=False`` are refused.
 * the output directory is empty (record 0 of each JSONL is this run's
   provenance).
 * datasets load — the loaders passed in call the fetch path with
@@ -51,6 +54,13 @@ from perturb_eval.experiments.v05_tasks import TaskPlan
 logger = logging.getLogger(__name__)
 
 KEY_NAME = "OPENROUTER_API_KEY"
+
+# Versions whose design is fixed by paper/PREREGISTRATION.md (QG C12).
+PREREGISTERED_VERSIONS: frozenset[str] = frozenset({"v0.6.0"})
+PREREGISTERED_DESIGN = (
+    "41 = 21 + 15 + 5 tasks (21 Adamson = 3 |logFC| bins x 7, 15 Norman singletons, "
+    "5 Norman doublets), both datasets"
+)
 
 # Which dataset each TaskPlan pool is held out from (names as in app_v05).
 TASK_POOL_DATASET: dict[str, str] = {
@@ -115,6 +125,7 @@ def openrouter_probe(env: Mapping[str, str]) -> str | None:
                 round_index=0,
                 prompt='Reply with exactly this JSON object: {"ok": true}',
                 seed=0,
+                dataset="__preflight__",
             )
         except (OpenRouterError, requests.RequestException) as exc:
             logger.warning("preflight probe: no usable model (%s)", type(exc).__name__)
@@ -211,6 +222,25 @@ def preflight(
         checks.append(
             f"pre-registration pinned: {prereg.get('path')} @ {prereg.get('commit')}"
         )
+
+    # ---- C-DESIGN (QG C12): a pre-registered version runs the full design ----
+    version = kwargs.get("version")
+    if version in PREREGISTERED_VERSIONS:
+        shrink = [
+            f"{k}={kwargs.get(k)!r}"
+            for k, bad in (("max_tasks_override", kwargs.get("max_tasks_override") is not None),
+                           ("include_norman", kwargs.get("include_norman", True) is False),
+                           ("include_adamson", kwargs.get("include_adamson", True) is False))
+            if bad
+        ]
+        if shrink:
+            failures.append(
+                f"C-DESIGN: version {version!r} is pre-registered; its design is "
+                f"{PREREGISTERED_DESIGN}. Refusing {', '.join(shrink)} — a smaller run "
+                "must use a non-pre-registered --version (e.g. v0.6.0-smoke)"
+            )
+        else:
+            checks.append(f"pre-registered design unshrunk for {version}")
 
     # ---- C-TORCH-1: every sweep backbone is available ----------------------
     backbones = tuple(kwargs.get("backbones", ()))
@@ -356,6 +386,8 @@ def _unresolved_tasks(
 
 __all__ = [
     "KEY_NAME",
+    "PREREGISTERED_DESIGN",
+    "PREREGISTERED_VERSIONS",
     "PreflightError",
     "PreflightReport",
     "TASK_POOL_DATASET",
