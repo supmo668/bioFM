@@ -54,3 +54,16 @@ Both skills check `git diff --stat HEAD` and stop on empty, even when `--base <r
 - `tools/agent-identity:166` `|| echo "main"` is a branch-name default, not a trunk comparison. It is not in the class.
 - `session-pickup` shells to `session-preflight`, so the class is two direct comparisons (`session-preflight:88`, `stale-revert-check:14`) plus the conditional `change-scope` fallback.
 - **CTO-verified addendum:** the `change-scope` fallback chain ends at `|| echo HEAD`, and line 106 falls back again to `git diff --numstat HEAD`. With no resolvable trunk, the tool diffs HEAD against itself and silently reports an EMPTY scope: a check that looked at nothing reporting that it found nothing.
+
+---
+
+# Quality-gate reviewers can write to the live tree, and some believe they cannot (lung-on-chipsim #311)
+
+The `reviewer-*` agent types have Bash, so they can write. In one roster launched against the same path, `reviewer-code` stated "writes to the repo don't persist (sandbox)" and moved its experiments to a scratchpad. `reviewer-test` mutated the LIVE production guard (the record-content exit taxonomy, 3 states collapsed to 2) mid-gate. The breakage was caught only because an unrelated Stop-hook lint check failed. Nothing in `/quality-gate` brackets the review with a tree check.
+
+**Fixes:**
+1. `/quality-gate` runs `git status --porcelain` + a digest check before Hash A and before Hash E, and ABORTs on any diff nobody made.
+2. The reviewer prompt template states that writes persist, and gives experimenting reviewers a per-reviewer scratch `git worktree` as the only writable path.
+3. Consider making `reviewer-*` read-only by default (tool allowlist or a PreToolUse hook denying writes outside a declared scratch path).
+
+This belongs to the "mechanism reports success while the property is absent" family. It came one step from being signed.
