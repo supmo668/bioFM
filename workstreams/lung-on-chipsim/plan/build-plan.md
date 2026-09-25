@@ -403,7 +403,7 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   own output. The existing clean-path assertion is KEPT; one direction is half a contract, and
   deleting the happy path to add the sad one would just move the hole. **Verified by:** re-running
   rule 4 in a scratch git worktree and showing `test_record_content_entry_point.py`'s survivors drop
-  **2 → 1**, the remaining survivor named as `test_it_RE_IMPLEMENTS_none_of_the_pieces` and stated
+  **2 → 1**, the remaining survivor named as `test_it_RE_IMPLEMENTS_none_of_the_pieces` *[CORRECTED r2.47 (f)5: that test was renamed and the survivor count is now 2 → 0; see E-22 r2.47]* and stated
   as correctly scoped (a negative assertion over source text, a different property, which cannot and
   should not notice a disable). Kill set and exit code per mutant, no pipe; live + retired + reasons
   form.
@@ -459,21 +459,21 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   regex**, returning match spans for a whole string; (b) the test asserts
   `[m.span() for m in REAL_ACCESSION_RE.finditer(s)] == reference(s)` over whole strings (verdict,
   span, overlap and multiplicity in one assertion); (c) input is GENERATED, not listed. **Axis 1:**
-  `DB` + every digit string of length 0..6, exhausted, bare context (default tier, ~1.1M strings,
-  ~0.8 s measured). **Extended tier: length 0..7, required in every quality gate run and recorded in
-  the receipt.** **Axis 2:** every left × right pair from the stated alphabet, crossed with a seeded
+  `DB` + every digit string of length 0..6, exhausted, bare context (default tier, ~~~1.1M strings,
+  ~0.8 s measured~~ *[CORRECTED r2.47 (f)1: the figure described the extended tier; the default tier measured 1..5 lengths, 248,111 total; off-by-one fixed in r2.47 (e)]*). **Extended tier: length 0..7, required in every quality gate run and recorded in
+  the receipt.** *[r2.47 (e): measured that NO prior gate ran it; now wired as a Step 8 command]* **Axis 2:** every left × right pair from the stated alphabet, crossed with a seeded
   body sample. **Axis 3:** seeded fuzz, **seed printed before the run starts**. The body samples on
   axes 2/3 include non-ASCII decimal digits; (d) `KNOWN_WRONG` is RENAMED as a regression museum,
   documented as inheriting the oracle's coverage and not extending it, and a test asserts the oracle
   **fails** on every entry (rule 3b applied to a test); (e) `test_the_matrix_covers_both_axes` is
   DELETED.
-  **Measured before signing (#370):** 7,466,645 generated strings; the shipped pattern agrees with
+  **Measured before signing (#370):** ~~7,466,645 generated strings~~ *[CORRECTED r2.47 (f)1: reproduced by neither tier; origin not established; in-tree numbers recorded in r2.47]*; the shipped pattern agrees with
   the reference (0 disagreements); all 17 known-wrong patterns are killed, including the
   lookup-table pattern (4,458,001 disagreements), the three trailing-blind survivors, `\d{4}[0-8]`,
   and the `(?![a-z])` and `(?![0-9])` trailing guards (killed behaviourally: on a token followed by a lowercase letter, and on a token followed by a sixth digit).
   **STATED CONTEXT ALPHABET, on BOTH sides** (its incompleteness is a recorded limit): empty, letter,
   digit, underscore, quote, hyphen, dot, comma, colon, paren, space, newline, backslash-`n`/`t`/`r`,
-  a `\x` hex escape, a `\u` escape, a hex digit pair. **RECORDED LIMIT:** the token axis is closed;
+  a `\x` hex escape, a `\u` escape, a hex digit pair. **RECORDED LIMIT:** ~~the token axis is closed;~~ *[RETRACTED r2.47 (f)2: the default tier did not even kill the original defect on axis 1; see r2.47 (b) for what is and is not closed]*
   the context axis is unbounded and covered only as far as this alphabet reaches.
   **SHAPES, NOT VALUES (r2.44 re-sign):** plan, clause and dispatch text describes example tokens by
   SHAPE (e.g. "a token followed by a lowercase letter"), never as contiguous accession-shaped values.
@@ -535,7 +535,7 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   printable ratio" and a code constant)*: **a plain file is READABLE TEXT when it is at most 256 MiB
   on disk and EITHER its bytes begin with a UTF-16 byte-order mark (either byte order) and decode as
   UTF-16, in which case there is no other route: a BOM-prefixed file that fails UTF-16 is not text;
-  OR they do not begin with one and decode as UTF-8 (with or without a UTF-8 BOM); OR, failing
+  OR they do not begin with one and decode as UTF-8 ~~(with or without a UTF-8 BOM)~~ *[REMOVED r2.47 (f)3: a UTF-8 BOM is itself valid UTF-8, so a second attempt is unreachable, measured 0 disagreements over 5,018 inputs; do not re-add]*; OR, failing
   UTF-8, they contain no NUL byte and, decoded as latin-1, are non-empty with at least nine tenths of
   their characters printable or tab, carriage return or line feed. Everything else, including any
   file over the ceiling, is not text and is reportable rather than scanned.** This is CURRENT
@@ -558,6 +558,56 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   carry a number that disagrees with itself)*. Production agrees with the reference on the full corpus.
   **Recorded:** the reference's two numbers were read from code constants, not prose. This clause is
   what makes them documented rule, and (d) closes the gap at the source.
+- **E-22 r2.47 — DETECTOR AND GATE CORRECTNESS (WI-1)** *(agent-drafted #388 after gate 4 FAILED
+  (#386); every done-condition MEASURED in tree before drafting; signed as drafted, including the
+  agent's three measured corrections to the CTO's scope)*. *Gate 4's finding: the checks built to
+  close "a claim wider than its check" were themselves wider than what they checked: a
+  one-character trailing guard beat the oracle; a 5x cut to the ceiling passed the whole suite; a
+  signed exit-code ruling was collapsed; the signed corpus figure was unreproducible.*
+  **(a) PATTERN PIN over TEXT AND FLAGS.** A test asserts `REAL_ACCESSION_RE.pattern` equals the
+  signed pattern string exactly AND `REAL_ACCESSION_RE.flags == re.UNICODE`. *Agent correction:
+  an `IGNORECASE` compile has byte-identical `.pattern` and survived both axes. A text-only pin is
+  itself a claim wider than its check.* Plus a lowercase-prefix behavioural row. The failure
+  message says that changing the detector is a deliberate act touching pin, clause and oracle
+  together. The pin makes a change VISIBLE; the differential oracle proves the SIGNED pattern
+  meets the spec.
+  **(b) CONTEXT AXIS: every single code point**, left and right, one body per side (2,228,224
+  strings, 2.1 s, measured; runs unconditionally, no tier), plus the multi-character alphabet.
+  Measured: shipped pattern 0 disagreements; the trailing guards that survived the old corpus are
+  KILLED, and so is the rejected lookbehind fix. **Still open, written exactly:** multi-character
+  contexts outside the stated alphabet. "Closed" is used only for single-code-point contexts.
+  Prefix case is closed by (a), not by (b).
+  **(c) CEILING FROM BELOW.** Three sparse rows: one byte below and exactly at the ceiling are READ;
+  one byte over is REPORTED. The constant-equality assertion is legitimate because the reference
+  is written from this clause, and its message says so. Measured: the 48 MiB mutant that passed
+  the entire suite now fails two rows plus the equality. **Recorded cost:** the at-ceiling row
+  raises peak RSS by about 511 MiB (read_bytes plus decode), documented in the row for
+  memory-capped environments. The reference's verdict for that row is derived from the sentence,
+  not computed over 256 MiB.
+  **(d) E-13 TAXONOMY RESTORED.** No catch on the base class in the composition root.
+  Declaration-data-unusable exits 2 with the file named; guard-invariant violations PROPAGATE and
+  are never converted; could-not-scan (exit 3) is reserved for scan failure. `accession_scanned`
+  is `int | None` and is `None` when the half was never attempted, never 0. Each branch proven on
+  a constructed tree.
+  **(e) TIERS.** The axis-1 off-by-one is fixed, and the empty body is generated explicitly (the
+  bare prefix is present). The extended tier is WIRED as a documented Step 8 command whose
+  invocation line is recorded in the receipt. Post-fix corpus sizes are recorded from a run, not
+  from arithmetic.
+  **(f) SIGNED-TEXT CORRECTIONS**, each marked in place above with strike-through and a pointer,
+  never silently edited: (1) the r2.44 corpus figure and tier sizes; (2) the retracted "token axis
+  is closed"; (3) the unreachable UTF-8-BOM phrase removed from the r2.46 sentence; (4) the
+  non-empty check is an implementation guard (divide-by-zero), not a spec line; (5) E-21's
+  Verified-by survivor name and count.
+  **(g) RATIO ROWS THAT REACH THE RULE:** invalid-UTF-8, NUL-free latin-1 high-byte rows at, just
+  below and just above nine tenths. Measured: they kill the 0.95, 0.99 and 0.50 mutants that the
+  old ASCII rows missed. Production's ratio becomes a NAMED constant, where it is currently an
+  inline literal that nothing can reference.
+  **Evidence discipline:** before any gate, the bracket command and its digests are written to
+  `qgr/evidence/` BEFORE the reviewers start, so compaction cannot lose them.
+  **WI-2 (no clause)** is acknowledged as scoped: false docstrings and messages; two literals
+  replaced by the documented probe; a collection-count assertion (a suite that collects zero tests
+  FAILS); the empty-payload recorder; try/finally on sparse files; coverage-line format; a grep
+  showing every property claim names an existing test.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
