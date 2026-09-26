@@ -575,12 +575,12 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   strings, 2.1 s, measured; runs unconditionally, no tier), plus the multi-character alphabet.
   Measured: shipped pattern 0 disagreements; the trailing guards that survived the old corpus are
   KILLED, and so is the rejected lookbehind fix. **Still open, written exactly:** multi-character
-  contexts outside the stated alphabet. "Closed" is used only for single-code-point contexts.
+  contexts outside the stated alphabet. ~~"Closed" is used only for single-code-point contexts.~~ *[CORRECTED r2.47b (1), gate 5 R05: true only around the PROBE body. Single code point around the probe body: CLOSED. Around other bodies: COVERED, NOT CLOSED (a guard sparing one exact body survived both tiers). Context x body: OPEN (exhausting it is about 10^5 x 2.2M)]*
   Prefix case is closed by (a), not by (b).
   **(c) CEILING FROM BELOW.** Three sparse rows: one byte below and exactly at the ceiling are READ;
   one byte over is REPORTED. The constant-equality assertion is legitimate because the reference
   is written from this clause, and its message says so. Measured: the 48 MiB mutant that passed
-  the entire suite now fails two rows plus the equality. **Recorded cost:** the at-ceiling row
+  the entire suite now fails two rows plus the equality *[PRECISION r2.47b (3): for the CONSTANT form only. A TRUNCATING read survived homogeneous-NUL rows until gate 5 R08 made each row end in the probe token, which only a full read sees]*. **Recorded cost:** the at-ceiling row
   raises peak RSS by about 511 MiB (read_bytes plus decode), documented in the row for
   memory-capped environments. The reference's verdict for that row is derived from the sentence,
   not computed over 256 MiB.
@@ -600,7 +600,7 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   Verified-by survivor name and count.
   **(g) RATIO ROWS THAT REACH THE RULE:** invalid-UTF-8, NUL-free latin-1 high-byte rows at, just
   below and just above nine tenths. Measured: they kill the 0.95, 0.99 and 0.50 mutants that the
-  old ASCII rows missed. Production's ratio becomes a NAMED constant, where it is currently an
+  old ASCII rows missed *[PRECISION r2.47b (3): the old ROWS missed them; the old FILE still killed all three through `generated_bytes`. Also, per gate 5 R09, no finite row resolution pins a threshold, so the comparison is additionally bound structurally (an AST check for `>=` against the named constant)]*. Production's ratio becomes a NAMED constant, where it is currently an
   inline literal that nothing can reference.
   **Evidence discipline:** before any gate, the bracket command and its digests are written to
   `qgr/evidence/` BEFORE the reviewers start, so compaction cannot lose them.
@@ -612,13 +612,29 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   (`tests.readability_reference`), which resolves regardless of import mode, from a foreign cwd,
   and if `tests/` ever gains an `__init__.py`]*; the empty-payload recorder; try/finally on sparse files; coverage-line format; a grep
   showing every property claim names an existing test.
+- **E-22 r2.47b — CORRECTIONS FROM GATE 5 + (h)** *(gate 5 PASSED after its fix cycle: receipt Hash E
+  `8f2d12e`, CTO-verified; the extended tier was run by its wired command and recorded in the receipt).*
+  Four passages are corrected IN PLACE above, with markers: (1) r2.47(b)'s "closed" is scoped to the
+  probe body; (2) pointers from r2.28's three-state sentence and r2.29's exit-3 sentence to r2.47(d)'s
+  propagation; (3) precision on the (c) and (g) measurements. Gate 5's in-gate fixes that change
+  meaning: the error for an unusable ledger is rendered BESIDE the scan and never replaces it (R01, a
+  regression the build introduced); both SCANNER call sites are driven over generated contexts
+  through a no-disk seam, because the pin and the oracle bind only the constant (R06); the ceiling rows
+  end in the probe token (R08); there is a code point x body axis (R05); and the ratio comparison is
+  bound by an AST check (R09).
+  **(h) NEW (pre-existing, found in gate 5):** `errors.py` documents "a container with no reader
+  installed" as could-not-scan (exit 3), but `MissingContainerReader` subclasses `RuntimeError`, is
+  never translated, and exits 1. **Ruled: the documented behaviour is right** (a container that cannot
+  be read IS a scan that was not performed, a repository condition and not a guard defect). Done when
+  `MissingContainerReader` is translated to could-not-scan (exit 3) with the file named, proven on a
+  constructed tree, and the docstring cites the binding test. Implemented in the E-23 iteration.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
   nothing, because **no caller treats a topology failure differently from a decoding one**. The
   deciding evidence is not that `pytest.raises(RuntimeError)` is broad — that is a test defect with a
   test fix — but that `RecordContentScan.__post_init__` raises the same class for an **internal
-  invariant violation**, which surfaces as exit 3 *"your checkout could not be scanned"* for what is
+  invariant violation**, which surfaces as exit 3 *"your checkout could not be scanned"* *[SUPERSEDED r2.47(d), pointer added r2.47b (2): guard-invariant violations now PROPAGATE (exit 1, measured) and are never converted]* for what is
   a programming error inside the guard. The exception lives in a **dependency-free `guards/errors.py`**:
   the previous placement rule — *"the exception belongs with the layer that raises it"* — was
   **post-hoc justification for a cycle constraint**, and `repo.py` raises it 5 times against
@@ -654,7 +670,7 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   exactly-one-claim check — which tests key PRESENCE, not value — and then raised `KeyError`, exiting
   **1**, outside the ruled clean / files-fail / could-not-scan set. The scan invariant also compares
   **truthiness**, so an `exit_code=1` object constructs and renders. Every path out of the entry point
-  lands in one of the three states, and the type makes the fourth unrepresentable rather than merely
+  lands in one of the three states *[QUALIFIED r2.47(d), pointer added r2.47b (2): every path for a REPOSITORY condition. A guard-invariant violation (a programming error inside the guard) propagates as exit 1 by design and is outside the three-state taxonomy]*, and the type makes the fourth unrepresentable rather than merely
   untested.
 - **EVERY INTERPOLATED FIELD IS ESCAPED, not just paths** *(r2.28)*. r2.24 escaped unprintable
   **paths** after a filename drew a fake all-clear. `ScanRow.detail` is interpolated **raw**, and a
