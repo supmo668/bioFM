@@ -85,3 +85,9 @@ This belongs to the "mechanism reports success while the property is absent" fam
 - `:216-217` restore with `git stash apply "$STASH_REF"` (fine: apply accepts a commit), then `git stash drop "$STASH_REF" ... || true`. `drop` requires a stash reflog entry (`stash@{n}`), not a commit SHA, so it fails, and `|| true` hides it. **Every dirty --auto sync leaks one entry onto the SHARED stash stack.** (lung-on-chipsim has 12 "WIP on" entries consistent with this.)
 - `:54-56` `_cleanup` trap: `git stash pop` with **no ref**, which pops the TOP of a stack shared by every worktree and concurrent session. If another session pushed after this one, the trap pops (and removes) the other session's work.
 - **Fix:** `git stash push -u -m "worktree-sync:<run-id>"`, resolve `stash@{n}` by that message, apply by SHA, then drop by the re-found `stash@{n}`. The trap must apply and drop the same tagged entry, never a bare pop. Better still: replace the stash with a temporary WIP commit on the branch.
+
+---
+
+# git-safe-commit stages the whole tree unless --staged (aviary-biosim #435, CTO-verified in the 0.60.0 source)
+
+`tools/git-safe-commit` runs `git add -A` unless `--staged` is passed (`STAGED_ONLY` defaults false). `/quality-gate` Step 4's "atomic per-finding commits" snippet does not pass `--staged`, so per-finding commits silently sweep every dirty file in the tree: on the F08 re-gate, commits labelled for two findings carried five to seven others. This also defeats the fleet rule "stage explicit paths only" at the tool level. Fix: when the index is non-empty, default to staged-only and warn about unstaged files; add `--staged` to the Step 4 snippet.
