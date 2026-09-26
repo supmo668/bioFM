@@ -1,5 +1,5 @@
 <!-- HACP §decision · Project bioFM · workstream perturb-seq-eval · Kind Decision. Wiki rendering of Source:
-     workstreams/perturb-seq-eval/qgr/principal-decisions-p0p5.md (fc33ebe) + qgr/prereg-amendment-2-DRAFT.md (rev 3, 2026-09-26)
+     workstreams/perturb-seq-eval/qgr/principal-decisions-p0p5.md (fc33ebe) + qgr/prereg-amendment-2-DRAFT.md (rev 4, 2026-09-26)
      + workstreams/perturb-seq-eval/qa/_adhoc/2026-09-26-entropy-formulation-review.md (main, 26b2798).
      Notion: https://app.notion.com/p/3e7749bd250d8127b2b0c293fb8c0522 (Kind=Decision, Project=bioFM) -->
 # perturb-seq-eval — P0-P5 rulings for pre-registration amendment 2
@@ -8,7 +8,7 @@
 |---|---|
 | **State** | D1 approved · 9 ruled · **2 open** (A2-10, A2-11 — from the CTO's entropy-formulation review) |
 | **Blocks** | amendment 2 lock → fixes + quality gate → the #283 sweep ($12 stop / $28 kill) |
-| **Pre-registration** | `paper/PREREGISTRATION.md` pinned at `0c2932a`; amendment 2 DRAFT rev 3 (not locked) |
+| **Pre-registration** | `paper/PREREGISTRATION.md` pinned at `0c2932a`; amendment 2 DRAFT rev 4 (not locked) |
 | **Phase** | P0-P5 **closed** 2026-09-26 — boundary commit `dfaf8c3`, derived receipt `cfe931f` (Hash D = principal approval, CTO #421) |
 | **Alignment** | build matches the A&D and pre-registration **except** the measurand findings below; the quality gate caught them before any data |
 | **Links** | repo paths below are local — branch `perturb-seq-eval` is not yet on GitHub (needs `git push origin main` first) |
@@ -62,9 +62,9 @@ Softmax at τ = 1 over confidences in [0, 1] can never be far from uniform: for 
 
 ## Evidence (L3 — local paths)
 - Decision brief (Source): `workstreams/perturb-seq-eval/qgr/principal-decisions-p0p5.md`
-- Amendment 2 draft rev 3: `workstreams/perturb-seq-eval/qgr/prereg-amendment-2-DRAFT.md`
+- Amendment 2 draft rev 4: `workstreams/perturb-seq-eval/qgr/prereg-amendment-2-DRAFT.md`
 - Entropy-formulation review (CTO, on main): `workstreams/perturb-seq-eval/qa/_adhoc/2026-09-26-entropy-formulation-review.md`
 - Pre-registration: `projects/perturb-seq-eval/paper/PREREGISTRATION.md` · FWER evidence `qgr/evidence/h4-gate-null-fwer.json.txt`
 - Quality gate: receipts `qgr/…qgr-phase-complete-20260925-1301-7d3d659.md` → derived `…-20260926-1132-cfe931f.md`; red/green `qgr/evidence/qg-p0p5-*.txt`
-- Register of v0.5.0 defects: `workstreams/perturb-seq-eval/deferred-findings.md` (DF-01…DF-13; DF-13 = the unsourced 6.15 % once on this page)
-- CTO thread: dispatches #283 (sweep GO), #390, #392, #395, #421, #425
+- Register of v0.5.0 defects: `workstreams/perturb-seq-eval/deferred-findings.md` (DF-01…DF-13; DF-13 = the 6.15 % once on this page — unsourced, and the nearby evidence file measures a different quantity)
+- CTO thread: dispatches #283 (sweep GO), #390, #392, #395, #421, #425, #427

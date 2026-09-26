@@ -1,6 +1,6 @@
 # DRAFT — Pre-registration AMENDMENT 2 (v0.6.0 sweep) — NOT LOCKED
 
-> **Status: DRAFT, revision 3 (CTO #395, #421, #425).** Nothing here is in force. `projects/perturb-seq-eval/paper/PREREGISTRATION.md`
+> **Status: DRAFT, revision 4 (CTO #395, #421, #425, #427).** Nothing here is in force. `projects/perturb-seq-eval/paper/PREREGISTRATION.md`
 > is unchanged. The pre-registration is amended **once**, before any v0.6.0 data exists, and only after **all**
 > the PENDING sections below are ruled. At that point this text is folded into `PREREGISTRATION.md` in a single
 > `prereg(...)` commit, and the sweep's provenance pins that commit. Nothing that changes the measurand is
@@ -278,8 +278,12 @@ the Spearman tests. The clipped value is reported descriptively beside it. For T
 enters the weighted sum and the outer clip₀₁ is **removed** (Spearman is rank-based and the ridge standardises, so
 neither needs the [0, 1] range; keeping the outer clip would re-create the tie block inside TDI). Weights carried
 over unchanged (review F4). **Consequence, stated so it is chosen with eyes open:** TDI_lifecycle's range becomes
-**[0, 17/12 ≈ 1.417]** (= 7/12 · [0, 1] + 5/12 · [0, 2]) instead of [0, 1], under either A2-10 option; it is no
-longer an index on [0, 1], and the paper must describe it as a score with that range. Dropping the outer clip is
+**[0, 17/12 ≈ 1.417]** (= 7/12 · [0, 1] + 5/12 · [0, 2]) instead of [0, 1]; it is no longer an index on [0, 1],
+and the paper must describe it as a score with that range. **The bound holds under both A2-10 options, checked:**
+`metrics.ace_norm` (softmax) and `metrics.ace_d` are both normalised by ln N to a nominal [0, 1], so the
+7/12 · [0, 1] term and the 17/12 upper bound are the same under (a) and (b). Only the *attainable* minimum differs:
+under (a) the floor 0 is attainable; under (b) ACE's attainable band (about [0.92, 1] at N = 5) lifts TDI_lifecycle's
+attainable floor to about 7/12 · 0.92 ≈ 0.54. Neither option changes the upper bound. Dropping the outer clip is
 not a separate decision: option (a) is incoherent without it (CTO #425 d).
 
 **Option (b):** keep the clipped 1−ΔC as pre-registered and state that falling-confidence runs tie with flat runs
