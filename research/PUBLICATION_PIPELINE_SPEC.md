@@ -371,7 +371,8 @@ publishers. **None of them deposits to an academic repository.** So:
 1. ~~**The (a)/(b) fork of §10.4 is unresolved**~~ — **RESOLVED (a), 2026-09-24.**
    Nothing should be created in a production instance until this is settled, because the two
    branches produce entirely different workflows.
-2. **Slack target channel** — unnamed.
+2. ~~**Slack target channel** — unnamed.~~ **RESOLVED 2026-09-26: `#research-approvals`** (principal). Run-variable default may be set to it.
+   *Also resolved 2026-09-26:* the author ORCID is on file with the CTO (principal profile; public identifier) for `publish.yml` `authors[]`; the principal has **approved the Zenodo SANDBOX deposit** for the v2r-loop/BioSim white paper once the pipeline exists. A LIVE deposit still needs an explicit go.
 3. **Five of six venue tokens** absent; Zenodo asserted to be in Infisical but still
    unverified (§8).
 
