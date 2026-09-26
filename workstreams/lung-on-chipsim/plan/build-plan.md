@@ -628,6 +628,51 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   be read IS a scan that was not performed, a repository condition and not a guard defect). Done when
   `MissingContainerReader` is translated to could-not-scan (exit 3) with the file named, proven on a
   constructed tree, and the docstring cites the binding test. Implemented in the E-23 iteration.
+- **E-23 — THE STRUCTURE DETECTOR IS FAIL-CLOSED, PROVEN BY A DIFFERENTIAL ORACLE** *(r2.48; agent-drafted
+  #404, every figure measured in tree before drafting (harness `qgr/evidence/e23-draft-measure.py`,
+  seeded); same design as E-22 from the start; signed with ONE CTO addition, marked)*. `_STRUCTURE_RE`
+  is the ONLY control on the exempt ledger files, and its InChIKey half carried a word boundary at both
+  ends: the E-22 defect in its last instance.
+  **SPEC SENTENCE:** *a STRUCTURE IDENTIFIER is (i) an InChI: the seven ASCII characters `InChI=1`,
+  case-sensitive, then optionally `S`, then `/`, then one or more characters none of which is
+  whitespace, running to the next whitespace character or the end of the text; or (ii) an InChIKey:
+  fourteen ASCII uppercase letters, a hyphen, ten ASCII uppercase letters, a hyphen, and one ASCII
+  uppercase letter. Either is recognised whatever precedes or follows it; scanning is left to right,
+  (i) is tried before (ii) at each position, and matches do not overlap.*
+  **Done when:** (a) the key half loses both boundaries, the InChI half is unchanged, and the pattern
+  is PINNED over text AND flags (`re.UNICODE`), with a lowercase-key behavioural row; (b) a reference
+  scanner is written from the sentence in plain Python with no regex, with the coincidence of `\s`/`isspace`
+  and `[A-Z]`/ASCII uppercase MEASURED over all code points (0 disagreements each, measured); (c)
+  generated input, seeded with the seed printed first: a token axis of seeded keys, each with its one-edit
+  near-misses, plus InChI prefix variants; the E-22 context alphabet on both sides; every single code
+  point around a probe key AND a probe InChI; code point x seeded key; and fuzz (breadth only: it kills
+  nothing here, and the clause does not claim it does); (d) the ONE call site,
+  `accession_structure_tuples`, driven through the seam; (e) a regression museum, each entry proven
+  killed. The swapped-alternation survivor is PROVABLY EQUIVALENT (an InChI's second character is
+  lowercase; every key character is uppercase) and is dropped with that reason; (h) (from r2.47b)
+  `MissingContainerReader` translates to could-not-scan (exit 3), file named, proven on a constructed
+  tree.
+  **(i) PROBE PROVENANCE** *(CTO addition: InChIs and InChIKeys are STRUCTURE identifiers, and this
+  workstream forbids associating an accession with a structure. The draft did not say where its probe
+  structures come from)*: every InChI and InChIKey in tests and harnesses is **invented by construction
+  and visibly synthetic**: keys generated from a stated rule (for example, a single repeated letter per
+  segment, or a seeded generator whose seed is printed); InChI bodies are chemically meaningless
+  placeholder text. **Never copied from any data file, ledger, fixture, dispatch or external source,
+  and never checked against any database to see whether it is real.** A comment at each probe
+  definition states that it is invented. The same rule governs the committed harness in
+  `qgr/evidence/`. The shapes-not-values rule applies to plan and dispatch text for structures as for
+  accessions.
+  **Measured before signing (#404):** tokens 508,004 (old pattern 30,000 disagreements, new 0); context
+  alphabet 108,000 (34,500 / 0); every code point x both probes 4,456,448 (267,096 / 0); code point x
+  seeded key 2,228,224 (267,096 / 0); museum 17 of 18 killed (the 18th is provably equivalent); live-tree
+  ledger tuples 0 old and 0 new, and newly visible pairs 0, so no exclusions are needed. About 21 s per
+  oracle pass.
+  **RECORDED LIMITS, exact:** single-code-point contexts are CLOSED around the two probes and COVERED,
+  NOT CLOSED around other tokens; multi-character contexts outside the alphabet are OPEN; the key space
+  is SAMPLED, not exhausted.
+  **CLASS SWEEP (re-derived):** all 10 `re.compile` sites in `chipsim/`. Only `_STRUCTURE_RE` carried a
+  boundary or a lookbehind; the other 9 are anchored validators, not content detectors. With E-23 the
+  `\b`-on-source-text CLASS is closed in this module.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
