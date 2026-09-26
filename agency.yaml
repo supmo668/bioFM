@@ -193,7 +193,14 @@ cycle:
 # This in-flight Developer-Documentation tier is DISTINCT from the completed-
 # system reference tier written only at /plan-complete. Read by tools/docs-plan.
 docs:
-  provider: "none"               # none | notion — in-flight dev-doc target
+  provider: "notion"             # none | notion — in-flight dev-doc target
+                                 # set 2026-09-26 (#414, principal wants HACP-on-Notion).
+                                 # NOTE: propagation stays INERT until a target resolves —
+                                 # docs.notion.parent is deliberately BLANK and the CTO scope
+                                 # below is the only resolving target, so "CTO-only writer"
+                                 # is enforced by CONFIG rather than by convention. Do not set
+                                 # `parent` without an enforcement: docs-plan uses agent identity
+                                 # to pick a SCOPE, never to gate the write.
   root: "docs"                   # local docs tree; per-ws doc → <root>/workstreams/<ws>.md
                                  # indexed by <root>/workstreams/index.md
   notion:
@@ -201,6 +208,9 @@ docs:
                                  # pages; the fallback when no per-agent scope matches
                                  # (blank + no scope → local index only)
     scopes: {}                   # per-agent Notion sub-workspace scopes: <agent>: <parent page>
+                                 # PENDING (#414): set `cto: "<HACP Index page title or id>"` once the
+                                 # principal or the agent supplies it. Scoping to `cto` alone means
+                                 # every other agent falls back to the blank parent → no propagation.
                                  # e.g. { web: "Web Docs", api: "API Docs" } — docs-plan resolves
                                  # the current agent's scope first, then falls back to parent
   # ── Usage docs (what the user can DO) — the tier the TICKET must stay aligned
