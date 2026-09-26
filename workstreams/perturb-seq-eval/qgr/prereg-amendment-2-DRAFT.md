@@ -1,6 +1,6 @@
 # DRAFT — Pre-registration AMENDMENT 2 (v0.6.0 sweep) — NOT LOCKED
 
-> **Status: DRAFT, revision 2 (CTO #395, #421).** Nothing here is in force. `projects/perturb-seq-eval/paper/PREREGISTRATION.md`
+> **Status: DRAFT, revision 3 (CTO #395, #421, #425).** Nothing here is in force. `projects/perturb-seq-eval/paper/PREREGISTRATION.md`
 > is unchanged. The pre-registration is amended **once**, before any v0.6.0 data exists, and only after **all**
 > the PENDING sections below are ruled. At that point this text is folded into `PREREGISTRATION.md` in a single
 > `prereg(...)` commit, and the sweep's provenance pins that commit. Nothing that changes the measurand is
@@ -114,6 +114,11 @@ convention 1, so that each model can predict them and the MSD in H1/H2 and in H4
 identical genes. The per-task list of the 20 genes is written to provenance, and a test asserts that the trainer
 and lifecycle records for a task carry the same list.
 
+**This is not new leakage.** The 20 genes are already chosen using the held-out perturbation's own mean shift,
+the CPA/GEARS convention that convention 2 declares as a stated limitation. Force-including them changes feature
+**availability** (the model can predict them), not label **exposure**: no held-out expression value enters training,
+and the declared DEG convention is neither widened nor worsened by it.
+
 **Text it changes in `PREREGISTRATION.md`:**
 - Convention 2: add the universe (full post-QC gene axis), the once-per-task selection, and the shared list.
 - Convention 1: the force-included set becomes "the target gene(s) and the task's 20 evaluation genes";
@@ -142,9 +147,13 @@ only the ceiling if the menu is exactly three; and the plug-in entropy is biased
 - **Bias:** H3's headline is the plug-in (maximum-likelihood) entropy, adequate at the pooled N (about 0.007 nats
   low at N = 138, K = 3). For any breakdown with **N < 50** (per `model_id`, per task) the Miller–Madow-corrected
   value, H + (K−1)/(2N), is reported beside the plug-in value.
-- **Interpretation of the gate:** 0.5 nats over three options is the entropy of roughly an 86/7/7 split. For
-  reference, 80/10/10 = 0.639 nats, 70/15/15 = 0.819 nats, and a 91/4.5/4.5 split = 0.365 nats. The gate is
-  therefore passed by any pool where the most-chosen backbone takes less than about 86% of stated picks.
+- **Interpretation of the gate:** the gate is a threshold on the **entropy of the stated-pick distribution**,
+  not a rule about any single share. For a fixed top share the entropy is largest when the remainder splits evenly
+  and smallest when the remainder sits in one option, so the gate's top-share boundary is a band: with an **even
+  remainder** the gate passes below **86.08%** on the top backbone (86/7/7 = 0.502 nats); with the **remainder in one
+  option** it passes only below **80.03%** (80/20/0 = 0.500 passes; 81/19/0 = 0.486 and 82/18/0 = 0.471 fail).
+  For reference, 80/10/10 = 0.639 nats and 70/15/15 = 0.819 nats are both above the gate. A reader must apply the
+  entropy, never a top-share rule.
 - **H3 is a statement about the pool** of all LLM-sourced Architect steps across tasks, seeds and rounds, not about
   any single task, seed or round. The hypothesis sentence says so.
 
@@ -268,7 +277,10 @@ block at the top of the ranking. With A2-2 (three fixed rounds) the single-round
 the Spearman tests. The clipped value is reported descriptively beside it. For TDI_lifecycle, the unclipped value
 enters the weighted sum and the outer clip₀₁ is **removed** (Spearman is rank-based and the ridge standardises, so
 neither needs the [0, 1] range; keeping the outer clip would re-create the tie block inside TDI). Weights carried
-over unchanged (review F4).
+over unchanged (review F4). **Consequence, stated so it is chosen with eyes open:** TDI_lifecycle's range becomes
+**[0, 17/12 ≈ 1.417]** (= 7/12 · [0, 1] + 5/12 · [0, 2]) instead of [0, 1], under either A2-10 option; it is no
+longer an index on [0, 1], and the paper must describe it as a score with that range. Dropping the outer clip is
+not a separate decision: option (a) is incoherent without it (CTO #425 d).
 
 **Option (b):** keep the clipped 1−ΔC as pre-registered and state that falling-confidence runs tie with flat runs
 at the top of the ranking.
