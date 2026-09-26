@@ -207,10 +207,23 @@ docs:
     parent: ""                   # Notion parent page (title/id) for Developer Documentation
                                  # pages; the fallback when no per-agent scope matches
                                  # (blank + no scope → local index only)
-    scopes: {}                   # per-agent Notion sub-workspace scopes: <agent>: <parent page>
-                                 # PENDING (#414): set `cto: "<HACP Index page title or id>"` once the
-                                 # principal or the agent supplies it. Scoping to `cto` alone means
-                                 # every other agent falls back to the blank parent → no propagation.
+    scopes:                      # per-agent Notion sub-workspace scopes: <agent>: <parent page>
+      cto: "3e5749bd250d806899f1d04b1053d1e7"
+                                 # SET 2026-09-26 (#416). This is the HACP Index DATABASE id, read
+                                 # back from the Notion API by perturb-seq-eval (not recalled).
+                                 # WHY the database and not the AI-RDLC root page: docs-plan is a
+                                 # pure planner — it emits PROPAGATE|<parent>|notion and the calling
+                                 # skill performs the MCP write — so the value is opaque here, and the
+                                 # write must land as a ROW of the HACP Index. The root page id is
+                                 # already carried by docs.notion.root in the principal user.yaml.
+                                 # UNVERIFIED END-TO-END: no write has been attempted against this
+                                 # value. If the first write fails with a parent-type error, the
+                                 # alternative is the data-source id
+                                 # 3e5749bd-250d-80c1-9927-000bb80a2b0d (newer Notion API takes
+                                 # parent.data_source_id). Try that before assuming anything else.
+                                 # Scoping to `cto` alone is the ENFORCEMENT: every other agent
+                                 # resolves no scope, falls back to the blank parent, and docs-plan
+                                 # documents that as no Notion propagation.
                                  # e.g. { web: "Web Docs", api: "API Docs" } — docs-plan resolves
                                  # the current agent's scope first, then falls back to parent
   # ── Usage docs (what the user can DO) — the tier the TICKET must stay aligned
