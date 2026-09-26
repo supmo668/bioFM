@@ -667,6 +667,28 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   definition states that it is invented. The same rule governs the committed harness in
   `qgr/evidence/`. The shapes-not-values rule applies to plan and dispatch text for structures as for
   accessions.
+  *[AMENDED r2.48b (#412) — agent-drafted sequencing + scope, with two CTO additions.*
+  ***(i) SEQUENCING.*** *(i) is applied only AFTER the code-point x InChI-body axis exists, because until
+  then the fixtures (i) condemns are the only oracle for the uppercase-body guard, and applying (i) first
+  converts a killed mutant into a full-suite survivor with no signal that it has. The axis landed at
+  `2400abc`; (i) is unblocked by that commit and by nothing earlier.*
+  ***(i) SCOPE — BY THE PROPERTY UNDER TEST, NOT BY FILE.*** *(i) governs a structure value where only its
+  SHAPE is under test. Where a test needs real chemistry — canonicalisation, stereo discrimination,
+  InChIKey equality — the PubChem-citation rule governs instead and (i) does not reach it; such a value is
+  real, cited by CID and retrieval date, and carries no accession outside the documented synthetic range
+  and no coined name. **Where both apply, the citation rule governs.** A test that cannot say which of the
+  two it needs is a test whose purpose is unclear, and that is the defect to fix first. **The r2.48a file
+  list above is ILLUSTRATIVE, not definitional** — that list is what led an agent to a compliant fixture,
+  so the property is primary and the list is only an example of it.*
+  ***(i) DECLARATION (CTO addition).*** *Every value either rule governs carries an inline marker naming
+  which rule governs it. Without one the clause is interpretive: a reader must re-derive the test's purpose
+  before applying it, and that is precisely the step that failed in #412. With one, the clause is auditable
+  by reading.*
+  ***(i) PROBE CORRECTNESS (CTO addition).*** *Any shape count offered in support of a claim under this
+  clause MUST exclude the documented synthetic range, and that exclusion belongs in the shared scanning
+  tool rather than in each invocation. The #412 near-miss came from a count wider than the claim it was
+  used for — the same defect family this whole range exists to close.]*
+
   **Measured before signing (#404):** tokens 508,004 (old pattern 30,000 disagreements, new 0); context
   alphabet 108,000 (34,500 / 0); every code point x both probes 4,456,448 (267,096 / 0); code point x
   seeded key 2,228,224 (267,096 / 0); museum 17 of 18 killed (the 18th is provably equivalent); live-tree
