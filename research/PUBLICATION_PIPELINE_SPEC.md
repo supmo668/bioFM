@@ -561,3 +561,26 @@ per-project workflow and nothing project-specific in the graph.
    paths, `topic`, new venue blocks) — repo-side, so a worktree agent's work.
 5. **Zenodo sandbox end-to-end**, then and only then retire the Python publishers (§10.3
    stage 4). Nothing is deleted before the replacement has published something.
+
+## 14. Reconciliation of §10.4 "(a)" and §13 "(b)" — recorded 2026-09-26 by the CTO
+
+Two rulings on the same fork sit in this file: §13 records **(b)** (2026-09-24, another CTO
+session), and the note under §10.4 records **(a)** (2026-09-25, this CTO, from the principal's
+direct answer to "how should the white paper's publish step work?"). They contradict each other,
+and the CTO caused half of it by amending §10.4 without reading §13.
+
+**The fact that decides it:** §13.1 — the n8n instance is remote (`n8n.syntropyhealth.bio`) and has
+no local runner, so `executeCommand` cannot reach a repository. Option (a) as §2 designed it is not
+executable without a self-hosted runner. The principal's (a) answer on 09-25 was given without that
+fact in front of them.
+
+**Standing resolution, until the principal says otherwise:** §13's design governs — venue logic in
+n8n, inputs read from GitHub at a pinned `ref`, manifest shape per §12.1 (identical under both, so
+`publish.yml` and the manifest are unaffected). The (a) note under §10.4 is **superseded by
+infeasibility**, not by a new choice. If the principal wants (a), the missing piece is a self-hosted
+n8n runner with repository access, and that is a decision with a cost attached.
+
+**Consequence for #203:** it is queued behind perturb-seq-eval's amendment-2 lock and sweep anyway;
+when it is picked up, it follows §13, and the consolidation decision record (#204's "identical
+under both") is still the first step. The paper's §3 names "the repository's publication pipeline"
+and neither option (#429 G4).
