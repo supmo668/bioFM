@@ -19,17 +19,19 @@ data exist they cannot.
 `ace()` takes the softmax of confidences in [0, 1] and normalises the entropy by ln N.
 Because the logits live in a unit interval, no two softmax probabilities can differ by more
 than a factor of e. The most concentrated confidence vector possible, (1, 0, …, 0), therefore
-still yields near-uniform probabilities. Minimum attainable ACE_norm over the whole cube
-[0, 1]^N (analytic at the corner, confirmed by 60,000 random draws per N):
+still yields near-uniform probabilities. Attainable minimum of ACE_norm over the cube [0, 1]^N: the corner (1, 0, …, 0) evaluated
+analytically, and the smallest value found by 60,000 random draws per N. For N = 5 the search
+finds a point slightly below the corner, so the corner is an upper bound on the minimum and the
+true band is marginally wider than it shows:
 
 | N (LLM-sourced steps in the round) | min ACE_norm, τ = 1 (corner) | random-search min | ace_d at the same corner |
 |---|---|---|---|
-| 2 | 0.840 | 0.840 | -0.0 |
-| 3 | 0.888 | 0.888 | -0.0 |
-| 5 | 0.932 | 0.925 | -0.0 |
+| 2 | 0.840 | 0.840 | 0.0 |
+| 3 | 0.888 | 0.888 | 0.0 |
+| 5 | 0.932 | 0.925 | 0.0 |
 
-So for a five-role round the pre-registered feature occupies **[0.93, 1.00]**: seven percent of
-its nominal range. The pre-registration already notes "a narrow band just below 1" and says
+So for a five-role round the pre-registered feature occupies at most **[0.92, 1.00]**: about
+eight percent of its nominal range. The pre-registration already notes "a narrow band just below 1" and says
 rank statistics are unaffected. That is true only if the confidences carry no noise: with a
 band this narrow, reported-confidence rounding (LLMs emit 0.7, 0.8, 0.9) produces ties and
 near-ties, and Spearman ρ over 20 tasks is then decided by the tie-breaking of a
