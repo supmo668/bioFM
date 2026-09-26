@@ -247,6 +247,9 @@ tests:
   # Mirrors quality.lint_command_<agent> / quality.test_command_<agent> convention.
   # referee_command_web: "pnpm exec vitest run --reporter=tap"
   # referee_command_api: "pytest tests/sealed/ -q --tb=no"
+  # aviary-biosim (#429 G1, 2026-09-26): the separate Aviary-BioSim repo has no agency.yaml and may not get one (it
+  # would shadow this file), so its referee command lives here. Runs from the aviary worktree root.
+  referee_command_aviary-biosim: "sh paper/scripts/sealed_suite_results.sh"
 
 # ── Review fan-out ──────────────────────────────────────────────────────────
 review:
