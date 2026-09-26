@@ -654,7 +654,12 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   tree.
   **(i) PROBE PROVENANCE** *(CTO addition: InChIs and InChIKeys are STRUCTURE identifiers, and this
   workstream forbids associating an accession with a structure. The draft did not say where its probe
-  structures come from)*: every InChI and InChIKey in tests and harnesses is **invented by construction
+  structures come from)*: every InChI and InChIKey in tests and harnesses ~~is~~ *[SCOPED r2.48a (#406): in the DETECTOR and GUARD
+  tests and harnesses, meaning E-23's own tests, its measurement harness, the record-content guard tests, and any
+  test pairing a structure with an accession probe, where only the SHAPE matters. It does NOT reach the
+  domain chemistry fixtures (parsing, stereo, adjudication), which parse real chemistry by design and
+  carry no accession; nor the sanctioned ledger file. The CTO's original wording was broader than
+  intended]* is **invented by construction
   and visibly synthetic**: keys generated from a stated rule (for example, a single repeated letter per
   segment, or a seeded generator whose seed is printed); InChI bodies are chemically meaningless
   placeholder text. **Never copied from any data file, ledger, fixture, dispatch or external source,
