@@ -46,42 +46,58 @@ def test_torch_oom_transient():
     assert torch.cuda.OutOfMemoryError in TRANSIENT_EXCEPTIONS
 
 
-@pytest.mark.parametrize("exc", [
-    MemoryError(),
-    TimeoutError("timed out"),
-    ConnectionError("reset"),
-    ConnectionResetError("reset by peer"),
-    BrokenPipeError(),
-    socket.gaierror("dns"),
-    requests.ConnectionError("net"),
-    requests.Timeout("slow"),
-    requests.HTTPError("503"),
-])
+@pytest.mark.parametrize(
+    "exc",
+    [
+        MemoryError(),
+        TimeoutError("timed out"),
+        ConnectionError("reset"),
+        ConnectionResetError("reset by peer"),
+        BrokenPipeError(),
+        socket.gaierror("dns"),
+        requests.ConnectionError("net"),
+        requests.Timeout("slow"),
+        requests.HTTPError("503"),
+    ],
+)
 def test_transient(exc):
     assert classify(exc) == "transient"
 
 
-@pytest.mark.parametrize("exc", [
-    TypeError("x"), AttributeError("x"), NameError("x"), KeyError("x"),
-    ImportError("x"), ModuleNotFoundError("x"), IndexError("x"), ValueError("x"),
-    AssertionError("x"), NotImplementedError("x"),
-    BackboneUnavailableError("scgpt_small unavailable"),
-    PreflightError(["key absent"]),
-    # ValueError-shaped requests errors are call-site bugs, not the network.
-    requests.exceptions.MissingSchema("no scheme"),
-    requests.exceptions.InvalidURL("bad"),
-    json.JSONDecodeError("x", "doc", 0),
-])
+@pytest.mark.parametrize(
+    "exc",
+    [
+        TypeError("x"),
+        AttributeError("x"),
+        NameError("x"),
+        KeyError("x"),
+        ImportError("x"),
+        ModuleNotFoundError("x"),
+        IndexError("x"),
+        ValueError("x"),
+        AssertionError("x"),
+        NotImplementedError("x"),
+        BackboneUnavailableError("scgpt_small unavailable"),
+        PreflightError(["key absent"]),
+        # ValueError-shaped requests errors are call-site bugs, not the network.
+        requests.exceptions.MissingSchema("no scheme"),
+        requests.exceptions.InvalidURL("bad"),
+        json.JSONDecodeError("x", "doc", 0),
+    ],
+)
 def test_programming(exc):
     assert classify(exc) == "programming"
 
 
-@pytest.mark.parametrize("exc", [
-    RuntimeError("CUDA error: illegal memory access"),
-    FileNotFoundError("missing"),  # an OSError, but not network → not transient
-    PermissionError("denied"),
-    ZeroDivisionError(),
-])
+@pytest.mark.parametrize(
+    "exc",
+    [
+        RuntimeError("CUDA error: illegal memory access"),
+        FileNotFoundError("missing"),  # an OSError, but not network → not transient
+        PermissionError("denied"),
+        ZeroDivisionError(),
+    ],
+)
 def test_other(exc):
     assert classify(exc) == "other"
 
@@ -112,8 +128,13 @@ def _ds() -> dict:
     X[:, 0] = np.where(labels == "TFA", 0.0, 3.0)
     X[:, 1] = np.where(labels == "TFB", 0.0, 3.0)
     X[:, 2] = np.arange(12) % 3
-    return {"X": X, "labels": labels, "control_mask": labels == "CTRL",
-            "target_gene_idx": {"TFA": (0,), "TFB": (1,)}, "hvg_n_top": 3}
+    return {
+        "X": X,
+        "labels": labels,
+        "control_mask": labels == "CTRL",
+        "target_gene_idx": {"TFA": (0,), "TFB": (1,)},
+        "hvg_n_top": 3,
+    }
 
 
 class _Stub:
@@ -130,20 +151,39 @@ class _Stub:
 
 
 def _trainer_iter(**over):
-    kw = dict(dataset_name="t", ds=_ds(), tasks=["TFA", "TFB"], backbones=("linear",),
-              r_sweep=(1,), seeds=(0,))
+    kw = dict(
+        dataset_name="t",
+        ds=_ds(),
+        tasks=["TFA", "TFB"],
+        backbones=("linear",),
+        r_sweep=(1,),
+        seeds=(0,),
+    )
     kw.update(over)
     return heldout.iter_trainer_records(**kw)
 
 
 def _prov() -> dict:
-    plan = TaskPlan(adamson=("A",), norman_singletons=(), norman_doublets=(),
-                    strata={"adamson:A": 0}, eligible_counts={"adamson": 1})
+    plan = TaskPlan(
+        adamson=("A",),
+        norman_singletons=(),
+        norman_doublets=(),
+        strata={"adamson:A": 0},
+        eligible_counts={"adamson": 1},
+    )
     kwargs = {k: 1 for k in pv.REQUIRED_ENTRYPOINT_KWARGS}
     return pv.build_provenance(
-        run_id="r1", git_sha="a" * 40, git_dirty=False, entrypoint_kwargs=kwargs,
-        datasets=[], task_plan=plan, tasks_excluded=[], llm_pool=[], gpu="A100-40GB",
-        hourly_usd=1.32, budget_cap_usd=28.0,
+        run_id="r1",
+        git_sha="a" * 40,
+        git_dirty=False,
+        entrypoint_kwargs=kwargs,
+        datasets=[],
+        task_plan=plan,
+        tasks_excluded=[],
+        llm_pool=[],
+        gpu="A100-40GB",
+        hourly_usd=1.32,
+        budget_cap_usd=28.0,
         # A2-4: the trainer grid is a required provenance block.
         trainer_grid=heldout.trainer_grid(backbones=("linear",), r_sweep=(1,), seeds=(0,)),
     )
@@ -151,9 +191,16 @@ def _prov() -> dict:
 
 def _fail(prov, exc, phase):
     return pv.fail_provenance(
-        prov, exc, phase=phase, finished_at="2099-01-01T00:00:00+00:00",
-        gpu_seconds=1.0, cost_usd_actual=0.0, counts={"n_trainer_runs": 0},
-        hvg_n_per_task={}, params_per_task={}, budget_hit=False,
+        prov,
+        exc,
+        phase=phase,
+        finished_at="2099-01-01T00:00:00+00:00",
+        gpu_seconds=1.0,
+        cost_usd_actual=0.0,
+        counts={"n_trainer_runs": 0},
+        hvg_n_per_task={},
+        params_per_task={},
+        budget_hit=False,
         unparseable_lines={"trainer_runs.jsonl": [], "lifecycle_runs.jsonl": []},
     )
 
@@ -214,15 +261,23 @@ def _life_fn(exc: BaseException | None, on: int = 1):
         calls["n"] += 1
         if exc is not None and calls["n"] == on:
             raise exc
-        return {"task_id": task, "dataset": dataset_name, "seed": seed,
-                "final_msd_topk": 0.2, "steps": []}
+        return {
+            "task_id": task,
+            "dataset": dataset_name,
+            "seed": seed,
+            "final_msd_topk": 0.2,
+            "steps": [],
+        }
 
     return fn, calls
 
 
 def _life_iter(fn):
     return iter_lifecycle_records(
-        datasets=[("t", _ds(), ["TFA", "TFB"])], seeds=(0,), pool=object(), record_fn=fn,
+        datasets=[("t", _ds(), ["TFA", "TFB"])],
+        seeds=(0,),
+        pool=object(),
+        record_fn=fn,
     )
 
 
@@ -258,14 +313,24 @@ def test_lifecycle_transient_records_and_continues():
 def test_lifecycle_task_missing_raises():
     fn, _ = _life_fn(None)
     with pytest.raises(RuntimeError, match="target_gene_idx"):
-        list(iter_lifecycle_records(datasets=[("t", _ds(), ["NOPE"])], seeds=(0,),
-                                    pool=object(), record_fn=fn))
+        list(
+            iter_lifecycle_records(
+                datasets=[("t", _ds(), ["NOPE"])], seeds=(0,), pool=object(), record_fn=fn
+            )
+        )
 
 
 def test_lifecycle_should_stop():
     fn, calls = _life_fn(None)
-    recs = list(iter_lifecycle_records(datasets=[("t", _ds(), ["TFA", "TFB"])], seeds=(0,),
-                                       pool=object(), record_fn=fn, should_stop=lambda: True))
+    recs = list(
+        iter_lifecycle_records(
+            datasets=[("t", _ds(), ["TFA", "TFB"])],
+            seeds=(0,),
+            pool=object(),
+            record_fn=fn,
+            should_stop=lambda: True,
+        )
+    )
     assert recs == [] and calls["n"] == 0
 
 

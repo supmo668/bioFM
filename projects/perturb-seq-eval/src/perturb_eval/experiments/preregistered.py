@@ -123,12 +123,20 @@ STRUCTURALLY_UNDEFINED: dict[str, str] = {
 # gate-result shape
 # ---------------------------------------------------------------------------
 
-def _gate(gate: str, value: Any, threshold: float, passed: bool | None,
-          reason: str | None, **extra: Any) -> dict:
+
+def _gate(
+    gate: str, value: Any, threshold: float, passed: bool | None, reason: str | None, **extra: Any
+) -> dict:
     evaluable = passed is not None
-    return {"gate": gate, "value": value, "threshold": threshold,
-            "pass": passed if evaluable else None, "evaluable": evaluable,
-            "reason": reason, **extra}
+    return {
+        "gate": gate,
+        "value": value,
+        "threshold": threshold,
+        "pass": passed if evaluable else None,
+        "evaluable": evaluable,
+        "reason": reason,
+        **extra,
+    }
 
 
 def not_licensed(result: dict, why: str) -> dict:
@@ -140,14 +148,17 @@ def not_licensed(result: dict, why: str) -> dict:
 # per-run components
 # ---------------------------------------------------------------------------
 
+
 def tdi_lifecycle(ace_norm: float, one_minus_delta_c: float) -> float:
     """Default-weighted two-component TDI, with NO outer clip (amendment 2, A2-11).
 
     ``7/12 * ACE + 5/12 * (1 - ΔC)`` with ACE on [0, 1] and unclipped 1 - ΔC on
     [0, 2], so the score lies on [0, 17/12]; it is not an index on [0, 1].
     """
-    return float(TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace_norm
-                 + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_delta_c)
+    return float(
+        TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace_norm
+        + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_delta_c
+    )
 
 
 def _is_llm(step: Mapping) -> bool:
@@ -155,8 +166,7 @@ def _is_llm(step: Mapping) -> bool:
 
 
 def _round_vector(steps: Sequence[Mapping], r: int) -> tuple[tuple[float, ...] | None, str | None]:
-    confs = [s.get("llm_confidence") for s in steps
-             if s.get("round_index") == r and _is_llm(s)]
+    confs = [s.get("llm_confidence") for s in steps if s.get("round_index") == r and _is_llm(s)]
     if len(confs) < 2:
         return None, f"round {r}: {len(confs)} LLM-sourced step(s) (< 2 required)"
     try:
@@ -171,10 +181,17 @@ def _round_vector(steps: Sequence[Mapping], r: int) -> tuple[tuple[float, ...] |
 def _round_metrics(r: int, vec: tuple[float, ...]) -> RoundMetrics:
     # CSD / winner fields are structurally undefined here (NaN / -1); only the
     # confidence-derived fields are read by the functions this module calls.
-    return RoundMetrics(round_index=r, ace=metrics.ace(vec), ace_norm=metrics.ace_norm(vec),
-                        mean_confidence=float(np.mean(vec)), max_confidence=float(max(vec)),
-                        csd=float("nan"), csd_max=float("nan"), winner_index=-1,
-                        consensus_score=float("nan"))
+    return RoundMetrics(
+        round_index=r,
+        ace=metrics.ace(vec),
+        ace_norm=metrics.ace_norm(vec),
+        mean_confidence=float(np.mean(vec)),
+        max_confidence=float(max(vec)),
+        csd=float("nan"),
+        csd_max=float("nan"),
+        winner_index=-1,
+        consensus_score=float("nan"),
+    )
 
 
 def per_run_components(run: Mapping) -> dict:
@@ -189,10 +206,16 @@ def per_run_components(run: Mapping) -> dict:
     """
     steps = list(run.get("steps") or [])
     rounds = sorted({int(s["round_index"]) for s in steps if s.get("round_index") is not None})
-    out: dict[str, Any] = {"ace_norm": None, "delta_c": None, "one_minus_delta_c": None,
-                           "tdi_lifecycle": None, "ace_norm_softmax": None,
-                           "one_minus_delta_c_clipped": None, "n_rounds": len(rounds),
-                           "reasons": {}}
+    out: dict[str, Any] = {
+        "ace_norm": None,
+        "delta_c": None,
+        "one_minus_delta_c": None,
+        "tdi_lifecycle": None,
+        "ace_norm_softmax": None,
+        "one_minus_delta_c_clipped": None,
+        "n_rounds": len(rounds),
+        "reasons": {},
+    }
     if not rounds:
         for k in (*H4_COMPONENTS, *DESCRIPTIVE_COMPONENTS):
             out["reasons"][k] = "run has no steps"
@@ -208,7 +231,9 @@ def per_run_components(run: Mapping) -> dict:
         out["reasons"]["ace_norm_softmax"] = why_last
     else:
         out["ace_norm_softmax"] = float(metrics.ace_norm(v_last))
-        if sum(v_last) <= metrics._EPS:  # ace_d's all-zero convention (0.0) must not reach a component
+        if (
+            sum(v_last) <= metrics._EPS
+        ):  # ace_d's all-zero convention (0.0) must not reach a component
             out["reasons"]["ace_norm"] = ZERO_SUM_REASON.format(r=last)
         else:
             out["ace_norm"] = float(metrics.ace_d(v_last))
@@ -229,8 +254,9 @@ def per_run_components(run: Mapping) -> dict:
         out["one_minus_delta_c_clipped"] = 1.0 - max(0.0, min(1.0, dc))  # descriptive only
 
     if out["ace_norm"] is None or out["one_minus_delta_c"] is None:
-        out["reasons"]["tdi_lifecycle"] = (
-            out["reasons"].get("one_minus_delta_c") or out["reasons"].get("ace_norm"))
+        out["reasons"]["tdi_lifecycle"] = out["reasons"].get("one_minus_delta_c") or out[
+            "reasons"
+        ].get("ace_norm")
     else:
         out["tdi_lifecycle"] = tdi_lifecycle(out["ace_norm"], out["one_minus_delta_c"])
     return out
@@ -268,10 +294,11 @@ def per_task_table(lifecycle_rows: Iterable[Mapping]) -> list[dict]:
             continue
         groups[key].append(r)
     table = []
-    for (dataset, task) in sorted(groups):
+    for dataset, task in sorted(groups):
         runs = groups[(dataset, task)]
-        vals: dict[str, list[float]] = {k: [] for k in (*H4_COMPONENTS, *DESCRIPTIVE_COMPONENTS,
-                                                        "msd")}
+        vals: dict[str, list[float]] = {
+            k: [] for k in (*H4_COMPONENTS, *DESCRIPTIVE_COMPONENTS, "msd")
+        }
         undefined: dict[str, list[dict]] = {k: [] for k in H4_COMPONENTS}
         n_single = 0
         for run in runs:
@@ -302,6 +329,7 @@ def per_task_table(lifecycle_rows: Iterable[Mapping]) -> list[dict]:
 # Spearman with a bootstrap CI over tasks
 # ---------------------------------------------------------------------------
 
+
 def _avg_rank(a: np.ndarray) -> np.ndarray:
     _, inv, cnt = np.unique(a, return_inverse=True, return_counts=True)
     cum = np.cumsum(cnt)
@@ -330,8 +358,9 @@ def _percentile_ci(stats: list[float]) -> tuple[float | None, float | None]:
     return float(lo), float(hi)
 
 
-def spearman_with_ci(x: Sequence[float], y: Sequence[float], *,
-                     B: int = BOOTSTRAP_B, seed: int = BOOTSTRAP_SEED) -> dict:
+def spearman_with_ci(
+    x: Sequence[float], y: Sequence[float], *, B: int = BOOTSTRAP_B, seed: int = BOOTSTRAP_SEED
+) -> dict:
     """``{rho, n, ci_low, ci_high, B, seed, n_boot_valid, reason}``.
 
     Percentile bootstrap: ``B`` resamples of task indices with replacement from
@@ -343,8 +372,16 @@ def spearman_with_ci(x: Sequence[float], y: Sequence[float], *,
     if xa.shape != ya.shape:
         raise ValueError(f"x and y differ in length: {xa.shape} vs {ya.shape}")
     n = int(xa.size)
-    out = {"rho": None, "n": n, "ci_low": None, "ci_high": None, "B": B, "seed": seed,
-           "n_boot_valid": 0, "reason": None}
+    out = {
+        "rho": None,
+        "n": n,
+        "ci_low": None,
+        "ci_high": None,
+        "B": B,
+        "seed": seed,
+        "n_boot_valid": 0,
+        "reason": None,
+    }
     if n < MIN_TASKS:
         out["reason"] = f"n={n} < {MIN_TASKS} tasks"
         return out
@@ -374,17 +411,29 @@ def _median_ci(v: np.ndarray, *, B: int, seed: int) -> tuple[float | None, float
 # H1 / H2
 # ---------------------------------------------------------------------------
 
+
 def _describe(v: np.ndarray, threshold: float) -> dict:
     if v.size == 0:
         return {"n": 0, "median": None, "iqr": None, "max": None, "fraction_over_gate": None}
     q1, q3 = np.percentile(v, [25, 75])
-    return {"n": int(v.size), "median": float(np.median(v)), "iqr": [float(q1), float(q3)],
-            "max": float(v.max()), "fraction_over_gate": float(np.mean(v > threshold))}
+    return {
+        "n": int(v.size),
+        "median": float(np.median(v)),
+        "iqr": [float(q1), float(q3)],
+        "max": float(v.max()),
+        "fraction_over_gate": float(np.mean(v > threshold)),
+    }
 
 
-def h1_h2_stats(best_by_task: Mapping[str, float], threshold: float, *, gate: str,
-                strata: Mapping[str, str] | None = None,
-                B: int = BOOTSTRAP_B, seed: int = BOOTSTRAP_SEED) -> dict:
+def h1_h2_stats(
+    best_by_task: Mapping[str, float],
+    threshold: float,
+    *,
+    gate: str,
+    strata: Mapping[str, str] | None = None,
+    B: int = BOOTSTRAP_B,
+    seed: int = BOOTSTRAP_SEED,
+) -> dict:
     """Oracle MSD per task (min over the distinct backbone x R configurations run,
     amendment 2, A2-4) -> median gate (``median < threshold``).
 
@@ -408,13 +457,16 @@ def h1_h2_stats(best_by_task: Mapping[str, float], threshold: float, *, gate: st
         groups: dict[str, list[float]] = defaultdict(list)
         for t, m in zip(tasks, v):
             groups[strata.get(t, "unassigned")].append(float(m))
-        extra["strata"] = {s: _describe(np.asarray(g), threshold) for s, g in sorted(groups.items())}
+        extra["strata"] = {
+            s: _describe(np.asarray(g), threshold) for s, g in sorted(groups.items())
+        }
     return _gate(gate, d["median"], threshold, passed, reason, **extra)
 
 
 # ---------------------------------------------------------------------------
 # H3
 # ---------------------------------------------------------------------------
+
 
 def _plugin_entropy(counts: Mapping[str, int]) -> float | None:
     """Plug-in (maximum-likelihood) Shannon entropy in nats; ``None`` for N = 0."""
@@ -496,16 +548,28 @@ def architect_backbone_stats(steps: Iterable[Mapping]) -> dict:
         "n_missing_stated": n_missing,
         "n_off_menu_stated": sum(off_menu.values()),
         "off_menu_values": dict(sorted(off_menu.items())),
-        "by_model_id": {m: {"n": sum(c.values()), "pick_counts": dict(sorted(c.items())),
-                            "entropy_nats": _plugin_entropy(c),
-                            "miller_madow_nats": _miller_madow(c)}
-                        for m, c in sorted(by_model.items())},
+        "by_model_id": {
+            m: {
+                "n": sum(c.values()),
+                "pick_counts": dict(sorted(c.items())),
+                "entropy_nats": _plugin_entropy(c),
+                "miller_madow_nats": _miller_madow(c),
+            }
+            for m, c in sorted(by_model.items())
+        },
     }
 
 
-def h3(entropy_nats: float | None, *, pick_counts: Mapping[str, int], n_llm_steps: int,
-       n_distinct_model_ids: int, threshold: float = H3_THRESHOLD,
-       schema_failure: str | None = None, **descriptive: Any) -> dict:
+def h3(
+    entropy_nats: float | None,
+    *,
+    pick_counts: Mapping[str, int],
+    n_llm_steps: int,
+    n_distinct_model_ids: int,
+    threshold: float = H3_THRESHOLD,
+    schema_failure: str | None = None,
+    **descriptive: Any,
+) -> dict:
     """Entropy of the Architect's STATED backbone picks as a gate (A2-6).
 
     ``ceiling_nats`` is ln|BACKBONE_MENU|, read from the pinned menu.
@@ -519,45 +583,65 @@ def h3(entropy_nats: float | None, *, pick_counts: Mapping[str, int], n_llm_step
         passed, reason = None, "no LLM-sourced Architect step carries a stated backbone"
     else:
         passed, reason = bool(entropy_nats >= threshold), None
-    return _gate("H3", entropy_nats, threshold, passed, reason,
-                 pick_counts=dict(pick_counts), n_llm_architect_steps=n_llm_steps,
-                 n_distinct_model_ids=n_distinct_model_ids, menu=list(BACKBONE_MENU),
-                 ceiling_nats=math.log(len(BACKBONE_MENU)), **descriptive)
+    return _gate(
+        "H3",
+        entropy_nats,
+        threshold,
+        passed,
+        reason,
+        pick_counts=dict(pick_counts),
+        n_llm_architect_steps=n_llm_steps,
+        n_distinct_model_ids=n_distinct_model_ids,
+        menu=list(BACKBONE_MENU),
+        ceiling_nats=math.log(len(BACKBONE_MENU)),
+        **descriptive,
+    )
 
 
-def h3_from_stats(stats: Mapping[str, Any], *, n_distinct_model_ids: int | None = None,
-                  threshold: float = H3_THRESHOLD) -> dict:
+def h3_from_stats(
+    stats: Mapping[str, Any],
+    *,
+    n_distinct_model_ids: int | None = None,
+    threshold: float = H3_THRESHOLD,
+) -> dict:
     """H3 gate from :func:`architect_backbone_stats`: gates on the stated
     entropy; executed picks, the stated != executed count, schema-failure
     counts and the per-``model_id`` breakdown are reported alongside."""
     n_bad = stats["n_missing_stated"] + stats["n_off_menu_stated"]
     failure = None
     if n_bad:
-        failure = (f"schema failure (A2-1/A2-6): {stats['n_missing_stated']} LLM-sourced Architect "
-                   f"step(s) with no stated backbone and {stats['n_off_menu_stated']} with an "
-                   f"off-menu stated backbone {stats['off_menu_values']}; never defaulted or "
-                   "counted, and the run is invalid")
+        failure = (
+            f"schema failure (A2-1/A2-6): {stats['n_missing_stated']} LLM-sourced Architect "
+            f"step(s) with no stated backbone and {stats['n_off_menu_stated']} with an "
+            f"off-menu stated backbone {stats['off_menu_values']}; never defaulted or "
+            "counted, and the run is invalid"
+        )
     if n_distinct_model_ids is None:
         n_distinct_model_ids = len(stats["by_model_id"])
-    return h3(stats["entropy_stated_nats"], pick_counts=stats["stated_counts"],
-              n_llm_steps=stats["n_llm_architect_steps"],
-              n_distinct_model_ids=n_distinct_model_ids, threshold=threshold,
-              schema_failure=failure,
-              n_counted=stats["n_counted"],
-              miller_madow_nats=stats["miller_madow_stated_nats"],
-              executed_pick_counts=stats["executed_counts"],
-              entropy_executed_nats=stats["entropy_executed_nats"],
-              n_executed_ne_stated=stats["n_executed_ne_stated"],
-              n_missing_executed=stats["n_missing_executed"],
-              n_missing_stated=stats["n_missing_stated"],
-              n_off_menu_stated=stats["n_off_menu_stated"],
-              off_menu_values=stats["off_menu_values"],
-              by_model_id=stats["by_model_id"])
+    return h3(
+        stats["entropy_stated_nats"],
+        pick_counts=stats["stated_counts"],
+        n_llm_steps=stats["n_llm_architect_steps"],
+        n_distinct_model_ids=n_distinct_model_ids,
+        threshold=threshold,
+        schema_failure=failure,
+        n_counted=stats["n_counted"],
+        miller_madow_nats=stats["miller_madow_stated_nats"],
+        executed_pick_counts=stats["executed_counts"],
+        entropy_executed_nats=stats["entropy_executed_nats"],
+        n_executed_ne_stated=stats["n_executed_ne_stated"],
+        n_missing_executed=stats["n_missing_executed"],
+        n_missing_stated=stats["n_missing_stated"],
+        n_off_menu_stated=stats["n_off_menu_stated"],
+        off_menu_values=stats["off_menu_values"],
+        by_model_id=stats["by_model_id"],
+    )
 
 
 # ---------------------------------------------------------------------------
 # H4
 # ---------------------------------------------------------------------------
+
 
 def _pairs(table: Sequence[Mapping], key: str) -> tuple[list[float], list[float]]:
     rows = [r for r in table if r.get(key) is not None and r.get("msd") is not None]
@@ -570,14 +654,21 @@ def _exclusions(table: Sequence[Mapping]) -> dict:
     out = {}
     for k in H4_COMPONENTS:
         undef = [u for r in table for u in (r.get("undefined") or {}).get(k, [])]
-        out[k] = {"runs_undefined": len(undef),
-                  "runs_single_round": sum(u["reason"] == SINGLE_ROUND_REASON for u in undef),
-                  "tasks_dropped": sum(r.get(k) is None or r.get("msd") is None for r in table)}
+        out[k] = {
+            "runs_undefined": len(undef),
+            "runs_single_round": sum(u["reason"] == SINGLE_ROUND_REASON for u in undef),
+            "tasks_dropped": sum(r.get(k) is None or r.get("msd") is None for r in table),
+        }
     return out
 
 
-def h4(task_table: Sequence[Mapping], *, B: int = BOOTSTRAP_B, seed: int = BOOTSTRAP_SEED,
-       threshold: float = H4_THRESHOLD) -> dict:
+def h4(
+    task_table: Sequence[Mapping],
+    *,
+    B: int = BOOTSTRAP_B,
+    seed: int = BOOTSTRAP_SEED,
+    threshold: float = H4_THRESHOLD,
+) -> dict:
     """Spearman rho(component, lifecycle MSD) for each of ``H4_COMPONENTS``,
     computed WITHIN each of ``H4_DATASETS`` separately: 6 tests (default
     weights, no in-sample calibration). The rho over all tasks pooled is
@@ -589,19 +680,28 @@ def h4(task_table: Sequence[Mapping], *, B: int = BOOTSTRAP_B, seed: int = BOOTS
     per_dataset, exclusions = {}, {}
     for ds in H4_DATASETS:
         rows = [r for r in task_table if r.get("dataset") == ds]
-        per_dataset[ds] = {k: spearman_with_ci(*_pairs(rows, k), B=B, seed=seed)
-                           for k in H4_COMPONENTS}
+        per_dataset[ds] = {
+            k: spearman_with_ci(*_pairs(rows, k), B=B, seed=seed) for k in H4_COMPONENTS
+        }
         exclusions[ds] = _exclusions(rows)
     pooled = {k: spearman_with_ci(*_pairs(task_table, k), B=B, seed=seed) for k in H4_COMPONENTS}
     # A2-10 / A2-11: the softmax ACE and the clipped 1-ΔC are reported beside the
     # gated tests, per dataset, and never enter the gate.
-    descriptive = {ds: {k: spearman_with_ci(*_pairs([r for r in task_table
-                                                      if r.get("dataset") == ds], k),
-                                            B=B, seed=seed)
-                        for k in DESCRIPTIVE_COMPONENTS}
-                   for ds in H4_DATASETS}
-    rhos = {(ds, k): c["rho"] for ds, cs in per_dataset.items() for k, c in cs.items()
-            if c["rho"] is not None}
+    descriptive = {
+        ds: {
+            k: spearman_with_ci(
+                *_pairs([r for r in task_table if r.get("dataset") == ds], k), B=B, seed=seed
+            )
+            for k in DESCRIPTIVE_COMPONENTS
+        }
+        for ds in H4_DATASETS
+    }
+    rhos = {
+        (ds, k): c["rho"]
+        for ds, cs in per_dataset.items()
+        for k, c in cs.items()
+        if c["rho"] is not None
+    }
     n_tests = len(H4_DATASETS) * len(H4_COMPONENTS)
     best = max(rhos.values()) if rhos else None
     if any(r > threshold for r in rhos.values()):
@@ -609,29 +709,52 @@ def h4(task_table: Sequence[Mapping], *, B: int = BOOTSTRAP_B, seed: int = BOOTS
     elif len(rhos) == n_tests:
         passed, reason = False, None
     else:
-        missing = {f"{ds}:{k}": per_dataset[ds][k]["reason"] for ds in H4_DATASETS
-                   for k in H4_COMPONENTS if (ds, k) not in rhos}
+        missing = {
+            f"{ds}:{k}": per_dataset[ds][k]["reason"]
+            for ds in H4_DATASETS
+            for k in H4_COMPONENTS
+            if (ds, k) not in rhos
+        }
         passed, reason = None, f"test(s) not evaluable and none passes: {missing}"
     # CTO #269 (b): report ALL SIX with their n regardless of outcome (pass, fail or undefined), so a
     # single-test PASS is self-evident and selective reporting is structurally impossible.
     all_six = [
-        {"dataset": ds, "component": k, "rho": c["rho"], "n": c["n"],
-         "ci_low": c["ci_low"], "ci_high": c["ci_high"], "reason": c["reason"],
-         "passes": None if c["rho"] is None else bool(c["rho"] > threshold)}
-        for ds in H4_DATASETS for k, c in ((k, per_dataset[ds][k]) for k in H4_COMPONENTS)
+        {
+            "dataset": ds,
+            "component": k,
+            "rho": c["rho"],
+            "n": c["n"],
+            "ci_low": c["ci_low"],
+            "ci_high": c["ci_high"],
+            "reason": c["reason"],
+            "passes": None if c["rho"] is None else bool(c["rho"] > threshold),
+        }
+        for ds in H4_DATASETS
+        for k, c in ((k, per_dataset[ds][k]) for k in H4_COMPONENTS)
     ]
-    return _gate("H4", best, threshold, passed, reason, per_dataset=per_dataset,
-                 all_six=all_six, n_tests_passing=sum(1 for r in all_six if r["passes"]),
-                 pooled_descriptive=pooled, descriptive=descriptive,
-                 exclusions=exclusions, n_tests=n_tests,
-                 structurally_undefined=dict(STRUCTURALLY_UNDEFINED),
-                 tdi_lifecycle_weights=dict(TDI_LIFECYCLE_WEIGHTS),
-                 n_tasks=len(task_table))
+    return _gate(
+        "H4",
+        best,
+        threshold,
+        passed,
+        reason,
+        per_dataset=per_dataset,
+        all_six=all_six,
+        n_tests_passing=sum(1 for r in all_six if r["passes"]),
+        pooled_descriptive=pooled,
+        descriptive=descriptive,
+        exclusions=exclusions,
+        n_tests=n_tests,
+        structurally_undefined=dict(STRUCTURALLY_UNDEFINED),
+        tdi_lifecycle_weights=dict(TDI_LIFECYCLE_WEIGHTS),
+        n_tasks=len(task_table),
+    )
 
 
 # ---------------------------------------------------------------------------
 # H5
 # ---------------------------------------------------------------------------
+
 
 def fit_ridge(X: Sequence[Sequence[float]], y: Sequence[float], *, alpha: float) -> dict:
     """Closed-form ridge on column-standardised features, centred target.
@@ -648,18 +771,32 @@ def fit_ridge(X: Sequence[Sequence[float]], y: Sequence[float], *, alpha: float)
     Z = (Xa - mu) / sd
     Z[:, const] = 0.0
     w = np.linalg.solve(Z.T @ Z + alpha * np.eye(Z.shape[1]), Z.T @ (ya - ya.mean()))
-    return {"weights": w, "mean": mu, "sd": sd, "intercept": float(ya.mean()),
-            "constant_columns": [int(i) for i in np.flatnonzero(const)]}
+    return {
+        "weights": w,
+        "mean": mu,
+        "sd": sd,
+        "intercept": float(ya.mean()),
+        "constant_columns": [int(i) for i in np.flatnonzero(const)],
+    }
 
 
 def _complete(table: Sequence[Mapping]) -> list[Mapping]:
-    return [r for r in table
-            if r.get("msd") is not None and all(r.get(k) is not None for k in H5_FEATURES)]
+    return [
+        r
+        for r in table
+        if r.get("msd") is not None and all(r.get(k) is not None for k in H5_FEATURES)
+    ]
 
 
-def h5(adamson_table: Sequence[Mapping], norman_table: Sequence[Mapping], *,
-       alpha: float = RIDGE_ALPHA, B: int = BOOTSTRAP_B, seed: int = BOOTSTRAP_SEED,
-       threshold: float = H5_THRESHOLD) -> dict:
+def h5(
+    adamson_table: Sequence[Mapping],
+    norman_table: Sequence[Mapping],
+    *,
+    alpha: float = RIDGE_ALPHA,
+    B: int = BOOTSTRAP_B,
+    seed: int = BOOTSTRAP_SEED,
+    threshold: float = H5_THRESHOLD,
+) -> dict:
     """Fit ridge TDI weights on Adamson (target: per-task lifecycle MSD), apply
     them unchanged to Norman, gate on Spearman rho(Norman TDI, Norman MSD).
 
@@ -669,24 +806,34 @@ def h5(adamson_table: Sequence[Mapping], norman_table: Sequence[Mapping], *,
     ad, no = _complete(adamson_table), _complete(norman_table)
     base = {"n_fit": len(ad), "n": len(no), "alpha": alpha, "features": list(H5_FEATURES)}
     if len(ad) < MIN_TASKS:
-        return _gate("H5", None, threshold, None,
-                     f"Adamson fit set n={len(ad)} < {MIN_TASKS} tasks", **base)
-    fit = fit_ridge([[float(r[k]) for k in H5_FEATURES] for r in ad],
-                    [float(r["msd"]) for r in ad], alpha=alpha)
+        return _gate(
+            "H5", None, threshold, None, f"Adamson fit set n={len(ad)} < {MIN_TASKS} tasks", **base
+        )
+    fit = fit_ridge(
+        [[float(r[k]) for k in H5_FEATURES] for r in ad], [float(r["msd"]) for r in ad], alpha=alpha
+    )
     w, mu, sd = fit["weights"], fit["mean"], fit["sd"]
     names = list(H5_FEATURES)
-    base.update(weights=dict(zip(names, map(float, w))),
-                standardise_mean=dict(zip(names, map(float, mu))),
-                standardise_sd=dict(zip(names, map(float, sd))),
-                intercept=fit["intercept"],
-                constant_features=[names[i] for i in fit["constant_columns"]])
-    norman_tdi = [float(sum(w[i] * (float(r[k]) - mu[i]) / sd[i] for i, k in enumerate(names)))
-                  for r in no]
+    base.update(
+        weights=dict(zip(names, map(float, w))),
+        standardise_mean=dict(zip(names, map(float, mu))),
+        standardise_sd=dict(zip(names, map(float, sd))),
+        intercept=fit["intercept"],
+        constant_features=[names[i] for i in fit["constant_columns"]],
+    )
+    norman_tdi = [
+        float(sum(w[i] * (float(r[k]) - mu[i]) / sd[i] for i, k in enumerate(names))) for r in no
+    ]
     base["norman_tasks"] = [r.get("task") for r in no]
     base["norman_tdi"] = norman_tdi
     corr = spearman_with_ci(norman_tdi, [float(r["msd"]) for r in no], B=B, seed=seed)
-    base.update(ci_low=corr["ci_low"], ci_high=corr["ci_high"], B=B, seed=seed,
-                n_boot_valid=corr["n_boot_valid"])
+    base.update(
+        ci_low=corr["ci_low"],
+        ci_high=corr["ci_high"],
+        B=B,
+        seed=seed,
+        n_boot_valid=corr["n_boot_valid"],
+    )
     if corr["rho"] is None:
         return _gate("H5", None, threshold, None, corr["reason"], **base)
     return _gate("H5", corr["rho"], threshold, bool(corr["rho"] > threshold), None, **base)

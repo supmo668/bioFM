@@ -29,13 +29,19 @@ class VariedMockClient:
     def __init__(self, seed: int = 0) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str) -> ChatResult:
+    def chat_json(
+        self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str
+    ) -> ChatResult:
         return ChatResult(
-            content=self._payload(role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed),
+            content=self._payload(
+                role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed
+            ),
             model_id="stub/varied",
         )
 
-    def _payload(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int) -> dict:  # noqa: ARG002
+    def _payload(
+        self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int
+    ) -> dict:  # noqa: ARG002
         # Derive a bounded index from (task, round, role) so different
         # (task, seed) pairs give different Architect choices but the
         # same (task, role) is reproducible within a client instance.
@@ -80,9 +86,7 @@ def _toy_dataset(n_genes: int = 60, seed: int = 1) -> dict:
     rng = np.random.default_rng(seed)
     n_cells = 90
     X = np.abs(rng.normal(0.5, 0.2, size=(n_cells, n_genes))).astype(np.float64)
-    labels = np.array(
-        (["CTRL"] * 30) + (["GENE0"] * 30) + (["GENE1"] * 30)
-    )
+    labels = np.array((["CTRL"] * 30) + (["GENE0"] * 30) + (["GENE1"] * 30))
     control_mask = labels == "CTRL"
     X[labels == "GENE0", 0] += 1.0
     X[labels == "GENE1", 1] += 1.0
@@ -134,7 +138,13 @@ class TestFreedomE2E:
             # unless a validator critique delta is in the prompt.
             def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):
                 return ChatResult(
-                    content=self._payload(role=role, task_id=task_id, round_index=round_index, prompt=prompt, seed=seed),
+                    content=self._payload(
+                        role=role,
+                        task_id=task_id,
+                        round_index=round_index,
+                        prompt=prompt,
+                        seed=seed,
+                    ),
                     model_id="stub/scripted",
                 )
 
@@ -148,11 +158,17 @@ class TestFreedomE2E:
                         return json.loads('{"backbone": "mlp", "confidence": 0.6}')
                     return json.loads('{"backbone": "linear", "confidence": 0.6}')
                 if role == "Literature":
-                    return json.loads('{"pathway_prior": {}, "expected_up": [], "expected_down": [], "confidence": 0.5}')
+                    return json.loads(
+                        '{"pathway_prior": {}, "expected_up": [], "expected_down": [], "confidence": 0.5}'
+                    )
                 if role == "DataCurator":
-                    return json.loads('{"hvg_method": "seurat", "hvg_count": 500, "confidence": 0.5}')
+                    return json.loads(
+                        '{"hvg_method": "seurat", "hvg_count": 500, "confidence": 0.5}'
+                    )
                 if role == "Trainer":
-                    return json.loads('{"lr": 1e-2, "epochs": 5, "ridge_lambda": 1.0, "confidence": 0.5}')
+                    return json.loads(
+                        '{"lr": 1e-2, "epochs": 5, "ridge_lambda": 1.0, "confidence": 0.5}'
+                    )
                 if role == "Validator":
                     return json.loads('{"dynamic_threshold_msd": 0.02, "confidence": 0.5}')
                 return {}
@@ -172,17 +188,18 @@ class TestFreedomE2E:
             dataset="adamson_full",
         )
         architect_by_round = [
-            s.proposal_content.get("backbone")
-            for s in run.steps
-            if s.agent_name == "Architect"
+            s.proposal_content.get("backbone") for s in run.steps if s.agent_name == "Architect"
         ]
         # A2-2: no early stop — both rounds always run; round 0's verdict is
         # recorded on its Validator step. An accepting round 0 emits no delta
         # (a valid outcome: the critique path did not need to fire).
         assert len(architect_by_round) == 2
         assert all(s.source == "llm" for s in run.steps)
-        round0_accepted = next(s.validator_accepted for s in run.steps
-                               if s.agent_name == "Validator" and s.round_index == 0)
+        round0_accepted = next(
+            s.validator_accepted
+            for s in run.steps
+            if s.agent_name == "Validator" and s.round_index == 0
+        )
         if not round0_accepted:
             # With tight threshold (0.02) the toy dataset should reject,
             # so round-1 should see the validator critique.

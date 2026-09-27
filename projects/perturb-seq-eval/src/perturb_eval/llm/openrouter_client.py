@@ -381,6 +381,4 @@ class OpenRouterClient:
             self._save_cache(key, parsed)
             return ChatResult(content=parsed, model_id=model.model_id, cache_hit=False)
 
-        raise OpenRouterError(
-            f"all candidate models for role={role} failed; last_err={last_err}"
-        )
+        raise OpenRouterError(f"all candidate models for role={role} failed; last_err={last_err}")

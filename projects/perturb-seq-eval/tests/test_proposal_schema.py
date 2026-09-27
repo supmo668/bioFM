@@ -155,5 +155,7 @@ class TestParseProposal:
 
     def test_extra_fields_tolerated(self) -> None:
         # Free-tier LLMs sometimes add commentary fields; we tolerate them.
-        out = parse_proposal("DataCurator", {"hvg_method": "seurat", "extra": "hi", "confidence": 0.5})
+        out = parse_proposal(
+            "DataCurator", {"hvg_method": "seurat", "extra": "hi", "confidence": 0.5}
+        )
         assert isinstance(out, DataCuratorProposal)

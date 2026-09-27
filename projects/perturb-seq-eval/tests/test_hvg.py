@@ -106,7 +106,8 @@ def _genes_in_fit(expression: np.ndarray, held: str) -> set[str]:
     found: set[str] = set()
     for c in range(expression.shape[1]):
         hits = [
-            g for gi, g in enumerate(GENES)
+            g
+            for gi, g in enumerate(GENES)
             if np.allclose(expression[:, c], train_rows[:, gi], atol=1e-6)
         ]
         assert len(hits) == 1, f"fitted column {c} matches {hits}"
@@ -187,10 +188,16 @@ class TestTrainOnlyPropertyThroughRealPaths:
         ds = load_adamson_combined([path], n_top_hvg=N_HVG, max_cells_per_pert=400)
         rec = _FitRecorder(monkeypatch)
         spy = _RankSpy(monkeypatch)
-        records = list(iter_trainer_records(
-            dataset_name="adamson_full", ds=ds, tasks=["TFA", "TFB"],
-            backbones=("linear",), r_sweep=(1,), seeds=(0,),
-        ))
+        records = list(
+            iter_trainer_records(
+                dataset_name="adamson_full",
+                ds=ds,
+                tasks=["TFA", "TFB"],
+                backbones=("linear",),
+                r_sweep=(1,),
+                seeds=(0,),
+            )
+        )
         assert all("error" not in r for r in records), records
         ranked_a, ranked_b = (_ranked_by_variance(ds, s) for s in spy.sels)
         assert "GA" not in ranked_a and "GA" in ranked_b
@@ -207,10 +214,16 @@ class TestTrainOnlyPropertyThroughRealPaths:
         ds = load_norman_matrix(path, n_top_hvg=N_HVG, max_cells_per_pert=400)
         rec = _FitRecorder(monkeypatch)
         spy = _RankSpy(monkeypatch)
-        records = list(iter_trainer_records(
-            dataset_name="norman", ds=ds, tasks=["TFA", "TFB"],
-            backbones=("linear",), r_sweep=(1,), seeds=(0,),
-        ))
+        records = list(
+            iter_trainer_records(
+                dataset_name="norman",
+                ds=ds,
+                tasks=["TFA", "TFB"],
+                backbones=("linear",),
+                r_sweep=(1,),
+                seeds=(0,),
+            )
+        )
         assert all("error" not in r for r in records), records
         ranked_a, ranked_b = (_ranked_by_variance(ds, s) for s in spy.sels)
         assert "GA" not in ranked_a and "GA" in ranked_b
@@ -223,7 +236,9 @@ class TestTrainOnlyPropertyThroughRealPaths:
 
         class _SmallHvgPool(MockAgentPool):
             def propose(self, role, round_index, task_id, context, *, seed, dataset):
-                out = super().propose(role, round_index, task_id, context, seed=seed, dataset=dataset)
+                out = super().propose(
+                    role, round_index, task_id, context, seed=seed, dataset=dataset
+                )
                 if role == "DataCurator":
                     out = {**out, "content": {**out["content"], "n_top_hvg": N_HVG}}
                 return out
@@ -236,9 +251,14 @@ class TestTrainOnlyPropertyThroughRealPaths:
         spy = _RankSpy(monkeypatch)
         for held in ("TFA", "TFB"):
             run_agentic_lifecycle(
-                task_id=f"hold_{held}", X=X, labels=labels,
-                control_mask=group == "CTRL", target_gene_idx=targets,
-                held_out=held, agent_pool=_SmallHvgPool(seed=0), seed=0,
+                task_id=f"hold_{held}",
+                X=X,
+                labels=labels,
+                control_mask=group == "CTRL",
+                target_gene_idx=targets,
+                held_out=held,
+                agent_pool=_SmallHvgPool(seed=0),
+                seed=0,
                 backbone_override="linear",  # A2-2: the fixed 3 rounds
                 dataset="adamson_full",
             )
@@ -327,10 +347,16 @@ class TestEveryPathRoutesThroughHelper:
             _write_adamson(path)
             ds = load_adamson_combined([path], n_top_hvg=N_HVG, max_cells_per_pert=400)
         spy = _SelectSpy(monkeypatch)
-        records = list(iter_trainer_records(
-            dataset_name=dataset, ds=ds, tasks=["TFA", "TFB"],
-            backbones=("linear", "mlp"), r_sweep=(1,), seeds=(0, 1),
-        ))
+        records = list(
+            iter_trainer_records(
+                dataset_name=dataset,
+                ds=ds,
+                tasks=["TFA", "TFB"],
+                backbones=("linear", "mlp"),
+                r_sweep=(1,),
+                seeds=(0, 1),
+            )
+        )
         assert len(records) == 2 * 2 * 1 * 2  # backbones x tasks x R x seeds (A2-4: no N)
         assert spy.calls == 2  # once per held-out task, not per cell
         for r in records:
@@ -361,10 +387,16 @@ class TestEveryPathRoutesThroughHelper:
         _, group = _counts()
         spy = _SelectSpy(monkeypatch)
         run = run_agentic_lifecycle(
-            task_id="hold_TFA", X=_log_matrix(), labels=group,
-            control_mask=group == "CTRL", target_gene_idx={"TFA": (0,), "TFB": (1,)},
-            held_out="TFA", agent_pool=MockAgentPool(seed=0), seed=0,
-            backbone_override="linear", validator_threshold_override=-1.0,
+            task_id="hold_TFA",
+            X=_log_matrix(),
+            labels=group,
+            control_mask=group == "CTRL",
+            target_gene_idx={"TFA": (0,), "TFB": (1,)},
+            held_out="TFA",
+            agent_pool=MockAgentPool(seed=0),
+            seed=0,
+            backbone_override="linear",
+            validator_threshold_override=-1.0,
             dataset="adamson_full",
         )
         # A2-2: exactly 3 rounds, no early stop; one selection per round.

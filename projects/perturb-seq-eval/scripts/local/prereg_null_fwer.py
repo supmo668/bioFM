@@ -23,6 +23,7 @@ Definitions (``--defs``):
 
     .venv/bin/python scripts/local/prereg_null_fwer.py [--defs a1|a2]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,8 +48,10 @@ def per_test_null(n: int, rng: np.random.Generator) -> float:
 
 def tdi_lifecycle_a1(ace: float, one_minus_dc: float) -> float:
     """Amendment-1 TDI_lifecycle: weighted sum clipped to [0, 1] (as at 0c2932a)."""
-    raw = (TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace
-           + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_dc)
+    raw = (
+        TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace
+        + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_dc
+    )
     return float(max(0.0, min(1.0, raw)))
 
 
@@ -60,9 +63,9 @@ def one_dataset_fires(n: int, rng: np.random.Generator, dependence: str, defs: s
         tdi = np.array([tdi_lifecycle_a1(a, b) for a, b in zip(ace, omdc)])
     else:  # a2: unclipped 1-dC on [0, 2]
         if dependence == "identical":
-            omdc = 2.0 * ace            # same ranks as ACE
+            omdc = 2.0 * ace  # same ranks as ACE
         elif dependence == "reversed":
-            omdc = 2.0 * (1.0 - ace)    # opposite ranks to ACE
+            omdc = 2.0 * (1.0 - ace)  # opposite ranks to ACE
         else:
             omdc = 2.0 * rng.random(n)
         tdi = np.array([tdi_lifecycle_a2(a, b) for a, b in zip(ace, omdc)])
@@ -82,12 +85,22 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--defs", choices=("a1", "a2"), default="a1")
     defs = ap.parse_args().defs
-    arms = ("independent", "identical") if defs == "a1" else ("independent", "identical", "reversed")
+    arms = (
+        ("independent", "identical") if defs == "a1" else ("independent", "identical", "reversed")
+    )
     rng = np.random.default_rng(SEED)
-    out = {"defs": defs, "seed": SEED, "threshold": THRESH, "n_perm": N_PERM, "n_sim": N_SIM,
-           "estimator": "perturb_eval.experiments.preregistered.rho (average-rank Spearman; alias _rho)",
-           "per_test_null_P(rho>0.5)": {str(n): per_test_null(n, rng) for n in (N_NORMAN, N_ADAMSON, N_POOLED)},
-           "gate_fwer_6_tests": {f"components_{arm}": gate_fwer(rng, arm, defs) for arm in arms}}
+    out = {
+        "defs": defs,
+        "seed": SEED,
+        "threshold": THRESH,
+        "n_perm": N_PERM,
+        "n_sim": N_SIM,
+        "estimator": "perturb_eval.experiments.preregistered.rho (average-rank Spearman; alias _rho)",
+        "per_test_null_P(rho>0.5)": {
+            str(n): per_test_null(n, rng) for n in (N_NORMAN, N_ADAMSON, N_POOLED)
+        },
+        "gate_fwer_6_tests": {f"components_{arm}": gate_fwer(rng, arm, defs) for arm in arms},
+    }
     p41 = out["per_test_null_P(rho>0.5)"][str(N_POOLED)]
     out["pooled_single_test_n41"] = p41
     hi = max(out["gate_fwer_6_tests"].values())

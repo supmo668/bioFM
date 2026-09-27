@@ -33,8 +33,11 @@ def _prov(**over) -> dict:
         "status": "ok",
         "finished_at": 1234.0,
         # QG C10: a licensed run carries its pre-registration pin in record 0.
-        "preregistration": {"path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
-                            "sha256": "a" * 64, "commit": "b" * 40},
+        "preregistration": {
+            "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
+            "sha256": "a" * 64,
+            "commit": "b" * 40,
+        },
     }
     rec.update(over)
     return rec
@@ -47,36 +50,54 @@ def _write(path: Path, rows: list[dict]) -> Path:
 
 def _trainer_row(task: str, msd: float = 0.1, dataset: str = "adamson_full") -> dict:
     return {
-        "dataset": dataset, "task": task, "backbone": "linear", "N": 3, "R": 1,
-        "seed": 1, "msd_topk": msd, "wall_sec": 0.1, "hvg_n": 2000,
-        "hvg_n_forced": 0, "hvg_mode": "seurat", "n_params": 10,
+        "dataset": dataset,
+        "task": task,
+        "backbone": "linear",
+        "N": 3,
+        "R": 1,
+        "seed": 1,
+        "msd_topk": msd,
+        "wall_sec": 0.1,
+        "hvg_n": 2000,
+        "hvg_n_forced": 0,
+        "hvg_mode": "seurat",
+        "n_params": 10,
     }
 
 
 def _step(role: str, content: dict, source: str | None = "llm") -> dict:
-    s = {"round_index": 0, "agent_name": role, "proposal_content": content,
-         "model_id": "m/x" if source == "llm" else None}
+    s = {
+        "round_index": 0,
+        "agent_name": role,
+        "proposal_content": content,
+        "model_id": "m/x" if source == "llm" else None,
+    }
     if source is not None:
         s["source"] = source
     return s
 
 
-def _life_row(task: str, steps: list[dict], msd: float = 0.2,
-              dataset: str = "adamson_full") -> dict:
+def _life_row(
+    task: str, steps: list[dict], msd: float = 0.2, dataset: str = "adamson_full"
+) -> dict:
     # QG C5: lifecycle records carry their dataset; task identity is (dataset, task).
-    return {"dataset": dataset, "task_id": task, "seed": 1, "final_msd_topk": msd,
-            "steps": steps}
+    return {"dataset": dataset, "task_id": task, "seed": 1, "final_msd_topk": msd, "steps": steps}
 
 
 def _run(tmp_path: Path, trainer_rows, life_rows, *, tprov=None, lprov=None):
     t_rows = ([tprov] if tprov is not None else []) + trainer_rows
     l_rows = ([lprov] if lprov is not None else []) + life_rows
-    return (_write(tmp_path / "trainer_runs.jsonl", t_rows),
-            _write(tmp_path / "lifecycle_runs.jsonl", l_rows))
+    return (
+        _write(tmp_path / "trainer_runs.jsonl", t_rows),
+        _write(tmp_path / "lifecycle_runs.jsonl", l_rows),
+    )
 
 
 def _arch(bb: str, source: str | None = "llm") -> dict:
-    return {**_step("Architect", {"backbone": bb, "hvg_count": 2000}, source), "backbone_stated": bb}
+    return {
+        **_step("Architect", {"backbone": bb, "hvg_count": 2000}, source),
+        "backbone_stated": bb,
+    }
 
 
 # ---------------------------------------------------------------- T14 reader
@@ -108,8 +129,11 @@ class TestReadJsonlProvenance:
 # ---------------------------------------------------------------- T15 hard-fail
 class TestTaskSetHardFail:
     def test_disjoint_sets_raise_naming_both_sides(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("A"), _trainer_row("B")],
-                    [_life_row("B", [_arch("mlp")]), _life_row("C", [_arch("mlp")])])
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("A"), _trainer_row("B")],
+            [_life_row("B", [_arch("mlp")]), _life_row("C", [_arch("mlp")])],
+        )
         with pytest.raises(ValueError) as ei:
             analyse_v05_run(t, l)
         msg = str(ei.value)
@@ -133,9 +157,13 @@ class TestTaskSetHardFail:
         t, l = _run(
             tmp_path,
             [_trainer_row("T0"), _trainer_row("T0", 0.3), _trainer_row("T1")],
-            [_life_row("T0", [_arch("mlp")]), _life_row("T0", [_arch("mlp")]),
-             _life_row("T1", [_arch("linear")])],
-            tprov=_prov(), lprov=_prov(),
+            [
+                _life_row("T0", [_arch("mlp")]),
+                _life_row("T0", [_arch("mlp")]),
+                _life_row("T1", [_arch("linear")]),
+            ],
+            tprov=_prov(),
+            lprov=_prov(),
         )
         s = analyse_v05_run(t, l)
         assert s["n_tasks_trainer"] == s["n_tasks_lifecycle"] == 2
@@ -145,20 +173,31 @@ class TestTaskSetHardFail:
         assert s["run_id"] == "run-abc" and s["git_sha"] == "deadbeef"
 
     def test_run_id_mismatch_raises(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov(run_id="r1"), lprov=_prov(run_id="r2"))
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(run_id="r1"),
+            lprov=_prov(run_id="r2"),
+        )
         with pytest.raises(ValueError, match=r"run_id.*r1.*r2"):
             analyse_v05_run(t, l)
 
     def test_git_sha_mismatch_raises(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov(git_sha="aaa"), lprov=_prov(git_sha="bbb"))
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(git_sha="aaa"),
+            lprov=_prov(git_sha="bbb"),
+        )
         with pytest.raises(ValueError, match=r"git_sha.*aaa.*bbb"):
             analyse_v05_run(t, l)
 
     def test_provenance_in_only_one_file_raises(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov())
+        t, l = _run(
+            tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])], tprov=_prov()
+        )
         with pytest.raises(ValueError, match="provenance record present in only one"):
             analyse_v05_run(t, l)
 
@@ -189,9 +228,13 @@ class TestLlmOnlyEntropy:
             "T1": [_arch("mlp"), _arch("scgpt_small", "mock")],
             "T2": [_arch("linear"), _arch("scgpt_small", None)],
         }
-        t, l = _run(tmp_path, [_trainer_row(k) for k in steps_by_task],
-                    [_life_row(k, v) for k, v in steps_by_task.items()],
-                    tprov=_prov(), lprov=_prov())
+        t, l = _run(
+            tmp_path,
+            [_trainer_row(k) for k in steps_by_task],
+            [_life_row(k, v) for k, v in steps_by_task.items()],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
         s = analyse_v05_run(t, l)
         expected = -(2 / 3 * math.log(2 / 3) + 1 / 3 * math.log(1 / 3))
         assert s["architect_backbone_entropy_nats"] == pytest.approx(expected)
@@ -204,8 +247,13 @@ class TestLlmOnlyEntropy:
         assert s["n_steps_fallback"] == 0
 
     def test_entropy_by_role_has_all_five_roles_null_when_no_llm(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov(), lprov=_prov())
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
         s = analyse_v05_run(t, l)
         assert set(s["entropy_by_role"]) == set(ROLES)
         assert len(ROLES) == 5
@@ -215,8 +263,11 @@ class TestLlmOnlyEntropy:
         assert s["entropy_by_role"]["Architect"] == pytest.approx(0.0)
 
     def test_legacy_steps_without_source_never_counted_as_llm(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")],
-                    [_life_row("T0", [_arch("mlp", None), _arch("linear", None)])])
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp", None), _arch("linear", None)])],
+        )
         s = analyse_v05_run(t, l)
         assert s["n_steps_unknown"] == 2
         assert s["n_steps_llm"] == 0
@@ -227,9 +278,13 @@ class TestLlmOnlyEntropy:
         assert s["gate_architect_entropy_above_0_5_nats"] is None
 
     def test_all_fallback_diagnostic_entropy_null(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")],
-                    [_life_row("T0", [_arch("mlp", "fallback"), _arch("linear", "fallback")])],
-                    tprov=_prov(), lprov=_prov())
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp", "fallback"), _arch("linear", "fallback")])],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
         s = analyse_v05_run(t, l, allow_fallback_for_diagnosis=True)
         assert s["n_steps_fallback"] == 2
         assert s["architect_backbone_entropy_nats"] is None
@@ -239,55 +294,83 @@ class TestLlmOnlyEntropy:
 # ---------------------------------------------------------------- C-KEY-2
 class TestFallbackRefusal:
     def test_fallback_step_refuses(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")],
-                    [_life_row("T0", [_arch("mlp"), _arch("linear", "fallback")])],
-                    tprov=_prov(), lprov=_prov())
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp"), _arch("linear", "fallback")])],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
         with pytest.raises(ValueError, match=r"run FAILED: 1 fallback steps"):
             analyse_v05_run(t, l)
 
     def test_fallback_step_refuses_even_for_legacy(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")],
-                    [_life_row("T0", [_arch("linear", "fallback")])])
+        t, l = _run(
+            tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("linear", "fallback")])]
+        )
         with pytest.raises(ValueError, match="run FAILED"):
             analyse_v05_run(t, l)
 
     def test_status_failed_fallback_refuses(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov(), lprov=_prov(status="failed_fallback"))
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(),
+            lprov=_prov(status="failed_fallback"),
+        )
         with pytest.raises(ValueError, match=r"run FAILED: 0 fallback steps.*failed_fallback"):
             analyse_v05_run(t, l)
 
     def test_diagnostic_hatch_marks_status(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")],
-                    [_life_row("T0", [_arch("mlp"), _arch("linear", "fallback")])],
-                    tprov=_prov(status="failed_fallback"), lprov=_prov(status="failed_fallback"))
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp"), _arch("linear", "fallback")])],
+            tprov=_prov(status="failed_fallback"),
+            lprov=_prov(status="failed_fallback"),
+        )
         s = analyse_v05_run(t, l, allow_fallback_for_diagnosis=True)
         assert s["status"] == "FAILED_FALLBACK_DIAGNOSTIC_ONLY"
         assert s["n_steps_fallback"] == 1
         assert s["architect_backbone_entropy_nats"] == pytest.approx(0.0)
         # Gates are never licensed by a diagnostic summary.
-        for k in ("gate_adamson_median_below_0_20", "gate_norman_median_below_0_30",
-                  "gate_architect_entropy_above_0_5_nats"):
+        for k in (
+            "gate_adamson_median_below_0_20",
+            "gate_norman_median_below_0_30",
+            "gate_architect_entropy_above_0_5_nats",
+        ):
             assert s[k] is None
 
 
 # ---------------------------------------------------------------- partial runs
 class TestPartialRefusal:
-    @pytest.mark.parametrize("over", [{"status": "partial"}, {"finished_at": None},
-                                      {"status": "running"}])
+    @pytest.mark.parametrize(
+        "over", [{"status": "partial"}, {"finished_at": None}, {"status": "running"}]
+    )
     def test_partial_or_unfinished_refuses(self, tmp_path: Path, over) -> None:
         prov = _prov(**over)
         if over.get("finished_at", 1) is None:
             del prov["finished_at"]
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=prov, lprov=prov)
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=prov,
+            lprov=prov,
+        )
         with pytest.raises(ValueError, match="partial"):
             analyse_v05_run(t, l)
 
     def test_allow_partial_marks_status(self, tmp_path: Path) -> None:
         prov = _prov(status="partial")
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=prov, lprov=prov)
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=prov,
+            lprov=prov,
+        )
         s = analyse_v05_run(t, l, allow_partial="budget cap hit; diagnostic read only")
         assert s["status"] == "PARTIAL_DIAGNOSTIC_ONLY"
         assert s["allow_partial_reason"] == "budget cap hit; diagnostic read only"
@@ -295,8 +378,13 @@ class TestPartialRefusal:
 
     def test_status_failed_refuses_without_hatch(self, tmp_path: Path) -> None:
         prov = _prov(status="failed")
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=prov, lprov=prov)
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=prov,
+            lprov=prov,
+        )
         with pytest.raises(ValueError, match="status='failed'"):
             analyse_v05_run(t, l, allow_partial="diagnosis", allow_fallback_for_diagnosis=True)
 
@@ -305,17 +393,33 @@ class TestPartialRefusal:
         provenance.json next to the JSONLs carries status + finished_at."""
         header = _prov(status="running")
         del header["finished_at"]
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=header, lprov=header)
-        (tmp_path / "provenance.json").write_text(json.dumps(
-            {"run_id": "run-abc", "git_sha": "deadbeef", "status": "ok", "finished_at": 9.0}))
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=header,
+            lprov=header,
+        )
+        (tmp_path / "provenance.json").write_text(
+            json.dumps(
+                {"run_id": "run-abc", "git_sha": "deadbeef", "status": "ok", "finished_at": 9.0}
+            )
+        )
         assert analyse_v05_run(t, l)["status"] == "ok"
 
     def test_finalised_provenance_json_run_id_mismatch(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov(), lprov=_prov())
-        (tmp_path / "provenance.json").write_text(json.dumps(
-            {"run_id": "other", "git_sha": "deadbeef", "status": "ok", "finished_at": 9.0}))
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
+        (tmp_path / "provenance.json").write_text(
+            json.dumps(
+                {"run_id": "other", "git_sha": "deadbeef", "status": "ok", "finished_at": 9.0}
+            )
+        )
         with pytest.raises(ValueError, match="provenance.json"):
             analyse_v05_run(t, l)
 
@@ -324,15 +428,21 @@ class TestPartialRefusal:
 def _err_row(task: str) -> dict:
     return _trainer_row(task, msd=float("inf")) | {
         "error": "OutOfMemoryError: CUDA out of memory",
-        "error_type": "torch.OutOfMemoryError", "error_class": "transient",
+        "error_type": "torch.OutOfMemoryError",
+        "error_class": "transient",
         "traceback": "Traceback ...\nOutOfMemoryError: CUDA out of memory\n",
     }
 
 
 class TestErrorRecordsRefused:
     def _files(self, tmp_path: Path):
-        return _run(tmp_path, [_trainer_row("T0"), _err_row("T0")],
-                    [_life_row("T0", [_arch("mlp")])], tprov=_prov(), lprov=_prov())
+        return _run(
+            tmp_path,
+            [_trainer_row("T0"), _err_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
 
     def test_error_record_refuses(self, tmp_path: Path) -> None:
         t, l = self._files(tmp_path)
@@ -341,9 +451,10 @@ class TestErrorRecordsRefused:
 
     def test_lifecycle_error_record_refuses(self, tmp_path: Path) -> None:
         life_err = _life_row("T0", [], msd=float("inf")) | {
-            "error": "ConnectionError: x", "error_class": "transient"}
-        t, l = _run(tmp_path, [_trainer_row("T0")], [life_err],
-                    tprov=_prov(), lprov=_prov())
+            "error": "ConnectionError: x",
+            "error_class": "transient",
+        }
+        t, l = _run(tmp_path, [_trainer_row("T0")], [life_err], tprov=_prov(), lprov=_prov())
         with pytest.raises(ValueError, match="error record"):
             analyse_v05_run(t, l)
 
@@ -365,8 +476,11 @@ class TestErrorRecordsRefused:
         assert s["status"] == "PARTIAL_DIAGNOSTIC_ONLY"
         assert s["allow_partial_reason"] == reason
         assert s["n_error_records"] == 1
-        for k in ("gate_adamson_median_below_0_20", "gate_norman_median_below_0_30",
-                  "gate_architect_entropy_above_0_5_nats"):
+        for k in (
+            "gate_adamson_median_below_0_20",
+            "gate_norman_median_below_0_30",
+            "gate_architect_entropy_above_0_5_nats",
+        ):
             assert s[k] is None
 
     def test_main_writes_marked_summary_json(self, tmp_path: Path) -> None:
@@ -378,8 +492,13 @@ class TestErrorRecordsRefused:
         assert written["allow_partial_reason"] == "3 OOM on scgpt_small N=5"
 
     def test_clean_run_has_no_reason(self, tmp_path: Path) -> None:
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=_prov(), lprov=_prov())
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=_prov(),
+            lprov=_prov(),
+        )
         s = analyse_v05_run(t, l)
         assert s["status"] == "ok" and s["allow_partial_reason"] is None
 
@@ -410,10 +529,18 @@ class TestUnparseableLinesRefused:
             analyse_v05_run(t, l, allow_partial="anything", allow_fallback_for_diagnosis=True)
 
     def test_provenance_recorded_unparseable_refuses(self, tmp_path: Path) -> None:
-        prov = _prov(unparseable_lines={
-            "trainer_runs.jsonl": [],
-            "lifecycle_runs.jsonl": [{"line": 7, "byte_offset": 900, "preview": "{x"}]})
-        t, l = _run(tmp_path, [_trainer_row("T0")], [_life_row("T0", [_arch("mlp")])],
-                    tprov=prov, lprov=prov)
+        prov = _prov(
+            unparseable_lines={
+                "trainer_runs.jsonl": [],
+                "lifecycle_runs.jsonl": [{"line": 7, "byte_offset": 900, "preview": "{x"}],
+            }
+        )
+        t, l = _run(
+            tmp_path,
+            [_trainer_row("T0")],
+            [_life_row("T0", [_arch("mlp")])],
+            tprov=prov,
+            lprov=prov,
+        )
         with pytest.raises(ValueError, match="line 7"):
             analyse_v05_run(t, l)

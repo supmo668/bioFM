@@ -268,9 +268,11 @@ def run_v05_sweep(
         reason = spend_guard(cost, stop_usd=spend_stop_usd, kill_usd=_BUDGET_HARD_KILL_USD)
         if reason is not None:
             stop_state.update(reason=reason, cost_usd=cost)
-            print(f"[v0.6.0] SPEND {reason}: ${cost:.2f} > "
-                  f"${spend_stop_usd if reason == 'spend_stop' else _BUDGET_HARD_KILL_USD:.2f}"
-                  " — stopping and reporting")
+            print(
+                f"[v0.6.0] SPEND {reason}: ${cost:.2f} > "
+                f"${spend_stop_usd if reason == 'spend_stop' else _BUDGET_HARD_KILL_USD:.2f}"
+                " — stopping and reporting"
+            )
             return True
         return False
 
@@ -300,17 +302,19 @@ def run_v05_sweep(
             n_top_hvg=n_top_hvg,
             max_cells_per_pert=max_cells_per_pert,
         )
-        dataset_records.append({
-            "name": "adamson_full",
-            "path": [str(f) for f in adamson_files],
-            "sha256": [_sha256(f) for f in adamson_files],
-            "n_cells": int(ds["X"].shape[0]),
-            "n_genes": int(ds["X"].shape[1]),
-            # CTO #250: the label contract this load applied (aliases + evidence).
-            "label_contract": ds["label_contract"],
-            # CTO #253: plasmids pooled into each single-gene task.
-            "guides_per_gene": ds["guides_per_gene"],
-        })
+        dataset_records.append(
+            {
+                "name": "adamson_full",
+                "path": [str(f) for f in adamson_files],
+                "sha256": [_sha256(f) for f in adamson_files],
+                "n_cells": int(ds["X"].shape[0]),
+                "n_genes": int(ds["X"].shape[1]),
+                # CTO #250: the label contract this load applied (aliases + evidence).
+                "label_contract": ds["label_contract"],
+                # CTO #253: plasmids pooled into each single-gene task.
+                "guides_per_gene": ds["guides_per_gene"],
+            }
+        )
         return ds
 
     def _load_norman() -> dict:
@@ -318,15 +322,17 @@ def run_v05_sweep(
         ds = load_norman_matrix(
             norman_path, n_top_hvg=n_top_hvg, max_cells_per_pert=max_cells_per_pert
         )
-        dataset_records.append({
-            "name": "norman",
-            "path": str(norman_path),
-            "sha256": _sha256(norman_path),
-            "n_cells": int(ds["X"].shape[0]),
-            "n_genes": int(ds["X"].shape[1]),
-            # CTO #250: the label contract this load applied (aliases + evidence).
-            "label_contract": ds["label_contract"],
-        })
+        dataset_records.append(
+            {
+                "name": "norman",
+                "path": str(norman_path),
+                "sha256": _sha256(norman_path),
+                "n_cells": int(ds["X"].shape[0]),
+                "n_genes": int(ds["X"].shape[1]),
+                # CTO #250: the label contract this load applied (aliases + evidence).
+                "label_contract": ds["label_contract"],
+            }
+        )
         return ds
 
     dataset_sources: dict = {}
@@ -385,9 +391,7 @@ def run_v05_sweep(
         )
 
     if norman_ds is not None:
-        norman_tasks = sorted(
-            list(task_plan.norman_singletons) + list(task_plan.norman_doublets)
-        )
+        norman_tasks = sorted(list(task_plan.norman_singletons) + list(task_plan.norman_doublets))
         datasets.append(("norman", norman_ds, norman_tasks))
         print(f"[v0.6.0] norman subsampled: {len(norman_tasks)} tasks")
 
@@ -396,8 +400,13 @@ def run_v05_sweep(
     for dataset_name, ds, tasks in datasets:
         for i, t in enumerate(tasks):
             if max_tasks_override is not None and i >= max_tasks_override:
-                tasks_excluded.append({"dataset": dataset_name, "label": t,
-                                       "reason": f"max_tasks_override={max_tasks_override}"})
+                tasks_excluded.append(
+                    {
+                        "dataset": dataset_name,
+                        "label": t,
+                        "reason": f"max_tasks_override={max_tasks_override}",
+                    }
+                )
     prov = build_provenance(
         run_id=run_id,
         git_sha=git_sha,
@@ -418,8 +427,9 @@ def run_v05_sweep(
         device=training_device(),  # QG C9: the device every scgpt_small fit uses
         llm_cache_dir=_LLM_CACHE_DIR,  # QG C6
         # A2-4: the grid as run — records per task, distinct fits, seeds.
-        trainer_grid=trainer_grid(backbones=backbones, r_sweep=r_sweep,
-                                  seeds=list(range(2026, 2026 + seeds))),
+        trainer_grid=trainer_grid(
+            backbones=backbones, r_sweep=r_sweep, seeds=list(range(2026, 2026 + seeds))
+        ),
     )
     # A2-8 / A2-2: prereg_version, the cache namespace + entry count at start,
     # and the fixed round count go into record 0 of both JSONLs.
@@ -448,8 +458,10 @@ def run_v05_sweep(
                 gpu_seconds=now - started_at,
                 gpu_seconds_source="wall_clock_of_gpu_function",
                 cost_usd_actual=_cost_usd_so_far(),
-                counts={"n_trainer_runs": len(trainer_records),
-                        "n_lifecycle_runs": len(lifecycle_records)},
+                counts={
+                    "n_trainer_runs": len(trainer_records),
+                    "n_lifecycle_runs": len(lifecycle_records),
+                },
                 hvg_n_per_task=hvg_n,
                 params_per_task=params,
                 budget_hit=_budget_exceeded(),
@@ -457,18 +469,25 @@ def run_v05_sweep(
                 stop_reason=stop_state["reason"],
                 cost_usd_at_stop=stop_state["cost_usd"],
             )
-            failed.update(llm_cache_end(
-                lifecycle_records, entries_at_start=llm_cache["llm_cache_entries_at_start"]))
+            failed.update(
+                llm_cache_end(
+                    lifecycle_records, entries_at_start=llm_cache["llm_cache_entries_at_start"]
+                )
+            )
             provenance_out.write_text(json.dumps(failed, indent=2, default=str))
             DATA_VOL.commit()
-            print(f"[v0.6.0] ABORT in {phase}: {failed['failure']['error_type']} — "
-                  "provenance status=failed")
+            print(
+                f"[v0.6.0] ABORT in {phase}: {failed['failure']['error_type']} — "
+                "provenance status=failed"
+            )
+
         return on_abort
 
     def _sink(path: Path, bucket: list[dict]):
         def sink(rec: dict) -> None:
             _append(path, rec)
             bucket.append(rec)
+
         return sink
 
     # ---------- 2. Trainer-only sweep ----------
@@ -545,8 +564,9 @@ def run_v05_sweep(
     # preview) and written to provenance — never silently skipped. The
     # analyser refuses any run that has one.
     lifecycle_rows, _ = read_jsonl_locating(lifecycle_out)
-    lifecycle_rows = [r for r in lifecycle_rows
-                      if isinstance(r, dict) and r.get("record_type") != "provenance"]
+    lifecycle_rows = [
+        r for r in lifecycle_rows if isinstance(r, dict) and r.get("record_type") != "provenance"
+    ]
     unparseable_lines = scan_unparseable(trainer_out, lifecycle_out)
     n_unparseable = sum(len(v) for v in unparseable_lines.values())
     if n_unparseable:
@@ -565,11 +585,13 @@ def run_v05_sweep(
     cost_usd = _cost_usd_so_far()
     budget_hit = cost_usd > _BUDGET_HARD_KILL_USD
     # C-KEY-2 fallback > spend stop / hard kill > ok (QG C14 / OWN-1).
-    status = derive_status(lifecycle_rows, cost_usd=cost_usd,
-                           kill_usd=_BUDGET_HARD_KILL_USD, stop_reason=stop_state["reason"])
-    hvg_n_per_task, params_per_task = collect_hvg_and_params(
-        trainer_records, lifecycle_records
+    status = derive_status(
+        lifecycle_rows,
+        cost_usd=cost_usd,
+        kill_usd=_BUDGET_HARD_KILL_USD,
+        stop_reason=stop_state["reason"],
     )
+    hvg_n_per_task, params_per_task = collect_hvg_and_params(trainer_records, lifecycle_records)
     counts = {
         "n_trainer_runs": n_trainer_runs,
         "n_lifecycle_runs": n_lifecycle_runs,
@@ -591,8 +613,9 @@ def run_v05_sweep(
         cost_usd_at_stop=stop_state["cost_usd"],
     )
     # A2-8: cache-hit count (must be 0) and the replay flag.
-    final.update(llm_cache_end(
-        lifecycle_rows, entries_at_start=llm_cache["llm_cache_entries_at_start"]))
+    final.update(
+        llm_cache_end(lifecycle_rows, entries_at_start=llm_cache["llm_cache_entries_at_start"])
+    )
     provenance_out.write_text(json.dumps(final, indent=2, default=str))
     DATA_VOL.commit()
     summary = {
@@ -666,7 +689,9 @@ def entrypoint(
     # CTO #265: pin the committed, clean pre-registration (C-PREREG otherwise).
     toplevel = subprocess.run(
         ["git", "-C", str(PROJECT_DIR_HOST), "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     preregistration: dict | None = None
     preregistration_error: str | None = None

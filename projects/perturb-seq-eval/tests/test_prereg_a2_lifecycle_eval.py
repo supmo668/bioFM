@@ -27,7 +27,9 @@ def _ds(n_genes: int = 60) -> dict:
     X[:, 40:50] = 2.0 + rng.standard_normal((160, 10)) * 0.01
     X[120:160, 40:50] += 0.05
     return {
-        "X": X, "labels": labels, "control_mask": labels == "CTRL",
+        "X": X,
+        "labels": labels,
+        "control_mask": labels == "CTRL",
         "target_gene_idx": {"A": (5,), "B": (10,), "C": (15,)},
         "gene_names": np.asarray([f"G{i}" for i in range(n_genes)]),
     }
@@ -47,10 +49,17 @@ def _run(ds, pool=None, **kw):
     from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
 
     return run_agentic_lifecycle(
-        task_id="hold_C", X=ds["X"], labels=ds["labels"], control_mask=ds["control_mask"],
-        target_gene_idx=ds["target_gene_idx"], held_out="C",
-        agent_pool=pool or _SmallHvgPool(seed=0), seed=0, dataset="adamson_full",
-        backbone_override="linear", **kw,
+        task_id="hold_C",
+        X=ds["X"],
+        labels=ds["labels"],
+        control_mask=ds["control_mask"],
+        target_gene_idx=ds["target_gene_idx"],
+        held_out="C",
+        agent_pool=pool or _SmallHvgPool(seed=0),
+        seed=0,
+        dataset="adamson_full",
+        backbone_override="linear",
+        **kw,
     )
 
 
@@ -135,12 +144,24 @@ def test_score_and_gate_requires_eval_cols_and_scores_on_them() -> None:
     ds = _ds()
     X = ds["X"]
     with pytest.raises(TypeError):
-        score_and_gate(backbone=ZeroModel(), X=X, labels=ds["labels"],  # type: ignore[call-arg]
-                       control_mask=ds["control_mask"], held_out="C", held_out_target_idx=15)
+        score_and_gate(
+            backbone=ZeroModel(),
+            X=X,
+            labels=ds["labels"],  # type: ignore[call-arg]
+            control_mask=ds["control_mask"],
+            held_out="C",
+            held_out_target_idx=15,
+        )
     cols = np.asarray([40, 41, 3])
-    rep = score_and_gate(backbone=ZeroModel(), X=X, labels=ds["labels"],
-                         control_mask=ds["control_mask"], held_out="C",
-                         held_out_target_idx=15, eval_cols=cols)
+    rep = score_and_gate(
+        backbone=ZeroModel(),
+        X=X,
+        labels=ds["labels"],
+        control_mask=ds["control_mask"],
+        held_out="C",
+        held_out_target_idx=15,
+        eval_cols=cols,
+    )
     truth = X[ds["labels"] == "C"].mean(0) - X[ds["control_mask"]].mean(0)
     assert rep.msd_topk == pytest.approx(float(np.mean(truth[cols] ** 2)))
 
@@ -150,10 +171,24 @@ def test_trainer_and_lifecycle_records_carry_the_identical_eval_gene_list() -> N
     from perturb_eval.experiments.v05_sweep import lifecycle_record
 
     ds = _ds()
-    trainer = list(iter_trainer_records(dataset_name="adamson_full", ds=ds, tasks=["C"],
-                                        backbones=("linear",), r_sweep=(1,), seeds=(0,)))
-    life = lifecycle_record(task="C", dataset_name="adamson_full", ds=ds, seed=0,
-                            pool=_SmallHvgPool(seed=0), backbone_override="linear")
+    trainer = list(
+        iter_trainer_records(
+            dataset_name="adamson_full",
+            ds=ds,
+            tasks=["C"],
+            backbones=("linear",),
+            r_sweep=(1,),
+            seeds=(0,),
+        )
+    )
+    life = lifecycle_record(
+        task="C",
+        dataset_name="adamson_full",
+        ds=ds,
+        seed=0,
+        pool=_SmallHvgPool(seed=0),
+        backbone_override="linear",
+    )
     assert trainer and "error" not in trainer[0]
     assert life["eval_gene_idx"] == trainer[0]["eval_gene_idx"]
     assert life["n_eval_genes"] == trainer[0]["n_eval_genes"] == 20

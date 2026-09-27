@@ -150,8 +150,7 @@ def _architect_prompt(task_id: str, round_index: int, context: dict, dataset: st
     failed = context.get("validator_failed_genes") or ()
     lit = context.get("literature") or {}
     return (
-        _preamble("Architect", dataset)
-        + "\n\nTask: held-out perturbation {task_id} (round {r}).\n"
+        _preamble("Architect", dataset) + "\n\nTask: held-out perturbation {task_id} (round {r}).\n"
         "Prior round MSD: {prior}\n"
         "Validator suggested config delta: {delta}\n"
         "Top-failed genes in prior round: {failed}\n"
@@ -167,11 +166,9 @@ def _architect_prompt(task_id: str, round_index: int, context: dict, dataset: st
     ) + _schema_block("Architect")
 
 
-def _simple_prompt(role: str, task_id: str, round_index: int, context: dict,
-                   dataset: str) -> str:
+def _simple_prompt(role: str, task_id: str, round_index: int, context: dict, dataset: str) -> str:
     return (
-        _preamble(role, dataset)
-        + f"\n\nTask: {task_id} (round {round_index}).\n"
+        _preamble(role, dataset) + f"\n\nTask: {task_id} (round {round_index}).\n"
         f"Context: {json.dumps({k: str(v)[:120] for k, v in context.items()})}\n\n"
         + _schema_block(role)
     )
@@ -237,9 +234,7 @@ class LLMAgentPool:
             # ValidationError here -> fallback -> run invalid.
             model = parse_proposal(role, result.content)
         except FALLBACK_EXCEPTIONS as exc:
-            self._log.warning(
-                "LLM pool: role=%s fallback (%s: %s)", role, type(exc).__name__, exc
-            )
+            self._log.warning("LLM pool: role=%s fallback (%s: %s)", role, type(exc).__name__, exc)
             fallback = _rule_based_fallback(role, context)
             return {
                 "content": fallback,
@@ -263,5 +258,6 @@ class LLMAgentPool:
             # filled the rest); config precedence reads only stated fields.
             "stated_fields": tuple(sorted(model.model_fields_set - {"confidence"})),
         }
+
 
 __all__ = ["DATASET_DESCRIPTIONS", "FALLBACK_EXCEPTIONS", "LLMAgentPool"]

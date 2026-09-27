@@ -46,7 +46,11 @@ def suggest_config_delta(
 
     delta: dict[str, Any] = {}
     if deg_sign_agreement < 0.5:
-        idx = _BACKBONE_ROTATION.index(current_backbone) if current_backbone in _BACKBONE_ROTATION else 0
+        idx = (
+            _BACKBONE_ROTATION.index(current_backbone)
+            if current_backbone in _BACKBONE_ROTATION
+            else 0
+        )
         delta["backbone"] = _BACKBONE_ROTATION[(idx + 1) % len(_BACKBONE_ROTATION)]
     else:
         delta["learning_rate"] = 1e-3
@@ -109,9 +113,7 @@ def score_and_gate(
         sign_mismatch = np.sign(pred[top_k]) != np.sign(truth[top_k])
         mismatch_idx = top_k[sign_mismatch]
         if gene_names is not None and len(gene_names) == X.shape[1]:
-            failed_genes = tuple(
-                str(gene_names[int(i)]) for i in mismatch_idx[:10]
-            )
+            failed_genes = tuple(str(gene_names[int(i)]) for i in mismatch_idx[:10])
         else:
             failed_genes = tuple(f"gene_{int(i)}" for i in mismatch_idx[:10])
 

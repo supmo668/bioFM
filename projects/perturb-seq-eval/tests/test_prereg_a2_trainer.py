@@ -68,6 +68,7 @@ def _full_axis_top20(ds: dict, held: str) -> list[int]:
 # A2-5: one gene universe for the top-20 DEGs
 # ---------------------------------------------------------------------------
 
+
 class TestA25EvalGenesOnFullAxis:
     def test_top_deg_columns_ranks_full_gene_axis(self) -> None:
         ds = _ds()
@@ -114,10 +115,16 @@ class TestA25EvalGenesOnFullAxis:
 
     def test_trainer_records_carry_the_task_eval_gene_list(self) -> None:
         ds = _ds()
-        recs = list(heldout.iter_trainer_records(
-            dataset_name="toy", ds=ds, tasks=["A", "B"], backbones=("linear",),
-            r_sweep=(1,), seeds=(0,),
-        ))
+        recs = list(
+            heldout.iter_trainer_records(
+                dataset_name="toy",
+                ds=ds,
+                tasks=["A", "B"],
+                backbones=("linear",),
+                r_sweep=(1,),
+                seeds=(0,),
+            )
+        )
         assert len(recs) == 2
         for r in recs:
             want = _full_axis_top20(ds, r["task"])
@@ -129,9 +136,7 @@ class TestA25EvalGenesOnFullAxis:
         ds = _ds()
         # A selection built WITHOUT the eval genes (targets only) must not be
         # silently scored on a narrower gene set.
-        bare = hvg.select_hvg_train_only(
-            ds["X"], ds["labels"] != "A", 3, force_include=[0, 1, 2]
-        )
+        bare = hvg.select_hvg_train_only(ds["X"], ds["labels"] != "A", 3, force_include=[0, 1, 2])
         with pytest.raises(ValueError, match="evaluation gene"):
             heldout.build_view(ds, "A", bare)
 
@@ -139,6 +144,7 @@ class TestA25EvalGenesOnFullAxis:
 # ---------------------------------------------------------------------------
 # A2-4: N removed; distinct configurations counted and stated
 # ---------------------------------------------------------------------------
+
 
 class TestA24GridWithoutN:
     def test_iter_trainer_records_has_no_n_axis(self) -> None:
@@ -148,10 +154,16 @@ class TestA24GridWithoutN:
 
     def test_records_are_backbone_x_r_x_seed_and_carry_no_n(self) -> None:
         ds = _ds()
-        recs = list(heldout.iter_trainer_records(
-            dataset_name="toy", ds=ds, tasks=["A", "B"], backbones=("linear", "mlp"),
-            r_sweep=(1, 2), seeds=(0, 1),
-        ))
+        recs = list(
+            heldout.iter_trainer_records(
+                dataset_name="toy",
+                ds=ds,
+                tasks=["A", "B"],
+                backbones=("linear", "mlp"),
+                r_sweep=(1, 2),
+                seeds=(0, 1),
+            )
+        )
         assert len(recs) == 2 * 2 * 2 * 2
         assert all("N" not in r for r in recs)
         cells = {(r["task"], r["backbone"], r["R"], r["seed"]) for r in recs}
@@ -160,10 +172,16 @@ class TestA24GridWithoutN:
     def test_linear_is_r_and_seed_invariant_and_mlp_is_not(self) -> None:
         """Pins the fact trainer_grid's distinct count relies on."""
         ds = _ds()
-        recs = list(heldout.iter_trainer_records(
-            dataset_name="toy", ds=ds, tasks=["A"], backbones=("linear", "mlp"),
-            r_sweep=(1, 3), seeds=(0, 1),
-        ))
+        recs = list(
+            heldout.iter_trainer_records(
+                dataset_name="toy",
+                ds=ds,
+                tasks=["A"],
+                backbones=("linear", "mlp"),
+                r_sweep=(1, 3),
+                seeds=(0, 1),
+            )
+        )
         lin = {r["msd_topk"] for r in recs if r["backbone"] == "linear"}
         mlp = {(r["R"], r["seed"]): r["msd_topk"] for r in recs if r["backbone"] == "mlp"}
         assert len(lin) == 1
@@ -197,11 +215,13 @@ class TestA24GridWithoutN:
 # A2-7: text only — the per-pool total check is an explicit raise
 # ---------------------------------------------------------------------------
 
+
 def test_a27_task_count_check_is_an_explicit_raise_not_assert() -> None:
     from perturb_eval.experiments import v05_tasks
 
     tree = ast.parse(Path(v05_tasks.__file__).read_text(encoding="utf-8"))
     assert not any(isinstance(n, ast.Assert) for n in ast.walk(tree))
-    check = next(n for n in ast.walk(tree)
-                 if isinstance(n, ast.FunctionDef) and n.name == "_check_counts")
+    check = next(
+        n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "_check_counts"
+    )
     assert any(isinstance(n, ast.Raise) for n in ast.walk(check))

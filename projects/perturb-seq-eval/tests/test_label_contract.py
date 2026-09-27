@@ -38,6 +38,7 @@ PERK_REASON = (
 
 # ---------------------------------------------------------------- evidence ----
 
+
 def _kd(delta: float = -1.5, n: int = 3) -> AliasEvidence:
     return AliasEvidence(
         method="knockdown",
@@ -76,9 +77,15 @@ class TestEvidenceIsMandatory:
 
     def test_knockdown_delta_must_match_means(self) -> None:
         with pytest.raises(ValueError, match="delta"):
-            AliasEvidence(method="knockdown", n_labelled_cells=3, n_control_cells=6,
-                          mean_log_labelled=0.5, mean_log_control=2.0, delta=-0.2,
-                          delta_rank_among_genes=1)
+            AliasEvidence(
+                method="knockdown",
+                n_labelled_cells=3,
+                n_control_cells=6,
+                mean_log_labelled=0.5,
+                mean_log_control=2.0,
+                delta=-0.2,
+                delta_rank_among_genes=1,
+            )
 
     @pytest.mark.parametrize("bad", ["", "ENSMUSG00000000001", "EIF2AK3", "ENSG123"])
     def test_ensembl_identity_requires_ensg_id(self, bad: str) -> None:
@@ -87,8 +94,13 @@ class TestEvidenceIsMandatory:
 
     def test_ensembl_identity_requires_join_column(self) -> None:
         with pytest.raises(ValueError, match="join_column"):
-            AliasEvidence(method="ensembl_identity", ensembl_id="ENSG00000172071",
-                          source_dataset="d", source_symbol="S", join_column="")
+            AliasEvidence(
+                method="ensembl_identity",
+                ensembl_id="ENSG00000172071",
+                source_dataset="d",
+                source_symbol="S",
+                join_column="",
+            )
 
     def test_unknown_method_raises(self) -> None:
         with pytest.raises(ValueError, match="method"):
@@ -100,22 +112,24 @@ class TestEvidenceIsMandatory:
 
     def test_evidence_curated_needs_knockdown_evidence(self) -> None:
         with pytest.raises(ValueError, match="knockdown"):
-            LabelAlias(label="OLDSYM", gene="NEWGENE", basis="evidence_curated",
-                       evidence=(_ens(),))
+            LabelAlias(label="OLDSYM", gene="NEWGENE", basis="evidence_curated", evidence=(_ens(),))
 
     def test_needs_principal_confirmation_only_for_evidence_curated(self) -> None:
-        curated = LabelAlias(label="PERK", gene="EIF2AK3", basis="evidence_curated",
-                             evidence=(_kd(),))
-        joined = LabelAlias(label="OLDSYM", gene="NEWGENE", basis="stable_id_join",
-                            evidence=(_ens(),))
+        curated = LabelAlias(
+            label="PERK", gene="EIF2AK3", basis="evidence_curated", evidence=(_kd(),)
+        )
+        joined = LabelAlias(
+            label="OLDSYM", gene="NEWGENE", basis="stable_id_join", evidence=(_ens(),)
+        )
         assert curated.needs_principal_confirmation is True
         assert joined.needs_principal_confirmation is False
 
     def test_whole_doublet_alias_cannot_be_constructed(self) -> None:
         # Aliases are per tuple component; a '_'-joined label is never an alias key.
         with pytest.raises(ValueError, match="component"):
-            LabelAlias(label="OLDSYM_FOXL2", gene="NEWGENE", basis="evidence_curated",
-                       evidence=(_kd(),))
+            LabelAlias(
+                label="OLDSYM_FOXL2", gene="NEWGENE", basis="evidence_curated", evidence=(_kd(),)
+            )
 
 
 class TestContractShape:
@@ -130,8 +144,11 @@ class TestContractShape:
 
     def test_apply_is_control_is_excluded(self) -> None:
         a = LabelAlias(label="PERK", gene="EIF2AK3", basis="evidence_curated", evidence=(_kd(),))
-        c = LabelContract(aliases={"PERK": a}, structural_controls={"CTLX": "shape"},
-                          excluded={"XLBL": "fixture reason"})
+        c = LabelContract(
+            aliases={"PERK": a},
+            structural_controls={"CTLX": "shape"},
+            excluded={"XLBL": "fixture reason"},
+        )
         assert c.apply("PERK") == "EIF2AK3"
         assert c.apply("TFA") == "TFA"
         assert c.is_control("CTLX") and not c.is_control("PERK")
@@ -140,16 +157,24 @@ class TestContractShape:
     def test_provenance_is_json_and_carries_every_evidence_field(self) -> None:
         a = LabelAlias(label="PERK", gene="EIF2AK3", basis="evidence_curated", evidence=(_kd(),))
         b = LabelAlias(label="OLDSYM", gene="NEWGENE", basis="stable_id_join", evidence=(_ens(),))
-        prov = LabelContract(aliases={"PERK": a, "OLDSYM": b}, structural_controls={},
-                             excluded={}).to_provenance()
+        prov = LabelContract(
+            aliases={"PERK": a, "OLDSYM": b}, structural_controls={}, excluded={}
+        ).to_provenance()
         assert json.loads(json.dumps(prov)) == prov
         perk = prov["aliases"]["PERK"]
         assert perk["gene"] == "EIF2AK3"
         assert perk["basis"] == "evidence_curated"
         assert perk["needs_principal_confirmation"] is True
         ev = perk["evidence"][0]
-        for k in ("method", "n_labelled_cells", "n_control_cells", "mean_log_labelled",
-                  "mean_log_control", "delta", "delta_rank_among_genes"):
+        for k in (
+            "method",
+            "n_labelled_cells",
+            "n_control_cells",
+            "mean_log_labelled",
+            "mean_log_control",
+            "delta",
+            "delta_rank_among_genes",
+        ):
             assert k in ev
         assert ev["delta"] == -1.5
         old = prov["aliases"]["OLDSYM"]
@@ -217,15 +242,22 @@ ADAMSON_CONTRACT_LABELS = (
 )
 
 ADAMSON_PERK_LABELS = ["*"] * 3 + ["TFA_pDS263"] * 3 + ["OLDTF_pDS100"] * 3
-PERK_EXCLUDED = {"label": "PERK", "reason": PERK_REASON, "raw_labels": ["PERK_only_pMJ146"],
-                 "n_cells": 3}
+PERK_EXCLUDED = {
+    "label": "PERK",
+    "reason": PERK_REASON,
+    "raw_labels": ["PERK_only_pMJ146"],
+    "n_cells": 3,
+}
 
 
 def _perk_contract() -> LabelContract:
     # Mechanism fixture: an evidence_curated alias on a neutral label (OLDTF).
     return LabelContract(
-        aliases={"OLDTF": LabelAlias(label="OLDTF", gene="EIF2AK3", basis="evidence_curated",
-                                     evidence=(_kd(),))},
+        aliases={
+            "OLDTF": LabelAlias(
+                label="OLDTF", gene="EIF2AK3", basis="evidence_curated", evidence=(_kd(),)
+            )
+        },
         structural_controls=dict(ADAMSON_CONTRACT.structural_controls),
         excluded=dict(ADAMSON_CONTRACT.excluded),
     )
@@ -280,8 +312,7 @@ class TestAdamsonLoader:
         p1, p2 = tmp_path / "a1.h5ad", tmp_path / "a2.h5ad"
         _write_adamson(p1, ADAMSON_CONTRACT_LABELS, ADAMSON_GENES)
         _write_adamson(p2, ADAMSON_PERK_LABELS + ["PERK_only_pMJ146"] * 2, ADAMSON_GENES)
-        ds = load_adamson_combined([p1, p2], max_cells_per_pert=100,
-                                   contract=_perk_contract())
+        ds = load_adamson_combined([p1, p2], max_cells_per_pert=100, contract=_perk_contract())
         assert ds["target_gene_idx"]["OLDTF"] == (ADAMSON_GENES.index("EIF2AK3"),)
         assert set(ds["perturbations"]) == {"TFA", "OLDTF"}
         assert ds["labels_excluded"] == [{**PERK_EXCLUDED, "n_cells": 3 + 2}]
@@ -305,10 +336,20 @@ class TestAdamsonLoader:
         p = tmp_path / "a.h5ad"
         _write_adamson(p, ADAMSON_CONTRACT_LABELS, ADAMSON_GENES)
         ds = load_adamson_matrix(p, max_cells_per_pert=100)
-        summary = {"adamson_full": mean_abs_logfc_per_target(
-            ds["X"], ds["labels"], ds["control_mask"], ds["target_gene_idx"])}
-        plan = build_task_lists(summary, [], norman_n_singletons=0, norman_n_doublets=0,
-                                adamson_n_per_bin=1, adamson_n_bins=1, seed=0)
+        summary = {
+            "adamson_full": mean_abs_logfc_per_target(
+                ds["X"], ds["labels"], ds["control_mask"], ds["target_gene_idx"]
+            )
+        }
+        plan = build_task_lists(
+            summary,
+            [],
+            norman_n_singletons=0,
+            norman_n_doublets=0,
+            adamson_n_per_bin=1,
+            adamson_n_bins=1,
+            seed=0,
+        )
         assert "3x" not in plan.all_tasks
         assert "PERK" not in plan.all_tasks
         assert "Gal4-4(mod)" not in plan.all_tasks
@@ -318,9 +359,15 @@ class TestAdamsonLoader:
 # ----------------------------------------------------------------- Norman ----
 
 # Amendment 2 A2-4: build_provenance requires the trainer grid as run.
-_GRID = {"backbones": ["linear"], "r_sweep": [1], "seeds": [0], "n_records_per_task": 1,
-         "n_distinct_per_task": 1, "distinct_by_backbone": {"linear": 1},
-         "r_seed_invariant_backbones": ["linear"]}
+_GRID = {
+    "backbones": ["linear"],
+    "r_sweep": [1],
+    "seeds": [0],
+    "n_records_per_task": 1,
+    "n_distinct_per_task": 1,
+    "distinct_by_backbone": {"linear": 1},
+    "r_seed_invariant_backbones": ["linear"],
+}
 
 NORMAN_GENES = ["NEWGENE", "FOXL2", "TGFBR2", "G3", "G4"]
 NORMAN_LABELS = (
@@ -354,11 +401,22 @@ def _write_norman(path: Path, labels: list[str], genes: list[str]) -> None:
 
 def _oldsym_contract(**extra) -> LabelContract:
     return LabelContract(
-        aliases={"OLDSYM": LabelAlias(
-            label="OLDSYM", gene="NEWGENE", basis="stable_id_join",
-            evidence=(AliasEvidence(method="ensembl_identity", ensembl_id=NEWGENE_ID,
-                                    source_dataset="fixture_source", source_symbol="OLDSYM",
-                                    join_column="ensemble_id"),))},
+        aliases={
+            "OLDSYM": LabelAlias(
+                label="OLDSYM",
+                gene="NEWGENE",
+                basis="stable_id_join",
+                evidence=(
+                    AliasEvidence(
+                        method="ensembl_identity",
+                        ensembl_id=NEWGENE_ID,
+                        source_dataset="fixture_source",
+                        source_symbol="OLDSYM",
+                        join_column="ensemble_id",
+                    ),
+                ),
+            )
+        },
         structural_controls={},
         excluded=extra.get("excluded", {}),
     )
@@ -407,11 +465,18 @@ class TestNormanPerComponentAlias:
         ds = load_norman_matrix(p, contract=c)
         assert "TGFBR2_OLDSYM" not in ds["perturbations"]
         assert "TGFBR2_OLDSYM" not in ds["labels"].tolist()
-        assert ds["labels_excluded"] == [{"label": "TGFBR2_OLDSYM", "reason": "fixture reason",
-                                          "raw_labels": ["TGFBR2_OLDSYM"], "n_cells": 2}]
+        assert ds["labels_excluded"] == [
+            {
+                "label": "TGFBR2_OLDSYM",
+                "reason": "fixture reason",
+                "raw_labels": ["TGFBR2_OLDSYM"],
+                "n_cells": 2,
+            }
+        ]
 
 
 # ------------------------------------------------------ preflight/provenance ----
+
 
 def _pf_ds(contract: LabelContract, targets: dict, genes: tuple, excluded: list) -> dict:
     return {
@@ -432,15 +497,26 @@ def _pf_run(tmp_path: Path, adamson_tasks: tuple, adamson_ds: dict, norman_ds: d
 
     return preflight(
         # Principal directive + CTO #265: a runnable sweep supplies both.
-        kwargs={"backbones": ("linear",), "doublet_delim": "_",
-                "llm_key_source": {"store": "infisical", "project_slug": "syntropyhealth-app",
-                                   "env": "dev", "home_project": "biofm",
-                                   "cross_project": True},
-                "preregistration": {"path": "paper/PREREGISTRATION.md",
-                                    "sha256": "a" * 64, "commit": "b" * 40}},
+        kwargs={
+            "backbones": ("linear",),
+            "doublet_delim": "_",
+            "llm_key_source": {
+                "store": "infisical",
+                "project_slug": "syntropyhealth-app",
+                "env": "dev",
+                "home_project": "biofm",
+                "cross_project": True,
+            },
+            "preregistration": {
+                "path": "paper/PREREGISTRATION.md",
+                "sha256": "a" * 64,
+                "commit": "b" * 40,
+            },
+        },
         datasets_spec_or_loaded={"adamson_full": adamson_ds, "norman": norman_ds},
-        task_plan=TaskPlan(adamson=adamson_tasks, norman_singletons=("OLDSYM",),
-                           norman_doublets=("OLDSYM_FOXL2",)),
+        task_plan=TaskPlan(
+            adamson=adamson_tasks, norman_singletons=("OLDSYM",), norman_doublets=("OLDSYM_FOXL2",)
+        ),
         env={"OPENROUTER_API_KEY": "sk-fixture-key-0123456789"},
         out_dir=tmp_path / "out",
         probe_fn=lambda env: "stub/model",
@@ -479,13 +555,28 @@ class TestPreflightAndProvenance:
         contract = _perk_contract().to_provenance()
         kw = {n: 1 for n in pv.REQUIRED_ENTRYPOINT_KWARGS}
         prov = pv.build_provenance(
-            run_id="r", git_sha="a" * 40, git_dirty=False, entrypoint_kwargs=kw,
-            datasets=[{"name": "adamson_full", "path": "p", "sha256": None, "n_cells": 1,
-                       "n_genes": 1, "label_contract": contract}],
+            run_id="r",
+            git_sha="a" * 40,
+            git_dirty=False,
+            entrypoint_kwargs=kw,
+            datasets=[
+                {
+                    "name": "adamson_full",
+                    "path": "p",
+                    "sha256": None,
+                    "n_cells": 1,
+                    "n_genes": 1,
+                    "label_contract": contract,
+                }
+            ],
             task_plan=TaskPlan(adamson=("OLDTF",), norman_singletons=(), norman_doublets=()),
             tasks_excluded=[],
             labels_excluded=[{"dataset": "adamson_full", **PERK_EXCLUDED}],
-            llm_pool=[], gpu="A100", hourly_usd=1.0, budget_cap_usd=1.0, lib_versions={},
+            llm_pool=[],
+            gpu="A100",
+            hourly_usd=1.0,
+            budget_cap_usd=1.0,
+            lib_versions={},
             trainer_grid=_GRID,  # A2-4: required provenance block
         )
         assert prov["datasets"][0]["label_contract"] == contract
@@ -498,11 +589,19 @@ class TestPreflightAndProvenance:
         kw = {n: 1 for n in pv.REQUIRED_ENTRYPOINT_KWARGS}
         with pytest.raises(ValueError, match="dataset"):
             pv.build_provenance(
-                run_id="r", git_sha="a" * 40, git_dirty=False, entrypoint_kwargs=kw,
-                datasets=[], task_plan=TaskPlan(adamson=("A",), norman_singletons=(), norman_doublets=()),
+                run_id="r",
+                git_sha="a" * 40,
+                git_dirty=False,
+                entrypoint_kwargs=kw,
+                datasets=[],
+                task_plan=TaskPlan(adamson=("A",), norman_singletons=(), norman_doublets=()),
                 tasks_excluded=[],
                 labels_excluded=[{"label": "PERK", "reason": PERK_REASON}],
-                llm_pool=[], gpu="A100", hourly_usd=1.0, budget_cap_usd=1.0, lib_versions={},
+                llm_pool=[],
+                gpu="A100",
+                hourly_usd=1.0,
+                budget_cap_usd=1.0,
+                lib_versions={},
                 trainer_grid=_GRID,  # A2-4: required provenance block
             )
 
@@ -513,12 +612,27 @@ class TestPreflightAndProvenance:
         kw = {n: 1 for n in pv.REQUIRED_ENTRYPOINT_KWARGS}
         with pytest.raises(ValueError, match="label_contract"):
             pv.build_provenance(
-                run_id="r", git_sha="a" * 40, git_dirty=False, entrypoint_kwargs=kw,
-                datasets=[{"name": "n", "path": "p", "sha256": None, "n_cells": 1,
-                           "n_genes": 1, "label_contract": {"aliases": {}}}],
+                run_id="r",
+                git_sha="a" * 40,
+                git_dirty=False,
+                entrypoint_kwargs=kw,
+                datasets=[
+                    {
+                        "name": "n",
+                        "path": "p",
+                        "sha256": None,
+                        "n_cells": 1,
+                        "n_genes": 1,
+                        "label_contract": {"aliases": {}},
+                    }
+                ],
                 task_plan=TaskPlan(adamson=("A",), norman_singletons=(), norman_doublets=()),
                 tasks_excluded=[],
-                llm_pool=[], gpu="A100", hourly_usd=1.0, budget_cap_usd=1.0, lib_versions={},
+                llm_pool=[],
+                gpu="A100",
+                hourly_usd=1.0,
+                budget_cap_usd=1.0,
+                lib_versions={},
                 trainer_grid=_GRID,  # A2-4: required provenance block
             )
 

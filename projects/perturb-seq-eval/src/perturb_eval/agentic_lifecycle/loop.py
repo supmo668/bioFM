@@ -91,9 +91,7 @@ class MockAgentPool:
     def _propose(self, role: str, round_index: int, task_id: str) -> dict:
         # zlib.crc32, not hash(): str hashes are salted per process
         # (PYTHONHASHSEED), which made the mock's draws differ run to run (QG C27).
-        rng = np.random.default_rng(
-            self.seed + round_index * 11 + (zlib.crc32(role.encode()) % 97)
-        )
+        rng = np.random.default_rng(self.seed + round_index * 11 + (zlib.crc32(role.encode()) % 97))
         if role == "DataCurator":
             return {
                 "content": {"n_top_hvg": 40, "pct_mito_max": 12.0},
@@ -160,9 +158,7 @@ def _remap_held_out_target(
     in ``top_indices`` — there is no index-0 fallback (A4).
     """
     if held_out not in target_gene_idx:
-        raise ValueError(
-            f"held-out perturbation {held_out!r} has no entry in target_gene_idx"
-        )
+        raise ValueError(f"held-out perturbation {held_out!r} has no entry in target_gene_idx")
     old_to_new: dict[int, int] = {}
     for new, old in enumerate(np.asarray(top_indices).tolist()):
         old_to_new.setdefault(int(old), new)  # first hit, as np.where(...)[0][0]
@@ -193,9 +189,7 @@ def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str, bool 
     """``(model_id, source, cache_hit)`` from a pool's propose output — fail loud (D4)."""
     source = agent_out["source"]
     if source not in STEP_SOURCES:
-        raise ValueError(
-            f"{role}: pool returned source={source!r}; expected one of {STEP_SOURCES}"
-        )
+        raise ValueError(f"{role}: pool returned source={source!r}; expected one of {STEP_SOURCES}")
     model_id = agent_out.get("model_id")
     if (source == "llm") != (model_id is not None):
         raise ValueError(
@@ -220,8 +214,10 @@ def _step_confidence(role: str, source: str, agent_out: dict) -> float | None:
             )
         return None
     if source == "llm" and not (
-        isinstance(conf, (int, float)) and not isinstance(conf, bool)
-        and math.isfinite(conf) and 0.0 <= conf <= 1.0
+        isinstance(conf, (int, float))
+        and not isinstance(conf, bool)
+        and math.isfinite(conf)
+        and 0.0 <= conf <= 1.0
     ):
         raise ValueError(
             f"{role}: llm step confidence={conf!r} is not a finite number in [0, 1] "
@@ -310,9 +306,7 @@ def run_agentic_lifecycle(
     backbone_used = "linear"
 
     if held_out not in target_gene_idx:
-        raise ValueError(
-            f"held-out perturbation {held_out!r} has no entry in target_gene_idx"
-        )
+        raise ValueError(f"held-out perturbation {held_out!r} has no entry in target_gene_idx")
     targets = {p: _as_target_tuple(t) for p, t in target_gene_idx.items()}
     train_mask = labels != held_out
     train_targets = {p: t for p, t in targets.items() if p != held_out}
@@ -320,9 +314,7 @@ def run_agentic_lifecycle(
     # A2-5: the task's 20 evaluation genes, selected ONCE on the full gene axis
     # (the same selector and inputs as the trainer path), force-included in
     # every round's features like the targets, and the Validator's MSD genes.
-    eval_genes = np.asarray(
-        _hvg.top_deg_columns(X, labels, control_mask, held_out), dtype=np.int64
-    )
+    eval_genes = np.asarray(_hvg.top_deg_columns(X, labels, control_mask, held_out), dtype=np.int64)
     force_cols = sorted({int(c) for c in target_cols} | {int(g) for g in eval_genes})
     hvg_n_per_round: list[int] = []
     hvg_n_forced_per_round: list[int] = []
@@ -335,25 +327,23 @@ def run_agentic_lifecycle(
     if max_rounds < 1:
         raise ValueError(f"max_rounds must be >= 1, got {max_rounds}")
     for r in range(max_rounds):
-        dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed,
-                                  dataset=dataset)
-        lit = agent_pool.propose("Literature", r, task_id, context, seed=seed,
-                                  dataset=dataset)
-        arch = agent_pool.propose("Architect", r, task_id, context, seed=seed,
-                                  dataset=dataset)
-        trn = agent_pool.propose("Trainer", r, task_id, context, seed=seed,
-                                  dataset=dataset)
-        val = agent_pool.propose("Validator", r, task_id, context, seed=seed,
-                                  dataset=dataset)
+        dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed, dataset=dataset)
+        lit = agent_pool.propose("Literature", r, task_id, context, seed=seed, dataset=dataset)
+        arch = agent_pool.propose("Architect", r, task_id, context, seed=seed, dataset=dataset)
+        trn = agent_pool.propose("Trainer", r, task_id, context, seed=seed, dataset=dataset)
+        val = agent_pool.propose("Validator", r, task_id, context, seed=seed, dataset=dataset)
 
         t0 = time.perf_counter()
         # A2-3: one applied configuration per round, from the agents' STATED
         # fields with precedence Validator delta (from the previous round) >
         # Architect > DataCurator > Trainer > default.
         applied, applied_src = resolve_applied_config(
-            datacurator=dc["content"], datacurator_stated=_stated(dc),
-            architect=arch["content"], architect_stated=_stated(arch),
-            trainer=trn["content"], trainer_stated=_stated(trn),
+            datacurator=dc["content"],
+            datacurator_stated=_stated(dc),
+            architect=arch["content"],
+            architect_stated=_stated(arch),
+            trainer=trn["content"],
+            trainer_stated=_stated(trn),
             critique_delta=context.get("validator_critique_delta"),
         )
         # The outer optimizer may override the backbone (contextual-BO over the
@@ -362,16 +352,14 @@ def run_agentic_lifecycle(
             # C-TORCH-2: a known-but-unavailable override raises, never degrades.
             applied["backbone"] = _canonical_backbone(backbone_override)
             applied_src["backbone"] = "override"
-        applied_config_per_round.append({"values": dict(applied),
-                                         "sources": dict(applied_src)})
+        applied_config_per_round.append({"values": dict(applied), "sources": dict(applied_src)})
         # T8b: HVG ranked on training cells only; every target column (training
         # + held-out) is forced in — its identity comes from the label, not
         # from held-out expression — so no target can fall outside the cut.
         curated = execute_data_curator(
             X=X,
             labels=labels,
-            proposal={"hvg_count": applied["hvg_count"],
-                      "qc_mito_max": applied["qc_mito_max"]},
+            proposal={"hvg_count": applied["hvg_count"], "qc_mito_max": applied["qc_mito_max"]},
             train_mask=train_mask,
             force_include=force_cols,
         )
@@ -392,10 +380,12 @@ def run_agentic_lifecycle(
             labels=curated["labels"],
             control_mask=control_mask[train_mask],
             target_gene_idx=train_targets_curated,
-            trainer_proposal={**trn["content"],
-                              "lr": applied["learning_rate"],
-                              "epochs": applied["epochs"],
-                              "ridge_lambda": applied["ridge_lambda"]},
+            trainer_proposal={
+                **trn["content"],
+                "lr": applied["learning_rate"],
+                "epochs": applied["epochs"],
+                "ridge_lambda": applied["ridge_lambda"],
+            },
             seed=seed,
         )
         # QG C15: reset every round — a failed fit never inherits the count of
@@ -428,9 +418,12 @@ def run_agentic_lifecycle(
         # fit). We still record the round so the rationale is preserved.
         if not tinfo["succeeded"]:
             from perturb_eval.agentic_lifecycle.types import ExecutedValidation
+
             report = ExecutedValidation(
-                msd_topk=float("inf"), biofm_agreement=0.0,
-                deg_overlap_at_k=0.0, accepted=False,
+                msd_topk=float("inf"),
+                biofm_agreement=0.0,
+                deg_overlap_at_k=0.0,
+                accepted=False,
                 rationale=f"Trainer failed: {tinfo.get('error', '')}",
             )
         else:
@@ -471,8 +464,9 @@ def run_agentic_lifecycle(
                     model_id=model_id,
                     source=source,
                     cache_hit=cache_hit,
-                    backbone_stated=(_stated_backbone(source, agent_out["content"])
-                                     if is_arch else None),
+                    backbone_stated=(
+                        _stated_backbone(source, agent_out["content"]) if is_arch else None
+                    ),
                     backbone_used=backbone_used if is_arch else None,
                     validator_accepted=bool(report.accepted) if is_val else None,
                     validator_threshold_msd=float(threshold) if is_val else None,
@@ -490,9 +484,7 @@ def run_agentic_lifecycle(
                 else {}
             ),
             "validator_failed_genes": (
-                report.critique.which_genes_failed
-                if report.critique is not None
-                else ()
+                report.critique.which_genes_failed if report.critique is not None else ()
             ),
         }
 

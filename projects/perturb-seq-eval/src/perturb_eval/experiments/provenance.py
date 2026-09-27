@@ -153,7 +153,6 @@ def resolve_lib_versions() -> dict[str, str | None]:
     return out
 
 
-
 _SOURCE_PART = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
 
 
@@ -167,10 +166,20 @@ def llm_key_source(store: str, project_slug: str, env: str, *, home_project: str
     anything shaped like a secret (``sk-...``, over-long, empty) is refused, so the
     value cannot leak into provenance through this field.
     """
-    for name, part in (("store", store), ("project_slug", project_slug), ("env", env),
-                       ("home_project", home_project)):
-        if not isinstance(part, str) or not _SOURCE_PART.match(part) or part.lower().startswith("sk-"):
-            raise ValueError(f"llm_key_source.{name} must be a short slug, not a credential-shaped value")
+    for name, part in (
+        ("store", store),
+        ("project_slug", project_slug),
+        ("env", env),
+        ("home_project", home_project),
+    ):
+        if (
+            not isinstance(part, str)
+            or not _SOURCE_PART.match(part)
+            or part.lower().startswith("sk-")
+        ):
+            raise ValueError(
+                f"llm_key_source.{name} must be a short slug, not a credential-shaped value"
+            )
     return {
         "store": store,
         "project_slug": project_slug,
@@ -213,28 +222,36 @@ def preregistration_record(repo_dir: str | Path, rel_path: str) -> dict[str, str
         raise ValueError(f"pre-registration {rel_path!r} does not exist")
 
     def git(*args: str) -> str:
-        return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True,
-                              text=True).stdout.strip()
+        return subprocess.run(
+            ["git", *args], cwd=repo, check=True, capture_output=True, text=True
+        ).stdout.strip()
 
     if not git("ls-files", "--", rel_path):
         raise ValueError(f"pre-registration {rel_path!r} is not tracked by git")
     if git("status", "--porcelain", "--", rel_path):
-        raise ValueError(f"pre-registration {rel_path!r} has uncommitted edits; commit it before the sweep")
+        raise ValueError(
+            f"pre-registration {rel_path!r} has uncommitted edits; commit it before the sweep"
+        )
     commit = git("log", "-1", "--format=%H", "--", rel_path)
-    return {"path": rel_path, "sha256": hashlib.sha256(f.read_bytes()).hexdigest(), "commit": commit}
+    return {
+        "path": rel_path,
+        "sha256": hashlib.sha256(f.read_bytes()).hexdigest(),
+        "commit": commit,
+    }
 
 
 def git_state(repo_dir: str | Path) -> tuple[str, bool]:
     """``(HEAD sha, working tree dirty?)`` for ``repo_dir``. Raises if not a repo."""
+
     def _git(*args: str) -> str:
         proc = subprocess.run(
             ["git", "-C", str(repo_dir), *args],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if proc.returncode != 0:
-            raise RuntimeError(
-                f"git {' '.join(args)} failed in {repo_dir}: {proc.stderr.strip()}"
-            )
+            raise RuntimeError(f"git {' '.join(args)} failed in {repo_dir}: {proc.stderr.strip()}")
         return proc.stdout
 
     sha = _git("rev-parse", "HEAD").strip()
@@ -256,7 +273,11 @@ def _require(cond: bool, msg: str) -> None:
 
 # ``perturb_eval.experiments.heldout.trainer_grid`` keys (A2-4).
 _TRAINER_GRID_KEYS: tuple[str, ...] = (
-    "backbones", "r_sweep", "seeds", "n_records_per_task", "n_distinct_per_task",
+    "backbones",
+    "r_sweep",
+    "seeds",
+    "n_records_per_task",
+    "n_distinct_per_task",
     "distinct_by_backbone",
 )
 
@@ -267,8 +288,10 @@ def _validate_trainer_grid(grid: Any) -> dict[str, Any]:
     _require(not missing, f"trainer_grid missing {missing} (A2-4)")
     for k in ("n_records_per_task", "n_distinct_per_task"):
         v = grid[k]
-        _require(isinstance(v, int) and not isinstance(v, bool) and v >= 0,
-                 f"trainer_grid[{k!r}] must be a non-negative int, got {v!r}")
+        _require(
+            isinstance(v, int) and not isinstance(v, bool) and v >= 0,
+            f"trainer_grid[{k!r}] must be a non-negative int, got {v!r}",
+        )
     return copy.deepcopy(dict(grid))
 
 
@@ -276,8 +299,10 @@ def _validate_lib_versions(lv: Mapping[str, Any]) -> None:
     for k, v in lv.items():
         _require(v is None or isinstance(v, str), f"lib_versions[{k!r}] must be str|None")
         if isinstance(v, str):
-            _require(not _CONSTRAINT_RE.search(v),
-                     f"lib_versions[{k!r}]={v!r} looks like a constraint, not a resolved version")
+            _require(
+                not _CONSTRAINT_RE.search(v),
+                f"lib_versions[{k!r}]={v!r} looks like a constraint, not a resolved version",
+            )
 
 
 def build_provenance(
@@ -320,8 +345,10 @@ def build_provenance(
     the contract dropped) is appended to ``tasks_excluded``.
     """
     _require(isinstance(run_id, str) and bool(run_id), "run_id must be a non-empty str")
-    _require(isinstance(git_sha, str) and bool(_SHA_RE.fullmatch(git_sha)),
-             f"git_sha must be 40 lowercase hex chars, got {git_sha!r}")
+    _require(
+        isinstance(git_sha, str) and bool(_SHA_RE.fullmatch(git_sha)),
+        f"git_sha must be 40 lowercase hex chars, got {git_sha!r}",
+    )
     _require(isinstance(git_dirty, bool), "git_dirty must be bool")
     kw = dict(entrypoint_kwargs)
     missing = [k for k in REQUIRED_ENTRYPOINT_KWARGS if k not in kw]
@@ -344,8 +371,10 @@ def build_provenance(
         _require({"label", "reason"} <= set(e), f"tasks_excluded entry needs label+reason: {e}")
     for e in labels_excluded:
         e = dict(e)
-        _require({"dataset", "label", "reason"} <= set(e),
-                 f"labels_excluded entry needs dataset+label+reason: {e}")
+        _require(
+            {"dataset", "label", "reason"} <= set(e),
+            f"labels_excluded entry needs dataset+label+reason: {e}",
+        )
         excl.append(e)
     pool = [str(m) for m in llm_pool]
     _require(isinstance(gpu, str) and bool(gpu), "gpu must be a non-empty str")
@@ -414,46 +443,58 @@ def finalize_provenance(
     ``"hard_kill"``) and ``cost_usd_at_stop`` record why and at what spend the
     sweep stopped early (CTO #283 / OWN-1); both ``None`` for a full run.
     """
-    _require(bool(prov.get("started_at")), "provenance record has no started_at; refusing to finalize")
+    _require(
+        bool(prov.get("started_at")), "provenance record has no started_at; refusing to finalize"
+    )
     missing = [k for k in REQUIRED_KEYS if k not in prov]
     _require(not missing, f"provenance record missing {missing}")
     _require(status in STATUSES, f"status must be one of {sorted(STATUSES)}, got {status!r}")
     _require(isinstance(budget_hit, bool), "budget_hit must be bool")
-    _require((stop_reason is None) == (cost_usd_at_stop is None),
-             "stop_reason and cost_usd_at_stop are set together")
-    _require(isinstance(gpu_seconds, (int, float)) and gpu_seconds >= 0,
-             "gpu_seconds must be a non-negative number")
+    _require(
+        (stop_reason is None) == (cost_usd_at_stop is None),
+        "stop_reason and cost_usd_at_stop are set together",
+    )
+    _require(
+        isinstance(gpu_seconds, (int, float)) and gpu_seconds >= 0,
+        "gpu_seconds must be a non-negative number",
+    )
     _validate_unparseable(unparseable_lines)
     started = _dt.datetime.fromisoformat(prov["started_at"])
     finished = _dt.datetime.fromisoformat(finished_at)
     out = copy.deepcopy(dict(prov))
     out["hvg_selection"] = dict(out["hvg_selection"]) | {"n_per_task": dict(hvg_n_per_task)}
-    out.update({
-        "finished_at": finished_at,
-        "wall_clock_sec": (finished - started).total_seconds(),
-        "gpu_seconds": float(gpu_seconds),
-        "gpu_seconds_source": gpu_seconds_source,
-        "cost_usd_actual": float(cost_usd_actual),
-        "counts": dict(counts),
-        "entropies": dict(entropies),
-        "params_per_task": dict(params_per_task),
-        "budget_hit": budget_hit,
-        "status": status,
-        "stop_reason": stop_reason,
-        "cost_usd_at_stop": float(cost_usd_at_stop) if cost_usd_at_stop is not None else None,
-        "unparseable_lines": {k: [dict(e) for e in unparseable_lines[k]] for k in JSONL_NAMES},
-    })
+    out.update(
+        {
+            "finished_at": finished_at,
+            "wall_clock_sec": (finished - started).total_seconds(),
+            "gpu_seconds": float(gpu_seconds),
+            "gpu_seconds_source": gpu_seconds_source,
+            "cost_usd_actual": float(cost_usd_actual),
+            "counts": dict(counts),
+            "entropies": dict(entropies),
+            "params_per_task": dict(params_per_task),
+            "budget_hit": budget_hit,
+            "status": status,
+            "stop_reason": stop_reason,
+            "cost_usd_at_stop": float(cost_usd_at_stop) if cost_usd_at_stop is not None else None,
+            "unparseable_lines": {k: [dict(e) for e in unparseable_lines[k]] for k in JSONL_NAMES},
+        }
+    )
     return out
 
 
 def _validate_unparseable(u: Any) -> None:
-    _require(isinstance(u, Mapping) and set(u) == set(JSONL_NAMES),
-             f"unparseable_lines must have exactly the keys {list(JSONL_NAMES)}, got {u!r}")
+    _require(
+        isinstance(u, Mapping) and set(u) == set(JSONL_NAMES),
+        f"unparseable_lines must have exactly the keys {list(JSONL_NAMES)}, got {u!r}",
+    )
     for k in JSONL_NAMES:
         _require(isinstance(u[k], list), f"unparseable_lines[{k!r}] must be a list, got {u[k]!r}")
         for e in u[k]:
-            _require(isinstance(e, Mapping) and {"line", "byte_offset", "preview"} <= set(e),
-                     f"unparseable_lines[{k!r}] entry needs line/byte_offset/preview: {e!r}")
+            _require(
+                isinstance(e, Mapping) and {"line", "byte_offset", "preview"} <= set(e),
+                f"unparseable_lines[{k!r}] entry needs line/byte_offset/preview: {e!r}",
+            )
 
 
 def fail_provenance(
@@ -469,7 +510,9 @@ def fail_provenance(
     traceback}``. ``finalize_kwargs`` are :func:`finalize_provenance`'s, minus
     ``status`` and ``entropies`` (an aborted run reports none).
     """
-    from perturb_eval.experiments.errors import failure_fields  # keeps this module stdlib-only at import
+    from perturb_eval.experiments.errors import (
+        failure_fields,
+    )  # keeps this module stdlib-only at import
 
     _require("status" not in finalize_kwargs, "fail_provenance sets status='failed' itself")
     finalize_kwargs.setdefault("entropies", {})
@@ -515,8 +558,7 @@ def scan_unparseable(trainer_jsonl: str | Path, lifecycle_jsonl: str | Path) -> 
 def format_unparseable(path: str | Path, bad: Iterable[Mapping[str, Any]]) -> str:
     """Human-readable location list naming file, line and byte offset."""
     return "; ".join(
-        f"{path}: line {e['line']} (byte offset {e['byte_offset']}): {e['preview']!r}"
-        for e in bad
+        f"{path}: line {e['line']} (byte offset {e['byte_offset']}): {e['preview']!r}" for e in bad
     )
 
 
@@ -558,8 +600,11 @@ def collect_hvg_and_params(
         _add(h, "hvg_n_forced", r.get("hvg_n_forced"))
         _add(h, "hvg_mode", r.get("hvg_mode"))
         if r.get("n_params") is not None:
-            _add(params.setdefault(k, {}).setdefault("trainer", {}),
-                 str(r.get("backbone")), r["n_params"])
+            _add(
+                params.setdefault(k, {}).setdefault("trainer", {}),
+                str(r.get("backbone")),
+                r["n_params"],
+            )
     for r in lifecycle_records:
         if r.get("record_type") == "provenance":
             continue
@@ -591,10 +636,15 @@ def write_run_config(
     """
     runs = Path(dir) / "configs" / "runs"
     runs.mkdir(parents=True, exist_ok=True)
-    body = json.dumps(
-        {"run_id": run_id, "git_sha": git_sha, "entrypoint_kwargs": dict(entrypoint_kwargs)},
-        indent=2, sort_keys=True, default=str,
-    ) + "\n"
+    body = (
+        json.dumps(
+            {"run_id": run_id, "git_sha": git_sha, "entrypoint_kwargs": dict(entrypoint_kwargs)},
+            indent=2,
+            sort_keys=True,
+            default=str,
+        )
+        + "\n"
+    )
     i = 0
     while True:
         name = f"{run_id}.json" if i == 0 else f"{run_id}.{i}.json"

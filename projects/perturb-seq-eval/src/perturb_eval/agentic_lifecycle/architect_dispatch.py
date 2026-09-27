@@ -45,9 +45,7 @@ def _canonical_backbone(name: str) -> str:
         return "linear"
     available = available_backbones()
     if resolved not in available:
-        reason = (
-            "torch is not importable" if resolved == "scgpt_small" else "not available"
-        )
+        reason = "torch is not importable" if resolved == "scgpt_small" else "not available"
         raise BackboneUnavailableError(
             f"backbone {resolved!r} (requested as {name!r}) is known but unavailable in "
             f"this environment: {reason}; available: {sorted(available)}"
@@ -118,19 +116,22 @@ def resolve_architect_config(
 # them (it overlaps the Architect only on learning_rate / ridge_lambda / epochs).
 APPLIED_FIELDS: dict[str, dict[str, Any]] = {
     "backbone": {"default": "linear", "architect": ("backbone",)},
-    "hvg_count": {"default": 2000, "architect": ("hvg_count",),
-                  "datacurator": ("hvg_count", "n_top_hvg")},
+    "hvg_count": {
+        "default": 2000,
+        "architect": ("hvg_count",),
+        "datacurator": ("hvg_count", "n_top_hvg"),
+    },
     "qc_mito_max": {"default": 12.0, "datacurator": ("qc_mito_max", "pct_mito_max")},
     "learning_rate": {"default": 1e-2, "architect": ("learning_rate",), "trainer": ("lr",)},
-    "ridge_lambda": {"default": 1.0, "architect": ("ridge_lambda",),
-                     "trainer": ("ridge_lambda",)},
+    "ridge_lambda": {"default": 1.0, "architect": ("ridge_lambda",), "trainer": ("ridge_lambda",)},
     "epochs": {"default": 40, "architect": ("epochs",), "trainer": ("epochs",)},
 }
 _TIERS = ("architect", "datacurator", "trainer")
 
 
-def _stated_value(content: Mapping[str, Any] | None, stated: Collection[str] | None,
-                  keys: tuple[str, ...]) -> tuple[bool, Any]:
+def _stated_value(
+    content: Mapping[str, Any] | None, stated: Collection[str] | None, keys: tuple[str, ...]
+) -> tuple[bool, Any]:
     """``(True, value)`` for the first of ``keys`` the tier STATED.
 
     ``stated=None`` (a non-LLM pool, which reports no stated set) treats every

@@ -20,23 +20,35 @@ GATE_KEYS = {"gate", "value", "threshold", "pass", "evaluable", "reason"}
 
 
 def _step(r: int, agent: str, conf: float, source: str = "llm", **content) -> dict:
-    return {"round_index": r, "agent_name": agent, "llm_confidence": conf,
-            "source": source, "model_id": "m/a" if source == "llm" else None,
-            "proposal_content": dict(content)}
+    return {
+        "round_index": r,
+        "agent_name": agent,
+        "llm_confidence": conf,
+        "source": source,
+        "model_id": "m/a" if source == "llm" else None,
+        "proposal_content": dict(content),
+    }
 
 
-def _run(task: str, seed: int, msd: float, rounds: list[list[float]],
-         dataset: str = "adamson_full") -> dict:
+def _run(
+    task: str, seed: int, msd: float, rounds: list[list[float]], dataset: str = "adamson_full"
+) -> dict:
     agents = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
-    steps = [_step(r, agents[i], c) for r, confs in enumerate(rounds)
-             for i, c in enumerate(confs)]
-    return {"task_id": task, "dataset": dataset, "seed": seed,
-            "final_msd_topk": msd, "n_rounds": len(rounds), "steps": steps}
+    steps = [_step(r, agents[i], c) for r, confs in enumerate(rounds) for i, c in enumerate(confs)]
+    return {
+        "task_id": task,
+        "dataset": dataset,
+        "seed": seed,
+        "final_msd_topk": msd,
+        "n_rounds": len(rounds),
+        "steps": steps,
+    }
 
 
 # ---------------------------------------------------------------------------
 # per_run_components
 # ---------------------------------------------------------------------------
+
 
 class TestPerRunComponents:
     def test_matches_metrics_module_exactly(self) -> None:
@@ -54,7 +66,8 @@ class TestPerRunComponents:
         assert w["ace_norm"] == pytest.approx(0.35 / 0.60)
         assert w["one_minus_delta_c"] == pytest.approx(0.25 / 0.60)
         assert out["tdi_lifecycle"] == pytest.approx(
-            w["ace_norm"] * out["ace_norm"] + w["one_minus_delta_c"] * out["one_minus_delta_c"])
+            w["ace_norm"] * out["ace_norm"] + w["one_minus_delta_c"] * out["one_minus_delta_c"]
+        )
         assert out["reasons"] == {}
 
     def test_rising_confidence_lowers_one_minus_delta_c(self) -> None:
@@ -63,8 +76,9 @@ class TestPerRunComponents:
 
     def test_fallback_only_final_round_is_undefined_not_imputed(self) -> None:
         run = _run("A", 1, 0.1, [[0.2, 0.4, 0.6, 0.8, 0.5]])
-        run["steps"] += [_step(1, a, 0.9, source="fallback")
-                         for a in ("DataCurator", "Literature", "Architect")]
+        run["steps"] += [
+            _step(1, a, 0.9, source="fallback") for a in ("DataCurator", "Literature", "Architect")
+        ]
         out = pr.per_run_components(run)
         assert out["ace_norm"] is None
         assert out["one_minus_delta_c"] is None
@@ -108,8 +122,14 @@ class TestPerRunComponents:
     def test_mock_and_unlabelled_steps_are_not_llm(self) -> None:
         run = _run("A", 1, 0.1, [[0.2, 0.4]])
         run["steps"][1]["source"] = "mock"
-        run["steps"].append({"round_index": 0, "agent_name": "Trainer",
-                             "llm_confidence": 0.3, "proposal_content": {}})
+        run["steps"].append(
+            {
+                "round_index": 0,
+                "agent_name": "Trainer",
+                "llm_confidence": 0.3,
+                "proposal_content": {},
+            }
+        )
         out = pr.per_run_components(run)
         assert out["ace_norm"] is None
 
@@ -132,6 +152,7 @@ class TestPerRunComponents:
 # per_task_table
 # ---------------------------------------------------------------------------
 
+
 class TestPerTaskTable:
     def test_seed_median(self) -> None:
         rows = [
@@ -149,8 +170,11 @@ class TestPerTaskTable:
 
     def test_undefined_seed_excluded_from_median(self) -> None:
         bad = _run("A", 3, 0.9, [[0.1]])  # one llm step -> undefined
-        rows = [_run("A", 1, 0.1, [[0.1] * 5, [0.2] * 5]),
-                _run("A", 2, 0.3, [[0.1] * 5, [0.4] * 5]), bad]
+        rows = [
+            _run("A", 1, 0.1, [[0.1] * 5, [0.2] * 5]),
+            _run("A", 2, 0.3, [[0.1] * 5, [0.4] * 5]),
+            bad,
+        ]
         (row,) = pr.per_task_table(rows)
         assert row["n_seeds"]["ace_norm"] == 2
         assert row["one_minus_delta_c"] == pytest.approx((0.9 + 0.7) / 2)
@@ -166,6 +190,7 @@ class TestPerTaskTable:
 # ---------------------------------------------------------------------------
 # spearman_with_ci
 # ---------------------------------------------------------------------------
+
 
 class TestSpearman:
     def test_perfect_rank(self) -> None:
@@ -202,13 +227,23 @@ class TestSpearman:
 # gates
 # ---------------------------------------------------------------------------
 
+
 def _table(tasks: list[tuple[str, str, float, float, float]]) -> list[dict]:
     """(task, dataset, ace_norm, one_minus_delta_c, msd) -> per-task rows."""
     out = []
     for t, ds, a, d, m in tasks:
-        out.append({"task": t, "dataset": ds, "ace_norm": a, "one_minus_delta_c": d,
-                    "tdi_lifecycle": pr.tdi_lifecycle(a, d), "msd": m,
-                    "n_seeds": {}, "undefined": {}})
+        out.append(
+            {
+                "task": t,
+                "dataset": ds,
+                "ace_norm": a,
+                "one_minus_delta_c": d,
+                "tdi_lifecycle": pr.tdi_lifecycle(a, d),
+                "msd": m,
+                "n_seeds": {},
+                "undefined": {},
+            }
+        )
     return out
 
 
@@ -251,10 +286,18 @@ class TestH4:
     def test_pooled_rho_is_descriptive_only(self) -> None:
         # Within each dataset every component anti-ranks MSD (rho = -1), but
         # pooled across datasets ACE_norm ranks MSD with rho = 0.543 > 0.5.
-        ad = _table([(f"a{i}", "adamson_full", v, v, m)
-                     for i, (v, m) in enumerate([(0.1, 0.3), (0.2, 0.2), (0.3, 0.1)])])
-        no = _table([(f"n{i}", "norman", v, v, m)
-                     for i, (v, m) in enumerate([(0.7, 0.9), (0.8, 0.8), (0.9, 0.7)])])
+        ad = _table(
+            [
+                (f"a{i}", "adamson_full", v, v, m)
+                for i, (v, m) in enumerate([(0.1, 0.3), (0.2, 0.2), (0.3, 0.1)])
+            ]
+        )
+        no = _table(
+            [
+                (f"n{i}", "norman", v, v, m)
+                for i, (v, m) in enumerate([(0.7, 0.9), (0.8, 0.8), (0.9, 0.7)])
+            ]
+        )
         res = pr.h4(ad + no, B=50, seed=3)
         assert res["pooled_descriptive"]["ace_norm"]["rho"] == pytest.approx(1 - 96 / 210)
         assert res["pooled_descriptive"]["ace_norm"]["rho"] > 0.5
@@ -275,8 +318,11 @@ class TestH4:
         assert a0["n_single_round_runs"] == 1
         res = pr.h4(table, B=50, seed=3)
         ex = res["exclusions"]["adamson_full"]
-        assert ex["one_minus_delta_c"] == {"runs_undefined": 4, "runs_single_round": 4,
-                                           "tasks_dropped": 1}
+        assert ex["one_minus_delta_c"] == {
+            "runs_undefined": 4,
+            "runs_single_round": 4,
+            "tasks_dropped": 1,
+        }
         assert ex["tdi_lifecycle"]["tasks_dropped"] == 1
         assert ex["ace_norm"] == {"runs_undefined": 0, "runs_single_round": 0, "tasks_dropped": 0}
         assert res["per_dataset"]["adamson_full"]["ace_norm"]["n"] == 5
@@ -285,10 +331,15 @@ class TestH4:
 
 class TestH5:
     def _tables(self):
-        ad = _table([(f"a{i}", "adamson_full", 0.9 + 0.01 * i, 0.3 + 0.05 * (i % 3), 0.02 * i)
-                     for i in range(8)])
-        no = _table([(f"n{i}", "norman", 0.9 + 0.012 * i, 0.4 + 0.03 * (i % 2), 0.03 * i)
-                     for i in range(6)])
+        ad = _table(
+            [
+                (f"a{i}", "adamson_full", 0.9 + 0.01 * i, 0.3 + 0.05 * (i % 3), 0.02 * i)
+                for i in range(8)
+            ]
+        )
+        no = _table(
+            [(f"n{i}", "norman", 0.9 + 0.012 * i, 0.4 + 0.03 * (i % 2), 0.03 * i) for i in range(6)]
+        )
         return ad, no
 
     def test_weights_fit_on_adamson_only_and_applied_unchanged(self, monkeypatch) -> None:
@@ -337,8 +388,13 @@ class TestH1H2:
 
     def test_strata_split(self) -> None:
         best = {"s1": 0.1, "s2": 0.2, "s3": 0.3, "d1": 0.8, "d2": 0.9}
-        strata = {"s1": "singleton", "s2": "singleton", "s3": "singleton",
-                  "d1": "doublet", "d2": "doublet"}
+        strata = {
+            "s1": "singleton",
+            "s2": "singleton",
+            "s3": "singleton",
+            "d1": "doublet",
+            "d2": "doublet",
+        }
         res = pr.h1_h2_stats(best, threshold=0.3, gate="H2", strata=strata, B=100, seed=5)
         assert res["strata"]["singleton"]["median"] == pytest.approx(0.2)
         assert res["strata"]["doublet"]["n"] == 2
@@ -350,8 +406,7 @@ class TestH1H2:
 
 class TestH3:
     def test_gate_shape(self) -> None:
-        res = pr.h3(0.7, pick_counts={"linear": 2, "mlp": 1}, n_llm_steps=3,
-                    n_distinct_model_ids=1)
+        res = pr.h3(0.7, pick_counts={"linear": 2, "mlp": 1}, n_llm_steps=3, n_distinct_model_ids=1)
         assert GATE_KEYS <= set(res) and res["pass"] is True
         none = pr.h3(None, pick_counts={}, n_llm_steps=0, n_distinct_model_ids=0)
         assert none["pass"] is None and none["evaluable"] is False
@@ -361,20 +416,41 @@ class TestH3:
 # wiring into analyse_v05_run
 # ---------------------------------------------------------------------------
 
+
 def _write(path: Path, rows: list[dict]) -> None:
     path.write_text("".join(json.dumps(r) + "\n" for r in rows))
 
 
 def test_analyse_v05_run_carries_preregistered_block(tmp_path: Path) -> None:
     prereg = {"path": "paper/PREREGISTRATION.md", "sha256": "a" * 64, "commit": "c" * 40}
-    prov = {"record_type": "provenance", "run_id": "r1", "git_sha": "g1", "status": "ok",
-            "finished_at": "2026-09-25T00:00:00Z", "preregistration": prereg,
-            "tasks": {"adamson": [f"A{i}" for i in range(4)],
-                      "norman_singletons": ["N0", "N1", "N2"], "norman_doublets": ["N3_N4"]}}
-    tasks = [("adamson_full", f"A{i}") for i in range(4)] + \
-            [("norman", t) for t in ("N0", "N1", "N2", "N3_N4")]
-    trainer = [{"dataset": ds, "task": t, "backbone": "linear", "N": 3, "R": 1, "seed": 1,
-                "msd_topk": 0.05 * (k + 1)} for k, (ds, t) in enumerate(tasks)]
+    prov = {
+        "record_type": "provenance",
+        "run_id": "r1",
+        "git_sha": "g1",
+        "status": "ok",
+        "finished_at": "2026-09-25T00:00:00Z",
+        "preregistration": prereg,
+        "tasks": {
+            "adamson": [f"A{i}" for i in range(4)],
+            "norman_singletons": ["N0", "N1", "N2"],
+            "norman_doublets": ["N3_N4"],
+        },
+    }
+    tasks = [("adamson_full", f"A{i}") for i in range(4)] + [
+        ("norman", t) for t in ("N0", "N1", "N2", "N3_N4")
+    ]
+    trainer = [
+        {
+            "dataset": ds,
+            "task": t,
+            "backbone": "linear",
+            "N": 3,
+            "R": 1,
+            "seed": 1,
+            "msd_topk": 0.05 * (k + 1),
+        }
+        for k, (ds, t) in enumerate(tasks)
+    ]
     life = []
     for k, (ds, t) in enumerate(tasks):
         for s in (1, 2, 3):
@@ -403,6 +479,7 @@ def test_analyse_v05_run_carries_preregistered_block(tmp_path: Path) -> None:
 
 def test_dead_estimator_removed() -> None:
     import perturb_eval.experiments.e_v05_real_traces as mod
+
     assert not hasattr(mod, "tdi_vs_held_out_msd")
 
 
@@ -412,15 +489,29 @@ class TestH4ReportAllSix:
 
     def test_all_six_rows_present_when_pass_by_one_test_and_others_undefined(self) -> None:
         # Adamson: ACE ranks MSD perfectly (one passing test); Norman: only 2 tasks -> every Norman test undefined.
-        table = _table([(f"a{i}", "adamson_full", 0.1 * i, 0.5, 0.01 * i) for i in range(1, 8)]
-                       + [("n1", "norman", 0.2, 0.3, 0.1), ("n2", "norman", 0.4, 0.6, 0.2)])
+        table = _table(
+            [(f"a{i}", "adamson_full", 0.1 * i, 0.5, 0.01 * i) for i in range(1, 8)]
+            + [("n1", "norman", 0.2, 0.3, 0.1), ("n2", "norman", 0.4, 0.6, 0.2)]
+        )
         res = pr.h4(table, B=200, seed=3)
         rows = res["all_six"]
         assert len(rows) == 6
         assert {(r["dataset"], r["component"]) for r in rows} == {
-            (ds, k) for ds in ("adamson_full", "norman") for k in ("ace_norm", "one_minus_delta_c", "tdi_lifecycle")}
+            (ds, k)
+            for ds in ("adamson_full", "norman")
+            for k in ("ace_norm", "one_minus_delta_c", "tdi_lifecycle")
+        }
         for r in rows:
-            assert set(r) >= {"dataset", "component", "rho", "n", "ci_low", "ci_high", "reason", "passes"}
+            assert set(r) >= {
+                "dataset",
+                "component",
+                "rho",
+                "n",
+                "ci_low",
+                "ci_high",
+                "reason",
+                "passes",
+            }
             assert (r["rho"] is None) == (r["reason"] is not None)
         norman = [r for r in rows if r["dataset"] == "norman"]
         assert all(r["rho"] is None and r["n"] == 2 and r["passes"] is None for r in norman)
@@ -431,7 +522,9 @@ class TestH4ReportAllSix:
         assert passing == {("adamson_full", "ace_norm"), ("adamson_full", "tdi_lifecycle")}
 
     def test_all_six_rows_present_on_fail(self) -> None:
-        table = _table([(f"a{i}", "adamson_full", 0.1 * i, 0.1 * i, 0.07 - 0.01 * i) for i in range(1, 8)]
-                       + [(f"n{i}", "norman", 0.1 * i, 0.1 * i, 0.07 - 0.01 * i) for i in range(1, 8)])
+        table = _table(
+            [(f"a{i}", "adamson_full", 0.1 * i, 0.1 * i, 0.07 - 0.01 * i) for i in range(1, 8)]
+            + [(f"n{i}", "norman", 0.1 * i, 0.1 * i, 0.07 - 0.01 * i) for i in range(1, 8)]
+        )
         res = pr.h4(table, B=200, seed=3)
         assert len(res["all_six"]) == 6 and res["pass"] is False and res["n_tests_passing"] == 0

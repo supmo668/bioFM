@@ -130,8 +130,12 @@ class TestBackboneUnavailable:
         }
         with pytest.raises(BackboneUnavailableError, match="scgpt_small"):
             lifecycle_record(
-                task="TFA", dataset_name="t", ds=ds, seed=0,
-                pool=MockAgentPool(seed=0), backbone_override="scgpt_small",
+                task="TFA",
+                dataset_name="t",
+                ds=ds,
+                seed=0,
+                pool=MockAgentPool(seed=0),
+                backbone_override="scgpt_small",
             )
 
     def test_trainer_path_raises_not_records(self, monkeypatch) -> None:
@@ -149,14 +153,23 @@ class TestBackboneUnavailable:
         X[:, 1] = np.where(labels == "TFB", 0.0, 3.0)
         X[:, 2] = np.arange(12) % 3
         ds = {
-            "X": X, "labels": labels, "control_mask": labels == "CTRL",
-            "target_gene_idx": {"TFA": (0,), "TFB": (1,)}, "hvg_n_top": 3,
+            "X": X,
+            "labels": labels,
+            "control_mask": labels == "CTRL",
+            "target_gene_idx": {"TFA": (0,), "TFB": (1,)},
+            "hvg_n_top": 3,
         }
         with pytest.raises(BackboneUnavailableError):
-            list(heldout.iter_trainer_records(
-                dataset_name="t", ds=ds, tasks=["TFA"], backbones=("scgpt_small",),
-                r_sweep=(1,), seeds=(0,),
-            ))
+            list(
+                heldout.iter_trainer_records(
+                    dataset_name="t",
+                    ds=ds,
+                    tasks=["TFA"],
+                    backbones=("scgpt_small",),
+                    r_sweep=(1,),
+                    seeds=(0,),
+                )
+            )
 
     def test_trainer_path_unknown_task_raises(self) -> None:
         """No silent ``continue`` for a task outside target_gene_idx."""
@@ -165,10 +178,20 @@ class TestBackboneUnavailable:
         from perturb_eval.experiments.heldout import iter_trainer_records
 
         labels = np.array(["CTRL", "CTRL", "TFA", "TFA"])
-        ds = {"X": np.zeros((4, 3)), "labels": labels, "control_mask": labels == "CTRL",
-              "target_gene_idx": {"TFA": (0,)}}
+        ds = {
+            "X": np.zeros((4, 3)),
+            "labels": labels,
+            "control_mask": labels == "CTRL",
+            "target_gene_idx": {"TFA": (0,)},
+        }
         with pytest.raises(ValueError, match="NOPE"):
-            list(iter_trainer_records(
-                dataset_name="t", ds=ds, tasks=["NOPE"], backbones=("linear",),
-                r_sweep=(1,), seeds=(0,),
-            ))
+            list(
+                iter_trainer_records(
+                    dataset_name="t",
+                    ds=ds,
+                    tasks=["NOPE"],
+                    backbones=("linear",),
+                    r_sweep=(1,),
+                    seeds=(0,),
+                )
+            )

@@ -127,9 +127,7 @@ def fit_and_score(view: HeldOutView, backbone_name: str, cfg: BackboneTrainConfi
         )
     bb = build_backbone(backbone_name)
     tm = view.train_mask
-    bb.fit(
-        view.X[tm], view.labels[tm].tolist(), view.control_mask[tm], view.train_targets, cfg
-    )
+    bb.fit(view.X[tm], view.labels[tm].tolist(), view.control_mask[tm], view.train_targets, cfg)
     n_genes = view.X.shape[1]
     pred = bb.predict_logfc(view.held, view.held_target, n_genes=n_genes)
     truth = np.mean(view.X[view.labels == view.held], axis=0) - np.mean(
@@ -166,13 +164,12 @@ R_SEED_INVARIANT_BACKBONES: frozenset[str] = frozenset({"linear"})
 
 def trainer_config(R: int, seed: int) -> BackboneTrainConfig:
     """The trainer configuration of one grid cell: R sets the iteration budget."""
-    return BackboneTrainConfig(max_iter=20 + 40 * R, learning_rate=1e-2, ridge_lambda=1.0,
-                               seed=seed)
+    return BackboneTrainConfig(
+        max_iter=20 + 40 * R, learning_rate=1e-2, ridge_lambda=1.0, seed=seed
+    )
 
 
-def trainer_grid(
-    *, backbones: Iterable[str], r_sweep: Iterable[int], seeds: Iterable[int]
-) -> dict:
+def trainer_grid(*, backbones: Iterable[str], r_sweep: Iterable[int], seeds: Iterable[int]) -> dict:
     """The trainer grid as run (A2-4), for provenance and the paper.
 
     Per task, ``n_records_per_task`` = backbones x R x seeds cells are run;
@@ -233,17 +230,18 @@ def iter_trainer_records(
             if held not in ds["target_gene_idx"]:
                 # Preflight (T22) guarantees every task resolves; reaching
                 # here mid-run is a bug, never a silent skip.
-                raise ValueError(
-                    f"{dataset_name}: task {held!r} has no entry in target_gene_idx"
-                )
+                raise ValueError(f"{dataset_name}: task {held!r} has no entry in target_gene_idx")
             for R in r_sweep:
                 for seed in seeds:
                     if should_stop is not None and should_stop():
                         return
                     t0 = time.time()
                     base = {
-                        "dataset": dataset_name, "task": held, "backbone": backbone_name,
-                        "R": R, "seed": seed,
+                        "dataset": dataset_name,
+                        "task": held,
+                        "backbone": backbone_name,
+                        "R": R,
+                        "seed": seed,
                     }
                     try:
                         if held not in evals:

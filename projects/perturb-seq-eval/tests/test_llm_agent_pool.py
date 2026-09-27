@@ -26,7 +26,9 @@ class FakeClient:
         self._responses = {k: list(v) for k, v in responses_by_role.items()}
         self.calls: list[tuple[str, str, int]] = []
 
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str) -> ChatResult:  # noqa: ARG002
+    def chat_json(
+        self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str
+    ) -> ChatResult:  # noqa: ARG002
         self.calls.append((role, task_id, round_index))
         import json
 
@@ -43,15 +45,21 @@ class TestLLMAgentPoolBasics:
             responses_by_role={
                 # A2-1: every role states its confidence.
                 "DataCurator": ['{"hvg_method": "seurat", "hvg_count": 1000, "confidence": 0.6}'],
-                "Literature": ['{"pathway_prior": {"TP53": 0.7}, "ppi_neighbors": ["JUN"], "confidence": 0.5}'],
-                "Architect": ['{"backbone": "mlp", "learning_rate": 5e-3, "hvg_count": 1000, "confidence": 0.7}'],
+                "Literature": [
+                    '{"pathway_prior": {"TP53": 0.7}, "ppi_neighbors": ["JUN"], "confidence": 0.5}'
+                ],
+                "Architect": [
+                    '{"backbone": "mlp", "learning_rate": 5e-3, "hvg_count": 1000, "confidence": 0.7}'
+                ],
                 "Trainer": ['{"lr": 5e-3, "epochs": 40, "ridge_lambda": 1.0, "confidence": 0.4}'],
                 "Validator": ['{"dynamic_threshold_msd": 0.1, "confidence": 0.8}'],
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
         for role in ("DataCurator", "Literature", "Architect", "Trainer", "Validator"):
-            out = pool.propose(role, round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full")
+            out = pool.propose(
+                role, round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full"
+            )
             assert "content" in out
             assert "rationale" in out
             assert "confidence" in out
@@ -61,11 +69,15 @@ class TestLLMAgentPoolBasics:
     def test_architect_produces_valid_config(self, tmp_path: Path) -> None:
         fake = FakeClient(
             responses_by_role={
-                "Architect": ['{"backbone": "scgpt_small", "learning_rate": 1e-3, "hvg_count": 2000, "confidence": 0.5}'],
+                "Architect": [
+                    '{"backbone": "scgpt_small", "learning_rate": 1e-3, "hvg_count": 2000, "confidence": 0.5}'
+                ],
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
-        out = pool.propose("Architect", round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full")
+        out = pool.propose(
+            "Architect", round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full"
+        )
         assert out["content"]["backbone"] == "scgpt_small"
         assert out["content"]["learning_rate"] == 1e-3
 
@@ -75,7 +87,9 @@ class TestLLMAgentPoolBasics:
         failing = MagicMock()
         failing.chat_json = MagicMock(side_effect=OpenRouterError("all cooled"))
         pool = LLMAgentPool(client=failing, cache_dir=tmp_path)
-        out = pool.propose("Architect", round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full")
+        out = pool.propose(
+            "Architect", round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full"
+        )
         # Fallback still yields the schema's optional defaults, but A2-6/A2-1:
         # never a stated backbone and never an imputed confidence.
         assert out["source"] == "fallback"
@@ -89,8 +103,12 @@ class TestLLMAgentPoolBasics:
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
-        pool.propose("Architect", round_index=0, task_id="task_a", context={}, seed=0, dataset="adamson_full")
-        pool.propose("Architect", round_index=0, task_id="task_b", context={}, seed=0, dataset="adamson_full")
+        pool.propose(
+            "Architect", round_index=0, task_id="task_a", context={}, seed=0, dataset="adamson_full"
+        )
+        pool.propose(
+            "Architect", round_index=0, task_id="task_b", context={}, seed=0, dataset="adamson_full"
+        )
         assert len({c[1] for c in fake.calls}) == 2
 
 
@@ -113,7 +131,9 @@ class TestContextThreading:
             "validator_failed_genes": ("TP53", "MYC"),
             "literature": {"expected_up": ["JUN"], "expected_down": []},
         }
-        pool.propose("Architect", round_index=1, task_id="t", context=ctx, seed=0, dataset="adamson_full")
+        pool.propose(
+            "Architect", round_index=1, task_id="t", context=ctx, seed=0, dataset="adamson_full"
+        )
         assert captured_prompts, "expected a prompt capture"
         last = captured_prompts[0]
         # The Architect's prompt must mention the prior validator feedback.
@@ -134,7 +154,9 @@ class TestSeedThreading:
     def test_propose_forwards_seed_to_chat_json(self, tmp_path: Path) -> None:
         client = self._RecordingClient()
         pool = LLMAgentPool(client=client, cache_dir=tmp_path)
-        pool.propose("Architect", round_index=0, task_id="t", context={}, seed=7, dataset="adamson_full")
+        pool.propose(
+            "Architect", round_index=0, task_id="t", context={}, seed=7, dataset="adamson_full"
+        )
         assert client.kwargs and client.kwargs[0]["seed"] == 7
 
     def test_propose_without_seed_raises(self, tmp_path: Path) -> None:
@@ -148,7 +170,9 @@ class TestSeedThreading:
         failing = MagicMock()
         failing.chat_json = MagicMock(side_effect=OpenRouterError("down"))
         pool = LLMAgentPool(client=failing, cache_dir=tmp_path)
-        out = pool.propose("Architect", round_index=0, task_id="t", context={}, seed=3, dataset="adamson_full")
+        out = pool.propose(
+            "Architect", round_index=0, task_id="t", context={}, seed=3, dataset="adamson_full"
+        )
         assert out["source"] == "fallback"
         assert "backbone" not in out["content"]  # A2-6: never defaulted
 
@@ -167,8 +191,9 @@ class _StubTransport:
     def __init__(self, model_id: str = "x/y", content: dict | None = None) -> None:
         self._model_id = model_id
         # A2-1/A2-6: a minimal schema-valid reply for every role.
-        self._content = content if content is not None else {"confidence": 0.5,
-                                                             "backbone": "linear"}
+        self._content = (
+            content if content is not None else {"confidence": 0.5, "backbone": "linear"}
+        )
 
     def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset) -> ChatResult:  # noqa: ARG002
         return ChatResult(content=dict(self._content), model_id=self._model_id)
@@ -184,9 +209,13 @@ class _RaisingClient:
 
 class TestModelIdAndSource:
     @pytest.mark.parametrize("role", _ROLES)
-    def test_llm_success_reports_serving_model_and_source_llm(self, tmp_path: Path, role: str) -> None:
+    def test_llm_success_reports_serving_model_and_source_llm(
+        self, tmp_path: Path, role: str
+    ) -> None:
         pool = LLMAgentPool(client=_StubTransport("x/y"), cache_dir=tmp_path)
-        out = pool.propose(role, round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+        out = pool.propose(
+            role, round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+        )
         assert out["model_id"] == "x/y"
         assert out["source"] == "llm"
 
@@ -207,7 +236,9 @@ class TestModelIdAndSource:
         self, tmp_path: Path, role: str, exc: BaseException
     ) -> None:
         pool = LLMAgentPool(client=_RaisingClient(exc), cache_dir=tmp_path)
-        out = pool.propose(role, round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+        out = pool.propose(
+            role, round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+        )
         assert out["source"] == "fallback"
         assert out["model_id"] is None
         assert out["content"] == _DEFAULTS[role]()
@@ -218,7 +249,9 @@ class TestModelIdAndSource:
         pool = LLMAgentPool(
             client=_StubTransport("x/y", {"backbone": "transformer-xl"}), cache_dir=tmp_path
         )
-        out = pool.propose("Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+        out = pool.propose(
+            "Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+        )
         assert out["source"] == "fallback"
         assert out["model_id"] is None
         assert out["content"] == schema_defaults("Architect")
@@ -229,20 +262,30 @@ class TestModelIdAndSource:
                 return ChatResult(content=[1, 2], model_id="x/y")  # type: ignore[arg-type]
 
         pool = LLMAgentPool(client=_ListClient(), cache_dir=tmp_path)
-        out = pool.propose("Trainer", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+        out = pool.propose(
+            "Trainer", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+        )
         assert out["source"] == "fallback"
         assert out["content"] == schema_defaults("Trainer")
 
     @pytest.mark.parametrize(
         "exc",
-        [TypeError("chat_json() got an unexpected keyword argument"), AttributeError("x"),
-         NameError("y"), KeyError("z")],
+        [
+            TypeError("chat_json() got an unexpected keyword argument"),
+            AttributeError("x"),
+            NameError("y"),
+            KeyError("z"),
+        ],
         ids=lambda e: type(e).__name__,
     )
-    def test_programming_errors_propagate_no_fallback(self, tmp_path: Path, exc: BaseException) -> None:
+    def test_programming_errors_propagate_no_fallback(
+        self, tmp_path: Path, exc: BaseException
+    ) -> None:
         pool = LLMAgentPool(client=_RaisingClient(exc), cache_dir=tmp_path)
         with pytest.raises(type(exc)):
-            pool.propose("Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+            pool.propose(
+                "Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+            )
 
     def test_signature_mismatch_typeerror_propagates(self, tmp_path: Path) -> None:
         class _OldSignatureClient:  # pre-A2 client: no ``seed`` kwarg
@@ -251,7 +294,9 @@ class TestModelIdAndSource:
 
         pool = LLMAgentPool(client=_OldSignatureClient(), cache_dir=tmp_path)
         with pytest.raises(TypeError):
-            pool.propose("Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+            pool.propose(
+                "Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+            )
 
     def test_client_returning_bare_dict_is_a_programming_error(self, tmp_path: Path) -> None:
         class _LegacyDictClient:
@@ -260,4 +305,6 @@ class TestModelIdAndSource:
 
         pool = LLMAgentPool(client=_LegacyDictClient(), cache_dir=tmp_path)
         with pytest.raises(AttributeError):
-            pool.propose("Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
+            pool.propose(
+                "Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full"
+            )

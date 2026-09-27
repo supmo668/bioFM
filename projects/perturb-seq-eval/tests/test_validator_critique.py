@@ -120,23 +120,32 @@ class TestStructuredCritiqueEmitted:
 class TestSuggestConfigDelta:
     def test_empty_when_accepted(self) -> None:
         delta = suggest_config_delta(
-            accepted=True, msd=0.01, threshold_msd=0.1,
-            current_backbone="linear", deg_sign_agreement=0.9,
+            accepted=True,
+            msd=0.01,
+            threshold_msd=0.1,
+            current_backbone="linear",
+            deg_sign_agreement=0.9,
         )
         assert delta == {}
 
     def test_switches_backbone_when_sign_agreement_low(self) -> None:
         delta = suggest_config_delta(
-            accepted=False, msd=0.5, threshold_msd=0.1,
-            current_backbone="linear", deg_sign_agreement=0.3,
+            accepted=False,
+            msd=0.5,
+            threshold_msd=0.1,
+            current_backbone="linear",
+            deg_sign_agreement=0.3,
         )
         assert "backbone" in delta
         assert delta["backbone"] != "linear"
 
     def test_lowers_lr_when_msd_high_but_sign_ok(self) -> None:
         delta = suggest_config_delta(
-            accepted=False, msd=0.5, threshold_msd=0.1,
-            current_backbone="linear", deg_sign_agreement=0.75,
+            accepted=False,
+            msd=0.5,
+            threshold_msd=0.1,
+            current_backbone="linear",
+            deg_sign_agreement=0.75,
         )
         # Direction is right but magnitude off — try smaller LR.
         assert "learning_rate" in delta or "ridge_lambda" in delta

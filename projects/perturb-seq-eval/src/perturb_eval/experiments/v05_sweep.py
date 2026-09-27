@@ -94,11 +94,15 @@ def lifecycle_record(
         from perturb_eval.experiments.heldout import eval_gene_fields
 
         rec.update(eval_gene_fields(ds, rec["eval_gene_idx"]))
-    return rec | dict(error_fields) | {
-        "dataset": dataset_name,
-        "seed": seed,
-        "wall_sec": time.time() - t0,
-    }
+    return (
+        rec
+        | dict(error_fields)
+        | {
+            "dataset": dataset_name,
+            "seed": seed,
+            "wall_sec": time.time() - t0,
+        }
+    )
 
 
 def iter_lifecycle_records(
@@ -136,8 +140,14 @@ def iter_lifecycle_records(
                     return
                 t0 = time.time()
                 try:
-                    rec = fn(task=held, dataset_name=dataset_name, ds=ds, seed=seed,
-                             pool=pool, max_rounds=max_rounds)
+                    rec = fn(
+                        task=held,
+                        dataset_name=dataset_name,
+                        ds=ds,
+                        seed=seed,
+                        pool=pool,
+                        max_rounds=max_rounds,
+                    )
                 except BackboneUnavailableError:
                     raise  # C-TORCH-2: never a per-record error / silent gap
                 except Exception as e:
@@ -200,6 +210,7 @@ def spend_guard(cost_usd: float, *, stop_usd: float, kill_usd: float) -> SpendAc
 # Final status + entropies: one producer (QG C14)
 # ---------------------------------------------------------------------------
 
+
 def _steps(records: Iterable[Mapping[str, Any]]) -> Iterator[Mapping[str, Any]]:
     for rec in records:
         if not isinstance(rec, Mapping) or rec.get("record_type") == "provenance":
@@ -237,14 +248,18 @@ def provenance_entropies(lifecycle_records: Iterable[Mapping[str, Any]]) -> dict
     (never ``0.0``) when no LLM-sourced Architect step carries the field."""
     from perturb_eval.experiments.e_v05_real_traces import architect_entropies
 
-    rows = [r for r in lifecycle_records
-            if isinstance(r, Mapping) and r.get("record_type") != "provenance"]
+    rows = [
+        r
+        for r in lifecycle_records
+        if isinstance(r, Mapping) and r.get("record_type") != "provenance"
+    ]
     return architect_entropies(rows)
 
 
 # ---------------------------------------------------------------------------
 # LLM cache namespace (amendment 2, A2-8)
 # ---------------------------------------------------------------------------
+
 
 def llm_cache_start(cache_root: str | Path, prereg_version: str = PREREG_VERSION) -> dict[str, Any]:
     """Provenance block recorded at sweep start: the version, the namespace the
@@ -265,8 +280,11 @@ def llm_cache_end(
     """Provenance block recorded at sweep end: the number of LLM-sourced steps
     served from the cache (must be 0) and whether the run is a REPLAY (a
     non-empty namespace at start, or any cache hit), with the reasons."""
-    hits = sum(1 for st in _steps(lifecycle_records)
-               if st.get("source") == "llm" and st.get("cache_hit") is True)
+    hits = sum(
+        1
+        for st in _steps(lifecycle_records)
+        if st.get("source") == "llm" and st.get("cache_hit") is True
+    )
     reasons: list[str] = []
     if entries_at_start:
         reasons.append(f"LLM cache namespace held {entries_at_start} entries at start (must be 0)")
@@ -287,9 +305,7 @@ def validate_version(version: str) -> str:
     """Return ``version`` if it is a release tag (``v<maj>.<min>.<patch>[suffix]``,
     suffix ``[A-Za-z0-9._-]``); raise ``ValueError`` otherwise."""
     if not isinstance(version, str) or not VERSION_RE.fullmatch(version):
-        raise ValueError(
-            f"--version {version!r} must match {VERSION_RE.pattern} (e.g. v0.6.0)"
-        )
+        raise ValueError(f"--version {version!r} must match {VERSION_RE.pattern} (e.g. v0.6.0)")
     return version
 
 

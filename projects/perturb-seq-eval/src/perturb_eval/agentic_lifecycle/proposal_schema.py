@@ -68,9 +68,7 @@ class LiteratureProposal(_BaseProposal):
     def model_post_init(self, _ctx: Any, /) -> None:
         for gene, weight in self.pathway_prior.items():
             if not (0.0 <= weight <= 1.0):
-                raise ValueError(
-                    f"pathway_prior[{gene!r}] = {weight} outside [0, 1]"
-                )
+                raise ValueError(f"pathway_prior[{gene!r}] = {weight} outside [0, 1]")
 
 
 class ArchitectProposal(_BaseProposal):

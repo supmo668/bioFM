@@ -48,8 +48,9 @@ class ScriptedClient:
         self.prompts[(role, round_index)] = prompt
         rep = self.replies[role]
         content = rep(round_index) if callable(rep) else rep
-        return ChatResult(content=json.loads(json.dumps(content)), model_id="fake/m",
-                          cache_hit=self.cache_hit)
+        return ChatResult(
+            content=json.loads(json.dumps(content)), model_id="fake/m", cache_hit=self.cache_hit
+        )
 
 
 def _pool(client, tmp_path: Path) -> LLMAgentPool:
@@ -72,8 +73,16 @@ def _run(pool, **kw):
     X, labels, cm, tgi = _toy()
     kw.setdefault("max_rounds", 3)
     return run_agentic_lifecycle(
-        task_id="hold_C", X=X, labels=labels, control_mask=cm, target_gene_idx=tgi,
-        held_out="C", agent_pool=pool, seed=2026, dataset="adamson_full", **kw,
+        task_id="hold_C",
+        X=X,
+        labels=labels,
+        control_mask=cm,
+        target_gene_idx=tgi,
+        held_out="C",
+        agent_pool=pool,
+        seed=2026,
+        dataset="adamson_full",
+        **kw,
     )
 
 
@@ -86,8 +95,9 @@ class TestA2_1_RequiredConfidence:
             parse_proposal(role, payload)
 
     @pytest.mark.parametrize("role", ROLES)
-    @pytest.mark.parametrize("bad", ["0.7", "high", None, True, -0.01, 1.01,
-                                     float("nan"), float("inf"), [0.5]])
+    @pytest.mark.parametrize(
+        "bad", ["0.7", "high", None, True, -0.01, 1.01, float("nan"), float("inf"), [0.5]]
+    )
     def test_non_numeric_non_finite_or_out_of_range_is_schema_failure(self, role, bad) -> None:
         with pytest.raises(ValidationError):
             parse_proposal(role, {**VALID[role], "confidence": bad})
@@ -118,8 +128,9 @@ class TestA2_1_RequiredConfidence:
 
         failing = MagicMock()
         failing.chat_json = MagicMock(side_effect=OpenRouterError("down"))
-        out = _pool(failing, tmp_path).propose("Trainer", 0, "t", {}, seed=0,
-                                               dataset="adamson_full")
+        out = _pool(failing, tmp_path).propose(
+            "Trainer", 0, "t", {}, seed=0, dataset="adamson_full"
+        )
         assert out["source"] == "fallback" and out["confidence"] is None
 
     @pytest.mark.parametrize("role", ROLES)
@@ -146,8 +157,9 @@ class TestA2_1_RequiredConfidence:
 
         class BadPool(MockAgentPool):
             def propose(self, role, round_index, task_id, context, *, seed, dataset):
-                out = super().propose(role, round_index, task_id, context, seed=seed,
-                                      dataset=dataset)
+                out = super().propose(
+                    role, round_index, task_id, context, seed=seed, dataset=dataset
+                )
                 return {**out, "source": "llm", "model_id": "m", "confidence": None}
 
         with pytest.raises(ValueError, match="confidence"):
@@ -167,8 +179,11 @@ class TestA2_2_FixedThreeRounds:
     def test_three_rounds_run_when_validator_rejects_every_round(self, tmp_path) -> None:
         run = _run(_pool(ScriptedClient(), tmp_path), validator_threshold_override=-1.0)
         assert run.n_rounds == 3
-        assert [s.validator_accepted for s in run.steps
-                if s.agent_name == "Validator"] == [False, False, False]
+        assert [s.validator_accepted for s in run.steps if s.agent_name == "Validator"] == [
+            False,
+            False,
+            False,
+        ]
 
     def test_validator_threshold_is_read_from_the_schema_field_and_recorded(self, tmp_path) -> None:
         run = _run(_pool(ScriptedClient(), tmp_path))
@@ -189,13 +204,16 @@ class TestA2_2_FixedThreeRounds:
 
         def fn(**kw):
             seen.update(kw)
-            return _run(__import__("perturb_eval.agentic_lifecycle.loop",
-                                   fromlist=["MockAgentPool"]).MockAgentPool(), max_rounds=1)
+            return _run(
+                __import__(
+                    "perturb_eval.agentic_lifecycle.loop", fromlist=["MockAgentPool"]
+                ).MockAgentPool(),
+                max_rounds=1,
+            )
 
         X, labels, cm, tgi = _toy()
         ds = {"X": X, "labels": labels, "control_mask": cm, "target_gene_idx": tgi}
-        lifecycle_record(task="C", dataset_name="adamson_full", ds=ds, seed=0, pool=None,
-                         run_fn=fn)
+        lifecycle_record(task="C", dataset_name="adamson_full", ds=ds, seed=0, pool=None, run_fn=fn)
         assert seen["max_rounds"] == 3
 
     @pytest.mark.parametrize("n", [1, 2, 4])
@@ -203,8 +221,15 @@ class TestA2_2_FixedThreeRounds:
         from perturb_eval.experiments.v05_sweep import iter_lifecycle_records, lifecycle_record
 
         with pytest.raises(ValueError, match="three rounds|3 rounds"):
-            lifecycle_record(task="C", dataset_name="adamson_full", ds={}, seed=0, pool=None,
-                             run_fn=lambda **k: None, max_rounds=n)
+            lifecycle_record(
+                task="C",
+                dataset_name="adamson_full",
+                ds={},
+                seed=0,
+                pool=None,
+                run_fn=lambda **k: None,
+                max_rounds=n,
+            )
         with pytest.raises(ValueError, match="three rounds|3 rounds"):
             list(iter_lifecycle_records(datasets=[], seeds=[0], pool=None, max_rounds=n))
 
@@ -214,13 +239,18 @@ class TestA2_3_ConfigApplied:
     def test_precedence_validator_over_architect_over_datacurator_over_default(self) -> None:
         from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_applied_config
 
-        dc = parse_proposal("DataCurator", {"hvg_count": 500, "qc_mito_max": 9.0,
-                                            "confidence": 0.5})
-        arch = parse_proposal("Architect", {"backbone": "mlp", "hvg_count": 1000,
-                                            "learning_rate": 0.003, "confidence": 0.5})
+        dc = parse_proposal(
+            "DataCurator", {"hvg_count": 500, "qc_mito_max": 9.0, "confidence": 0.5}
+        )
+        arch = parse_proposal(
+            "Architect",
+            {"backbone": "mlp", "hvg_count": 1000, "learning_rate": 0.003, "confidence": 0.5},
+        )
         cfg, src = resolve_applied_config(
-            datacurator=dc.model_dump(), datacurator_stated=dc.model_fields_set,
-            architect=arch.model_dump(), architect_stated=arch.model_fields_set,
+            datacurator=dc.model_dump(),
+            datacurator_stated=dc.model_fields_set,
+            architect=arch.model_dump(),
+            architect_stated=arch.model_fields_set,
             critique_delta={"learning_rate": 1e-4},
         )
         assert (cfg["hvg_count"], src["hvg_count"]) == (1000, "architect")
@@ -236,8 +266,10 @@ class TestA2_3_ConfigApplied:
         dc = parse_proposal("DataCurator", {"hvg_count": 500, "confidence": 0.5})
         arch = parse_proposal("Architect", {"backbone": "linear", "confidence": 0.5})
         cfg, src = resolve_applied_config(
-            datacurator=dc.model_dump(), datacurator_stated=dc.model_fields_set,
-            architect=arch.model_dump(), architect_stated=arch.model_fields_set,
+            datacurator=dc.model_dump(),
+            datacurator_stated=dc.model_fields_set,
+            architect=arch.model_dump(),
+            architect_stated=arch.model_fields_set,
             critique_delta=None,
         )
         assert (cfg["hvg_count"], src["hvg_count"]) == (500, "datacurator")
@@ -270,18 +302,30 @@ class TestA2_3_ConfigApplied:
 
         def fake_gate(**kw):
             return ExecutedValidation(
-                msd_topk=1.0, biofm_agreement=0.5, deg_overlap_at_k=0.5, accepted=False,
-                rationale="r", critique=StructuredCritiqueDTO(
-                    suggested_next_config_delta={"learning_rate": 1e-4, "hvg_count": 1000}),
+                msd_topk=1.0,
+                biofm_agreement=0.5,
+                deg_overlap_at_k=0.5,
+                accepted=False,
+                rationale="r",
+                critique=StructuredCritiqueDTO(
+                    suggested_next_config_delta={"learning_rate": 1e-4, "hvg_count": 1000}
+                ),
             )
 
         monkeypatch.setattr(loop_mod, "score_and_gate", fake_gate)
-        client = ScriptedClient({
-            "DataCurator": {"hvg_count": 500, "qc_mito_max": 8.0, "confidence": 0.6},
-            "Architect": {"backbone": "linear", "learning_rate": 0.005, "ridge_lambda": 3.0,
-                          "epochs": 25, "confidence": 0.7},
-            "Trainer": {"lr": 0.09, "epochs": 99, "ridge_lambda": 9.0, "confidence": 0.4},
-        })
+        client = ScriptedClient(
+            {
+                "DataCurator": {"hvg_count": 500, "qc_mito_max": 8.0, "confidence": 0.6},
+                "Architect": {
+                    "backbone": "linear",
+                    "learning_rate": 0.005,
+                    "ridge_lambda": 3.0,
+                    "epochs": 25,
+                    "confidence": 0.7,
+                },
+                "Trainer": {"lr": 0.09, "epochs": 99, "ridge_lambda": 9.0, "confidence": 0.4},
+            }
+        )
         run = _run(_pool(client, tmp_path), max_rounds=2)
         # Round 0: DataCurator's HVG (Architect silent on it), Architect's trainer fields.
         assert hvg_calls[0] == 500
@@ -304,14 +348,28 @@ class TestA2_3_ConfigApplied:
 
         X, labels, cm, tgi = _toy()
         ds = {"X": X, "labels": labels, "control_mask": cm, "target_gene_idx": tgi}
-        rec = lifecycle_record(task="C", dataset_name="adamson_full", ds=ds, seed=0,
-                               pool=_pool(ScriptedClient(), tmp_path))
+        rec = lifecycle_record(
+            task="C",
+            dataset_name="adamson_full",
+            ds=ds,
+            seed=0,
+            pool=_pool(ScriptedClient(), tmp_path),
+        )
         json.dumps(rec, default=str)
         assert len(rec["applied_config_per_round"]) == 3
         for a in rec["applied_config_per_round"]:
-            assert set(a["values"]) == set(a["sources"]) >= {
-                "backbone", "hvg_count", "qc_mito_max", "learning_rate", "ridge_lambda",
-                "epochs"}
+            assert (
+                set(a["values"])
+                == set(a["sources"])
+                >= {
+                    "backbone",
+                    "hvg_count",
+                    "qc_mito_max",
+                    "learning_rate",
+                    "ridge_lambda",
+                    "epochs",
+                }
+            )
 
 
 # =========================================================================== A2-6
@@ -336,7 +394,8 @@ class TestA2_6_StatedVsExecutedBackbone:
         with pytest.raises(ValidationError):
             parse_proposal("Architect", payload)
         out = _pool(ScriptedClient({"Architect": payload}), tmp_path).propose(
-            "Architect", 0, "t", {}, seed=0, dataset="adamson_full")
+            "Architect", 0, "t", {}, seed=0, dataset="adamson_full"
+        )
         assert out["source"] == "fallback"
         assert "backbone" not in out["content"]  # never defaulted
 
@@ -345,15 +404,21 @@ class TestA2_6_StatedVsExecutedBackbone:
 
         def fake_gate(**kw):
             return ExecutedValidation(
-                msd_topk=1.0, biofm_agreement=0.5, deg_overlap_at_k=0.5, accepted=False,
-                rationale="r", critique=StructuredCritiqueDTO(
-                    suggested_next_config_delta={"backbone": "mlp"}))
+                msd_topk=1.0,
+                biofm_agreement=0.5,
+                deg_overlap_at_k=0.5,
+                accepted=False,
+                rationale="r",
+                critique=StructuredCritiqueDTO(suggested_next_config_delta={"backbone": "mlp"}),
+            )
 
         monkeypatch.setattr(loop_mod, "score_and_gate", fake_gate)
         run = _run(_pool(ScriptedClient(), tmp_path), max_rounds=2)
         arch = [s for s in run.steps if s.agent_name == "Architect"]
         assert [(s.backbone_stated, s.backbone_used) for s in arch] == [
-            ("linear", "linear"), ("linear", "mlp")]
+            ("linear", "linear"),
+            ("linear", "mlp"),
+        ]
         assert run.backbone_used == "mlp"
         # The spec's field name (A2-6) is ``backbone_used``; no second name.
         assert not hasattr(arch[0], "backbone_executed")
@@ -362,8 +427,9 @@ class TestA2_6_StatedVsExecutedBackbone:
                 assert s.backbone_stated is None and s.backbone_used is None
 
     def test_fallback_architect_step_states_no_backbone(self, tmp_path) -> None:
-        run = _run(_pool(ScriptedClient({"Architect": {"confidence": 0.5}}), tmp_path),
-                   max_rounds=1)
+        run = _run(
+            _pool(ScriptedClient({"Architect": {"confidence": 0.5}}), tmp_path), max_rounds=1
+        )
         arch = next(s for s in run.steps if s.agent_name == "Architect")
         assert arch.source == "fallback"
         assert arch.backbone_stated is None
@@ -373,12 +439,16 @@ class TestA2_6_StatedVsExecutedBackbone:
 # =========================================================================== A2-8
 class TestA2_8_PromptAndCache:
     @pytest.mark.parametrize("role", ROLES)
-    @pytest.mark.parametrize("dataset,needles", [
-        ("adamson_full", ("Adamson 2016", "K562", "CRISPR interference")),
-        ("norman", ("Norman 2019", "K562", "CRISPR activation")),
-    ])
-    def test_dataset_and_modality_in_every_role_system_preamble(self, role, dataset,
-                                                                  needles, tmp_path) -> None:
+    @pytest.mark.parametrize(
+        "dataset,needles",
+        [
+            ("adamson_full", ("Adamson 2016", "K562", "CRISPR interference")),
+            ("norman", ("Norman 2019", "K562", "CRISPR activation")),
+        ],
+    )
+    def test_dataset_and_modality_in_every_role_system_preamble(
+        self, role, dataset, needles, tmp_path
+    ) -> None:
         client = ScriptedClient()
         _pool(client, tmp_path).propose(role, 0, "t", {}, seed=0, dataset=dataset)
         preamble = client.prompts[(role, 0)].split("\n\n", 1)[0]
@@ -387,8 +457,7 @@ class TestA2_8_PromptAndCache:
 
     def test_unknown_dataset_is_refused(self, tmp_path) -> None:
         with pytest.raises(ValueError, match="dataset"):
-            _pool(ScriptedClient(), tmp_path).propose("Trainer", 0, "t", {}, seed=0,
-                                                      dataset="toy")
+            _pool(ScriptedClient(), tmp_path).propose("Trainer", 0, "t", {}, seed=0, dataset="toy")
 
     def test_prereg_version_and_namespace(self, tmp_path) -> None:
         from perturb_eval.llm.openrouter_client import PREREG_VERSION, versioned_cache_dir
@@ -415,17 +484,20 @@ class TestA2_8_PromptAndCache:
         session.post.return_value = resp
         client = OpenRouterClient(api_key="k", cache_dir=ns, session=session)
         assert count_cache_entries(ns) == 0
-        client.chat_json(role="Trainer", task_id="t", round_index=0, prompt="p", seed=0,
-                         dataset="norman")
+        client.chat_json(
+            role="Trainer", task_id="t", round_index=0, prompt="p", seed=0, dataset="norman"
+        )
         assert count_cache_entries(ns) == 1
 
     def test_cache_start_record(self, tmp_path) -> None:
         from perturb_eval.experiments.v05_sweep import llm_cache_start
 
         rec = llm_cache_start(tmp_path)
-        assert rec == {"prereg_version": "v0.6.0-a2",
-                       "llm_cache_namespace": str(tmp_path / "v0.6.0-a2"),
-                       "llm_cache_entries_at_start": 0}
+        assert rec == {
+            "prereg_version": "v0.6.0-a2",
+            "llm_cache_namespace": str(tmp_path / "v0.6.0-a2"),
+            "llm_cache_entries_at_start": 0,
+        }
         (tmp_path / "v0.6.0-a2" / "ab").mkdir(parents=True)
         (tmp_path / "v0.6.0-a2" / "ab" / "k.json").write_text("{}")
         assert llm_cache_start(tmp_path)["llm_cache_entries_at_start"] == 1
@@ -434,13 +506,20 @@ class TestA2_8_PromptAndCache:
         from perturb_eval.experiments.v05_sweep import llm_cache_end
 
         rows = [
-            {"steps": [{"source": "llm", "cache_hit": False},
-                       {"source": "llm", "cache_hit": False},
-                       {"source": "mock", "cache_hit": None}]},
+            {
+                "steps": [
+                    {"source": "llm", "cache_hit": False},
+                    {"source": "llm", "cache_hit": False},
+                    {"source": "mock", "cache_hit": None},
+                ]
+            },
             {"record_type": "provenance", "steps": [{"source": "llm", "cache_hit": True}]},
         ]
         assert llm_cache_end(rows, entries_at_start=0) == {
-            "llm_cache_hit_count": 0, "replay": False, "replay_reasons": []}
+            "llm_cache_hit_count": 0,
+            "replay": False,
+            "replay_reasons": [],
+        }
         rows.append({"steps": [{"source": "llm", "cache_hit": True}]})
         end = llm_cache_end(rows, entries_at_start=0)
         assert end["llm_cache_hit_count"] == 1 and end["replay"] is True
@@ -453,8 +532,7 @@ class TestA2_8_PromptAndCache:
         assert all(s.cache_hit is True for s in run.steps)
 
     def test_app_v05_uses_the_namespaced_cache_and_records_it(self) -> None:
-        src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" /
-               "app_v05.py").read_text()
+        src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
         assert "versioned_cache_dir(" in src
         assert "llm_cache_start(" in src and "llm_cache_end(" in src
         # The client must not be pointed at the un-namespaced root any more.
