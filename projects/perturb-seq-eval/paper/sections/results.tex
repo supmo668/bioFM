@@ -94,17 +94,25 @@ matrix and WFR needs a per-round winner, and the lifecycle records neither. The
 four-component TDI was therefore never computable on this testbed. H4 uses the
 components that lifecycle traces do supply. For each run, with $C(r)$ the
 confidences of the LLM-sourced steps in round $r$:
-$\mathrm{ACE}_{\mathrm{norm}}$ of the final round
-(\texttt{metrics.ace\_norm}); $1-\min(\max(\Delta C,0),1)$ with
+$\mathrm{ACE}_{\mathrm{norm}}$ of the final round, the entropy of the direct
+simplex projection of $C(\text{last})$ divided by $\ln N$
+(\texttt{metrics.ace\_d}, range $[0,1]$); the unclipped $1-\Delta C$ with
 $\Delta C=\overline{C}(\text{last})-\overline{C}(\text{first})$
-(\texttt{metrics.delta\_mean\_confidence}, for runs with at least two rounds);
-and
+(\texttt{metrics.delta\_mean\_confidence}, for runs with at least two rounds;
+range $[0,2]$, so a run whose confidence fell ranks above one whose confidence
+stayed flat); and
 \begin{equation}
   \mathrm{TDI}_{\mathrm{lifecycle}} = \tfrac{7}{12}\,\mathrm{ACE}_{\mathrm{norm}}
-    + \tfrac{5}{12}\,\bigl(1-\min(\max(\Delta C,0),1)\bigr),
+    + \tfrac{5}{12}\,\bigl(1-\Delta C\bigr) \in \bigl[0,\tfrac{17}{12}\bigr],
 \end{equation}
 the default weights $\alpha=0.35$ and $\gamma=0.25$ renormalised over the
-two terms. $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a \emph{different quantity}
+two terms, with no outer clip. $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a score on
+$[0,17/12]$, not an index on $[0,1]$. The softmax entropy
+(\texttt{metrics.ace\_norm}, $\tau=1$) and the clipped
+$1-\min(\max(\Delta C,0),1)$ are reported descriptively beside them. The
+softmax was replaced before any data existed (pre-registration amendment~2):
+on confidences in $[0,1]$ it spans only about $[0.92,1]$ for five roles, so
+rounded LLM confidences would produce ties that decide a rank test. $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a \emph{different quantity}
 from the four-component TDI, and its $\rho$ is not comparable with the
 v0.4.1 TDI $\rho$. A round with fewer than two LLM-sourced steps leaves the
 component undefined for that run. For a one-round run, $\Delta C$ (and so
@@ -133,10 +141,12 @@ $\hat\rho$ exceeds $0.5$ (the gate thresholds the statistic, not a $p$-value).
 Measured by permutation through the pre-registered estimator itself
 (\texttt{scripts/local/prereg\_null\_fwer.py}, seed 2026): $p = 1.32\%$ at
 $n=20$ and $1.07\%$ at $n=21$; a Monte Carlo of the whole six-test gate gives a
-false-positive rate between $2.35\%$ (ACE$_{\mathrm{norm}}$ and $1-\Delta C$
-with identical ranks) and $5.81\%$ (independent), against $0.0475\%$ for a
-single pooled test at $n=41$ --- roughly $50\times$ to $120\times$ higher, the
-price of testing within datasets. No correction was pre-registered; instead all
+false-positive rate of $2.35\%$ (ACE$_{\mathrm{norm}}$ and $1-\Delta C$
+with identical ranks), $4.71\%$ (reversed ranks) and $5.84\%$ (independent),
+against $0.0475\%$ for a single pooled test at $n=41$ --- roughly $50\times$ to
+$123\times$ higher, the price of testing within datasets. The range is over
+these three dependence arms; intermediate negative dependence was not
+simulated. No correction was pre-registered; instead all
 six $\rho$ are reported with their $n$ whatever the outcome, so a pass carried
 by one test is visible in the table.
 The dependence is mechanical, not hypothetical: in a committed fixture

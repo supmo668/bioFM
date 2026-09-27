@@ -1,22 +1,14 @@
-# DRAFT — Pre-registration AMENDMENT 2 (v0.6.0 sweep) — NOT LOCKED
+# Pre-registration AMENDMENT 2 (v0.6.0 sweep): LOCKED
 
-> **Status: DRAFT, revision 4 (CTO #395, #421, #425, #427).** Nothing here is in force. `projects/perturb-seq-eval/paper/PREREGISTRATION.md`
-> is unchanged. The pre-registration is amended **once**, before any v0.6.0 data exists, and only after **all**
-> the PENDING sections below are ruled. At that point this text is folded into `PREREGISTRATION.md` in a single
-> `prereg(...)` commit, and the sweep's provenance pins that commit. Nothing that changes the measurand is
-> implemented before the lock.
->
-> **Nine sections are ruled (A2-1 to A2-9). Two are PENDING the principal: A2-10 and A2-11**, both raised by the
-> CTO's mathematical re-check of the entropy formulations (2026-09-26, on the principal's instruction;
-> `workstreams/perturb-seq-eval/qa/_adhoc/2026-09-26-entropy-formulation-review.md` on main).
->
-> Why this lives here: `qgr/**` is excluded from the receipt diff-hash, so committing the draft does not stale
-> a receipt. The P0-P5 phase boundary is closed (principal approval via CTO #421; boundary commit with the
-> derived receipt cfe931f).
+> **Status: LOCKED.** All eleven sections (A2-1 to A2-11) are ruled by the principal (2026-09-25 20:38Z; 2026-09-26
+> via CTO #421; 2026-09-27 05:16Z for A2-10 and A2-11, CTO #430). This text is folded into
+> `projects/perturb-seq-eval/paper/PREREGISTRATION.md` in the single `prereg(perturb-seq-eval): AMENDMENT 2`
+> commit, before any v0.6.0 data exists. `prereg_version` = `v0.6.0-a2`. Any later change is a third amendment.
 >
 > Sources: the P0-P5 quality gate (findings: `qgr/evidence/qg-p0p5-findings-scored.md`; triage:
 > `qgr/evidence/qg-p0p5-triage.md`), the principal decision brief `qgr/principal-decisions-p0p5.md`, the principal's
-> rulings (2026-09-25 20:38Z in session b6e15309; 2026-09-26 via CTO #421), and the CTO's entropy-formulation review.
+> rulings, and the CTO's entropy-formulation review
+> (`workstreams/perturb-seq-eval/qa/_adhoc/2026-09-26-entropy-formulation-review.md` on main).
 
 ## Why an amendment is needed
 
@@ -223,11 +215,18 @@ is a bound over the whole dependence family rather than over its non-negative ha
 a number here**: it is produced by the script and written into the table under the lock commit. If A2-10 or
 A2-11 changes a component, the whole table is recomputed once, under the lock commit.
 
+**Recomputed at the lock** (`scripts/local/prereg_null_fwer.py --defs a2`, seed 2026, 100,000 gate draws, against
+the ruled A2-10/A2-11 definitions; evidence `qgr/evidence/h4-gate-null-fwer-a2.json.txt`): identical ranks
+2.35 %, reversed ranks 4.71 %, independent 5.84 %; per-test p = 1.32 % (n = 20), 1.07 % (n = 21); pooled
+n = 41 0.0475 %. The reversed-rank extreme lies inside the bracket. Intermediate negative dependence was not
+simulated, so 2.35 % – 5.84 % is stated as the range over the three arms, not as a proven bound. DF-13's unsourced
+6.15 % is not reproduced by this script.
+
 **Text it changes in `PREREGISTRATION.md`:** the "H4 gate and its multiplicity" paragraph and its table.
 
 ---
 
-## A2-10 (review F1): the ACE_norm feature for H4/H5. PENDING principal ruling
+## A2-10 (review F1): the ACE feature for H4/H5 is `metrics.ace_d`. RULED (principal, 2026-09-27 05:16Z, option a; CTO #430)
 
 **Found (CTO review, 2026-09-26):** `metrics.ace_norm` takes the softmax of confidences in [0, 1] at τ = 1 and
 divides the entropy by ln N. Because the logits live in a unit interval, no two softmax probabilities can differ
@@ -241,56 +240,56 @@ under-powered by construction, and H5 fits ridge weights to a feature with no sp
 simplex projection, no temperature) already exists, has full range [0, 1] on the same inputs, and its docstring
 says why.
 
-**Option (a), recommended by the CTO:** pre-register `metrics.ace_d(C(last))` as the **ACE_norm feature** used
-by H4 (component test), H5 (ridge input) and TDI_lifecycle. The softmax version `metrics.ace_norm` is reported
-**descriptively only**, beside it. The TDI_lifecycle weights (7/12, 5/12) are **carried over unchanged**, not
-re-fitted (review F4). H5's standardisation is unchanged. Two guards are stated with it: confidences are in
-[0, 1] by A2-1, so `ace_d`'s negative-input error is unreachable for a valid run; a round whose confidences sum to
-zero is **undefined** (the metric's all-zero → 0.0 convention is not used), consistent with "undefined, not
-imputed".
+**Amended rule:** the ACE feature used by H4 (component test), H5 (ridge input) and TDI_lifecycle is
+`metrics.ace_d(C(last))`: the direct simplex projection of the final round's confidences, with no temperature, with
+entropy divided by ln N, on [0, 1]. The feature keeps the name ACE in the paper; the pre-registration names the
+function. The TDI_lifecycle weights (7/12, 5/12) are **carried over unchanged**, not re-fitted (review F4). H5's
+standardisation is unchanged. Confidences are in [0, 1] by A2-1, so `ace_d`'s negative-input error cannot be reached
+by a valid run.
 
-**Option (b):** keep the softmax τ = 1 `ace_norm` as pre-registered, stating the attainable band [0.92, 1.00] for
-N = 5 and accepting that ties from rounded confidences may decide the ACE_norm rows of H4 and the H5 fit.
+**Undefined, not imputed (re-pointed at `ace_d`; CTO #430 consequence 2):** `metrics.ace_d` raises for N = 0,
+returns 0.0 for N = 1, and returns 0.0 for an all-zero vector. None of these may reach a component. The ACE
+component of a run is **undefined** (`None`, with a stated reason) and `ace_d` is **not called** when:
 
-**Not pending (enforcement of an existing rule, either option):** `metrics.ace_norm` and `metrics.ace_d` both
-return 0.0 for N ≤ 1, while the pre-registration says a round with fewer than two LLM-sourced steps is
-**undefined**. `preregistered.per_run_components` is the one that enforces "undefined" (via `_round_vector`, which
-returns `None` with the reason `"< 2 required"` before any metric is called); the metric's 0.0 must never reach a
-component. The test that pins this is named here: `tests/test_preregistered.py::test_fallback_only_final_round_is_undefined_not_imputed`
-(zero LLM steps, existing) and `tests/test_preregistered.py::test_one_llm_step_round_is_undefined_not_zero`
-(exactly one LLM-sourced step in the final round → `ace_norm is None` with the reason, never 0.0; added in the
-fix quality gate).
+1. the final round has fewer than two LLM-sourced steps (this covers both the N = 0 error and the N = 1 value of 0.0); or
+2. the final round's confidences sum to zero (this covers `ace_d`'s all-zero convention).
 
-**Text it changes in `PREREGISTRATION.md` (if a):** "Per-run components", ACE_norm definition; the "narrow band"
-paragraph is replaced by the reason for the change; H5 ridge note ("ACE_norm's range is narrow") is removed;
-"Required alongside each gate" adds the descriptive softmax value.
+`preregistered.per_run_components` enforces both checks before the call. The tests that pin them are named here:
 
-## A2-11 (review F3): the sign of ΔC. PENDING principal ruling
+- `tests/test_preregistered.py::test_fallback_only_final_round_is_undefined_not_imputed` (zero LLM steps; existing);
+- `tests/test_preregistered.py::test_one_llm_step_round_is_undefined_not_zero` (exactly one LLM-sourced step → ACE is
+  `None` with the reason, never 0.0; added in the fixes quality gate);
+- `tests/test_preregistered.py::test_zero_sum_confidence_round_is_undefined_not_zero` (all confidences 0.0 → ACE is
+  `None` with the reason, and `ace_d` is not called; added in the fixes quality gate).
+
+**Descriptive only:** the softmax value `metrics.ace_norm(C(last))` (τ = 1) is reported beside `ace_d` and enters no
+gate, test or fit.
+
+**Text it changes in `PREREGISTRATION.md`:** "Per-run components", the ACE definition and the undefined rule; the
+"narrow band" paragraph is replaced by the reason for the change; the H5 ridge note ("ACE_norm's range is narrow")
+is removed; "Required alongside each gate" adds the descriptive softmax value.
+
+## A2-11 (review F3): ΔC is not clipped. RULED (principal, 2026-09-27 05:16Z, option a; CTO #430)
 
 **Found (CTO review, 2026-09-26):** 1−ΔC = 1 − min(max(ΔC, 0), 1). Every run whose confidence **fell** across
 rounds (ΔC < 0) maps to exactly 1.0, tied with every run whose confidence stayed flat (ΔC = 0). A falling
 confidence is arguably the strongest difficulty signal the trace carries; the clip erases it and creates a tie
 block at the top of the ranking. With A2-2 (three fixed rounds) the single-round tie source is already gone.
 
-**Option (a), recommended by the CTO:** pre-register the **unclipped** quantity, 1−ΔC without the lower clip
-(range [0, 2]; equivalently −ΔC for ranking), as the second H4 component and the H5 ridge input, and use it in
-the Spearman tests. The clipped value is reported descriptively beside it. For TDI_lifecycle, the unclipped value
-enters the weighted sum and the outer clip₀₁ is **removed** (Spearman is rank-based and the ridge standardises, so
-neither needs the [0, 1] range; keeping the outer clip would re-create the tie block inside TDI). Weights carried
-over unchanged (review F4). **Consequence, stated so it is chosen with eyes open:** TDI_lifecycle's range becomes
-**[0, 17/12 ≈ 1.417]** (= 7/12 · [0, 1] + 5/12 · [0, 2]) instead of [0, 1]; it is no longer an index on [0, 1],
-and the paper must describe it as a score with that range. **The bound holds under both A2-10 options, checked:**
-`metrics.ace_norm` (softmax) and `metrics.ace_d` are both normalised by ln N to a nominal [0, 1], so the
-7/12 · [0, 1] term and the 17/12 upper bound are the same under (a) and (b). Only the *attainable* minimum differs:
-under (a) the floor 0 is attainable; under (b) ACE's attainable band (about [0.92, 1] at N = 5) lifts TDI_lifecycle's
-attainable floor to about 7/12 · 0.92 ≈ 0.54. Neither option changes the upper bound. Dropping the outer clip is
-not a separate decision: option (a) is incoherent without it (CTO #425 d).
+**Amended rule:** the second H4 component and the H5 ridge input is the **unclipped** quantity 1−ΔC, on
+[0, 2] (equivalently −ΔC for ranking), and the Spearman tests use it. It is unclipped everywhere it is used.
+TDI_lifecycle is
 
-**Option (b):** keep the clipped 1−ΔC as pre-registered and state that falling-confidence runs tie with flat runs
-at the top of the ranking.
+  TDI_lifecycle = 7/12 · ACE + 5/12 · (1−ΔC),  with ACE = `metrics.ace_d` (A2-10),
 
-**Text it changes in `PREREGISTRATION.md` (if a):** "Per-run components", the 1−ΔC and TDI_lifecycle
-definitions; "Required alongside each gate" adds the descriptive clipped value.
+with **no outer clip**. Its range is **[0, 17/12 ≈ 1.417]**. It is a score with that range, not an index on [0, 1],
+and the paper describes it that way. Spearman is rank-based and the ridge standardises, so neither needs [0, 1];
+an outer clip would re-create the tie block inside TDI. The weights are carried over unchanged (review F4).
+
+**Descriptive only:** the clipped value 1 − min(max(ΔC, 0), 1) is reported beside it and enters no gate, test or fit.
+
+**Text it changes in `PREREGISTRATION.md`:** "Per-run components", the 1−ΔC and TDI_lifecycle definitions;
+"Required alongside each gate" adds the descriptive clipped value.
 
 ---
 
@@ -301,7 +300,7 @@ definitions; "Required alongside each gate" adds the descriptive clipped value.
 - The 17 ACCEPT-FIX-NOW findings (committed 040f022…0f85e29) do not change the measurand and are not amended here.
 - The dataset-keyed LLM cache and the per-step `cache_hit` flag (C6-key) are implementation, already committed.
 
-## Lock checklist (used once, when A2-10 and A2-11 are ruled)
+## Lock checklist (applied at the lock)
 
 1. Every PENDING section is replaced by ruled text, and no PENDING marker remains.
 2. The FWER table (A2-9) is recomputed once against the final component definitions, and `prereg_version` (A2-8)
