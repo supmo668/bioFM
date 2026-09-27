@@ -14,6 +14,17 @@ These are GIVEN. Do not re-ask them. They go into pre-registration amendment 2.
 
 **STILL OPEN:** Decision 1 (phase boundary / Hash D); 2c NEW-1 (H3 stated vs executed); 2d C13 (DEG gene universe); 2e C25 (stratum-fill wording); 2f C6 (prompt dataset/modality + cache-start); 2g C20 (FWER wording).
 
+## RULED by the principal — 2026-09-27 05:16Z (AskUserQuestion in session b6e15309 / perturb-seq-eval-00, during `/grill-me unblock`) — TRANSCRIBED, not authored
+
+The principal's choices, recorded verbatim-in-substance; the option text is the amendment-2 draft rev 4 (3dedab1) as shown to the principal. These are GIVEN; do not re-ask.
+
+- **A2-10 (review F1) → option (a):** `metrics.ace_d(C(last))` is the pre-registered ACE_norm feature for H4 (component test), H5 (ridge input) and TDI_lifecycle; softmax `metrics.ace_norm` is reported descriptively only; TDI weights (7/12, 5/12) carried over unchanged; a round whose confidences sum to zero is **undefined**.
+- **A2-11 (review F3) → option (a):** the **unclipped** 1−ΔC (range [0, 2]) is the H4 component and H5 input; the clipped value is descriptive only; TDI_lifecycle's outer clip₀₁ is **removed**, so TDI_lifecycle is a score on **[0, 17/12]** and the paper says so.
+
+Shown to the principal before choosing (agent's measurement at a1c0839, Wiki context, not part of the ruling): softmax `ace_norm` floor 0.9321 at (1,0,0,0,0) vs `ace_d` 0.0; on spread confidences `ace_d` moves ≈3× more (0.9204 vs 0.9743; 0.9072 vs 0.9737); on tightly clustered LLM confidences (0.7–0.9) both ≈0.997 — `ace_d` restores resolution, it cannot manufacture variation the model does not report.
+
+**With these, all 11 amendment-2 sections are ruled.** Remaining before the sweep (lock checklist, draft rev 4): recompute the A2-9 FWER table against the final component definitions (`ace_d` and unclipped ΔC change the dependence structure), fold into `PREREGISTRATION.md` in one AMENDMENT 2 commit, then the measurand fixes through a quality gate, then the #283 sweep from that receipted SHA.
+
 ## Decision 1: approve the P0-P5 phase boundary (Hash D)
 
 What the phase delivered:
