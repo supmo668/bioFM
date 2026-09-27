@@ -22,7 +22,8 @@ APP_V05 = Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.p
 
 AND_S3_KWARGS = {
     "norman_n_singletons", "norman_n_doublets", "adamson_n_per_bin", "adamson_n_bins",
-    "seeds", "n_top_hvg", "max_cells_per_pert", "n_sweep", "r_sweep", "backbones",
+    # Amendment 2 A2-4: N is not a trainer-sweep axis, so there is no n_sweep.
+    "seeds", "n_top_hvg", "max_cells_per_pert", "r_sweep", "backbones",
     "doublet_delim", "cooldown_sec", "temperature",
     # CTO #283 / OWN-1: the $12 stop-and-report spend is a recorded sweep kwarg.
     "spend_stop_usd",
@@ -70,9 +71,51 @@ def _prov(**over) -> dict:
         gpu="A100-40GB",
         hourly_usd=1.32,
         budget_cap_usd=28.0,
+        trainer_grid=_GRID,
     )
     kw.update(over)
     return pv.build_provenance(**kw)
+
+
+# A2-4: the trainer grid as run (heldout.trainer_grid output shape).
+_GRID = {"backbones": ["linear", "mlp"], "r_sweep": [1, 2], "seeds": [2026],
+         "n_records_per_task": 4, "n_distinct_per_task": 3,
+         "distinct_by_backbone": {"linear": 1, "mlp": 2},
+         "r_seed_invariant_backbones": ["linear"]}
+
+
+def test_a2_4_no_n_sweep_kwarg_required_or_in_app() -> None:
+    assert "n_sweep" not in pv.REQUIRED_ENTRYPOINT_KWARGS
+    assert "n_sweep" not in _sweep_kwarg_names()
+    src = APP_V05.read_text()
+    assert "n_sweep" not in src and "_DEFAULT_N_SWEEP" not in src
+
+
+def test_a2_4_trainer_grid_is_required_and_recorded() -> None:
+    from perturb_eval.experiments.heldout import trainer_grid
+
+    grid = trainer_grid(backbones=("linear", "mlp", "scgpt_small"), r_sweep=(1, 2, 3),
+                        seeds=[2026, 2027, 2028])
+    prov = _prov(trainer_grid=grid)
+    assert prov["trainer_grid"] == grid
+    assert "trainer_grid" in pv.REQUIRED_KEYS
+    kw = dict(run_id="r", git_sha="a" * 40, git_dirty=False, entrypoint_kwargs=_kwargs(),
+              datasets=[], task_plan={}, tasks_excluded=[], llm_pool=[], gpu="g",
+              hourly_usd=1.0, budget_cap_usd=1.0)
+    with pytest.raises(TypeError):
+        pv.build_provenance(**kw)  # no trainer_grid: refused
+    for bad in (None, {}, {**grid, "n_distinct_per_task": "3"},
+                {k: v for k, v in grid.items() if k != "seeds"}):
+        with pytest.raises(ValueError, match="trainer_grid"):
+            _prov(trainer_grid=bad)
+
+
+def test_a2_4_app_v05_records_the_trainer_grid() -> None:
+    src = APP_V05.read_text()
+    assert "trainer_grid(" in src
+    call = next(c for c in ast.walk(ast.parse(src)) if isinstance(c, ast.Call)
+                and getattr(c.func, "id", None) == "build_provenance")
+    assert "trainer_grid" in {k.arg for k in call.keywords}
 
 
 def _finalize_kwargs() -> dict:

@@ -74,7 +74,10 @@ class LifecycleStep:
     agent_name: str
     proposal_content: dict[str, Any]
     rationale: str
-    llm_confidence: float
+    # A2-1: the role's own stated confidence in [0, 1] on an "llm" step (the
+    # loop refuses an "llm" step without one); ``None`` on a "fallback" step —
+    # never imputed.
+    llm_confidence: float | None
     execution_artifact_path: str | None
     wall_time_sec: float
     succeeded: bool
@@ -84,6 +87,16 @@ class LifecycleStep:
     # fresh call), False for a fresh call; None for non-LLM pools (mock /
     # fallback / CellForge) that have no cache.
     cache_hit: bool | None = None
+    # A2-6 (Architect steps only; None elsewhere): the backbone the Architect
+    # STATED (gates H3; None when it stated none, e.g. a fallback step) and the
+    # backbone that EXECUTED (``backbone_used``, the spec name) after the
+    # Validator's delta / any outer override.
+    backbone_stated: str | None = None
+    backbone_used: str | None = None
+    # A2-2 (Validator steps only; None elsewhere): the round's verdict and the
+    # threshold it was judged against. Recorded; they never stop the run.
+    validator_accepted: bool | None = None
+    validator_threshold_msd: float | None = None
 
 
 @dataclass(frozen=True)
@@ -114,3 +127,13 @@ class LifecycleRun:
     # ``lifecycle_record`` flattens them into the JSONL record so the analyser
     # counts the run as an error record.
     error_fields: dict[str, Any] | None = None
+    # A2-2: every round's MSD (``final_msd_topk`` is the last round's).
+    msd_per_round: tuple[float, ...] = ()
+    # A2-3: per round, the applied value of each agent-controlled field and
+    # which tier supplied it: {"values": {...}, "sources": {field: "validator"
+    # | "architect" | "datacurator" | "trainer" | "default"}}.
+    applied_config_per_round: tuple[dict[str, Any], ...] = ()
+    # A2-5: the task's evaluation genes (full-axis column indices, rank order),
+    # shared with the trainer path; the Validator's MSD is over exactly these.
+    eval_gene_idx: tuple[int, ...] = ()
+    n_eval_genes: int = 0

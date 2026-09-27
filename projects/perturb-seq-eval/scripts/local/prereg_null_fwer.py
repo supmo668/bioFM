@@ -12,13 +12,14 @@ Spearman), not from a normal approximation. Reproducible: fixed seed, no data ne
 
 Definitions (``--defs``):
   a1 (default) — the definitions in force at amendment 1 (0c2932a): ACE_norm and clipped 1-dC on [0, 1],
-     TDI_lifecycle = preregistered.tdi_lifecycle (clipped to [0, 1]). Reproduces the published amendment-1 table.
+     TDI_lifecycle = the amendment-1 clipped sum (``tdi_lifecycle_a1`` below, written out here because
+     preregistered.tdi_lifecycle now implements amendment 2). Reproduces the published amendment-1 table.
   a2 — the AMENDMENT 2 definitions (principal rulings A2-10 (a), A2-11 (a); CTO #430): ACE := metrics.ace_d on
      [0, 1]; UNCLIPPED 1-dC on [0, 2]; TDI_lifecycle = 7/12 * ACE + 5/12 * (1-dC) with NO outer clip, range
      [0, 17/12]. Adds the third dependence arm A2-9 requires: REVERSED ranks (the negative-dependence extreme),
      so the reported range bounds the whole dependence family, not only its non-negative half. The a2 TDI is
-     written out here, not imported, because the code change that implements it is a measurand fix that lands
-     after the amendment lock; the formula is identical to the amended text.
+     preregistered.tdi_lifecycle itself (the measurand fix that landed after the amendment lock), so the
+     simulation runs through the estimator's own code path.
 
     .venv/bin/python scripts/local/prereg_null_fwer.py [--defs a1|a2]
 """
@@ -29,7 +30,8 @@ import json
 
 import numpy as np
 
-from perturb_eval.experiments.preregistered import rho, tdi_lifecycle
+from perturb_eval.experiments.preregistered import TDI_LIFECYCLE_WEIGHTS, rho
+from perturb_eval.experiments.preregistered import tdi_lifecycle as tdi_lifecycle_a2
 
 SEED, THRESH = 2026, 0.5
 N_PERM, N_SIM = 200_000, 100_000
@@ -43,12 +45,11 @@ def per_test_null(n: int, rng: np.random.Generator) -> float:
     return hits / N_PERM
 
 
-A2_W_ACE, A2_W_DC = 7 / 12, 5 / 12
-
-
-def tdi_lifecycle_a2(ace: float, one_minus_dc: float) -> float:
-    """Amendment-2 TDI_lifecycle: unclipped weighted sum, range [0, 17/12]."""
-    return A2_W_ACE * ace + A2_W_DC * one_minus_dc
+def tdi_lifecycle_a1(ace: float, one_minus_dc: float) -> float:
+    """Amendment-1 TDI_lifecycle: weighted sum clipped to [0, 1] (as at 0c2932a)."""
+    raw = (TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace
+           + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_dc)
+    return float(max(0.0, min(1.0, raw)))
 
 
 def one_dataset_fires(n: int, rng: np.random.Generator, dependence: str, defs: str) -> bool:
@@ -56,7 +57,7 @@ def one_dataset_fires(n: int, rng: np.random.Generator, dependence: str, defs: s
     ace = rng.random(n)
     if defs == "a1":
         omdc = ace.copy() if dependence == "identical" else rng.random(n)
-        tdi = np.array([tdi_lifecycle(a, b) for a, b in zip(ace, omdc)])
+        tdi = np.array([tdi_lifecycle_a1(a, b) for a, b in zip(ace, omdc)])
     else:  # a2: unclipped 1-dC on [0, 2]
         if dependence == "identical":
             omdc = 2.0 * ace            # same ranks as ACE

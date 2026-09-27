@@ -14,22 +14,38 @@ and unlabelled steps are excluded). The run's rounds are the distinct
 A round that a component reads with fewer than two LLM-sourced steps (or a
 non-finite confidence) makes that component **undefined** for the run: it is
 ``None`` with a reason, and is excluded -- never imputed -- from the seed median.
+ACE is also undefined when the final round's confidences sum to zero. Both ACE
+checks run BEFORE ``metrics.ace_d`` is called (amendment 2, A2-10), so its
+N = 0 error, N = 1 value 0.0 and all-zero value 0.0 never reach a component.
+
+Gated components (amendment 2, ``prereg_version`` = ``v0.6.0-a2``):
 
 ==================  ===========================================================  ===================================
 component           formula                                                      code
 ==================  ===========================================================  ===================================
-``ace_norm``        ``ACE_norm(C(last))`` = softmax(tau=1) entropy / ln N         ``metrics.ace_norm`` (as ``tdi``'s
-                                                                                 ``last.ace_norm``)
+``ace_norm``        ``ACE(C(last))`` = entropy of the direct simplex projection   ``metrics.ace_d`` (A2-10; the key
+                    (no temperature) / ln N, on [0, 1]                           keeps the name ``ace_norm``)
 ``delta_c``         ``mean C(last) - mean C(first)``; UNDEFINED for a one-round   ``metrics.delta_mean_confidence``
                     run (not metrics.py's 0.0; principal ruling 2026-09-25)       (called only with >= 2 rounds)
-``one_minus_        ``1 - min(max(delta_c, 0), 1)``                               the normalisation in ``metrics.tdi``
+``one_minus_        ``1 - delta_c``, UNCLIPPED, on [0, 2] (A2-11)                 ``per_run_components``
 delta_c``
-``tdi_lifecycle``   ``clip01(7/12 * ace_norm + 5/12 * one_minus_delta_c)``        ``tdi_lifecycle`` below
+``tdi_lifecycle``   ``7/12 * ace_norm + 5/12 * one_minus_delta_c``, NO outer      ``tdi_lifecycle`` below
+                    clip, on [0, 17/12] (A2-11)
 ==================  ===========================================================  ===================================
 
+Descriptive only (``DESCRIPTIVE_COMPONENTS``: carried in the per-run and per-task
+tables and reported beside H4, never entering a gate, test or fit):
+
+=============================  ===============================================  ============================
+``ace_norm_softmax``           softmax(tau=1) entropy of C(last) / ln N          ``metrics.ace_norm``
+``one_minus_delta_c_clipped``  ``1 - min(max(delta_c, 0), 1)``                  the normalisation in
+                                                                                ``metrics.tdi``
+=============================  ===============================================  ============================
+
 ``tdi_lifecycle``'s weights are ``metrics.DEFAULT_TDI_COEFFS`` alpha (0.35, on
-ACE_norm) and gamma (0.25, on 1 - clipped delta_c) renormalised over the two:
-``0.35/0.60 = 7/12`` and ``0.25/0.60 = 5/12``. It is a DIFFERENT quantity from
+ACE) and gamma (0.25, on 1 - delta_c) renormalised over the two:
+``0.35/0.60 = 7/12`` and ``0.25/0.60 = 5/12``, carried over unchanged by
+amendment 2. It is a score on [0, 17/12], not an index on [0, 1], and a DIFFERENT quantity from
 the four-component TDI of ``metrics.tdi``: CSD (critique-matrix variance) and
 WFR (winner flip rate) are structurally undefined for the five-role lifecycle,
 which records neither a critique matrix nor a winner, so the four-component TDI
@@ -46,7 +62,10 @@ Estimators (D-EST)
 * H4 (``h4``): rho per component WITHIN Adamson and WITHIN Norman (6 tests);
   the pooled rho is descriptive only; no in-sample calibration;
 * H5 (``h5``): ridge on Adamson only, ``alpha = 1.0``, applied unchanged to Norman;
-* H1/H2 (``h1_h2_stats``), H3 (``h3``).
+* H1/H2 (``h1_h2_stats``); H3 (``architect_backbone_stats`` + ``h3_from_stats``):
+  entropy of the Architect's STATED backbone over LLM-sourced Architect steps,
+  ceiling ln|BACKBONE_MENU|; the executed backbone is reported alongside and
+  does not gate (amendment 2, A2-6).
 
 Every gate returns ``{"gate", "value", "threshold", "pass", "evaluable",
 "reason", ...}``; ``pass`` is ``None`` whenever the gate is not evaluable
@@ -57,12 +76,13 @@ from __future__ import annotations
 
 import math
 import statistics
-from collections import defaultdict
-from typing import Any, Iterable, Mapping, Sequence
+from collections import Counter, defaultdict
+from typing import Any, Iterable, Mapping, Sequence, get_args
 
 import numpy as np
 
 from perturb_eval import metrics
+from perturb_eval.agentic_lifecycle.proposal_schema import BackboneName
 from perturb_eval.types import RoundMetrics
 
 BOOTSTRAP_B: int = 10_000
@@ -86,6 +106,13 @@ H4_COMPONENTS: tuple[str, ...] = ("ace_norm", "one_minus_delta_c", "tdi_lifecycl
 H4_DATASETS: tuple[str, ...] = ("adamson_full", "norman")
 SINGLE_ROUND_REASON = "single-round run: ΔC requires >= 2 rounds"
 H5_FEATURES: tuple[str, ...] = ("ace_norm", "one_minus_delta_c")
+# Amendment 2 (A2-10, A2-11): reported beside the gated components; enter no gate, test or fit.
+DESCRIPTIVE_COMPONENTS: tuple[str, ...] = ("ace_norm_softmax", "one_minus_delta_c_clipped")
+ZERO_SUM_REASON = "round {r}: LLM-sourced confidences sum to zero (ACE undefined)"
+# Amendment 2 (A2-6): the pinned Architect menu; H3's ceiling is ln|menu|. Any
+# change to the menu is a measurand change.
+BACKBONE_MENU: tuple[str, ...] = tuple(get_args(BackboneName))
+MILLER_MADOW_MAX_N: int = 50
 STRUCTURALLY_UNDEFINED: dict[str, str] = {
     "csd": "critique-matrix variance: the five-role lifecycle records no critique matrix",
     "wfr": "winner flip rate: the five-role lifecycle has no per-round winner",
@@ -114,10 +141,13 @@ def not_licensed(result: dict, why: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def tdi_lifecycle(ace_norm: float, one_minus_delta_c: float) -> float:
-    """Default-weighted two-component TDI, clipped to [0, 1] as ``metrics.tdi`` is."""
-    raw = (TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace_norm
-           + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_delta_c)
-    return float(max(0.0, min(1.0, raw)))
+    """Default-weighted two-component TDI, with NO outer clip (amendment 2, A2-11).
+
+    ``7/12 * ACE + 5/12 * (1 - ΔC)`` with ACE on [0, 1] and unclipped 1 - ΔC on
+    [0, 2], so the score lies on [0, 17/12]; it is not an index on [0, 1].
+    """
+    return float(TDI_LIFECYCLE_WEIGHTS["ace_norm"] * ace_norm
+                 + TDI_LIFECYCLE_WEIGHTS["one_minus_delta_c"] * one_minus_delta_c)
 
 
 def _is_llm(step: Mapping) -> bool:
@@ -148,39 +178,55 @@ def _round_metrics(r: int, vec: tuple[float, ...]) -> RoundMetrics:
 
 
 def per_run_components(run: Mapping) -> dict:
-    """``{ace_norm, delta_c, one_minus_delta_c, tdi_lifecycle, n_rounds, reasons}``.
+    """``{ace_norm, delta_c, one_minus_delta_c, tdi_lifecycle, ace_norm_softmax,
+    one_minus_delta_c_clipped, n_rounds, reasons}``.
 
-    A component is ``None`` when a round it reads is undefined; ``reasons``
-    maps each ``None`` component to why.
+    ``ace_norm`` is ``metrics.ace_d(C(last))`` (A2-10); ``one_minus_delta_c`` is
+    ``1 - ΔC`` unclipped (A2-11). ``ace_norm_softmax`` and
+    ``one_minus_delta_c_clipped`` are descriptive only. A component is ``None``
+    when a round it reads is undefined; ``reasons`` maps each ``None``
+    component to why.
     """
     steps = list(run.get("steps") or [])
     rounds = sorted({int(s["round_index"]) for s in steps if s.get("round_index") is not None})
     out: dict[str, Any] = {"ace_norm": None, "delta_c": None, "one_minus_delta_c": None,
-                           "tdi_lifecycle": None, "n_rounds": len(rounds), "reasons": {}}
+                           "tdi_lifecycle": None, "ace_norm_softmax": None,
+                           "one_minus_delta_c_clipped": None, "n_rounds": len(rounds),
+                           "reasons": {}}
     if not rounds:
-        for k in ("ace_norm", "one_minus_delta_c", "tdi_lifecycle"):
+        for k in (*H4_COMPONENTS, *DESCRIPTIVE_COMPONENTS):
             out["reasons"][k] = "run has no steps"
         return out
     first, last = rounds[0], rounds[-1]
     v_last, why_last = _round_vector(steps, last)
     v_first, why_first = _round_vector(steps, first)
 
+    # A2-10: both checks run BEFORE metrics.ace_d is called. _round_vector has
+    # already refused < 2 LLM-sourced steps (ace_d's N = 0 error / N = 1 -> 0.0).
     if v_last is None:
         out["reasons"]["ace_norm"] = why_last
+        out["reasons"]["ace_norm_softmax"] = why_last
     else:
-        out["ace_norm"] = float(metrics.ace_norm(v_last))
+        out["ace_norm_softmax"] = float(metrics.ace_norm(v_last))
+        if sum(v_last) <= metrics._EPS:  # ace_d's all-zero convention (0.0) must not reach a component
+            out["reasons"]["ace_norm"] = ZERO_SUM_REASON.format(r=last)
+        else:
+            out["ace_norm"] = float(metrics.ace_d(v_last))
 
     if first == last:
         # Principal ruling 2026-09-25: NOT metrics.py's ΔC = 0 convention,
         # which would score immediate acceptance as maximal difficulty.
         out["reasons"]["one_minus_delta_c"] = SINGLE_ROUND_REASON
+        out["reasons"]["one_minus_delta_c_clipped"] = SINGLE_ROUND_REASON
     elif v_first is None or v_last is None:
         out["reasons"]["one_minus_delta_c"] = why_first or why_last
+        out["reasons"]["one_minus_delta_c_clipped"] = why_first or why_last
     else:
         rms = (_round_metrics(first, v_first), _round_metrics(last, v_last))
         dc = float(metrics.delta_mean_confidence(rms))
         out["delta_c"] = dc
-        out["one_minus_delta_c"] = 1.0 - max(0.0, min(1.0, dc))
+        out["one_minus_delta_c"] = 1.0 - dc  # A2-11: unclipped, on [0, 2]
+        out["one_minus_delta_c_clipped"] = 1.0 - max(0.0, min(1.0, dc))  # descriptive only
 
     if out["ace_norm"] is None or out["one_minus_delta_c"] is None:
         out["reasons"]["tdi_lifecycle"] = (
@@ -224,7 +270,8 @@ def per_task_table(lifecycle_rows: Iterable[Mapping]) -> list[dict]:
     table = []
     for (dataset, task) in sorted(groups):
         runs = groups[(dataset, task)]
-        vals: dict[str, list[float]] = {k: [] for k in (*H4_COMPONENTS, "msd")}
+        vals: dict[str, list[float]] = {k: [] for k in (*H4_COMPONENTS, *DESCRIPTIVE_COMPONENTS,
+                                                        "msd")}
         undefined: dict[str, list[dict]] = {k: [] for k in H4_COMPONENTS}
         n_single = 0
         for run in runs:
@@ -234,6 +281,9 @@ def per_task_table(lifecycle_rows: Iterable[Mapping]) -> list[dict]:
                 if comp[k] is None:
                     undefined[k].append({"seed": run.get("seed"), "reason": comp["reasons"][k]})
                 else:
+                    vals[k].append(comp[k])
+            for k in DESCRIPTIVE_COMPONENTS:  # descriptive only: carried, never gated
+                if comp[k] is not None:
                     vals[k].append(comp[k])
             if _finite(run.get("final_msd_topk")):
                 vals["msd"].append(float(run["final_msd_topk"]))
@@ -335,7 +385,8 @@ def _describe(v: np.ndarray, threshold: float) -> dict:
 def h1_h2_stats(best_by_task: Mapping[str, float], threshold: float, *, gate: str,
                 strata: Mapping[str, str] | None = None,
                 B: int = BOOTSTRAP_B, seed: int = BOOTSTRAP_SEED) -> dict:
-    """Oracle best-of-54 MSD per task -> median gate (``median < threshold``).
+    """Oracle MSD per task (min over the distinct backbone x R configurations run,
+    amendment 2, A2-4) -> median gate (``median < threshold``).
 
     Reports n, median, IQR (25th/75th percentiles), max, fraction of tasks
     with MSD strictly above ``threshold``, a percentile bootstrap CI of the
@@ -365,16 +416,143 @@ def h1_h2_stats(best_by_task: Mapping[str, float], threshold: float, *, gate: st
 # H3
 # ---------------------------------------------------------------------------
 
+def _plugin_entropy(counts: Mapping[str, int]) -> float | None:
+    """Plug-in (maximum-likelihood) Shannon entropy in nats; ``None`` for N = 0."""
+    n = sum(counts.values())
+    if n == 0:
+        return None
+    return float(-sum((c / n) * math.log(c / n) for c in counts.values() if c > 0))
+
+
+def _miller_madow(counts: Mapping[str, int]) -> float | None:
+    """``H + (K - 1) / (2N)`` for ``N < MILLER_MADOW_MAX_N`` (A2-6), else ``None``.
+
+    K is the size of the pinned menu (``len(BACKBONE_MENU)``), as in A2-6's
+    worked example (K = 3), not the number of observed categories."""
+    n = sum(counts.values())
+    h = _plugin_entropy(counts)
+    if h is None or n >= MILLER_MADOW_MAX_N:
+        return None
+    k = len(BACKBONE_MENU)
+    return h + (k - 1) / (2 * n)
+
+
+def _step_field(step: Mapping, name: str) -> Any:
+    """``step[name]`` if recorded on the step, else ``proposal_content[name]``."""
+    if step.get(name) is not None:
+        return step[name]
+    return (step.get("proposal_content") or {}).get(name)
+
+
+def architect_backbone_stats(steps: Iterable[Mapping]) -> dict:
+    """H3 inputs over the LLM-sourced Architect steps in ``steps`` (A2-6).
+
+    * STATED backbone (``backbone_stated``; gates H3): a step whose stated
+      backbone is missing or off ``BACKBONE_MENU`` is a schema failure -- never
+      defaulted, never counted (``n_missing_stated``, ``n_off_menu_stated``).
+    * EXECUTED backbone (``backbone_executed``, or ``backbone_used``; the backbone
+      that ran after the Validator's delta): reported alongside, never gates.
+
+    Steps whose ``source`` is not ``"llm"`` and non-Architect steps are ignored.
+    """
+    stated: Counter[str] = Counter()
+    executed: Counter[str] = Counter()
+    off_menu: Counter[str] = Counter()
+    by_model: dict[str, Counter[str]] = defaultdict(Counter)
+    n_llm = n_missing = n_ne = n_missing_exec = 0
+    for s in steps:
+        if s.get("agent_name") != "Architect" or not _is_llm(s):
+            continue
+        n_llm += 1
+        st = _step_field(s, "backbone_stated")
+        ex = _step_field(s, "backbone_executed")
+        if ex is None:
+            ex = _step_field(s, "backbone_used")
+        if ex is None:
+            n_missing_exec += 1
+        else:
+            executed[str(ex)] += 1
+        if st is None:
+            n_missing += 1
+            continue
+        if st not in BACKBONE_MENU:
+            off_menu[str(st)] += 1
+            continue
+        stated[st] += 1
+        by_model[str(s.get("model_id"))][st] += 1
+        if ex is not None and ex != st:
+            n_ne += 1
+    return {
+        "menu": list(BACKBONE_MENU),
+        "n_llm_architect_steps": n_llm,
+        "n_counted": sum(stated.values()),
+        "stated_counts": dict(sorted(stated.items())),
+        "entropy_stated_nats": _plugin_entropy(stated),
+        "miller_madow_stated_nats": _miller_madow(stated),
+        "executed_counts": dict(sorted(executed.items())),
+        "entropy_executed_nats": _plugin_entropy(executed),
+        "n_executed_ne_stated": n_ne,
+        "n_missing_executed": n_missing_exec,
+        "n_missing_stated": n_missing,
+        "n_off_menu_stated": sum(off_menu.values()),
+        "off_menu_values": dict(sorted(off_menu.items())),
+        "by_model_id": {m: {"n": sum(c.values()), "pick_counts": dict(sorted(c.items())),
+                            "entropy_nats": _plugin_entropy(c),
+                            "miller_madow_nats": _miller_madow(c)}
+                        for m, c in sorted(by_model.items())},
+    }
+
+
 def h3(entropy_nats: float | None, *, pick_counts: Mapping[str, int], n_llm_steps: int,
-       n_distinct_model_ids: int, threshold: float = H3_THRESHOLD) -> dict:
-    """Architect backbone-choice entropy (T16's LLM-sourced figure) as a gate."""
-    if entropy_nats is None:
-        passed, reason = None, "no LLM-sourced Architect step carries a backbone choice"
+       n_distinct_model_ids: int, threshold: float = H3_THRESHOLD,
+       schema_failure: str | None = None, **descriptive: Any) -> dict:
+    """Entropy of the Architect's STATED backbone picks as a gate (A2-6).
+
+    ``ceiling_nats`` is ln|BACKBONE_MENU|, read from the pinned menu.
+    ``schema_failure`` (a reason) withdraws the gate: a missing or off-menu
+    stated backbone on an LLM-sourced step makes the run invalid (A2-1/A2-6).
+    ``descriptive`` fields (executed picks etc.) are carried and never gate.
+    """
+    if schema_failure is not None:
+        passed, reason = None, schema_failure
+    elif entropy_nats is None:
+        passed, reason = None, "no LLM-sourced Architect step carries a stated backbone"
     else:
         passed, reason = bool(entropy_nats >= threshold), None
     return _gate("H3", entropy_nats, threshold, passed, reason,
                  pick_counts=dict(pick_counts), n_llm_architect_steps=n_llm_steps,
-                 n_distinct_model_ids=n_distinct_model_ids, ceiling_nats=math.log(3))
+                 n_distinct_model_ids=n_distinct_model_ids, menu=list(BACKBONE_MENU),
+                 ceiling_nats=math.log(len(BACKBONE_MENU)), **descriptive)
+
+
+def h3_from_stats(stats: Mapping[str, Any], *, n_distinct_model_ids: int | None = None,
+                  threshold: float = H3_THRESHOLD) -> dict:
+    """H3 gate from :func:`architect_backbone_stats`: gates on the stated
+    entropy; executed picks, the stated != executed count, schema-failure
+    counts and the per-``model_id`` breakdown are reported alongside."""
+    n_bad = stats["n_missing_stated"] + stats["n_off_menu_stated"]
+    failure = None
+    if n_bad:
+        failure = (f"schema failure (A2-1/A2-6): {stats['n_missing_stated']} LLM-sourced Architect "
+                   f"step(s) with no stated backbone and {stats['n_off_menu_stated']} with an "
+                   f"off-menu stated backbone {stats['off_menu_values']}; never defaulted or "
+                   "counted, and the run is invalid")
+    if n_distinct_model_ids is None:
+        n_distinct_model_ids = len(stats["by_model_id"])
+    return h3(stats["entropy_stated_nats"], pick_counts=stats["stated_counts"],
+              n_llm_steps=stats["n_llm_architect_steps"],
+              n_distinct_model_ids=n_distinct_model_ids, threshold=threshold,
+              schema_failure=failure,
+              n_counted=stats["n_counted"],
+              miller_madow_nats=stats["miller_madow_stated_nats"],
+              executed_pick_counts=stats["executed_counts"],
+              entropy_executed_nats=stats["entropy_executed_nats"],
+              n_executed_ne_stated=stats["n_executed_ne_stated"],
+              n_missing_executed=stats["n_missing_executed"],
+              n_missing_stated=stats["n_missing_stated"],
+              n_off_menu_stated=stats["n_off_menu_stated"],
+              off_menu_values=stats["off_menu_values"],
+              by_model_id=stats["by_model_id"])
 
 
 # ---------------------------------------------------------------------------
@@ -415,6 +593,13 @@ def h4(task_table: Sequence[Mapping], *, B: int = BOOTSTRAP_B, seed: int = BOOTS
                            for k in H4_COMPONENTS}
         exclusions[ds] = _exclusions(rows)
     pooled = {k: spearman_with_ci(*_pairs(task_table, k), B=B, seed=seed) for k in H4_COMPONENTS}
+    # A2-10 / A2-11: the softmax ACE and the clipped 1-ΔC are reported beside the
+    # gated tests, per dataset, and never enter the gate.
+    descriptive = {ds: {k: spearman_with_ci(*_pairs([r for r in task_table
+                                                      if r.get("dataset") == ds], k),
+                                            B=B, seed=seed)
+                        for k in DESCRIPTIVE_COMPONENTS}
+                   for ds in H4_DATASETS}
     rhos = {(ds, k): c["rho"] for ds, cs in per_dataset.items() for k, c in cs.items()
             if c["rho"] is not None}
     n_tests = len(H4_DATASETS) * len(H4_COMPONENTS)
@@ -437,7 +622,8 @@ def h4(task_table: Sequence[Mapping], *, B: int = BOOTSTRAP_B, seed: int = BOOTS
     ]
     return _gate("H4", best, threshold, passed, reason, per_dataset=per_dataset,
                  all_six=all_six, n_tests_passing=sum(1 for r in all_six if r["passes"]),
-                 pooled_descriptive=pooled, exclusions=exclusions, n_tests=n_tests,
+                 pooled_descriptive=pooled, descriptive=descriptive,
+                 exclusions=exclusions, n_tests=n_tests,
                  structurally_undefined=dict(STRUCTURALLY_UNDEFINED),
                  tdi_lifecycle_weights=dict(TDI_LIFECYCLE_WEIGHTS),
                  n_tasks=len(task_table))

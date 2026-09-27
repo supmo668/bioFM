@@ -10,13 +10,7 @@ import pytest
 import requests
 
 from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
-from perturb_eval.agentic_lifecycle.proposal_schema import (
-    ArchitectProposal,
-    DataCuratorProposal,
-    LiteratureProposal,
-    TrainerProposal,
-    ValidatorProposal,
-)
+from perturb_eval.agentic_lifecycle.proposal_schema import schema_defaults
 from perturb_eval.llm.openrouter_client import ChatResult, OpenRouterError, RateLimitedError
 
 
@@ -47,11 +41,12 @@ class TestLLMAgentPoolBasics:
     def test_each_role_returns_content_rationale_confidence(self, tmp_path: Path) -> None:
         fake = FakeClient(
             responses_by_role={
-                "DataCurator": ['{"hvg_method": "seurat", "hvg_count": 1000}'],
-                "Literature": ['{"pathway_prior": {"TP53": 0.7}, "ppi_neighbors": ["JUN"]}'],
-                "Architect": ['{"backbone": "mlp", "learning_rate": 5e-3, "hvg_count": 1000}'],
-                "Trainer": ['{"lr": 5e-3, "epochs": 40, "ridge_lambda": 1.0}'],
-                "Validator": ['{"dynamic_threshold_msd": 0.1}'],
+                # A2-1: every role states its confidence.
+                "DataCurator": ['{"hvg_method": "seurat", "hvg_count": 1000, "confidence": 0.6}'],
+                "Literature": ['{"pathway_prior": {"TP53": 0.7}, "ppi_neighbors": ["JUN"], "confidence": 0.5}'],
+                "Architect": ['{"backbone": "mlp", "learning_rate": 5e-3, "hvg_count": 1000, "confidence": 0.7}'],
+                "Trainer": ['{"lr": 5e-3, "epochs": 40, "ridge_lambda": 1.0, "confidence": 0.4}'],
+                "Validator": ['{"dynamic_threshold_msd": 0.1, "confidence": 0.8}'],
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
@@ -61,11 +56,12 @@ class TestLLMAgentPoolBasics:
             assert "rationale" in out
             assert "confidence" in out
             assert isinstance(out["content"], dict)
+            assert out["source"] == "llm"  # A2-1: a stated confidence, not a fallback
 
     def test_architect_produces_valid_config(self, tmp_path: Path) -> None:
         fake = FakeClient(
             responses_by_role={
-                "Architect": ['{"backbone": "scgpt_small", "learning_rate": 1e-3, "hvg_count": 2000}'],
+                "Architect": ['{"backbone": "scgpt_small", "learning_rate": 1e-3, "hvg_count": 2000, "confidence": 0.5}'],
             }
         )
         pool = LLMAgentPool(client=fake, cache_dir=tmp_path)
@@ -80,8 +76,11 @@ class TestLLMAgentPoolBasics:
         failing.chat_json = MagicMock(side_effect=OpenRouterError("all cooled"))
         pool = LLMAgentPool(client=failing, cache_dir=tmp_path)
         out = pool.propose("Architect", round_index=0, task_id="t1", context={}, seed=0, dataset="adamson_full")
-        # Fallback still yields a structurally-valid proposal.
-        assert "backbone" in out["content"]
+        # Fallback still yields the schema's optional defaults, but A2-6/A2-1:
+        # never a stated backbone and never an imputed confidence.
+        assert out["source"] == "fallback"
+        assert "backbone" not in out["content"]
+        assert out["confidence"] is None
 
     def test_different_tasks_get_different_prompts(self, tmp_path: Path) -> None:
         fake = FakeClient(
@@ -150,19 +149,16 @@ class TestSeedThreading:
         failing.chat_json = MagicMock(side_effect=OpenRouterError("down"))
         pool = LLMAgentPool(client=failing, cache_dir=tmp_path)
         out = pool.propose("Architect", round_index=0, task_id="t", context={}, seed=3, dataset="adamson_full")
-        assert "backbone" in out["content"]
+        assert out["source"] == "fallback"
+        assert "backbone" not in out["content"]  # A2-6: never defaulted
 
 
 # --- T12 / D4 / C-KEY-2: model_id + source on every proposal ----------------
 
 _ROLES = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
-_DEFAULTS = {
-    "DataCurator": DataCuratorProposal,
-    "Literature": LiteratureProposal,
-    "Architect": ArchitectProposal,
-    "Trainer": TrainerProposal,
-    "Validator": ValidatorProposal,
-}
+# A2-1/A2-6: the fallback content is the schema's OPTIONAL defaults only (no
+# confidence, no Architect backbone).
+_DEFAULTS = {role: (lambda role=role: schema_defaults(role)) for role in _ROLES}
 
 
 class _StubTransport:
@@ -170,7 +166,9 @@ class _StubTransport:
 
     def __init__(self, model_id: str = "x/y", content: dict | None = None) -> None:
         self._model_id = model_id
-        self._content = content if content is not None else {}
+        # A2-1/A2-6: a minimal schema-valid reply for every role.
+        self._content = content if content is not None else {"confidence": 0.5,
+                                                             "backbone": "linear"}
 
     def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset) -> ChatResult:  # noqa: ARG002
         return ChatResult(content=dict(self._content), model_id=self._model_id)
@@ -212,7 +210,8 @@ class TestModelIdAndSource:
         out = pool.propose(role, round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
         assert out["source"] == "fallback"
         assert out["model_id"] is None
-        assert out["content"] == _DEFAULTS[role]().model_dump()
+        assert out["content"] == _DEFAULTS[role]()
+        assert out["confidence"] is None  # A2-1: never imputed
 
     def test_schema_validation_failure_falls_back(self, tmp_path: Path) -> None:
         # backbone outside the Literal set → pydantic ValidationError.
@@ -222,7 +221,7 @@ class TestModelIdAndSource:
         out = pool.propose("Architect", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
         assert out["source"] == "fallback"
         assert out["model_id"] is None
-        assert out["content"] == ArchitectProposal().model_dump()
+        assert out["content"] == schema_defaults("Architect")
 
     def test_non_object_json_falls_back(self, tmp_path: Path) -> None:
         class _ListClient:
@@ -232,7 +231,7 @@ class TestModelIdAndSource:
         pool = LLMAgentPool(client=_ListClient(), cache_dir=tmp_path)
         out = pool.propose("Trainer", round_index=0, task_id="t", context={}, seed=0, dataset="adamson_full")
         assert out["source"] == "fallback"
-        assert out["content"] == TrainerProposal().model_dump()
+        assert out["content"] == schema_defaults("Trainer")
 
     @pytest.mark.parametrize(
         "exc",

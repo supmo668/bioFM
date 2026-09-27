@@ -11,6 +11,12 @@ a cross-task median is a median over models with differing inputs.
 ``force_include`` is for target-gene columns: a target's identity comes from
 the perturbation *label*, not from held-out expression, so forcing it in is not
 a leak.
+
+Amendment 2, A2-5: the 20 evaluation genes (convention 2) are ranked ONCE per
+task on the dataset's full post-QC gene axis (:func:`top_deg_columns`), shared
+by the trainer and lifecycle paths, and force-included like the targets. That
+widens feature availability, not label exposure: the ranking already used the
+held-out cells under the declared CPA/GEARS convention.
 """
 
 from __future__ import annotations
@@ -25,6 +31,9 @@ HVG_MODE = "train_only"
 # Column block for the variance pass: bounds the float64 scratch copy to
 # (n_train_cells x _CHUNK) instead of copying the whole training matrix.
 _CHUNK = 2048
+
+# Convention 2: MSD is scored on the top-20 DEGs.
+N_EVAL_DEGS = 20
 
 
 @dataclass(frozen=True)
@@ -89,6 +98,39 @@ def select_hvg_train_only(
     return HVGSelection(
         indices=indices, n_by_variance=n_var, n_forced=len(added), gene_var=gene_var
     )
+
+
+def _column_mean(X: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Per-gene float64 mean over the rows ``mask`` selects, in column blocks."""
+    out = np.empty(X.shape[1], dtype=np.float64)
+    for a in range(0, X.shape[1], _CHUNK):
+        b = min(a + _CHUNK, X.shape[1])
+        out[a:b] = np.asarray(X[mask, a:b], dtype=np.float64).mean(axis=0)
+    return out
+
+
+def top_deg_columns(
+    X: np.ndarray,
+    labels: np.ndarray,
+    control_mask: np.ndarray,
+    held: str,
+    k: int = N_EVAL_DEGS,
+) -> np.ndarray:
+    """The ``k`` evaluation genes for ``held`` on the FULL gene axis of ``X`` (A2-5).
+
+    Ranking is convention 2: largest ``|mean(X[held cells]) - mean(X[controls])|``,
+    ties broken stably (lower column index first). Returns full-axis column
+    indices in rank order. The one selector both paths call, once per task.
+    """
+    labels = np.asarray(labels)
+    held_mask = labels == held
+    ctrl = np.asarray(control_mask, dtype=bool)
+    if not held_mask.any():
+        raise ValueError(f"held-out perturbation {held!r} has no cells")
+    if not ctrl.any():
+        raise ValueError("control_mask selects no cells")
+    truth = _column_mean(X, held_mask) - _column_mean(X, ctrl)
+    return np.argsort(-np.abs(truth), kind="stable")[: int(k)].astype(np.int64)
 
 
 def remap_targets(

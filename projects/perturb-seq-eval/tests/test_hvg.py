@@ -114,6 +114,35 @@ def _genes_in_fit(expression: np.ndarray, held: str) -> set[str]:
     return found
 
 
+class _RankSpy:
+    """Spy on hvg.select_hvg_train_only: keeps every selection, in call order."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from perturb_eval.data import hvg
+
+        self.sels: list = []
+        original = hvg.select_hvg_train_only
+
+        def spy(*a, **kw):
+            sel = original(*a, **kw)
+            self.sels.append(sel)
+            return sel
+
+        monkeypatch.setattr(hvg, "select_hvg_train_only", spy)
+
+
+def _ranked_by_variance(ds: dict, sel) -> set[str]:
+    """Genes the train-only variance ranking picked (excluding force-includes)."""
+    top = np.argsort(-sel.gene_var, kind="stable")[: sel.n_by_variance]
+    return {str(ds["gene_names"][int(i)]) for i in top}
+
+
+# Amendment 2 A2-5: the task's 20 evaluation genes (ranked with the held-out
+# cells, convention 2) are force-included, so on this 13-gene fixture every gene
+# is in every trainer-path feature set. The T8b property is now pinned on the
+# variance RANKING: held-out cells never choose a gene through it.
+
+
 def _phi():
     from perturb_eval.types import Config
 
@@ -132,16 +161,20 @@ class TestTrainOnlyPropertyThroughRealPaths:
         _write_adamson(path)
         ds = load_adamson_matrix(path, n_top_hvg=N_HVG, max_cells_per_pert=400)
         rec = _FitRecorder(monkeypatch)
+        spy = _RankSpy(monkeypatch)
 
         train_grid_cell_adamson(_phi(), "TFA", 0, h5ad_path=path, dataset_cache=ds)
         held_a = _genes_in_fit(rec.expressions[-1], "TFA")
         train_grid_cell_adamson(_phi(), "TFB", 0, h5ad_path=path, dataset_cache=ds)
         held_b = _genes_in_fit(rec.expressions[-1], "TFB")
 
-        assert "GA" not in held_a, f"held-out TFA's own shift leaked into features: {held_a}"
-        assert "GA" in held_b
-        assert "GB" not in held_b, f"held-out TFB's own shift leaked into features: {held_b}"
-        assert "GB" in held_a
+        ranked_a, ranked_b = (_ranked_by_variance(ds, s) for s in spy.sels)
+        assert "GA" not in ranked_a, f"held-out TFA's own shift leaked into ranking: {ranked_a}"
+        assert "GA" in ranked_b
+        assert "GB" not in ranked_b, f"held-out TFB's own shift leaked into ranking: {ranked_b}"
+        assert "GB" in ranked_a
+        # A2-5: each task's top evaluation gene is force-included.
+        assert "GA" in held_a and "GB" in held_b
         # Targets are always kept (identity from the label, not held-out expression).
         assert {"TFA", "TFB"} <= held_a and {"TFA", "TFB"} <= held_b
 
@@ -153,12 +186,16 @@ class TestTrainOnlyPropertyThroughRealPaths:
         _write_adamson(path)
         ds = load_adamson_combined([path], n_top_hvg=N_HVG, max_cells_per_pert=400)
         rec = _FitRecorder(monkeypatch)
+        spy = _RankSpy(monkeypatch)
         records = list(iter_trainer_records(
             dataset_name="adamson_full", ds=ds, tasks=["TFA", "TFB"],
-            backbones=("linear",), n_sweep=(3,), r_sweep=(1,), seeds=(0,),
+            backbones=("linear",), r_sweep=(1,), seeds=(0,),
         ))
         assert all("error" not in r for r in records), records
-        assert "GA" not in _genes_in_fit(rec.expressions[0], "TFA")
+        ranked_a, ranked_b = (_ranked_by_variance(ds, s) for s in spy.sels)
+        assert "GA" not in ranked_a and "GA" in ranked_b
+        # A2-5: GA is TFA's top evaluation gene, so it is force-included.
+        assert "GA" in _genes_in_fit(rec.expressions[0], "TFA")
         assert "GA" in _genes_in_fit(rec.expressions[1], "TFB")
 
     def test_norman_trainer_sweep(self, tmp_path: Path, monkeypatch) -> None:
@@ -169,12 +206,16 @@ class TestTrainOnlyPropertyThroughRealPaths:
         _write_norman(path)
         ds = load_norman_matrix(path, n_top_hvg=N_HVG, max_cells_per_pert=400)
         rec = _FitRecorder(monkeypatch)
+        spy = _RankSpy(monkeypatch)
         records = list(iter_trainer_records(
             dataset_name="norman", ds=ds, tasks=["TFA", "TFB"],
-            backbones=("linear",), n_sweep=(3,), r_sweep=(1,), seeds=(0,),
+            backbones=("linear",), r_sweep=(1,), seeds=(0,),
         ))
         assert all("error" not in r for r in records), records
-        assert "GA" not in _genes_in_fit(rec.expressions[0], "TFA")
+        ranked_a, ranked_b = (_ranked_by_variance(ds, s) for s in spy.sels)
+        assert "GA" not in ranked_a and "GA" in ranked_b
+        # A2-5: GA is TFA's top evaluation gene, so it is force-included.
+        assert "GA" in _genes_in_fit(rec.expressions[0], "TFA")
         assert "GA" in _genes_in_fit(rec.expressions[1], "TFB")
 
     def test_lifecycle_loop(self, monkeypatch) -> None:
@@ -192,16 +233,25 @@ class TestTrainOnlyPropertyThroughRealPaths:
         labels = np.where(group == "CTRL", "CTRL", group)
         targets = {"TFA": (0,), "TFB": (1,)}
         rec = _FitRecorder(monkeypatch)
+        spy = _RankSpy(monkeypatch)
         for held in ("TFA", "TFB"):
             run_agentic_lifecycle(
                 task_id=f"hold_{held}", X=X, labels=labels,
                 control_mask=group == "CTRL", target_gene_idx=targets,
                 held_out=held, agent_pool=_SmallHvgPool(seed=0), seed=0,
-                max_rounds=1, backbone_override="linear",
+                backbone_override="linear",  # A2-2: the fixed 3 rounds
                 dataset="adamson_full",
             )
-        assert "GA" not in _genes_in_fit(rec.expressions[0], "TFA")
-        assert "GA" in _genes_in_fit(rec.expressions[1], "TFB")
+        # A2-2: 3 rounds per task -> selections/fits 0-2 are TFA's, 3-5 TFB's.
+        assert len(spy.sels) == 6 and len(rec.expressions) == 6
+        names = {"gene_names": np.asarray(GENES)}
+        ranked_a = _ranked_by_variance(names, spy.sels[0])
+        ranked_b = _ranked_by_variance(names, spy.sels[3])
+        # T8b, restated on the variance RANKING: held-out cells never choose a gene.
+        assert "GA" not in ranked_a and "GA" in ranked_b
+        # A2-5: GA is TFA's top evaluation gene, so it is force-included.
+        assert "GA" in _genes_in_fit(rec.expressions[0], "TFA")
+        assert "GA" in _genes_in_fit(rec.expressions[3], "TFB")
 
 
 # --------------------------------------------------------------------------- (b)
@@ -279,13 +329,14 @@ class TestEveryPathRoutesThroughHelper:
         spy = _SelectSpy(monkeypatch)
         records = list(iter_trainer_records(
             dataset_name=dataset, ds=ds, tasks=["TFA", "TFB"],
-            backbones=("linear", "mlp"), n_sweep=(3, 5), r_sweep=(1,), seeds=(0, 1),
+            backbones=("linear", "mlp"), r_sweep=(1,), seeds=(0, 1),
         ))
-        assert len(records) == 2 * 2 * 2 * 2
+        assert len(records) == 2 * 2 * 1 * 2  # backbones x tasks x R x seeds (A2-4: no N)
         assert spy.calls == 2  # once per held-out task, not per cell
         for r in records:
             assert r["hvg_mode"] == "train_only"
-            assert r["hvg_n"] == 7 and r["hvg_n_forced"] == 1
+            # A2-5: the eval genes force in the 7 genes the ranking left out.
+            assert r["hvg_n"] == 13 and r["hvg_n_forced"] == 7
             assert isinstance(r["n_params"], int) and r["n_params"] > 0
 
     def test_adamson_grid_cell_selects_once_per_call(self, tmp_path: Path, monkeypatch) -> None:
@@ -301,7 +352,7 @@ class TestEveryPathRoutesThroughHelper:
         res = train_grid_cell_adamson(_phi(), "TFA", 0, h5ad_path=path, dataset_cache=ds)
         assert spy.calls == 1
         assert res.hvg_mode == "train_only"
-        assert res.hvg_n == 7 and res.hvg_n_forced == 1
+        assert res.hvg_n == 13 and res.hvg_n_forced == 7  # A2-5 eval genes forced in
         assert res.n_params is not None and res.n_params > 0
 
     def test_lifecycle_selects_once_per_round(self, monkeypatch) -> None:
@@ -313,13 +364,14 @@ class TestEveryPathRoutesThroughHelper:
             task_id="hold_TFA", X=_log_matrix(), labels=group,
             control_mask=group == "CTRL", target_gene_idx={"TFA": (0,), "TFB": (1,)},
             held_out="TFA", agent_pool=MockAgentPool(seed=0), seed=0,
-            max_rounds=2, backbone_override="linear", validator_threshold_override=-1.0,
+            backbone_override="linear", validator_threshold_override=-1.0,
             dataset="adamson_full",
         )
-        assert run.n_rounds == 2
-        assert spy.calls == 2
+        # A2-2: exactly 3 rounds, no early stop; one selection per round.
+        assert run.n_rounds == 3
+        assert spy.calls == 3
         assert run.hvg_mode == "train_only"
-        assert len(run.hvg_n_per_round) == 2
+        assert len(run.hvg_n_per_round) == 3
 
 
 # --------------------------------------------------------------------------- (d)

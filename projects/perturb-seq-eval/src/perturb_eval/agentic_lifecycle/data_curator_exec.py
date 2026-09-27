@@ -33,8 +33,10 @@ def execute_data_curator(
     training rows restricted to the selected columns. ``top_gene_indices``
     are sorted column indices into ``X``.
     """
-    n_top_hvg = int(proposal.get("n_top_hvg", 500))
-    pct_mito_max = float(proposal.get("pct_mito_max", 15.0))
+    # A2-3: the schema keys (``hvg_count`` / ``qc_mito_max``) are read first;
+    # ``n_top_hvg`` / ``pct_mito_max`` are the legacy keys of the non-LLM pools.
+    n_top_hvg = int(proposal.get("hvg_count", proposal.get("n_top_hvg", 500)))
+    pct_mito_max = float(proposal.get("qc_mito_max", proposal.get("pct_mito_max", 15.0)))
 
     sel = _hvg.select_hvg_train_only(X, train_mask, n_top_hvg, force_include=force_include)
     rows = np.flatnonzero(np.asarray(train_mask, dtype=bool))

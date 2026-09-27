@@ -76,7 +76,7 @@ def _run(tmp_path: Path, trainer_rows, life_rows, *, tprov=None, lprov=None):
 
 
 def _arch(bb: str, source: str | None = "llm") -> dict:
-    return _step("Architect", {"backbone": bb, "hvg_count": 2000}, source)
+    return {**_step("Architect", {"backbone": bb, "hvg_count": 2000}, source), "backbone_stated": bb}
 
 
 # ---------------------------------------------------------------- T14 reader

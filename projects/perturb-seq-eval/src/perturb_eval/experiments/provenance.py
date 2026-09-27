@@ -37,7 +37,7 @@ REQUIRED_ENTRYPOINT_KWARGS: tuple[str, ...] = (
     "seeds",
     "n_top_hvg",
     "max_cells_per_pert",
-    "n_sweep",
+    # Amendment 2 A2-4: N is not a trainer-sweep axis (no ``n_sweep``).
     "r_sweep",
     "backbones",
     "doublet_delim",
@@ -61,6 +61,8 @@ REQUIRED_KEYS: tuple[str, ...] = (
     "tasks",
     "tasks_excluded",
     "hvg_selection",
+    # Amendment 2 A2-4: the trainer grid as run (distinct count, seeds).
+    "trainer_grid",
     "llm_pool",
     "gpu",
     "hourly_usd",
@@ -252,6 +254,24 @@ def _require(cond: bool, msg: str) -> None:
         raise ValueError(msg)
 
 
+# ``perturb_eval.experiments.heldout.trainer_grid`` keys (A2-4).
+_TRAINER_GRID_KEYS: tuple[str, ...] = (
+    "backbones", "r_sweep", "seeds", "n_records_per_task", "n_distinct_per_task",
+    "distinct_by_backbone",
+)
+
+
+def _validate_trainer_grid(grid: Any) -> dict[str, Any]:
+    _require(isinstance(grid, Mapping), "trainer_grid must be a mapping (A2-4)")
+    missing = [k for k in _TRAINER_GRID_KEYS if k not in grid]
+    _require(not missing, f"trainer_grid missing {missing} (A2-4)")
+    for k in ("n_records_per_task", "n_distinct_per_task"):
+        v = grid[k]
+        _require(isinstance(v, int) and not isinstance(v, bool) and v >= 0,
+                 f"trainer_grid[{k!r}] must be a non-negative int, got {v!r}")
+    return copy.deepcopy(dict(grid))
+
+
 def _validate_lib_versions(lv: Mapping[str, Any]) -> None:
     for k, v in lv.items():
         _require(v is None or isinstance(v, str), f"lib_versions[{k!r}] must be str|None")
@@ -281,12 +301,18 @@ def build_provenance(
     preregistration: Mapping[str, str] | None = None,
     device: str | None = None,
     llm_cache_dir: str | None = None,
+    trainer_grid: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Start-of-run provenance record; validates presence and types.
 
     ``device`` is the torch device the run trains on (``"cuda"``/``"cpu"``;
     QG C9) and ``llm_cache_dir`` the LLM disk cache the run reads and writes
     (QG C6); both are always present, ``None`` when not supplied.
+
+    ``trainer_grid`` (required; amendment 2 A2-4) is
+    :func:`perturb_eval.experiments.heldout.trainer_grid`: records per task,
+    distinct fits (the H1/H2 oracle's configuration count), per-backbone
+    breakdown and seeds.
 
     A dataset entry may carry ``label_contract`` (CTO #250: the loader's
     ``LabelContract.to_provenance()``); its shape is validated. Every
@@ -327,6 +353,7 @@ def build_provenance(
     _require(isinstance(budget_cap_usd, (int, float)), "budget_cap_usd must be a number")
     lv = dict(lib_versions) if lib_versions is not None else resolve_lib_versions()
     _validate_lib_versions(lv)
+    grid = _validate_trainer_grid(trainer_grid)
     limitations = list(KNOWN_LIMITATIONS)
     limitations += [s for s in known_limitations if s not in limitations]
 
@@ -345,6 +372,7 @@ def build_provenance(
         "tasks_excluded": excl,
         # per-task n filled at finalize (CTO #227 cond. 3)
         "hvg_selection": {"mode": "train_only"},
+        "trainer_grid": grid,
         "llm_pool": pool,
         # Principal directive + CTO #265: credential SOURCE only (never the value),
         # and the commit that fixed the hypotheses. Always present; the preflight

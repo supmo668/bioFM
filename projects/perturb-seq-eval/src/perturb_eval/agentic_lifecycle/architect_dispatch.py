@@ -8,6 +8,7 @@ instead of just a backbone string. See
 
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping
 from typing import Any, Optional
 
 from perturb_eval.backbones import _REGISTRY, available_backbones, build_backbone
@@ -106,6 +107,88 @@ def resolve_architect_config(
     # Final sanity pass on backbone in case delta introduced junk.
     cfg["backbone"] = _canonical_backbone(str(cfg["backbone"]))
     return cfg
+
+
+# A2-3: every agent-controlled field, its default, and the key each tier states
+# it under (schema names; ``n_top_hvg`` / ``pct_mito_max`` are the legacy
+# DataCurator keys still emitted by the non-LLM mock pool). Precedence per
+# field: Validator delta > Architect > DataCurator > Trainer > default. The
+# Trainer tier is not named in amendment 2; it sits just above the default so
+# the Trainer's own schema fields are applied only when no ranked tier states
+# them (it overlaps the Architect only on learning_rate / ridge_lambda / epochs).
+APPLIED_FIELDS: dict[str, dict[str, Any]] = {
+    "backbone": {"default": "linear", "architect": ("backbone",)},
+    "hvg_count": {"default": 2000, "architect": ("hvg_count",),
+                  "datacurator": ("hvg_count", "n_top_hvg")},
+    "qc_mito_max": {"default": 12.0, "datacurator": ("qc_mito_max", "pct_mito_max")},
+    "learning_rate": {"default": 1e-2, "architect": ("learning_rate",), "trainer": ("lr",)},
+    "ridge_lambda": {"default": 1.0, "architect": ("ridge_lambda",),
+                     "trainer": ("ridge_lambda",)},
+    "epochs": {"default": 40, "architect": ("epochs",), "trainer": ("epochs",)},
+}
+_TIERS = ("architect", "datacurator", "trainer")
+
+
+def _stated_value(content: Mapping[str, Any] | None, stated: Collection[str] | None,
+                  keys: tuple[str, ...]) -> tuple[bool, Any]:
+    """``(True, value)`` for the first of ``keys`` the tier STATED.
+
+    ``stated=None`` (a non-LLM pool, which reports no stated set) treats every
+    key present in ``content`` as stated. For an LLM step ``stated`` is the
+    parsed model's ``model_fields_set``: a schema default is not a statement.
+    """
+    if not content:
+        return False, None
+    for key in keys:
+        if key in content and content[key] is not None and (stated is None or key in stated):
+            return True, content[key]
+    return False, None
+
+
+def resolve_applied_config(
+    *,
+    datacurator: Mapping[str, Any] | None,
+    datacurator_stated: Collection[str] | None,
+    architect: Mapping[str, Any] | None,
+    architect_stated: Collection[str] | None,
+    critique_delta: Optional[Mapping[str, Any]],
+    trainer: Mapping[str, Any] | None = None,
+    trainer_stated: Collection[str] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """The applied configuration for one round, and which tier supplied each field (A2-3).
+
+    Returns ``(values, sources)`` over :data:`APPLIED_FIELDS`; each source is
+    ``"validator"``, ``"architect"``, ``"datacurator"``, ``"trainer"`` or
+    ``"default"``. Backbone names are canonicalised by :func:`_canonical_backbone`.
+    """
+    tiers = {
+        "architect": (architect, architect_stated),
+        "datacurator": (datacurator, datacurator_stated),
+        "trainer": (trainer, trainer_stated),
+    }
+    delta = dict(critique_delta or {})
+    values: dict[str, Any] = {}
+    sources: dict[str, str] = {}
+    for name, spec in APPLIED_FIELDS.items():
+        if name in delta and delta[name] is not None:
+            values[name], sources[name] = delta[name], "validator"
+        else:
+            values[name], sources[name] = spec["default"], "default"
+            for tier in _TIERS:
+                keys = spec.get(tier)
+                if not keys:
+                    continue
+                content, stated = tiers[tier]
+                found, val = _stated_value(content, stated, keys)
+                if found:
+                    values[name], sources[name] = val, tier
+                    break
+    values["backbone"] = _canonical_backbone(str(values["backbone"]))
+    values["hvg_count"] = int(values["hvg_count"])
+    values["epochs"] = int(values["epochs"])
+    for k in ("qc_mito_max", "learning_rate", "ridge_lambda"):
+        values[k] = float(values[k])
+    return values, sources
 
 
 def dispatch_architect(proposal: dict) -> tuple:

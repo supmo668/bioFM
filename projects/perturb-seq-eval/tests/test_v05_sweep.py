@@ -27,6 +27,12 @@ _RECORD_KEYS = {
     "n_params",
     # QG C15: (backbone, n_params) per round.
     "n_params_per_round",
+    # Amendment 2: A2-2 per-round MSD, A2-3 applied config per round.
+    "msd_per_round",
+    "applied_config_per_round",
+    # A2-5: the task's evaluation genes (shared with the trainer record).
+    "eval_gene_idx",
+    "n_eval_genes",
     "dataset",
     "seed",
     "wall_sec",
@@ -98,10 +104,10 @@ def test_lifecycle_record_forwards_extra_lifecycle_kwargs() -> None:
         seed=11,
         pool=object(),
         run_fn=stub,
-        max_rounds=5,
+        max_rounds=3,  # A2-2: the only accepted value (any other is refused)
         backbone_override="mlp",
     )
-    assert stub.calls[0]["max_rounds"] == 5
+    assert stub.calls[0]["max_rounds"] == 3
     assert stub.calls[0]["backbone_override"] == "mlp"
     assert stub.calls[0]["seed"] == 11
 

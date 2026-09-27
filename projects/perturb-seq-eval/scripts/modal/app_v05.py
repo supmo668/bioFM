@@ -8,10 +8,16 @@ Design:
     ``load_adamson_combined``, then stratified-subsampled to ~20 TFs by
     mean |logFC| quantile.
   * Norman stratified-subsampled (fair, seed=2026).
-  * Trainer sweep: ``n_tasks × {linear, mlp, scgpt_small} × N∈{3,5} ×
-    R∈{1,2,3} × 3 seeds``. Atomic JSONL append for resume safety.
+  * Trainer sweep: ``n_tasks × {linear, mlp, scgpt_small} × R∈{1,2,3} ×
+    3 seeds`` (amendment 2 A2-4: N is not an axis; the distinct-fit count is
+    recorded in provenance as ``trainer_grid``). Atomic JSONL append for
+    resume safety.
   * Lifecycle sweep: ``n_tasks × 3 seeds`` with the real OpenRouter
-    LLMAgentPool (free-tier rotation; $0 LLM cost).
+    LLMAgentPool (free-tier rotation; $0 LLM cost). Amendment 2: exactly 3
+    rounds per run (A2-2); the LLM cache is the version namespace
+    ``/biofm_cache/llm/<prereg_version>/`` (A2-8), whose entry count at start
+    (must be 0) and cache-hit count (must be 0) are recorded in provenance; a
+    run that fails either is flagged ``replay``.
 
 Run (from ``projects/perturb-seq-eval``; the key is injected by Infisical at
 run time and never written to disk; ``OPENROUTER_KEY_SOURCE`` records where it
@@ -100,7 +106,6 @@ _LLM_CACHE_DIR = "/biofm_cache/llm"
 
 # Sweep-shape defaults shared by ``run_v05_sweep`` and the host entrypoint so the
 # entrypoint can pass (and record) every resolved kwarg explicitly.
-_DEFAULT_N_SWEEP: tuple[int, ...] = (3, 5)
 _DEFAULT_R_SWEEP: tuple[int, ...] = (1, 2, 3)
 _DEFAULT_BACKBONES: tuple[str, ...] = ("linear", "mlp", "scgpt_small")
 
@@ -133,7 +138,6 @@ def run_v05_sweep(
     adamson_n_per_bin: int = 7,  # 3 bins × 7 = ~21 TFs
     adamson_n_bins: int = 3,
     seeds: int = 3,
-    n_sweep: tuple[int, ...] = _DEFAULT_N_SWEEP,
     r_sweep: tuple[int, ...] = _DEFAULT_R_SWEEP,
     backbones: tuple[str, ...] = _DEFAULT_BACKBONES,
     include_norman: bool = True,
@@ -187,12 +191,15 @@ def run_v05_sweep(
     from perturb_eval.data.download import fetch_adamson_all, fetch_norman
     from perturb_eval.data.subsample import mean_abs_logfc_per_target
     from perturb_eval.experiments.e2_adamson import load_adamson_combined
-    from perturb_eval.experiments.heldout import iter_trainer_records
+    from perturb_eval.experiments.heldout import iter_trainer_records, trainer_grid
     from perturb_eval.experiments.norman import load_norman_matrix
     from perturb_eval.experiments.v05_preflight import preflight
     from perturb_eval.experiments.v05_sweep import (
+        LIFECYCLE_N_ROUNDS,
         derive_status,
         iter_lifecycle_records,
+        llm_cache_end,
+        llm_cache_start,
         provenance_entropies,
         run_guarded,
         spend_guard,
@@ -208,7 +215,11 @@ def run_v05_sweep(
         read_jsonl_locating,
         scan_unparseable,
     )
-    from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
+    from perturb_eval.llm.openrouter_client import (
+        DEFAULT_POOL,
+        OpenRouterClient,
+        versioned_cache_dir,
+    )
 
     # QG C22: --version is a release tag and the output stays under /data.
     out_dir = version_out_dir(version)
@@ -354,6 +365,11 @@ def run_v05_sweep(
     )
     print(f"[v0.6.0] preflight ok: {len(report.checks)} checks; probe={report.probe_model_id}")
     task_plan = report.task_plan
+    # A2-8: the version-namespaced LLM cache and its entry count at sweep start
+    # (must be 0 for the pre-registered run; recorded, and a non-zero count
+    # makes the run a replay — see llm_cache_end at finalisation).
+    llm_cache = llm_cache_start(Path(_LLM_CACHE_DIR))
+    print(f"[v0.6.0] llm cache: {llm_cache}")
     adamson_ds = report.datasets.get("adamson_full")
     norman_ds = report.datasets.get("norman")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -401,7 +417,14 @@ def run_v05_sweep(
         preregistration=preregistration,
         device=training_device(),  # QG C9: the device every scgpt_small fit uses
         llm_cache_dir=_LLM_CACHE_DIR,  # QG C6
+        # A2-4: the grid as run — records per task, distinct fits, seeds.
+        trainer_grid=trainer_grid(backbones=backbones, r_sweep=r_sweep,
+                                  seeds=list(range(2026, 2026 + seeds))),
     )
+    # A2-8 / A2-2: prereg_version, the cache namespace + entry count at start,
+    # and the fixed round count go into record 0 of both JSONLs.
+    prov.update(llm_cache)
+    prov["lifecycle_n_rounds"] = LIFECYCLE_N_ROUNDS
     prov_line = jsonl_provenance_line(prov)
     for _p in (trainer_out, lifecycle_out):
         _p.write_text(prov_line + "\n", encoding="utf-8")
@@ -434,6 +457,8 @@ def run_v05_sweep(
                 stop_reason=stop_state["reason"],
                 cost_usd_at_stop=stop_state["cost_usd"],
             )
+            failed.update(llm_cache_end(
+                lifecycle_records, entries_at_start=llm_cache["llm_cache_entries_at_start"]))
             provenance_out.write_text(json.dumps(failed, indent=2, default=str))
             DATA_VOL.commit()
             print(f"[v0.6.0] ABORT in {phase}: {failed['failure']['error_type']} — "
@@ -463,7 +488,6 @@ def run_v05_sweep(
                 ds=ds,
                 tasks=tasks,
                 backbones=backbones,
-                n_sweep=n_sweep,
                 r_sweep=r_sweep,
                 seeds=range(2026, 2026 + seeds),
                 should_stop=_should_stop,
@@ -488,13 +512,15 @@ def run_v05_sweep(
     client_kwargs: dict = {"cooldown_sec": cooldown_sec}
     if _client_takes_temperature:
         client_kwargs["temperature"] = temperature
+    # A2-8: the client reads and writes ONLY the version namespace.
+    llm_cache_ns = versioned_cache_dir(Path(_LLM_CACHE_DIR))
     client = OpenRouterClient(
         api_key=api_key,
-        cache_dir=Path(_LLM_CACHE_DIR),
+        cache_dir=llm_cache_ns,
         pool=DEFAULT_POOL,
         **client_kwargs,
     )
-    pool = LLMAgentPool(client=client, cache_dir=Path(_LLM_CACHE_DIR))
+    pool = LLMAgentPool(client=client, cache_dir=llm_cache_ns)
 
     # T6 + CTO #245 Q1: the loop body lives in v05_sweep.iter_lifecycle_records
     # (testable); BackboneUnavailableError and every non-transient exception
@@ -507,7 +533,7 @@ def run_v05_sweep(
             ],
             seeds=range(2026, 2026 + seeds),
             pool=pool,
-            max_rounds=3,
+            max_rounds=LIFECYCLE_N_ROUNDS,  # A2-2: exactly three rounds
             should_stop=_should_stop,
         ),
         sink=_sink(lifecycle_out, lifecycle_records),
@@ -564,6 +590,9 @@ def run_v05_sweep(
         stop_reason=stop_state["reason"],
         cost_usd_at_stop=stop_state["cost_usd"],
     )
+    # A2-8: cache-hit count (must be 0) and the replay flag.
+    final.update(llm_cache_end(
+        lifecycle_rows, entries_at_start=llm_cache["llm_cache_entries_at_start"]))
     provenance_out.write_text(json.dumps(final, indent=2, default=str))
     DATA_VOL.commit()
     summary = {
@@ -580,6 +609,10 @@ def run_v05_sweep(
         "spend_stop_usd": spend_stop_usd,
         "stop_reason": stop_state["reason"],
         "cost_usd_at_stop": stop_state["cost_usd"],
+        "prereg_version": final["prereg_version"],
+        "llm_cache_entries_at_start": final["llm_cache_entries_at_start"],
+        "llm_cache_hit_count": final["llm_cache_hit_count"],
+        "replay": final["replay"],
         **counts,
         **entropies,
     }
@@ -649,7 +682,6 @@ def entrypoint(
         "adamson_n_per_bin": adamson_n_per_bin,
         "adamson_n_bins": adamson_n_bins,
         "seeds": seeds,
-        "n_sweep": _DEFAULT_N_SWEEP,
         "r_sweep": _DEFAULT_R_SWEEP,
         "backbones": _DEFAULT_BACKBONES,
         "include_norman": include_norman,

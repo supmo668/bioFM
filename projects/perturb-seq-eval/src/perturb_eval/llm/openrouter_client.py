@@ -34,6 +34,27 @@ logger = logging.getLogger(__name__)
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Amendment 2 (A2-8): the pre-registered version, pinned at the lock. Each
+# pre-registered version starts with an EMPTY LLM cache namespace
+# ``<cache_dir>/<prereg_version>/``; a non-empty start or any cache hit makes
+# the run a replay.
+PREREG_VERSION = "v0.6.0-a2"
+
+
+def versioned_cache_dir(cache_dir: str | Path, prereg_version: str = PREREG_VERSION) -> Path:
+    """``<cache_dir>/<prereg_version>`` — the LLM cache namespace a run reads and writes."""
+    if not prereg_version or "/" in prereg_version or prereg_version in (".", ".."):
+        raise ValueError(f"invalid prereg_version {prereg_version!r}")
+    return Path(cache_dir) / prereg_version
+
+
+def count_cache_entries(namespace: str | Path) -> int:
+    """Number of cached replies (``*.json`` files) under ``namespace``; 0 if absent."""
+    root = Path(namespace)
+    if not root.is_dir():
+        return 0
+    return sum(1 for p in root.rglob("*.json") if p.is_file())
+
 
 @dataclass(frozen=True)
 class ModelSpec:

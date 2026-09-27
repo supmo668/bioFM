@@ -47,6 +47,7 @@ class VariedMockClient:
                 "qc_mito_max": 12.0,
                 "split_strategy": "per_pert_holdout",
                 "batch_correction": "none",
+                "confidence": 0.6,  # A2-1: required on every role
             }
         if role == "Literature":
             return {
@@ -55,6 +56,7 @@ class VariedMockClient:
                 "tool_calls": ["biogpt"],
                 "expected_up": ["TP53"],
                 "expected_down": [],
+                "confidence": 0.5,
             }
         if role == "Architect":
             return {
@@ -65,11 +67,12 @@ class VariedMockClient:
                 "learning_rate": self._LRS[h % len(self._LRS)],
                 "ridge_lambda": 1.0,
                 "epochs": 40,
+                "confidence": 0.7,
             }
         if role == "Trainer":
-            return {"lr": 5e-3, "epochs": 40, "ridge_lambda": 1.0}
+            return {"lr": 5e-3, "epochs": 40, "ridge_lambda": 1.0, "confidence": 0.4}
         if role == "Validator":
-            return {"dynamic_threshold_msd": 0.1}
+            return {"dynamic_threshold_msd": 0.1, "confidence": 0.8}
         return {}
 
 
@@ -136,19 +139,22 @@ class TestFreedomE2E:
                 )
 
             def _payload(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
+                # A2-1: every reply states a confidence. The Architect keys off a
+                # NON-EMPTY Validator delta in its prompt (every Architect prompt
+                # carries a '"backbone":' schema line, so that is no signal).
                 if role == "Architect":
-                    if "backbone" in prompt and '"backbone":' in prompt:
+                    if "Validator suggested config delta: {}" not in prompt:
                         # Validator delta present → propose a different backbone.
-                        return json.loads('{"backbone": "mlp"}')
-                    return json.loads('{"backbone": "linear"}')
+                        return json.loads('{"backbone": "mlp", "confidence": 0.6}')
+                    return json.loads('{"backbone": "linear", "confidence": 0.6}')
                 if role == "Literature":
-                    return json.loads('{"pathway_prior": {}, "expected_up": [], "expected_down": []}')
+                    return json.loads('{"pathway_prior": {}, "expected_up": [], "expected_down": [], "confidence": 0.5}')
                 if role == "DataCurator":
-                    return json.loads('{"hvg_method": "seurat", "hvg_count": 500}')
+                    return json.loads('{"hvg_method": "seurat", "hvg_count": 500, "confidence": 0.5}')
                 if role == "Trainer":
-                    return json.loads('{"lr": 1e-2, "epochs": 5, "ridge_lambda": 1.0}')
+                    return json.loads('{"lr": 1e-2, "epochs": 5, "ridge_lambda": 1.0, "confidence": 0.5}')
                 if role == "Validator":
-                    return json.loads('{"dynamic_threshold_msd": 0.02}')
+                    return json.loads('{"dynamic_threshold_msd": 0.02, "confidence": 0.5}')
                 return {}
 
         pool = LLMAgentPool(client=ScriptedClient(), cache_dir=tmp_path)
@@ -170,10 +176,14 @@ class TestFreedomE2E:
             for s in run.steps
             if s.agent_name == "Architect"
         ]
-        # Either the loop ran two rounds with a change, or it accepted early
-        # and only one round exists. Accepted early is a valid gate too
-        # (it means the critique path didn't need to fire).
-        if len(architect_by_round) >= 2:
+        # A2-2: no early stop — both rounds always run; round 0's verdict is
+        # recorded on its Validator step. An accepting round 0 emits no delta
+        # (a valid outcome: the critique path did not need to fire).
+        assert len(architect_by_round) == 2
+        assert all(s.source == "llm" for s in run.steps)
+        round0_accepted = next(s.validator_accepted for s in run.steps
+                               if s.agent_name == "Validator" and s.round_index == 0)
+        if not round0_accepted:
             # With tight threshold (0.02) the toy dataset should reject,
             # so round-1 should see the validator critique.
             assert architect_by_round[1] != architect_by_round[0], (

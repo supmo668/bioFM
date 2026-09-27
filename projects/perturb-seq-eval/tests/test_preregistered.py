@@ -42,9 +42,14 @@ class TestPerRunComponents:
     def test_matches_metrics_module_exactly(self) -> None:
         first, last = [0.2, 0.4, 0.6, 0.8, 0.5], [0.9, 0.1, 0.5, 0.7, 0.3]
         out = pr.per_run_components(_run("A", 1, 0.1, [first, last]))
-        assert out["ace_norm"] == pytest.approx(metrics.ace_norm(tuple(last)))
+        # Amendment 2, A2-10: the gated ACE component is metrics.ace_d; the softmax
+        # metrics.ace_norm is carried descriptively only.
+        assert out["ace_norm"] == pytest.approx(metrics.ace_d(tuple(last)))
+        assert out["ace_norm_softmax"] == pytest.approx(metrics.ace_norm(tuple(last)))
         dc = sum(last) / 5 - sum(first) / 5
-        assert out["one_minus_delta_c"] == pytest.approx(1.0 - max(0.0, min(1.0, dc)))
+        # Amendment 2, A2-11: 1-ΔC is unclipped; the clipped value is descriptive only.
+        assert out["one_minus_delta_c"] == pytest.approx(1.0 - dc)
+        assert out["one_minus_delta_c_clipped"] == pytest.approx(1.0 - max(0.0, min(1.0, dc)))
         w = pr.TDI_LIFECYCLE_WEIGHTS
         assert w["ace_norm"] == pytest.approx(0.35 / 0.60)
         assert w["one_minus_delta_c"] == pytest.approx(0.25 / 0.60)
@@ -67,6 +72,39 @@ class TestPerRunComponents:
         assert "round 1" in out["reasons"]["ace_norm"]
         assert "< 2" in out["reasons"]["ace_norm"]
 
+    def test_one_llm_step_round_is_undefined_not_zero(self, monkeypatch) -> None:
+        # A2-10 check 1: a final round with exactly ONE LLM-sourced step would make
+        # metrics.ace_d return 0.0 (its N = 1 convention). ACE must be None with a
+        # reason instead, and ace_d is never called.
+        calls: list[tuple] = []
+        real = metrics.ace_d
+        monkeypatch.setattr(metrics, "ace_d", lambda c: calls.append(c) or real(c))
+        run = _run("A", 1, 0.1, [[0.2, 0.4, 0.6, 0.8, 0.5]])
+        run["steps"].append(_step(1, "Architect", 0.9))
+        run["steps"] += [_step(1, a, 0.9, source="fallback") for a in ("DataCurator", "Trainer")]
+        out = pr.per_run_components(run)
+        assert out["ace_norm"] is None
+        assert out["ace_norm"] != 0.0
+        assert "round 1" in out["reasons"]["ace_norm"]
+        assert "1 LLM-sourced step" in out["reasons"]["ace_norm"]
+        assert out["tdi_lifecycle"] is None
+        assert calls == []
+
+    def test_zero_sum_confidence_round_is_undefined_not_zero(self, monkeypatch) -> None:
+        # A2-10 check 2: all-zero final-round confidences would make metrics.ace_d
+        # return 0.0 (its all-zero convention). ACE must be None with a reason, and
+        # the check runs BEFORE the call: ace_d is not called at all.
+        def boom(*_a, **_k):
+            raise AssertionError("metrics.ace_d must not be called on a zero-sum round")
+
+        monkeypatch.setattr(metrics, "ace_d", boom)
+        out = pr.per_run_components(_run("A", 1, 0.1, [[0.2, 0.4, 0.6, 0.8, 0.5], [0.0] * 5]))
+        assert out["ace_norm"] is None
+        assert "sum to zero" in out["reasons"]["ace_norm"]
+        assert out["tdi_lifecycle"] is None
+        # ΔC is still defined (it reads means, not a distribution): 1 - (0 - 0.5) = 1.5
+        assert out["one_minus_delta_c"] == pytest.approx(1.5)
+
     def test_mock_and_unlabelled_steps_are_not_llm(self) -> None:
         run = _run("A", 1, 0.1, [[0.2, 0.4]])
         run["steps"][1]["source"] = "mock"
@@ -86,8 +124,8 @@ class TestPerRunComponents:
         assert out["reasons"]["one_minus_delta_c"] == pr.SINGLE_ROUND_REASON
         assert out["reasons"]["tdi_lifecycle"] == pr.SINGLE_ROUND_REASON
         assert pr.SINGLE_ROUND_REASON == "single-round run: ΔC requires >= 2 rounds"
-        # ACE_norm is unaffected
-        assert out["ace_norm"] == pytest.approx(metrics.ace_norm((0.2, 0.4, 0.6)))
+        # ACE_norm is unaffected (A2-10: metrics.ace_d)
+        assert out["ace_norm"] == pytest.approx(metrics.ace_d((0.2, 0.4, 0.6)))
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +381,9 @@ def test_analyse_v05_run_carries_preregistered_block(tmp_path: Path) -> None:
             run = _run(t, s, 0.05 * (k + 1), [[0.1 * ((k % 5) + 1)] * 5, [0.5] * 5], dataset=ds)
             for st in run["steps"]:
                 if st["agent_name"] == "Architect":
-                    st["proposal_content"] = {"backbone": ["linear", "mlp", "scgpt_small"][k % 3]}
+                    bb = ["linear", "mlp", "scgpt_small"][k % 3]
+                    st["proposal_content"] = {"backbone": bb}
+                    st["backbone_stated"] = st["backbone_executed"] = bb  # A2-6
             life.append(run)
     tj, lj = tmp_path / "trainer_runs.jsonl", tmp_path / "lifecycle_runs.jsonl"
     _write(tj, [prov] + trainer)

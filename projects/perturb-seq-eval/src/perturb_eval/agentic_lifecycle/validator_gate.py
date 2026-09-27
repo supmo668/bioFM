@@ -10,13 +10,15 @@ from typing import Any
 
 import numpy as np
 
+from perturb_eval.agentic_lifecycle.proposal_schema import BACKBONE_MENU
 from perturb_eval.agentic_lifecycle.types import (
     ExecutedValidation,
     StructuredCritiqueDTO,
 )
 from perturb_eval.backbones import mean_squared_deviation
 
-_BACKBONE_ROTATION = ("linear", "mlp", "scgpt_small")
+# A2-6: the rotation is over the Architect's pinned menu.
+_BACKBONE_ROTATION = BACKBONE_MENU
 
 
 def suggest_config_delta(
@@ -62,11 +64,17 @@ def score_and_gate(
     control_mask: np.ndarray,
     held_out: str,
     held_out_target_idx: int,
+    eval_cols: np.ndarray,
     threshold_msd: float = 0.5,
     biofm_agreement: float = 0.5,
     gene_names: tuple[str, ...] | None = None,
 ) -> ExecutedValidation:
-    """Compute MSD-on-top-K-DEGs, decide accept/reject, emit critique."""
+    """Compute MSD on the task's evaluation genes, decide accept/reject, emit critique.
+
+    ``eval_cols`` (required; amendment 2, A2-5) are the task's 20 evaluation
+    genes as columns of ``X``: selected once per task on the dataset's full
+    gene axis and shared with the trainer path, never re-ranked here.
+    """
     mask_p = labels == held_out
     mask_c = control_mask
     if not mask_p.any() or not mask_c.any():
@@ -83,7 +91,9 @@ def score_and_gate(
 
     pred = backbone.predict_logfc(held_out, held_out_target_idx, n_genes=X.shape[1])
     truth = np.mean(X[mask_p], axis=0) - np.mean(X[mask_c], axis=0)
-    top_k = np.argsort(-np.abs(truth))[:20]
+    top_k = np.asarray(eval_cols, dtype=np.int64)
+    if top_k.size == 0:
+        raise ValueError("eval_cols is empty: no evaluation genes to score (A2-5)")
     msd = float(mean_squared_deviation(pred, truth, top_k))
     deg_overlap = float(np.mean(np.sign(pred[top_k]) == np.sign(truth[top_k])))
     accepted = bool(msd <= threshold_msd)

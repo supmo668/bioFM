@@ -131,7 +131,7 @@ class _Stub:
 
 def _trainer_iter(**over):
     kw = dict(dataset_name="t", ds=_ds(), tasks=["TFA", "TFB"], backbones=("linear",),
-              n_sweep=(3,), r_sweep=(1,), seeds=(0,))
+              r_sweep=(1,), seeds=(0,))
     kw.update(over)
     return heldout.iter_trainer_records(**kw)
 
@@ -144,6 +144,8 @@ def _prov() -> dict:
         run_id="r1", git_sha="a" * 40, git_dirty=False, entrypoint_kwargs=kwargs,
         datasets=[], task_plan=plan, tasks_excluded=[], llm_pool=[], gpu="A100-40GB",
         hourly_usd=1.32, budget_cap_usd=28.0,
+        # A2-4: the trainer grid is a required provenance block.
+        trainer_grid=heldout.trainer_grid(backbones=("linear",), r_sweep=(1,), seeds=(0,)),
     )
 
 

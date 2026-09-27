@@ -116,6 +116,7 @@ def test_trainer_exec_fits_and_returns_meta() -> None:
 def test_validator_gate_produces_finite_msd_and_flag() -> None:
     from perturb_eval.agentic_lifecycle.validator_gate import score_and_gate
     from perturb_eval.backbones import BackboneTrainConfig, build_backbone
+    from perturb_eval.data.hvg import top_deg_columns
     rng = np.random.default_rng(0)
     X = rng.standard_normal((200, 40)) * 0.3 + 2.0
     labels = np.asarray(["CTRL"] * 100 + ["A"] * 100)
@@ -127,6 +128,7 @@ def test_validator_gate_produces_finite_msd_and_flag() -> None:
     report = score_and_gate(
         backbone=bb, X=X, labels=labels, control_mask=control_mask,
         held_out="A", held_out_target_idx=2, threshold_msd=0.5,
+        eval_cols=top_deg_columns(X, labels, control_mask, "A"),  # A2-5
     )
     assert report.msd_topk >= 0
     assert isinstance(report.accepted, bool)
@@ -367,11 +369,12 @@ def test_one_tuple_targets_match_int_targets_exactly(backbone: str) -> None:
 
 
 class _StubTransport:
-    """Client stub serving empty-but-valid proposals from pool model ``x/y``."""
+    """Client stub serving minimal valid proposals from pool model ``x/y``
+    (A2-1: a stated confidence; A2-6: an on-menu Architect backbone)."""
 
     def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):  # noqa: ARG002
         from perturb_eval.llm.openrouter_client import ChatResult
-        return ChatResult(content={}, model_id="x/y")
+        return ChatResult(content={"confidence": 0.5, "backbone": "linear"}, model_id="x/y")
 
 
 class _RateLimitedClient:
@@ -412,21 +415,17 @@ def test_loop_records_serving_model_id_and_source_llm(tmp_path) -> None:
 
 @pytest.mark.unit
 def test_loop_records_fallback_with_schema_default_content(tmp_path) -> None:
-    from perturb_eval.agentic_lifecycle.proposal_schema import (
-        ArchitectProposal, DataCuratorProposal, LiteratureProposal,
-        TrainerProposal, ValidatorProposal,
-    )
-    defaults = {
-        "DataCurator": DataCuratorProposal, "Literature": LiteratureProposal,
-        "Architect": ArchitectProposal, "Trainer": TrainerProposal,
-        "Validator": ValidatorProposal,
-    }
+    from perturb_eval.agentic_lifecycle.proposal_schema import schema_defaults
+
     run = _run_with_seed(2026, pool=_llm_pool(_RateLimitedClient(), tmp_path))
     assert len(run.steps) == 5
     for step in run.steps:
         assert step.source == "fallback", step
         assert step.model_id is None, step
-        assert step.proposal_content == defaults[step.agent_name]().model_dump()
+        # A2-1/A2-6: the optional schema defaults only; no imputed confidence
+        # and no defaulted Architect backbone.
+        assert step.proposal_content == schema_defaults(step.agent_name)
+        assert step.llm_confidence is None
 
 
 @pytest.mark.unit

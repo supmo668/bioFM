@@ -317,6 +317,11 @@ class TestAdamsonLoader:
 
 # ----------------------------------------------------------------- Norman ----
 
+# Amendment 2 A2-4: build_provenance requires the trainer grid as run.
+_GRID = {"backbones": ["linear"], "r_sweep": [1], "seeds": [0], "n_records_per_task": 1,
+         "n_distinct_per_task": 1, "distinct_by_backbone": {"linear": 1},
+         "r_seed_invariant_backbones": ["linear"]}
+
 NORMAN_GENES = ["NEWGENE", "FOXL2", "TGFBR2", "G3", "G4"]
 NORMAN_LABELS = (
     ["non-targeting"] * 3
@@ -481,6 +486,7 @@ class TestPreflightAndProvenance:
             tasks_excluded=[],
             labels_excluded=[{"dataset": "adamson_full", **PERK_EXCLUDED}],
             llm_pool=[], gpu="A100", hourly_usd=1.0, budget_cap_usd=1.0, lib_versions={},
+            trainer_grid=_GRID,  # A2-4: required provenance block
         )
         assert prov["datasets"][0]["label_contract"] == contract
         assert {"dataset": "adamson_full", **PERK_EXCLUDED} in prov["tasks_excluded"]
@@ -497,6 +503,7 @@ class TestPreflightAndProvenance:
                 tasks_excluded=[],
                 labels_excluded=[{"label": "PERK", "reason": PERK_REASON}],
                 llm_pool=[], gpu="A100", hourly_usd=1.0, budget_cap_usd=1.0, lib_versions={},
+                trainer_grid=_GRID,  # A2-4: required provenance block
             )
 
     def test_build_provenance_rejects_malformed_label_contract(self) -> None:
@@ -512,6 +519,7 @@ class TestPreflightAndProvenance:
                 task_plan=TaskPlan(adamson=("A",), norman_singletons=(), norman_doublets=()),
                 tasks_excluded=[],
                 llm_pool=[], gpu="A100", hourly_usd=1.0, budget_cap_usd=1.0, lib_versions={},
+                trainer_grid=_GRID,  # A2-4: required provenance block
             )
 
     def test_app_v05_wires_contract_and_exclusions(self) -> None:

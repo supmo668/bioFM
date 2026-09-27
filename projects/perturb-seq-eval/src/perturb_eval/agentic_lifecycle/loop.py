@@ -7,14 +7,17 @@ so the loop is testable offline.
 
 Refinement between rounds: the Validator's rationale + the previous
 MSD are threaded into the next round's ``context`` so each agent can
-adjust its proposal. The loop terminates early when the Validator
-accepts (MSD ≤ threshold).
+adjust its proposal. Amendment 2 (A2-2): the loop runs exactly
+``max_rounds`` rounds (3 in the pre-registered sweep) with NO early stop;
+the Validator's verdict and threshold are recorded on its step and never
+stop the run.
 
 See docs/plans/2026-04-22-end-to-end-agentic-lifecycle.md Task 7.
 """
 
 from __future__ import annotations
 
+import math
 import time
 import zlib
 from dataclasses import dataclass
@@ -22,11 +25,16 @@ from typing import Protocol
 
 import numpy as np
 
-from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_architect_config
+from perturb_eval.agentic_lifecycle.architect_dispatch import (
+    _canonical_backbone,
+    resolve_applied_config,
+)
 from perturb_eval.backbones import build_backbone, count_fitted_params
+from perturb_eval.data import hvg as _hvg
 from perturb_eval.data.hvg import HVG_MODE, all_target_columns, remap_targets
 from perturb_eval.agentic_lifecycle.data_curator_exec import execute_data_curator
 from perturb_eval.agentic_lifecycle.literature_exec import extract_expected_genes
+from perturb_eval.agentic_lifecycle.proposal_schema import BACKBONE_MENU
 from perturb_eval.agentic_lifecycle.trainer_exec import execute_trainer
 from perturb_eval.agentic_lifecycle.types import STEP_SOURCES, LifecycleRun, LifecycleStep
 from perturb_eval.agentic_lifecycle.validator_gate import score_and_gate
@@ -36,7 +44,11 @@ class AgentPool(Protocol):
     """Produces structured proposals per role, with optional refinement context.
 
     ``propose`` returns ``{"content", "rationale", "confidence", "model_id",
-    "source"}`` plus an optional ``cache_hit`` (bool; LLM pools only).
+    "source"}`` plus an optional ``cache_hit`` (bool; LLM pools only) and an
+    optional ``stated_fields`` (the fields an LLM actually stated, A2-3; absent
+    means every key in ``content`` is stated). An "llm" step's ``confidence``
+    must be a finite number in [0, 1] and a "fallback" step's must be None
+    (A2-1: never imputed); the loop raises otherwise.
     ``source`` is REQUIRED and must be one of
     :data:`~perturb_eval.agentic_lifecycle.types.STEP_SOURCES`; the loop
     raises rather than defaulting it, so no pool can masquerade as "llm".
@@ -165,6 +177,18 @@ def _remap_held_out_target(
     return tuple(remapped)
 
 
+def _eval_cols(eval_genes: np.ndarray, top_indices: np.ndarray) -> np.ndarray:
+    """A2-5: the evaluation genes as columns of the round's HVG subset, in rank
+    order. Every one was force-included, so a missing one is a bug — raise."""
+    pos: dict[int, int] = {}
+    for new, old in enumerate(np.asarray(top_indices).tolist()):
+        pos.setdefault(int(old), new)
+    missing = [int(g) for g in eval_genes if int(g) not in pos]
+    if missing:
+        raise ValueError(f"evaluation gene column(s) not in the HVG selection: {missing}")
+    return np.asarray([pos[int(g)] for g in eval_genes], dtype=np.int64)
+
+
 def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str, bool | None]:
     """``(model_id, source, cache_hit)`` from a pool's propose output — fail loud (D4)."""
     source = agent_out["source"]
@@ -184,6 +208,59 @@ def _step_provenance(role: str, agent_out: dict) -> tuple[str | None, str, bool 
     return model_id, source, cache_hit
 
 
+def _step_confidence(role: str, source: str, agent_out: dict) -> float | None:
+    """A2-1: an "llm" step carries its stated confidence in [0, 1]; a "fallback"
+    step carries none. A pool that breaks this contract is a bug — raise."""
+    conf = agent_out.get("confidence")
+    if source == "fallback":
+        if conf is not None:
+            raise ValueError(
+                f"{role}: fallback step carries confidence={conf!r}; confidence is "
+                "never imputed (A2-1)"
+            )
+        return None
+    if source == "llm" and not (
+        isinstance(conf, (int, float)) and not isinstance(conf, bool)
+        and math.isfinite(conf) and 0.0 <= conf <= 1.0
+    ):
+        raise ValueError(
+            f"{role}: llm step confidence={conf!r} is not a finite number in [0, 1] "
+            "(A2-1: a schema failure must take the fallback path, never reach here)"
+        )
+    return float(conf)
+
+
+def _stated_backbone(source: str, content: dict) -> str | None:
+    """A2-6: the backbone the Architect stated. An "llm" step must state an
+    on-menu name (the schema enforces it); a fallback step states none."""
+    if source == "fallback":
+        return None
+    stated = content.get("backbone")
+    if source == "llm" and stated not in BACKBONE_MENU:
+        raise ValueError(
+            f"Architect llm step stated backbone={stated!r}, not on the pinned menu "
+            f"{BACKBONE_MENU} (A2-6: a schema failure must take the fallback path)"
+        )
+    return None if stated is None else str(stated)
+
+
+def _stated(agent_out: dict):
+    s = agent_out.get("stated_fields")
+    return None if s is None else frozenset(s)
+
+
+# Legacy / non-LLM pools report the Validator threshold under ``threshold_msd``;
+# the schema field is ``dynamic_threshold_msd`` (A2-2 key fix).
+_DEFAULT_THRESHOLD_MSD = 0.5
+
+
+def _validator_threshold(content: dict) -> float:
+    for key in ("dynamic_threshold_msd", "threshold_msd"):
+        if content.get(key) is not None:
+            return float(content[key])
+    return _DEFAULT_THRESHOLD_MSD
+
+
 def run_agentic_lifecycle(
     *,
     task_id: str,
@@ -195,7 +272,7 @@ def run_agentic_lifecycle(
     agent_pool: AgentPool,
     seed: int,
     dataset: str,
-    max_rounds: int = 2,
+    max_rounds: int = 3,
     backbone_override: str | None = None,
     validator_threshold_override: float | None = None,
 ) -> LifecycleRun:
@@ -203,8 +280,15 @@ def run_agentic_lifecycle(
 
     Each round runs all five agents in sequence (DataCurator → Literature →
     Architect → Trainer → Validator), executes every proposal, and records
-    a :class:`LifecycleStep`. The loop terminates early if the Validator
-    accepts the trained model.
+    a :class:`LifecycleStep`. A2-2: exactly ``max_rounds`` rounds run; the
+    Validator's verdict and threshold are recorded, never acted on, and
+    ``final_msd_topk`` is the last round's MSD.
+
+    A2-3: the executors apply the agents' stated fields with precedence
+    Validator delta > Architect > DataCurator (> Trainer) > default
+    (:func:`resolve_applied_config`); each round's applied values and their
+    sources are recorded in ``applied_config_per_round``. A2-6: each Architect
+    step records ``backbone_stated`` and ``backbone_used`` (executed).
 
     ``target_gene_idx`` values may be an ``int`` or a ``tuple[int, ...]``
     (D1 multi-target contract; a 1-tuple behaves exactly like the int).
@@ -224,7 +308,6 @@ def run_agentic_lifecycle(
     final_msd = float("inf")
     final_agreement = 0.0
     backbone_used = "linear"
-    r = 0
 
     if held_out not in target_gene_idx:
         raise ValueError(
@@ -234,12 +317,23 @@ def run_agentic_lifecycle(
     train_mask = labels != held_out
     train_targets = {p: t for p, t in targets.items() if p != held_out}
     target_cols = all_target_columns(targets)
+    # A2-5: the task's 20 evaluation genes, selected ONCE on the full gene axis
+    # (the same selector and inputs as the trainer path), force-included in
+    # every round's features like the targets, and the Validator's MSD genes.
+    eval_genes = np.asarray(
+        _hvg.top_deg_columns(X, labels, control_mask, held_out), dtype=np.int64
+    )
+    force_cols = sorted({int(c) for c in target_cols} | {int(g) for g in eval_genes})
     hvg_n_per_round: list[int] = []
     hvg_n_forced_per_round: list[int] = []
     n_params: int | None = None
     n_params_per_round: list[tuple[str, int | None]] = []
     error_fields: dict | None = None
+    msd_per_round: list[float] = []
+    applied_config_per_round: list[dict] = []
 
+    if max_rounds < 1:
+        raise ValueError(f"max_rounds must be >= 1, got {max_rounds}")
     for r in range(max_rounds):
         dc = agent_pool.propose("DataCurator", r, task_id, context, seed=seed,
                                   dataset=dataset)
@@ -253,32 +347,39 @@ def run_agentic_lifecycle(
                                   dataset=dataset)
 
         t0 = time.perf_counter()
+        # A2-3: one applied configuration per round, from the agents' STATED
+        # fields with precedence Validator delta (from the previous round) >
+        # Architect > DataCurator > Trainer > default.
+        applied, applied_src = resolve_applied_config(
+            datacurator=dc["content"], datacurator_stated=_stated(dc),
+            architect=arch["content"], architect_stated=_stated(arch),
+            trainer=trn["content"], trainer_stated=_stated(trn),
+            critique_delta=context.get("validator_critique_delta"),
+        )
+        # The outer optimizer may override the backbone (contextual-BO over the
+        # backbone axis; same pattern as Archon's inference-time HPO).
+        if backbone_override is not None:
+            # C-TORCH-2: a known-but-unavailable override raises, never degrades.
+            applied["backbone"] = _canonical_backbone(backbone_override)
+            applied_src["backbone"] = "override"
+        applied_config_per_round.append({"values": dict(applied),
+                                         "sources": dict(applied_src)})
         # T8b: HVG ranked on training cells only; every target column (training
         # + held-out) is forced in — its identity comes from the label, not
         # from held-out expression — so no target can fall outside the cut.
         curated = execute_data_curator(
             X=X,
             labels=labels,
-            proposal=dc["content"],
+            proposal={"hvg_count": applied["hvg_count"],
+                      "qc_mito_max": applied["qc_mito_max"]},
             train_mask=train_mask,
-            force_include=target_cols,
+            force_include=force_cols,
         )
         hvg_n_per_round.append(int(curated["execution_meta"]["hvg_n"]))
         hvg_n_forced_per_round.append(int(curated["execution_meta"]["hvg_n_forced"]))
         literature = extract_expected_genes(lit["content"])
-        # The outer optimizer may override the Architect's backbone choice
-        # — this is what lets the contextual-BO search over the backbone
-        # axis while the Architect still contributes the hyperparameter
-        # rationale (same pattern as Archon's inference-time HPO).
-        arch_content = dict(arch["content"])
-        if backbone_override is not None:
-            arch_content["backbone"] = backbone_override
-        # v0.5.0: merge the previous round's validator critique delta so
-        # the Architect can target-fix on rejection.
-        critique_delta = context.get("validator_critique_delta")
-        arch_cfg = resolve_architect_config(arch_content, critique_delta=critique_delta)
-        backbone = build_backbone(arch_cfg["backbone"])
-        backbone_used = arch_cfg["backbone"]
+        backbone = build_backbone(applied["backbone"])
+        backbone_used = applied["backbone"]
         # Remap the target-gene indices through the curated HVG index map
         # (all targets were forced in, so none is dropped).
         train_targets_curated = {
@@ -291,7 +392,10 @@ def run_agentic_lifecycle(
             labels=curated["labels"],
             control_mask=control_mask[train_mask],
             target_gene_idx=train_targets_curated,
-            trainer_proposal=trn["content"],
+            trainer_proposal={**trn["content"],
+                              "lr": applied["learning_rate"],
+                              "epochs": applied["epochs"],
+                              "ridge_lambda": applied["ridge_lambda"]},
             seed=seed,
         )
         # QG C15: reset every round — a failed fit never inherits the count of
@@ -300,31 +404,6 @@ def run_agentic_lifecycle(
         n_params_per_round.append((backbone_used, n_params))
         if tinfo.get("error_fields") and error_fields is None:
             error_fields = dict(tinfo["error_fields"])
-
-        round_wall = time.perf_counter() - t0
-        for role, agent_out in (
-            ("DataCurator", dc),
-            ("Literature", lit),
-            ("Architect", arch),
-            ("Trainer", trn),
-            ("Validator", val),
-        ):
-            model_id, source, cache_hit = _step_provenance(role, agent_out)
-            steps.append(
-                LifecycleStep(
-                    round_index=r,
-                    agent_name=role,
-                    proposal_content=dict(agent_out["content"]),
-                    rationale=str(agent_out.get("rationale", "")),
-                    llm_confidence=float(agent_out["confidence"]),
-                    execution_artifact_path=None,
-                    wall_time_sec=round_wall,
-                    succeeded=tinfo["succeeded"] if role == "Trainer" else True,
-                    model_id=model_id,
-                    source=source,
-                    cache_hit=cache_hit,
-                )
-            )
 
         # Validator gate on the full dataset (held-out evaluation). We
         # slice X/labels/control_mask to the HVG subspace the Trainer saw,
@@ -336,10 +415,13 @@ def run_agentic_lifecycle(
         remapped = _to_backbone_target(
             _remap_held_out_target(targets, held_out=held_out, top_indices=top_indices)
         )
+        eval_cols = _eval_cols(eval_genes, top_indices)
+        # A2-2: the Validator's own threshold (schema key fixed), recorded and
+        # used for its verdict and critique, never to stop the run.
         threshold = (
-            validator_threshold_override
+            float(validator_threshold_override)
             if validator_threshold_override is not None
-            else float(val["content"].get("threshold_msd", 0.5))
+            else _validator_threshold(val["content"])
         )
         # If the Trainer step failed, skip the Validator scoring (avoids
         # ``predict_logfc called before fit()`` when the backbone was never
@@ -359,14 +441,45 @@ def run_agentic_lifecycle(
                 control_mask=control_mask,
                 held_out=held_out,
                 held_out_target_idx=remapped,
+                eval_cols=eval_cols,
                 threshold_msd=threshold,
             )
         final_msd = report.msd_topk
         final_agreement = report.biofm_agreement
+        msd_per_round.append(float(report.msd_topk))
 
-        if report.accepted:
-            break
+        round_wall = time.perf_counter() - t0
+        for role, agent_out in (
+            ("DataCurator", dc),
+            ("Literature", lit),
+            ("Architect", arch),
+            ("Trainer", trn),
+            ("Validator", val),
+        ):
+            model_id, source, cache_hit = _step_provenance(role, agent_out)
+            is_arch, is_val = role == "Architect", role == "Validator"
+            steps.append(
+                LifecycleStep(
+                    round_index=r,
+                    agent_name=role,
+                    proposal_content=dict(agent_out["content"]),
+                    rationale=str(agent_out.get("rationale", "")),
+                    llm_confidence=_step_confidence(role, source, agent_out),
+                    execution_artifact_path=None,
+                    wall_time_sec=round_wall,
+                    succeeded=tinfo["succeeded"] if role == "Trainer" else True,
+                    model_id=model_id,
+                    source=source,
+                    cache_hit=cache_hit,
+                    backbone_stated=(_stated_backbone(source, agent_out["content"])
+                                     if is_arch else None),
+                    backbone_used=backbone_used if is_arch else None,
+                    validator_accepted=bool(report.accepted) if is_val else None,
+                    validator_threshold_msd=float(threshold) if is_val else None,
+                )
+            )
 
+        # A2-2: no early stop — the verdict is recorded above, not acted on.
         context = {
             "last_validator_rationale": report.rationale,
             "last_msd": report.msd_topk,
@@ -388,7 +501,7 @@ def run_agentic_lifecycle(
         steps=tuple(steps),
         final_msd_topk=float(final_msd),
         final_validator_agreement=float(final_agreement),
-        n_rounds=r + 1,
+        n_rounds=len(msd_per_round),
         n_agents=len(_ROLES),
         backbone_used=backbone_used,
         hvg_n_per_round=tuple(hvg_n_per_round),
@@ -397,4 +510,8 @@ def run_agentic_lifecycle(
         n_params=n_params,
         n_params_per_round=tuple(n_params_per_round),
         error_fields=error_fields,
+        msd_per_round=tuple(msd_per_round),
+        eval_gene_idx=tuple(int(g) for g in eval_genes),
+        n_eval_genes=int(eval_genes.size),
+        applied_config_per_round=tuple(applied_config_per_round),
     )

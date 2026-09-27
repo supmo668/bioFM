@@ -101,7 +101,7 @@ class TestC4TrainerErrorTaxonomy:
         from perturb_eval.experiments.v05_sweep import lifecycle_record
         self._patch_fit(monkeypatch, MemoryError("host RAM"))
         rec = lifecycle_record(task="D", dataset_name="adamson_full", ds=_ds(), seed=1,
-                               pool=MockAgentPool(seed=0), max_rounds=1,
+                               pool=MockAgentPool(seed=0),  # A2-2: fixed 3 rounds
                                backbone_override="linear")
         assert _is_error_record(rec)
         assert rec["error_class"] == "transient"
@@ -116,7 +116,7 @@ class TestC4TrainerErrorTaxonomy:
         from perturb_eval.experiments.e_v05_real_traces import _is_error_record
         from perturb_eval.experiments.v05_sweep import lifecycle_record
         rec = lifecycle_record(task="D", dataset_name="adamson_full", ds=_ds(), seed=1,
-                               pool=MockAgentPool(seed=0), max_rounds=1)
+                               pool=MockAgentPool(seed=0))  # A2-2: fixed 3 rounds
         assert not _is_error_record(rec)
 
 
@@ -207,8 +207,9 @@ class TestC6CacheKeyAndFlag:
         class _Client:
             def chat_json(self, **kw):
                 seen.append(kw)
-                return ChatResult(content={"backbone": "mlp"}, model_id="m/x:free",
-                                  cache_hit=True)
+                # A2-1: a stated confidence, so the reply is an llm step.
+                return ChatResult(content={"backbone": "mlp", "confidence": 0.5},
+                                  model_id="m/x:free", cache_hit=True)
 
         pool = LLMAgentPool(client=_Client(), cache_dir=tmp_path)
         out = pool.propose("Architect", 0, "SNAI1", {}, seed=1, dataset="norman")
@@ -249,6 +250,7 @@ class TestC6CacheKeyAndFlag:
 
 
 def _build_prov(**over) -> dict:
+    from perturb_eval.experiments import heldout
     from perturb_eval.experiments import provenance as pv
     from perturb_eval.experiments.v05_tasks import TaskPlan
     kw = dict(run_id="r", git_sha="a" * 40, git_dirty=False,
@@ -256,7 +258,10 @@ def _build_prov(**over) -> dict:
               datasets=[], task_plan=TaskPlan(adamson=("A",), norman_singletons=(),
                                               norman_doublets=()),
               tasks_excluded=[], llm_pool=[], gpu="A100-40GB", hourly_usd=1.32,
-              budget_cap_usd=28.0)
+              budget_cap_usd=28.0,
+              # A2-4: the trainer grid is a required provenance block.
+              trainer_grid=heldout.trainer_grid(backbones=("linear",), r_sweep=(1,),
+                                                seeds=(0,)))
     kw.update(over)
     return pv.build_provenance(**kw)
 

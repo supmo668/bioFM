@@ -12,7 +12,8 @@ Emits ``summary.json`` with:
   * median MSD per config
   * best-config-per-task MSD
   * per-dataset medians (Adamson, Norman)
-  * Architect choice entropy (backbone + hvg_count fields)
+  * Architect choice entropy (STATED backbone, A2-6, with the executed backbone
+    alongside; hvg_count)
   * ``preregistered``: the five pre-registered gates H1-H5
     (``paper/PREREGISTRATION.md``), computed by
     :mod:`perturb_eval.experiments.preregistered`, with a PASS/FAIL/UNEVALUATED tally
@@ -48,7 +49,6 @@ from typing import Any
 from perturb_eval.agentic_lifecycle.freedom_probe import (
     choice_entropy,
     per_agent_field_entropy,
-    summarise_choice_distribution,
 )
 from perturb_eval.experiments import preregistered as prereg
 from perturb_eval.experiments.preregistered import task_key
@@ -63,13 +63,21 @@ ROLES: tuple[str, ...] = ("DataCurator", "Literature", "Architect", "Trainer", "
 
 @dataclass(frozen=True)
 class BestConfigPerTask:
-    """Best (min-MSD) trainer configuration for a single ``(dataset, task)``."""
+    """Best (min-MSD) trainer configuration for a single ``(dataset, task)``.
+
+    Amendment 2 (A2-4): a configuration is ``(backbone, R)`` -- N is not an
+    axis -- and seeds are replicates. ``n_configs_tried`` counts the distinct
+    ``(backbone, R)`` configurations actually run (with a finite MSD);
+    ``n_records`` the finite records; ``seeds`` the seeds seen.
+    """
 
     task: str
     best_msd: float
     best_config: dict[str, Any]
     n_configs_tried: int
     dataset: str | None = None
+    n_records: int = 0
+    seeds: tuple = ()
 
 
 def _read_jsonl(path: Path) -> tuple[dict | None, list[dict]]:
@@ -104,7 +112,10 @@ def _finite(value: Any) -> bool:
 
 
 def best_config_per_task(trainer_jsonl: Path) -> dict[tuple[str, str], BestConfigPerTask]:
-    """Return each ``(dataset, task)``'s min-MSD trainer config across all seeds."""
+    """Return each ``(dataset, task)``'s oracle: the min MSD over the distinct
+    ``(backbone, R)`` configurations actually run, each seed a replicate
+    (amendment 2, A2-4: N is not a configuration axis). Non-finite records are
+    excluded."""
     rows = _read_rows(trainer_jsonl)
     by_task: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in rows:
@@ -115,25 +126,30 @@ def best_config_per_task(trainer_jsonl: Path) -> dict[tuple[str, str], BestConfi
         by_task[task_key(r)].append(r)
     out: dict[tuple[str, str], BestConfigPerTask] = {}
     for (dataset, task), entries in by_task.items():
-        # Minimum across all (backbone, N, R, seed).
+        # A2-4: min over the distinct (backbone, R) configurations, seeds as
+        # replicates (the min over every finite replicate of every configuration).
         best = min(entries, key=lambda x: float(x["msd_topk"]))
         cfg = {
             k: best.get(k)
-            for k in ("backbone", "N", "R", "seed", "dataset")
+            for k in ("backbone", "R", "seed", "dataset")
             if k in best
         }
+        seeds = sorted({e["seed"] for e in entries if e.get("seed") is not None}, key=str)
         out[(dataset, task)] = BestConfigPerTask(
             task=task,
             best_msd=float(best["msd_topk"]),
             best_config=cfg,
-            n_configs_tried=len(entries),
+            n_configs_tried=len({(e.get("backbone"), e.get("R")) for e in entries}),
             dataset=dataset,
+            n_records=len(entries),
+            seeds=tuple(seeds),
         )
     return out
 
 
 def median_msd_per_config(trainer_jsonl: Path) -> list[dict]:
-    """Median MSD per unique ``(dataset, backbone, N, R)``."""
+    """Median MSD over seeds per unique ``(dataset, backbone, R)`` configuration
+    (amendment 2, A2-4: N is not a configuration axis; seeds are replicates)."""
     rows = _read_rows(trainer_jsonl)
     grouped: dict[tuple, list[float]] = defaultdict(list)
     for r in rows:
@@ -142,17 +158,15 @@ def median_msd_per_config(trainer_jsonl: Path) -> list[dict]:
         key = (
             r.get("dataset", ""),
             r.get("backbone", ""),
-            int(r.get("N", -1)),
             int(r.get("R", -1)),
         )
         grouped[key].append(float(r["msd_topk"]))
     out = []
-    for (dataset, backbone, N, R), vals in grouped.items():
+    for (dataset, backbone, R), vals in grouped.items():
         out.append(
             {
                 "dataset": dataset,
                 "backbone": backbone,
-                "N": N,
                 "R": R,
                 "median_msd": statistics.median(vals),
                 "n_seeds": len(vals),
@@ -250,13 +264,22 @@ def architect_entropies(lifecycle_rows: list[dict]) -> dict[str, Any]:
     """Architect backbone / hvg_count entropy (nats) and backbone distribution
     over LLM-sourced steps only; an entropy is ``None`` when no LLM-sourced
     Architect step carries the field. The one producer used by both this
-    analyser and the sweep's provenance (QG C14)."""
+    analyser and the sweep's provenance (QG C14).
+
+    Amendment 2 (A2-6): the backbone entropy and distribution are those of the
+    Architect's STATED backbone (``backbone_stated``; the H3 measurand, computed by
+    :func:`preregistered.architect_backbone_stats`) -- a missing or off-menu stated
+    value is never defaulted or counted. The EXECUTED backbone's distribution and
+    entropy, and the stated != executed count, are reported alongside."""
     traces = llm_traces_of(lifecycle_rows)
+    bb = prereg.architect_backbone_stats(s for t in traces for s in t)
     return {
-        "architect_backbone_entropy_nats": _entropy_or_none(traces, "Architect", "backbone"),
+        "architect_backbone_entropy_nats": bb["entropy_stated_nats"],
         "architect_hvg_entropy_nats": _entropy_or_none(traces, "Architect", "hvg_count"),
-        "architect_backbone_distribution": summarise_choice_distribution(
-            traces, agent="Architect", field="backbone"),
+        "architect_backbone_distribution": bb["stated_counts"],
+        "architect_backbone_executed_entropy_nats": bb["entropy_executed_nats"],
+        "architect_backbone_executed_distribution": bb["executed_counts"],
+        "architect_backbone_n_executed_ne_stated": bb["n_executed_ne_stated"],
     }
 
 
@@ -306,11 +329,12 @@ def preregistered_results(
     lifecycle_rows: list[dict],
     llm_traces: list[list[dict]],
     *,
-    h_backbone: float | None,
-    backbone_counts: dict[str, int],
     norman_strata: dict[str, str] | None,
 ) -> dict:
-    """H1-H5 in the gate-result shape of :mod:`preregistered`, plus a tally."""
+    """H1-H5 in the gate-result shape of :mod:`preregistered`, plus a tally.
+
+    H3 gates on the Architect's STATED backbone over LLM-sourced Architect steps;
+    the executed backbone is reported alongside (amendment 2, A2-6)."""
     arch = [s for t in llm_traces for s in t if s.get("agent_name") == "Architect"]
     table = prereg.per_task_table(lifecycle_rows)
     results = {
@@ -318,10 +342,9 @@ def preregistered_results(
                                  prereg.H1_THRESHOLD, gate="H1"),
         "H2": prereg.h1_h2_stats(best_by_dataset.get("norman", {}), prereg.H2_THRESHOLD,
                                  gate="H2", strata=norman_strata),
-        "H3": prereg.h3(h_backbone, pick_counts=backbone_counts,
-                        n_llm_steps=sum("backbone" in s.get("proposal_content", {}) for s in arch),
-                        n_distinct_model_ids=len({s.get("model_id") for s in arch
-                                                  if s.get("model_id")})),
+        "H3": prereg.h3_from_stats(
+            prereg.architect_backbone_stats(arch),
+            n_distinct_model_ids=len({s.get("model_id") for s in arch if s.get("model_id")})),
         "H4": prereg.h4(table),
         "H5": prereg.h5([r for r in table if r["dataset"] == "adamson_full"],
                         [r for r in table if r["dataset"] == "norman"]),
@@ -464,7 +487,6 @@ def analyse_v05_run(
     # Pre-registered gates H1-H5 (paper/PREREGISTRATION.md).
     gates = preregistered_results(
         best_by_dataset, lifecycle_rows, llm_traces,
-        h_backbone=h_backbone, backbone_counts=bb_dist,
         norman_strata=_norman_strata(prov),
     )
     if diagnostic:
@@ -500,6 +522,12 @@ def analyse_v05_run(
         "architect_backbone_entropy_nats": h_backbone,
         "architect_hvg_entropy_nats": h_hvg,
         "architect_backbone_distribution": bb_dist,
+        "architect_backbone_executed_distribution":
+            arch_ent["architect_backbone_executed_distribution"],
+        "architect_backbone_executed_entropy_nats":
+            arch_ent["architect_backbone_executed_entropy_nats"],
+        "architect_backbone_n_executed_ne_stated":
+            arch_ent["architect_backbone_n_executed_ne_stated"],
         "entropy_by_role": entropy_by_role,
         "gate_adamson_median_below_0_20": gate_adamson,
         "gate_norman_median_below_0_30": gate_norman,

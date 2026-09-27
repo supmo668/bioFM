@@ -18,6 +18,7 @@ from perturb_eval.agentic_lifecycle.validator_gate import (
     score_and_gate,
     suggest_config_delta,
 )
+from perturb_eval.data.hvg import top_deg_columns
 
 
 class _BadBackbone:
@@ -68,6 +69,8 @@ class TestStructuredCritiqueEmitted:
             control_mask=ctrl,
             held_out="p1",
             held_out_target_idx=0,
+            # A2-5: the task's eval genes, selected once on the full gene axis.
+            eval_cols=top_deg_columns(X, labels, ctrl, "p1"),
             threshold_msd=0.01,
         )
         assert isinstance(report, ExecutedValidation)
@@ -87,6 +90,8 @@ class TestStructuredCritiqueEmitted:
             control_mask=ctrl,
             held_out="p1",
             held_out_target_idx=0,
+            # A2-5: the task's eval genes, selected once on the full gene axis.
+            eval_cols=top_deg_columns(X, labels, ctrl, "p1"),
             threshold_msd=0.5,
         )
         assert report.accepted
@@ -102,6 +107,8 @@ class TestStructuredCritiqueEmitted:
             control_mask=ctrl,
             held_out="p1",
             held_out_target_idx=0,
+            # A2-5: the task's eval genes, selected once on the full gene axis.
+            eval_cols=top_deg_columns(X, labels, ctrl, "p1"),
             threshold_msd=0.01,
         )
         delta = report.critique.suggested_next_config_delta

@@ -12,7 +12,12 @@ imported by tests; everything it decides lives here instead:
   the final provenance status and of its entropy figures (LLM-sourced steps
   only, via the analyser's own function);
 * :func:`validate_version` / :func:`version_out_dir` — ``--version`` is a
-  release tag and the output dir stays under ``/data``.
+  release tag and the output dir stays under ``/data``;
+* :data:`LIFECYCLE_N_ROUNDS` — amendment 2 (A2-2): every lifecycle run is
+  exactly three rounds, no early stop;
+* :func:`llm_cache_start` / :func:`llm_cache_end` — amendment 2 (A2-8): the
+  version-namespaced LLM cache, its entry count at start (must be 0) and the
+  run's cache-hit count (must be 0); otherwise the run is a replay.
 """
 
 from __future__ import annotations
@@ -27,6 +32,22 @@ from typing import Any, Literal
 from perturb_eval.agentic_lifecycle.architect_dispatch import BackboneUnavailableError
 from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
 from perturb_eval.experiments.errors import classify, transient_error_fields
+from perturb_eval.llm.openrouter_client import (
+    PREREG_VERSION,
+    count_cache_entries,
+    versioned_cache_dir,
+)
+
+# A2-2: every pre-registered lifecycle run executes exactly this many rounds.
+LIFECYCLE_N_ROUNDS = 3
+
+
+def _require_three_rounds(max_rounds: int) -> None:
+    if max_rounds != LIFECYCLE_N_ROUNDS:
+        raise ValueError(
+            f"max_rounds={max_rounds}: amendment 2 (A2-2) fixes every lifecycle run at "
+            f"exactly {LIFECYCLE_N_ROUNDS} rounds (three rounds, no early stop)"
+        )
 
 
 def lifecycle_record(
@@ -42,15 +63,16 @@ def lifecycle_record(
     """Run one agentic lifecycle for ``task`` on ``ds`` and return its JSONL record.
 
     ``run_fn`` defaults to :func:`run_agentic_lifecycle` (injectable for tests).
-    ``lifecycle_kwargs`` are forwarded to it; ``max_rounds`` defaults to 3 as in
-    the v0.5 sweep. The record is ``asdict(run)`` plus ``dataset``, ``seed``
+    ``lifecycle_kwargs`` are forwarded to it; ``max_rounds`` is
+    :data:`LIFECYCLE_N_ROUNDS` and any other value is refused (A2-2). The record is ``asdict(run)`` plus ``dataset``, ``seed``
     and ``wall_sec``; a run that carried a transient trainer failure has its
     ``error_fields`` flattened into the record (``error``, ``error_type``,
     ``error_class``, ``traceback``) so the analyser counts it as an error
     record (QG C4).
     """
     fn = run_fn or run_agentic_lifecycle
-    lifecycle_kwargs.setdefault("max_rounds", 3)
+    lifecycle_kwargs.setdefault("max_rounds", LIFECYCLE_N_ROUNDS)
+    _require_three_rounds(lifecycle_kwargs["max_rounds"])
     t0 = time.time()
     run = fn(
         task_id=task,
@@ -66,6 +88,12 @@ def lifecycle_record(
     )
     rec = asdict(run)
     error_fields = rec.pop("error_fields", None) or {}
+    # A2-5: the same eval-gene fields (indices, count, symbols when the loader
+    # has gene names) as the trainer record for this task.
+    if rec.get("eval_gene_idx"):
+        from perturb_eval.experiments.heldout import eval_gene_fields
+
+        rec.update(eval_gene_fields(ds, rec["eval_gene_idx"]))
     return rec | dict(error_fields) | {
         "dataset": dataset_name,
         "seed": seed,
@@ -78,7 +106,7 @@ def iter_lifecycle_records(
     datasets: Iterable[tuple[str, dict, Iterable[str]]],
     seeds: Iterable[int],
     pool: Any,
-    max_rounds: int = 3,
+    max_rounds: int = LIFECYCLE_N_ROUNDS,
     should_stop: Callable[[], bool] | None = None,
     record_fn: Callable[..., dict] | None = None,
 ) -> Iterator[dict]:
@@ -93,6 +121,7 @@ def iter_lifecycle_records(
     resolves; never a skip). Stops as soon as ``should_stop()`` is true.
     ``record_fn`` defaults to :func:`lifecycle_record` (injectable for tests).
     """
+    _require_three_rounds(max_rounds)  # A2-2
     fn = record_fn or lifecycle_record
     seeds = list(seeds)
     for dataset_name, ds, tasks in datasets:
@@ -211,6 +240,39 @@ def provenance_entropies(lifecycle_records: Iterable[Mapping[str, Any]]) -> dict
     rows = [r for r in lifecycle_records
             if isinstance(r, Mapping) and r.get("record_type") != "provenance"]
     return architect_entropies(rows)
+
+
+# ---------------------------------------------------------------------------
+# LLM cache namespace (amendment 2, A2-8)
+# ---------------------------------------------------------------------------
+
+def llm_cache_start(cache_root: str | Path, prereg_version: str = PREREG_VERSION) -> dict[str, Any]:
+    """Provenance block recorded at sweep start: the version, the namespace the
+    client must use (``<cache_root>/<prereg_version>``) and its entry count,
+    which for the pre-registered run must be 0 (recorded, not refused: a
+    non-zero start makes the run a replay, see :func:`llm_cache_end`)."""
+    ns = versioned_cache_dir(cache_root, prereg_version)
+    return {
+        "prereg_version": prereg_version,
+        "llm_cache_namespace": str(ns),
+        "llm_cache_entries_at_start": count_cache_entries(ns),
+    }
+
+
+def llm_cache_end(
+    lifecycle_records: Iterable[Mapping[str, Any]], *, entries_at_start: int
+) -> dict[str, Any]:
+    """Provenance block recorded at sweep end: the number of LLM-sourced steps
+    served from the cache (must be 0) and whether the run is a REPLAY (a
+    non-empty namespace at start, or any cache hit), with the reasons."""
+    hits = sum(1 for st in _steps(lifecycle_records)
+               if st.get("source") == "llm" and st.get("cache_hit") is True)
+    reasons: list[str] = []
+    if entries_at_start:
+        reasons.append(f"LLM cache namespace held {entries_at_start} entries at start (must be 0)")
+    if hits:
+        reasons.append(f"{hits} LLM step(s) served from the cache (must be 0)")
+    return {"llm_cache_hit_count": hits, "replay": bool(reasons), "replay_reasons": reasons}
 
 
 # ---------------------------------------------------------------------------

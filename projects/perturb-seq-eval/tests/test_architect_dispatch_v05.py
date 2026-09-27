@@ -155,7 +155,7 @@ class TestBackboneUnavailable:
         with pytest.raises(BackboneUnavailableError):
             list(heldout.iter_trainer_records(
                 dataset_name="t", ds=ds, tasks=["TFA"], backbones=("scgpt_small",),
-                n_sweep=(3,), r_sweep=(1,), seeds=(0,),
+                r_sweep=(1,), seeds=(0,),
             ))
 
     def test_trainer_path_unknown_task_raises(self) -> None:
@@ -170,5 +170,5 @@ class TestBackboneUnavailable:
         with pytest.raises(ValueError, match="NOPE"):
             list(iter_trainer_records(
                 dataset_name="t", ds=ds, tasks=["NOPE"], backbones=("linear",),
-                n_sweep=(3,), r_sweep=(1,), seeds=(0,),
+                r_sweep=(1,), seeds=(0,),
             ))
