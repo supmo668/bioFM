@@ -364,8 +364,10 @@ _GRID = {
     "r_sweep": [1],
     "seeds": [0],
     "n_records_per_task": 1,
-    "n_distinct_per_task": 1,
-    "distinct_by_backbone": {"linear": 1},
+    "n_distinct_configs_per_task": 1,
+    "distinct_configs_by_backbone": {"linear": 1},
+    "n_distinct_fits_per_task": 1,
+    "distinct_fits_by_backbone": {"linear": 1},
     "r_seed_invariant_backbones": ["linear"],
 }
 

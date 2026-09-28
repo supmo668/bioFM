@@ -199,8 +199,10 @@ class TestA24GridWithoutN:
             "r_sweep": [1, 2, 3],
             "seeds": [2026, 2027, 2028],
             "n_records_per_task": 27,
-            "n_distinct_per_task": 19,
-            "distinct_by_backbone": {"linear": 1, "mlp": 9, "scgpt_small": 9},
+            "n_distinct_configs_per_task": 7,  # the STATED count (A2-4; amendment 3 / QG-7)
+            "distinct_configs_by_backbone": {"linear": 1, "mlp": 3, "scgpt_small": 3},
+            "n_distinct_fits_per_task": 19,  # supporting detail
+            "distinct_fits_by_backbone": {"linear": 1, "mlp": 9, "scgpt_small": 9},
             "r_seed_invariant_backbones": ["linear"],
         }
 

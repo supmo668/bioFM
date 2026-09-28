@@ -18,6 +18,11 @@ Emits ``summary.json`` with:
     (``paper/PREREGISTRATION.md``), computed by
     :mod:`perturb_eval.experiments.preregistered`, with a PASS/FAIL/UNEVALUATED tally
   * ``preregistration``: the pre-registration pin copied from record 0
+  * ``eval_genes_per_task``: the per-task A2-5 evaluation-gene list cited
+    beside H1/H2 and H4/H5 (``None`` with ``eval_genes_reason`` for a
+    pre-A2-5 artifact), and ``eval_gene_mismatch_tasks``
+  * ``prereg_version``, ``llm_cache_entries_at_start``,
+    ``llm_cache_hit_count``, ``replay``, ``replay_reasons`` (A2-8)
 
 A task's identity is ``(dataset, task)`` (:func:`preregistered.task_key`): a
 gene symbol can be a task in both Adamson and Norman (QG C5).
@@ -26,6 +31,13 @@ Gates are licensed only for a pinned, finished, clean run: a run whose record 0
 carries no ``preregistration`` pin is summarised as ``status="UNPINNED"``, and
 a legacy run without provenance as ``legacy_no_provenance`` — both diagnostic,
 every gate ``pass=None`` (QG C10). Headers whose pins differ are refused.
+Amendment 2 adds three more diagnostic-only verdicts: a REPLAY (any LLM step
+served from the cache, a non-empty version-namespaced cache at start, or a
+provenance ``replay`` flag; A2-8) is ``REPLAY_DIAGNOSTIC_ONLY``; a provenance
+``prereg_version`` other than the pinned :data:`PREREG_VERSION` is
+``PREREG_VERSION_MISMATCH_DIAGNOSTIC_ONLY``; trainer and lifecycle records
+that disagree on a task's evaluation genes (A2-5) are
+``EVAL_GENE_MISMATCH_DIAGNOSTIC_ONLY``.
 
 CLI::
 
@@ -46,6 +58,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from perturb_eval.experiments.heldout import R_SEED_INVARIANT_BACKBONES
 from perturb_eval.agentic_lifecycle.freedom_probe import (
     choice_entropy,
     per_agent_field_entropy,
@@ -53,6 +66,7 @@ from perturb_eval.agentic_lifecycle.freedom_probe import (
 from perturb_eval.experiments import preregistered as prereg
 from perturb_eval.experiments.preregistered import task_key
 from perturb_eval.experiments.provenance import format_unparseable, read_jsonl_locating
+from perturb_eval.llm.openrouter_client import PREREG_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +75,22 @@ DEFAULT_ARTIFACTS_DIR = Path("artifacts/v0.6.0")
 ROLES: tuple[str, ...] = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
 
 
+def _config_key(entry: dict[str, Any]) -> tuple[Any, Any]:
+    """``(backbone, R)`` -- R collapsed for R/seed-invariant backbones (QG-7)."""
+    bb = entry.get("backbone")
+    return (bb, None if bb in R_SEED_INVARIANT_BACKBONES else entry.get("R"))
+
+
 @dataclass(frozen=True)
 class BestConfigPerTask:
     """Best (min-MSD) trainer configuration for a single ``(dataset, task)``.
 
     Amendment 2 (A2-4): a configuration is ``(backbone, R)`` -- N is not an
     axis -- and seeds are replicates. ``n_configs_tried`` counts the distinct
-    ``(backbone, R)`` configurations actually run (with a finite MSD);
+    ``(backbone, R)`` configurations actually run (with a finite MSD), a
+    backbone in ``heldout.R_SEED_INVARIANT_BACKBONES`` counting once (it
+    ignores R and seed; amendment 3 / QG-7 -- the same definition as
+    ``trainer_grid["n_distinct_configs_per_task"]``);
     ``n_records`` the finite records; ``seeds`` the seeds seen.
     """
 
@@ -135,7 +158,7 @@ def best_config_per_task(trainer_jsonl: Path) -> dict[tuple[str, str], BestConfi
             task=task,
             best_msd=float(best["msd_topk"]),
             best_config=cfg,
-            n_configs_tried=len({(e.get("backbone"), e.get("R")) for e in entries}),
+            n_configs_tried=len({_config_key(e) for e in entries}),
             dataset=dataset,
             n_records=len(entries),
             seeds=tuple(seeds),
@@ -313,6 +336,143 @@ def _preregistration_pin(trainer_prov: dict | None, lifecycle_prov: dict | None)
     return lc or None
 
 
+def llm_cache_hit_count(lifecycle_rows: list[dict]) -> int:
+    """LLM-sourced lifecycle steps served from the LLM cache (``cache_hit`` is
+    ``True``); must be 0 for the pre-registered run (amendment 2, A2-8). A
+    ``cache_hit`` on a non-LLM step is never counted (only LLM steps use the
+    cache), and a step without the field is not a hit."""
+    return sum(
+        1
+        for r in lifecycle_rows
+        for s in r.get("steps", [])
+        if _step_source(s) == "llm" and s.get("cache_hit") is True
+    )
+
+
+def replay_info(lifecycle_rows: list[dict], prov: dict | None) -> dict[str, Any]:
+    """The A2-8 replay verdict from BOTH the rows and the provenance.
+
+    A run is a REPLAY when any LLM-sourced step was served from the cache
+    (rows), the version-namespaced cache held entries at sweep start
+    (``llm_cache_entries_at_start`` > 0), the sweep itself recorded
+    ``replay: true`` (or finalised ``status="replay"``), or the finalised
+    provenance recorded cache hits. Returns ``prereg_version``,
+    ``llm_cache_entries_at_start`` (``None`` for a legacy run),
+    ``llm_cache_hit_count`` (from the rows; the provenance's own count, when
+    larger, is reported in the reasons), ``replay`` and ``replay_reasons``.
+    """
+    prov = prov or {}
+    hits = llm_cache_hit_count(lifecycle_rows)
+    entries = prov.get("llm_cache_entries_at_start")
+    reasons: list[str] = []
+    if hits:
+        reasons.append(f"{hits} LLM-sourced step(s) served from the cache (must be 0)")
+    if isinstance(entries, (int, float)) and not isinstance(entries, bool) and entries > 0:
+        reasons.append(f"LLM cache namespace held {int(entries)} entries at start (must be 0)")
+    prov_hits = prov.get("llm_cache_hit_count")
+    if isinstance(prov_hits, (int, float)) and not isinstance(prov_hits, bool) and prov_hits > hits:
+        reasons.append(f"provenance recorded {int(prov_hits)} LLM cache hit(s) (must be 0)")
+    if prov.get("replay") is True:
+        recorded = [str(x) for x in (prov.get("replay_reasons") or [])]
+        reasons.extend(r for r in recorded if r not in reasons)
+        if not recorded:
+            reasons.append("provenance recorded replay=true")
+    if prov.get("status") == "replay":
+        reasons.append("provenance status='replay'")
+    return {
+        "prereg_version": prov.get("prereg_version"),
+        "llm_cache_entries_at_start": int(entries) if isinstance(entries, (int, float)) else None,
+        "llm_cache_hit_count": hits,
+        "replay": bool(reasons),
+        "replay_reasons": reasons,
+    }
+
+
+def _eval_gene_list(row: dict) -> tuple[list[int] | None, list[str] | None]:
+    """``(indices, names)`` of a record's A2-5 evaluation genes, each ``None``
+    when the record does not carry the field."""
+    idx = row.get("eval_gene_idx")
+    names = row.get("eval_genes")
+    idx_l = [int(i) for i in idx] if isinstance(idx, (list, tuple)) else None
+    names_l = [str(n) for n in names] if isinstance(names, (list, tuple)) else None
+    return idx_l, names_l
+
+
+def _eval_gene_lists_per_task(rows: list[dict]) -> dict[tuple[str, str], list[tuple]]:
+    """Per ``(dataset, task)``: the DISTINCT evaluation-gene identities carried by
+    the rows (an identity is the sorted index list, or the sorted name list when
+    a record has names but no indices). Rows without the fields are skipped."""
+    out: dict[tuple[str, str], list[tuple]] = defaultdict(list)
+    for r in rows:
+        if "task" not in r and "task_id" not in r:
+            continue
+        idx, names = _eval_gene_list(r)
+        ident: tuple | None
+        if idx is not None:
+            ident = ("idx", tuple(sorted(idx)))
+        elif names is not None:
+            ident = ("names", tuple(sorted(names)))
+        else:
+            continue
+        key = task_key(r)
+        if ident not in out[key]:
+            out[key].append(ident)
+    return out
+
+
+def _fmt_task(key: tuple[str, str]) -> str:
+    return f"{key[0]}/{key[1]}"
+
+
+def eval_genes_check(trainer_rows: list[dict], lifecycle_rows: list[dict]) -> dict[str, Any]:
+    """A2-5: the per-task evaluation-gene list cited beside H1/H2 and H4/H5, and
+    the trainer-vs-lifecycle agreement check on the real records.
+
+    Returns ``eval_genes_per_task`` (``{"dataset/task": [gene symbols, or
+    full-axis indices when the loader had no names]}``, or ``None`` with
+    ``eval_genes_reason`` when NO record in either file carries the A2-5
+    fields, e.g. a pre-A2-5 artifact) and ``eval_gene_mismatch_tasks``: every
+    task whose trainer and lifecycle records do not carry the same gene set,
+    whose records disagree within one path, or that carries the fields on one
+    path only. A non-empty list makes the run DIAGNOSTIC-ONLY.
+    """
+    t_lists = _eval_gene_lists_per_task(trainer_rows)
+    l_lists = _eval_gene_lists_per_task(lifecycle_rows)
+    if not t_lists and not l_lists:
+        return {
+            "eval_genes_per_task": None,
+            "eval_genes_reason": (
+                "no trainer or lifecycle record carries the A2-5 evaluation-gene fields "
+                "(eval_gene_idx / eval_genes); pre-A2-5 artifact, list not citable"
+            ),
+            "eval_gene_mismatch_tasks": [],
+        }
+    all_tasks = sorted(set(t_lists) | set(l_lists))
+    mismatched: list[str] = []
+    per_task: dict[str, list] = {}
+    for key in all_tasks:
+        t_ids, l_ids = t_lists.get(key, []), l_lists.get(key, [])
+        if len(t_ids) != 1 or len(l_ids) != 1 or t_ids[0] != l_ids[0]:
+            mismatched.append(_fmt_task(key))
+        # Cite the list in rank order from the first record carrying it (the
+        # lifecycle record when the trainer has none); names when recorded.
+        cited: list | None = None
+        for r in trainer_rows + lifecycle_rows:
+            if ("task" in r or "task_id" in r) and task_key(r) == key:
+                idx, names = _eval_gene_list(r)
+                if names is not None:
+                    cited = names
+                    break
+                if idx is not None and cited is None:
+                    cited = idx
+        per_task[_fmt_task(key)] = cited if cited is not None else []
+    return {
+        "eval_genes_per_task": per_task,
+        "eval_genes_reason": None,
+        "eval_gene_mismatch_tasks": mismatched,
+    }
+
+
 def _norman_strata(prov: dict | None) -> dict[str, str] | None:
     tasks = (prov or {}).get("tasks") or {}
     if "norman_singletons" not in tasks and "norman_doublets" not in tasks:
@@ -379,7 +539,10 @@ def analyse_v05_run(
     pins differ (QG C10). Diagnostic summaries carry a non-``ok`` ``status``
     and null gate booleans: besides the escape hatches above, a legacy run
     without provenance and an ``UNPINNED`` run (no pre-registration pin in
-    record 0) are always diagnostic (QG C10).
+    record 0) are always diagnostic (QG C10), as are a REPLAY or a
+    ``prereg_version`` other than the pinned one (A2-8) and a trainer-vs-
+    lifecycle evaluation-gene disagreement (A2-5); these never hide a fallback
+    or partial refusal, and their summary fields are emitted regardless.
     """
     partial_reason = _validate_partial_reason(allow_partial)
     trainer_prov, trainer_rows = _read_jsonl(trainer_jsonl)
@@ -437,7 +600,9 @@ def analyse_v05_run(
     if (
         status != "FAILED_FALLBACK_DIAGNOSTIC_ONLY"
         and prov is not None
-        and (prov_status != "ok" or prov.get("finished_at") is None)
+        # A2-8: a sweep finalised as status="replay" ran to its end; it is a
+        # replay (diagnostic below), not a partial run.
+        and (prov_status not in ("ok", "replay") or prov.get("finished_at") is None)
     ):
         partial_msgs.append(
             f"run partial/unfinished: provenance status={prov_status!r}, "
@@ -463,6 +628,40 @@ def analyse_v05_run(
         diagnostic = True
         if status == "ok":
             status = "UNPINNED"
+
+    # --- amendment 2: A2-8 replay / version pin; A2-5 eval-gene agreement ---
+    # These are pin-level verdicts: they mark a run that would otherwise be
+    # "ok" (or is only UNPINNED / legacy) as DIAGNOSTIC-ONLY, and never hide
+    # a fallback or partial refusal; the summary fields are emitted regardless.
+    pin_level = ("ok", "UNPINNED", "legacy_no_provenance")
+    cache = replay_info(lifecycle_rows, prov)
+    eval_genes = eval_genes_check(trainer_rows, lifecycle_rows)
+    if cache["prereg_version"] is not None and cache["prereg_version"] != PREREG_VERSION:
+        logger.warning(
+            "provenance prereg_version=%r is not the pinned %r (A2-8) — DIAGNOSTIC-ONLY summary",
+            cache["prereg_version"],
+            PREREG_VERSION,
+        )
+        diagnostic = True
+        if status in pin_level:
+            status = "PREREG_VERSION_MISMATCH_DIAGNOSTIC_ONLY"
+    if cache["replay"]:
+        logger.warning(
+            "run is a REPLAY (A2-8): %s — DIAGNOSTIC-ONLY summary, never the pre-registered run",
+            "; ".join(cache["replay_reasons"]),
+        )
+        diagnostic = True
+        if status in pin_level + ("PREREG_VERSION_MISMATCH_DIAGNOSTIC_ONLY",):
+            status = "REPLAY_DIAGNOSTIC_ONLY"
+    if eval_genes["eval_gene_mismatch_tasks"]:
+        logger.warning(
+            "trainer and lifecycle records disagree on the A2-5 evaluation genes for %s — "
+            "DIAGNOSTIC-ONLY summary",
+            eval_genes["eval_gene_mismatch_tasks"],
+        )
+        diagnostic = True
+        if status in pin_level:
+            status = "EVAL_GENE_MISMATCH_DIAGNOSTIC_ONLY"
 
     # --- computation ------------------------------------------------------
     best_by_task = best_config_per_task(trainer_jsonl)
@@ -554,7 +753,17 @@ def analyse_v05_run(
         "gate_norman_median_below_0_30": gate_norman,
         "gate_architect_entropy_above_0_5_nats": gate_entropy,
         "preregistered": {**gates, "tally": prereg.tally(gates)},
+        # A2-5: the per-task evaluation-gene list cited beside H1/H2 and H4/H5.
+        "eval_genes_per_task": eval_genes["eval_genes_per_task"],
+        "eval_genes_reason": eval_genes["eval_genes_reason"],
+        "eval_gene_mismatch_tasks": eval_genes["eval_gene_mismatch_tasks"],
         "preregistration": pin,
+        # A2-8: the version pin and the cache-start / cache-hit record.
+        "prereg_version": cache["prereg_version"],
+        "llm_cache_entries_at_start": cache["llm_cache_entries_at_start"],
+        "llm_cache_hit_count": cache["llm_cache_hit_count"],
+        "replay": cache["replay"],
+        "replay_reasons": cache["replay_reasons"],
         "best_config_per_task": {_fmt_key(k): asdict(v) for k, v in best_by_task.items()},
     }
 

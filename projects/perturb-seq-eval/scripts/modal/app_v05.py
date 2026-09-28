@@ -590,6 +590,7 @@ def run_v05_sweep(
         cost_usd=cost_usd,
         kill_usd=_BUDGET_HARD_KILL_USD,
         stop_reason=stop_state["reason"],
+        llm_cache_entries_at_start=llm_cache["llm_cache_entries_at_start"],  # A2-8 replay
     )
     hvg_n_per_task, params_per_task = collect_hvg_and_params(trainer_records, lifecycle_records)
     counts = {

@@ -107,8 +107,10 @@ _GRID = {
     "r_sweep": [1, 2],
     "seeds": [2026],
     "n_records_per_task": 4,
-    "n_distinct_per_task": 3,
-    "distinct_by_backbone": {"linear": 1, "mlp": 2},
+    "n_distinct_configs_per_task": 3,
+    "distinct_configs_by_backbone": {"linear": 1, "mlp": 2},
+    "n_distinct_fits_per_task": 3,
+    "distinct_fits_by_backbone": {"linear": 1, "mlp": 2},
     "r_seed_invariant_backbones": ["linear"],
 }
 
@@ -147,7 +149,7 @@ def test_a2_4_trainer_grid_is_required_and_recorded() -> None:
     for bad in (
         None,
         {},
-        {**grid, "n_distinct_per_task": "3"},
+        {**grid, "n_distinct_configs_per_task": "3"},
         {k: v for k, v in grid.items() if k != "seeds"},
     ):
         with pytest.raises(ValueError, match="trainer_grid"):

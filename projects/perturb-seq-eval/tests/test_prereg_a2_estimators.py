@@ -178,8 +178,29 @@ class TestA26H3Stated:
         assert pr.BACKBONE_MENU == ("linear", "mlp", "scgpt_small")
         assert set(_BACKBONE_ROTATION) == set(pr.BACKBONE_MENU)
         res = pr.h3(0.7, pick_counts={"linear": 1}, n_llm_steps=1, n_distinct_model_ids=1)
-        assert res["ceiling_nats"] == pytest.approx(math.log(len(pr.BACKBONE_MENU)))
+        assert res["ceiling_nats"] == pytest.approx(math.log(3))
         assert res["menu"] == list(pr.BACKBONE_MENU)
+
+    def test_ceiling_and_miller_madow_follow_the_menu_not_a_literal(self, monkeypatch) -> None:
+        """QG-11 (A2-6): ``h3()`` reads the ceiling from the menu constant and
+        Miller-Madow uses K = |menu|. A four-name menu must give ln 4 and
+        (4 - 1) / (2N); a hard-coded ln 3 or K = 3 fails here."""
+        menu4 = ("linear", "mlp", "scgpt_small", "transformer")
+        monkeypatch.setattr(pr, "BACKBONE_MENU", menu4)
+        res = pr.h3(0.7, pick_counts={"linear": 1}, n_llm_steps=1, n_distinct_model_ids=1)
+        assert res["menu"] == list(menu4)
+        assert res["ceiling_nats"] == pytest.approx(math.log(4))
+        assert res["ceiling_nats"] != pytest.approx(math.log(3))
+        # Miller-Madow: N = 4 stated picks (3 linear, 1 mlp), K = |menu| = 4.
+        steps = [_arch("linear")] * 3 + [_arch("mlp")]
+        st = pr.architect_backbone_stats(steps)
+        h = -(0.75 * math.log(0.75) + 0.25 * math.log(0.25))
+        assert st["menu"] == list(menu4)
+        assert st["entropy_stated_nats"] == pytest.approx(h)
+        assert st["miller_madow_stated_nats"] == pytest.approx(h + (4 - 1) / (2 * 4))
+        assert st["miller_madow_stated_nats"] != pytest.approx(h + (3 - 1) / (2 * 4))
+        # And the menu-wide gate output derived from those stats carries ln 4.
+        assert pr.h3_from_stats(st)["ceiling_nats"] == pytest.approx(math.log(4))
 
     def test_entropy_from_stated_not_executed(self) -> None:
         # Stated: 2 linear, 2 mlp; executed: all overridden to scgpt_small.
@@ -365,6 +386,19 @@ class TestA24NoNAxis:
         )  # distinct (backbone, R) actually run: linear/1, mlp/2, mlp/3
         assert bc.n_records == 5  # finite records
         assert bc.seeds == (1, 2)
+
+    def test_r_invariant_backbone_counts_once_matching_trainer_grid(self, tmp_path: Path) -> None:
+        """QG-7 / amendment 3: linear at R=1,2,3 x 2 seeds is ONE configuration; the
+        analyser's n_configs_tried and trainer_grid's n_distinct_configs_per_task agree."""
+        from perturb_eval.experiments import heldout
+        from perturb_eval.experiments.e_v05_real_traces import best_config_per_task
+
+        rows = [_trow("linear", R, s, 0.5) for R in (1, 2, 3) for s in (1, 2)]
+        rows += [_trow("mlp", R, s, 0.3) for R in (1, 2, 3) for s in (1, 2)]
+        bc = best_config_per_task(self._write(tmp_path, rows))[("adamson_full", "TFA")]
+        grid = heldout.trainer_grid(backbones=("linear", "mlp"), r_sweep=(1, 2, 3), seeds=(1, 2))
+        assert bc.n_configs_tried == 4 == grid["n_distinct_configs_per_task"]
+        assert grid["n_distinct_fits_per_task"] == 7 and bc.n_records == 12
 
     def test_legacy_n_field_is_not_a_config_axis(self, tmp_path: Path) -> None:
         from perturb_eval.experiments.e_v05_real_traces import (

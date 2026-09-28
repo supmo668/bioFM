@@ -172,23 +172,29 @@ def trainer_config(R: int, seed: int) -> BackboneTrainConfig:
 def trainer_grid(*, backbones: Iterable[str], r_sweep: Iterable[int], seeds: Iterable[int]) -> dict:
     """The trainer grid as run (A2-4), for provenance and the paper.
 
-    Per task, ``n_records_per_task`` = backbones x R x seeds cells are run;
-    ``n_distinct_per_task`` counts the distinct fits among them (a backbone in
-    :data:`R_SEED_INVARIANT_BACKBONES` contributes one). The H1/H2 oracle is
-    the minimum over these distinct configurations.
+    Per task, ``n_records_per_task`` = backbones x R x seeds cells are run.
+    ``n_distinct_configs_per_task`` is THE STATED COUNT (A2-4; principal ruling
+    2026-09-28, amendment 3): distinct ``(backbone, R)`` configurations with
+    seeds as replicates, a backbone in :data:`R_SEED_INVARIANT_BACKBONES`
+    contributing one. ``n_distinct_fits_per_task`` (supporting detail) counts
+    the distinct fits including seeds. The H1/H2 oracle is the minimum over
+    every finite record of the distinct configurations.
     """
     backbones, r_sweep, seeds = list(backbones), list(r_sweep), list(seeds)
-    per_bb = {
+    fits_bb = {
         b: 1 if b in R_SEED_INVARIANT_BACKBONES else len(set(r_sweep)) * len(set(seeds))
         for b in backbones
     }
+    cfg_bb = {b: 1 if b in R_SEED_INVARIANT_BACKBONES else len(set(r_sweep)) for b in backbones}
     return {
         "backbones": backbones,
         "r_sweep": r_sweep,
         "seeds": seeds,
         "n_records_per_task": len(backbones) * len(r_sweep) * len(seeds),
-        "n_distinct_per_task": sum(per_bb.values()),
-        "distinct_by_backbone": per_bb,
+        "n_distinct_configs_per_task": sum(cfg_bb.values()),
+        "distinct_configs_by_backbone": cfg_bb,
+        "n_distinct_fits_per_task": sum(fits_bb.values()),
+        "distinct_fits_by_backbone": fits_bb,
         "r_seed_invariant_backbones": sorted(R_SEED_INVARIANT_BACKBONES & set(backbones)),
     }
 

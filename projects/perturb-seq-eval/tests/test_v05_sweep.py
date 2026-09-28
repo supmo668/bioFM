@@ -117,3 +117,73 @@ def test_lifecycle_record_requires_seed() -> None:
         lifecycle_record(  # type: ignore[call-arg]
             task="GENEA", dataset_name="adamson", ds=_ds(), pool=object(), run_fn=_StubRun()
         )
+
+
+# ---------------------------------------------------------------- A2-8 / QG-1
+class TestDeriveStatusReplay:
+    """``derive_status`` marks a REPLAY when given the cache info (A2-8); the
+    original signature (no cache info) is unchanged."""
+
+    def _rows(self, *hits: bool) -> list[dict]:
+        return [
+            {
+                "task_id": "T0",
+                "steps": [
+                    {"agent_name": "Architect", "source": "llm", "cache_hit": h} for h in hits
+                ],
+            }
+        ]
+
+    def test_signature_backward_compatible(self) -> None:
+        from perturb_eval.experiments.v05_sweep import derive_status
+
+        assert derive_status(self._rows(True), cost_usd=1.0, kill_usd=28.0) == "ok"
+
+    def test_cache_hit_marks_replay(self) -> None:
+        from perturb_eval.experiments.v05_sweep import derive_status
+
+        assert (
+            derive_status(
+                self._rows(False, True), cost_usd=1.0, kill_usd=28.0, llm_cache_entries_at_start=0
+            )
+            == "replay"
+        )
+
+    def test_entries_at_start_marks_replay(self) -> None:
+        from perturb_eval.experiments.v05_sweep import derive_status
+
+        assert (
+            derive_status(
+                self._rows(False), cost_usd=1.0, kill_usd=28.0, llm_cache_entries_at_start=3
+            )
+            == "replay"
+        )
+
+    def test_clean_cache_stays_ok(self) -> None:
+        from perturb_eval.experiments.v05_sweep import derive_status
+
+        assert (
+            derive_status(
+                self._rows(False), cost_usd=1.0, kill_usd=28.0, llm_cache_entries_at_start=0
+            )
+            == "ok"
+        )
+
+    def test_fallback_and_stop_beat_replay(self) -> None:
+        from perturb_eval.experiments.v05_sweep import derive_status
+
+        fb = [{"task_id": "T0", "steps": [{"source": "fallback", "cache_hit": True}]}]
+        assert (
+            derive_status(fb, cost_usd=1.0, kill_usd=28.0, llm_cache_entries_at_start=3)
+            == "failed_fallback"
+        )
+        assert (
+            derive_status(
+                self._rows(True),
+                cost_usd=1.0,
+                kill_usd=28.0,
+                stop_reason="spend_stop",
+                llm_cache_entries_at_start=0,
+            )
+            == "partial"
+        )

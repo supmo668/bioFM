@@ -277,8 +277,10 @@ _TRAINER_GRID_KEYS: tuple[str, ...] = (
     "r_sweep",
     "seeds",
     "n_records_per_task",
-    "n_distinct_per_task",
-    "distinct_by_backbone",
+    "n_distinct_configs_per_task",
+    "distinct_configs_by_backbone",
+    "n_distinct_fits_per_task",
+    "distinct_fits_by_backbone",
 )
 
 
@@ -286,7 +288,7 @@ def _validate_trainer_grid(grid: Any) -> dict[str, Any]:
     _require(isinstance(grid, Mapping), "trainer_grid must be a mapping (A2-4)")
     missing = [k for k in _TRAINER_GRID_KEYS if k not in grid]
     _require(not missing, f"trainer_grid missing {missing} (A2-4)")
-    for k in ("n_records_per_task", "n_distinct_per_task"):
+    for k in ("n_records_per_task", "n_distinct_configs_per_task", "n_distinct_fits_per_task"):
         v = grid[k]
         _require(
             isinstance(v, int) and not isinstance(v, bool) and v >= 0,

@@ -226,19 +226,31 @@ def derive_status(
     cost_usd: float,
     kill_usd: float,
     stop_reason: str | None = None,
+    llm_cache_entries_at_start: int | None = None,
 ) -> str:
     """Final provenance ``status`` of a sweep that ran to its end or was stopped.
 
     ``"failed_fallback"`` if any lifecycle step is a fallback (C-KEY-2; beats
     everything else); else ``"partial"`` if the sweep was stopped
     (``stop_reason``, e.g. the $12 spend stop) or spent strictly more than
-    ``kill_usd``; else ``"ok"``. Transient per-cell error records do not change
-    the status: the analyser refuses them on its own (CTO #245 Q1).
+    ``kill_usd``; else, when the cache info is given
+    (``llm_cache_entries_at_start``, amendment 2 A2-8), ``"replay"`` if the
+    version-namespaced cache was non-empty at start or any LLM-sourced step was
+    served from the cache (:func:`llm_cache_end`); else ``"ok"``. Without the
+    cache info the replay check is skipped (the original signature). Transient
+    per-cell error records do not change the status: the analyser refuses them
+    on its own (CTO #245 Q1).
     """
-    if any(st.get("source") == "fallback" for st in _steps(lifecycle_records)):
+    records = list(lifecycle_records)
+    if any(st.get("source") == "fallback" for st in _steps(records)):
         return "failed_fallback"
     if stop_reason is not None or cost_usd > kill_usd:
         return "partial"
+    if (
+        llm_cache_entries_at_start is not None
+        and llm_cache_end(records, entries_at_start=llm_cache_entries_at_start)["replay"]
+    ):
+        return "replay"
     return "ok"
 
 
