@@ -38,10 +38,20 @@ BACKBONE_MENU: tuple[str, ...] = get_args(BackboneName)
 Confidence = Annotated[float, Field(strict=True, ge=0.0, le=1.0, allow_inf_nan=False)]
 
 
-class _Lenient(BaseModel):
-    """Tolerates extra keys from noisy LLM output."""
+# QG-5: finite, bounded hyper-parameters. JSON ``Infinity`` / ``NaN`` (which
+# ``json.loads`` accepts) and absurd magnitudes such as 1e308 are a schema
+# failure on every numeric field, not only ``confidence``; the step falls back
+# and the run is invalid (C-KEY-2). The bounds are generous relative to the
+# prompt ranges and the schema defaults (lr 1e-2, λ 1.0, epochs 40/50).
+MAX_LEARNING_RATE = 1.0
+MAX_RIDGE_LAMBDA = 1e6
+MAX_EPOCHS = 500
 
-    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+class _Lenient(BaseModel):
+    """Tolerates extra keys from noisy LLM output; rejects non-finite floats (QG-5)."""
+
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True, allow_inf_nan=False)
 
 
 class _BaseProposal(_Lenient):
@@ -78,15 +88,15 @@ class ArchitectProposal(_BaseProposal):
     n_agents: int = Field(default=5, ge=2, le=8)
     n_rounds: int = Field(default=2, ge=1, le=5)
     hvg_count: HvgCount = 2000
-    learning_rate: float = Field(default=1e-2, gt=0)
-    ridge_lambda: float = Field(default=1.0, ge=0)
-    epochs: int = Field(default=40, ge=1, le=500)
+    learning_rate: float = Field(default=1e-2, gt=0, le=MAX_LEARNING_RATE)
+    ridge_lambda: float = Field(default=1.0, ge=0, le=MAX_RIDGE_LAMBDA)
+    epochs: int = Field(default=40, ge=1, le=MAX_EPOCHS)
 
 
 class TrainerProposal(_BaseProposal):
-    lr: float = Field(default=1e-2, gt=0)
-    epochs: int = Field(default=50, ge=1, le=500)
-    ridge_lambda: float = Field(default=1.0, ge=0)
+    lr: float = Field(default=1e-2, gt=0, le=MAX_LEARNING_RATE)
+    epochs: int = Field(default=50, ge=1, le=MAX_EPOCHS)
+    ridge_lambda: float = Field(default=1.0, ge=0, le=MAX_RIDGE_LAMBDA)
 
 
 class StructuredCritique(_Lenient):
@@ -98,7 +108,10 @@ class StructuredCritique(_Lenient):
 
 
 class ValidatorProposal(_BaseProposal):
-    dynamic_threshold_msd: float = Field(default=0.1, ge=0.02, le=0.3)
+    # Amendment 3 (QG-9, principal 2026-09-28): the threshold is REQUIRED. An
+    # unstated threshold is a schema failure (A2-1 never imputed), never the
+    # old default 0.1 acting as the Validator's "chosen" threshold (A2-2).
+    dynamic_threshold_msd: float = Field(ge=0.02, le=0.3)
     critique: StructuredCritique = Field(default_factory=StructuredCritique)
 
 
@@ -145,6 +158,9 @@ def parse_proposal(role: str, data: dict) -> _BaseProposal:
 
 __all__ = [
     "BACKBONE_MENU",
+    "MAX_EPOCHS",
+    "MAX_LEARNING_RATE",
+    "MAX_RIDGE_LAMBDA",
     "ArchitectProposal",
     "DataCuratorProposal",
     "LiteratureProposal",

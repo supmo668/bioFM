@@ -1,9 +1,14 @@
 """Apply DataCurator agent's QC recipe to the AnnData matrix.
 
 Previously HVG was hardcoded in the grid; here the DataCurator proposal
-drives the number of HVG kept and the mito-% threshold is logged for
-reporting. The filter materialises so downstream Trainer/Validator see
-exactly what the agent chose.
+drives the number of HVG kept. The HVG filter materialises so downstream
+Trainer/Validator see exactly what the agent chose.
+
+The mito-% threshold (``qc_mito_max``) is ONLY LOGGED (``execution_meta``):
+the lifecycle dataset carries no per-cell mito fraction and no cell filter is
+implemented here. QG-2 / A2-3: the loop records it per round with
+``applied=False`` and a reason (``architect_dispatch.NOT_APPLIED_FIELDS``);
+whether to implement the filter is an open ruling.
 
 T8b (CTO #227): HVG is ranked on TRAINING cells only, through the single
 helper :func:`perturb_eval.data.hvg.select_hvg_train_only`; the caller must
@@ -32,6 +37,9 @@ def execute_data_curator(
     ``X``/``labels`` are ALL cells; the returned ``X``/``labels`` are the
     training rows restricted to the selected columns. ``top_gene_indices``
     are sorted column indices into ``X``.
+
+    ``qc_mito_max`` / ``pct_mito_max`` is read and echoed in
+    ``execution_meta["pct_mito_max"]`` but NO cell is filtered by it (QG-2).
     """
     # A2-3: the schema keys (``hvg_count`` / ``qc_mito_max``) are read first;
     # ``n_top_hvg`` / ``pct_mito_max`` are the legacy keys of the non-LLM pools.

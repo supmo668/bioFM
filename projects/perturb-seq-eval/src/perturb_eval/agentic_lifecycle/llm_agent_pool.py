@@ -119,7 +119,7 @@ _ROLE_SCHEMA_LINES: dict[str, tuple[str, ...]] = {
         '  "ridge_lambda": float >= 0,',
     ),
     "Validator": (
-        '  "dynamic_threshold_msd": float in [0.02, 0.3],',
+        '  "dynamic_threshold_msd": float in [0.02, 0.3] (REQUIRED),',
         (
             '  "critique": {"which_genes_failed": [...], '
             '"suggested_next_config_delta": {...}, "accept_reason": "..."},'

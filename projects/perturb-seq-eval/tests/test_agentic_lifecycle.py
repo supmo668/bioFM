@@ -432,7 +432,10 @@ class _StubTransport:
     def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):  # noqa: ARG002
         from perturb_eval.llm.openrouter_client import ChatResult
 
-        return ChatResult(content={"confidence": 0.5, "backbone": "linear"}, model_id="x/y")
+        return ChatResult(
+            content={"confidence": 0.5, "backbone": "linear", "dynamic_threshold_msd": 0.1},
+            model_id="x/y",
+        )
 
 
 class _RateLimitedClient:

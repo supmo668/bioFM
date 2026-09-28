@@ -129,9 +129,12 @@ class LifecycleRun:
     error_fields: dict[str, Any] | None = None
     # A2-2: every round's MSD (``final_msd_topk`` is the last round's).
     msd_per_round: tuple[float, ...] = ()
-    # A2-3: per round, the applied value of each agent-controlled field and
-    # which tier supplied it: {"values": {...}, "sources": {field: "validator"
-    # | "architect" | "datacurator" | "trainer" | "default"}}.
+    # A2-3: per round, the resolved value of each agent-controlled field, which
+    # tier supplied it, and whether an executor actually APPLIED it (QG-2):
+    # {"values": {...}, "sources": {field: "validator" | "architect" |
+    # "datacurator" | "trainer" | "default"}, "applied": {field: bool},
+    # "not_applied_reason": {field: str}}. ``qc_mito_max`` is resolved and
+    # recorded but applied=False: no mito cell filter exists in the lifecycle.
     applied_config_per_round: tuple[dict[str, Any], ...] = ()
     # A2-5: the task's evaluation genes (full-axis column indices, rank order),
     # shared with the trainer path; the Validator's MSD is over exactly these.

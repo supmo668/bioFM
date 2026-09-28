@@ -192,7 +192,9 @@ class _StubTransport:
         self._model_id = model_id
         # A2-1/A2-6: a minimal schema-valid reply for every role.
         self._content = (
-            content if content is not None else {"confidence": 0.5, "backbone": "linear"}
+            content
+            if content is not None
+            else {"confidence": 0.5, "backbone": "linear", "dynamic_threshold_msd": 0.1}
         )
 
     def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset) -> ChatResult:  # noqa: ARG002

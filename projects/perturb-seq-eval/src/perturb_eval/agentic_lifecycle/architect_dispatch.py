@@ -8,6 +8,7 @@ instead of just a backbone string. See
 
 from __future__ import annotations
 
+import math
 from collections.abc import Collection, Mapping
 from typing import Any, Optional
 
@@ -128,6 +129,38 @@ APPLIED_FIELDS: dict[str, dict[str, Any]] = {
 }
 _TIERS = ("architect", "datacurator", "trainer")
 
+# QG-2 (A2-3): fields that are RESOLVED and RECORDED but NOT APPLIED by any
+# executor, with the reason. ``qc_mito_max`` is only logged by
+# ``execute_data_curator``: the lifecycle dataset carries no per-cell mito
+# fraction and no cell filter exists (whether to implement one is an open
+# A2-3 ruling). The per-round record must never file such a field as applied.
+NOT_APPLIED_FIELDS: dict[str, str] = {
+    "qc_mito_max": (
+        "no per-cell mito fraction in the lifecycle dataset; filter not implemented "
+        "(execute_data_curator only logs the value) — see A2-3 ruling pending"
+    ),
+}
+
+
+def applied_config_record(values: Mapping[str, Any], sources: Mapping[str, str]) -> dict[str, Any]:
+    """One round's ``applied_config_per_round`` entry (A2-3, QG-2).
+
+    ``{"values", "sources", "applied", "not_applied_reason"}``: ``applied`` is an
+    explicit per-field flag over every field in ``values`` — ``False`` for the
+    fields in :data:`NOT_APPLIED_FIELDS`, whose reason is in
+    ``not_applied_reason`` — so a resolved value is never mistaken for an
+    executed one.
+    """
+    unknown = set(NOT_APPLIED_FIELDS) - set(values)
+    if unknown:
+        raise ValueError(f"NOT_APPLIED_FIELDS names fields not in the record: {sorted(unknown)}")
+    return {
+        "values": dict(values),
+        "sources": dict(sources),
+        "applied": {k: k not in NOT_APPLIED_FIELDS for k in values},
+        "not_applied_reason": {k: NOT_APPLIED_FIELDS[k] for k in values if k in NOT_APPLIED_FIELDS},
+    }
+
 
 def _stated_value(
     content: Mapping[str, Any] | None, stated: Collection[str] | None, keys: tuple[str, ...]
@@ -185,11 +218,29 @@ def resolve_applied_config(
                     values[name], sources[name] = val, tier
                     break
     values["backbone"] = _canonical_backbone(str(values["backbone"]))
+    # QG-5: a Validator delta (an unvalidated dict) or a non-LLM pool's content
+    # bypasses the schema, so a non-finite value can reach here. Raise a clear
+    # error; never apply it and never silently substitute a default.
+    for k in ("hvg_count", "epochs", "qc_mito_max", "learning_rate", "ridge_lambda"):
+        _require_finite(k, values[k], sources[k])
     values["hvg_count"] = int(values["hvg_count"])
     values["epochs"] = int(values["epochs"])
     for k in ("qc_mito_max", "learning_rate", "ridge_lambda"):
         values[k] = float(values[k])
     return values, sources
+
+
+def _require_finite(name: str, value: Any, source: str) -> None:
+    """QG-5: ``value`` must be a finite real number; raise ``ValueError`` otherwise."""
+    try:
+        ok = not isinstance(value, bool) and math.isfinite(float(value))
+    except (TypeError, ValueError, OverflowError):
+        ok = False
+    if not ok:
+        raise ValueError(
+            f"applied config field {name!r} = {value!r} (from {source!r}) is not a finite "
+            "number; refusing to apply it (QG-5: never substituted silently)"
+        )
 
 
 def dispatch_architect(proposal: dict) -> tuple:

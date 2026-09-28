@@ -195,3 +195,50 @@ class TestBackboneUnavailable:
                     seeds=(0,),
                 )
             )
+
+
+# --------------------------------------------------------------------------- QG-5
+# The Validator's ``suggested_next_config_delta`` is an unvalidated dict, so a
+# non-finite value can reach ``resolve_applied_config`` without passing a
+# schema. It must raise a clear error, never apply or silently substitute.
+class TestResolveAppliedConfigRejectsNonFinite:
+    @pytest.mark.parametrize("field", ["learning_rate", "ridge_lambda", "qc_mito_max"])
+    @pytest.mark.parametrize("bad", [float("inf"), float("-inf"), float("nan")])
+    def test_non_finite_delta_raises(self, field, bad) -> None:
+        from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_applied_config
+
+        with pytest.raises(ValueError, match="finite"):
+            resolve_applied_config(
+                datacurator=None,
+                datacurator_stated=None,
+                architect={"backbone": "linear"},
+                architect_stated=None,
+                critique_delta={field: bad},
+            )
+
+    @pytest.mark.parametrize("field", ["learning_rate", "ridge_lambda"])
+    def test_non_finite_stated_value_from_a_non_llm_pool_raises(self, field) -> None:
+        """A mock pool reports no stated set, so its content bypasses the schema."""
+        from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_applied_config
+
+        with pytest.raises(ValueError, match="finite"):
+            resolve_applied_config(
+                datacurator=None,
+                datacurator_stated=None,
+                architect={"backbone": "linear", field: float("inf")},
+                architect_stated=None,
+                critique_delta=None,
+            )
+
+    @pytest.mark.parametrize("field", ["hvg_count", "epochs"])
+    def test_non_finite_int_field_raises_value_error_not_overflow(self, field) -> None:
+        from perturb_eval.agentic_lifecycle.architect_dispatch import resolve_applied_config
+
+        with pytest.raises(ValueError, match="finite"):
+            resolve_applied_config(
+                datacurator=None,
+                datacurator_stated=None,
+                architect={"backbone": "linear"},
+                architect_stated=None,
+                critique_delta={field: float("inf")},
+            )

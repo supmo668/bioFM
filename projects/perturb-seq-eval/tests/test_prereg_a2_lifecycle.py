@@ -191,10 +191,47 @@ class TestA2_2_FixedThreeRounds:
         assert [s.validator_threshold_msd for s in val] == [0.25, 0.25, 0.25]
         assert all(isinstance(s.validator_accepted, bool) for s in val)
 
-    def test_final_msd_is_round_two(self, tmp_path) -> None:
-        run = _run(_pool(ScriptedClient(), tmp_path), validator_threshold_override=1e9)
-        assert len(run.msd_per_round) == 3
-        assert run.final_msd_topk == run.msd_per_round[2]
+    @staticmethod
+    def _distinct_msd_gate(monkeypatch, msds=(0.3, 0.1, 0.2)) -> None:
+        """QG-4: rounds must be distinguishable — the gate returns a DIFFERENT
+        MSD per round, and the best round (0.1) is deliberately not the last."""
+        import perturb_eval.agentic_lifecycle.loop as loop_mod
+
+        it = iter(msds)
+
+        def fake_gate(**kw):
+            return ExecutedValidation(
+                msd_topk=next(it),
+                biofm_agreement=0.5,
+                deg_overlap_at_k=0.5,
+                accepted=True,
+                rationale="r",
+                critique=StructuredCritiqueDTO(),
+            )
+
+        monkeypatch.setattr(loop_mod, "score_and_gate", fake_gate)
+
+    def test_final_msd_is_round_two(self, tmp_path, monkeypatch) -> None:
+        self._distinct_msd_gate(monkeypatch)
+        run = _run(_pool(ScriptedClient(), tmp_path))
+        assert run.msd_per_round == (0.3, 0.1, 0.2)
+        assert run.final_msd_topk == 0.2  # the LAST round's, not the min (0.1) or first (0.3)
+
+    def test_sweep_record_final_msd_is_round_two(self, tmp_path, monkeypatch) -> None:
+        from perturb_eval.experiments.v05_sweep import lifecycle_record
+
+        self._distinct_msd_gate(monkeypatch)
+        X, labels, cm, tgi = _toy()
+        ds = {"X": X, "labels": labels, "control_mask": cm, "target_gene_idx": tgi}
+        rec = lifecycle_record(
+            task="C",
+            dataset_name="adamson_full",
+            ds=ds,
+            seed=0,
+            pool=_pool(ScriptedClient(), tmp_path),
+        )
+        assert tuple(rec["msd_per_round"]) == (0.3, 0.1, 0.2)
+        assert rec["final_msd_topk"] == 0.2
 
     def test_sweep_record_always_runs_three_rounds(self) -> None:
         from perturb_eval.experiments.v05_sweep import LIFECYCLE_N_ROUNDS, lifecycle_record
@@ -342,6 +379,44 @@ class TestA2_3_ConfigApplied:
         assert a1["values"]["learning_rate"] == 1e-4
         assert a1["sources"]["learning_rate"] == "validator"
         assert a1["sources"]["ridge_lambda"] == "architect"
+
+    def test_qc_mito_max_is_recorded_as_not_applied(self, tmp_path) -> None:
+        """QG-2: ``execute_data_curator`` only LOGS the mito threshold — there is
+        no per-cell mito fraction in the lifecycle dataset and no cell filter —
+        so the per-round record must say so explicitly instead of filing the
+        DataCurator's value as applied. Every other field IS applied."""
+        client = ScriptedClient(
+            {"DataCurator": {"hvg_count": 500, "qc_mito_max": 8.0, "confidence": 0.6}}
+        )
+        run = _run(_pool(client, tmp_path), max_rounds=1)
+        (a,) = run.applied_config_per_round
+        # The value and its source are still recorded ...
+        assert a["values"]["qc_mito_max"] == 8.0
+        assert a["sources"]["qc_mito_max"] == "datacurator"
+        # ... but the record says it was NOT applied, and why.
+        assert set(a["applied"]) == set(a["values"])
+        assert a["applied"]["qc_mito_max"] is False
+        reason = a["not_applied_reason"]["qc_mito_max"]
+        assert "mito" in reason and "not implemented" in reason
+        assert set(a["not_applied_reason"]) == {"qc_mito_max"}
+        for field in set(a["values"]) - {"qc_mito_max"}:
+            assert a["applied"][field] is True, field
+
+    def test_not_applied_flag_survives_the_sweep_record(self, tmp_path) -> None:
+        from perturb_eval.experiments.v05_sweep import lifecycle_record
+
+        X, labels, cm, tgi = _toy()
+        ds = {"X": X, "labels": labels, "control_mask": cm, "target_gene_idx": tgi}
+        rec = lifecycle_record(
+            task="C",
+            dataset_name="adamson_full",
+            ds=ds,
+            seed=0,
+            pool=_pool(ScriptedClient(), tmp_path),
+        )
+        for a in json.loads(json.dumps(rec, default=str))["applied_config_per_round"]:
+            assert a["applied"]["qc_mito_max"] is False
+            assert a["not_applied_reason"]["qc_mito_max"]
 
     def test_applied_config_is_in_the_sweep_record(self, tmp_path) -> None:
         from perturb_eval.experiments.v05_sweep import lifecycle_record

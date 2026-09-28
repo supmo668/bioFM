@@ -7,7 +7,10 @@ JSON schema is the provenance surface for the paper's §5 freedom analysis.
 
 from __future__ import annotations
 
+import json
+
 import pytest
+from pydantic import ValidationError
 
 from perturb_eval.agentic_lifecycle.proposal_schema import (
     ArchitectProposal,
@@ -118,8 +121,11 @@ class TestStructuredCritique:
 
 
 class TestValidatorProposal:
-    def test_defaults(self) -> None:
-        v = ValidatorProposal(confidence=0.5)
+    def test_threshold_is_required_not_defaulted(self) -> None:
+        # Amendment 3 (QG-9): no default -- an unstated threshold is a schema failure.
+        with pytest.raises(ValueError):
+            ValidatorProposal(confidence=0.5)
+        v = ValidatorProposal(confidence=0.5, dynamic_threshold_msd=0.1)
         assert 0.02 <= v.dynamic_threshold_msd <= 0.3
 
     def test_threshold_clamped(self) -> None:
@@ -159,3 +165,100 @@ class TestParseProposal:
             "DataCurator", {"hvg_method": "seurat", "extra": "hi", "confidence": 0.5}
         )
         assert isinstance(out, DataCuratorProposal)
+
+
+# --------------------------------------------------------------------------- QG-5
+# JSON ``Infinity`` / ``NaN`` and absurd magnitudes (1e308) must be a schema
+# failure on every numeric hyper-parameter, not just ``confidence``: otherwise
+# they parse, ``resolve_applied_config`` applies them as stated, and the fit
+# runs on a non-finite learning rate / ridge λ.
+_NUMERIC_FIELDS = [
+    ("Architect", "learning_rate"),
+    ("Architect", "ridge_lambda"),
+    ("Trainer", "lr"),
+    ("Trainer", "ridge_lambda"),
+    ("DataCurator", "qc_mito_max"),
+]
+_BAD_NUMBERS = [
+    pytest.param(json.loads("Infinity"), id="Infinity"),
+    pytest.param(json.loads("-Infinity"), id="-Infinity"),
+    pytest.param(json.loads("NaN"), id="NaN"),
+    pytest.param(1e308, id="1e308"),
+]
+
+
+class TestNonFiniteHyperparameters:
+    @pytest.mark.parametrize("role,field", _NUMERIC_FIELDS)
+    @pytest.mark.parametrize("bad", _BAD_NUMBERS)
+    def test_non_finite_or_absurd_value_is_schema_failure(self, role, field, bad) -> None:
+        base = {"backbone": "linear", "confidence": 0.5}
+        with pytest.raises(ValidationError):
+            parse_proposal(role, {**base, field: bad})
+
+    @pytest.mark.parametrize("role,field", _NUMERIC_FIELDS)
+    @pytest.mark.parametrize("bad", _BAD_NUMBERS)
+    def test_pool_takes_the_fallback_path(self, role, field, bad, tmp_path) -> None:
+        """Through the real LLMAgentPool: the step is a fallback (run invalid, C-KEY-2),
+        and the non-finite value never reaches ``content``."""
+        from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
+        from perturb_eval.llm.openrouter_client import ChatResult
+
+        class Client:
+            def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):
+                return ChatResult(
+                    content={"backbone": "linear", "confidence": 0.5, field: bad},
+                    model_id="fake/m",
+                )
+
+        out = LLMAgentPool(client=Client(), cache_dir=tmp_path).propose(
+            role, 0, "t", {}, seed=0, dataset="adamson_full"
+        )
+        assert out["source"] == "fallback" and out["model_id"] is None
+        assert out["content"].get(field) != bad
+
+    def test_epochs_upper_bound(self) -> None:
+        with pytest.raises(ValidationError):
+            parse_proposal("Trainer", {"confidence": 0.5, "epochs": 10**9})
+        with pytest.raises(ValidationError):
+            parse_proposal("Architect", {"backbone": "linear", "confidence": 0.5, "epochs": 10**9})
+
+    def test_sane_values_still_parse(self) -> None:
+        a = parse_proposal(
+            "Architect",
+            {"backbone": "linear", "confidence": 0.5, "learning_rate": 1.0, "ridge_lambda": 1e6},
+        )
+        assert a.learning_rate == 1.0 and a.ridge_lambda == 1e6
+        t = parse_proposal("Trainer", {"confidence": 0.5, "lr": 1e-6, "ridge_lambda": 0.0})
+        assert t.lr == 1e-6 and t.ridge_lambda == 0.0
+
+
+class TestQG9ValidatorThresholdRequired:
+    """Amendment 3 (QG-9, principal 2026-09-28): an unstated Validator threshold is
+    a schema failure, never the old default 0.1 acting as the chosen threshold."""
+
+    def test_missing_threshold_is_a_schema_failure(self) -> None:
+        import pytest
+        from pydantic import ValidationError
+
+        from perturb_eval.agentic_lifecycle.proposal_schema import parse_proposal
+
+        with pytest.raises(ValidationError):
+            parse_proposal("Validator", {"confidence": 0.9, "critique": {}})
+
+    def test_stated_threshold_is_the_recorded_one(self) -> None:
+        from perturb_eval.agentic_lifecycle.proposal_schema import parse_proposal
+
+        m = parse_proposal("Validator", {"confidence": 0.9, "dynamic_threshold_msd": 0.25})
+        assert m.dynamic_threshold_msd == 0.25 and "dynamic_threshold_msd" in m.model_fields_set
+
+    def test_pool_falls_back_when_threshold_unstated(self, tmp_path) -> None:
+        from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
+        from perturb_eval.llm.openrouter_client import ChatResult
+
+        class _NoThreshold:
+            def chat_json(self, **kw):
+                return ChatResult(content={"confidence": 0.9, "critique": {}}, model_id="m")
+
+        pool = LLMAgentPool(client=_NoThreshold(), cache_dir=tmp_path)
+        out = pool.propose("Validator", 0, "TFA", {}, seed=0, dataset="adamson_full")
+        assert out["source"] != "llm" and out["confidence"] is None

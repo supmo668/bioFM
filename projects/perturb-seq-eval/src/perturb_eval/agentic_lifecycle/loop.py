@@ -27,6 +27,7 @@ import numpy as np
 
 from perturb_eval.agentic_lifecycle.architect_dispatch import (
     _canonical_backbone,
+    applied_config_record,
     resolve_applied_config,
 )
 from perturb_eval.backbones import build_backbone, count_fitted_params
@@ -282,8 +283,10 @@ def run_agentic_lifecycle(
 
     A2-3: the executors apply the agents' stated fields with precedence
     Validator delta > Architect > DataCurator (> Trainer) > default
-    (:func:`resolve_applied_config`); each round's applied values and their
-    sources are recorded in ``applied_config_per_round``. A2-6: each Architect
+    (:func:`resolve_applied_config`); each round's applied values, their
+    sources and an explicit per-field ``applied`` flag are recorded in
+    ``applied_config_per_round`` (QG-2: ``qc_mito_max`` is recorded with
+    ``applied=False`` — no mito cell filter exists). A2-6: each Architect
     step records ``backbone_stated`` and ``backbone_used`` (executed).
 
     ``target_gene_idx`` values may be an ``int`` or a ``tuple[int, ...]``
@@ -352,7 +355,10 @@ def run_agentic_lifecycle(
             # C-TORCH-2: a known-but-unavailable override raises, never degrades.
             applied["backbone"] = _canonical_backbone(backbone_override)
             applied_src["backbone"] = "override"
-        applied_config_per_round.append({"values": dict(applied), "sources": dict(applied_src)})
+        # QG-2: the record carries an explicit per-field ``applied`` flag;
+        # ``qc_mito_max`` is resolved and recorded but NOT applied (no cell
+        # filter exists), and the record says so rather than implying it ran.
+        applied_config_per_round.append(applied_config_record(applied, applied_src))
         # T8b: HVG ranked on training cells only; every target column (training
         # + held-out) is forced in — its identity comes from the label, not
         # from held-out expression — so no target can fall outside the cut.
