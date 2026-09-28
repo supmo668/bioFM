@@ -8,6 +8,7 @@ previous-round Validator critique must visibly steer round-2 proposals.
 from __future__ import annotations
 
 import json
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -45,7 +46,8 @@ class VariedMockClient:
         # Derive a bounded index from (task, round, role) so different
         # (task, seed) pairs give different Architect choices but the
         # same (task, role) is reproducible within a client instance.
-        h = abs(hash((role, task_id, round_index))) % 10_000
+        # zlib.crc32, not hash(): str hashes are salted per process (PYTHONHASHSEED).
+        h = zlib.crc32(f"{role}|{task_id}|{round_index}".encode()) % 10_000
         if role == "DataCurator":
             return {
                 "hvg_method": ("seurat", "scanpy")[h % 2],
@@ -119,7 +121,6 @@ class TestFreedomE2E:
                 target_gene_idx=ds["target_gene_idx"],
                 held_out="GENE0",
                 agent_pool=pool,
-                max_rounds=2,
                 seed=2026,
                 dataset="adamson_full",
             )
@@ -130,31 +131,51 @@ class TestFreedomE2E:
         assert h_backbone >= 0.5, f"backbone entropy {h_backbone} < 0.5 nats"
         assert h_hvg >= 0.5, f"hvg entropy {h_hvg} < 0.5 nats"
 
-    def test_validator_critique_steers_architect_round2(self, tmp_path: Path) -> None:
-        """When round-1 rejects, the round-2 config must differ."""
+    def test_validator_critique_steers_architect_round2(self, tmp_path: Path, monkeypatch) -> None:
+        """A rejected round's non-empty Validator delta reaches the next round's
+        Architect prompt as JSON, and the Architect's stated backbone changes.
+
+        QG-3: rejection is FORCED (``validator_threshold_override=-1.0``: no MSD
+        passes), all 3 rounds run (A2-2), and every assertion is unconditional.
+        The gate's real delta is captured through a spy, so the assertion is on
+        the delta's JSON content, not on one exact prompt string.
+        """
+        import perturb_eval.agentic_lifecycle.loop as loop_mod
+
+        reports: list = []
+        real_gate = loop_mod.score_and_gate
+
+        def spy_gate(**kw):
+            rep = real_gate(**kw)
+            reports.append(rep)
+            return rep
+
+        monkeypatch.setattr(loop_mod, "score_and_gate", spy_gate)
+
+        def last_delta_json() -> str | None:
+            if not reports or reports[-1].critique is None:
+                return None
+            delta = dict(reports[-1].critique.suggested_next_config_delta)
+            return json.dumps(delta) if delta else None
 
         class ScriptedClient:
-            # Round 0 architect: linear. Round 1 architect: keep linear
-            # unless a validator critique delta is in the prompt.
+            # Round 0 architect: linear. Later rounds: switch to mlp only when
+            # the previous round's (non-empty) delta JSON is in the prompt.
+            def __init__(self) -> None:
+                self.prompts: dict[tuple[str, int], str] = {}
+
             def chat_json(self, *, role, task_id, round_index, prompt, seed, dataset):
+                self.prompts[(role, round_index)] = prompt
                 return ChatResult(
-                    content=self._payload(
-                        role=role,
-                        task_id=task_id,
-                        round_index=round_index,
-                        prompt=prompt,
-                        seed=seed,
-                    ),
-                    model_id="stub/scripted",
+                    content=self._payload(role=role, prompt=prompt), model_id="stub/scripted"
                 )
 
-            def _payload(self, *, role, task_id, round_index, prompt, seed):  # noqa: ARG002
-                # A2-1: every reply states a confidence. The Architect keys off a
-                # NON-EMPTY Validator delta in its prompt (every Architect prompt
-                # carries a '"backbone":' schema line, so that is no signal).
+            @staticmethod
+            def _payload(*, role, prompt):
+                # A2-1: every reply states a confidence.
                 if role == "Architect":
-                    if "Validator suggested config delta: {}" not in prompt:
-                        # Validator delta present → propose a different backbone.
+                    delta_json = last_delta_json()
+                    if delta_json is not None and delta_json in prompt:
                         return json.loads('{"backbone": "mlp", "confidence": 0.6}')
                     return json.loads('{"backbone": "linear", "confidence": 0.6}')
                 if role == "Literature":
@@ -173,7 +194,8 @@ class TestFreedomE2E:
                     return json.loads('{"dynamic_threshold_msd": 0.02, "confidence": 0.5}')
                 return {}
 
-        pool = LLMAgentPool(client=ScriptedClient(), cache_dir=tmp_path)
+        client = ScriptedClient()
+        pool = LLMAgentPool(client=client, cache_dir=tmp_path)
         ds = _toy_dataset()
         run = run_agentic_lifecycle(
             task_id="t",
@@ -183,26 +205,34 @@ class TestFreedomE2E:
             target_gene_idx=ds["target_gene_idx"],
             held_out="GENE0",
             agent_pool=pool,
-            max_rounds=2,
             seed=2026,
             dataset="adamson_full",
+            validator_threshold_override=-1.0,  # force rejection every round
         )
+        assert all(s.source == "llm" for s in run.steps)
+        assert run.n_rounds == 3  # A2-2: fixed three rounds, no early stop
+        assert [s.validator_accepted for s in run.steps if s.agent_name == "Validator"] == [
+            False,
+            False,
+            False,
+        ]
+
+        # Round 0 was rejected, so its critique carries a NON-EMPTY delta ...
+        assert len(reports) == 3
+        round0_delta = dict(reports[0].critique.suggested_next_config_delta)
+        assert round0_delta, "a rejected round must emit a non-empty config delta"
+        # ... whose JSON must appear in the round-1 Architect prompt (and not in round 0's).
+        assert json.dumps(round0_delta) not in client.prompts[("Architect", 0)]
+        assert json.dumps(round0_delta) in client.prompts[("Architect", 1)], (
+            f"round-1 Architect prompt does not carry round-0's critique delta {round0_delta!r}:\n"
+            + client.prompts[("Architect", 1)]
+        )
+
         architect_by_round = [
             s.proposal_content.get("backbone") for s in run.steps if s.agent_name == "Architect"
         ]
-        # A2-2: no early stop — both rounds always run; round 0's verdict is
-        # recorded on its Validator step. An accepting round 0 emits no delta
-        # (a valid outcome: the critique path did not need to fire).
-        assert len(architect_by_round) == 2
-        assert all(s.source == "llm" for s in run.steps)
-        round0_accepted = next(
-            s.validator_accepted
-            for s in run.steps
-            if s.agent_name == "Validator" and s.round_index == 0
+        assert len(architect_by_round) == 3
+        assert architect_by_round[0] == "linear"
+        assert architect_by_round[1] != architect_by_round[0], (
+            f"critique didn't steer round-2 architect: {architect_by_round}"
         )
-        if not round0_accepted:
-            # With tight threshold (0.02) the toy dataset should reject,
-            # so round-1 should see the validator critique.
-            assert architect_by_round[1] != architect_by_round[0], (
-                f"critique didn't steer round-2 architect: {architect_by_round}"
-            )
