@@ -1,0 +1,1 @@
+- A2-fixes — amendment-2 measurand fixes gated (11 findings fixed/ruled; amendment 3 locked 114a01f, prereg_version v0.6.0-a3) (commit 371c274)

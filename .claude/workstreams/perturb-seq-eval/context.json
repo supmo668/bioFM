@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-09-24T18:59:36.106126+00:00",
+  "updated_at": "2026-09-28T22:05:02.238177+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -20,6 +20,17 @@
       "summary": "",
       "pr": "",
       "updated_at": "2026-09-24T18:59:36.105857+00:00"
+    },
+    "A2-fixes": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "371c274",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260928-1504-1f3dc41.md",
+      "summary": "amendment-2 measurand fixes gated; amendment 3 locked; 1036 tests",
+      "pr": "",
+      "updated_at": "2026-09-28T22:05:02.237992+00:00"
     }
   }
 }
