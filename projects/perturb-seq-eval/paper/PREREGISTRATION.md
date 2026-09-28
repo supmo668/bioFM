@@ -10,9 +10,11 @@ is `true` for the run, this file's committed revision is not by itself proof of 
 must say so.
 
 **Amendments.** Amendment 1 (2026-09-25, `0c2932a`): H4 multiplicity quantified by permutation. **Amendment 2**
-(`prereg_version` = `v0.6.0-a2`), locked before any v0.6.0 data exists, is given in full in the last section of
-this file. Its definitions are already written into the sections above; for any other text that differs from it,
-**amendment 2 governs**. Any later change is a third amendment.
+(`3bf2a9a`), locked before any v0.6.0 data exists, is given in full in the penultimate section of this file; its
+definitions are already written into the sections above. **Amendment 3** (`prereg_version` = `v0.6.0-a3`,
+2026-09-28, principal rulings QG-2/6/7/9 from the amendment-2 fixes quality gate), the last section, records four
+points the amendment-2 text left open or that its implementation could not meet; it too is locked before any data.
+For any text that differs, **the later amendment governs**. Any later change is a fourth amendment.
 
 This file contains no result values. The v0.5.0 values are superseded in full (manuscript appendix
 "Corrections relative to v0.5.0", which maps each one to the register row that supersedes it).
@@ -46,7 +48,7 @@ into a claim-form title, abstract or contribution list.**
    and observed mean log-fold-change over the 20 genes with the largest absolute mean difference between the
    held-out perturbation's cells and control cells — the CPA/GEARS convention. These genes are selected using
    the held-out cells; this is the convention, stated, not changed.
-3. **Best-of-54 is an oracle.** The per-task minimum over the 54 trainer configurations is selected on the same
+3. **Best-over-the-distinct-configurations is an oracle.** The per-task minimum over the distinct trainer configurations (7; amendment 3, A3-4) is selected on the same
    evaluation split it is scored on. It is an **attainable upper bound (oracle)**, never an estimate of held-out
    performance. There is no nested validation/test split in this design.
 4. **LLM-sourced steps only.** Every lifecycle step is labelled `source ∈ {llm, fallback}` and, when `llm`,
@@ -66,7 +68,7 @@ record 0, naming the commit that fixed this plan). The function named in each ro
 
 | id | hypothesis | gate | estimator |
 |---|---|---|---|
-| H1 | The trainer sweep attains low error on Adamson | median < **0.20** | per Adamson task, min over the 54 configurations of MSD@top-20-DEG (oracle, convention 3); median over the 21 tasks. Non-finite (error) records are excluded from the minimum. `preregistered.h1_h2_stats` |
+| H1 | The trainer sweep attains low error on Adamson | median < **0.20** | per Adamson task, min over the distinct configurations of MSD@top-20-DEG (7 distinct (backbone, R) configurations over 27 records; amendments 2 and 3; oracle, convention 3); median over the 21 tasks. Non-finite (error) records are excluded from the minimum. `preregistered.h1_h2_stats` |
 | H2 | The trainer sweep attains low error on Norman | median < **0.30** | as H1 over the 20 Norman tasks, also split singleton / doublet. `preregistered.h1_h2_stats` |
 | H3 | The Architect exercises its backbone choice | entropy ≥ **0.5 nats** | Shannon entropy (natural log) of the empirical distribution of `backbone` over all Architect steps with `source == "llm"`, pooled across tasks, seeds and rounds; ceiling ln 3. Entropy from `analyse_v05_run` (T16), gate by `preregistered.h3` |
 | H4 | A trace-derived difficulty feature ranks tasks by held-out error | Spearman ρ > **0.5** for ≥ 1 of {ACE_norm, 1−ΔC, TDI_lifecycle} within Adamson **or** within Norman (6 tests) | unit = task; per task, each component (definitions below) and the lifecycle's final MSD@top-20-DEG are each the median over the task's three seeds; Spearman ρ over the tasks of ONE dataset (21 Adamson; 20 Norman), default weights, no in-sample calibration. All six ρ are reported, with n and a bootstrap CI over tasks. The ρ pooled over all 41 tasks is reported as **descriptive only and never gates**. `preregistered.h4` |
@@ -500,3 +502,57 @@ an outer clip would re-create the tie block inside TDI. The weights are carried 
 
 **Text it changes in `PREREGISTRATION.md`:** "Per-run components", the 1−ΔC and TDI_lifecycle definitions;
 "Required alongside each gate" adds the descriptive clipped value.
+
+## Amendment 3 (`prereg_version` = `v0.6.0-a3`): locked 2026-09-28, before any v0.6.0 data
+
+Raised by the quality gate on the amendment-2 measurand fixes (findings QG-2, QG-6, QG-7, QG-9; five reviewers,
+scored ≥ 80) and ruled by the principal on 2026-09-28. Two further gate findings (QG-1: the analyser must report a
+replay run and never license gates on it; QG-10: the analyser cites the per-task evaluation-gene list beside H1/H2
+and H4/H5 and refuses a trainer/lifecycle mismatch) are **enforcement of A2-8 and A2-5 as written**, implemented in
+the same gate, and change no text. Where this section and any earlier text differ, **this section governs**.
+Because this is a new pre-registered version, the LLM cache namespace is `<cache_dir>/v0.6.0-a3/` and starts empty
+(A2-8 rule, unchanged).
+
+### A3-1 (QG-2): the DataCurator's mito-QC threshold is recorded, not applied. RULED (principal, 2026-09-28)
+
+**Found:** A2-3 says the executors apply the parsed schema fields and names the mito threshold among them. No
+loader provides a per-cell mitochondrial fraction for either dataset, so no cell filter exists; the executor only
+logs the value, while the per-round record filed it as applied.
+
+**Amended rule:** `qc_mito_max` is resolved by the precedence rule and **recorded** per round with its value and
+source, and the record carries an explicit per-field `applied` flag: `applied: false` for `qc_mito_max`, with the
+reason (`architect_dispatch.NOT_APPLIED_FIELDS`), `applied: true` for every field an executor consumes. The paper
+states that the mito threshold is a recorded agent choice with no effect on the data. Implementing the filter would
+change the cell set per run and interact with A2-5's per-run gene ranking; it is **not** done for v0.6.0.
+
+### A3-2 (QG-6): the Trainer role is a precedence tier. RULED (principal, 2026-09-28)
+
+**Found:** A2-3 names four tiers. The Trainer role also states `lr`, `epochs` and `ridge_lambda`, which are parsed
+schema fields A2-3 says to apply; the text gave them no tier.
+
+**Amended rule:** precedence for each field is **Validator delta > Architect > DataCurator > Trainer > defaults**
+(`architect_dispatch.APPLIED_FIELDS`). A Trainer statement applies only when no higher tier states the field.
+"Validator delta" is the rule-based `score_and_gate` critique delta (A2-3 Found); the LLM Validator's own
+`critique.suggested_next_config_delta` is recorded and **not applied**, and the paper says so.
+
+### A3-3 (QG-9): the Validator's threshold is required. RULED (principal, 2026-09-28)
+
+**Found:** when the LLM Validator did not state `dynamic_threshold_msd`, the schema default 0.1 was recorded as its
+"chosen threshold" (A2-2) and decided accept/reject, which decides whether a delta enters the next round's
+applied configuration — an imputed value gating the measurand (against A2-1).
+
+**Amended rule:** `dynamic_threshold_msd` is a **required** Validator field (range [0.02, 0.3]); an unstated,
+non-numeric or out-of-range value is a **schema failure** under A2-1 (the step falls back, the run is invalid).
+The recorded threshold is therefore always a stated one.
+
+### A3-4 (QG-7): what "the number of distinct configurations" counts. RULED (principal, 2026-09-28)
+
+**Found:** A2-4 states the count but not its definition; two readings existed (distinct fits including seeds = 19;
+distinct (backbone, R) = 7, since the linear backbone ignores R and seed).
+
+**Amended rule:** the stated count is the number of **distinct (backbone, R) configurations, seeds as replicates,
+an R- and seed-invariant backbone counting once**: for {linear, mlp, scgpt_small} × R ∈ {1, 2, 3} × seeds
+{2026, 2027, 2028} that is **7** per task (`trainer_grid.n_distinct_configs_per_task`; the analyser's
+`n_configs_tried` uses the same definition). The 19 distinct fits and 27 records per task are recorded as
+supporting detail (`n_distinct_fits_per_task`, `n_records_per_task`). The oracle rule is unchanged: the minimum
+over every finite record.

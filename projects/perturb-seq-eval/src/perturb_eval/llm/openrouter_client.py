@@ -38,7 +38,7 @@ _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # pre-registered version starts with an EMPTY LLM cache namespace
 # ``<cache_dir>/<prereg_version>/``; a non-empty start or any cache hit makes
 # the run a replay.
-PREREG_VERSION = "v0.6.0-a2"
+PREREG_VERSION = "v0.6.0-a3"  # amendment 3 (2026-09-28)
 
 
 def versioned_cache_dir(cache_dir: str | Path, prereg_version: str = PREREG_VERSION) -> Path:

@@ -1,4 +1,4 @@
-"""Amendment 2 (PREREGISTRATION.md, prereg_version v0.6.0-a2): trainer-side rules.
+"""Amendment 2 (PREREGISTRATION.md, prereg_version v0.6.0-a3): trainer-side rules.
 
 * A2-4 — N is removed from the trainer sweep; the H1/H2 oracle is the best over
   the distinct backbone x R configurations actually run, and the distinct count
