@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-09-28T22:05:02.238177+00:00",
+  "updated_at": "2026-09-29T00:32:54.924136+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -31,6 +31,17 @@
       "summary": "amendment-2 measurand fixes gated; amendment 3 locked; 1036 tests",
       "pr": "",
       "updated_at": "2026-09-28T22:05:02.237992+00:00"
+    },
+    "RELAUNCH": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "4f967a1",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260928-1731-2a499b0.md",
+      "summary": "relaunch fixes gated; sweep relaunched 2026-09-29T00:31Z",
+      "pr": "",
+      "updated_at": "2026-09-29T00:32:54.923995+00:00"
     }
   }
 }

@@ -1,1 +1,2 @@
 - A2-fixes — amendment-2 measurand fixes gated (11 findings fixed/ruled; amendment 3 locked 114a01f, prereg_version v0.6.0-a3) (commit 371c274)
+- RELAUNCH — roster/preflight/client/spend fixes gated (13 findings fixed; receipt 2a499b0); sweep relaunched from 4f967a1 with prior spend 1.3 (commit 4f967a1)
