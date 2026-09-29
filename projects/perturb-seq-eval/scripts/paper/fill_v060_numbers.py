@@ -1,12 +1,14 @@
 """Generate ``paper/sections/generated_numbers.tex`` from the v0.6.0 artifacts.
 
 Every result value in the manuscript is a LaTeX macro defined here, computed from
-``artifacts/v0.6.0/summary.json`` (the analyser's output), ``provenance.json`` and the
-plan's projection file. A number typed into a .tex file by hand is a defect (CTO #491);
-``--check`` regenerates and fails if the committed file differs.
+``artifacts/v0.6.0/{summary.json,provenance.json,lifecycle_runs.jsonl}`` (the analyser's
+output and the run record) and the pre-registered projection file. A number typed into
+a .tex file by hand is a defect (CTO #491); ``--check`` regenerates and fails if the
+committed file differs. Every default path resolves against the project root, so the
+script behaves the same from any working directory; a missing input is an error, never
+an ``n/a`` in the paper.
 
-    .venv/bin/python scripts/paper/fill_v060_numbers.py --artifacts artifacts/v0.6.0 \
-        --projection paper/data/projection_v060.json --out paper/sections/generated_numbers.tex [--check]
+    .venv/bin/python scripts/paper/fill_v060_numbers.py [--check]
 """
 
 from __future__ import annotations
@@ -19,8 +21,11 @@ import re
 import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+WORKSTREAM = PROJECT_ROOT.parents[1] / "workstreams" / "perturb-seq-eval"
 ROLES = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
 COMP = {"ace_norm": "Ace", "one_minus_delta_c": "Dc", "tdi_lifecycle": "Tdi"}
+DESCRIPTIVE = {"ace_norm_softmax": "AceSoftmax", "one_minus_delta_c_clipped": "DcClipped"}
 DS = {"adamson_full": "Ada", "norman": "Nor"}
 WORDS = {
     "DataCurator": "Curator",
@@ -29,24 +34,45 @@ WORDS = {
     "Trainer": "Trainer",
     "Validator": "Validator",
 }
+HAIKU = "claude-haiku-4-5-20251001"
+SONNET = "claude-sonnet-5-5"
+PRIMARY = {role: (SONNET if role == "Validator" else HAIKU) for role in ROLES}
+# Macro values are typeset verbatim; anything outside this alphabet (or a verdict) is refused.
+SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /]*")
+ENSUREMATH_NEG = re.compile(r"\\ensuremath\{-\d+(\.\d+)?\}")
+VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}"}
 
 
-def f(x, d=3):
+def f(x, d: int = 3) -> str:
+    """Fixed-point text; negatives are wrapped so the minus sign survives text mode."""
     if x is None or (isinstance(x, float) and math.isnan(x)):
-        return "n/a"
-    return f"{float(x):.{d}f}"
+        raise ValueError("a result value is undefined; the manuscript cannot print n/a")
+    s = f"{float(x):.{d}f}"
+    return rf"\ensuremath{{{s}}}" if s.startswith("-") else s
 
 
-def verdict(ok):
+def verdict(ok) -> str:
+    if ok is None:
+        return r"\textbf{UNEVALUATED}"
     return r"\textbf{PASS}" if ok else r"\textbf{FAIL}"
 
 
+def _sha16(path: Path) -> str:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
 def build(
-    artifacts: Path, projection: Path, manifest: Path | None, archives: list[Path]
+    artifacts: Path, projection: Path, manifest: Path, archives: list[Path]
 ) -> dict[str, str]:
     s = json.loads((artifacts / "summary.json").read_text())
     p = json.loads((artifacts / "provenance.json").read_text())
     proj = json.loads(projection.read_text())
+    runs = [
+        json.loads(line) for line in (artifacts / "lifecycle_runs.jsonl").read_text().splitlines()
+    ]
+    runs = [r for r in runs if "steps" in r and "applied_config_per_round" in r]
     pr = s["preregistered"]
     m: dict[str, str] = {}
     # ---- run identity
@@ -67,11 +93,14 @@ def build(
         m[f"{name}CIHi"] = f(r["ci_high"])
         m[f"{name}Threshold"] = f(r["threshold"], 2)
         m[f"{name}Verdict"] = verdict(r["pass"])
-    st = pr["H2"].get("strata", {})
     for k, name in (("singleton", "Singleton"), ("doublet", "Doublet")):
-        if k in st:
-            m[f"HTwo{name}Median"] = f(st[k]["median"])
-            m[f"HTwo{name}N"] = str(st[k]["n"])
+        st = pr["H2"]["strata"][k]
+        m[f"HTwo{name}Median"] = f(st["median"])
+        m[f"HTwo{name}N"] = str(st["n"])
+        m[f"HTwo{name}IQRLo"] = f(st["iqr"][0])
+        m[f"HTwo{name}IQRHi"] = f(st["iqr"][1])
+        m[f"HTwo{name}Max"] = f(st["max"])
+        m[f"HTwo{name}FracOver"] = f(st["fraction_over_gate"], 2)
     # ---- H3
     h3 = pr["H3"]
     m["HThreeEntropy"] = f(h3["value"])
@@ -79,10 +108,10 @@ def build(
     m["HThreeVerdict"] = verdict(h3["pass"])
     for bb, name in (("linear", "Linear"), ("mlp", "Mlp"), ("scgpt_small", "Scgpt")):
         m[f"HThreePick{name}"] = str(h3["pick_counts"].get(bb, 0))
-    m["HThreeNSteps"] = str(sum(h3["pick_counts"].values()))
+    m["HThreeNSteps"] = str(h3["n_llm_architect_steps"])
     m["HThreeExecNeStated"] = str(h3["n_executed_ne_stated"])
-    m["HThreeNModels"] = str(len(h3.get("by_model_id") or {}))
-    # ---- H4
+    m["HThreeNModels"] = str(h3["n_distinct_model_ids"])
+    # ---- H4 (six pre-registered tests + the two descriptive forms per dataset)
     h4 = pr["H4"]
     for row in h4["all_six"]:
         key = f"HFour{DS[row['dataset']]}{COMP[row['component']]}"
@@ -90,29 +119,36 @@ def build(
         m[f"{key}N"] = str(row["n"])
         m[f"{key}CILo"] = f(row["ci_low"])
         m[f"{key}CIHi"] = f(row["ci_high"])
-        m[f"{key}Pass"] = "yes" if row["passes"] else "no"
+        m[f"{key}Pass"] = (
+            "undefined" if row["passes"] is None else ("yes" if row["passes"] else "no")
+        )
+    for ds, dn in DS.items():
+        for comp, cn in DESCRIPTIVE.items():
+            row = h4["descriptive"][ds][comp]
+            m[f"HFour{dn}{cn}Rho"] = f(row["rho"])
+            m[f"HFour{dn}{cn}N"] = str(row["n"])
+            m[f"HFour{dn}{cn}CILo"] = f(row["ci_low"])
+            m[f"HFour{dn}{cn}CIHi"] = f(row["ci_high"])
     for comp, name in COMP.items():
-        pooled = h4.get("pooled_descriptive", {}).get(comp, {})
-        m[f"HFourPooled{name}Rho"] = f(pooled.get("rho"))
+        m[f"HFourPooled{name}Rho"] = f(h4["pooled_descriptive"][comp]["rho"])
     m["HFourNPassing"] = str(h4["n_tests_passing"])
     m["HFourNTests"] = str(h4["n_tests"])
     m["HFourVerdict"] = verdict(h4["pass"])
-    m["HFourValue"] = f(h4["value"])
-    ex = h4.get("exclusions", {})
-    m["HFourRunsUndefined"] = str(
-        sum(v.get("runs_undefined", 0) for d in ex.values() for v in d.values())
-    )
-    m["HFourTasksDropped"] = str(
-        sum(v.get("tasks_dropped", 0) for d in ex.values() for v in d.values())
-    )
-    # ---- H5
+    ex = h4["exclusions"]
+    m["HFourRunsUndefined"] = str(sum(v["runs_undefined"] for d in ex.values() for v in d.values()))
+    m["HFourTasksDropped"] = str(sum(v["tasks_dropped"] for d in ex.values() for v in d.values()))
+    # ---- H5 (weights AND the Adamson standardisation, as pre-registered)
     h5 = pr["H5"]
     m["HFiveRho"] = f(h5["value"])
     m["HFiveN"] = str(h5["n"])
-    m["HFiveCILo"] = f(h5.get("ci_low"))
-    m["HFiveCIHi"] = f(h5.get("ci_high"))
+    m["HFiveCILo"] = f(h5["ci_low"])
+    m["HFiveCIHi"] = f(h5["ci_high"])
     m["HFiveWAce"] = f(h5["weights"]["ace_norm"], 2)
     m["HFiveWDc"] = f(h5["weights"]["one_minus_delta_c"], 2)
+    m["HFiveStdMeanAce"] = f(h5["standardise_mean"]["ace_norm"], 4)
+    m["HFiveStdSdAce"] = f(h5["standardise_sd"]["ace_norm"], 4)
+    m["HFiveStdMeanDc"] = f(h5["standardise_mean"]["one_minus_delta_c"], 4)
+    m["HFiveStdSdDc"] = f(h5["standardise_sd"]["one_minus_delta_c"], 4)
     m["HFiveVerdict"] = verdict(h5["pass"])
     m["HFiveThreshold"] = f(h5["threshold"], 1)
     t = pr["tally"]
@@ -126,14 +162,17 @@ def build(
         + (f"; {', '.join(failed)} fail" + ("s" if len(failed) == 1 else "") if failed else "")
         + f" ({t['UNEVALUATED']} unevaluated)"
     )
-    # ---- run record
+    # ---- run record (analyser counters first, the call log second)
     rep = p["llm_report"]
     log = p["llm_call_log"]
-    m["NLifecycleRuns"] = str(
-        s.get("n_lifecycle_runs") or len({(c["task_id"], c["round_index"]) for c in log}) // 3
-        if False
-        else (s.get("n_lifecycle_runs") or "n/a")
-    )
+    live = [c for c in log if not c.get("cache_hit")]
+    m["NLifecycleRuns"] = str(s["n_lifecycle_runs"])
+    m["NTrainerRuns"] = str(s["n_trainer_runs"])
+    m["NTasks"] = str(s["n_tasks_analysed"])
+    m["NSteps"] = str(s["n_steps_llm"])
+    m["NFallback"] = str(s["n_steps_fallback"])
+    m["NStepsMock"] = str(s["n_steps_mock"])
+    m["NStepsUnknown"] = str(s["n_steps_unknown"])
     m["NCalls"] = str(rep["calls"])
     m["StopEndTurn"] = str(rep["stop_reason_counts"].get("end_turn", 0))
     m["StopMaxTokens"] = str(rep["stop_reason_counts"].get("max_tokens", 0))
@@ -142,11 +181,6 @@ def build(
     m["CacheStart"] = str(p["llm_cache_entries_at_start"])
     m["CacheHits"] = str(p["llm_cache_hit_count"])
     m["Replay"] = str(p["replay"]).lower()
-    m["NFallback"] = str(s.get("n_fallback_steps", s.get("source_counts", {}).get("fallback", 0)))
-    m["NSteps"] = str(
-        sum(1 for c in log if not c.get("cache_hit"))
-        - rep["stop_reason_counts"].get("max_tokens", 0)
-    )
     m["SpendLLM"] = f(p["llm_cost_usd"], 2)
     m["SpendGPU"] = f(p["gpu_cost_usd"], 2)
     m["SpendPrior"] = f(p["prior_spend_usd"], 4)
@@ -154,37 +188,67 @@ def build(
     m["SpendTotal"] = f(p["cost_usd_actual"], 2)
     m["GPUHours"] = f(p["gpu_seconds"] / 3600, 2)
     m["SpendStopLine"] = f(p["entrypoint_kwargs"]["spend_stop_usd"], 0)
-    m["SpendHaiku"] = f(rep["by_model"]["claude-haiku-4-5-20251001"], 2)
-    m["SpendSonnet"] = f(rep["by_model"]["claude-sonnet-5-5"], 2)
+    m["KillLine"] = f(p["budget_cap_usd"], 0)
+    m["SpendHaiku"] = f(rep["by_model"][HAIKU], 2)
+    m["SpendSonnet"] = f(rep["by_model"][SONNET], 2)
     m["TokensIn"] = f"{sum(c.get('input_tokens', 0) for c in log):,}"
     m["TokensOut"] = f"{sum(c.get('output_tokens', 0) for c in log):,}"
     for role in ROLES:
         m[f"Ceiling{WORDS[role]}"] = str(rep["role_ceilings"][role])
-    m["RosterHaiku"] = p["llm_pool"][0]
-    m["RosterSonnet"] = p["llm_pool"][1]
+        served = {c["served_model"] for c in live if c["role"] == role}
+        if len(served) != 1:
+            raise ValueError(
+                f"{role} was served by {sorted(served)}; the paper states one model per role"
+            )
+        m[f"RoleServed{WORDS[role]}"] = served.pop()
+        m[f"RoleCalls{WORDS[role]}"] = str(sum(1 for c in live if c["role"] == role))
+    m["NFailover"] = str(sum(1 for c in live if c["requested_model"] != PRIMARY[c["role"]]))
+    pool = set(p["llm_pool"])
+    if pool != {HAIKU, SONNET}:
+        raise ValueError(f"roster {sorted(pool)} is not the amendment-4 roster")
+    m["RosterHaiku"] = HAIKU
+    m["RosterSonnet"] = SONNET
+    price = p["llm_price_table"]
+    m["PriceHaikuIn"] = f(price[HAIKU]["input"], 2)
+    m["PriceHaikuOut"] = f(price[HAIKU]["output"], 2)
+    m["PriceSonnetIn"] = f(price[SONNET]["input"], 2)
+    m["PriceSonnetOut"] = f(price[SONNET]["output"], 2)
+    liveness = p["llm_roster_liveness"]
+    m["LivenessOkPairs"] = str(
+        sum(1 for mdl in liveness.values() for r in mdl["roles"].values() if r["ok"])
+    )
+    m["LivenessTotalPairs"] = str(sum(len(mdl["roles"]) for mdl in liveness.values()))
     m["StopReasonNone"] = "none" if p["stop_reason"] is None else str(p["stop_reason"])
     grid = p["trainer_grid"]
     m["NTrainerRecordsPerTask"] = str(grid["n_records_per_task"])
     m["NDistinctConfigs"] = str(grid["n_distinct_configs_per_task"])
     m["NDistinctFits"] = str(grid["n_distinct_fits_per_task"])
-    m["NTrainerRuns"] = str(grid["n_records_per_task"] * 41)
-    # ---- projection (plan figures)
+    # ---- what the lifecycle actually applied (A2-3 / A3-2 / A3-3 facts)
+    rounds = [rd for r in runs for rd in r["applied_config_per_round"]]
+    hvg_values = sorted({rd["values"]["hvg_count"] for rd in rounds})
+    m["NRoundsTotal"] = str(len(rounds))
+    m["HVGDistinctApplied"] = str(len(hvg_values))
+    m["HVGAppliedValue"] = (
+        str(hvg_values[0]) if len(hvg_values) == 1 else "; ".join(map(str, hvg_values))
+    )
+    m["HVGEntropy"] = f(p["entropies"]["architect_hvg_entropy_nats"])
+    m["ValidatorSourcedRounds"] = str(
+        sum(1 for rd in rounds if "validator" in rd["sources"].values())
+    )
+    vsteps = [st for r in runs for st in r["steps"] if st["agent_name"] == "Validator"]
+    m["NValidatorSteps"] = str(len(vsteps))
+    m["ValidatorAccepted"] = str(sum(1 for st in vsteps if st["validator_accepted"] is True))
+    m["ValidatorRejected"] = str(sum(1 for st in vsteps if st["validator_accepted"] is False))
+    # ---- projection (pre-registered in A4-2; the JSON is the plan's copy)
     m["ProjLLM"] = f(proj["llm_usd"], 2)
     m["ProjGPU"] = f(proj["gpu_usd"], 2)
     m["ProjTotal"] = f(proj["total_usd"], 2)
     m["ProjLatency"] = f(proj["gpu_latency_per_round_s"], 1)
-    m["KillLine"] = f(proj["kill_line_usd"], 0)
     m["CeilingLine"] = f(proj["ceiling_usd"], 0)
-    # ---- hashes
-    m["ManifestSha"] = (
-        hashlib.sha256(manifest.read_bytes()).hexdigest()[:16]
-        if manifest and manifest.exists()
-        else "n/a"
-    )
+    # ---- integrity anchors (a missing file is an error, never n/a)
+    m["ManifestSha"] = _sha16(manifest)
     for i, a in enumerate(archives):
-        m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = (
-            hashlib.sha256(a.read_bytes()).hexdigest()[:16] if a.exists() else "n/a"
-        )
+        m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = _sha16(a)
     return m
 
 
@@ -194,32 +258,44 @@ def render(m: dict[str, str]) -> str:
         "% Every result value in the manuscript is one of these macros (CTO #491: no hand-typed numbers).",
     ]
     for k in sorted(m):
-        assert re.fullmatch(r"[A-Za-z]+", k), k
-        lines.append(f"\\newcommand{{\\res{k}}}{{{m[k]}}}")
+        if not re.fullmatch(r"[A-Za-z]+", k):
+            raise ValueError(f"bad macro name {k!r}")
+        v = m[k]
+        if v not in VERDICTS and not ENSUREMATH_NEG.fullmatch(v) and not SAFE_VALUE.fullmatch(v):
+            raise ValueError(f"macro {k} holds a value that is not TeX-safe: {v!r}")
+        lines.append(f"\\newcommand{{\\res{k}}}{{{v}}}")
     return "\n".join(lines) + "\n"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--artifacts", type=Path, default=Path("artifacts/v0.6.0"))
-    ap.add_argument("--projection", type=Path, default=Path("paper/data/projection_v060.json"))
+    ap.add_argument("--artifacts", type=Path, default=PROJECT_ROOT / "artifacts" / "v0.6.0")
     ap.add_argument(
-        "--manifest", type=Path, default=Path("configs/runs/20260929T035447Z-ce5f237.json")
+        "--projection", type=Path, default=PROJECT_ROOT / "paper" / "data" / "projection_v060.json"
+    )
+    ap.add_argument(
+        "--manifest",
+        type=Path,
+        default=PROJECT_ROOT / "configs" / "runs" / "20260929T035447Z-ce5f237.json",
     )
     ap.add_argument(
         "--archive-manifests",
         type=Path,
         nargs="*",
         default=[
-            Path(
-                "../../workstreams/perturb-seq-eval/qgr/evidence/llm-cache-archive-20260928T220916Z-291efad.manifest.json"
-            ),
-            Path(
-                "../../workstreams/perturb-seq-eval/qgr/evidence/output-archive-20260928T220916Z-291efad.manifest.json"
-            ),
+            WORKSTREAM
+            / "qgr"
+            / "evidence"
+            / "llm-cache-archive-20260928T220916Z-291efad.manifest.json",
+            WORKSTREAM
+            / "qgr"
+            / "evidence"
+            / "output-archive-20260928T220916Z-291efad.manifest.json",
         ],
     )
-    ap.add_argument("--out", type=Path, default=Path("paper/sections/generated_numbers.tex"))
+    ap.add_argument(
+        "--out", type=Path, default=PROJECT_ROOT / "paper" / "sections" / "generated_numbers.tex"
+    )
     ap.add_argument(
         "--check", action="store_true", help="regenerate and fail if the committed file differs"
     )
