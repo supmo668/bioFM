@@ -1,0 +1,8 @@
+
+# LaTeX build products (rebuilt from sources; a stale PDF next to filled sources is a defect)
+paper/paper.pdf
+paper/paper.aux
+paper/paper.log
+paper/paper.out
+paper/paper.bbl
+paper/paper.blg
