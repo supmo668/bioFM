@@ -7,7 +7,7 @@ CTO, #473/#476): the LLM provider moves from OpenRouter to the Anthropic API, to
 "A rotating pool of Anthropic Claude models called through the Anthropic Messages API, with failover; the roster is pinned by model id and
 recorded in provenance with each model's preflight liveness per role: `claude-haiku-4-5-20251001` for DataCurator, Literature, Architect and Trainer;
 `claude-sonnet-5-5` for the Validator; each role fails over to the other. Every reply is constrained to the role's JSON schema by structured outputs;
-`model_id` is recorded per call. Thinking is off (none on Haiku 4.5; `between_tools` at low effort on Sonnet 5.5)."
+`model_id` is recorded per call. Thinking is off (none on Haiku 4.5; `between_tools` at low effort on Sonnet 5.5). max_tokens per role is the dry run's observed output x 1.5."
 Rationale: 6/8 free OpenRouter models had disappeared and the rest rate-limited into fallbacks (fatal under A2-1); the paid OpenRouter roster
 (ruling of 2026-09-28) was superseded by the principal's Anthropic ruling. Roster = cheapest model passing each role's strict schema probe,
 with the Validator on a different tier from the roles it judges.
@@ -16,7 +16,7 @@ with the Validator on a different tier from the roles it judges.
 Total ceiling $30 (principal). The pre-registered lines stay: $12 stop-and-report and $28 kill, on TOTAL spend = GPU wall-clock + LLM usage
 (API-reported input/output/cache tokens x the pinned list prices: Haiku 4.5 $1/$5 per MTok, Sonnet 5.5 $2/$10; source: Anthropic first-party
 pricing as tabulated in the claude-api skill, cached 2026-09-25) + $1.3 carried in from the aborted run 20260928T220916Z-291efad.
-Projected total at the upper bound: $9.30 (costed plan, measured input tokens).
+Dry run 2026-09-29 (5 calls, $0.0072) counted in the prior spend (1.3 + 0.0072). Measured-usage projection $7.96; upper $9.29. Earlier estimate at the upper bound: $9.30 (costed plan, measured input tokens).
 
 ### A4-3: caveats stated in the methods
 Single model family (no cross-family generality claim; H3's entropy may be lower than under a multi-family pool). Same-family judge: the Validator

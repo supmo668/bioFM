@@ -1,0 +1,49 @@
+{
+ "measured_at": "2026-09-29T02:30:27Z",
+ "calls": [
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "stop_reason": "end_turn",
+   "input_tokens": 482,
+   "output_tokens": 45,
+   "cache_read": 0,
+   "cost_usd": 0.00071,
+   "latency_s": 2.9,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "http 400 BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': \"output_config.format.schema: For 'object' type, 'additionalProperties: object' is not supported. Please set 'additionalProperties' to false\"}, 'request_id': 'req_011CfWwjUNUKT32H7vnLsFnh'}"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "stop_reason": "end_turn",
+   "input_tokens": 588,
+   "output_tokens": 53,
+   "cache_read": 0,
+   "cost_usd": 0.00085,
+   "latency_s": 2.1,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "stop_reason": "end_turn",
+   "input_tokens": 382,
+   "output_tokens": 35,
+   "cache_read": 0,
+   "cost_usd": 0.00056,
+   "latency_s": 1.8,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "Validator",
+   "model_id": "claude-sonnet-5-5",
+   "error": "http 400 BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': \"output_config.format.schema: For 'object' type, 'additionalProperties: object' is not supported. Please set 'additionalProperties' to false\"}, 'request_id': 'req_011CfWwjmmyejxQbbxi6eWwR'}"
+  }
+ ],
+ "total_cost_usd": 0.00212
+}
