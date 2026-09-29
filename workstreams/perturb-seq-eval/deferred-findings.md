@@ -23,3 +23,9 @@ where findings go to die"). Disposition changes require a CTO ruling.
 Recommended remedy shape (not authorised): DF-01/02 adopt `experiments/errors.classify` (#245 taxonomy);
 DF-03 becomes a thin wrapper over `data.download.fetch_adamson(..., trust_unpinned=False)` or is deleted, and the
 two docstrings are repointed.
+
+## DF-14 — PreflightError re-raised by Modal iterates its message (cosmetic)
+Registered 2026-09-29 (relaunch attempt 20260929T003223Z-4f967a1). `PreflightError.__init__(failures)` takes a list; when Modal
+re-raises the remote exception locally it reconstructs it from the message string, so the local traceback shows "1700 failure(s)"
+one character per line. The remote log carries the correct 7-line report. Fix (next code gate): accept `str` in `__init__`
+(`if isinstance(failures, str): failures = [failures]`) + a test. No measurand effect; no spend effect.
