@@ -26,12 +26,17 @@ data are excluded with the reason. Norman symbols renamed since publication
 are joined to the dataset vocabulary on their Ensembl gene IDs, and labels
 that resolve under neither name are excluded with the reason. The held-out
 task plan is drawn deterministically: Adamson targets are binned into $3$
-quantile bins of mean $|\Delta\log1\mathrm{p}|$ on the target gene and $7$
-are drawn per bin from the structurally eligible single-gene constructs
-($21$ tasks); Norman contributes $15$ singletons and $5$ doublets ($20$
-tasks), stratified by CRC32-derived strata, for $41$ tasks in total, all with
-\texttt{seed=2026}. The sampler asserts that every stratum is filled exactly
-and the run is refused otherwise. Every excluded label, every digest, the
+quantile bins of mean $|\Delta\log1\mathrm{p}|$ on the target gene and up to $7$
+are drawn per bin from the structurally eligible single-gene constructs with
+\texttt{numpy.random.default\_rng(2026)}; a bin with fewer eligible labels
+contributes all of them, and the draw is topped up to exactly $21$ by a seeded
+permutation of the sorted remaining labels (or trimmed to the sorted prefix).
+Norman singletons and doublets are drawn separately, stratified by a CRC32-derived
+stratum and topped up or trimmed to exactly $15$ and $5$ by the same rule ($20$
+tasks), for $41$ tasks in total. Only the per-pool total is asserted, with an
+explicit \texttt{raise}; a pool smaller than its requested count refuses the run
+in preflight, and the per-bin eligible-pool sizes are written to provenance so an
+uneven fill is visible (amendment~2, A2-7). Every excluded label, every digest, the
 resolved task plan with its strata and eligible-pool sizes, and the per-label
 cell cap (\texttt{max\_cells\_per\_pert}) are written to the run's
 provenance record (\S\ref{sec:reproducibility}).
@@ -47,9 +52,12 @@ is learned from the data rather than assumed.
 
 \paragraph{Features.} For each held-out task, highly variable genes are selected on that
 task's \emph{training} cells only; the trainer sweep uses $2000$, and in the lifecycle the
-count is the agents' applied choice (amendment~2, A2-3), so feature spaces vary by run as
+count is the agents' applied choice (amendment~2, A2-3), so feature spaces may vary by run as
 well as by task, and every cross-task median is a median over models with differing inputs.
 The target gene(s) and the $20$ evaluation genes are force-included in every feature set.
+In this run every applied choice was \resHVGAppliedValue{} (\resHVGDistinctApplied{} distinct
+value over \resNRoundsTotal{} rounds; HVG-count entropy \resHVGEntropy{} nats), so the lifecycle
+and trainer feature sets coincide up to the forced genes.
 
 \paragraph{Evaluation genes.} The error metric is the mean squared deviation (MSD) between
 predicted and observed mean log-fold-change on the $20$ genes with the largest absolute mean
@@ -85,10 +93,18 @@ validation/test split.
 
 Five agents --- DataCurator, Literature, Architect, Trainer, Validator --- produce
 Pydantic-validated proposals. Every proposal states a verbalised \texttt{confidence} in $[0,1]$;
-a missing, non-numeric or out-of-range value is a schema failure, the step falls back and the
+a missing, non-numeric, non-finite or out-of-range value is a schema failure, the step falls back and the
 run is invalid --- confidence is never imputed (amendment~2, A2-1). Every run has exactly three
-rounds with no early stop; the Validator's verdict and its required threshold
-\texttt{dynamic\_threshold\_msd} $\in[0.02,0.3]$ are recorded, not acted on (A2-2, A3-3).
+rounds with no early stop, and the Validator's verdict never stops the run (A2-2). Its
+required threshold \texttt{dynamic\_threshold\_msd} $\in[0.02,0.3]$ decides whether the
+round's fit is accepted, and that decision selects the rule-based
+\texttt{score\_and\_gate} critique delta applied at the top precedence tier in the next
+round (A3-3); ``Validator delta'' below means that rule-based delta, while the LLM
+Validator's own \texttt{critique.suggested\_next\_config\_delta} is recorded and
+\emph{not} applied (A3-2). In this run the threshold was stated on all
+\resNValidatorSteps{} Validator steps (accepted \resValidatorAccepted, rejected
+\resValidatorRejected), and a Validator-sourced value was applied in
+\resValidatorSourcedRounds{} of \resNRoundsTotal{} rounds.
 The executors \emph{apply} the parsed fields --- the HVG count, learning rate, ridge $\lambda$
 and epochs --- with precedence Validator delta $>$ Architect $>$ DataCurator $>$ Trainer $>$
 defaults, and the applied value and its source are recorded per round (A2-3, A3-2); the
@@ -107,10 +123,11 @@ API by a pinned roster: \texttt{\resRosterHaiku} for DataCurator, Literature, Ar
 Trainer, and \texttt{\resRosterSonnet} for the Validator, so the judge sits on a different tier
 from the roles it judges; each role fails over to the other model. Every reply is constrained
 to the role's JSON schema by structured outputs (numeric ranges are enforced by the role schema
-after parsing, never clamped). Thinking is off on both models (Haiku 4.5: none; Sonnet 5.5:
-\texttt{between\_tools} at low effort). Sampling: Haiku at temperature $0.3$ --- the value the
-earlier OpenRouter roster used, so the Architect's H3 condition is unchanged --- and Sonnet 5.5 at
-API defaults. Per-role output ceilings ($4\times$ the dry run's observed maximum, minimum 256):
+after parsing, never clamped); the two free-form maps in the Literature and Validator
+schemas travel as key/value arrays and are rebuilt after parsing (A4-1). Every prompt
+states the dataset and its modality (A2-8). Thinking is off on both models (Haiku 4.5: none; Sonnet 5.5:
+\texttt{between\_tools} at low effort). Sampling: Haiku at temperature $0.3$ (the value the earlier OpenRouter roster used) and
+Sonnet 5.5 at API defaults, which rejects non-default sampling. Per-role output ceilings ($4\times$ the dry run's observed maximum, minimum 256):
 DataCurator \resCeilingCurator, Literature \resCeilingLiterature, Architect \resCeilingArchitect,
 Trainer \resCeilingTrainer, Validator \resCeilingValidator; a \texttt{max\_tokens} stop is retried
 once at twice the ceiling, both billed, and a second is a fallback-class event. Every call records
@@ -122,7 +139,12 @@ Each lifecycle step is labelled \texttt{source} $\in\{\texttt{llm},\texttt{fallb
 \texttt{model\_id}; a run with any fallback step is invalid, and the pre-registered run starts on
 an empty, version-namespaced LLM cache so that no reply is replayed (A2-8; cache entries at
 start \resCacheStart, hits \resCacheHits). Each task runs the lifecycle with three seeds; the seed
-is passed to the trainer and into the LLM cache key.
+is passed to the trainer and into the LLM cache key. Every call in this run was served by its role's pinned model (failovers \resNFailover;
+Validator calls on \texttt{\resRoleServedValidator}: \resRoleCallsValidator), and the preflight
+liveness table recorded \resLivenessOkPairs{} of \resLivenessTotalPairs{} model--role probes
+live. Two caveats are stated here, as A4-3 requires, and taken up in \S\ref{sec:limits}: every role runs on a single model family, so nothing here supports a
+cross-family claim; and the judge is same-family on a different tier, which is reported,
+not a remedy.
 
 \paragraph{What the lifecycle trace records.} Each step records its role, round, proposal, LLM
 confidence, \texttt{source}, \texttt{model\_id}, \texttt{stop\_reason} and served model; Architect
@@ -135,12 +157,13 @@ confidence-derived quantities (\S\ref{sec:tdi-real}).
 
 Preflight, trainer sweep and lifecycle sweep run in one process on a single Modal A100-40GB
 container. Spend is measured as GPU wall-clock plus LLM usage at the pinned list prices plus
-the spend carried in from an aborted earlier attempt, against pre-registered lines of
+the spend carried in from an aborted earlier attempt and the dry run, against pre-registered lines of
 \$\resSpendStopLine{} (stop and report) and \$\resKillLine{} (kill) under a \$\resCeilingLine{}
 ceiling (A4-2); the lines are limits, not the spend. Every run is appended atomically to
 \texttt{trainer\_runs.jsonl} or \texttt{lifecycle\_runs.jsonl}, whose record~0 is the run's
 provenance record. Actual spend: LLM \$\resSpendLLM, GPU \$\resSpendGPU{} (\resGPUHours{}
-A100-hours), prior \$\resSpendPrior; total \$\resSpendTotal, neither line reached. The costed
-plan projected \$\resProjTotal{} (LLM \$\resProjLLM, GPU \$\resProjGPU{} at
-\resProjLatency{}\,s of LLM latency per round while the GPU is held); the GPU line ran over
-because the per-round latency was higher than projected.
+A100-hours), prior \$\resSpendPrior; total \$\resSpendTotal, neither line reached. The pre-registered
+projection (A4-2) was \$\resProjTotal{} in total (LLM \$\resProjLLM, GPU \$\resProjGPU{} at
+\resProjLatency{}\,s of LLM latency per round while the GPU is held, prior
+\$\resSpendPrior); the LLM and GPU components both came in above the projection, within
+the stop line.
