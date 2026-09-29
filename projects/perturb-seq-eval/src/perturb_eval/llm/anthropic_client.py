@@ -92,8 +92,8 @@ THINKING: dict[str, dict[str, Any]] = {
     SONNET: {"thinking": {"type": "between_tools"}, "effort": "low"},
 }
 
-_FATAL = frozenset({401, 402, 403})
-_COOLING = frozenset({408, 409, 429, 500, 502, 503, 504, 529})
+_FATAL = frozenset({401, 402, 403, 404})  # 404 = the pinned roster id is gone (never fail over)
+_COOLING = frozenset({408, 409, 429})  # plus every status >= 500 (see _classify)
 
 _NUM = {"type": "number"}
 _INT = {"type": "integer"}
@@ -181,7 +181,18 @@ def to_measurand(role: str, data: Mapping[str, Any]) -> dict[str, Any]:
 
 
 class AnthropicError(ProviderError):
-    """Fallback-class provider failure (hard 4xx, served-model mismatch, twice-truncated)."""
+    """Fallback-class provider failure (hard 4xx / empty / non-JSON reply: the client fails over
+    to the other roster model first; only when both fail does the pool record a fallback)."""
+
+
+class ServedModelMismatch(AnthropicError):
+    """A4-1: the API served a model other than the one requested. Raised straight out of
+    ``chat_json`` with NO failover (QG-1): the step falls back and the run is invalid."""
+
+
+class TruncatedTwice(AnthropicError):
+    """A4-1: ``stop_reason == "max_tokens"`` twice for one step (ceiling, then 2x). Raised
+    straight out of ``chat_json`` with NO failover (QG-1/QG-5)."""
 
 
 def _menu() -> tuple[str, ...]:
@@ -210,6 +221,7 @@ class AnthropicClient:
         price_table: Mapping[str, Mapping[str, float]] = PRICE_TABLE,
         ceilings: Mapping[str, int] = ROLE_CEILINGS,
         sampling: Mapping[str, Mapping[str, Any]] = SAMPLING,
+        allow_unpriced: bool = False,
     ) -> None:
         self._api_key = api_key
         self._cache_dir = Path(cache_dir)
@@ -224,6 +236,15 @@ class AnthropicClient:
         self._price = {k: dict(v) for k, v in price_table.items()}
         self._ceilings = dict(ceilings)
         self._sampling = {k: dict(v) for k, v in sampling.items()}
+        for k, v in self._sampling.items():
+            if set(v) - {"temperature"}:
+                raise ValueError(f"sampling for {k} may only set temperature (got {sorted(v)})")
+        missing_price = [m.model_id for m in pool.models if m.model_id not in self._price]
+        if missing_price and not allow_unpriced:
+            raise ValueError(f"no price-table entry for roster model(s) {missing_price}")
+        self.unpriced_models = list(missing_price)
+        for mid in missing_price:  # explicit zero prices, reported by spend() as unpriced
+            self._price[mid] = {"input": 0.0, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0}
         self._cooldowns: dict[str, float] = {}
         self.call_log: list[dict[str, Any]] = []
         self.spend_usd: float = 0.0
@@ -239,23 +260,28 @@ class AnthropicClient:
             ).messages.create
         return self._create(**kw)
 
+    @staticmethod
+    def _provider_exceptions() -> tuple[type[BaseException], ...]:
+        """Only these are provider events (QG-2). Anything else — TypeError, KeyError,
+        AssertionError, pydantic errors — is OUR bug and must propagate, never a fallback."""
+        import anthropic
+
+        return (anthropic.APIError, OSError, TimeoutError)
+
     def _classify(self, exc: BaseException) -> str:
-        """'fatal' | 'cooling' | 'hard'."""
+        """'fatal' | 'cooling' | 'hard' for a provider exception."""
+        import anthropic
+
         status = getattr(exc, "status_code", None)
         if status in _FATAL:
             return "fatal"
-        if status in _COOLING:
+        if isinstance(exc, anthropic.APIConnectionError):  # incl. APITimeoutError
             return "cooling"
-        try:
-            import anthropic
-
-            if isinstance(exc, (anthropic.APIConnectionError, anthropic.RateLimitError)):
-                return "cooling"
-        except ImportError:  # pragma: no cover
-            pass
+        if status is not None and (status in _COOLING or status >= 500):
+            return "cooling"
         if status is not None:
             return "hard"
-        return "cooling" if isinstance(exc, (TimeoutError, ConnectionError, OSError)) else "hard"
+        return "cooling" if isinstance(exc, (TimeoutError, OSError)) else "hard"
 
     # ------------------------------------------------------------- request shape
     def build_request(
@@ -279,7 +305,10 @@ class AnthropicClient:
             kw["extra_body"] = dict(
                 samp
             )  # SDK 1.x removed the typed argument; the API accepts it on Haiku 4.5
-        assert "fallbacks" not in kw  # A4-1: never a server-side substitution
+        if "fallbacks" in kw or "fallbacks" in (kw.get("extra_body") or {}):
+            raise RuntimeError(
+                "A4-1 violation: a fallbacks parameter was about to be sent"
+            )  # never a fallback
         return kw
 
     def _cost(self, model_id: str, usage: Any) -> tuple[float, dict[str, int]]:
@@ -381,8 +410,10 @@ class AnthropicClient:
     ) -> ChatResult:
         deadline = self._clock() + self._max_wait_sec
         hard_failed: set[str] = set()
+        truncations: dict[str, int] = {}  # QG-5: per model, kept across passes
         last_err: Optional[str] = None
         ceiling = int(self._ceilings.get(role, 256))
+        provider_exc = self._provider_exceptions()
         while True:
             cooling_at_start = self._cooling_ids()
             for model_id in self._candidates(role, hard_failed):
@@ -407,9 +438,10 @@ class AnthropicClient:
                             task_id=task_id,
                             round_index=round_index,
                             requested_model=model_id,
-                            served_model=model_id,
-                            served_equals_requested=True,
-                            stop_reason="cache_hit",
+                            served_model=None,
+                            served_equals_requested=None,
+                            stop_reason=None,
+                            cache_hit=True,
                             stop_category=None,
                             max_tokens=ceiling,
                             attempt=0,
@@ -419,12 +451,13 @@ class AnthropicClient:
                             content=cached,
                             model_id=model_id,
                             cache_hit=True,
-                            stop_reason="cache_hit",
-                            served_model=model_id,
+                            stop_reason=None,
+                            served_model=None,
                             usage=None,
                         )
-                max_tokens = ceiling
-                for attempt in (1, 2):
+                while True:  # one model: the ceiling, then (after a truncation) one 2x retry
+                    n_trunc = truncations.get(model_id, 0)
+                    max_tokens = ceiling if n_trunc == 0 else ceiling * 2
                     try:
                         data = self._generate(
                             model_id=model_id,
@@ -433,33 +466,35 @@ class AnthropicClient:
                             task_id=task_id,
                             round_index=round_index,
                             max_tokens=max_tokens,
-                            attempt=attempt,
+                            attempt=n_trunc + 1,
                         )
                     except _Truncated:
-                        if attempt == 1:
-                            max_tokens = ceiling * 2  # A4-1: one retry at 2x, both billed
-                            continue
-                        last_err = f"{model_id}: max_tokens twice (ceiling {ceiling})"
-                        hard_failed.add(model_id)
-                        break
-                    except ProviderFatalError:
-                        raise
-                    except AnthropicError as exc:
+                        truncations[model_id] = n_trunc + 1
+                        if truncations[model_id] >= 2:
+                            raise TruncatedTwice(
+                                f"{model_id}: stop_reason=max_tokens at {ceiling} and again at {ceiling * 2} "
+                                "(fallback-class event, run invalid)"
+                            )
+                        continue  # A4-1: one retry at 2x, both billed
+                    except (ServedModelMismatch, ProviderFatalError):
+                        raise  # never fail over (QG-1)
+                    except AnthropicError as exc:  # empty / non-JSON reply: try the other model
                         last_err = str(exc)
                         hard_failed.add(model_id)
                         break
-                    except Exception as exc:  # SDK / transport errors
+                    except provider_exc as exc:  # transport / status errors from the SDK
                         kind = self._classify(exc)
+                        status = getattr(exc, "status_code", None)
                         if kind == "fatal":
                             raise ProviderFatalError(
-                                f"{model_id}: {type(exc).__name__} status={getattr(exc, 'status_code', None)} — aborting"
+                                f"{model_id}: {type(exc).__name__} status={status} — aborting the run"
                             ) from exc
                         if kind == "cooling":
                             self._cooldowns[model_id] = self._clock() + self._cooldown_sec
-                            last_err = f"{model_id}: transient {type(exc).__name__} status={getattr(exc, 'status_code', None)}"
+                            last_err = f"{model_id}: transient {type(exc).__name__} status={status}"
                         else:
                             hard_failed.add(model_id)
-                            last_err = f"{model_id}: {type(exc).__name__} status={getattr(exc, 'status_code', None)}"
+                            last_err = f"{model_id}: {type(exc).__name__} status={status}"
                         break
                     else:
                         path.write_text(json.dumps(data))
@@ -515,7 +550,9 @@ class AnthropicClient:
             return False, f"fatal: {exc}", None
         except AnthropicError as exc:
             return False, str(exc), None
-        except Exception as exc:  # noqa: BLE001 — the verdict is recorded, never raised
+        except (
+            self._provider_exceptions()
+        ) as exc:  # the verdict is recorded; our own bugs propagate
             return (
                 False,
                 f"transport {type(exc).__name__} status={getattr(exc, 'status_code', None)}",
@@ -530,7 +567,8 @@ class AnthropicClient:
             by_model[c["requested_model"]] = by_model.get(c["requested_model"], 0.0) + float(
                 c.get("cost_usd") or 0.0
             )
-            stops[str(c.get("stop_reason"))] = stops.get(str(c.get("stop_reason")), 0) + 1
+            label = "cache_hit" if c.get("cache_hit") else str(c.get("stop_reason"))
+            stops[label] = stops.get(label, 0) + 1
         return {
             "spend_usd": round(self.spend_usd, 6),
             "calls": len(self.call_log),

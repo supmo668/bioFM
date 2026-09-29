@@ -118,10 +118,26 @@ def _call(c, role="Validator", task="t", rnd=0, prompt="p"):
     return c.chat_json(role=role, task_id=task, round_index=rnd, prompt=prompt, seed=0, dataset="d")
 
 
-class _Status(Exception):
-    def __init__(self, status):
-        super().__init__(f"http {status}")
-        self.status_code = status
+import anthropic  # noqa: E402
+import httpx2  # noqa: E402
+
+
+def _req():
+    return httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+
+
+def _Status(status: int):  # a REAL SDK status error (QG-9)
+    return anthropic.APIStatusError(
+        f"http {status}", response=httpx2.Response(status, request=_req()), body=None
+    )
+
+
+def _conn():
+    return anthropic.APIConnectionError(request=_req())
+
+
+def _timeout():
+    return anthropic.APITimeoutError(request=_req())
 
 
 class TestRequestShape:
@@ -218,19 +234,6 @@ class TestProvenanceAndStopReason:
             "end_turn",
         ] and c.spend_usd > 0
 
-    def test_max_tokens_twice_is_a_fallback_class_event(self, tmp_path):
-        fake = _Fake(
-            {
-                HAIKU: [_msg(GOOD["Trainer"], model=HAIKU, stop="max_tokens")],
-                SONNET: [_msg(GOOD["Trainer"], model=SONNET, stop="max_tokens")],
-            }
-        )
-        c, _ = _client(tmp_path, fake)
-        with pytest.raises(AnthropicError, match="max_tokens twice|all candidate"):
-            _call(c, "Trainer")
-        assert isinstance(AnthropicError("x"), ProviderError)
-        assert len(c.call_log) == 4  # two attempts per model, all billed/recorded
-
     def test_served_model_mismatch_is_a_fallback_class_event(self, tmp_path):
         fake = _Fake(
             {
@@ -249,7 +252,12 @@ class TestProvenanceAndStopReason:
         a = _call(c, "Trainer")
         b = _call(c, "Trainer")
         assert a.cache_hit is False and b.cache_hit is True and len(fake.requests) == 1
-        assert c.call_log[-1]["stop_reason"] == "cache_hit" and c.call_log[-1]["cost_usd"] == 0.0
+        assert (
+            b.content == a.content
+            and c.call_log[-1]["cache_hit"] is True
+            and c.call_log[-1]["cost_usd"] == 0.0
+        )
+        assert c.spend_usd == c.call_log[0]["cost_usd"]  # a hit costs nothing
 
 
 class TestSpend:
@@ -287,7 +295,95 @@ class TestFailureClasses:
         fake = _Fake({HAIKU: [_Status(status)], SONNET: [_msg(GOOD["Trainer"], model=SONNET)]})
         c, slept = _client(tmp_path, fake)
         res = _call(c, "Trainer")
-        assert res.model_id == SONNET and c._cooldowns.get(HAIKU, 0) > 1000.0
+        assert res.model_id == SONNET
+        # observable: a second call inside the cooldown goes straight to Sonnet
+        _call(c, "Trainer", task="t2")
+        assert fake.requests[-1]["model"] == SONNET and slept == []
+
+    @pytest.mark.parametrize(
+        "exc_factory",
+        [
+            _conn,
+            _timeout,
+            lambda: anthropic.RateLimitError(
+                "r", response=httpx2.Response(429, request=_req()), body=None
+            ),
+            lambda: _Status(529),
+            lambda: _Status(520),
+        ],
+    )
+    def test_real_sdk_transient_classes_cool_and_fail_over(self, tmp_path, exc_factory):
+        fake = _Fake({HAIKU: [exc_factory()], SONNET: [_msg(GOOD["Trainer"], model=SONNET)]})
+        c, slept = _client(tmp_path, fake)
+        assert _call(c, "Trainer").model_id == SONNET
+        _call(c, "Trainer", task="t2")
+        assert fake.requests[-1]["model"] == SONNET  # Haiku still cooling
+
+    @pytest.mark.parametrize(
+        "exc_factory",
+        [
+            lambda: anthropic.AuthenticationError(
+                "a", response=httpx2.Response(401, request=_req()), body=None
+            ),
+            lambda: anthropic.PermissionDeniedError(
+                "p", response=httpx2.Response(403, request=_req()), body=None
+            ),
+            lambda: _Status(402),
+            lambda: anthropic.NotFoundError(
+                "n", response=httpx2.Response(404, request=_req()), body=None
+            ),
+        ],
+    )
+    def test_real_sdk_fatal_classes_abort(self, tmp_path, exc_factory):
+        fake = _Fake({HAIKU: [exc_factory()], SONNET: [_msg(GOOD["Trainer"], model=SONNET)]})
+        c, _ = _client(tmp_path, fake)
+        with pytest.raises(ProviderFatalError):
+            _call(c, "Trainer")
+        assert len(fake.requests) == 1
+
+    def test_cooled_model_is_reoffered_after_the_wait(self, tmp_path):
+        """QG-12: Haiku 429 then good; Sonnet 529 -> after one sleep Haiku answers."""
+        fake = _Fake(
+            {HAIKU: [_Status(429), _msg(GOOD["Trainer"], model=HAIKU)], SONNET: [_Status(529)]}
+        )
+        c, slept = _client(tmp_path, fake, max_wait_sec=60.0)
+        res = _call(c, "Trainer")
+        assert (
+            res.model_id == HAIKU and len(slept) == 1 and slept[0] == pytest.approx(10.01, abs=0.02)
+        )
+
+    def test_truncation_budget_survives_a_cooldown_between_attempts(self, tmp_path):
+        """QG-5: truncated at the ceiling, then a 429; after the wait the SAME model retries at 2x (not the ceiling again)."""
+        fake = _Fake(
+            {
+                HAIKU: [
+                    _msg(GOOD["Trainer"], model=HAIKU, stop="max_tokens"),
+                    _Status(429),
+                    _msg(GOOD["Trainer"], model=HAIKU),
+                ],
+                SONNET: [_Status(529)],
+            }
+        )
+        c, slept = _client(tmp_path, fake, max_wait_sec=60.0)
+        res = _call(c, "Trainer")
+        assert res.model_id == HAIKU
+        haiku_tokens = [kw["max_tokens"] for kw in fake.requests if kw["model"] == HAIKU]
+        assert haiku_tokens == [
+            256,
+            512,
+            512,
+        ]  # never back to the ceiling; the 2nd truncation would raise
+
+    @pytest.mark.parametrize(
+        "exc", [TypeError("unexpected kw"), KeyError("x"), AssertionError("bug")]
+    )
+    def test_our_own_bugs_propagate_never_a_fallback(self, tmp_path, exc):
+        """QG-2: a non-provider exception is OUR bug: it propagates after one request, not disguised as a provider event."""
+        fake = _Fake({HAIKU: [exc], SONNET: [_msg(GOOD["Trainer"], model=SONNET)]})
+        c, _ = _client(tmp_path, fake)
+        with pytest.raises(type(exc)):
+            _call(c, "Trainer")
+        assert len(fake.requests) == 1 and not isinstance(exc, ProviderError)
 
     def test_all_cooling_waits_then_raises_after_budget(self, tmp_path):
         fake = _Fake({HAIKU: [_Status(429)], SONNET: [_Status(529)]})
@@ -358,7 +454,7 @@ class TestRosterAndPreflight:
             return True, "ok", dict(pf.ROLE_PROBE_PAYLOADS[role])
 
         monkeypatch.setattr(AnthropicClient, "probe_model", fake_probe)
-        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        table, _spend = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
         assert set(table) == {HAIKU, SONNET} and all(e["live"] for e in table.values())
         for role in ROLES:
             for mid in ANTHROPIC_POOL.role_preferences[role]:
@@ -379,3 +475,105 @@ class TestRosterAndPreflight:
         assert "AnthropicClient(" in src and "OpenRouterClient(" not in src
         assert '"anthropic>=1.9,<2"' in src  # Modal image dependency
         assert "llm_call_log" in src and "llm_price_table" in src
+
+
+class TestProbeModelDirect:
+    """QG-10: the preflight probe path itself."""
+
+    def test_ok_uses_the_role_ceiling_and_schema_and_writes_no_cache(self, tmp_path):
+        fake = _Fake({HAIKU: [_msg(GOOD["Literature"], model=HAIKU)]})
+        c, _ = _client(tmp_path, fake)
+        live, verdict, parsed = c.probe_model(HAIKU, "p", role="Literature")
+        assert live and verdict == "ok" and parsed["pathway_prior"] == {"p53": 0.4}
+        assert (
+            fake.requests[0]["max_tokens"] == 1316
+            and "pathway_prior"
+            in fake.requests[0]["output_config"]["format"]["schema"]["properties"]
+        )
+        assert not any(tmp_path.rglob("*.json")) and c.call_log[-1]["role"] == "Literature"
+
+    def test_truncation_refusal_mismatch_transport_verdicts(self, tmp_path):
+        cases = {
+            "trunc": (_msg(GOOD["Trainer"], model=HAIKU, stop="max_tokens"), "max_tokens"),
+            "refusal": (_msg({}, model=HAIKU, stop="refusal", category="bio"), "fatal"),
+            "mismatch": (_msg(GOOD["Trainer"], model=SONNET), "served model"),
+            "transport": (_conn(), "transport"),
+            "status400": (_Status(400), "transport"),
+        }
+        for name, (item, needle) in cases.items():
+            fake = _Fake({HAIKU: [item]})
+            c, _ = _client(tmp_path / name, fake)
+            live, verdict, parsed = c.probe_model(HAIKU, "p", role="Trainer")
+            assert live is False and needle in verdict and parsed is None, (name, verdict)
+
+    def test_probe_bug_propagates(self, tmp_path):
+        fake = _Fake({HAIKU: [TypeError("kw")]})
+        c, _ = _client(tmp_path, fake)
+        with pytest.raises(TypeError):
+            c.probe_model(HAIKU, "p", role="Trainer")
+
+
+class TestPinnedRunParamsAndAbortPath:
+    def test_validate_pinned_run_params(self):
+        from perturb_eval.experiments.v05_sweep import validate_pinned_run_params
+
+        validate_pinned_run_params("v0.6.0", temperature=0.3, prior_spend_usd=1.3548)
+        validate_pinned_run_params(
+            "v0.6.0", temperature=0.3, prior_spend_usd=2.0
+        )  # more carried in is allowed
+        validate_pinned_run_params(
+            "v0.6.1-dev", temperature=0.9, prior_spend_usd=0.0
+        )  # not pre-registered
+        with pytest.raises(ValueError, match="temperature"):
+            validate_pinned_run_params("v0.6.0", temperature=0.7, prior_spend_usd=1.3548)
+        with pytest.raises(ValueError, match="prior spend"):
+            validate_pinned_run_params("v0.6.0", temperature=0.3, prior_spend_usd=0.0)
+
+    def test_app_v05_pins_and_abort_path(self):
+        import ast
+
+        src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
+        tree = ast.parse(src)
+        # entrypoint + run_v05_sweep default prior spend = 1.3548
+        defaults = {}
+        for fn in ast.walk(tree):
+            if isinstance(fn, ast.FunctionDef) and fn.name in ("entrypoint", "run_v05_sweep"):
+                pos = fn.args.args
+                pos_defaults = fn.args.defaults
+                pairs = list(zip(pos[len(pos) - len(pos_defaults) :], pos_defaults))
+                pairs += [
+                    (a, d) for a, d in zip(fn.args.kwonlyargs, fn.args.kw_defaults) if d is not None
+                ]
+                for a, d in pairs:
+                    if a.arg == "prior_spend_usd":
+                        defaults[fn.name] = ast.literal_eval(d)
+        assert defaults == {"entrypoint": 1.3548, "run_v05_sweep": 1.3548}
+        calls = [
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "validate_pinned_run_params"
+        ]
+        assert calls and {k.arg for k in calls[0].keywords} == {"temperature", "prior_spend_usd"}
+        # on_abort writes the spend breakdown (QG-3)
+        on_abort = next(
+            fn for fn in ast.walk(tree) if isinstance(fn, ast.FunctionDef) and fn.name == "on_abort"
+        )
+        assert "_spend_breakdown" in ast.unparse(on_abort)
+        # preflight probe spend feeds the meter (QG-7)
+        assert "preflight_spend_usd" in src and "report.probe_spend" in src
+
+    def test_readmes_carry_the_prior_spend_flag(self):
+        root = Path(__file__).resolve().parents[1]
+        for rel in ("README.md", "paper/README.md"):
+            assert "--prior-spend-usd 1.3548" in (root / rel).read_text(), rel
+
+    def test_preflight_report_carries_probe_spend(self, tmp_path, monkeypatch):
+        from perturb_eval.experiments import v05_preflight as pf
+
+        monkeypatch.setattr(
+            AnthropicClient,
+            "probe_model",
+            lambda self, m, p, role="Validator": (True, "ok", dict(pf.ROLE_PROBE_PAYLOADS[role])),
+        )
+        table, spend = pf.probe_roster({"ANTHROPIC_API_KEY": "k"})
+        assert set(table) == {HAIKU, SONNET} and "spend_usd" in spend and "calls" in spend
