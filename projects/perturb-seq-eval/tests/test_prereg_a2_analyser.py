@@ -389,3 +389,35 @@ def test_every_replay_trigger_withdraws_every_gate(tmp_path: Path, trigger: str)
     s = analyse_v05_run(t, l)
     assert s["status"] in ("REPLAY_DIAGNOSTIC_ONLY", "PREREG_VERSION_MISMATCH_DIAGNOSTIC_ONLY")
     _assert_not_licensed(s)
+
+
+class TestServedModelMismatch:
+    """A4-1: a served model that differs from the requested one is a fallback-class event; the
+    analyser must not license a run whose provenance records one (whatever the client did)."""
+
+    def test_report_count_is_diagnostic_only(self, tmp_path: Path) -> None:
+        t, l = _clean(tmp_path, prov=_prov(llm_report={"served_mismatch_count": 1}))
+        s = analyse_v05_run(t, l)
+        assert s["status"] == "SERVED_MODEL_MISMATCH_DIAGNOSTIC_ONLY"
+        assert s["served_mismatch_count"] == 1
+        _assert_not_licensed(s)
+
+    def test_call_log_row_is_diagnostic_only(self, tmp_path: Path) -> None:
+        log = [
+            {
+                "role": "Trainer",
+                "requested_model": "a",
+                "served_model": "b",
+                "served_equals_requested": False,
+            }
+        ]
+        t, l = _clean(tmp_path, prov=_prov(llm_call_log=log))
+        s = analyse_v05_run(t, l)
+        assert s["status"] == "SERVED_MODEL_MISMATCH_DIAGNOSTIC_ONLY"
+        assert s["served_mismatch_count"] == 1
+        _assert_not_licensed(s)
+
+    def test_zero_mismatches_stay_ok(self, tmp_path: Path) -> None:
+        t, l = _clean(tmp_path, prov=_prov(llm_report={"served_mismatch_count": 0}))
+        s = analyse_v05_run(t, l)
+        assert s["status"] == "ok" and s["served_mismatch_count"] == 0

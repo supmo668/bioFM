@@ -388,6 +388,22 @@ def replay_info(lifecycle_rows: list[dict], prov: dict | None) -> dict[str, Any]
     }
 
 
+def served_mismatch_count(prov: dict | None) -> int:
+    """A4-1: served != requested is a fallback-class event. The count is the larger of the
+    client's ``llm_report.served_mismatch_count`` and the number of ``llm_call_log`` rows with
+    ``served_equals_requested`` false (either alone is enough to withdraw the licence)."""
+    if not prov:
+        return 0
+    rep = prov.get("llm_report") or {}
+    n_report = rep.get("served_mismatch_count") or 0
+    n_log = sum(
+        1
+        for c in (prov.get("llm_call_log") or [])
+        if isinstance(c, dict) and c.get("served_equals_requested") is False
+    )
+    return max(int(n_report), int(n_log))
+
+
 def _eval_gene_list(row: dict) -> tuple[list[int] | None, list[str] | None]:
     """``(indices, names)`` of a record's A2-5 evaluation genes, each ``None``
     when the record does not carry the field."""
@@ -662,6 +678,16 @@ def analyse_v05_run(
         diagnostic = True
         if status in pin_level:
             status = "EVAL_GENE_MISMATCH_DIAGNOSTIC_ONLY"
+    n_served_mismatch = served_mismatch_count(prov)
+    if n_served_mismatch:
+        logger.warning(
+            "provenance records %d served-model mismatch(es) (A4-1 fallback-class event) — "
+            "DIAGNOSTIC-ONLY summary",
+            n_served_mismatch,
+        )
+        diagnostic = True
+        if status in pin_level:
+            status = "SERVED_MODEL_MISMATCH_DIAGNOSTIC_ONLY"
 
     # --- computation ------------------------------------------------------
     best_by_task = best_config_per_task(trainer_jsonl)
@@ -764,6 +790,7 @@ def analyse_v05_run(
         "llm_cache_hit_count": cache["llm_cache_hit_count"],
         "replay": cache["replay"],
         "replay_reasons": cache["replay_reasons"],
+        "served_mismatch_count": n_served_mismatch,
         "best_config_per_task": {_fmt_key(k): asdict(v) for k, v in best_by_task.items()},
     }
 
