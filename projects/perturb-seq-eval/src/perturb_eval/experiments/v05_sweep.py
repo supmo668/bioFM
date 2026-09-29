@@ -313,6 +313,28 @@ VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+[A-Za-z0-9._-]*$")
 DATA_ROOT = Path("/data")
 
 
+# Amendment 4 (A4-1 / A4-2) pins for the pre-registered version: Haiku sampling and the
+# spend carried in from the aborted run (1.3) plus the authorised dry runs (0.0548).
+PREREGISTERED_VERSION = "v0.6.0"
+PREREGISTERED_TEMPERATURE = 0.3
+PREREGISTERED_PRIOR_SPEND_USD = 1.3548
+
+
+def validate_pinned_run_params(version: str, *, temperature: float, prior_spend_usd: float) -> None:
+    """Refuse a pre-registered run whose pinned parameters differ from amendment 4 (QG-4, QG-6)."""
+    if version != PREREGISTERED_VERSION:
+        return
+    if abs(float(temperature) - PREREGISTERED_TEMPERATURE) > 1e-12:
+        raise ValueError(
+            f"A4-1 pins Haiku temperature at {PREREGISTERED_TEMPERATURE} for {version}; got {temperature}"
+        )
+    if float(prior_spend_usd) + 1e-9 < PREREGISTERED_PRIOR_SPEND_USD:
+        raise ValueError(
+            f"A4-2 carries in prior spend of at least ${PREREGISTERED_PRIOR_SPEND_USD} for {version}; "
+            f"got {prior_spend_usd}"
+        )
+
+
 def validate_version(version: str) -> str:
     """Return ``version`` if it is a release tag (``v<maj>.<min>.<patch>[suffix]``,
     suffix ``[A-Za-z0-9._-]``); raise ``ValueError`` otherwise."""

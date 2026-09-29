@@ -104,7 +104,7 @@ synthetic-cell generator is reintroduced under `src/`, `scripts/` or `paper/`.
 LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
     --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
-    --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
+    --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548
 
 # Analyse the downloaded run files (refuses mismatched (dataset, task) sets,
 # fallback steps, unfinished or unpinned runs); defaults to artifacts/v0.6.0

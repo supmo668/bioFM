@@ -190,7 +190,7 @@ class TestPreflightProbesEveryRosterModel:
             "probe_model",
             lambda self, m, p, role="Validator": (True, "ok", {"confidence": 0.5}),
         )
-        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        table, _spend = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
         for mid in {m.model_id for m in ANTHROPIC_POOL.models}:
             assert table[mid]["live"] is False and "schema failed" in table[mid]["verdict"], mid
         assert any(
@@ -415,7 +415,7 @@ class TestQG6PerRoleSchemaProbe:
             return True, "ok", payload
 
         monkeypatch.setattr(AnthropicClient, "probe_model", fake_probe_model)
-        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        table, _spend = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
         for role, prefs in ANTHROPIC_POOL.role_preferences.items():
             for mid in prefs:
                 assert (mid, role) in seen
@@ -499,7 +499,7 @@ class TestQG8DefaultPoolPath:
                 dict(pf.ROLE_PROBE_PAYLOADS[role]),
             ),
         )
-        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"}, pool=_POOL)
+        table, _spend = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"}, pool=_POOL)
         assert set(table) == {m.model_id for m in _POOL.models} and set(seen) == set(table)
 
     def test_app_v05_calls_preflight_without_a_pool_override(self) -> None:
@@ -547,7 +547,7 @@ class TestQG11ProbeAllVerdicts:
             return True, "ok", dict(pf.ROLE_PROBE_PAYLOADS[role])
 
         monkeypatch.setattr(AnthropicClient, "probe_model", fake)
-        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        table, _spend = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
         assert table["claude-sonnet-5-5"]["live"] is False
         assert "transport ConnectionError" in table["claude-sonnet-5-5"]["verdict"]
         assert sum(1 for e in table.values() if e["live"]) == 1

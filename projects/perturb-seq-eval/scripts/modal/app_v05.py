@@ -151,7 +151,7 @@ def run_v05_sweep(
     temperature: float = 0.3,
     version: str = "v0.6.0",
     spend_stop_usd: float = 12.0,
-    prior_spend_usd: float = 0.0,
+    prior_spend_usd: float = 1.3548,
     git_sha: str = "",
     git_dirty: bool = False,
     run_id: str = "",
@@ -247,11 +247,28 @@ def run_v05_sweep(
         return (time.time() - started_at) / 3600.0 * _A100_HOURLY_USD
 
     def _llm_cost_usd() -> float:
-        # A4-2: API-reported usage x the pinned price table, accumulated per call.
+        # A4-2: API-reported usage x the pinned price table, accumulated per call, plus the
+        # preflight probes' billed calls (QG-7).
         client = llm_state["client"]
-        if client is not None:
-            llm_state["llm_cost_usd"] = float(client.spend_usd)
+        run_part = float(client.spend_usd) if client is not None else 0.0
+        llm_state["llm_cost_usd"] = run_part + float(llm_state.get("preflight_spend_usd") or 0.0)
         return llm_state["llm_cost_usd"]
+
+    def _spend_breakdown() -> dict:
+        # QG-3: one helper for the success AND the abort path, so a refusal's category, the
+        # per-call usage, the ceilings and the price table always reach provenance.json.
+        client = llm_state["client"]
+        llm_report = client.spend() if client is not None else {}
+        return {
+            "gpu_cost_usd": _gpu_cost_usd(),
+            "llm_cost_usd": _llm_cost_usd(),
+            "prior_spend_usd": prior_spend_usd,
+            "preflight_spend_usd": float(llm_state.get("preflight_spend_usd") or 0.0),
+            "preflight_probe_spend": llm_state.get("preflight_spend_report") or {},
+            "llm_report": {k: v for k, v in llm_report.items() if k != "price_table"},
+            "llm_price_table": llm_report.get("price_table"),
+            "llm_call_log": list(client.call_log) if client is not None else [],
+        }
 
     def _cost_usd_so_far() -> float:
         return _gpu_cost_usd() + _llm_cost_usd() + prior_spend_usd
@@ -375,6 +392,9 @@ def run_v05_sweep(
         out_dir=out_dir,
     )
     print(f"[v0.6.0] preflight ok: {len(report.checks)} checks; probe={report.probe_model_id}")
+    # QG-7: the probes are billed calls; they join the run's LLM spend and provenance.
+    llm_state["preflight_spend_usd"] = float((report.probe_spend or {}).get("spend_usd") or 0.0)
+    llm_state["preflight_spend_report"] = dict(report.probe_spend or {})
     n_live = sum(1 for e in report.roster_liveness.values() if e["live"])
     print(f"[v0.6.0] roster liveness: {n_live}/{len(report.roster_liveness)} live (CTO #467)")
     task_plan = report.task_plan
@@ -482,6 +502,7 @@ def run_v05_sweep(
                     lifecycle_records, entries_at_start=llm_cache["llm_cache_entries_at_start"]
                 )
             )
+            failed.update(_spend_breakdown())  # QG-3: never lose the call log on an abort
             provenance_out.write_text(json.dumps(failed, indent=2, default=str))
             DATA_VOL.commit()
             print(
@@ -618,17 +639,7 @@ def run_v05_sweep(
     gpu_seconds = finished_at - started_at
     gpu_seconds_source = "wall_clock_of_gpu_function"
     cost_usd = _cost_usd_so_far()
-    spend_breakdown = {
-        "gpu_cost_usd": _gpu_cost_usd(),
-        "llm_cost_usd": _llm_cost_usd(),
-        "prior_spend_usd": prior_spend_usd,
-    }
-    llm_report = llm_state["client"].spend() if llm_state["client"] is not None else {}
-    spend_breakdown["llm_report"] = {k: v for k, v in llm_report.items() if k != "price_table"}
-    spend_breakdown["llm_price_table"] = llm_report.get("price_table")
-    spend_breakdown["llm_call_log"] = (
-        list(llm_state["client"].call_log) if llm_state["client"] is not None else []
-    )
+    spend_breakdown = _spend_breakdown()
     budget_hit = cost_usd > _BUDGET_HARD_KILL_USD
     # C-KEY-2 fallback > spend stop / hard kill > ok (QG C14 / OWN-1).
     status = derive_status(
@@ -675,7 +686,8 @@ def run_v05_sweep(
         "gpu_seconds": gpu_seconds,
         "gpu_seconds_source": gpu_seconds_source,
         "total_cost_usd": cost_usd,
-        **spend_breakdown,
+        **{k: v for k, v in spend_breakdown.items() if k != "llm_call_log"},
+        "llm_call_log_n": len(spend_breakdown["llm_call_log"]),
         "budget_cap_usd": _BUDGET_HARD_KILL_USD,
         "budget_hit": budget_hit,
         "spend_stop_usd": spend_stop_usd,
@@ -709,7 +721,7 @@ def entrypoint(
     temperature: float = 0.3,
     version: str = "v0.6.0",
     spend_stop_usd: float = _SPEND_STOP_USD,
-    prior_spend_usd: float = 0.0,
+    prior_spend_usd: float = 1.3548,  # A4-2: aborted run 1.3 + authorised dry runs 0.0548
 ) -> None:
     import subprocess
     import sys
@@ -717,9 +729,12 @@ def entrypoint(
     src = PROJECT_DIR_HOST / "src"
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
-    from perturb_eval.experiments.v05_sweep import validate_version
+    from perturb_eval.experiments.v05_sweep import validate_pinned_run_params, validate_version
 
     validate_version(version)  # QG C22: fail on the host, before any Modal work
+    validate_pinned_run_params(
+        version, temperature=temperature, prior_spend_usd=prior_spend_usd
+    )  # A4-1/A4-2
     from perturb_eval.experiments.provenance import (
         git_state,
         make_run_id,

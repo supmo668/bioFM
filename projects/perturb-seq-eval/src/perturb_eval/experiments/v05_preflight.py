@@ -98,6 +98,8 @@ class PreflightReport:
     checks: tuple[str, ...] = field(default_factory=tuple)
     # CTO #467: every roster model probed; {model_id: {live, verdict, probed_at}}.
     roster_liveness: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # QG-7: the probe client's spend() report (billed calls join the run total).
+    probe_spend: dict[str, Any] = field(default_factory=dict)
     # CTO #250: {dataset: label_contract provenance} and
     # ({"dataset", "label", "reason"}, ...) for provenance.tasks_excluded.
     label_contracts: dict[str, Mapping[str, Any]] = field(default_factory=dict)
@@ -144,7 +146,9 @@ def role_probe_prompt(role: str) -> str:
     )
 
 
-def openrouter_probe_all(env: Mapping[str, str], pool: Any = None) -> dict[str, dict[str, Any]]:
+def probe_roster(
+    env: Mapping[str, str], pool: Any = None
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Probe EVERY roster model, per role it is preferred for (CTO #467, QG-6).
 
     One direct call per (model, role) -- no failover, fresh temporary cache so a
@@ -168,7 +172,10 @@ def openrouter_probe_all(env: Mapping[str, str], pool: Any = None) -> dict[str, 
             roles_for.setdefault(mid, []).append(role)
     table: dict[str, dict[str, Any]] = {}
     with tempfile.TemporaryDirectory(prefix="v06-preflight-") as tmp:
-        client = AnthropicClient(api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=pool)
+        # allow_unpriced: a custom (test) pool may lack price entries; they are priced 0 and flagged.
+        client = AnthropicClient(
+            api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=pool, allow_unpriced=True
+        )
         for m in pool.models:
             probed_at = _dt.datetime.now(_dt.timezone.utc).isoformat()
             roles = roles_for.get(m.model_id) or ["Validator"]
@@ -194,7 +201,12 @@ def openrouter_probe_all(env: Mapping[str, str], pool: Any = None) -> dict[str, 
                 "probed_at": probed_at,
                 "roles": per_role,
             }
-    return table
+        spend = client.spend()
+    return table, spend
+
+
+# Name kept for callers and tests; it probes the Anthropic roster (amendment 4).
+openrouter_probe_all = probe_roster
 
 
 def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str, Any]], list[str]]:
@@ -235,7 +247,7 @@ def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str
         )
     live = {mid for mid, e in table.items() if e["live"]}
     if not live:
-        failures.append("C-KEY-1: OpenRouter pool probe returned no usable model")
+        failures.append("C-KEY-1: roster probe returned no usable model")
     for role, prefs in pool.role_preferences.items():
         # QG-6: a model counts for a role only if it passed THAT role's probe
         # (falls back to the overall liveness when no per-role result exists).
@@ -306,6 +318,7 @@ def preflight(
     # ---- C-KEY-1: key presence + pool probe --------------------------------
     probe_model_id = ""
     liveness: dict[str, dict[str, Any]] = {}
+    probe_spend: dict[str, Any] = {}
     if not bool(env.get(KEY_NAME)):
         failures.append(
             f"C-KEY-1: {KEY_NAME} is not set (presence check); the lifecycle phase "
@@ -316,23 +329,24 @@ def preflight(
         try:
             got = probe(env)
         except Exception as exc:  # noqa: BLE001 — reported as a failure, never bypassed
-            failures.append(
-                f"C-KEY-1: OpenRouter pool probe raised: {_scrub(_describe(exc), secret)}"
-            )
+            failures.append(f"C-KEY-1: roster probe raised: {_scrub(_describe(exc), secret)}")
         else:
+            probe_spend = {}
+            if isinstance(got, tuple) and len(got) == 2 and isinstance(got[0], Mapping):
+                got, probe_spend = got[0], dict(got[1] or {})
             probe_model_id, liveness, probe_failures = _check_roster_liveness(got, pool)
             failures.extend(probe_failures)
             if probe_model_id:
                 n_live = sum(1 for e in liveness.values() if e["live"])
                 checks.append(
-                    f"pool probe ok ({probe_model_id}; {n_live}/{len(liveness)} roster models live)"
+                    f"roster probe ok ({probe_model_id}; {n_live}/{len(liveness)} roster models live)"
                 )
 
     # ---- C-KEY-SOURCE / C-PREREG: principal directive + CTO #265 ----------
     key_source = kwargs.get("llm_key_source")
     if not isinstance(key_source, Mapping) or not key_source:
         failures.append(
-            "C-KEY-SOURCE: LLM_KEY_SOURCE not set; provenance must record where "
+            f"C-KEY-SOURCE: {KEY_SOURCE_NAME} not set; provenance must record where "
             "the credential came from (principal directive 2026-09-24)"
         )
     else:
@@ -465,6 +479,7 @@ def preflight(
         backbones=backbones,
         checks=tuple(checks),
         roster_liveness=liveness,
+        probe_spend=probe_spend,
         label_contracts=label_contracts,
         labels_excluded=labels_excluded,
     )
@@ -522,6 +537,7 @@ __all__ = [
     "PreflightReport",
     "TASK_POOL_DATASET",
     "openrouter_probe_all",
+    "probe_roster",
     "ROLE_PROBE_PAYLOADS",
     "preflight",
 ]
