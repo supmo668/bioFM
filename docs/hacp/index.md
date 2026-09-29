@@ -6,7 +6,7 @@
 |---|---|
 | **Project** | `bioFM` — a coordination repo for three research workstreams run under the AI-RDLC lifecycle, plus one public submodule |
 | **This page** | L0 — the project index. One screen. |
-| **Alignment** | Each workstream builds under a hash-signed plan; every boundary is receipted. Divergences are recorded in each workstream's approval log, never patched over: lung-on-chipsim has 53 numbered revisions + 4 principal/route rows (57 rows) incl. two accepted gate failures; perturb-seq-eval's amendment 2 re-derived two estimators after a CTO re-check; aviary-biosim's plan was re-signed once (r2) after its referee contract changed. |
+| **Alignment** | Each workstream builds under a hash-signed plan; every boundary is receipted. Divergences are recorded in each workstream's approval log, never patched over: lung-on-chipsim has 59 numbered revisions + 4 non-numbered principal/route rows (63 rows, counted 2026-09-29; 49 of 59 standing-delegation, 0 inferred) incl. two accepted gate failures; perturb-seq-eval's amendment 2 re-derived two estimators after a CTO re-check; aviary-biosim's plan was re-signed once (r2) after its referee contract changed. |
 | **Protocol** | HACP (`REFERENCE-HACP.md`, shipped with the airdlc plugin) |
 | **Public** | Repo is public. No page here names a sequence identifier, a chemical identifier, or a secret. |
 
