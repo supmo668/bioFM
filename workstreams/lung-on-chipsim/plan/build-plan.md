@@ -735,8 +735,9 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   the #444 time box (approval-log row 54, applied at row 55, route corrected 2026-09-29 after #492). Requirement 4 read
   "implements r2.48b scope-by-property so the 37-file unaccounted count reaches 0 by MARKING"; measured, that count is
   1,028 shapes across 44 files, of which 87% are structurally unmarkable. It is NARROWED to: the guard ENFORCES the
-  in-scope Python and prose sites only — measured 136 shapes in 18 files — and PASSES iff in-scope unaccounted = 0 AND
-  could-not-scan = 0. The five ruled properties of #454/#455 become PLAN TEXT here rather than deferring to a document
+  in-scope Python and prose sites only — measured 136 shapes in 18 files — and PASSES iff every in-scope site is CLASSIFIED into exactly one accounting bucket (see
+  requirement 5 below; a needs-curation site is classified, counted and reported, not marked) AND could-not-scan = 0
+  *[r2.50c (#506): 'in-scope unaccounted = 0' is no longer the pass condition — measured, it cannot be reached truthfully]*. The five ruled properties of #454/#455 become PLAN TEXT here rather than deferring to a document
   that does not exist: P1 signed text (the file's own hash equals the recorded plan_hash); P2 signature ledger (the file
   says of itself that it is the approval log); P4 generated output (a generator-written stamp in a STRUCTURAL position —
   a substring match is a measured false exclusion); P5 citation-governed config, judged on the ENCLOSING MAPPING and never
@@ -747,8 +748,20 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   in the Stage 1 registered report. The sum identity is asserted by a test: total = in-scope accounted + in-scope
   unaccounted + Σ out-of-scope(P_k) + out-of-guard-scope + could-not-scan. Config sites are classified from the UNION of
   the raw lines and the yaml-decoded scalars; a site the decode cannot reach is classified from its line, never dropped
-  (measured: 1 such site, borne by a YAML comment). Requirement 5 stands, narrowed to the in-scope sites: adjacency is the
-  site's own line or within MARKER_WINDOW_LINES lines immediately above it. MARKER_WINDOW_LINES = 2 — one constant,
+  (measured: 1 such site, borne by a YAML comment). Requirement 5 is DESCOPED TO REPORTING by the principal (r2.50c, #506, AskUserQuestion 2026-09-29, option chosen
+  verbatim: "Descope req 5 to reporting; file-level counts; 56 → limitation"): every in-scope site is classified into
+  exactly one of four buckets, reported by count and file every run — (W) accounted by a marker on the site's own line or
+  within MARKER_WINDOW_LINES lines immediately above it; (F) accounted by a FILE-LEVEL citation header (CID + retrieval
+  date in the module docstring or file header), judged on the enclosing file the way P5 is judged on the enclosing
+  mapping — the by-line rule was a measured false exclusion (45 sites at the r2.50c measurement) and an inline restatement
+  would be a second copy of a claim with nothing checking the two agree; (C) a constructed shape-only probe governed by
+  clause (i), classifiable by the agent WITHOUT comparing any constant against an adjacent structure literal or looking
+  any identifier up; (N) NEEDS-CURATION — a site with no citation in the file whose status (real chemistry needing a
+  citation, or a synthetic value that looks real) can only be decided by the comparison the agent is forbidden to make.
+  (N) sites are NEVER marked; they are counted, listed by file in the harness output, recorded as a STATED LIMITATION in
+  the Stage 1 registered report next to the out-of-guard-scope count, and carried as the PRINCIPAL'S Stage 2 curation
+  item (a curation claim, like the compound roster). The sum identity gains the four buckets: in-scope = W + F + C + N.
+  No marker is written on a guess. MARKER_WINDOW_LINES = 2 — one constant,
   defined once, imported everywhere, never restated, with a test that FAILS if a second literal appears (the same
   discipline and value as _TUPLE_WINDOW). EVERY COUNT IN THIS AMENDMENT (1,028 / 44; 136 / 18; 436 / 19; 35 / 2; 88;
   123; 1) is the measurement at the r2.50 sign (2026-09-29, tree as scanned by tests/shape_scan.py) — a dated observation
@@ -786,15 +799,15 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   `.gitkeep` tracked (security, code, me) → (2); the equivalence proof is blind to regex flags (code, me) → (4).
   *[CTO addition, r2.50 sign (#463); corrected r2.50a (#502) — clause (f) forbids typed counts:]* **MARKER SUBTRACTION is the
   closure mechanism for the in-scope shapes** — each is accounted by a marker on its own line or within MARKER_WINDOW_LINES
-  above it, per the amended clause (e). The DONE-CONDITION is derived and only derived: in_scope_unaccounted == 0 AND
-  could_not_scan == 0. The harness regenerates every count every run and reports, beside the pass, the shapes subtracted per
+  above it, per the amended clause (e). The DONE-CONDITION is derived and only derived *[r2.50c]*: every in-scope site is in exactly one of
+  W / F / C / N (in_scope_unclassified == 0) AND could_not_scan == 0; N is reported, never marked. The harness regenerates every count every run and reports, beside the pass, the shapes subtracted per
   in-scope file and the out-of-guard-scope total it does not touch, so the descope is visible in the same table that shows
   the pass and any drift from the at-sign measurement is visible rather than tolerated. This is a checkable obligation on
   the harness's OUTPUT and gate 9 holds the build to it. **RETROACTIVITY:** the committed gate-7
   evidence is NOT edited — retroactive edits are the principal's (#463 item 4). It is recorded in the approval log and in
   the Stage 1 limitations as an observed instance of the family; mechanism (5) prevents recurrence. **STOPPING RULE
-  (principal's time box, row 54):** gate 9 is the LAST gate on E-23. A gate-9 fail on the same family closes E-23 at the
-  scope it reached — no r2.51 — and the remaining findings go to the Stage 1 limitations, with the counts as regenerated by
+  (principal's time box, row 54):** gate 9 is the LAST gate on E-23 and runs on the five mechanisms and the four-bucket
+  reporting (r2.50c). A gate-9 fail on the same family closes E-23 at the scope it reached — no r2.51 — and the remaining findings go to the Stage 1 limitations, with the counts as regenerated by
   the harness at gate 9, not just the category.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
