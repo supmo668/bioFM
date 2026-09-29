@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | aviary-biosim | F08 pr-prep receipt verifies against `origin/main` | Hash E `4217902` | **measured** 2026-09-26, re-verified 2026-09-28 under airdlc 0.71.0 | `workstreams/aviary-biosim/qgr/…-4217902.md` |
 | aviary-biosim | science suite green in default order, importlib mode and each file alone | 328 passed; 445 across the loop | **measured** 2026-09-26 | same receipt |
-| aviary-biosim | deliberately broken copies of the guard caught | 36 live killed + 1 retired | **measured** 2026-09-25 | earlier receipt, superseded for Hash E only |
+| aviary-biosim | deliberately broken copies of the guard caught | 48 live killed + 1 retired (the re-gate added 13; catalogue holds 49 entries) | **measured** 2026-09-26 | same receipt (`4217902`); the 36 + 1 figure was the 2026-09-25 gate, superseded |
 | aviary-biosim | white paper evidence files exist (drain-1 rerun, timeline, science from a hash-recorded input, agent run, taxonomy, plugin/repo tests) | 10 files under `paper/evidence/` | **present, not yet reviewed** — CTO rigour review begins after Task 13 and the A7 claims check | Aviary-BioSim branch `whitepaper` |
 | perturb-seq-eval | test suite after amendment-2 fixes | 925 passed | **measured** 2026-09-27 | commit `4840f0d`; QG receipt pending at the next boundary |
 | perturb-seq-eval | pre-registration amendment 2 locked | `3bf2a9a` | **recorded** | pre-registration file + approval log |

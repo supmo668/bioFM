@@ -30,6 +30,12 @@ flowchart LR
 | perturb-seq-eval | `perturb-seq-eval` @ `4840f0d`; amendment 2 `3bf2a9a` | fixes formatted, 925 green | QG receipt → sweep runs on the standing GO (#283) |
 | cellforge-agents | — | not surfaced this cycle | — |
 
+## Presentations
+
+| Workstream | Kind | What it shows | Surface | Written |
+|---|---|---|---|---|
+| aviary-biosim | Presentation (walkthrough + product cut) | the v2r loop and `BioSimEnv` placed in the system, the five decisions taken, the six HACP sections at `ab8f6f5`, and what is done / owed / undecided at the end of the workstream | [web Artifact](https://claude.ai/artifact/EqRkyfyMT5Jj8ecAcVpsYg) — **not published to the HACP index** (Notion connector not connected at write time; row owed). Source: `workstreams/_adhoc/aviary-biosim-walkthrough.md`, `…-walkthrough-product.md` | 2026-09-28 |
+
 ## Convention
 
 No boundary is claimed without a receipt a third party can verify; no plan runs unsigned; a plan whose text changes is re-signed, never patched. Merges only — the fleet's merge-bases are never rewritten.
