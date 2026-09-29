@@ -565,3 +565,14 @@ def test_parse_key_source_malformed_is_none(spec) -> None:
 )
 def test_parse_key_source_credential_shaped_is_none(spec) -> None:
     assert pv.parse_key_source(spec, home_project="biofm") is None
+
+
+def test_replay_status_is_a_finalizable_status() -> None:
+    """derive_status() returns "replay" (A2-8); finalize_provenance must accept it, not raise at run end."""
+    from perturb_eval.experiments.v05_sweep import derive_status
+
+    rows = [{"steps": [{"source": "llm", "cache_hit": True, "agent_name": "Architect"}]}]
+    status = derive_status(rows, cost_usd=1.0, kill_usd=28.0, llm_cache_entries_at_start=0)
+    assert status == "replay" and status in pv.STATUSES
+    fin = pv.finalize_provenance(_prov(), **{**_finalize_kwargs(), "status": "replay"})
+    assert fin["status"] == "replay"

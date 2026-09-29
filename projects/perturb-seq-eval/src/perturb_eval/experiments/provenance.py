@@ -95,7 +95,7 @@ REQUIRED_FINAL_KEYS: tuple[str, ...] = REQUIRED_KEYS + (
 JSONL_NAMES: tuple[str, str] = ("trainer_runs.jsonl", "lifecycle_runs.jsonl")
 PREVIEW_CHARS = 80
 
-STATUSES: frozenset[str] = frozenset({"ok", "failed_fallback", "partial", "failed"})
+STATUSES: frozenset[str] = frozenset({"ok", "failed_fallback", "partial", "failed", "replay"})
 
 KNOWN_LIMITATIONS: tuple[str, ...] = (
     # CTO #227: stated, not changed.
