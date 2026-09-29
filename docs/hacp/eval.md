@@ -17,7 +17,7 @@
 | perturb-seq-eval | test suite after amendment-2 fixes | 925 passed | **measured** 2026-09-27 | commit `4840f0d`; QG receipt pending at the next boundary |
 | perturb-seq-eval | pre-registration amendment 2 locked | `3bf2a9a` | **recorded** | pre-registration file + approval log |
 | lung-on-chipsim | results | none | **absent by design** — `fit.py` refuses to run without sourced priors; evaluator not yet frozen (M0c) | `workstreams/lung-on-chipsim/paper/2026-09-26-stage1-registered-report-design.md` §1 |
-| lung-on-chipsim | content-guard gates run on E-22/E-23 | 8 gates; gates 6, 7 and 8 FAIL accepted (gate 8: 46 findings, 3 CRITICAL, bracket HELD, no receipt) | **measured**, each survivor paired with why nothing saw it | `workstreams/lung-on-chipsim/qgr/`, approval-log rows 47–55 |
+| lung-on-chipsim | content-guard gates run on E-22/E-23 | 9 gates; gates 6, 7, 8 and 9 FAIL accepted — gate 9 (2026-09-29): 6 defects / 19 findings / 5 readers, all invisible to 1,257 tests; E-23 CLOSED at the scope reached, no receipt | **measured**, each survivor paired with why nothing saw it | `workstreams/lung-on-chipsim/qgr/`, approval-log rows 47–55 |
 
 ## What the gate can and cannot see
 

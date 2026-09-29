@@ -15,8 +15,8 @@ flowchart LR
   classDef wait fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
   A1["aviary-biosim F08<br/><small>test isolation · receipt verified</small>"]:::wait
   A2["aviary-biosim #272<br/><small>white paper · Tasks 0–12 of 15</small>"]:::live
-  L1["lung-on-chipsim E-23<br/><small>gate 8 FAILED · descoped · r2.50 to draft</small>"]:::live
-  L2["lung-on-chipsim Stage 1<br/><small>registered report · design only</small>"]:::done
+  L1["lung-on-chipsim E-23<br/><small>CLOSED at gate 9 FAIL · limitations</small>"]:::done
+  L2["lung-on-chipsim Stage 1<br/><small>registered report · OPEN: limitations + claims list</small>"]:::live
   Q1["perturb-seq-eval<br/><small>amendment 2 locked · sweep GO</small>"]:::live
   A1 -->|"land, then merge main into"| A2
   L1 -->|"gate 8 green, or time box"| L2
@@ -26,7 +26,7 @@ flowchart LR
 | Workstream | Branch / plan | State | Next boundary |
 |---|---|---|---|
 | aviary-biosim | `aviary-biosim` @ `ab8f6f5`; plan #272 r2 (`4a8bb59`) on `whitepaper` @ `b366667` | F08 land-ready; Tasks 0–12 done | `/airdlc:pr-cto-land … --no-release` (principal); Task 13 `/iteration-complete` (agent) |
-| lung-on-chipsim | `lung-on-chipsim` @ `e1a1cc4`; plan r2.49 (`26d95ad`) | gate 8 REPORTED AND FAILED (46 findings, 3 CRITICAL, no receipt); E-23 DESCOPED by the standing time-box ruling; route of log row 55 corrected 2026-09-29; #463 unblocked | agent drafts r2.50 (design-note §3 items 1-5 + clause (e) amended in place) → CTO signs → gate 9 = last |
+| lung-on-chipsim | `lung-on-chipsim` @ `6b642d8`; plan r2.50c (`ae894db`) | **E-23 CLOSED** at gate 9 FAIL (same family; no receipt; no r2.51) under the principal's time box; five mechanisms in, requirement 5 descoped to W/F/C/N reporting; findings → Stage 1 limitations | Stage 1 registered report (#411) opens: limitations section + claims list → CTO rigour review |
 | perturb-seq-eval | `perturb-seq-eval` @ `4840f0d`; amendment 2 `3bf2a9a` | fixes formatted, 925 green | QG receipt → sweep runs on the standing GO (#283) |
 | cellforge-agents | — | not surfaced this cycle | — |
 

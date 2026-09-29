@@ -16,7 +16,7 @@
 |---|---|---|
 | [`§vision`](vision.md) | three workstreams, no PVR for perturb-seq-eval (requirements came from a review) | 3 |
 | [`§design`](design.md) | A&Ds approved for all three; lung-on-chipsim's Stage 1 registered-report design written | 3 A&D + 1 paper design |
-| [`§build`](build.md) | aviary-biosim land-ready + white paper Tasks 0–12; lung-on-chipsim E-23 gate 8 failed, descoped, r2.50 next; perturb-seq-eval amendment 2 locked, sweep on standing GO | 3 in flight |
+| [`§build`](build.md) | aviary-biosim land-ready + white paper Tasks 0–12; lung-on-chipsim E-23 closed at gate 9 (fail, by the time box); Stage 1 registered report open; perturb-seq-eval amendment 2 locked, sweep on standing GO | 3 in flight |
 | [`§eval`](eval.md) | aviary-biosim receipt `4217902` verified; perturb-seq-eval 925 tests green; lung-on-chipsim 0 results by design (evaluator not yet frozen) | 2 receipts, 1 blocked input |
 | [`§risk`](risk.md) | evidence-integrity finding (seeded run state), unpinned prompts, held F31, unfrozen evaluator | 4 project-level |
 | [`§decision`](decision.md) | 2 principal actions open (both keyboard, not judgement) | 2 |
@@ -33,7 +33,7 @@ flowchart LR
   P["Principal<br/><small>signs plans · rules on measurands</small>"]:::quiet
   C["CTO<br/><small>main · lands · signs · writes Notion</small>"]:::trust
   A["aviary-biosim<br/><small>public submodule · white paper</small>"]:::live
-  L["lung-on-chipsim<br/><small>E-23 descoped · r2.50 next · Stage 1 design</small>"]:::live
+  L["lung-on-chipsim<br/><small>E-23 closed at gate 9 · Stage 1 open</small>"]:::live
   Q["perturb-seq-eval<br/><small>amendment 2 locked · sweep GO</small>"]:::live
   G["Gates<br/><small>plan-gate · QGR receipts · sealed referee</small>"]:::trust
   N["HACP index<br/><small>this page + Notion mirror</small>"]:::quiet
