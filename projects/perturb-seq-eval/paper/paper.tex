@@ -274,7 +274,7 @@ clipped term are reported descriptively beside them. Both amendments were
 locked before any v0.6.0 data existed.
 
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
-\sloppy $\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
+$\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
 \max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4$. In practice the probe is
 produced by a \emph{shallow} one-round execution of the orchestrator (smaller
 tool-call budget, narrower retrieval) so it is materially cheaper than a full
@@ -576,13 +576,15 @@ known defects outside the sweep path & repository file
 \bottomrule
 \end{tabular}
 \end{center}
-\sloppy The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
+\begin{sloppypar}
+The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
 \texttt{\resRunId} at \texttt{git\_sha} \resGitSha{} (\texttt{git\_dirty}
 \resGitDirty), \texttt{prereg\_version} \resPreregVersion; the run manifest
 \path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
 \resArchiveShaOutputs), never deleted.
+\end{sloppypar}
 
 \paragraph{Pipeline.}
 \begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]

@@ -51,7 +51,9 @@ and in \texttt{paper/PREREGISTRATION.md}.}
 Estimator: per task, the minimum MSD on the top-$20$ evaluation genes over the
 \resNDistinctConfigs{} distinct trainer configurations (\resNTrainerRecordsPerTask{} records
 per task; an oracle, \S\ref{subsec:oracle}); the gate is the median over tasks in each
-dataset (\texttt{preregistered.h1\_h2\_stats}).
+dataset (\texttt{preregistered.h1\_h2\_stats}). The evaluation genes are the per-task list in
+\texttt{summary.json} $\to$ \texttt{eval\_genes\_per\_task} (\resEvalGeneTasks{} tasks), shared
+with the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
 
 \begin{table}[ht]
 \small
@@ -69,7 +71,8 @@ Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \res
 \end{tabular}}
 \caption{Oracle MSD on the top-$20$ evaluation genes (best of the distinct configurations,
 selected on the evaluation split). Gates: Adamson median $<\resHOneThreshold$ (\resHOneVerdict),
-Norman median $<\resHTwoThreshold$ (\resHTwoVerdict). The Norman doublet stratum's median
+Norman median $<\resHTwoThreshold$ (\resHTwoVerdict). Bootstrap CIs are not computed per stratum.
+The Norman doublet stratum's median
 (\resHTwoDoubletMedian) lies above the gate; the gate is the median over all $\resHTwoN$ tasks.}
 \label{tab:headline-msd}
 \end{table}
@@ -94,7 +97,7 @@ smallest breakdown here (per serving model) has $N=\resHThreeSmallestBreakdownN$
 \resHThreeMillerMadow. All Architect steps were served by one model
 (\texttt{\resRosterHaiku}; \resHThreeNModels{} distinct serving model), so the per-\texttt{model\_id}
 breakdown coincides with the pooled value. Per-role distinct-proposal counts are not computed
-(the pre-registration flags them as optional and to be reported as such).
+(flagged as not implemented in the pre-registration, and reported as such).
 
 \subsection{Trace metrics against held-out error (H4)}\label{sec:tdi-real}
 
@@ -118,7 +121,8 @@ run no component was undefined (runs undefined: \resHFourRunsUndefined; tasks dr
 \resHFourTasksDropped), every run having exactly three rounds.
 
 \paragraph{Estimator.} The unit is the task; per task, each component and the lifecycle's
-final MSD are medians over the three seeds. Spearman $\rho$ is computed \emph{within}
+final MSD (on the same \texttt{eval\_genes\_per\_task} list as H1/H2, A2-5) are medians over
+the three seeds. Spearman $\rho$ is computed \emph{within}
 Adamson and \emph{within} Norman separately, with default weights and no in-sample
 calibration; all six values are reported with $n$ and a bootstrap CI, and the gate passes if any
 of the six exceeds $0.5$. The pooled $\rho$ is descriptive only. The six tests are dependent

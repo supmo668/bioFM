@@ -265,6 +265,8 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
         "resLivenessTotalPairs": str(
             sum(len(mdl["roles"]) for mdl in p["llm_roster_liveness"].values())
         ),
+        "resEvalGeneTasks": str(len(s["eval_genes_per_task"])),
+        "resEvalGeneMismatch": str(len(s["eval_gene_mismatch_tasks"])),
     }
     for g, name in (("H1", "HOne"), ("H2", "HTwo")):
         r = pr[g]
@@ -681,5 +683,45 @@ def test_build_products_are_not_tracked():
         cwd=ROOT,
         capture_output=True,
         text=True,
+        check=True,
     ).stdout.split()
     assert out == [], out
+
+
+def test_post_run_docs_and_prose_are_current():
+    """After the sweep, nothing may still describe results as pending or the LLM condition as OpenRouter."""
+    res, setup, main = RESULTS.read_text(), SETUP.read_text(), MAIN.read_text()
+    assert (
+        "eval\\_genes\\_per\\_task" in res
+        and "\\resEvalGeneTasks" in res
+        and "\\resEvalGeneMismatch" in res
+    )
+    assert "401/402/403/404" in setup
+    assert "flagged as not implemented" in res and "not computed per stratum" in res
+    assert (
+        "\\sloppy " not in main and "\\sloppy\n" not in main
+    )  # only the scoped sloppypar environment
+    for rel, bad in (
+        ("README.md", ("pending the v0.6.0 sweep",)),
+        ("docs/THESIS.md", ("results are pending",)),
+        ("CHANGELOG.md", ("sweep not yet run", "Results are placeholders")),
+        ("LIVE_RUN.md", ()),
+    ):
+        text = (ROOT / rel).read_text()
+        for phrase in bad:
+            assert phrase not in text, (rel, phrase)
+    assert "legacy" in (ROOT / "LIVE_RUN.md").read_text()[:600].lower()
+    assert "anthropic_client.py" in (ROOT / "README.md").read_text()
+    assert (
+        "589d1e3b" not in (ROOT / "README.md").read_text()
+        and "589d1e3b" not in (PAPER / "README.md").read_text()
+    )
+    app = (ROOT / "scripts" / "modal" / "app_v05.py").read_text()
+    assert "free-tier" not in app and "589d1e3b" not in app
+    assert (
+        "ruling pending"
+        not in (ROOT / "src/perturb_eval/agentic_lifecycle/architect_dispatch.py").read_text()
+    )
+    assert (
+        "legacy" in (ROOT / "src/perturb_eval/llm/openrouter_client.py").read_text()[:400].lower()
+    )

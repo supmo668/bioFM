@@ -133,7 +133,7 @@ Trainer \resCeilingTrainer, Validator \resCeilingValidator; a \texttt{max\_token
 once at twice the ceiling, both billed, and a second is a fallback-class event. Every call records
 its \texttt{stop\_reason}, the requested and the served model (asserted equal --- a mismatch is a
 fallback-class event with no failover), and its token usage; a refusal aborts the run; the request
-never carries a server-side fallback parameter; 401/402/403 abort. Preflight probes both roster
+never carries a server-side fallback parameter; 401/402/403/404 abort. Preflight probes both roster
 models with every role's schema before any spend and records the liveness table in provenance.
 Each lifecycle step is labelled \texttt{source} $\in\{\texttt{llm},\texttt{fallback}\}$ with its
 \texttt{model\_id}; a run with any fallback step is invalid, and the pre-registered run starts on

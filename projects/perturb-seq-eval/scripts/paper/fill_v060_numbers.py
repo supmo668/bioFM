@@ -270,6 +270,9 @@ def build(
     m["ProjLatency"] = f(proj["gpu_latency_per_round_s"], 1)
     m["CeilingLine"] = f(proj["ceiling_usd"], 0)
     # ---- integrity anchors (a missing file is an error, never n/a)
+    # A2-5: H1/H2 and H4/H5 cite the same per-task evaluation-gene list (summary.json)
+    m["EvalGeneTasks"] = str(len(s["eval_genes_per_task"]))
+    m["EvalGeneMismatch"] = str(len(s["eval_gene_mismatch_tasks"]))
     m["ManifestSha"] = _sha16(manifest)
     for i, a in enumerate(archives):
         m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = _sha16(a)
