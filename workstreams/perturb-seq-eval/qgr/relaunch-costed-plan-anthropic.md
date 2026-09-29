@@ -143,6 +143,8 @@ first-pass calls (#478). Evidence: `workstreams/perturb-seq-eval/qgr/evidence/an
 
 
 ---
+## EVIDENCE NOTE (CTO #486): `anthropic-dry-run-30-sonnet-validator-six-20260929.json` holds 24 client-side `TypeError` records (SDK 1.x removed the typed `temperature` argument; raised before any request; unbilled); those 24 Haiku prompts were re-run in `anthropic-dry-run-30-haiku-24-20260929.json`. The file carries the same note.
+
 ## CORRECTION (CTO #484, 2026-09-29): the dry-run report's counts were 3x too high — projections re-done
 
 The report above used 369 runs / 1107 rounds. The grid is **41 tasks x 3 seeds = 123 runs x 3 rounds = 369 rounds = 1845 calls**
