@@ -86,8 +86,11 @@ Executed-pick counts, reported alongside and not gating: \textsc{linear} \resHTh
 \textsc{mlp} \resHThreeExecPickMlp, \texttt{scgpt\_small} \resHThreeExecPickScgpt{} (entropy
 \resHThreeEntropyExecuted{} nats; missing executed \resHThreeNMissingExecuted); the executed
 backbone equalled the stated backbone on every step (executed $\ne$ stated: \resHThreeExecNeStated).
-The Miller--Madow correction is pre-registered for breakdowns with $N<50$; the smallest breakdown
-here (per serving model) has $N=\resHThreeSmallestBreakdownN$, so it is \resHThreeMillerMadow. All Architect steps were served by one model
+Descriptively, the Miller--Madow bias-corrected entropy $H+(K-1)/(2N)$ with $K=\resHThreeMenuSize$,
+$N=\resHThreeNCounted$ is \resHThreeMillerMadowNats{} nats (the gate is the plug-in value, as
+pre-registered); the per-breakdown correction is pre-registered for breakdowns with $N<50$, and the
+smallest breakdown here (per serving model) has $N=\resHThreeSmallestBreakdownN$, so it is
+\resHThreeMillerMadow. All Architect steps were served by one model
 (\texttt{\resRosterHaiku}; \resHThreeNModels{} distinct serving model), so the per-\texttt{model\_id}
 breakdown coincides with the pooled value. Per-role distinct-proposal counts are not computed
 (the pre-registration flags them as optional and to be reported as such).

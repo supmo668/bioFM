@@ -118,7 +118,16 @@ def build(
     m["HThreeNMissingStated"] = str(h3["n_missing_stated"])
     m["HThreeNMissingExecuted"] = str(h3["n_missing_executed"])
     m["HThreeNOffMenu"] = str(h3["n_off_menu_stated"])
-    # Miller-Madow is pre-registered only for breakdowns with N < 50; the smallest breakdown here is per model_id.
+    # Miller-Madow bias-corrected entropy H + (K-1)/(2N) (pre-registration, H3 "Bias"): typeset beside the
+    # plug-in value as descriptive (CTO #496); the gate stays the plug-in value. The analyser only fills
+    # miller_madow_nats for breakdowns with N < 50, so the pooled value is computed here by the same formula.
+    k_menu = len(h3["menu"])
+    mm = h3["miller_madow_nats"]
+    if mm is None:
+        mm = h3["value"] + (k_menu - 1) / (2 * h3["n_counted"])
+    m["HThreeMillerMadowNats"] = f(mm)
+    m["HThreeMenuSize"] = str(k_menu)
+    # Per-breakdown Miller-Madow is pre-registered only for N < 50; the smallest breakdown here is per model_id.
     small = {k: v for k, v in h3["by_model_id"].items() if v["n"] < 50}
     m["HThreeSmallestBreakdownN"] = str(min(v["n"] for v in h3["by_model_id"].values()))
     m["HThreeMillerMadow"] = (

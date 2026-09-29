@@ -133,6 +133,12 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
         "resHThreeNMissingExecuted": str(pr["H3"]["n_missing_executed"]),
         "resHThreeNOffMenu": str(pr["H3"]["n_off_menu_stated"]),
         "resHThreeSmallestBreakdownN": str(min(v["n"] for v in pr["H3"]["by_model_id"].values())),
+        "resHThreeMenuSize": str(len(pr["H3"]["menu"])),
+        "resHThreeMillerMadowNats": f(
+            pr["H3"]["miller_madow_nats"]
+            if pr["H3"]["miller_madow_nats"] is not None
+            else pr["H3"]["value"] + (len(pr["H3"]["menu"]) - 1) / (2 * pr["H3"]["n_counted"])
+        ),
         "resHThreeMillerMadow": "not applicable"
         if all(v["n"] >= 50 for v in pr["H3"]["by_model_id"].values())
         else "; ".join(
