@@ -111,6 +111,21 @@ def build(
     m["HThreeNSteps"] = str(h3["n_llm_architect_steps"])
     m["HThreeExecNeStated"] = str(h3["n_executed_ne_stated"])
     m["HThreeNModels"] = str(h3["n_distinct_model_ids"])
+    for bb, name in (("linear", "Linear"), ("mlp", "Mlp"), ("scgpt_small", "Scgpt")):
+        m[f"HThreeExecPick{name}"] = str(h3["executed_pick_counts"].get(bb, 0))
+    m["HThreeEntropyExecuted"] = f(h3["entropy_executed_nats"])
+    m["HThreeNCounted"] = str(h3["n_counted"])
+    m["HThreeNMissingStated"] = str(h3["n_missing_stated"])
+    m["HThreeNMissingExecuted"] = str(h3["n_missing_executed"])
+    m["HThreeNOffMenu"] = str(h3["n_off_menu_stated"])
+    # Miller-Madow is pre-registered only for breakdowns with N < 50; the smallest breakdown here is per model_id.
+    small = {k: v for k, v in h3["by_model_id"].items() if v["n"] < 50}
+    m["HThreeSmallestBreakdownN"] = str(min(v["n"] for v in h3["by_model_id"].values()))
+    m["HThreeMillerMadow"] = (
+        "; ".join(f"{k}: {f(v['miller_madow_nats'])}" for k, v in small.items())
+        if small
+        else "not applicable"
+    )
     # ---- H4 (six pre-registered tests + the two descriptive forms per dataset)
     h4 = pr["H4"]
     for row in h4["all_six"]:

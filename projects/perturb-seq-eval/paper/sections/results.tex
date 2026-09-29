@@ -29,7 +29,8 @@ H1 & Trainer sweep attains low error on Adamson (oracle, \S\ref{subsec:oracle})
   & median $<\resHOneThreshold$ & \resHOneVerdict{} (median \resHOneMedian) \\
 H2 & Trainer sweep attains low error on Norman (oracle) & median $<\resHTwoThreshold$
   & \resHTwoVerdict{} (median \resHTwoMedian) \\
-H3 & Architect exercises its backbone choice (stated backbone, LLM-sourced steps)
+H3 & Architect exercises its backbone choice (stated backbone over the pool of all LLM-sourced
+  Architect steps across tasks, seeds and rounds)
   & entropy $\ge 0.5$ nats & \resHThreeVerdict{} (\resHThreeEntropy{} nats) \\
 H4 & A trace feature ($\mathrm{ACE}_{\mathrm{norm}}$, $1-\Delta C$ or
   $\mathrm{TDI}_{\mathrm{lifecycle}}$) ranks tasks by held-out error
@@ -74,13 +75,19 @@ Norman median $<\resHTwoThreshold$ (\resHTwoVerdict). The Norman doublet stratum
 
 \subsection{Architect configuration choices (H3)}\label{subsec:h3}
 
-Estimator: the Shannon entropy (nats) of the Architect's \emph{stated} \texttt{backbone} over
-all LLM-sourced Architect steps, pooled across tasks, seeds and rounds, with the ceiling
-$\ln 3=\resHThreeCeiling$ derived from the pinned menu (\texttt{preregistered.h3}). Stated-pick
-counts over \resHThreeNSteps{} steps: \textsc{linear} \resHThreePickLinear, \textsc{mlp}
-\resHThreePickMlp, \texttt{scgpt\_small} \resHThreePickScgpt; entropy \resHThreeEntropy{} nats
-(\resHThreeVerdict). The executed backbone equalled the stated backbone on every step
-(executed $\ne$ stated: \resHThreeExecNeStated). All Architect steps were served by one model
+Estimator: the plug-in Shannon entropy (nats) of the Architect's \emph{stated} \texttt{backbone} over
+all LLM-sourced Architect steps, pooled across tasks, seeds and rounds --- a statement about the
+pool, not about any task, seed or round --- with the ceiling $\ln 3=\resHThreeCeiling$ derived from
+the pinned menu (\texttt{preregistered.h3}). Stated-pick counts over \resHThreeNSteps{} steps
+(\resHThreeNCounted{} counted; missing stated \resHThreeNMissingStated, off-menu
+\resHThreeNOffMenu): \textsc{linear} \resHThreePickLinear, \textsc{mlp} \resHThreePickMlp,
+\texttt{scgpt\_small} \resHThreePickScgpt; entropy \resHThreeEntropy{} nats (\resHThreeVerdict).
+Executed-pick counts, reported alongside and not gating: \textsc{linear} \resHThreeExecPickLinear,
+\textsc{mlp} \resHThreeExecPickMlp, \texttt{scgpt\_small} \resHThreeExecPickScgpt{} (entropy
+\resHThreeEntropyExecuted{} nats; missing executed \resHThreeNMissingExecuted); the executed
+backbone equalled the stated backbone on every step (executed $\ne$ stated: \resHThreeExecNeStated).
+The Miller--Madow correction is pre-registered for breakdowns with $N<50$; the smallest breakdown
+here (per serving model) has $N=\resHThreeSmallestBreakdownN$, so it is \resHThreeMillerMadow. All Architect steps were served by one model
 (\texttt{\resRosterHaiku}; \resHThreeNModels{} distinct serving model), so the per-\texttt{model\_id}
 breakdown coincides with the pooled value. Per-role distinct-proposal counts are not computed
 (the pre-registration flags them as optional and to be reported as such).

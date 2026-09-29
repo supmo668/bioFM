@@ -124,6 +124,22 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
         "resHThreeNSteps": str(pr["H3"]["n_llm_architect_steps"]),
         "resHThreeExecNeStated": str(pr["H3"]["n_executed_ne_stated"]),
         "resHThreeNModels": str(pr["H3"]["n_distinct_model_ids"]),
+        "resHThreeExecPickLinear": str(pr["H3"]["executed_pick_counts"]["linear"]),
+        "resHThreeExecPickMlp": str(pr["H3"]["executed_pick_counts"]["mlp"]),
+        "resHThreeExecPickScgpt": str(pr["H3"]["executed_pick_counts"]["scgpt_small"]),
+        "resHThreeEntropyExecuted": f(pr["H3"]["entropy_executed_nats"]),
+        "resHThreeNCounted": str(pr["H3"]["n_counted"]),
+        "resHThreeNMissingStated": str(pr["H3"]["n_missing_stated"]),
+        "resHThreeNMissingExecuted": str(pr["H3"]["n_missing_executed"]),
+        "resHThreeNOffMenu": str(pr["H3"]["n_off_menu_stated"]),
+        "resHThreeSmallestBreakdownN": str(min(v["n"] for v in pr["H3"]["by_model_id"].values())),
+        "resHThreeMillerMadow": "not applicable"
+        if all(v["n"] >= 50 for v in pr["H3"]["by_model_id"].values())
+        else "; ".join(
+            f"{k}: {f(v['miller_madow_nats'])}"
+            for k, v in pr["H3"]["by_model_id"].items()
+            if v["n"] < 50
+        ),
         "resHFourNPassing": str(pr["H4"]["n_tests_passing"]),
         "resHFourNTests": str(pr["H4"]["n_tests"]),
         "resHFourRunsUndefined": "0",
@@ -622,6 +638,11 @@ def test_methods_wording_matches_the_amendments():
     assert "\\resHFourAdaAceSoftmaxRho" in res and "\\resHFourNorDcClippedRho" in res
     assert "\\resHFiveStdMeanAce" in res and "\\resHFiveStdSdAce" in res
     assert "not computed" in res  # per-role distinct-proposal counts
+    assert (
+        "a statement about the\npool" in res
+        and "Executed-pick counts" in res
+        and "Miller--Madow" in res
+    )
     assert (
         "\\resRoleServedValidator" in res and "\\resNFailover" in res and "\\resPriceHaikuIn" in res
     )
