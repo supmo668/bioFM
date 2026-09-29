@@ -12,8 +12,9 @@ Design:
     3 seeds`` (amendment 2 A2-4: N is not an axis; the distinct-fit count is
     recorded in provenance as ``trainer_grid``). Atomic JSONL append for
     resume safety.
-  * Lifecycle sweep: ``n_tasks × 3 seeds`` with the real OpenRouter
-    LLMAgentPool (free-tier rotation; $0 LLM cost). Amendment 2: exactly 3
+  * Lifecycle sweep: ``n_tasks × 3 seeds`` with the Anthropic roster of
+    amendment 4 (``llm.anthropic_client``: Haiku 4.5 for four roles, Sonnet
+    5.5 for the Validator; spend metered per call at the pinned price table). Amendment 2: exactly 3
     rounds per run (A2-2); the LLM cache is the version namespace
     ``/biofm_cache/llm/<prereg_version>/`` (A2-8), whose entry count at start
     (must be 0) and cache-hit count (must be 0) are recorded in provenance; a
@@ -24,7 +25,7 @@ run time and never written to disk; ``LLM_KEY_SOURCE`` records where it
 came from, and preflight refuses the run without it)::
 
     LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \\
-        --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \\
+        --projectId <INFISICAL_PROJECT_ID> --env dev -- \\
         modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \\
         --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
 
@@ -239,7 +240,7 @@ def run_v05_sweep(
         return h.hexdigest()
 
     # QG-2 (relaunch gate; CTO #467): actual spend = GPU wall-clock + the LLM
-    # bill (OpenRouter key usage delta since the client was created) + spend
+    # bill (AnthropicClient.spend_usd: usage × the pinned price table) + spend
     # carried in from an aborted run. Both guards apply to the total.
     llm_state: dict = {"client": None, "llm_cost_usd": 0.0}
 

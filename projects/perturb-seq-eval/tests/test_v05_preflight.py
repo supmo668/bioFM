@@ -346,8 +346,8 @@ def test_app_v05_preflight_before_first_trainer_or_lifecycle_loop() -> None:
     work_loops += [
         c.lineno for c in calls if c.func.id in {"run_guarded", "iter_lifecycle_records"}
     ]
-    clients = [c.lineno for c in calls if c.func.id == "OpenRouterClient"]
-    assert work_loops
+    clients = [c.lineno for c in calls if c.func.id in {"AnthropicClient", "LLMAgentPool"}]
+    assert work_loops and clients  # the A4-1 client is constructed in the entrypoint
     assert min(pre) < min(work_loops + clients)
 
 

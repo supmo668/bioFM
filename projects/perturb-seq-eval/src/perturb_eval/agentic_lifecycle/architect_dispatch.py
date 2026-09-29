@@ -137,7 +137,7 @@ _TIERS = ("architect", "datacurator", "trainer")
 NOT_APPLIED_FIELDS: dict[str, str] = {
     "qc_mito_max": (
         "no per-cell mito fraction in the lifecycle dataset; filter not implemented "
-        "(execute_data_curator only logs the value) — see A2-3 ruling pending"
+        "(execute_data_curator only logs the value) — recorded, not applied (amendment 3, A3-1)"
     ),
 }
 

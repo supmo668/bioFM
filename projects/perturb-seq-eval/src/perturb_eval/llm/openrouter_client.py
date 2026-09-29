@@ -1,4 +1,9 @@
-"""Free-tier OpenRouter chat client with weight-inclusive rotation.
+"""LEGACY (v0.4/v0.5): free-tier OpenRouter chat client with weight-inclusive rotation.
+
+Not used by the v0.6.0 sweep — amendment 4 (A4-1) serves every role through
+``perturb_eval.llm.anthropic_client``. This module stays because it holds the shared
+types (``ModelSpec``, ``LLMPool``, ``ChatResult``, the ``ProviderError`` family) and the
+A2-8 ``PREREG_VERSION`` constant; the ``DEFAULT_POOL`` below is the superseded roster.
 
 Policy:
   * All models are free-tier (``*:free`` suffix). Highest-weight

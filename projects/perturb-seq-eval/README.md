@@ -7,8 +7,10 @@ Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
 Response Prediction."**
 
 Hypotheses, gates and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
-Results are pending the v0.6.0 sweep; all v0.5.0 values are superseded (see
-the paper's appendix "Corrections relative to v0.5.0").
+Results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git `ce5f237`
+(`artifacts/v0.6.0/`; 4 of 5 pre-registered gates pass, H5 fails); every manuscript
+value is a generated macro (`scripts/paper/fill_v060_numbers.py`). All v0.5.0 values are
+superseded (see the paper's appendix "Corrections relative to v0.5.0").
 
 ## Question in one sentence
 
@@ -48,9 +50,11 @@ perturb-seq-eval/
 ├── README.md                (you are here)
 ├── docs/
 │   └── THESIS.md            the thesis — start here
+├── artifacts/v0.6.0/        the pre-registered run: trainer_runs.jsonl, lifecycle_runs.jsonl, provenance.json, summary.json
 ├── paper/
 │   ├── paper.tex            the manuscript
-│   └── PREREGISTRATION.md   hypotheses, gates, analysis plan
+│   ├── sections/generated_numbers.tex  GENERATED result macros (fill_v060_numbers.py)
+│   └── PREREGISTRATION.md   hypotheses, gates, analysis plan, amendments 1-4
 ├── pyproject.toml
 ├── requirements.txt
 ├── src/perturb_eval/
@@ -64,13 +68,15 @@ perturb-seq-eval/
 │   ├── data/protocol.py     PerturbSeqDataset protocol + loaders + stub
 │   ├── model.py             PerturbationPredictor + ScGPT/Mock implementations
 │   ├── massgen_adapter.py   MassGen skill entrypoint
-│   ├── experiments/         sweep task plan, provenance, analyser (e_v05_real_traces.py)
+│   ├── llm/anthropic_client.py  the amendment-4 client (roster, ceilings, retry, spend); openrouter_client.py is legacy (shared types)
+│   ├── experiments/         sweep task plan, provenance, analyser (e_v05_real_traces.py), pre-registered estimators
 │   └── cli.py               preflight | evaluate
 ├── tests/                   pytest suite (stdlib + numpy only)
 ├── examples/
 │   └── end_to_end.py        toy-trace demo (hand-written RoundTraces)
 └── scripts/
     ├── modal/app_v05.py     the sweep: preflight + trainer + lifecycle, one process
+    ├── paper/fill_v060_numbers.py  v0.6.0 result macros from artifacts/v0.6.0 (`--check` in the tests)
     └── paper/fill_v050_numbers.py  v0.5.0 number filler (targets a file the paper no longer inputs)
 ```
 
@@ -102,7 +108,7 @@ synthetic-cell generator is reintroduced under `src/`, `scripts/` or `paper/`.
 # pinned pre-registration: paper/PREREGISTRATION.md tracked and committed with
 # no local edits. Spend: stop-and-report above $12, hard kill at $28.
 LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
-    --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \
+    --projectId <INFISICAL_PROJECT_ID> --env dev -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548
 

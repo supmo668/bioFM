@@ -33,7 +33,7 @@ PREREG_PIN = {
 }
 EXACT_COMMAND = (
     "LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run "
-    "--projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- modal run "
+    "--projectId <INFISICAL_PROJECT_ID> --env dev -- modal run "
     "scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 "
     "--norman-n-doublets 5 --seeds 3"
 )
