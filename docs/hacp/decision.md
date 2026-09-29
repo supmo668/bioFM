@@ -19,3 +19,4 @@
 | lung-on-chipsim E-23 time box | gate-8 fail → design note → one revision (r2.50) → else descope | 2026-09-28 |
 | Versioning of the F08 land | `--no-release`; Aviary-BioSim's versions are its Zenodo deposits | 2026-09-28 |
 | lung-on-chipsim publication genre | Stage 1 registered report, dual granularity, short form written separately | 2026-09-26 |
+| lung-on-chipsim approval-log row 55 route | **Corrected by appended row (2026-09-29):** the E-23 descope authority was the principal's 11:30 time-box ruling (row 54), applied by the CTO at the gate-8 FAIL — not a separate 16:06 answer; principal confirmed 2026-09-29. Route convention adopted: a direct-principal route carries a verbatim quote or resolvable session reference; else `standing ruling applied (row N)` or `inferred`. Raised by lung-on-chipsim #492. | 2026-09-29 |
