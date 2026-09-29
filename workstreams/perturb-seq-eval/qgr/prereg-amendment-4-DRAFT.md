@@ -23,7 +23,7 @@ the two free-form maps as key/value pair arrays converted before parsing; ranges
 Total ceiling $30 (principal). The pre-registered lines stay: $12 stop-and-report and $28 kill, on TOTAL spend = GPU wall-clock + LLM usage
 (API-reported input/output/cache tokens x the pinned list prices: Haiku 4.5 $1/$5 per MTok, Sonnet 5.5 $2/$10; source: Anthropic first-party
 pricing as tabulated in the claude-api skill, cached 2026-09-25) + $1.3 carried in from the aborted run 20260928T220916Z-291efad.
-Dry run 2026-09-29 (35 calls in three authorised passes, $0.0548 total; measured projection $16.37 sequential, GPU $6.23 incl. LLM latency), $0.0072) counted in the prior spend (1.3 + 0.0072). Measured-usage projection $7.96; upper $9.29. Earlier estimate at the upper bound: $9.30 (costed plan, measured input tokens).
+Dry run 2026-09-29 (35 calls in three authorised passes, $0.0548). Grid: 123 runs x 3 rounds = 1845 calls. Measured-usage projection $7.19 (LLM 2.93, GPU 2.90 incl. LLM latency on the held A100, prior 1.3, dry run); worst case at the output caps $13.96. Lines unchanged: $12 stop-and-report, $28 kill, $30 ceiling. Earlier estimate at the upper bound: $9.30 (costed plan, measured input tokens).
 
 ### A4-3: caveats stated in the methods
 Single model family (no cross-family generality claim; H3's entropy may be lower than under a multi-family pool). Same-family judge: the Validator

@@ -138,3 +138,26 @@ first-pass calls (#478). Evidence: `workstreams/perturb-seq-eval/qgr/evidence/an
 - **Price citation:** skill model table (cached 2026-09-25) + the pricing page fetched 2026-09-29 (JS-rendered; prices not machine-readable) — the run record stores
   the price table used and `response.usage` per call.
 - `--prior-spend-usd` for the relaunch: 1.3 + 0.0548 = **1.3548**.
+
+
+---
+## CORRECTION (CTO #484, 2026-09-29): the dry-run report's counts were 3x too high — projections re-done
+
+The report above used 369 runs / 1107 rounds. The grid is **41 tasks x 3 seeds = 123 runs x 3 rounds = 369 rounds = 1845 calls**
+(369 calls per role; 369 lifecycle fits). The measured per-call usage, latencies, stop reasons, served-model checks and probe verdicts are unchanged.
+
+| role | model | in mean | out mean | out max | ceiling | latency s | $ projected (369 calls) | $ at the cap |
+|---|---|---|---|---|---|---|---|---|
+| DataCurator | claude-haiku-4-5-20251001 | 550 | 45 | 45 | 256 | 1.3 | 0.29 | 0.68 |
+| Literature | claude-haiku-4-5-20251001 | 655 | 248 | 329 | 1316 | 3.0 | 0.70 | 2.67 |
+| Architect | claude-haiku-4-5-20251001 | 593 | 55 | 57 | 256 | 1.2 | 0.32 | 0.69 |
+| Trainer | claude-haiku-4-5-20251001 | 450 | 35 | 35 | 256 | 1.2 | 0.23 | 0.64 |
+| Validator | claude-sonnet-5-5 | 850 | 208 | 298 | 1192 | 2.5 | 1.39 | 5.03 |
+| **LLM** | | | | | | | **2.93** | 9.70 |
+
+- GPU from the aborted run's trainer log (3.05 s/fit): trainer phase re-run $1.24; lifecycle fits 369 x 3.05 s = $0.41;
+  LLM latency while the A100 is held 9.2 s x 369 rounds = 57 min = $1.25. **GPU $2.90.**
+- **Total projected: $7.19** = LLM 2.93 + GPU 2.90 + prior 1.30 + dry run 0.0548. Margin to the $12 stop line: **$4.81**.
+  Worst case if every reply generated to its cap: $13.96 (implausible under structured outputs; the $12 stop-and-report line catches it).
+- **No line change** ($12 stop / $28 kill / $30 ceiling). The principal ask about raising the stop line, made on the wrong count, is withdrawn.
+- `--prior-spend-usd` = 1.3 + 0.0548 = **1.3548**.
