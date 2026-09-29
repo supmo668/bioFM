@@ -725,7 +725,11 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   scalars; a wrapped scalar recovering a key is a HIT. A ledger-specific rendering rule, separate from
   E-24's encoding rule. Both red-then-green. **(e)** `shape_scan` becomes a control or is deleted:
   exact-match placeholder rule; a `could-not-scan` state distinct from clean, and an empty input is
-  could-not-scan; the gate bracket CALLS it and fails on could-not-scan or any unaccounted shape; it
+  could-not-scan *[CLARIFIED r2.50b (#504) — read against the r2.50 entry: this sentence binds the SCANNER, which receives
+  a string and cannot tell a zero-byte read from a failed one, so given nothing it certifies nothing; the BRACKET, which
+  opens the file and knows whether the read succeeded, classifies a tracked file that exists and reads as zero bytes as
+  SCANNED-AND-EMPTY (zero shapes, clean, never exit 3) and a file it could not read as could-not-scan (fatal). Both
+  directions carry a false-exclusion test: a zero-byte tracked file must NOT fail the gate; an unreadable file MUST.]*; the gate bracket CALLS it and fails on could-not-scan or any unaccounted shape; it
   implements r2.48b scope-by-property so the 37-file unaccounted count reaches 0 by MARKING; a test fails
   on any unmarked shaped value. *[AMENDED r2.50 (#454, #458, #461, #463, #500) — the full-scope guard is DESCOPED BY THE PRINCIPAL under
   the #444 time box (approval-log row 54, applied at row 55, route corrected 2026-09-29 after #492). Requirement 4 read
