@@ -19,6 +19,7 @@ from types import SimpleNamespace
 import pytest
 
 from perturb_eval.llm import openrouter_client as oc
+from perturb_eval.llm.anthropic_client import ANTHROPIC_POOL, AnthropicClient
 from perturb_eval.llm.openrouter_client import DEFAULT_POOL, LLMPool, ModelSpec, OpenRouterClient
 
 ROLES = ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
@@ -32,9 +33,8 @@ class TestRoster:
         assert len(set(ids)) == len(ids)
         for role in ROLES:
             prefs = DEFAULT_POOL.role_preferences[role]
-            assert len(prefs) == 3 and len(set(prefs)) == 3
-            assert set(prefs) <= set(ids), (role, prefs)
-        assert len({m.family for m in DEFAULT_POOL.models}) >= 5
+            assert len(prefs) == len(set(prefs)) >= 2 and set(prefs) <= set(ids), (role, prefs)
+        # (DEFAULT_POOL is the legacy OpenRouter roster; the sweep uses anthropic_client.ANTHROPIC_POOL — amendment 4.)
 
 
 # ------------------------------------------------------- 2. bounded cooldown wait
@@ -186,16 +186,15 @@ class TestPreflightProbesEveryRosterModel:
         from perturb_eval.experiments import v05_preflight as pf
 
         monkeypatch.setattr(
-            OpenRouterClient, "probe_model", lambda self, m, p: (True, "ok", {"confidence": 0.5})
+            AnthropicClient,
+            "probe_model",
+            lambda self, m, p, role="Validator": (True, "ok", {"confidence": 0.5}),
         )
-        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
-        strict = set(DEFAULT_POOL.role_preferences["Architect"]) | set(
-            DEFAULT_POOL.role_preferences["Validator"]
-        )
-        for mid in strict:
+        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        for mid in {m.model_id for m in ANTHROPIC_POOL.models}:
             assert table[mid]["live"] is False and "schema failed" in table[mid]["verdict"], mid
         assert any(
-            "Architect" in table[m]["verdict"] for m in DEFAULT_POOL.role_preferences["Architect"]
+            "Architect" in table[m]["verdict"] for m in ANTHROPIC_POOL.role_preferences["Architect"]
         )
 
 
@@ -390,7 +389,13 @@ class TestQG2SpendAccounting:
 
         src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
         assert "prior_spend_usd" in pv.REQUIRED_ENTRYPOINT_KWARGS
-        for needle in ("llm_cost_usd", "gpu_cost_usd", "prior_spend_usd", "key_usage_usd()"):
+        for needle in (
+            "llm_cost_usd",
+            "gpu_cost_usd",
+            "prior_spend_usd",
+            "client.spend_usd",
+            "llm_call_log",
+        ):
             assert needle in src, needle
 
 
@@ -402,28 +407,27 @@ class TestQG6PerRoleSchemaProbe:
 
         seen: list[tuple[str, str]] = []
 
-        def fake_probe_model(self, model_id, prompt):  # noqa: ANN001
-            role = next(r for r in ROLES if r in prompt)
+        def fake_probe_model(self, model_id, prompt, role="Validator"):  # noqa: ANN001
             seen.append((model_id, role))
             payload = dict(pf.ROLE_PROBE_PAYLOADS[role])
-            if model_id == "openai/gpt-oss-20b" and role == "Architect":
+            if model_id == "claude-sonnet-5-5" and role == "Architect":
                 payload.pop("backbone")  # a model that cannot meet the Architect schema
             return True, "ok", payload
 
-        monkeypatch.setattr(OpenRouterClient, "probe_model", fake_probe_model)
-        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
-        for role, prefs in DEFAULT_POOL.role_preferences.items():
+        monkeypatch.setattr(AnthropicClient, "probe_model", fake_probe_model)
+        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        for role, prefs in ANTHROPIC_POOL.role_preferences.items():
             for mid in prefs:
                 assert (mid, role) in seen
-        assert set(table) == {m.model_id for m in DEFAULT_POOL.models}
-        e = table["openai/gpt-oss-20b"]
+        assert set(table) == {m.model_id for m in ANTHROPIC_POOL.models}
+        e = table["claude-sonnet-5-5"]
         assert (
             e["live"] is False
             and e["roles"]["Architect"]["ok"] is False
             and "schema" in e["roles"]["Architect"]["verdict"]
         )
         assert e["roles"]["Validator"]["ok"] is True
-        assert all(t["live"] for m, t in table.items() if m != "openai/gpt-oss-20b")
+        assert all(t["live"] for m, t in table.items() if m != "claude-sonnet-5-5")
 
     def test_role_check_uses_the_roles_own_probe_result(self, tmp_path: Path) -> None:
         from perturb_eval.experiments.v05_preflight import PreflightError
@@ -476,9 +480,9 @@ class TestQG8DefaultPoolPath:
         from tests.test_label_contract import _full_liveness
 
         table = _full_liveness({})
-        missing = DEFAULT_POOL.models[-1].model_id
+        missing = ANTHROPIC_POOL.models[-1].model_id
         del table[missing]
-        with pytest.raises(PreflightError, match=r"probed 7 of 8 roster models") as ei:
+        with pytest.raises(PreflightError, match=r"probed 1 of 2 roster models") as ei:
             _run(tmp_path, pool=None, probe_fn=lambda env: table)
         assert missing in str(ei.value)
 
@@ -487,15 +491,15 @@ class TestQG8DefaultPoolPath:
 
         seen: list[str] = []
         monkeypatch.setattr(
-            OpenRouterClient,
+            AnthropicClient,
             "probe_model",
-            lambda self, m, p: (
+            lambda self, m, p, role="Validator": (
                 seen.append(m) or True,
                 "ok",
-                dict(pf.ROLE_PROBE_PAYLOADS["Validator"]),
+                dict(pf.ROLE_PROBE_PAYLOADS[role]),
             ),
         )
-        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"}, pool=_POOL)
+        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"}, pool=_POOL)
         assert set(table) == {m.model_id for m in _POOL.models} and set(seen) == set(table)
 
     def test_app_v05_calls_preflight_without_a_pool_override(self) -> None:
@@ -514,8 +518,8 @@ class TestQG9LegacyAndNoneProbes:
     def test_legacy_str_probe_fails_against_the_real_roster(self, tmp_path: Path) -> None:
         from perturb_eval.experiments.v05_preflight import PreflightError
 
-        with pytest.raises(PreflightError, match=r"probed 1 of 8 roster models"):
-            _run(tmp_path, pool=None, probe_fn=lambda env: "openai/gpt-oss-20b")
+        with pytest.raises(PreflightError, match=r"probed 1 of 2 roster models"):
+            _run(tmp_path, pool=None, probe_fn=lambda env: "claude-sonnet-5-5")
 
     def test_none_probe_fails(self, tmp_path: Path) -> None:
         from perturb_eval.experiments.v05_preflight import PreflightError
@@ -537,21 +541,14 @@ class TestQG11ProbeAllVerdicts:
     ) -> None:
         from perturb_eval.experiments import v05_preflight as pf
 
-        def fake(self, model_id, prompt):  # noqa: ANN001
-            if model_id.startswith("deepseek/"):
+        def fake(self, model_id, prompt, role="Validator"):  # noqa: ANN001
+            if model_id == "claude-sonnet-5-5":
                 raise requests.ConnectionError("x")
-            if model_id.startswith("z-ai/"):
-                return False, "http 404", None
-            role = next(r for r in ROLES if r in prompt)
             return True, "ok", dict(pf.ROLE_PROBE_PAYLOADS[role])
 
-        monkeypatch.setattr(OpenRouterClient, "probe_model", fake)
-        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
-        assert table["deepseek/deepseek-v4-flash"]["live"] is False
-        assert "transport ConnectionError" in table["deepseek/deepseek-v4-flash"]["verdict"]
-        assert (
-            table["z-ai/glm-4.7-flash"]["live"] is False
-            and "404" in table["z-ai/glm-4.7-flash"]["verdict"]
-        )
-        assert sum(1 for e in table.values() if e["live"]) == 6
+        monkeypatch.setattr(AnthropicClient, "probe_model", fake)
+        table = pf.openrouter_probe_all({"ANTHROPIC_API_KEY": "k"})
+        assert table["claude-sonnet-5-5"]["live"] is False
+        assert "transport ConnectionError" in table["claude-sonnet-5-5"]["verdict"]
+        assert sum(1 for e in table.values() if e["live"]) == 1
         assert all(re.match(r"\d{4}-\d{2}-\d{2}T", e["probed_at"]) for e in table.values())

@@ -117,7 +117,7 @@ def _run(tmp_path: Path, **over):
         "kwargs": _kwargs(),
         "datasets_spec_or_loaded": _datasets(),
         "task_plan": _plan(),
-        "env": {"OPENROUTER_API_KEY": SENTINEL},
+        "env": {"ANTHROPIC_API_KEY": SENTINEL},
         "out_dir": tmp_path / "v0.6.0",
         "probe_fn": _probe_ok,
         "pool": _POOL,
@@ -137,14 +137,14 @@ def test_all_good_returns_ok_report(tmp_path: Path) -> None:
 
 def test_missing_key_fails_and_probe_not_called(tmp_path: Path) -> None:
     calls = []
-    with pytest.raises(PreflightError, match="OPENROUTER_API_KEY"):
+    with pytest.raises(PreflightError, match="ANTHROPIC_API_KEY"):
         _run(tmp_path, env={}, probe_fn=lambda env: calls.append(1) or "m")
     assert calls == []
 
 
 def test_empty_key_counts_as_missing(tmp_path: Path) -> None:
-    with pytest.raises(PreflightError, match="OPENROUTER_API_KEY"):
-        _run(tmp_path, env={"OPENROUTER_API_KEY": ""})
+    with pytest.raises(PreflightError, match="ANTHROPIC_API_KEY"):
+        _run(tmp_path, env={"ANTHROPIC_API_KEY": ""})
 
 
 def test_key_value_never_in_message_or_logs(tmp_path: Path, caplog) -> None:
@@ -246,7 +246,7 @@ def test_multiple_failures_all_listed(tmp_path: Path, monkeypatch) -> None:
             out_dir=out,
         )
     msg = str(ei.value)
-    for needle in ("OPENROUTER_API_KEY", "scgpt_small", "BADTF", "not empty"):
+    for needle in ("ANTHROPIC_API_KEY", "scgpt_small", "BADTF", "not empty"):
         assert needle in msg, needle
     assert len(ei.value.failures) >= 4
 
@@ -265,7 +265,7 @@ def test_missing_key_source_and_preregistration_both_listed(tmp_path: Path, capl
         )
     msg = str(ei.value)
     assert (
-        "C-KEY-SOURCE: OPENROUTER_KEY_SOURCE not set; provenance must record where the "
+        "C-KEY-SOURCE: LLM_KEY_SOURCE not set; provenance must record where the "
         "credential came from (principal directive 2026-09-24)"
     ) in msg
     assert (
@@ -418,7 +418,7 @@ def test_app_v05_env_secrets_forwards_key_and_its_source_only() -> None:
     )
     tuples = [n for n in ast.walk(fn) if isinstance(n, ast.Tuple)]
     names = {e.value for t in tuples for e in t.elts if isinstance(e, ast.Constant)}
-    assert names == {"OPENROUTER_API_KEY", "OPENROUTER_KEY_SOURCE"}
+    assert names == {"ANTHROPIC_API_KEY", "LLM_KEY_SOURCE"}
 
 
 def test_app_v05_sweep_takes_key_source_and_preregistration() -> None:
@@ -448,10 +448,17 @@ def test_app_v05_entrypoint_builds_key_source_and_preregistration_on_host() -> N
         c.func.id for c in ast.walk(fn) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
     }
     assert {"parse_key_source", "preregistration_record"} <= called
-    assert "OPENROUTER_KEY_SOURCE" in src
+    assert "LLM_KEY_SOURCE" in src
     assert "_PREREGISTRATION_REL" in src
     assert (
         '_PREREGISTRATION_REL = "projects/perturb-seq-eval/paper/PREREGISTRATION.md"'
         in APP_V05.read_text()
     )
     assert "--show-toplevel" in src
+
+
+def test_preflight_error_accepts_a_message_string_df14() -> None:
+    """DF-14: a re-raised PreflightError built from its own message keeps one failure, not one per character."""
+    e = PreflightError(["a", "b"])
+    again = PreflightError(str(e))
+    assert len(again.failures) == 1 and "2 failure(s)" in again.failures[0]

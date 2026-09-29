@@ -20,10 +20,10 @@ Design:
     run that fails either is flagged ``replay``.
 
 Run (from ``projects/perturb-seq-eval``; the key is injected by Infisical at
-run time and never written to disk; ``OPENROUTER_KEY_SOURCE`` records where it
+run time and never written to disk; ``LLM_KEY_SOURCE`` records where it
 came from, and preflight refuses the run without it)::
 
-    OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \\
+    LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \\
         --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \\
         modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \\
         --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
@@ -74,6 +74,7 @@ image = (
         "pydantic>=2.0",
         "requests>=2.31",
         "python-dotenv>=1.0",
+        "anthropic>=1.9,<2",  # amendment 4: the Anthropic Messages API client
     )
     .add_local_dir(
         str(PROJECT_DIR_HOST),
@@ -116,9 +117,9 @@ _HOME_PROJECT = "biofm"
 
 
 def _env_secrets() -> dict[str, str]:
-    # OPENROUTER_KEY_SOURCE is NOT a secret ("<store>:<project_slug>:<env>");
+    # LLM_KEY_SOURCE is NOT a secret ("<store>:<project_slug>:<env>");
     # it is forwarded so the container sees the same source the host recorded.
-    keys = ("OPENROUTER_API_KEY", "OPENROUTER_KEY_SOURCE")
+    keys = ("ANTHROPIC_API_KEY", "LLM_KEY_SOURCE")
     return {k: os.environ.get(k, "") for k in keys}
 
 
@@ -163,7 +164,7 @@ def run_v05_sweep(
     ``git_sha`` / ``git_dirty`` / ``run_id`` are computed on the host by the
     local entrypoint (the container has no ``.git``); a direct ``.remote()``
     call without them fails closed in ``build_provenance``. Likewise
-    ``llm_key_source`` (parsed from ``OPENROUTER_KEY_SOURCE``) and
+    ``llm_key_source`` (parsed from ``LLM_KEY_SOURCE``) and
     ``preregistration`` (or ``preregistration_error``) are host-computed; the
     preflight refuses the run when either is missing (principal directive
     2026-09-24, CTO #265).
@@ -185,7 +186,6 @@ def run_v05_sweep(
 
     import datetime as _dt
     import hashlib
-    import inspect
 
     from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
     from perturb_eval.backbones.scgpt_small import training_device
@@ -216,11 +216,8 @@ def run_v05_sweep(
         read_jsonl_locating,
         scan_unparseable,
     )
-    from perturb_eval.llm.openrouter_client import (
-        DEFAULT_POOL,
-        OpenRouterClient,
-        versioned_cache_dir,
-    )
+    from perturb_eval.llm.anthropic_client import ANTHROPIC_POOL, AnthropicClient
+    from perturb_eval.llm.openrouter_client import versioned_cache_dir
 
     # QG C22: --version is a release tag and the output stays under /data.
     out_dir = version_out_dir(version)
@@ -228,16 +225,8 @@ def run_v05_sweep(
     lifecycle_out = out_dir / "lifecycle_runs.jsonl"
     provenance_out = out_dir / "provenance.json"
 
-    # OpenRouterClient currently hardcodes temperature=0.3 in its request body.
-    # Pass the kwarg through if the client accepts it; otherwise refuse any value
-    # the client would silently ignore.
-    _client_params = inspect.signature(OpenRouterClient.__init__).parameters
-    _client_takes_temperature = "temperature" in _client_params
-    if not _client_takes_temperature and temperature != 0.3:
-        raise ValueError(
-            f"temperature={temperature} requested but OpenRouterClient does not accept a "
-            "temperature (hardcoded 0.3)"
-        )
+    # A4-1: sampling is fixed per model in the Anthropic client (Haiku temperature = the
+    # entrypoint `temperature`, 0.3 by default; Sonnet 5.5 at API defaults).
 
     def _iso(ts: float) -> str:
         return _dt.datetime.fromtimestamp(ts, _dt.timezone.utc).isoformat()
@@ -252,18 +241,16 @@ def run_v05_sweep(
     # QG-2 (relaunch gate; CTO #467): actual spend = GPU wall-clock + the LLM
     # bill (OpenRouter key usage delta since the client was created) + spend
     # carried in from an aborted run. Both guards apply to the total.
-    llm_state: dict = {"client": None, "usage_start": None, "llm_cost_usd": 0.0}
+    llm_state: dict = {"client": None, "llm_cost_usd": 0.0}
 
     def _gpu_cost_usd() -> float:
         return (time.time() - started_at) / 3600.0 * _A100_HOURLY_USD
 
     def _llm_cost_usd() -> float:
+        # A4-2: API-reported usage x the pinned price table, accumulated per call.
         client = llm_state["client"]
-        if client is None or llm_state["usage_start"] is None:
-            return llm_state["llm_cost_usd"]
-        now = client.key_usage_usd()
-        if now is not None:
-            llm_state["llm_cost_usd"] = max(0.0, now - llm_state["usage_start"])
+        if client is not None:
+            llm_state["llm_cost_usd"] = float(client.spend_usd)
         return llm_state["llm_cost_usd"]
 
     def _cost_usd_so_far() -> float:
@@ -437,7 +424,7 @@ def run_v05_sweep(
         tasks_excluded=tasks_excluded,
         # CTO #250: labels the contract excluded, tagged with their dataset.
         labels_excluded=report.labels_excluded,
-        llm_pool=[m.model_id for m in DEFAULT_POOL.models],
+        llm_pool=[m.model_id for m in ANTHROPIC_POOL.models],
         llm_roster_liveness=report.roster_liveness,  # CTO #467: probe date + verdict per id
         gpu=_GPU,
         hourly_usd=_A100_HOURLY_USD,
@@ -548,23 +535,27 @@ def run_v05_sweep(
 
     # ---------- 3. Lifecycle sweep (real LLMAgentPool, free-tier) ----------
     # Preflight asserted key presence + a live pool (C-KEY-1); no skip path.
-    api_key = os.environ["OPENROUTER_API_KEY"]
-    client_kwargs: dict = {"cooldown_sec": cooldown_sec, "max_wait_sec": 300.0}
-    if _client_takes_temperature:
-        client_kwargs["temperature"] = temperature
+    api_key = os.environ["ANTHROPIC_API_KEY"]
     # A2-8: the client reads and writes ONLY the version namespace.
     llm_cache_ns = versioned_cache_dir(Path(_LLM_CACHE_DIR))
-    client = OpenRouterClient(
+    # A4-1: Anthropic roster; Haiku at the entrypoint temperature (0.3, as the OpenRouter
+    # runs), Sonnet 5.5 at API defaults; ceilings + price table from the client module.
+    from perturb_eval.llm.anthropic_client import HAIKU, SAMPLING
+
+    sampling = {k: dict(v) for k, v in SAMPLING.items()}
+    sampling[HAIKU] = {"temperature": temperature}
+    client = AnthropicClient(
         api_key=api_key,
         cache_dir=llm_cache_ns,
-        pool=DEFAULT_POOL,
-        **client_kwargs,
+        pool=ANTHROPIC_POOL,
+        cooldown_sec=cooldown_sec,
+        max_wait_sec=300.0,
+        sampling=sampling,
     )
     pool = LLMAgentPool(client=client, cache_dir=llm_cache_ns)
     llm_state["client"] = client
-    llm_state["usage_start"] = client.key_usage_usd()
     print(
-        f"[v0.6.0] llm usage baseline {'ok' if llm_state['usage_start'] is not None else 'UNAVAILABLE'}"
+        f"[v0.6.0] llm client: Anthropic roster {[m.model_id for m in ANTHROPIC_POOL.models]}; spend meter = usage x price table"
     )
 
     def _lifecycle_sink(path: Path, bucket: list[dict]):
@@ -631,8 +622,13 @@ def run_v05_sweep(
         "gpu_cost_usd": _gpu_cost_usd(),
         "llm_cost_usd": _llm_cost_usd(),
         "prior_spend_usd": prior_spend_usd,
-        "llm_usage_baseline_available": llm_state["usage_start"] is not None,
     }
+    llm_report = llm_state["client"].spend() if llm_state["client"] is not None else {}
+    spend_breakdown["llm_report"] = {k: v for k, v in llm_report.items() if k != "price_table"}
+    spend_breakdown["llm_price_table"] = llm_report.get("price_table")
+    spend_breakdown["llm_call_log"] = (
+        list(llm_state["client"].call_log) if llm_state["client"] is not None else []
+    )
     budget_hit = cost_usd > _BUDGET_HARD_KILL_USD
     # C-KEY-2 fallback > spend stop / hard kill > ok (QG C14 / OWN-1).
     status = derive_status(
@@ -737,9 +733,7 @@ def entrypoint(
     run_id = make_run_id(git_sha)
     # Principal directive (2026-09-24): record WHERE the key came from, never the
     # key. Missing/malformed -> None, which the preflight refuses (C-KEY-SOURCE).
-    llm_key_source = parse_key_source(
-        os.environ.get("OPENROUTER_KEY_SOURCE"), home_project=_HOME_PROJECT
-    )
+    llm_key_source = parse_key_source(os.environ.get("LLM_KEY_SOURCE"), home_project=_HOME_PROJECT)
     # CTO #265: pin the committed, clean pre-registration (C-PREREG otherwise).
     toplevel = subprocess.run(
         ["git", "-C", str(PROJECT_DIR_HOST), "rev-parse", "--show-toplevel"],

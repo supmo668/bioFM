@@ -32,7 +32,7 @@ PREREG_PIN = {
     "commit": "0c2932a" + "0" * 33,
 }
 EXACT_COMMAND = (
-    "OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run "
+    "LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run "
     "--projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- modal run "
     "scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 "
     "--norman-n-doublets 5 --seeds 3"
@@ -40,11 +40,11 @@ EXACT_COMMAND = (
 
 
 def _full_liveness(env):  # CTO #467: preflight now probes EVERY roster model
-    from perturb_eval.llm.openrouter_client import DEFAULT_POOL
+    from perturb_eval.llm.anthropic_client import ANTHROPIC_POOL
 
     return {
         m.model_id: {"live": True, "verdict": "ok", "probed_at": "2026-09-28T23:00:00+00:00"}
-        for m in DEFAULT_POOL.models
+        for m in ANTHROPIC_POOL.models
     }
 
 
@@ -599,7 +599,7 @@ class TestC12PreregisteredDesignLocked:
             kwargs=kwargs,
             datasets_spec_or_loaded={"adamson_full": ds},
             task_plan=TaskPlan(adamson=("TFA",), norman_singletons=(), norman_doublets=()),
-            env={"OPENROUTER_API_KEY": "sk-or-test-SENTINEL"},
+            env={"ANTHROPIC_API_KEY": "sk-or-test-SENTINEL"},
             out_dir=tmp_path / "o",
             probe_fn=_full_liveness,
         )

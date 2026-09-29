@@ -160,9 +160,18 @@ class ChatResult:
     content: dict
     model_id: str
     cache_hit: bool = False
+    # Amendment 4 (A4-1): recorded per call by the Anthropic client; None on OpenRouter.
+    stop_reason: Optional[str] = None
+    served_model: Optional[str] = None
+    usage: Optional[dict] = None
 
 
-class OpenRouterError(Exception):
+class ProviderError(Exception):
+    """Base of every provider error the agent pool may turn into a FALLBACK step
+    (A2-1: a fallback invalidates the run). Fatal conditions are NOT ProviderErrors."""
+
+
+class OpenRouterError(ProviderError):
     """All attempts across the rotation pool failed."""
 
 

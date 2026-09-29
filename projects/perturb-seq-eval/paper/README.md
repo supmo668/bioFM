@@ -32,11 +32,11 @@ paper/
 cd projects/perturb-seq-eval
 
 # 1. The sweep: preflight + trainer sweep + lifecycle sweep in one process.
-#    OPENROUTER_API_KEY is injected by Infisical (never written to disk) and
-#    OPENROUTER_KEY_SOURCE records its source; preflight refuses the whole run
+#    ANTHROPIC_API_KEY is injected by Infisical (never written to disk) and
+#    LLM_KEY_SOURCE records its source; preflight refuses the whole run
 #    without either, and requires paper/PREREGISTRATION.md committed with no
 #    local edits (the pinned pre-registration).
-OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
+LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
     --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3

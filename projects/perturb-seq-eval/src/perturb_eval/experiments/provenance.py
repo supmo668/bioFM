@@ -195,7 +195,7 @@ def llm_key_source(store: str, project_slug: str, env: str, *, home_project: str
 
 
 def parse_key_source(spec: str | None, *, home_project: str) -> dict[str, Any] | None:
-    """Parse ``OPENROUTER_KEY_SOURCE`` (``"<store>:<project_slug>:<env>"``).
+    """Parse ``LLM_KEY_SOURCE`` (formerly ``OPENROUTER_KEY_SOURCE``) (``"<store>:<project_slug>:<env>"``).
 
     Returns the :func:`llm_key_source` dict, or ``None`` when ``spec`` is
     missing, malformed, or any part is credential-shaped; the preflight then

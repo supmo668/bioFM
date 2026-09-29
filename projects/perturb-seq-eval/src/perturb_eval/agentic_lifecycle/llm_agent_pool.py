@@ -27,7 +27,7 @@ from perturb_eval.agentic_lifecycle.proposal_schema import (
     parse_proposal,
     schema_defaults,
 )
-from perturb_eval.llm.openrouter_client import ChatResult, OpenRouterError
+from perturb_eval.llm.openrouter_client import ChatResult, OpenRouterError, ProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ class _ClientLike(Protocol):
 #   * pydantic.ValidationError: the served JSON violates the role schema
 #     (including a non-object payload).
 FALLBACK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ProviderError,  # every provider client (OpenRouter, Anthropic); fatal conditions are NOT ProviderErrors
     OpenRouterError,
     requests.RequestException,
     json.JSONDecodeError,
@@ -254,6 +255,9 @@ class LLMAgentPool:
             "model_id": result.model_id,
             "source": "llm",
             "cache_hit": bool(result.cache_hit),
+            # A4-1: recorded per call (None on providers that do not report them).
+            "stop_reason": getattr(result, "stop_reason", None),
+            "served_model": getattr(result, "served_model", None),
             # A2-3: the fields the model actually stated (schema defaults
             # filled the rest); config precedence reads only stated fields.
             "stated_fields": tuple(sorted(model.model_fields_set - {"confidence"})),

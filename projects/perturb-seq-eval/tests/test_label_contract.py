@@ -40,11 +40,11 @@ PERK_REASON = (
 
 
 def _full_liveness(env):  # CTO #467: preflight now probes EVERY roster model
-    from perturb_eval.llm.openrouter_client import DEFAULT_POOL
+    from perturb_eval.llm.anthropic_client import ANTHROPIC_POOL
 
     return {
         m.model_id: {"live": True, "verdict": "ok", "probed_at": "2026-09-28T23:00:00+00:00"}
-        for m in DEFAULT_POOL.models
+        for m in ANTHROPIC_POOL.models
     }
 
 
@@ -528,7 +528,7 @@ def _pf_run(tmp_path: Path, adamson_tasks: tuple, adamson_ds: dict, norman_ds: d
         task_plan=TaskPlan(
             adamson=adamson_tasks, norman_singletons=("OLDSYM",), norman_doublets=("OLDSYM_FOXL2",)
         ),
-        env={"OPENROUTER_API_KEY": "sk-fixture-key-0123456789"},
+        env={"ANTHROPIC_API_KEY": "sk-fixture-key-0123456789"},
         out_dir=tmp_path / "out",
         probe_fn=_full_liveness,
     )

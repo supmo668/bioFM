@@ -96,12 +96,12 @@ synthetic-cell generator is reintroduced under `src/`, `scripts/` or `paper/`.
 ## Reproducing the sweep
 
 ```bash
-# From projects/perturb-seq-eval. OPENROUTER_API_KEY is injected by Infisical at
-# run time (never written to disk); OPENROUTER_KEY_SOURCE records where it came
+# From projects/perturb-seq-eval. ANTHROPIC_API_KEY is injected by Infisical at
+# run time (never written to disk); LLM_KEY_SOURCE records where it came
 # from. Preflight refuses the whole run without either, and also requires the
 # pinned pre-registration: paper/PREREGISTRATION.md tracked and committed with
 # no local edits. Spend: stop-and-report above $12, hard kill at $28.
-OPENROUTER_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
+LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
     --projectId 589d1e3b-5798-48ea-97c0-2d58086a375b --env dev -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3

@@ -2,19 +2,19 @@
 
 :func:`preflight` runs every check the sweep depends on and raises ONE
 :class:`PreflightError` listing ALL failures, before any trainer, lifecycle or
-LLM work. There is no skip path: a missing ``OPENROUTER_API_KEY`` refuses the
+LLM work. There is no skip path: a missing ``ANTHROPIC_API_KEY`` refuses the
 whole run (CTO #235), it does not produce a trainer-only run.
 
 Checks:
 
-* C-KEY-1 — ``OPENROUTER_API_KEY`` present (presence only; the value is
+* C-KEY-1 — ``ANTHROPIC_API_KEY`` present (presence only; the value is
   never logged, and is scrubbed from any error text) and a pool probe returns
   a usable model id.
 * C-TORCH-1 — every backbone in ``kwargs["backbones"]`` is in
   :func:`available_backbones`, so the C-TORCH-2 raise is dead code in a
   healthy run.
 * C-KEY-SOURCE — ``kwargs["llm_key_source"]`` (parsed on the host from
-  ``OPENROUTER_KEY_SOURCE``) is present: provenance records WHERE the credential
+  ``LLM_KEY_SOURCE``) is present: provenance records WHERE the credential
   came from (principal directive 2026-09-24).
 * C-PREREG — ``kwargs["preregistration"]`` (the committed, clean
   pre-registration pin) is present; ``kwargs["preregistration_error"]`` says
@@ -53,7 +53,8 @@ from perturb_eval.experiments.v05_tasks import TaskPlan
 
 logger = logging.getLogger(__name__)
 
-KEY_NAME = "OPENROUTER_API_KEY"
+KEY_NAME = "ANTHROPIC_API_KEY"  # amendment 4 (A4-1): the Anthropic Messages API
+KEY_SOURCE_NAME = "LLM_KEY_SOURCE"
 
 # Versions whose design is fixed by paper/PREREGISTRATION.md (QG C12).
 PREREGISTERED_VERSIONS: frozenset[str] = frozenset({"v0.6.0"})
@@ -77,7 +78,11 @@ ProbeFn = Callable[[Mapping[str, str]], Any]
 class PreflightError(RuntimeError):
     """Every preflight failure, listed; raised before any GPU/model work."""
 
-    def __init__(self, failures: list[str]) -> None:
+    def __init__(self, failures: "list[str] | str") -> None:
+        # DF-14: Modal re-raises the remote exception locally by reconstructing it
+        # from its message string; iterating that string produced "1700 failure(s)".
+        if isinstance(failures, str):
+            failures = [failures]
         self.failures = list(failures)
         body = "\n".join(f"  - {f}" for f in self.failures)
         super().__init__(f"v0.6 preflight failed ({len(self.failures)} failure(s)):\n{body}")
@@ -154,23 +159,25 @@ def openrouter_probe_all(env: Mapping[str, str], pool: Any = None) -> dict[str, 
     from pydantic import ValidationError
 
     from perturb_eval.agentic_lifecycle.proposal_schema import parse_proposal
-    from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
+    from perturb_eval.llm.anthropic_client import ANTHROPIC_POOL, AnthropicClient
 
-    pool = pool if pool is not None else DEFAULT_POOL
+    pool = pool if pool is not None else ANTHROPIC_POOL
     roles_for: dict[str, list[str]] = {m.model_id: [] for m in pool.models}
     for role, prefs in pool.role_preferences.items():
         for mid in prefs:
             roles_for.setdefault(mid, []).append(role)
     table: dict[str, dict[str, Any]] = {}
     with tempfile.TemporaryDirectory(prefix="v06-preflight-") as tmp:
-        client = OpenRouterClient(api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=pool)
+        client = AnthropicClient(api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=pool)
         for m in pool.models:
             probed_at = _dt.datetime.now(_dt.timezone.utc).isoformat()
             roles = roles_for.get(m.model_id) or ["Validator"]
             per_role: dict[str, dict[str, Any]] = {}
             for role in roles:
                 try:
-                    live, verdict, parsed = client.probe_model(m.model_id, role_probe_prompt(role))
+                    live, verdict, parsed = client.probe_model(
+                        m.model_id, role_probe_prompt(role), role=role
+                    )
                 except Exception as exc:  # noqa: BLE001 — recorded per probe, never raised
                     live, verdict, parsed = False, f"transport {type(exc).__name__}", None
                 if live:
@@ -195,9 +202,9 @@ def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str
     live preferred models; returns (probe_model_id, normalised table, failures)."""
     import datetime as _dt
 
-    from perturb_eval.llm.openrouter_client import DEFAULT_POOL
+    from perturb_eval.llm.anthropic_client import ANTHROPIC_POOL
 
-    pool = pool if pool is not None else DEFAULT_POOL
+    pool = pool if pool is not None else ANTHROPIC_POOL
     expected = [m.model_id for m in pool.models]
     failures: list[str] = []
     if isinstance(got, str):  # legacy single-id probe
@@ -283,7 +290,7 @@ def preflight(
         (normally wrapping :func:`build_task_lists`, whose stratum-count
         assertion is reused, not duplicated).
     env
-        Environment mapping; only the PRESENCE of ``OPENROUTER_API_KEY`` is
+        Environment mapping; only the PRESENCE of ``ANTHROPIC_API_KEY`` is
         checked here, and the value is only handed to ``probe_fn``.
     out_dir
         ``/data/<version>/``; must be absent or empty.
@@ -325,7 +332,7 @@ def preflight(
     key_source = kwargs.get("llm_key_source")
     if not isinstance(key_source, Mapping) or not key_source:
         failures.append(
-            "C-KEY-SOURCE: OPENROUTER_KEY_SOURCE not set; provenance must record where "
+            "C-KEY-SOURCE: LLM_KEY_SOURCE not set; provenance must record where "
             "the credential came from (principal directive 2026-09-24)"
         )
     else:
@@ -508,6 +515,7 @@ def _unresolved_tasks(
 
 __all__ = [
     "KEY_NAME",
+    "KEY_SOURCE_NAME",
     "PREREGISTERED_DESIGN",
     "PREREGISTERED_VERSIONS",
     "PreflightError",
