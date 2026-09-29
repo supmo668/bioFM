@@ -555,7 +555,7 @@ def run_v05_sweep(
         f"budget_so_far=${_cost_usd_so_far():.3f}"
     )
 
-    # ---------- 3. Lifecycle sweep (real LLMAgentPool, free-tier) ----------
+    # ---------- 3. Lifecycle sweep (LLMAgentPool over the amendment-4 Anthropic roster) ----------
     # Preflight asserted key presence + a live pool (C-KEY-1); no skip path.
     api_key = os.environ["ANTHROPIC_API_KEY"]
     # A2-8: the client reads and writes ONLY the version namespace.
