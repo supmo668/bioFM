@@ -266,13 +266,41 @@ class TestOpenRouterClient:
         with pytest.raises(Exception):
             r.model_id = "z"  # type: ignore[misc]
 
-    def test_rate_limited_error_surfaces_when_all_cooled(self, tmp_cache: Path) -> None:
-        # This is a unit check on the exception type, not behaviour.
-        with pytest.raises(RateLimitedError):
-            raise RateLimitedError("all models cooling")
+    def test_rate_limited_error_when_every_model_cools_past_the_wait_budget(self, tmp_path) -> None:
+        """QG-12: behavioural replacement for a test that raised and caught its own exception."""
+        from perturb_eval.llm.openrouter_client import (
+            LLMPool,
+            ModelSpec,
+            OpenRouterClient,
+            RateLimitedError,
+        )
 
+        class _S:
+            def post(self, url, headers=None, json=None, timeout=None):  # noqa: ANN001
+                from types import SimpleNamespace
 
-class TestCachePersistence:
+                return SimpleNamespace(status_code=429, json=lambda: {})
+
+        clock = [0.0]
+        pool = LLMPool(
+            models=(ModelSpec("m/a", "a", 1, ()),), role_preferences={"Validator": ("m/a",)}
+        )
+        c = OpenRouterClient(
+            api_key="k",
+            cache_dir=tmp_path,
+            pool=pool,
+            cooldown_sec=5.0,
+            session=_S(),
+            sleep=lambda s: clock.__setitem__(0, clock[0] + s),
+            clock=lambda: clock[0],
+            max_wait_sec=12.0,
+        )
+        with pytest.raises(RateLimitedError, match="wait budget"):
+            c.chat_json(
+                role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+            )
+        assert 12.0 <= clock[0] <= 12.0 + 5.1
+
     def test_cache_written_to_disk(self, tmp_path: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_path / "cache")
         with patch.object(

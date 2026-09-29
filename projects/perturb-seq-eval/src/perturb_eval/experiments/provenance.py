@@ -45,6 +45,9 @@ REQUIRED_ENTRYPOINT_KWARGS: tuple[str, ...] = (
     "temperature",
     # CTO #283 condition 3 (gate finding OWN-1): the stop-and-report spend.
     "spend_stop_usd",
+    # Relaunch gate QG-2 / CTO #467: spend carried in from an aborted run so the
+    # $12 line is cumulative.
+    "prior_spend_usd",
 )
 
 REQUIRED_KEYS: tuple[str, ...] = (
@@ -306,7 +309,12 @@ def _validate_roster_liveness(table: Any) -> dict[str, dict[str, Any]] | None:
             isinstance(e.get("probed_at"), str),
             f"llm_roster_liveness[{mid!r}]['probed_at'] must be str",
         )
-        out[mid] = {"live": e["live"], "verdict": e["verdict"], "probed_at": e["probed_at"]}
+        entry = {"live": e["live"], "verdict": e["verdict"], "probed_at": e["probed_at"]}
+        if isinstance(e.get("roles"), Mapping):
+            entry["roles"] = {
+                str(r): dict(v) for r, v in e["roles"].items() if isinstance(v, Mapping)
+            }
+        out[mid] = entry
     return out
 
 

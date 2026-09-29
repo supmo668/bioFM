@@ -150,6 +150,7 @@ def run_v05_sweep(
     temperature: float = 0.3,
     version: str = "v0.6.0",
     spend_stop_usd: float = 12.0,
+    prior_spend_usd: float = 0.0,
     git_sha: str = "",
     git_dirty: bool = False,
     run_id: str = "",
@@ -248,8 +249,25 @@ def run_v05_sweep(
                 h.update(chunk)
         return h.hexdigest()
 
-    def _cost_usd_so_far() -> float:
+    # QG-2 (relaunch gate; CTO #467): actual spend = GPU wall-clock + the LLM
+    # bill (OpenRouter key usage delta since the client was created) + spend
+    # carried in from an aborted run. Both guards apply to the total.
+    llm_state: dict = {"client": None, "usage_start": None, "llm_cost_usd": 0.0}
+
+    def _gpu_cost_usd() -> float:
         return (time.time() - started_at) / 3600.0 * _A100_HOURLY_USD
+
+    def _llm_cost_usd() -> float:
+        client = llm_state["client"]
+        if client is None or llm_state["usage_start"] is None:
+            return llm_state["llm_cost_usd"]
+        now = client.key_usage_usd()
+        if now is not None:
+            llm_state["llm_cost_usd"] = max(0.0, now - llm_state["usage_start"])
+        return llm_state["llm_cost_usd"]
+
+    def _cost_usd_so_far() -> float:
+        return _gpu_cost_usd() + _llm_cost_usd() + prior_spend_usd
 
     def _budget_exceeded() -> bool:
         return _cost_usd_so_far() > _BUDGET_HARD_KILL_USD
@@ -531,7 +549,7 @@ def run_v05_sweep(
     # ---------- 3. Lifecycle sweep (real LLMAgentPool, free-tier) ----------
     # Preflight asserted key presence + a live pool (C-KEY-1); no skip path.
     api_key = os.environ["OPENROUTER_API_KEY"]
-    client_kwargs: dict = {"cooldown_sec": cooldown_sec}
+    client_kwargs: dict = {"cooldown_sec": cooldown_sec, "max_wait_sec": 300.0}
     if _client_takes_temperature:
         client_kwargs["temperature"] = temperature
     # A2-8: the client reads and writes ONLY the version namespace.
@@ -543,6 +561,29 @@ def run_v05_sweep(
         **client_kwargs,
     )
     pool = LLMAgentPool(client=client, cache_dir=llm_cache_ns)
+    llm_state["client"] = client
+    llm_state["usage_start"] = client.key_usage_usd()
+    print(
+        f"[v0.6.0] llm usage baseline {'ok' if llm_state['usage_start'] is not None else 'UNAVAILABLE'}"
+    )
+
+    def _lifecycle_sink(path: Path, bucket: list[dict]):
+        base = _sink(path, bucket)
+
+        def sink(rec: dict) -> None:
+            base(rec)
+            # QG-4: a fallback step already invalidates the run (A2-1 / C-KEY-2);
+            # latch the stop so no more GPU-hours are spent on it.
+            if stop_state["reason"] is None and any(
+                s.get("source") == "fallback" for s in (rec.get("steps") or [])
+            ):
+                stop_state.update(reason="fallback", cost_usd=_cost_usd_so_far())
+                print(
+                    f"[v0.6.0] first fallback step in {rec.get('task_id')!r} seed "
+                    f"{rec.get('seed')!r} — run is invalid; stopping the lifecycle sweep"
+                )
+
+        return sink
 
     # T6 + CTO #245 Q1: the loop body lives in v05_sweep.iter_lifecycle_records
     # (testable); BackboneUnavailableError and every non-transient exception
@@ -558,7 +599,7 @@ def run_v05_sweep(
             max_rounds=LIFECYCLE_N_ROUNDS,  # A2-2: exactly three rounds
             should_stop=_should_stop,
         ),
-        sink=_sink(lifecycle_out, lifecycle_records),
+        sink=_lifecycle_sink(lifecycle_out, lifecycle_records),
         on_abort=_abort("lifecycle"),
     )
 
@@ -586,6 +627,12 @@ def run_v05_sweep(
     gpu_seconds = finished_at - started_at
     gpu_seconds_source = "wall_clock_of_gpu_function"
     cost_usd = _cost_usd_so_far()
+    spend_breakdown = {
+        "gpu_cost_usd": _gpu_cost_usd(),
+        "llm_cost_usd": _llm_cost_usd(),
+        "prior_spend_usd": prior_spend_usd,
+        "llm_usage_baseline_available": llm_state["usage_start"] is not None,
+    }
     budget_hit = cost_usd > _BUDGET_HARD_KILL_USD
     # C-KEY-2 fallback > spend stop / hard kill > ok (QG C14 / OWN-1).
     status = derive_status(
@@ -620,6 +667,7 @@ def run_v05_sweep(
     final.update(
         llm_cache_end(lifecycle_rows, entries_at_start=llm_cache["llm_cache_entries_at_start"])
     )
+    final.update(spend_breakdown)  # QG-2
     provenance_out.write_text(json.dumps(final, indent=2, default=str))
     DATA_VOL.commit()
     summary = {
@@ -631,6 +679,7 @@ def run_v05_sweep(
         "gpu_seconds": gpu_seconds,
         "gpu_seconds_source": gpu_seconds_source,
         "total_cost_usd": cost_usd,
+        **spend_breakdown,
         "budget_cap_usd": _BUDGET_HARD_KILL_USD,
         "budget_hit": budget_hit,
         "spend_stop_usd": spend_stop_usd,
@@ -664,6 +713,7 @@ def entrypoint(
     temperature: float = 0.3,
     version: str = "v0.6.0",
     spend_stop_usd: float = _SPEND_STOP_USD,
+    prior_spend_usd: float = 0.0,
 ) -> None:
     import subprocess
     import sys
@@ -723,6 +773,7 @@ def entrypoint(
         "temperature": temperature,
         "version": version,
         "spend_stop_usd": spend_stop_usd,
+        "prior_spend_usd": prior_spend_usd,
         "git_sha": git_sha,
         "git_dirty": git_dirty,
         "run_id": run_id,

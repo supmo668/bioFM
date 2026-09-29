@@ -170,6 +170,18 @@ class RateLimitedError(OpenRouterError):
     """Every candidate model is currently in cooldown."""
 
 
+class ProviderFatalError(RuntimeError):
+    """401 / 402 from the provider (key revoked / out of credit): NOT an
+    :class:`OpenRouterError`, so the agent pool never turns it into a fallback
+    step; it propagates and aborts the run (QG-4, relaunch gate)."""
+
+
+_COOLING_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
+_FATAL_STATUSES = frozenset({401, 402})
+_KEY_USAGE_MEMO_SEC = 30.0
+_OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key"
+
+
 _WS = re.compile(r"\s+")
 
 
@@ -224,7 +236,7 @@ def _extract_json(text: str) -> dict:
 
 
 class OpenRouterClient:
-    """Free-tier rotation chat client."""
+    """Paid-tier rotation chat client (relaunch roster, principal 2026-09-28)."""
 
     def __init__(
         self,
@@ -253,6 +265,7 @@ class OpenRouterClient:
         self._max_wait_sec = max_wait_sec
         self._sleep = sleep
         self._clock = clock
+        self._usage_memo: tuple[float, Optional[float]] | None = None  # (at, usage_usd)
 
     def _candidate_models(self, role: str) -> list[ModelSpec]:
         preferred = self._pool.role_preferences.get(role, ())
@@ -269,6 +282,32 @@ class OpenRouterClient:
                 seen.add(m.model_id)
         now = self._clock()
         return [m for m in ordered if self._cooldowns.get(m.model_id, 0) <= now]
+
+    def key_usage_usd(self) -> Optional[float]:
+        """Cumulative USD usage of this API key (OpenRouter ``/key``), memoised
+        for ``_KEY_USAGE_MEMO_SEC``; ``None`` (never raises) when unavailable.
+        The sweep records ``usage(now) - usage(start)`` as ``llm_cost_usd`` (QG-2)."""
+        now = self._clock()
+        if self._usage_memo is not None and now - self._usage_memo[0] < _KEY_USAGE_MEMO_SEC:
+            return self._usage_memo[1]
+        usage: Optional[float] = None
+        try:
+            r = self._session.get(
+                _OPENROUTER_KEY_URL,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                timeout=self._timeout_sec,
+            )
+            if r.status_code == 200:
+                usage = float(r.json()["data"]["usage"])
+        except (requests.RequestException, KeyError, TypeError, ValueError):
+            logger.warning("key usage lookup failed (type only, no body logged)")
+            usage = None
+        self._usage_memo = (now, usage)
+        return usage
+
+    def _cooling_ids(self) -> set[str]:
+        now = self._clock()
+        return {mid for mid, until in self._cooldowns.items() if until > now}
 
     def _earliest_cooldown_end(self) -> Optional[float]:
         now = self._clock()
@@ -348,13 +387,21 @@ class OpenRouterClient:
         ``seed`` and ``dataset`` are part of the cache key only (A2, QG C6);
         they are not sent to the provider.
 
-        Raises :class:`OpenRouterError` if every candidate in the pool
-        fails (network, 429, unparseable response).
+        While any model is merely cooling (408/429/5xx/transport error) this
+        WAITS -- bounded by ``max_wait_sec`` of wall-clock per call -- and
+        retries, instead of falling back (A2-1 makes a fallback fatal).
+        Raises :class:`RateLimitedError` when the wait budget is spent,
+        :class:`OpenRouterError` when nothing is cooling and every candidate
+        hard-failed, and :class:`ProviderFatalError` on 401/402.
         """
-        waited = 0.0
+        deadline = self._clock() + self._max_wait_sec  # QG-3: wall-clock, not sleep-sum
         last_err: Optional[str] = None
+        hard_failed: set[str] = (
+            set()
+        )  # QG-3: 4xx / empty / bad JSON -> not re-called (not re-billed)
         while True:
-            candidates = self._candidate_models(role)
+            cooling_at_start = self._cooling_ids()
+            candidates = [m for m in self._candidate_models(role) if m.model_id not in hard_failed]
             if candidates:
                 res = self._try_candidates(
                     candidates,
@@ -364,29 +411,30 @@ class OpenRouterClient:
                     prompt=prompt,
                     seed=seed,
                     dataset=dataset,
+                    hard_failed=hard_failed,
                 )
                 if isinstance(res, ChatResult):
                     return res
-                last_err = res
-            # Nothing answered. Wait for the earliest cooldown (bounded) if any
-            # model is merely cooling; raise only when nothing is cooling or the
-            # wait budget is spent.
-            end = self._earliest_cooldown_end()
-            if end is None:
-                if not candidates:
-                    raise RateLimitedError("no models available (all cooling)")
+                last_err = res or last_err
+            # Nothing answered. If any model is cooling now, or was cooling when
+            # this pass started (QG-5: its cooldown may have ended mid-pass),
+            # wait for the earliest cooldown -- bounded by the deadline -- and
+            # retry. Raise only when nothing is cooling or the budget is spent.
+            cooling_now = self._cooling_ids()
+            if not cooling_now and not cooling_at_start:
                 raise OpenRouterError(
                     f"all candidate models for role={role} failed; last_err={last_err}"
                 )
-            remaining = self._max_wait_sec - waited
-            if remaining <= 0:
+            now = self._clock()
+            if now >= deadline:
                 raise RateLimitedError(
                     f"role={role}: every model cooling and the {self._max_wait_sec:.0f}s "
                     f"wait budget is spent; last_err={last_err}"
                 )
-            pause = max(0.0, min(end - self._clock(), remaining)) + 0.01
+            end = self._earliest_cooldown_end()
+            pause = 0.0 if end is None else max(0.0, end - now)
+            pause = min(pause, deadline - now) + 0.01
             self._sleep(pause)
-            waited += pause
 
     def _try_candidates(
         self,
@@ -398,8 +446,13 @@ class OpenRouterClient:
         prompt: str,
         seed: int,
         dataset: str,
+        hard_failed: set[str],
     ) -> "ChatResult | str | None":
-        """One pass over ``candidates``; a ChatResult, else the last error text."""
+        """One pass over ``candidates``; a ChatResult, else the last error text.
+
+        Transport errors and 408/429/5xx cool the model down (retried after a
+        wait); 401/402 raise :class:`ProviderFatalError`; anything else marks
+        the model hard-failed for this call (skipped on later passes)."""
         last_err: Optional[str] = None
         for model in candidates:
             key = _cache_key(
@@ -416,12 +469,22 @@ class OpenRouterClient:
                 logger.debug("cache hit role=%s model=%s", role, model.model_id)
                 return ChatResult(content=cached, model_id=model.model_id, cache_hit=True)
 
-            status, content = self._call(model.model_id, prompt)
-            if status in (429, 502, 503, 504):
+            try:
+                status, content = self._call(model.model_id, prompt)
+            except requests.RequestException as exc:  # QG-1: transport error -> cool + fail over
+                self._cooldowns[model.model_id] = self._clock() + self._cooldown_sec
+                last_err = f"{model.model_id}: transport {type(exc).__name__}"
+                continue
+            if status in _FATAL_STATUSES:  # QG-4: never a fallback
+                raise ProviderFatalError(
+                    f"{model.model_id}: http {status} (key revoked / out of credit) — aborting"
+                )
+            if status in _COOLING_STATUSES:
                 self._cooldowns[model.model_id] = self._clock() + self._cooldown_sec
                 last_err = f"{model.model_id}: http {status}"
                 continue
             if status != 200 or not content:
+                hard_failed.add(model.model_id)
                 last_err = f"{model.model_id}: http {status} / empty"
                 continue
 
@@ -434,14 +497,21 @@ class OpenRouterClient:
                     "the JSON object, no markdown fencing, no commentary. "
                     f"Original task:\n{prompt}"
                 )
-                status2, content2 = self._call(model.model_id, reformat)
+                try:
+                    status2, content2 = self._call(model.model_id, reformat)
+                except requests.RequestException as exc:
+                    self._cooldowns[model.model_id] = self._clock() + self._cooldown_sec
+                    last_err = f"{model.model_id}: transport {type(exc).__name__} on retry"
+                    continue
                 if status2 == 200 and content2:
                     try:
                         parsed = _extract_json(content2)
                     except (ValueError, json.JSONDecodeError):
+                        hard_failed.add(model.model_id)
                         last_err = f"{model.model_id}: JSON parse failed after retry"
                         continue
                 else:
+                    hard_failed.add(model.model_id)
                     last_err = f"{model.model_id}: retry http {status2}"
                     continue
 

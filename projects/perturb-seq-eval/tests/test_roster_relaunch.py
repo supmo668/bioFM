@@ -52,15 +52,25 @@ class _Resp:
 class _Session:
     """Scripted responses per model id, consumed in order; the last one repeats."""
 
-    def __init__(self, script: dict[str, list[_Resp]]) -> None:
+    def __init__(self, script: dict[str, list], *, on_post=None, max_calls: int = 200) -> None:
         self.script = {k: list(v) for k, v in script.items()}
         self.calls: list[str] = []
+        self.on_post = on_post
+        self.max_calls = (
+            max_calls  # QG-10: an iteration guard so a broken loop fails instead of hanging
+        )
 
     def post(self, url, headers=None, json=None, timeout=None):  # noqa: ANN001
         mid = json["model"]
         self.calls.append(mid)
+        assert len(self.calls) <= self.max_calls, "runaway retry loop"
+        if self.on_post is not None:
+            self.on_post(mid)
         q = self.script[mid]
-        return q.pop(0) if len(q) > 1 else q[0]
+        item = q.pop(0) if len(q) > 1 else q[0]
+        if isinstance(item, Exception):
+            raise item
+        return item
 
 
 def _two_model_pool() -> LLMPool:
@@ -106,7 +116,9 @@ class TestCooldownWait:
             role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
         )
         assert res.content["confidence"] == 0.5 and res.model_id == "x/a" and res.cache_hit is False
-        assert slept and sum(slept) <= 60.0  # it waited for the cooldown rather than raising
+        # QG-10: it waited ONCE for the 10 s cooldown (no busy polling) and then retried x/a first.
+        assert sess.calls == ["x/a", "x/b", "x/a"]
+        assert len(slept) == 1 and slept[0] == pytest.approx(10.01, abs=0.02)
 
     def test_raises_only_after_wait_budget_exhausted(self, tmp_path: Path) -> None:
         sess = _Session({"x/a": [_Resp(429, None)], "x/b": [_Resp(503, None)]})
@@ -166,40 +178,25 @@ class TestPreflightProbesEveryRosterModel:
                 and e["verdict"]
             )
 
-    def test_default_probe_uses_the_validator_schema_on_every_model(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
-        """openrouter_probe_all probes every DEFAULT_POOL model and applies parse_proposal('Validator')."""
-        from perturb_eval.experiments import v05_preflight as pf
-
-        probed: list[str] = []
-
-        def fake_probe_model(self, model_id, prompt):  # noqa: ANN001
-            probed.append(model_id)
-            ok = not model_id.endswith("-dead")
-            return (
-                ok,
-                "ok" if ok else "http 404",
-                ({"confidence": 0.5, "dynamic_threshold_msd": 0.1} if ok else None),
-            )
-
-        monkeypatch.setattr(OpenRouterClient, "probe_model", fake_probe_model)
-        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
-        assert probed == [m.model_id for m in DEFAULT_POOL.models]
-        assert all(table[m]["live"] for m in probed)
-
     def test_default_probe_marks_schema_invalid_reply_as_not_live(
         self, tmp_path: Path, monkeypatch
     ) -> None:
+        """A bare {"confidence"} reply fails the Architect (backbone) and Validator (threshold, A3-3)
+        schemas; a model preferred for either is therefore not live, with the role named."""
         from perturb_eval.experiments import v05_preflight as pf
 
         monkeypatch.setattr(
             OpenRouterClient, "probe_model", lambda self, m, p: (True, "ok", {"confidence": 0.5})
         )
-        table = pf.openrouter_probe_all(
-            {"OPENROUTER_API_KEY": "k"}
-        )  # threshold missing -> schema failure (A3-3)
-        assert all(not e["live"] and "schema" in e["verdict"] for e in table.values())
+        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
+        strict = set(DEFAULT_POOL.role_preferences["Architect"]) | set(
+            DEFAULT_POOL.role_preferences["Validator"]
+        )
+        for mid in strict:
+            assert table[mid]["live"] is False and "schema failed" in table[mid]["verdict"], mid
+        assert any(
+            "Architect" in table[m]["verdict"] for m in DEFAULT_POOL.role_preferences["Architect"]
+        )
 
 
 # ------------------------------------------------------------ 4. provenance
@@ -221,3 +218,340 @@ class TestLivenessInProvenance:
     def test_app_v05_passes_liveness_to_provenance(self) -> None:
         src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
         assert "llm_roster_liveness=report.roster_liveness" in src
+
+
+# ================================================================ relaunch QG
+import requests  # noqa: E402
+
+GOOD = '{"confidence": 0.5, "dynamic_threshold_msd": 0.1}'
+
+
+class TestQG1TransportErrorsFailOver:
+    def test_connection_error_on_first_model_fails_over_and_cools_it(self, tmp_path: Path) -> None:
+        sess = _Session({"x/a": [requests.ConnectionError("reset")], "x/b": [_Resp(200, GOOD)]})
+        c, slept, _ = _client(tmp_path, sess)
+        res = c.chat_json(
+            role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+        )
+        assert res.model_id == "x/b" and sess.calls == ["x/a", "x/b"] and slept == []
+        assert c._cooldowns.get("x/a", 0) > 1000.0  # the transport failure cooled x/a
+
+    def test_timeout_never_escapes_as_a_fallback_exception(self, tmp_path: Path) -> None:
+        sess = _Session(
+            {"x/a": [requests.Timeout("t")], "x/b": [requests.Timeout("t"), _Resp(200, GOOD)]}
+        )
+        c, slept, _ = _client(tmp_path, sess, max_wait_sec=60.0)
+        res = c.chat_json(
+            role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+        )
+        assert res.model_id == "x/b" and slept  # both cooled, waited, then x/b answered
+
+
+class TestQG3HardFailuresNotRebilledAndClockDeadline:
+    def test_hard_failed_model_is_skipped_on_later_passes(self, tmp_path: Path) -> None:
+        sess = _Session({"x/a": [_Resp(404, None)], "x/b": [_Resp(429, None), _Resp(200, GOOD)]})
+        c, slept, _ = _client(tmp_path, sess, max_wait_sec=60.0)
+        res = c.chat_json(
+            role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+        )
+        assert res.model_id == "x/b"
+        assert sess.calls == ["x/a", "x/b", "x/b"]  # x/a (404) is NOT re-called (and not re-billed)
+
+    def test_http_time_counts_against_the_wait_budget(self, tmp_path: Path) -> None:
+        clock = [1000.0]
+        slept: list[float] = []
+
+        def fake_sleep(s: float) -> None:
+            slept.append(s)
+            clock[0] += s
+
+        sess = _Session(
+            {"x/a": [_Resp(429, None)], "x/b": [_Resp(429, None)]},
+            on_post=lambda mid: clock.__setitem__(0, clock[0] + 100.0),
+        )  # each call takes 100 s
+        c = OpenRouterClient(
+            api_key="k",
+            cache_dir=tmp_path,
+            pool=_two_model_pool(),
+            cooldown_sec=10.0,
+            session=sess,
+            sleep=fake_sleep,
+            clock=lambda: clock[0],
+            max_wait_sec=150.0,
+        )
+        with pytest.raises(oc.RateLimitedError, match="wait budget"):
+            c.chat_json(
+                role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+            )
+        assert clock[0] - 1000.0 <= 150.0 + 100.0 + 0.1  # deadline is wall-clock, not sleep-sum
+        assert len(sess.calls) <= 4
+
+
+class TestQG4StatusClassesAndFatal:
+    def test_500_and_408_cool_down_and_are_retried(self, tmp_path: Path) -> None:
+        sess = _Session(
+            {
+                "x/a": [_Resp(500, None), _Resp(200, GOOD)],
+                "x/b": [_Resp(408, None), _Resp(408, None)],
+            }
+        )
+        c, slept, _ = _client(tmp_path, sess, max_wait_sec=60.0)
+        res = c.chat_json(
+            role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+        )
+        assert res.model_id == "x/a" and slept
+
+    @pytest.mark.parametrize("status", [401, 402])
+    def test_401_402_are_fatal_not_fallback(self, tmp_path: Path, status: int) -> None:
+        sess = _Session({"x/a": [_Resp(status, None)], "x/b": [_Resp(200, GOOD)]})
+        c, slept, _ = _client(tmp_path, sess)
+        with pytest.raises(oc.ProviderFatalError):
+            c.chat_json(
+                role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+            )
+        assert not issubclass(oc.ProviderFatalError, oc.OpenRouterError)
+
+    def test_pool_does_not_swallow_a_fatal_provider_error(self, tmp_path: Path) -> None:
+        from perturb_eval.agentic_lifecycle.llm_agent_pool import FALLBACK_EXCEPTIONS, LLMAgentPool
+
+        class _Fatal:
+            def chat_json(self, **kw):
+                raise oc.ProviderFatalError("http 402")
+
+        assert not any(issubclass(oc.ProviderFatalError, e) for e in FALLBACK_EXCEPTIONS)
+        pool = LLMAgentPool(client=_Fatal(), cache_dir=tmp_path)
+        with pytest.raises(oc.ProviderFatalError):
+            pool.propose("Validator", 0, "TFA", {}, seed=0, dataset="adamson_full")
+
+    def test_app_v05_stops_the_sweep_on_the_first_fallback_step(self) -> None:
+        src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
+        assert 'reason="fallback"' in src and "first fallback step" in src
+
+
+class TestQG5CooldownExpiringDuringAPass:
+    def test_model_available_again_after_the_pass_is_retried_not_skipped(
+        self, tmp_path: Path
+    ) -> None:
+        clock = [1000.0]
+        sess = _Session(
+            {"x/a": [_Resp(200, GOOD)], "x/b": [_Resp(404, None)]},
+            on_post=lambda mid: clock.__setitem__(0, clock[0] + 10.0),
+        )
+        c = OpenRouterClient(
+            api_key="k",
+            cache_dir=tmp_path,
+            pool=_two_model_pool(),
+            cooldown_sec=10.0,
+            session=sess,
+            sleep=lambda s: clock.__setitem__(0, clock[0] + s),
+            clock=lambda: clock[0],
+            max_wait_sec=60.0,
+        )
+        c._cooldowns["x/a"] = 1005.0  # cooling at pass start; expires while x/b is being tried
+        res = c.chat_json(
+            role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="d"
+        )
+        assert res.model_id == "x/a" and sess.calls == ["x/b", "x/a"]
+
+
+class TestQG2SpendAccounting:
+    def test_key_usage_usd_reads_and_memoises(self, tmp_path: Path) -> None:
+        class _S:
+            def __init__(self):
+                self.gets = 0
+
+            def get(self, url, headers=None, timeout=None):  # noqa: ANN001
+                self.gets += 1
+                return SimpleNamespace(status_code=200, json=lambda: {"data": {"usage": 4.25}})
+
+        s = _S()
+        clock = [0.0]
+        c = OpenRouterClient(
+            api_key="k",
+            cache_dir=tmp_path,
+            pool=_two_model_pool(),
+            session=s,
+            clock=lambda: clock[0],
+        )
+        assert c.key_usage_usd() == 4.25 and c.key_usage_usd() == 4.25 and s.gets == 1  # memoised
+        clock[0] += 31.0
+        assert c.key_usage_usd() == 4.25 and s.gets == 2
+
+    def test_key_usage_failure_returns_none_never_raises(self, tmp_path: Path) -> None:
+        class _S:
+            def get(self, url, headers=None, timeout=None):  # noqa: ANN001
+                raise requests.ConnectionError("down")
+
+        c = OpenRouterClient(api_key="k", cache_dir=tmp_path, pool=_two_model_pool(), session=_S())
+        assert c.key_usage_usd() is None
+
+    def test_app_v05_counts_llm_and_prior_spend(self) -> None:
+        from perturb_eval.experiments import provenance as pv
+
+        src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
+        assert "prior_spend_usd" in pv.REQUIRED_ENTRYPOINT_KWARGS
+        for needle in ("llm_cost_usd", "gpu_cost_usd", "prior_spend_usd", "key_usage_usd()"):
+            assert needle in src, needle
+
+
+class TestQG6PerRoleSchemaProbe:
+    def test_preferred_models_are_probed_with_their_roles_schema(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from perturb_eval.experiments import v05_preflight as pf
+
+        seen: list[tuple[str, str]] = []
+
+        def fake_probe_model(self, model_id, prompt):  # noqa: ANN001
+            role = next(r for r in ROLES if r in prompt)
+            seen.append((model_id, role))
+            payload = dict(pf.ROLE_PROBE_PAYLOADS[role])
+            if model_id == "openai/gpt-oss-20b" and role == "Architect":
+                payload.pop("backbone")  # a model that cannot meet the Architect schema
+            return True, "ok", payload
+
+        monkeypatch.setattr(OpenRouterClient, "probe_model", fake_probe_model)
+        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
+        for role, prefs in DEFAULT_POOL.role_preferences.items():
+            for mid in prefs:
+                assert (mid, role) in seen
+        assert set(table) == {m.model_id for m in DEFAULT_POOL.models}
+        e = table["openai/gpt-oss-20b"]
+        assert (
+            e["live"] is False
+            and e["roles"]["Architect"]["ok"] is False
+            and "schema" in e["roles"]["Architect"]["verdict"]
+        )
+        assert e["roles"]["Validator"]["ok"] is True
+        assert all(t["live"] for m, t in table.items() if m != "openai/gpt-oss-20b")
+
+    def test_role_check_uses_the_roles_own_probe_result(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.v05_preflight import PreflightError
+
+        table = _liveness()
+        # stub/one answers every role except Architect: Architect has only 2 live preferred -> still ok
+        table["stub/one"]["roles"] = {"Architect": {"ok": False, "verdict": "schema"}}
+        rep = _run(tmp_path, probe_fn=lambda env: table)
+        assert rep.ok
+        table["stub/two"]["roles"] = {"Architect": {"ok": False, "verdict": "schema"}}
+        with pytest.raises(PreflightError, match=r"Architect.*1 live preferred"):
+            _run(tmp_path, probe_fn=lambda env: table)
+
+
+class TestQG7LiveThresholdBoundary:
+    def test_exactly_two_live_preferred_passes(self, tmp_path: Path) -> None:
+        rep = _run(tmp_path, probe_fn=lambda env: _liveness(live=["stub/one", "stub/two"]))
+        assert rep.ok and rep.roster_liveness["stub/three"]["live"] is False
+
+    def test_only_the_role_with_dead_preferences_is_named(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.v05_preflight import PreflightError
+
+        ms = tuple(
+            ModelSpec(model_id=f"p/{n}", family=n, param_count_b=1, strengths=()) for n in "abcd"
+        )
+        pool = LLMPool(
+            models=ms,
+            role_preferences={
+                **{r: ("p/a", "p/b", "p/c") for r in ROLES if r != "Trainer"},
+                "Trainer": ("p/d", "p/c", "p/b"),
+            },
+        )
+        table = {
+            m.model_id: {
+                "live": m.model_id != "p/d" and m.model_id != "p/c",
+                "verdict": "x",
+                "probed_at": "2026-09-28T23:00:00+00:00",
+            }
+            for m in ms
+        }
+        with pytest.raises(PreflightError) as ei:
+            _run(tmp_path, pool=pool, probe_fn=lambda env: table)
+        role_fails = [f for f in ei.value.failures if "live preferred" in f]
+        assert len(role_fails) == 1 and "Trainer" in role_fails[0]
+
+
+class TestQG8DefaultPoolPath:
+    def test_probe_count_pin_holds_for_the_real_roster(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.v05_preflight import PreflightError
+        from tests.test_label_contract import _full_liveness
+
+        table = _full_liveness({})
+        missing = DEFAULT_POOL.models[-1].model_id
+        del table[missing]
+        with pytest.raises(PreflightError, match=r"probed 7 of 8 roster models") as ei:
+            _run(tmp_path, pool=None, probe_fn=lambda env: table)
+        assert missing in str(ei.value)
+
+    def test_probe_all_uses_the_pool_it_is_given(self, tmp_path: Path, monkeypatch) -> None:
+        from perturb_eval.experiments import v05_preflight as pf
+
+        seen: list[str] = []
+        monkeypatch.setattr(
+            OpenRouterClient,
+            "probe_model",
+            lambda self, m, p: (
+                seen.append(m) or True,
+                "ok",
+                dict(pf.ROLE_PROBE_PAYLOADS["Validator"]),
+            ),
+        )
+        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"}, pool=_POOL)
+        assert set(table) == {m.model_id for m in _POOL.models} and set(seen) == set(table)
+
+    def test_app_v05_calls_preflight_without_a_pool_override(self) -> None:
+        import ast
+
+        src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
+        calls = [
+            n
+            for n in ast.walk(ast.parse(src))
+            if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "preflight"
+        ]
+        assert calls and all(all(k.arg != "pool" for k in c.keywords) for c in calls)
+
+
+class TestQG9LegacyAndNoneProbes:
+    def test_legacy_str_probe_fails_against_the_real_roster(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.v05_preflight import PreflightError
+
+        with pytest.raises(PreflightError, match=r"probed 1 of 8 roster models"):
+            _run(tmp_path, pool=None, probe_fn=lambda env: "openai/gpt-oss-20b")
+
+    def test_none_probe_fails(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.v05_preflight import PreflightError
+
+        with pytest.raises(PreflightError, match="no usable model"):
+            _run(tmp_path, probe_fn=lambda env: None)
+
+    def test_no_single_model_probe_helper_remains(self) -> None:
+        from perturb_eval.experiments import v05_preflight as pf
+
+        assert not hasattr(
+            pf, "openrouter_probe"
+        )  # QG-9: deleted (it made 8 paid calls and was unused)
+
+
+class TestQG11ProbeAllVerdicts:
+    def test_transport_error_and_404_are_recorded_not_raised(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from perturb_eval.experiments import v05_preflight as pf
+
+        def fake(self, model_id, prompt):  # noqa: ANN001
+            if model_id.startswith("deepseek/"):
+                raise requests.ConnectionError("x")
+            if model_id.startswith("z-ai/"):
+                return False, "http 404", None
+            role = next(r for r in ROLES if r in prompt)
+            return True, "ok", dict(pf.ROLE_PROBE_PAYLOADS[role])
+
+        monkeypatch.setattr(OpenRouterClient, "probe_model", fake)
+        table = pf.openrouter_probe_all({"OPENROUTER_API_KEY": "k"})
+        assert table["deepseek/deepseek-v4-flash"]["live"] is False
+        assert "transport ConnectionError" in table["deepseek/deepseek-v4-flash"]["verdict"]
+        assert (
+            table["z-ai/glm-4.7-flash"]["live"] is False
+            and "404" in table["z-ai/glm-4.7-flash"]["verdict"]
+        )
+        assert sum(1 for e in table.values() if e["live"]) == 6
+        assert all(re.match(r"\d{4}-\d{2}-\d{2}T", e["probed_at"]) for e in table.values())

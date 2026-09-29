@@ -36,6 +36,7 @@ AND_S3_KWARGS = {
     "temperature",
     # CTO #283 / OWN-1: the $12 stop-and-report spend is a recorded sweep kwarg.
     "spend_stop_usd",
+    "prior_spend_usd",
 }
 
 
