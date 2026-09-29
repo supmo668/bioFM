@@ -51,3 +51,44 @@ It also composes badly with anything that makes the tree dirty for reasons outsi
 ## Credit where the process worked
 
 The failure was caught by the agent itself, disclosed immediately as an escalation rather than folded into the next commit message, and reported at the moment it was easiest not to — its coordinator had just told it "nothing outstanding". It also declined to amend the unpushed commit to erase the evidence, on the grounds that rewriting history to hide one's own violation is the wrong default even when the history is private. None of that reduces the severity of the tool defect; it is the only reason the tool defect was observed at all.
+
+---
+
+## Corroboration 2026-09-24 — independently re-derived by `perturb-seq-eval`, with line numbers and a live incident
+
+Re-filed from scratch by a worktree agent that **could not see this file** (see below). Its
+evidence is sharper than the original and is merged here rather than kept as a second file:
+
+- **`tools/git-safe-commit:325-328` runs `git add -A` unless `--staged` is passed.**
+- **`skills/coord-commit` step 8 never passes `--staged`**, so the precise staging done in
+  step 7 is discarded.
+- **Live incident:** commit `84a8602` (`misc: coord commit`) swept T0's `pyproject`/
+  `app_v05.py` dependency pins **plus an untracked `baseline.md` written by a concurrent
+  implementer** into a coordination commit.
+
+Its proposed fix is also stronger than the original's: not only should `coord-commit` pass
+`--staged`, but **invert the default** — `git-safe-commit` should stage nothing implicitly
+and **refuse non-allowlisted paths in `--no-work-item` mode**. An opt-in sweep is a
+footgun; an opt-out one is a trap.
+
+**Actionable at source:** `plugin.source_path` is `/Users/mo/github/aiadlc`, so this can be
+fixed upstream rather than only logged.
+
+### Why it was re-filed — and it is not carelessness
+
+Measured 2026-09-24: **this file is not on `origin/main`**, and neither are 19 others.
+**20 of 28 files in `.claude/aiadlc-feedback/` are invisible from `origin/main`.** A worktree
+agent syncing through the sanctioned path (`worktree-sync`, which merges `origin/main` only)
+can see **8 of 28**. It re-derived a known finding because the record was unreachable.
+
+This is the **mirror** of
+`2026-09-17-feedback-filed-from-a-worktree-never-reaches-the-trunk-and-stays-invisible.md`.
+Both directions are broken: worktree→trunk by path, and trunk→worktree by the unpushed
+trunk. The corpus only works for whoever holds the local trunk.
+
+**Consequence for the plugin, beyond this one item:** a feedback log whose whole value is
+"do not re-derive this" silently loses that value for every agent that is not the trunk
+holder. Worth considering whether the log belongs somewhere that does not depend on a push —
+or whether `/feedback` should check for an existing filing by matching the target + symptom
+before creating a new file.
+

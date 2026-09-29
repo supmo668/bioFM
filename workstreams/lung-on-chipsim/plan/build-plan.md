@@ -391,13 +391,356 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   **command**, not the function. The binding is a fixture clean on the other three halves, so exit 2
   can only arrive via the accession half. *The CTO read a call site and called it verified once
   already; reading the code is how the previous claim passed.*
+- **E-21 — A CONSUMER TEST THAT ONLY EVER ASSERTS THE HAPPY PATH CANNOT SEE A DISABLED GATE**
+  *(r2.42, agent-drafted #303, signed verbatim)*. *Found by rule 4 (#298): disabling
+  `enforce_record_content` outright left `test_a_non_pytest_consumer_can_call_it` GREEN, because it
+  asserts `"STATUS clean EXIT 0"` and a disabled gate returns exactly that. The contract itself
+  remains bound by `test_the_shipped_command_fails_on_a_real_accession_in_tracked_content` (E6-7,
+  r2.29, MET and re-corroborated by the same run), so this is a redundant test providing no binding,
+  not an unmet obligation.* **Done when:** the non-pytest consumer test runs a fresh interpreter, with
+  no pytest imported, against a tree that MUST fail, and asserts the consumer OBSERVES the violation —
+  `RecordContentViolation` raised or a non-zero exit, **and** the violation named in the consumer's
+  own output. The existing clean-path assertion is KEPT; one direction is half a contract, and
+  deleting the happy path to add the sad one would just move the hole. **Verified by:** re-running
+  rule 4 in a scratch git worktree and showing `test_record_content_entry_point.py`'s survivors drop
+  **2 → 1**, the remaining survivor named as `test_it_RE_IMPLEMENTS_none_of_the_pieces` *[CORRECTED r2.47 (f)5: that test was renamed and the survivor count is now 2 → 0; see E-22 r2.47]* and stated
+  as correctly scoped (a negative assertion over source text, a different property, which cannot and
+  should not notice a disable). Kill set and exit code per mutant, no pipe; live + retired + reasons
+  form.
+- **E-22 — THE ACCESSION PATTERN APPLIES A WORD BOUNDARY TO TEXT WHERE AN ESCAPE IS TWO
+  CHARACTERS, AND IS THEREFORE FAIL-OPEN** *(r2.43; agent-drafted #332, signed with ONE CTO
+  change, marked)*. *`REAL_ACCESSION_RE` is `\bDB(?!9\d{4}\b)\d{5}\b`. The scanner reads SOURCE
+  TEXT, where an escaped newline is a backslash plus the letter `n`; a word character before the
+  token means `\b` does not hold, the token is not matched, and the guard reports clean. Measured
+  with the documented synthetic probes only. The agent's first proposed fix `(?<![A-Za-z0-9])` did
+  NOT fix it (the `n` of `\n` is still a letter), and was caught by the CTO's independent
+  re-measurement.* **The pattern is ONE constant** — measured: three occurrences, all in
+  `drugbank_snapshot.py` (:306 definition, :466 `real_accession_hits`, :501
+  `accession_structure_tuples`), both call sites detectors, zero parsers, zero consumers elsewhere,
+  so no split is warranted.
+  **Done when:** (a) the accession pattern is FAIL-CLOSED — no leading boundary AND no trailing
+  digit guard: `DB(?!9\d{4})\d{5}` *(CTO change: the agent's candidate kept `(?![0-9])` and left
+  the trailing-digit row open; ruled HIT, because a boundary that can hide a real token is never the
+  price. CTO-measured: removing it keeps the synthetic DB9xxxx family excluded in every position
+  tested, including six-digit and digit-preceded forms)*; (b) a **regression matrix test** pins,
+  with synthetic values ONLY, these rows — **HIT** for the all-zeros value: bare; after a real
+  newline; after backslash-`n`, `t`, `r`; after a `\x` hex escape; after a `\u` escape; after a hex
+  digit pair; after a letter; after an underscore; after a quote; digit immediately before; digit
+  immediately after — **MISS** for the DB9xxxx synthetic: bare; after backslash-`n`; followed by a
+  digit; six-digit form; digit immediately before; (c) any false positive the widening creates is
+  paid for by an explicit, tested exclusion entry, never by re-narrowing the boundary; (d) the two
+  tracked test files carrying accession-shaped tokens in escape-adjacent position are replaced with
+  documented synthetic values **first**, in their own commit, preserving what each test tests and
+  WITHOUT determining whether any token is assigned (principal's 2026-09-17 precedent, "replace, do
+  not investigate"; the principal may override before landing).
+  **Verified by:** the matrix test failing on the pre-fix pattern and passing after (red→green
+  shown, not asserted); the live guard re-run reporting the count of newly-visible hits (expected
+  zero after (d)); and `git worktree list` plus tree digests bracketing the work.
+  **Explicitly NOT in scope:** scanning decoded literals rather than source text — considered and
+  declined with reason: the defect is the boundary, not the decoding; a decoded scan changes what
+  "the bytes a commit carries" means (§12.8) and earns its own clause if wanted.
+- **E-22(b) AMENDED — THE MATRIX IS REPLACED BY A DIFFERENTIAL ORACLE AGAINST A SPEC-WRITTEN
+  REFERENCE** *(r2.44; agent-drafted #370 after three failed enumerated matrices; signed with ONE
+  CTO change, marked; SUPERSEDES E-22 done-condition (b)'s enumerated-row wording. E-22 (a), (c),
+  (d) and the pattern itself are unchanged)*. *Three enumerated matrices each pinned the axis the
+  last reviewer named and left the unnamed one. Decisive: a 9-way alternation of the matrix's own
+  probe bodies passed every test in the file. An enumerated probe set's coverage is its author's
+  imagination.*
+  **SPEC SENTENCE** *(CTO change: the agent's draft said "exactly five digits, the first of which is
+  not `9`". CTO-measured that the shipped pattern matches the first five digits of a six-digit run and
+  matches a leading Arabic-Indic nine. Both are fail-closed and correct, but the sentence as drafted
+  described neither, and the sentence is the one thing a human checks)*: **an accession is the two
+  ASCII characters `DB` (case-sensitive) followed by five characters that are each a Unicode decimal
+  digit, the first of which is not the ASCII digit `9`; digits beyond the fifth are not part of the
+  match; it is recognised whatever precedes or follows it; scanning is left to right and matches do
+  not overlap.** Residual risk: reference and regex share a wrong spec. That is smaller than a wrong
+  implementation, and checkable by reading this line.
+  **Done when:** (a) a reference scanner implements the spec sentence in plain Python with **no
+  regex**, returning match spans for a whole string; (b) the test asserts
+  `[m.span() for m in REAL_ACCESSION_RE.finditer(s)] == reference(s)` over whole strings (verdict,
+  span, overlap and multiplicity in one assertion); (c) input is GENERATED, not listed. **Axis 1:**
+  `DB` + every digit string of length 0..6, exhausted, bare context (default tier, ~~~1.1M strings,
+  ~0.8 s measured~~ *[CORRECTED r2.47 (f)1: the figure described the extended tier; the default tier measured 1..5 lengths, 248,111 total; off-by-one fixed in r2.47 (e)]*). **Extended tier: length 0..7, required in every quality gate run and recorded in
+  the receipt.** *[r2.47 (e): measured that NO prior gate ran it; now wired as a Step 8 command]* **Axis 2:** every left × right pair from the stated alphabet, crossed with a seeded
+  body sample. **Axis 3:** seeded fuzz, **seed printed before the run starts**. The body samples on
+  axes 2/3 include non-ASCII decimal digits; (d) `KNOWN_WRONG` is RENAMED as a regression museum,
+  documented as inheriting the oracle's coverage and not extending it, and a test asserts the oracle
+  **fails** on every entry (rule 3b applied to a test); (e) `test_the_matrix_covers_both_axes` is
+  DELETED.
+  **Measured before signing (#370):** ~~7,466,645 generated strings~~ *[CORRECTED r2.47 (f)1: reproduced by neither tier; origin not established; in-tree numbers recorded in r2.47]*; the shipped pattern agrees with
+  the reference (0 disagreements); all 17 known-wrong patterns are killed, including the
+  lookup-table pattern (4,458,001 disagreements), the three trailing-blind survivors, `\d{4}[0-8]`,
+  and the `(?![a-z])` and `(?![0-9])` trailing guards (killed behaviourally: on a token followed by a lowercase letter, and on a token followed by a sixth digit).
+  **STATED CONTEXT ALPHABET, on BOTH sides** (its incompleteness is a recorded limit): empty, letter,
+  digit, underscore, quote, hyphen, dot, comma, colon, paren, space, newline, backslash-`n`/`t`/`r`,
+  a `\x` hex escape, a `\u` escape, a hex digit pair. **RECORDED LIMIT:** ~~the token axis is closed;~~ *[RETRACTED r2.47 (f)2: the default tier did not even kill the original defect on axis 1; see r2.47 (b) for what is and is not closed]*
+  the context axis is unbounded and covered only as far as this alphabet reaches.
+  **SHAPES, NOT VALUES (r2.44 re-sign):** plan, clause and dispatch text describes example tokens by
+  SHAPE (e.g. "a token followed by a lowercase letter"), never as contiguous accession-shaped values.
+  Concrete values live only in test code, under the assembled-fragment convention
+  (`test_record_content_guard.py:70-74`). Dispatches are content-exempt, so a value that looks safe
+  there becomes a live-gate failure when it is copied into a non-exempt file. Never pay for an example
+  with a ledger exemption of the plan itself.
+  **DOCSTRING RULE:** every sentence in a test docstring that asserts a property names the test or
+  measurement that establishes it, or the sentence goes.
+  **RECORDED NEGATIVES (do not re-argue):** the seeded oracle cannot degenerate; `_failures` runs
+  production, so a self-guard ignoring the pattern cannot be written by accident; the span pin
+  catches span-shifting mutants; the end-to-end scanner row is kept; the three-state taxonomy cannot
+  be collapsed without a test going red.
+  **NOT in this clause:** the consumer-contract half (randomised bytes, a constructed clean tree,
+  recording doubles, exact `accession_scanned`, the must-match probe at `:107`). It is signed
+  separately as r2.45, once its byte-sniff-stub kill is MEASURED.
+- **E-22(c) — THE CONSUMER CONTRACT IS BOUND BY A CONSTRUCTED ORACLE, NOT BY THE IMPLEMENTATION'S
+  OWN OUTPUT** *(r2.45; agent-drafted #377, the third attempt at this file; signed with ONE CTO
+  change to (d), marked)*. *An assertion whose input the implementation chooses is not a binding.
+  Substring-matching a renderer's format string cannot tell "the gate computed this" from "something
+  printed this", and randomising file NAMES while payloads are constants leaves every cheap byte
+  proxy able to separate the classes.*
+  **Done when:** (a) collaborators are observed by **recording doubles** (each called exactly once;
+  the report equal to the renderer's output unmodified), never by scanning source for forbidden
+  substrings, which is evadable by spelling and steers a cheat toward sniffing; (b) the clean
+  direction is asserted against a **constructed** tree with exact counts, never the live repository;
+  (c) the failing direction randomises **bytes**, carries a second offender class that fails via the
+  ACCESSION half, and asserts `set(reported) == set(constructed)` on **both** halves; (d) *(CTO
+  change)* payload classes are classified by an **INDEPENDENT REFERENCE readability predicate**,
+  written in plain Python from a one-line READABILITY SPEC SENTENCE (the guard's documented decoding
+  rule: accepted encodings, BOM handling, size bound), with **no import of production decoding code**,
+  and a loud failure if a class comes up empty. A **differential test** asserts that production
+  `scan_chunks` agrees with the reference over a generated byte corpus. *The agent's draft classified
+  payloads with production `scan_chunks`. The CTO verified that `_classify` imports it, so a mutant
+  replacing `scan_chunks` with a NUL/length proxy would reclassify the fixture consistently with
+  itself and pass: ground truth routed through the implementation, the defect this clause exists to
+  remove, one layer down.* **The readability spec sentence and its measurement arrive as r2.46; the
+  gate over this range may not run before r2.46 is signed**; (e) `accession_scanned` is counted in the
+  same pass that reads the bytes, carried on **both** result and violation, reported in the
+  composition root's own section, and asserted by **exact equality**; (f) the seed is printed
+  **before** the run starts.
+  **Verified by:** the byte-sniff stub (own-tree shortcut + NUL/length/ASCII proxies) KILLED by all
+  three consumer-contract tests, with the kill reasons recorded (#377, measured at `cc5142b`), and,
+  for (d), r2.46's measurement: the `scan_chunks`-replaced-by-proxy mutant KILLED by the differential
+  test.
+  **Recorded:** BOM-less UTF-16/32 is excluded as a decoy (E-24 owns it). A fixture must not encode
+  a belief about the decoder; the agent measured that its hand-picked "undecodable" payloads were
+  silently readable. A character ALPHABET adjacent in source can trip the live guard just as an
+  example token can: shapes-not-values extends to alphabets (assemble them).
+- **E-22(d) AMENDED — THE FIXTURE'S READABILITY GROUND TRUTH COMES FROM AN INDEPENDENT REFERENCE,
+  NOT FROM THE DECODER** *(r2.46; agent-drafted #379, supersedes r2.45(d); signed with CTO changes,
+  marked)*. *r2.45(d) was already corrected once. The draft measured it: with the decoder replaced by
+  a byte proxy, the old fixture's classes merely MOVED (from four and four to five and one) and every
+  set equality held. The independent reference kills that mutant.*
+  **READABILITY SPEC SENTENCE** *(plain byte files only, not parquet/HDF5 datasets. CTO change: the
+  draft said "UTF-16 if BOM; failing that as UTF-8", which reads as a fallback. The CTO read
+  `guards/decoding.py::_decode_text` and found a BOM-prefixed file that fails UTF-16 is NOT text,
+  with no fallback. The two numbers are stated here because the module documents them only as "a low
+  printable ratio" and a code constant)*: **a plain file is READABLE TEXT when it is at most 256 MiB
+  on disk and EITHER its bytes begin with a UTF-16 byte-order mark (either byte order) and decode as
+  UTF-16, in which case there is no other route: a BOM-prefixed file that fails UTF-16 is not text;
+  OR they do not begin with one and decode as UTF-8 ~~(with or without a UTF-8 BOM)~~ *[REMOVED r2.47 (f)3: a UTF-8 BOM is itself valid UTF-8, so a second attempt is unreachable, measured 0 disagreements over 5,018 inputs; do not re-add]*; OR, failing
+  UTF-8, they contain no NUL byte and, decoded as latin-1, are non-empty with at least nine tenths of
+  their characters printable or tab, carriage return or line feed. Everything else, including any
+  file over the ceiling, is not text and is reportable rather than scanned.** This is CURRENT
+  behaviour, including BOM-less UTF-16/32, which currently decodes as UTF-8 when the bytes happen to
+  be valid UTF-8. **E-24 changes that, and E-24 must update this sentence and the reference in the
+  same commit.**
+  **Done when:** (a) a reference readability predicate implements the sentence in plain Python,
+  importing NO production decoding code; (b) the consumer fixture classifies its payload classes with
+  the REFERENCE, failing loudly if a class is empty; (c) a differential test asserts production
+  `scan_chunks` agrees with the reference over a generated, seeded byte corpus (seed printed before
+  the run), and the corpus MUST include *(CTO change)* the boundary shapes: empty file; BOM followed
+  by invalid UTF-16 (odd length, lone surrogate); UTF-8-BOM files; latin-1 exactly at and just below
+  the nine-tenths ratio; a NUL in otherwise valid UTF-8; and the size ceiling, exactly at and one byte
+  over it (sparse files, so the test stays cheap); (d) `_decode_text`'s docstring is updated to state
+  the ratio and cite the ceiling constant, so the documentation owns the numbers the reference
+  depends on; (e) E-24 is named as the clause that must change sentence and reference together.
+  **Verified by:** the decoder-replaced-by-byte-proxy mutant KILLED by the differential test. The
+  disagreement count and corpus size are recorded FROM THE IN-TREE RUN *(CTO change: the draft's
+  figures did not reconcile, a 6,016-string corpus against "451 of 3,009"; a signed clause does not
+  carry a number that disagrees with itself)*. Production agrees with the reference on the full corpus.
+  **Recorded:** the reference's two numbers were read from code constants, not prose. This clause is
+  what makes them documented rule, and (d) closes the gap at the source.
+- **E-22 r2.47 — DETECTOR AND GATE CORRECTNESS (WI-1)** *(agent-drafted #388 after gate 4 FAILED
+  (#386); every done-condition MEASURED in tree before drafting; signed as drafted, including the
+  agent's three measured corrections to the CTO's scope)*. *Gate 4's finding: the checks built to
+  close "a claim wider than its check" were themselves wider than what they checked: a
+  one-character trailing guard beat the oracle; a 5x cut to the ceiling passed the whole suite; a
+  signed exit-code ruling was collapsed; the signed corpus figure was unreproducible.*
+  **(a) PATTERN PIN over TEXT AND FLAGS.** A test asserts `REAL_ACCESSION_RE.pattern` equals the
+  signed pattern string exactly AND `REAL_ACCESSION_RE.flags == re.UNICODE`. *Agent correction:
+  an `IGNORECASE` compile has byte-identical `.pattern` and survived both axes. A text-only pin is
+  itself a claim wider than its check.* Plus a lowercase-prefix behavioural row. The failure
+  message says that changing the detector is a deliberate act touching pin, clause and oracle
+  together. The pin makes a change VISIBLE; the differential oracle proves the SIGNED pattern
+  meets the spec.
+  **(b) CONTEXT AXIS: every single code point**, left and right, one body per side (2,228,224
+  strings, 2.1 s, measured; runs unconditionally, no tier), plus the multi-character alphabet.
+  Measured: shipped pattern 0 disagreements; the trailing guards that survived the old corpus are
+  KILLED, and so is the rejected lookbehind fix. **Still open, written exactly:** multi-character
+  contexts outside the stated alphabet. ~~"Closed" is used only for single-code-point contexts.~~ *[CORRECTED r2.47b (1), gate 5 R05: true only around the PROBE body. Single code point around the probe body: CLOSED. Around other bodies: COVERED, NOT CLOSED (a guard sparing one exact body survived both tiers). Context x body: OPEN (exhausting it is about 10^5 x 2.2M)]*
+  Prefix case is closed by (a), not by (b).
+  **(c) CEILING FROM BELOW.** Three sparse rows: one byte below and exactly at the ceiling are READ;
+  one byte over is REPORTED. The constant-equality assertion is legitimate because the reference
+  is written from this clause, and its message says so. Measured: the 48 MiB mutant that passed
+  the entire suite now fails two rows plus the equality *[PRECISION r2.47b (3): for the CONSTANT form only. A TRUNCATING read survived homogeneous-NUL rows until gate 5 R08 made each row end in the probe token, which only a full read sees]*. **Recorded cost:** the at-ceiling row
+  raises peak RSS by about 511 MiB (read_bytes plus decode), documented in the row for
+  memory-capped environments. The reference's verdict for that row is derived from the sentence,
+  not computed over 256 MiB.
+  **(d) E-13 TAXONOMY RESTORED.** No catch on the base class in the composition root.
+  Declaration-data-unusable exits 2 with the file named; guard-invariant violations PROPAGATE and
+  are never converted; could-not-scan (exit 3) is reserved for scan failure. `accession_scanned`
+  is `int | None` and is `None` when the half was never attempted, never 0. Each branch proven on
+  a constructed tree.
+  **(e) TIERS.** The axis-1 off-by-one is fixed, and the empty body is generated explicitly (the
+  bare prefix is present). The extended tier is WIRED as a documented Step 8 command whose
+  invocation line is recorded in the receipt. Post-fix corpus sizes are recorded from a run, not
+  from arithmetic.
+  **(f) SIGNED-TEXT CORRECTIONS**, each marked in place above with strike-through and a pointer,
+  never silently edited: (1) the r2.44 corpus figure and tier sizes; (2) the retracted "token axis
+  is closed"; (3) the unreachable UTF-8-BOM phrase removed from the r2.46 sentence; (4) the
+  non-empty check is an implementation guard (divide-by-zero), not a spec line; (5) E-21's
+  Verified-by survivor name and count.
+  **(g) RATIO ROWS THAT REACH THE RULE:** invalid-UTF-8, NUL-free latin-1 high-byte rows at, just
+  below and just above nine tenths. Measured: they kill the 0.95, 0.99 and 0.50 mutants that the
+  old ASCII rows missed *[PRECISION r2.47b (3): the old ROWS missed them; the old FILE still killed all three through `generated_bytes`. Also, per gate 5 R09, no finite row resolution pins a threshold, so the comparison is additionally bound structurally (an AST check for `>=` against the named constant)]*. Production's ratio becomes a NAMED constant, where it is currently an
+  inline literal that nothing can reference.
+  **Evidence discipline:** before any gate, the bracket command and its digests are written to
+  `qgr/evidence/` BEFORE the reviewers start, so compaction cannot lose them.
+  **WI-2 (no clause)** is acknowledged as scoped: false docstrings and messages; two literals
+  replaced by the documented probe; ~~a collection-count assertion (a suite that collects zero tests
+  FAILS)~~ *[CORRECTED r2.47a (#397): pytest EXITS 2 on a collection error, measured; there is no silent
+  pass. The premise was an unmeasured consequence that both the agent's verdict and the CTO's scope
+  ruling repeated. Replaced by: import the reference by the path the project owns
+  (`tests.readability_reference`), which resolves regardless of import mode, from a foreign cwd,
+  and if `tests/` ever gains an `__init__.py`]*; the empty-payload recorder; try/finally on sparse files; coverage-line format; a grep
+  showing every property claim names an existing test.
+- **E-22 r2.47b — CORRECTIONS FROM GATE 5 + (h)** *(gate 5 PASSED after its fix cycle: receipt Hash E
+  `8f2d12e`, CTO-verified; the extended tier was run by its wired command and recorded in the receipt).*
+  Four passages are corrected IN PLACE above, with markers: (1) r2.47(b)'s "closed" is scoped to the
+  probe body; (2) pointers from r2.28's three-state sentence and r2.29's exit-3 sentence to r2.47(d)'s
+  propagation; (3) precision on the (c) and (g) measurements. Gate 5's in-gate fixes that change
+  meaning: the error for an unusable ledger is rendered BESIDE the scan and never replaces it (R01, a
+  regression the build introduced); both SCANNER call sites are driven over generated contexts
+  through a no-disk seam, because the pin and the oracle bind only the constant (R06); the ceiling rows
+  end in the probe token (R08); there is a code point x body axis (R05); and the ratio comparison is
+  bound by an AST check (R09).
+  **(h) NEW (pre-existing, found in gate 5):** `errors.py` documents "a container with no reader
+  installed" as could-not-scan (exit 3), but `MissingContainerReader` subclasses `RuntimeError`, is
+  never translated, and exits 1. **Ruled: the documented behaviour is right** (a container that cannot
+  be read IS a scan that was not performed, a repository condition and not a guard defect). Done when
+  `MissingContainerReader` is translated to could-not-scan (exit 3) with the file named, proven on a
+  constructed tree, and the docstring cites the binding test. Implemented in the E-23 iteration.
+- **E-23 — THE STRUCTURE DETECTOR IS FAIL-CLOSED, PROVEN BY A DIFFERENTIAL ORACLE** *(r2.48; agent-drafted
+  #404, every figure measured in tree before drafting (harness `qgr/evidence/e23-draft-measure.py`,
+  seeded); same design as E-22 from the start; signed with ONE CTO addition, marked)*. `_STRUCTURE_RE`
+  is the ONLY control on the exempt ledger files, and its InChIKey half carried a word boundary at both
+  ends: the E-22 defect in its last instance.
+  **SPEC SENTENCE:** *a STRUCTURE IDENTIFIER is (i) an InChI: the seven ASCII characters `InChI=1`,
+  case-sensitive, then optionally `S`, then `/`, then one or more characters none of which is
+  whitespace, running to the next whitespace character or the end of the text; or (ii) an InChIKey:
+  fourteen ASCII uppercase letters, a hyphen, ten ASCII uppercase letters, a hyphen, and one ASCII
+  uppercase letter. Either is recognised whatever precedes or follows it; scanning is left to right,
+  (i) is tried before (ii) at each position, and matches do not overlap.*
+  **Done when:** (a) the key half loses both boundaries, the InChI half is unchanged, and the pattern
+  is PINNED over text AND flags (`re.UNICODE`), with a lowercase-key behavioural row; (b) a reference
+  scanner is written from the sentence in plain Python with no regex, with the coincidence of `\s`/`isspace`
+  and `[A-Z]`/ASCII uppercase MEASURED over all code points (0 disagreements each, measured); (c)
+  generated input, seeded with the seed printed first: a token axis of seeded keys, each with its one-edit
+  near-misses, plus InChI prefix variants; the E-22 context alphabet on both sides; every single code
+  point around a probe key AND a probe InChI; code point x seeded key; and fuzz (breadth only: it kills
+  nothing here, and the clause does not claim it does); (d) the ONE call site,
+  `accession_structure_tuples`, driven through the seam; (e) a regression museum, each entry proven
+  killed. The swapped-alternation survivor is PROVABLY EQUIVALENT (an InChI's second character is
+  lowercase; every key character is uppercase) and is dropped with that reason; (h) (from r2.47b)
+  `MissingContainerReader` translates to could-not-scan (exit 3), file named, proven on a constructed
+  tree.
+  **(i) PROBE PROVENANCE** *(CTO addition: InChIs and InChIKeys are STRUCTURE identifiers, and this
+  workstream forbids associating an accession with a structure. The draft did not say where its probe
+  structures come from)*: every InChI and InChIKey in tests and harnesses ~~is~~ *[SCOPED r2.48a (#406): in the DETECTOR and GUARD
+  tests and harnesses, meaning E-23's own tests, its measurement harness, the record-content guard tests, and any
+  test pairing a structure with an accession probe, where only the SHAPE matters. It does NOT reach the
+  domain chemistry fixtures (parsing, stereo, adjudication), which parse real chemistry by design and
+  carry no accession; nor the sanctioned ledger file. The CTO's original wording was broader than
+  intended]* is **invented by construction
+  and visibly synthetic**: keys generated from a stated rule (for example, a single repeated letter per
+  segment, or a seeded generator whose seed is printed); InChI bodies are chemically meaningless
+  placeholder text. **Never copied from any data file, ledger, fixture, dispatch or external source,
+  and never checked against any database to see whether it is real.** A comment at each probe
+  definition states that it is invented. The same rule governs the committed harness in
+  `qgr/evidence/`. The shapes-not-values rule applies to plan and dispatch text for structures as for
+  accessions.
+  *[AMENDED r2.48b (#412) — agent-drafted sequencing + scope, with two CTO additions.*
+  ***(i) SEQUENCING.*** *(i) is applied only AFTER the code-point x InChI-body axis exists, because until
+  then the fixtures (i) condemns are the only oracle for the uppercase-body guard, and applying (i) first
+  converts a killed mutant into a full-suite survivor with no signal that it has. The axis landed at
+  `2400abc`; (i) is unblocked by that commit and by nothing earlier.*
+  ***(i) SCOPE — BY THE PROPERTY UNDER TEST, NOT BY FILE.*** *(i) governs a structure value where only its
+  SHAPE is under test. Where a test needs real chemistry — canonicalisation, stereo discrimination,
+  InChIKey equality — the PubChem-citation rule governs instead and (i) does not reach it; such a value is
+  real, cited by CID and retrieval date, and carries no accession outside the documented synthetic range
+  and no coined name. **Where both apply, the citation rule governs.** A test that cannot say which of the
+  two it needs is a test whose purpose is unclear, and that is the defect to fix first. **The r2.48a file
+  list above is ILLUSTRATIVE, not definitional** — that list is what led an agent to a compliant fixture,
+  so the property is primary and the list is only an example of it.*
+  ***(i) DECLARATION (CTO addition).*** *Every value either rule governs carries an inline marker naming
+  which rule governs it. Without one the clause is interpretive: a reader must re-derive the test's purpose
+  before applying it, and that is precisely the step that failed in #412. With one, the clause is auditable
+  by reading.*
+  ***(i) PROBE CORRECTNESS (CTO addition).*** *Any shape count offered in support of a claim under this
+  clause MUST exclude the documented synthetic range, and that exclusion belongs in the shared scanning
+  tool rather than in each invocation. The #412 near-miss came from a count wider than the claim it was
+  used for — the same defect family this whole range exists to close.]*
+
+  **Measured before signing (#404):** tokens 508,004 (old pattern 30,000 disagreements, new 0); context
+  alphabet 108,000 (34,500 / 0); every code point x both probes 4,456,448 (267,096 / 0); code point x
+  seeded key 2,228,224 (267,096 / 0); museum 17 of 18 killed (the 18th is provably equivalent); live-tree
+  ledger tuples 0 old and 0 new, and newly visible pairs 0, so no exclusions are needed. About 21 s per
+  oracle pass.
+  **RECORDED LIMITS, exact:** single-code-point contexts are CLOSED around the two probes and COVERED,
+  NOT CLOSED around other tokens; multi-character contexts outside the alphabet are OPEN; the key space
+  is SAMPLED, not exhausted.
+  **CLASS SWEEP (re-derived):** all 10 `re.compile` sites in `chipsim/`. Only `_STRUCTURE_RE` carried a
+  boundary or a lookbehind; the other 9 are anchored validators, not content detectors. With E-23 the
+  `\b`-on-source-text CLASS is closed in this module.
+- **E-23 r2.49 — A SMALLER TREE: delete what rejects nothing unique, bind by construction what no corpus
+  can see, fix the two ledger defects, make the shape scan a control** *(agent-drafted #445 after gate 7
+  FAILED (#442); every done-condition measured in tree before drafting; signed AS DRAFTED, including the
+  agent's measured correction to the CTO's scope: the default suite the CTO specified would have left one
+  museum entry unrejected, and 38 hand-written non-ASCII-whitespace rows (0.000 s) cover it instead of an
+  axis)*. Measured: today 7 axes, 9,585,016 strings, 54.9 s, 0 unrejected; proposed default 652,123
+  strings, 7.7 s, 0 unrejected. 94% fewer strings, 86% less time, zero coverage lost.
+  **(a)** `_axis_code_point_by_key` and `_axis_code_point_by_inchi_body` are DELETED;
+  `_axis_single_code_point` moves to the EXTENDED tier. The unique-rejection table (tokens 4;
+  ascii_pairs 2; the three code-point axes 0; contexts/fuzz 0) is recorded here, and a test asserts the
+  property: deleting any axis must leave at least one museum entry unrejected, or the clause says why it
+  is kept anyway. **(b)** Three clauses no corpus can see are bound by three constructed documents, each
+  measured to distinguish its mutant: each (line, accession) pair reported once; no whole-document bound
+  (a pair at the end of a 6,333-byte, 402-line document); the FIRST structure in document order (two
+  in-window structures at different distances, the earlier one farther). Each mutant joins
+  `_CALL_SITE_MUSEUM`. **(c)** The association spec sentence is rewritten FROM THIS CLAUSE, not from the
+  production docstring; where the clause was silent, the rule is stated here first: pairs are reported
+  once per (line, accession); a document has no size bound; the structure named is the first in document
+  order within the window; the window is `_TUPLE_WINDOW`, which every module imports and none restates.
+  **(d1)** The ledger reader uses `link_bytes`, never `read_bytes` (§12.8): a dangling link whose target
+  string carries a pair is a HIT; a live link is not read through. **(d2)** The exempt ledger is YAML by
+  construction, so `ledger_tuple_hits` scans the UNION of the raw lines and the `yaml.safe_load`-decoded
+  scalars; a wrapped scalar recovering a key is a HIT. A ledger-specific rendering rule, separate from
+  E-24's encoding rule. Both red-then-green. **(e)** `shape_scan` becomes a control or is deleted:
+  exact-match placeholder rule; a `could-not-scan` state distinct from clean, and an empty input is
+  could-not-scan; the gate bracket CALLS it and fails on could-not-scan or any unaccounted shape; it
+  implements r2.48b scope-by-property so the 37-file unaccounted count reaches 0 by MARKING; a test fails
+  on any unmarked shaped value. **(f)** "CLOSED" is struck wherever the clause says COVERED, NOT CLOSED
+  (third recurrence); the equivalence proof reads `_STRUCTURE_RE` or is deleted and the survivor carried
+  as unproven; the column witness records 2,086 and [2049, 2085] as closed; counts are regenerated by the
+  harness, never typed; the strict xfail is parametrised so every break character runs. **(g)** One shared
+  `qgr/evidence/bracket.py`, tested once; the per-gate copies are deleted.
+  **STOPPING RULE (CTO, #444):** if gate 8 fails on the same family, no patch: a one-page design note, and
+  E-23's scope goes to the principal for a time box.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys
   nothing, because **no caller treats a topology failure differently from a decoding one**. The
   deciding evidence is not that `pytest.raises(RuntimeError)` is broad — that is a test defect with a
   test fix — but that `RecordContentScan.__post_init__` raises the same class for an **internal
-  invariant violation**, which surfaces as exit 3 *"your checkout could not be scanned"* for what is
+  invariant violation**, which surfaces as exit 3 *"your checkout could not be scanned"* *[SUPERSEDED r2.47(d), pointer added r2.47b (2): guard-invariant violations now PROPAGATE (exit 1, measured) and are never converted]* for what is
   a programming error inside the guard. The exception lives in a **dependency-free `guards/errors.py`**:
   the previous placement rule — *"the exception belongs with the layer that raises it"* — was
   **post-hoc justification for a cycle constraint**, and `repo.py` raises it 5 times against
@@ -433,7 +776,7 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   exactly-one-claim check — which tests key PRESENCE, not value — and then raised `KeyError`, exiting
   **1**, outside the ruled clean / files-fail / could-not-scan set. The scan invariant also compares
   **truthiness**, so an `exit_code=1` object constructs and renders. Every path out of the entry point
-  lands in one of the three states, and the type makes the fourth unrepresentable rather than merely
+  lands in one of the three states *[QUALIFIED r2.47(d), pointer added r2.47b (2): every path for a REPOSITORY condition. A guard-invariant violation (a programming error inside the guard) propagates as exit 1 by design and is outside the three-state taxonomy]*, and the type makes the fourth unrepresentable rather than merely
   untested.
 - **EVERY INTERPOLATED FIELD IS ESCAPED, not just paths** *(r2.28)*. r2.24 escaped unprintable
   **paths** after a filename drew a fake all-clear. `ScanRow.detail` is interpolated **raw**, and a

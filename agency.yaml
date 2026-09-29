@@ -84,21 +84,11 @@ quality:
   lint_command: ""                     # e.g. "pnpm exec oxlint"
   typecheck_command: ""                # e.g. "pnpm exec tsc --noEmit"
   test_command: ""                     # e.g. "pnpm exec jest"
-  # perturb-seq-eval per-agent keys (CTO #328/#365; precedent 6011dec). Globals stay "".
-  # Anchored with `cd`: quality-check.sh / commit-precheck run from the WORKTREE ROOT.
-  # FORMAT is WORKING-TREE scoped (changed-vs-HEAD + untracked .py). The branch-vs-origin/main
-  # shape was measured RED (70 of 79 branch .py files unformatted, repo-wide debt: 97 files at
-  # 451f730), so it would block every turn. Proven: no .py change -> 0; planted mis-format in a
-  # tracked or untracked file -> 1; reverted -> 0. xargs -r = no-op on an empty list.
-  # LINT is the narrow correctness subset (green at baseline; planted F821 -> 1).
-  # TEST: the full suite (674 at 451f730, 748 after P0-P5). Integration-marked paths needing
-  # scGPT weights/network PASS ONLY BECAUSE they are mocked/skipped - not evidence for those paths.
-  # These keys feed the Stop hook only; /quality-gate Step 8 reads the empty global, so the
-  # suite is still run by hand in every gate.
-  format_command_perturb-seq-eval: "cd projects/perturb-seq-eval && { git diff --name-only --diff-filter=ACMR HEAD -- '*.py'; git ls-files --others --exclude-standard -- '*.py'; } | sed 's|^projects/perturb-seq-eval/||' | xargs -r .venv/bin/ruff format --check"
-  lint_command_perturb-seq-eval: "cd projects/perturb-seq-eval && .venv/bin/ruff check --select E9,F63,F7,F82 src tests scripts"
-  typecheck_command_perturb-seq-eval: ""
-  test_command_perturb-seq-eval: "cd projects/perturb-seq-eval && .venv/bin/python -m pytest -q -p no:cacheprovider tests"
+  # Per-role overrides (read by hooks/quality-check.sh as <key>_<role>; NOT yet by /quality-gate
+  # Step 8 or commit-precheck, which read only the global key; see .claude/aiadlc-feedback).
+  # aviary-biosim (#329): tests proven able to fail (planted assert -> exit 1). format/lint/typecheck
+  # deliberately unset: ruff defaults fail 93 pre-existing errors; lint adoption is scoped work after F08.
+  test_command_aviary-biosim: "uv run --with pytest --with pyyaml --with fhaviary --with openai --with weave --with requests python -B -m pytest science/tests -q && uv run --with pytest --with pyyaml python -B -m pytest .claude/skills/v2r-loop/scripts/tests -q"
   # Definition of Done (Scrum) — the explicit, shared statement of what "complete"
   # means, checked at /phase-complete by tools/dod-check. Recognised MECHANICAL
   # keys are verified automatically (qg-receipt, docs-ticket-linked, ticket-linked,
@@ -203,14 +193,37 @@ cycle:
 # This in-flight Developer-Documentation tier is DISTINCT from the completed-
 # system reference tier written only at /plan-complete. Read by tools/docs-plan.
 docs:
-  provider: "none"               # none | notion — in-flight dev-doc target
+  provider: "notion"             # none | notion — in-flight dev-doc target
+                                 # set 2026-09-26 (#414, principal wants HACP-on-Notion).
+                                 # NOTE: propagation stays INERT until a target resolves —
+                                 # docs.notion.parent is deliberately BLANK and the CTO scope
+                                 # below is the only resolving target, so "CTO-only writer"
+                                 # is enforced by CONFIG rather than by convention. Do not set
+                                 # `parent` without an enforcement: docs-plan uses agent identity
+                                 # to pick a SCOPE, never to gate the write.
   root: "docs"                   # local docs tree; per-ws doc → <root>/workstreams/<ws>.md
                                  # indexed by <root>/workstreams/index.md
   notion:
     parent: ""                   # Notion parent page (title/id) for Developer Documentation
                                  # pages; the fallback when no per-agent scope matches
                                  # (blank + no scope → local index only)
-    scopes: {}                   # per-agent Notion sub-workspace scopes: <agent>: <parent page>
+    scopes:                      # per-agent Notion sub-workspace scopes: <agent>: <parent page>
+      cto: "3e5749bd250d806899f1d04b1053d1e7"
+                                 # SET 2026-09-26 (#416). This is the HACP Index DATABASE id, read
+                                 # back from the Notion API by perturb-seq-eval (not recalled).
+                                 # WHY the database and not the AI-RDLC root page: docs-plan is a
+                                 # pure planner — it emits PROPAGATE|<parent>|notion and the calling
+                                 # skill performs the MCP write — so the value is opaque here, and the
+                                 # write must land as a ROW of the HACP Index. The root page id is
+                                 # already carried by docs.notion.root in the principal user.yaml.
+                                 # UNVERIFIED END-TO-END: no write has been attempted against this
+                                 # value. If the first write fails with a parent-type error, the
+                                 # alternative is the data-source id
+                                 # 3e5749bd-250d-80c1-9927-000bb80a2b0d (newer Notion API takes
+                                 # parent.data_source_id). Try that before assuming anything else.
+                                 # Scoping to `cto` alone is the ENFORCEMENT: every other agent
+                                 # resolves no scope, falls back to the blank parent, and docs-plan
+                                 # documents that as no Notion propagation.
                                  # e.g. { web: "Web Docs", api: "API Docs" } — docs-plan resolves
                                  # the current agent's scope first, then falls back to parent
   # ── Usage docs (what the user can DO) — the tier the TICKET must stay aligned
@@ -234,6 +247,9 @@ tests:
   # Mirrors quality.lint_command_<agent> / quality.test_command_<agent> convention.
   # referee_command_web: "pnpm exec vitest run --reporter=tap"
   # referee_command_api: "pytest tests/sealed/ -q --tb=no"
+  # aviary-biosim (#429 G1, 2026-09-26): the separate Aviary-BioSim repo has no agency.yaml and may not get one (it
+  # would shadow this file), so its referee command lives here. Runs from the aviary worktree root.
+  referee_command_aviary-biosim: "sh paper/scripts/sealed_suite_results.sh"
 
 # ── Review fan-out ──────────────────────────────────────────────────────────
 review:

@@ -491,3 +491,201 @@ A1/A2/A6 mean the current artifact set does not describe a single experiment:
 pass and a few CIs. Three of its four empirical claims currently rest on code
 defects, and the dataset gate that passes does so partly on tasks whose
 perturbation target was a randomly chosen gene.
+
+---
+
+# Addendum 2 — the Adamson median is contaminated too (2026-09-24)
+
+The main review and Addendum 1 left **one** headline MSD number with a confirmed defect
+(Norman's, via random target genes on `_`-delimited combos). **That is now both of them.**
+
+## A2-1 — `_normalise_pert_label` merged four different constructs into the `ATF6` task
+
+`src/perturb_eval/experiments/e2_adamson.py` normalises a perturbation label as
+`raw.split('_')[0]`. The raw 10X005 labels encode *combination constructs*, so:
+
+| normalised | raw labels merged into it |
+|---|---|
+| **`ATF6`** | `ATF6_only_pMJ145`, `ATF6_IRE1_pMJ152`, `ATF6_PERK_pMJ150`, `ATF6_PERK_IRE1_pMJ158` |
+| `PERK` | `PERK_only_pMJ146`, `PERK_IRE1_pMJ154` |
+| `3x` | `3x_neg_ctrl_pMJ144-1`, `3x_neg_ctrl_pMJ144-2` |
+
+One single-gene construct, two doubles and a triple became **one task**.
+
+**`ATF6` is in the v0.5.0 trainer task list.** So the reported **Adamson median
+best-config MSD of 0.147**, and the `PASS` verdict on its pre-registered `< 0.20` gate, were
+computed with a task whose cell population is a mixture of four distinct perturbations.
+
+This is the first label defect found today with confirmed exposure **in a held-out task**.
+
+> **CORRECTED 2026-09-24, hours after writing, and the error was mine to propagate.** This
+> paragraph originally read "the other nine were unexposed by sampling luck rather than by
+> design." **That is wrong for five of the nine.** The agent gave me that framing, I wrote it
+> here and passed it to the principal, and neither of us had checked the right thing: the claim
+> was verified only against the **held-out task lists**.
+>
+> Re-checked against the pre-fix code at `228d354` for **training** exposure, it splits by
+> dataset:
+>
+> - **Adamson** (`PERK`, `IRE1`, `3x`, `Gal4-4(mod)`, plus a `nan` label on 2,919 unannotated
+>   cells found in the full inventory): `load_adamson_combined` skipped labels absent from the
+>   shared gene vocabulary (`e2_adamson.py:103-111`), and `LinearBackbone.fit` skips labels
+>   absent from `target_gene_idx` (`linear.py:48`). Their cells trained no model. Exposure is
+>   the all-cells HVG ranking only. **"Unexposed" holds.**
+> - **Norman** (`C3orf72`, `C3orf72_FOXL2`, `KIAA1804`, `C19orf26`, `TGFBR2_C19orf26`): the
+>   per-file loader gave each a **random target index**, which put them *into*
+>   `target_gene_idx` — so they entered the **training set** of every Norman task that did not
+>   hold them out, carrying a random on-target feature. **"Unexposed" is wrong.** It adds five
+>   labels to A4's training-side exposure. It does not change *which* published numbers are
+>   affected, since `median_msd_norman` and `GATE_NORMAN` were already uninterpretable under A4.
+>
+> **The lesson is a checking discipline, and it is why this correction is worth more than the
+> fact it corrects:** *"not a held-out task"* and *"not an input"* are different claims. An
+> impact assessment that checks only the task list answers the wrong question, and answers it
+> reassuringly. Any future "did this reach the published numbers?" must check **both** the
+> held-out lists **and** the training inputs.
+
+> **CORRECTED A SECOND TIME, same day — and the `nan` half above is RETRACTED ENTIRELY. See
+> §A2-5.** The `nan` account in this block traced every stage *downstream* of label decoding and
+> never checked the decode itself. The pre-fix loader did not use anndata, so the `nan` label
+> reasoned about never existed on the path that ran. The real mechanism is worse and it reached
+> the published numbers. Two corrections to one passage: the first fixed *which* labels were
+> exposed, the second finds that the exposure question had been asked of the wrong code path.
+
+### Why nothing caught it, which is the transferable part
+
+`ATF6` **is** a valid gene symbol. The fail-closed target resolver built to catch the nine
+unresolvable labels is structurally incapable of catching this one, because the label resolves
+correctly and simply *means something else*. **A validator that checks whether a name is
+well-formed cannot detect a name that is well-formed and wrong.** Same family as every other
+finding in this review: the check observes a property adjacent to the one that matters.
+
+Benign by contrast, but currently implicit and now to be recorded: several plasmids for the
+*same* gene already pool into one task (`XBP1` ×2, `CCND3` ×2, `ATF4` ×3, …). That is standard
+gene-level pooling; it just was not stated.
+
+## A2-2 — consequences for the reported numbers
+
+- **Adamson `0.147` and its gate: contaminated.** Not merely uninterpretable — computed on a
+  known mixture.
+- **The Adamson task count will change.** `PERK`, `IRE1` and the four combination constructs
+  leave the eligible pool; `3x` is reclassified as a negative control (its raw label is
+  `3x_neg_ctrl`). The design is 3 quantile bins × 7 TFs = 21, and whether 21 remains fillable
+  is now an open question I have asked to be escalated rather than quietly satisfied with a
+  short bin.
+- **Excluding `PERK`/`IRE1` loses no genes** — 10X010 carries proper `EIF2AK3` and `ERN1`
+  labels, so those genes remain reachable under their current symbols.
+
+## A2-3 — a paper-prose defect the models are immune to
+
+**Norman 2019 is a CRISPR *activation* screen**, so an on-target effect is a **rise**, not a
+knockdown. The backbones name that feature a `dip` internally. The models are unaffected
+because the feature is the signed logfc — but any prose describing an on-target *knockdown*
+is wrong for Norman, and the internal naming teaches the wrong direction to every future
+reader. Registered as a manuscript row.
+
+Corroborating evidence from the same pass, which also validated the Norman stable-ID join:
+`CBARP` at **+0.301, rank 33,690 of 33,694** — the fourth most up-regulated gene — exactly
+the direction an activation screen predicts.
+
+## A2-4 — what this does to the review's verdict
+
+It does not change it; it removes the last reason to soften it. Both pre-registered MSD gates
+that the paper reports as `PASS` now rest on defective task definitions — Norman's on
+randomised targets, Adamson's on a pooled mixture. Combined with the `n/a` correlation table
+(R1) and the confounded entropy result (R2), **no headline empirical claim in v0.5.0 currently
+survives**, and the regeneration is not an improvement exercise but a prerequisite.
+
+---
+
+## A2-5 — unannotated cells were silently relabelled as a real perturbation (`cats[-1]`)
+
+**This supersedes every earlier statement in this review about the `nan` label.** The eighth
+silent-substitution instance, and the second with confirmed exposure to published numbers.
+
+`e2_adamson.load_adamson_matrix` (`:149-152` @ `228d354`) decoded the raw h5py categorical as:
+
+```python
+labels_raw = [cats[c] for c in codes]
+```
+
+A missing annotation is code **`-1`**. In Python, `cats[-1]` is the **last category**. So every
+unannotated cell was relabelled as whatever perturbation happens to sort last — silently, with
+no error, and in a way no downstream validator could detect, because the resulting label is a
+real gene symbol.
+
+| file | unannotated cells | relabelled as | real cells for that label |
+|---|---|---|---|
+| pilot | 10 | `ZNF326` | 557 → 567 |
+| 10X005 | 296 | `YIPF5` | 1 → 297 |
+| 10X010 | 2,613 | `YIPF5` | 574 → 3,187 |
+| Norman | 0 missing codes | — | unaffected |
+
+After the 200-cells-per-label cap, **v0.5.0's combined `YIPF5` task was ~91% unannotated cells**
+(~363 of 400). `ZNF326` ~1.8%.
+
+### Exposure — both halves
+
+- **Held-out:** `YIPF5` and `ZNF326` are held-out tasks in v0.5.0's `lifecycle_runs.jsonl`.
+  **`YIPF5`'s lifecycle MSD was measured on a mostly-unannotated population.**
+- **Training inputs:** both are real symbols, so both sat in `target_gene_idx` and trained every
+  Adamson task that did not hold them out — the 21 trainer tasks included. `YIPF5`'s
+  "perturbation mean" was mostly unannotated cells.
+- **Affected published numbers:** the **Adamson median 0.147 and `GATE_ADAMSON`** — via training
+  inputs, a **second route entirely independent of A2-1's `ATF6` pooling** — and any lifecycle
+  result including `YIPF5` or `ZNF326`.
+
+### Why this one is the hardest to have caught
+
+A sentinel of `-1` meeting Python's negative indexing produces a *valid* value, not an error.
+Every guard in this codebase — the fail-closed resolver, the vocabulary check, `_is_control` —
+operates on the label *after* decoding, and the label it receives is a real gene symbol. The
+defect is upstream of every check, and it is invisible to all of them by construction.
+
+**Norman had zero missing codes, so the same pattern (if present) would not have fired there.**
+That is luck, not correctness, and it is an open question for the register: *where else does this
+codebase index a raw categorical with an integer that could be `-1`?*
+
+---
+
+## A2-6 — half the metric family is *structurally undefined* for the system that was measured
+
+This reframes **R1**. The empty correlation table was not only an omission — **two of TDI's four
+components cannot be computed for the agentic lifecycle at all.**
+
+The paper's Problem Setup requires both a critique matrix and a winner:
+
+- `paper.tex:182-183` — "every other agent emits a critique with severity $S_{ij}(r)$ … A winner
+  index $w(r)$ is assigned by the orchestrator"
+- `:221` — $\mathrm{CSD}(r) = \mathrm{Var}(\mathbf{S}(r))$ — requires the critique matrix
+- `:233` — $\mathrm{WFR} = \frac{1}{R-1}\sum \mathbb{1}[w(r) \neq w(r-1)]$ — requires the winner
+
+Verified: `critique_matrix` and `winner_index` appear in `src/perturb_eval/metrics.py`,
+`instrumentation.py` and `types.py` — the **consensus-round** framework, which
+`instrumentation.py` projects from a CellForge-style `ConsensusResult`. They appear **nowhere in
+`src/perturb_eval/agentic_lifecycle/`**.
+
+The agentic lifecycle is a **role pipeline** — DataCurator → Literature → Architect → Trainer →
+Validator. It has no propose-critique-vote round, so there is no $N\times(N-1)$ critique matrix
+and no winner to flip. Its Validator emits a single `StructuredCritique` to the pipeline, which
+is not the object CSD is the variance of.
+
+**So the metric family is well-defined for the architecture the paper describes, and undefined
+for the system the paper measured.** TDI as published — $\alpha\,\mathrm{ACE} + \beta\,\mathrm{CSD}
++ \gamma(1-\Delta C) + \delta\,\mathrm{WFR}$ — was never computable on its own testbed.
+
+### Consequences
+
+- **R1 is deeper than reported.** "The correlations were never computed" is true; "two of them
+  could not have been" is the reason. `tdi_vs_held_out_msd` being dead code is a symptom.
+- **The revision must not silently redefine TDI.** A two-component index over ACE and $1-\Delta C$
+  is a *different quantity* from the published four-component TDI. It is correctly being named
+  `TDI_lifecycle`, and the paper must state plainly that **the four-component TDI is not
+  evaluated** — not merely that two components are unavailable. Otherwise a reader compares
+  numbers across versions that are not the same metric.
+- **It does not sink the paper.** The title question — does agent confidence entropy predict task
+  difficulty? — turns on ACE and $\Delta C$, both of which the lifecycle does produce. The
+  honest framing is a narrower instrument fully specified, rather than a wide one half-inapplicable.
+- **A referee would find this in one pass**, by reading §3's definitions against the
+  implementation. Declaring it up front converts the worst kind of finding into a stated scope
+  limit.
