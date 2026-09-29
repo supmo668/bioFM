@@ -235,16 +235,36 @@ class TestProvenanceAndStopReason:
         ] and c.spend_usd > 0
 
     def test_served_model_mismatch_is_a_fallback_class_event(self, tmp_path):
+        """A4-1 / QG-1: served != requested aborts the call with NO failover — Sonnet is never asked."""
         fake = _Fake(
             {
                 HAIKU: [_msg(GOOD["Trainer"], model="claude-something-else")],
-                SONNET: [_msg(GOOD["Trainer"], model="claude-other")],
+                SONNET: [_msg(GOOD["Trainer"], model=SONNET)],
             }
         )
         c, _ = _client(tmp_path, fake)
-        with pytest.raises(AnthropicError):
+        with pytest.raises(ac.ServedModelMismatch):
             _call(c, "Trainer")
-        assert c.n_served_mismatch >= 1 and c.call_log[0]["served_equals_requested"] is False
+        assert [kw["model"] for kw in fake.requests] == [HAIKU]
+        assert c.n_served_mismatch == 1 and c.call_log[0]["served_equals_requested"] is False
+
+    def test_truncated_twice_aborts_without_failover(self, tmp_path):
+        """A4-1: one retry at 2x the ceiling, both billed; a second max_tokens is fallback-class, never a failover."""
+        fake = _Fake(
+            {
+                HAIKU: [
+                    _msg(GOOD["Trainer"], model=HAIKU, stop="max_tokens"),
+                    _msg(GOOD["Trainer"], model=HAIKU, stop="max_tokens"),
+                ],
+                SONNET: [_msg(GOOD["Trainer"], model=SONNET)],
+            }
+        )
+        c, _ = _client(tmp_path, fake)
+        with pytest.raises(ac.TruncatedTwice):
+            _call(c, "Trainer")
+        assert [kw["model"] for kw in fake.requests] == [HAIKU, HAIKU]
+        assert [kw["max_tokens"] for kw in fake.requests] == [256, 512]
+        assert len(c.call_log) == 2 and all(r["cost_usd"] > 0 for r in c.call_log)
 
     def test_cache_hit_replay_without_a_request(self, tmp_path):
         fake = _Fake({HAIKU: [_msg(GOOD["Trainer"], model=HAIKU)]})

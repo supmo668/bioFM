@@ -370,8 +370,8 @@ class AnthropicClient:
         self._record(**rec)
         if served != model_id:
             self.n_served_mismatch += 1
-            raise AnthropicError(
-                f"served model {served!r} != requested {model_id!r} (fallback-class event)"
+            raise ServedModelMismatch(
+                f"served model {served!r} != requested {model_id!r} (fallback-class event, no failover)"
             )
         if stop == "refusal":
             raise ProviderFatalError(
