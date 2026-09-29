@@ -11,10 +11,13 @@ must say so.
 
 **Amendments.** Amendment 1 (2026-09-25, `0c2932a`): H4 multiplicity quantified by permutation. **Amendment 2**
 (`3bf2a9a`), locked before any v0.6.0 data exists, is given in full in the penultimate section of this file; its
-definitions are already written into the sections above. **Amendment 3** (`prereg_version` = `v0.6.0-a3`,
-2026-09-28, principal rulings QG-2/6/7/9 from the amendment-2 fixes quality gate), the last section, records four
-points the amendment-2 text left open or that its implementation could not meet; it too is locked before any data.
-For any text that differs, **the later amendment governs**. Any later change is a fourth amendment.
+definitions are already written into the sections above. **Amendment 3** (2026-09-28, principal rulings
+QG-2/6/7/9 from the amendment-2 fixes quality gate) records four points the amendment-2 text left open or that its
+implementation could not meet. **Amendment 4** (`prereg_version` = `v0.6.0-a4`, 2026-09-29, principal ruling relayed by the CTO,
+#473/#476/#480/#482/#484), the last section, moves the LLM provider to the Anthropic API after the OpenRouter free roster
+died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Every
+amendment is locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
+fifth amendment.
 
 This file contains no result values. The v0.5.0 values are superseded in full (manuscript appendix
 "Corrections relative to v0.5.0", which maps each one to the register row that supersedes it).
@@ -55,7 +58,7 @@ into a claim-form title, abstract or contribution list.**
    carries the serving `model_id`. **A run with any `fallback` step is invalid by construction**: the run is
    marked failed and the analyser refuses to summarise it. Agent-choice statistics are computed over
    `source == "llm"` steps only; steps without a `source` field are never assumed to be LLM-sourced.
-5. **LLM condition.** A rotating pool of OpenRouter models with failover; the roster is recorded in provenance
+5. **LLM condition.** A rotating pool of Anthropic Claude models called through the Anthropic Messages API, with failover, pinned by model id in amendment 4 (A4-1; OpenRouter until amendment 4); the roster and each model's per-role preflight liveness are recorded in provenance
    (`llm_pool`) and the serving model per step (`model_id`). Model identity is recorded, not controlled; H3 is
    evaluated over the pooled mixture, and a per-`model_id` breakdown is reported descriptively.
 
@@ -199,7 +202,9 @@ The gate's range is bracketed, not estimated. The true value depends on the unkn
   plus the pooled (descriptive) ρ and the exclusion counts (H4), and for the
   transferred TDI (H5, with the fitted weights and the Adamson standardisation); per-seed undefined components
   are reported with the reason, never imputed. CSD and WFR are structurally undefined (above), not "not computable".
-- Run record: actual spend (not the cap), GPU-hours, `git_sha` / `git_dirty`, fallback-step count (must be 0).
+- Run record: actual spend (not the cap) as GPU + LLM + prior-run spend with the price table used and `usage` per call (amendment 4),
+  GPU-hours, `git_sha` / `git_dirty`, fallback-step count (must be 0), `stop_reason` counts and served-model assertions per call, the
+  per-role `max_tokens` ceilings, and the roster liveness table.
 
 ## Implementation (estimator code paths)
 
@@ -556,3 +561,38 @@ an R- and seed-invariant backbone counting once**: for {linear, mlp, scgpt_small
 `n_configs_tried` uses the same definition). The 19 distinct fits and 27 records per task are recorded as
 supporting detail (`n_distinct_fits_per_task`, `n_records_per_task`). The oracle rule is unchanged: the minimum
 over every finite record.
+
+## Amendment 4 (`prereg_version` = `v0.6.0-a4`): locked 2026-09-29, before any v0.6.0 data
+
+Ruled by the principal 2026-09-29 ("use Anthropic, total under $30, cheaper models such as Haiku where they pass the role probe"; via AskUserQuestion in session b6e15309 and via the CTO, #473/#476), approved by the CTO with conditions (#480, #482) that are folded into A4-1 below, and released to lock in #484 after a measured dry run (35 calls, $0.0548; evidence `workstreams/perturb-seq-eval/qgr/evidence/anthropic-*-20260929.json`; costed plan `workstreams/perturb-seq-eval/qgr/relaunch-costed-plan-anthropic.md`). Where this section and any earlier text differ, **this section governs**. New pre-registered version: the LLM cache namespace is `<cache_dir>/v0.6.0-a4/` and starts empty (A2-8 rule, unchanged).
+
+### A4-1: LLM condition (replaces Convention 5's provider and pins the roster)
+"A rotating pool of Anthropic Claude models called through the Anthropic Messages API, with failover; the roster is pinned by model id and
+recorded in provenance with each model's preflight liveness per role: `claude-haiku-4-5-20251001` for DataCurator, Literature, Architect and Trainer;
+`claude-sonnet-5-5` for the Validator; each role fails over to the other. Every reply is constrained to the role's JSON schema by structured outputs;
+`model_id` is recorded per call. Thinking is off (none on Haiku 4.5; `between_tools` at low effort on Sonnet 5.5). max_tokens per role is the dry run's observed output x 1.5."
+Rationale: 6/8 free OpenRouter models had disappeared and the rest rate-limited into fallbacks (fatal under A2-1); the paid OpenRouter roster
+(ruling of 2026-09-28) was superseded by the principal's Anthropic ruling. Roster = cheapest model passing each role's strict schema probe,
+with the Validator on a different tier from the roles it judges.
+
+**Implementation notes in A4-1 (CTO #480/#482):** every call records `stop_reason`, `stop_details.category` (on refusal), the requested and the
+served model id (asserted equal), `usage` and the per-role `max_tokens` ceiling (4x the dry run's observed maximum, minimum 256: DataCurator 256, Literature 1316, Architect 256, Trainer 256, Validator 1192);
+`refusal` and a served-model mismatch are fallback-class events (run invalid); `max_tokens` gets one retry at 2x, both billed, a second is a fallback-class event;
+the request never carries a `fallbacks` parameter. Sampling: Haiku 4.5 at temperature 0.3 (raw body; the same value the OpenRouter runs used), Sonnet 5.5 at API
+defaults (non-default rejected); thinking off on both (`between_tools` + effort low on Sonnet 5.5). Wire schema: structured outputs omit numeric ranges and express
+the two free-form maps as key/value pair arrays converted before parsing; ranges are enforced by the role schema after parsing (out of range = schema failure).
+
+### A4-2: spend
+Total ceiling $30 (principal). The pre-registered lines stay: $12 stop-and-report and $28 kill, on TOTAL spend = GPU wall-clock + LLM usage
+(API-reported input/output/cache tokens x the pinned list prices: Haiku 4.5 $1/$5 per MTok, Sonnet 5.5 $2/$10; source: Anthropic first-party
+pricing as tabulated in the claude-api skill, cached 2026-09-25) + $1.3 carried in from the aborted run 20260928T220916Z-291efad.
+Dry run 2026-09-29 (35 calls in three authorised passes, $0.0548). Grid: 123 runs x 3 rounds = 1845 calls. Measured-usage projection $7.19 (LLM 2.93, GPU 2.90 incl. LLM latency on the held A100, prior 1.3, dry run); worst case at the output caps $13.96. Lines unchanged: $12 stop-and-report, $28 kill, $30 ceiling. Earlier estimate at the upper bound: $9.30 (costed plan, measured input tokens).
+
+### A4-3: caveats stated in the methods
+Single model family (no cross-family generality claim; H3's entropy may be lower than under a multi-family pool). Same-family judge: the Validator
+is a different tier (Sonnet 5.5) from the four Haiku 4.5 proposer roles; residual same-family bias is acknowledged.
+
+### Unchanged
+Everything else in amendments 1-3 (A2-1 fallback = run invalid; A2-8 empty namespace + replay detection; A3-3 required Validator threshold; A3-4
+count = 7). Text it changes in `PREREGISTRATION.md`: Convention 5; "Run record" (LLM cost components); the Amendments preamble.
+

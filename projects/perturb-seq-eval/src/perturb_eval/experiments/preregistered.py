@@ -18,7 +18,7 @@ ACE is also undefined when the final round's confidences sum to zero. Both ACE
 checks run BEFORE ``metrics.ace_d`` is called (amendment 2, A2-10), so its
 N = 0 error, N = 1 value 0.0 and all-zero value 0.0 never reach a component.
 
-Gated components (amendments 2-3, ``prereg_version`` = ``v0.6.0-a3``):
+Gated components (amendments 2-4, ``prereg_version`` = ``v0.6.0-a4``):
 
 ==================  ===========================================================  ===================================
 component           formula                                                      code

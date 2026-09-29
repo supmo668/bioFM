@@ -1,4 +1,4 @@
-# Pre-registration AMENDMENT 4 — DRAFT (locks after CTO approval of the costed plan; before any data)
+# Pre-registration AMENDMENT 4 — LOCKED 2026-09-29 (CTO #484 approval; before any v0.6.0 data)
 
 `prereg_version` -> `v0.6.0-a4` (fresh, empty LLM cache namespace per A2-8). Ruled by the principal 2026-09-29 (via AskUserQuestion and via the
 CTO, #473/#476): the LLM provider moves from OpenRouter to the Anthropic API, total spend under $30, cheapest models where they pass the role probe.

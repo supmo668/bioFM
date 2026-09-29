@@ -1,4 +1,4 @@
-"""Amendment 2 (PREREGISTRATION.md, prereg_version v0.6.0-a3): lifecycle-side rules.
+"""Amendment 2 (PREREGISTRATION.md, prereg_version v0.6.0-a4): lifecycle-side rules.
 
 A2-1 required verbalised confidence; A2-2 exactly three rounds, Validator
 verdict/threshold recorded but non-stopping; A2-3 agent configuration applied
@@ -537,8 +537,8 @@ class TestA2_8_PromptAndCache:
     def test_prereg_version_and_namespace(self, tmp_path) -> None:
         from perturb_eval.llm.openrouter_client import PREREG_VERSION, versioned_cache_dir
 
-        assert PREREG_VERSION == "v0.6.0-a3"
-        assert versioned_cache_dir(tmp_path) == tmp_path / "v0.6.0-a3"
+        assert PREREG_VERSION == "v0.6.0-a4"
+        assert versioned_cache_dir(tmp_path) == tmp_path / "v0.6.0-a4"
         assert versioned_cache_dir(tmp_path, "vX") == tmp_path / "vX"
 
     def test_count_cache_entries_sees_client_writes(self, tmp_path) -> None:
@@ -569,12 +569,12 @@ class TestA2_8_PromptAndCache:
 
         rec = llm_cache_start(tmp_path)
         assert rec == {
-            "prereg_version": "v0.6.0-a3",
-            "llm_cache_namespace": str(tmp_path / "v0.6.0-a3"),
+            "prereg_version": "v0.6.0-a4",
+            "llm_cache_namespace": str(tmp_path / "v0.6.0-a4"),
             "llm_cache_entries_at_start": 0,
         }
-        (tmp_path / "v0.6.0-a3" / "ab").mkdir(parents=True)
-        (tmp_path / "v0.6.0-a3" / "ab" / "k.json").write_text("{}")
+        (tmp_path / "v0.6.0-a4" / "ab").mkdir(parents=True)
+        (tmp_path / "v0.6.0-a4" / "ab" / "k.json").write_text("{}")
         assert llm_cache_start(tmp_path)["llm_cache_entries_at_start"] == 1
 
     def test_cache_end_record_counts_hits_and_flags_replay(self) -> None:

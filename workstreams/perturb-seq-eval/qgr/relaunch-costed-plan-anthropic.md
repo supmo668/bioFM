@@ -1,4 +1,6 @@
-# Costed plan — v0.6.0 sweep on the Anthropic API (CTO #473/#474/#476; principal 2026-09-29: Anthropic, < $30, Haiku where it passes)
+# Costed plan — v0.6.0 sweep on the Anthropic API
+
+> **CALL COUNT (derived once; every cost line multiplies it):** `PREREGISTRATION.md` Design: 41 held-out tasks (21 Adamson + 20 Norman) x 3 lifecycle seeds = **123 runs**; A2-2: exactly 3 rounds => **369 rounds**; 5 roles => **1,845 calls = 369 per role**; 369 lifecycle fits. (The trainer grid's 1,107 = 41 x 27 records is a different quantity.) The CORRECTION section at the end holds the authoritative projection ($7.19). (CTO #473/#474/#476; principal 2026-09-29: Anthropic, < $30, Haiku where it passes)
 
 Measured on 2026-09-29 with the FREE `count_tokens` endpoint on the REAL role prompts rendered by the lifecycle on the local
 Adamson pilot (2 tasks x 3 rounds x 5 roles = 30 prompts; schema-valid recording stub, no generation, 0 spend).
