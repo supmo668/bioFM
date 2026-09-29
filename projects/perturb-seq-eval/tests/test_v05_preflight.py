@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from perturb_eval.llm.openrouter_client import LLMPool, ModelSpec
 from perturb_eval.experiments.v05_preflight import (
     PreflightError,
     PreflightReport,
@@ -48,28 +49,67 @@ def _datasets() -> dict:
 
 
 def _plan(adamson=("TFA", "TFB"), singles=("CBL",), doubles=("CBL_UBASH3A",)) -> TaskPlan:
-    return TaskPlan(adamson=tuple(adamson), norman_singletons=tuple(singles),
-                    norman_doublets=tuple(doubles))
+    return TaskPlan(
+        adamson=tuple(adamson), norman_singletons=tuple(singles), norman_doublets=tuple(doubles)
+    )
 
 
-KEY_SOURCE = {"store": "infisical", "project_slug": "syntropyhealth-app", "env": "dev",
-              "home_project": "biofm", "cross_project": True}
-PREREG = {"path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
-          "sha256": "a" * 64, "commit": "b" * 40}
+KEY_SOURCE = {
+    "store": "infisical",
+    "project_slug": "syntropyhealth-app",
+    "env": "dev",
+    "home_project": "biofm",
+    "cross_project": True,
+}
+PREREG = {
+    "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
+    "sha256": "a" * 64,
+    "commit": "b" * 40,
+}
 
 
 def _kwargs(**over) -> dict:
     # Principal directive + CTO #265: a runnable sweep carries its credential
     # SOURCE and its committed pre-registration in the resolved kwargs.
-    kw = {"backbones": ("linear", "mlp"), "version": "v0.6.0", "doublet_delim": "_",
-          "llm_key_source": dict(KEY_SOURCE), "preregistration": dict(PREREG),
-          "preregistration_error": None}
+    kw = {
+        "backbones": ("linear", "mlp"),
+        "version": "v0.6.0",
+        "doublet_delim": "_",
+        "llm_key_source": dict(KEY_SOURCE),
+        "preregistration": dict(PREREG),
+        "preregistration_error": None,
+    }
     kw.update(over)
     return kw
 
 
-def _probe_ok(env) -> str:
-    return "stub/model:free"
+# CTO #467: preflight probes EVERY roster model; tests use a 3-model pool.
+_M = tuple(
+    ModelSpec(model_id=f"stub/{n}", family=n, param_count_b=1, strengths=())
+    for n in ("one", "two", "three")
+)
+_POOL = LLMPool(
+    models=_M,
+    role_preferences={
+        r: ("stub/one", "stub/two", "stub/three")
+        for r in ("DataCurator", "Literature", "Architect", "Trainer", "Validator")
+    },
+)
+
+
+def _liveness(live=("stub/one", "stub/two", "stub/three")) -> dict:
+    return {
+        m.model_id: {
+            "live": m.model_id in live,
+            "verdict": "ok" if m.model_id in live else "http 404",
+            "probed_at": "2026-09-28T23:00:00+00:00",
+        }
+        for m in _M
+    }
+
+
+def _probe_ok(env) -> dict:
+    return _liveness()
 
 
 def _run(tmp_path: Path, **over):
@@ -80,6 +120,7 @@ def _run(tmp_path: Path, **over):
         "env": {"OPENROUTER_API_KEY": SENTINEL},
         "out_dir": tmp_path / "v0.6.0",
         "probe_fn": _probe_ok,
+        "pool": _POOL,
     }
     args.update(over)
     return preflight(**args)
@@ -89,7 +130,7 @@ def test_all_good_returns_ok_report(tmp_path: Path) -> None:
     rep = _run(tmp_path)
     assert isinstance(rep, PreflightReport)
     assert rep.ok
-    assert rep.probe_model_id == "stub/model:free"
+    assert rep.probe_model_id == "stub/one"
     assert rep.task_plan.all_tasks == ("TFA", "TFB", "CBL", "CBL_UBASH3A")
     assert set(rep.datasets) == {"adamson_full", "norman"}
 
@@ -121,7 +162,7 @@ def test_key_value_never_in_message_or_logs(tmp_path: Path, caplog) -> None:
 
 def test_probe_no_model_fails(tmp_path: Path) -> None:
     with pytest.raises(PreflightError, match="no usable model"):
-        _run(tmp_path, probe_fn=lambda env: None)
+        _run(tmp_path, probe_fn=lambda env: _liveness(live=()))
 
 
 def test_unavailable_backbone_fails(tmp_path: Path, monkeypatch) -> None:
@@ -214,15 +255,24 @@ def test_multiple_failures_all_listed(tmp_path: Path, monkeypatch) -> None:
 def test_missing_key_source_and_preregistration_both_listed(tmp_path: Path, caplog) -> None:
     caplog.set_level(logging.DEBUG)
     with pytest.raises(PreflightError) as ei:
-        _run(tmp_path, kwargs=_kwargs(
-            llm_key_source=None, preregistration=None,
-            preregistration_error="pre-registration 'x.md' has uncommitted edits"))
+        _run(
+            tmp_path,
+            kwargs=_kwargs(
+                llm_key_source=None,
+                preregistration=None,
+                preregistration_error="pre-registration 'x.md' has uncommitted edits",
+            ),
+        )
     msg = str(ei.value)
-    assert ("C-KEY-SOURCE: OPENROUTER_KEY_SOURCE not set; provenance must record where the "
-            "credential came from (principal directive 2026-09-24)") in msg
-    assert ("C-PREREG: pre-registration not committed/clean (pre-registration 'x.md' has "
-            "uncommitted edits) — a hypothesis fixed after the sweep is not a "
-            "pre-registration (CTO #265)") in msg
+    assert (
+        "C-KEY-SOURCE: OPENROUTER_KEY_SOURCE not set; provenance must record where the "
+        "credential came from (principal directive 2026-09-24)"
+    ) in msg
+    assert (
+        "C-PREREG: pre-registration not committed/clean (pre-registration 'x.md' has "
+        "uncommitted edits) — a hypothesis fixed after the sweep is not a "
+        "pre-registration (CTO #265)"
+    ) in msg
     assert len(ei.value.failures) == 2
     assert SENTINEL not in msg and SENTINEL not in repr(ei.value.failures)
     assert SENTINEL not in caplog.text
@@ -261,8 +311,9 @@ def test_app_v05_parses_and_ruff_f_clean() -> None:
     ruff = PROJECT_ROOT / ".venv" / "bin" / "ruff"
     if not ruff.exists():
         pytest.skip("ruff not installed in .venv")
-    r = subprocess.run([str(ruff), "check", "--select", "F", str(APP_V05)],
-                       capture_output=True, text=True)
+    r = subprocess.run(
+        [str(ruff), "check", "--select", "F", str(APP_V05)], capture_output=True, text=True
+    )
     assert r.returncode == 0, r.stdout + r.stderr
 
 
@@ -281,16 +332,20 @@ def test_app_v05_preflight_before_first_trainer_or_lifecycle_loop() -> None:
     pre = [c.lineno for c in calls if c.func.id == "preflight"]
     assert pre, "run_v05_sweep never calls preflight("
     work_loops = [
-        n.lineno for n in ast.walk(fn)
-        if isinstance(n, ast.For) and any(
-            isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
-            and c.func.id in {"iter_trainer_records", "lifecycle_record",
-                              "iter_lifecycle_records", "run_guarded"}
+        n.lineno
+        for n in ast.walk(fn)
+        if isinstance(n, ast.For)
+        and any(
+            isinstance(c, ast.Call)
+            and isinstance(c.func, ast.Name)
+            and c.func.id
+            in {"iter_trainer_records", "lifecycle_record", "iter_lifecycle_records", "run_guarded"}
             for c in ast.walk(n)
         )
     ]
-    work_loops += [c.lineno for c in calls
-                   if c.func.id in {"run_guarded", "iter_lifecycle_records"}]
+    work_loops += [
+        c.lineno for c in calls if c.func.id in {"run_guarded", "iter_lifecycle_records"}
+    ]
     clients = [c.lineno for c in calls if c.func.id == "OpenRouterClient"]
     assert work_loops
     assert min(pre) < min(work_loops + clients)
@@ -311,17 +366,22 @@ def test_app_v05_lifecycle_except_reraises_backbone_unavailable() -> None:
     ``run_guarded`` and has no try/except of its own around it. The guard
     (first handler re-raises BackboneUnavailableError) now lives in v05_sweep."""
     fn = _run_v05_sweep(_app_tree())
-    called = {c.func.id for c in ast.walk(fn)
-              if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+    called = {
+        c.func.id for c in ast.walk(fn) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+    }
     assert {"iter_lifecycle_records", "run_guarded"} <= called
     assert "lifecycle_record" not in called
     assert not any(isinstance(h, ast.ExceptHandler) for h in ast.walk(fn)), (
         "run_v05_sweep must not catch exceptions itself (abort path is run_guarded)"
     )
-    sweep_src = (APP_V05.parents[2] / "src" / "perturb_eval" / "experiments"
-                 / "v05_sweep.py").read_text()
-    loop = next(n for n in ast.walk(ast.parse(sweep_src))
-                if isinstance(n, ast.FunctionDef) and n.name == "iter_lifecycle_records")
+    sweep_src = (
+        APP_V05.parents[2] / "src" / "perturb_eval" / "experiments" / "v05_sweep.py"
+    ).read_text()
+    loop = next(
+        n
+        for n in ast.walk(ast.parse(sweep_src))
+        if isinstance(n, ast.FunctionDef) and n.name == "iter_lifecycle_records"
+    )
     tries = [t for t in ast.walk(loop) if isinstance(t, ast.Try)]
     assert tries
     for t in tries:
@@ -332,15 +392,19 @@ def test_app_v05_lifecycle_except_reraises_backbone_unavailable() -> None:
 
 def test_app_v05_timeout_is_8h() -> None:
     fn = _run_v05_sweep(_app_tree())
-    kws = {k.arg: k.value for d in fn.decorator_list if isinstance(d, ast.Call)
-           for k in d.keywords}
+    kws = {k.arg: k.value for d in fn.decorator_list if isinstance(d, ast.Call) for k in d.keywords}
     assert isinstance(kws["timeout"], ast.Constant) and kws["timeout"].value == 28800
 
 
 def test_app_v05_fetch_uses_trust_unpinned_false() -> None:
     fn = _run_v05_sweep(_app_tree())
-    fetches = [c for c in ast.walk(fn) if isinstance(c, ast.Call)
-               and isinstance(c.func, ast.Name) and c.func.id in {"fetch_adamson_all", "fetch_norman"}]
+    fetches = [
+        c
+        for c in ast.walk(fn)
+        if isinstance(c, ast.Call)
+        and isinstance(c.func, ast.Name)
+        and c.func.id in {"fetch_adamson_all", "fetch_norman"}
+    ]
     assert fetches
     for c in fetches:
         kw = {k.arg: k.value for k in c.keywords}
@@ -349,8 +413,9 @@ def test_app_v05_fetch_uses_trust_unpinned_false() -> None:
 
 
 def test_app_v05_env_secrets_forwards_key_and_its_source_only() -> None:
-    fn = next(n for n in _app_tree().body
-              if isinstance(n, ast.FunctionDef) and n.name == "_env_secrets")
+    fn = next(
+        n for n in _app_tree().body if isinstance(n, ast.FunctionDef) and n.name == "_env_secrets"
+    )
     tuples = [n for n in ast.walk(fn) if isinstance(n, ast.Tuple)]
     names = {e.value for t in tuples for e in t.elts if isinstance(e, ast.Constant)}
     assert names == {"OPENROUTER_API_KEY", "OPENROUTER_KEY_SOURCE"}
@@ -362,22 +427,31 @@ def test_app_v05_sweep_takes_key_source_and_preregistration() -> None:
     for k in ("llm_key_source", "preregistration", "preregistration_error"):
         assert k in kwonly, k
         assert isinstance(kwonly[k], ast.Constant) and kwonly[k].value is None, k
-    bp = next(c for c in ast.walk(fn) if isinstance(c, ast.Call)
-              and isinstance(c.func, ast.Name) and c.func.id == "build_provenance")
+    bp = next(
+        c
+        for c in ast.walk(fn)
+        if isinstance(c, ast.Call)
+        and isinstance(c.func, ast.Name)
+        and c.func.id == "build_provenance"
+    )
     got = {k.arg: ast.unparse(k.value) for k in bp.keywords}
     assert got.get("llm_key_source") == "llm_key_source"
     assert got.get("preregistration") == "preregistration"
 
 
 def test_app_v05_entrypoint_builds_key_source_and_preregistration_on_host() -> None:
-    fn = next(n for n in _app_tree().body
-              if isinstance(n, ast.FunctionDef) and n.name == "entrypoint")
+    fn = next(
+        n for n in _app_tree().body if isinstance(n, ast.FunctionDef) and n.name == "entrypoint"
+    )
     src = ast.unparse(fn)
-    called = {c.func.id for c in ast.walk(fn)
-              if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+    called = {
+        c.func.id for c in ast.walk(fn) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+    }
     assert {"parse_key_source", "preregistration_record"} <= called
     assert "OPENROUTER_KEY_SOURCE" in src
     assert "_PREREGISTRATION_REL" in src
-    assert '_PREREGISTRATION_REL = "projects/perturb-seq-eval/paper/PREREGISTRATION.md"' \
+    assert (
+        '_PREREGISTRATION_REL = "projects/perturb-seq-eval/paper/PREREGISTRATION.md"'
         in APP_V05.read_text()
+    )
     assert "--show-toplevel" in src

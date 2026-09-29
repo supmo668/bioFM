@@ -21,20 +21,19 @@ from perturb_eval.llm.openrouter_client import (
 
 
 class TestLLMPool:
-    def test_default_pool_has_weight_inclusive_models(self) -> None:
+    def test_default_pool_spans_the_families_and_has_no_free_endpoints(self) -> None:
         names = [m.model_id for m in DEFAULT_POOL.models]
-        # Pool composition (verified via OpenRouter /models on 2026-04-24):
-        # Nemotron 120B (user-requested), big-MoE (Ling 1T or Hermes 405B),
-        # Llama family, Qwen family, Gemma family.
-        assert any("nemotron" in n.lower() for n in names)
-        assert any("ling" in n.lower() or "hermes" in n.lower() for n in names)
-        assert any("llama" in n.lower() for n in names)
-        assert any("qwen" in n.lower() for n in names)
-        assert any("gemma" in n.lower() for n in names)
+        # Relaunch roster (principal 2026-09-28, CTO #467): PAID cheapest
+        # JSON-capable tier, one model per family. The ":free" endpoints died
+        # (6/8 ids gone from OpenRouter) or rate-limited into fallbacks, which
+        # A2-1 makes fatal; liveness of every id is probed at preflight.
+        for fam in ("nemotron", "llama", "qwen", "gemma", "deepseek", "mistral"):
+            assert any(fam in n.lower() for n in names), fam
+        assert len({m.family for m in DEFAULT_POOL.models}) == len(DEFAULT_POOL.models)
 
-    def test_all_models_are_free_tier(self) -> None:
+    def test_no_model_is_a_free_endpoint(self) -> None:
         for m in DEFAULT_POOL.models:
-            assert m.model_id.endswith(":free"), f"{m.model_id} not on free tier"
+            assert not m.model_id.endswith(":free"), f"{m.model_id} is a :free endpoint"
 
     def test_role_preferences_resolve_to_known_models(self) -> None:
         model_ids = {m.model_id for m in DEFAULT_POOL.models}
@@ -53,17 +52,20 @@ class TestCanonicalPrompt:
 
 class TestCacheKey:
     def test_different_fields_different_keys(self) -> None:
-        base = dict(dataset="d", task_id="t1", round_index=0, role="A", prompt="p", model_id="m",
-                    seed=0)
+        base = dict(
+            dataset="d", task_id="t1", round_index=0, role="A", prompt="p", model_id="m", seed=0
+        )
         a = _cache_key(**base)
         b = _cache_key(**{**base, "task_id": "t2"})
         assert a != b
 
     def test_same_fields_same_key(self) -> None:
-        k1 = _cache_key(dataset="d", task_id="t1", round_index=0, role="A", prompt="p", model_id="m",
-                        seed=0)
-        k2 = _cache_key(dataset="d", task_id="t1", round_index=0, role="A", prompt="p", model_id="m",
-                        seed=0)
+        k1 = _cache_key(
+            dataset="d", task_id="t1", round_index=0, role="A", prompt="p", model_id="m", seed=0
+        )
+        k2 = _cache_key(
+            dataset="d", task_id="t1", round_index=0, role="A", prompt="p", model_id="m", seed=0
+        )
         assert k1 == k2
 
 
@@ -95,30 +97,58 @@ class TestOpenRouterClient:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache)
         mock_post = MagicMock(return_value=self._make_response('{"x": 42}'))
         with patch.object(client._session, "post", mock_post):
-            client.chat_json(role="Trainer", task_id="t1", round_index=0, prompt="hi", seed=0, dataset="adamson_full")
+            client.chat_json(
+                role="Trainer",
+                task_id="t1",
+                round_index=0,
+                prompt="hi",
+                seed=0,
+                dataset="adamson_full",
+            )
             assert mock_post.call_count == 1
             # Second call — same key.
-            client.chat_json(role="Trainer", task_id="t1", round_index=0, prompt="hi", seed=0, dataset="adamson_full")
+            client.chat_json(
+                role="Trainer",
+                task_id="t1",
+                round_index=0,
+                prompt="hi",
+                seed=0,
+                dataset="adamson_full",
+            )
             assert mock_post.call_count == 1  # still 1; cache hit.
 
     def test_rotation_on_429(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
         responses = [
-            self._make_response('', status=429),
+            self._make_response("", status=429),
             self._make_response('{"ok": true}', status=200),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            out = client.chat_json(
+                role="Validator",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         assert out.content == {"ok": True}
 
     def test_rotation_on_5xx(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
         responses = [
-            self._make_response('', status=502),
+            self._make_response("", status=502),
             self._make_response('{"ok": true}', status=200),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            out = client.chat_json(
+                role="Validator",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         assert out.content == {"ok": True}
 
     def test_all_models_fail_raises(self, tmp_cache: Path) -> None:
@@ -130,11 +160,19 @@ class TestOpenRouterClient:
             api_key="test", cache_dir=tmp_cache, pool=small_pool, cooldown_sec=0
         )
         with patch.object(
-            client._session, "post",
-            return_value=self._make_response('', status=429),
+            client._session,
+            "post",
+            return_value=self._make_response("", status=429),
         ):
             with pytest.raises(OpenRouterError):
-                client.chat_json(role="Architect", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+                client.chat_json(
+                    role="Architect",
+                    task_id="t",
+                    round_index=0,
+                    prompt="p",
+                    seed=0,
+                    dataset="adamson_full",
+                )
 
     def test_parse_failure_retries_with_reformat(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
@@ -143,7 +181,14 @@ class TestOpenRouterClient:
             self._make_response('{"fixed": true}'),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            out = client.chat_json(role="DataCurator", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            out = client.chat_json(
+                role="DataCurator",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         assert out.content == {"fixed": True}
 
     # --- T12: chat_json reports the pool model that actually served -------
@@ -151,7 +196,14 @@ class TestOpenRouterClient:
     def test_returns_chat_result_with_serving_model_id(self, tmp_cache: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_cache)
         with patch.object(client._session, "post", return_value=self._make_response('{"a": 1}')):
-            out = client.chat_json(role="Architect", task_id="t1", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            out = client.chat_json(
+                role="Architect",
+                task_id="t1",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         assert isinstance(out, ChatResult)
         assert out.model_id == DEFAULT_POOL.role_preferences["Architect"][0]
 
@@ -162,7 +214,14 @@ class TestOpenRouterClient:
             self._make_response('{"ok": true}', status=200),
         ]
         with patch.object(client._session, "post", side_effect=responses) as post:
-            out = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            out = client.chat_json(
+                role="Validator",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         served = post.call_args_list[1].kwargs["json"]["model"]
         first = post.call_args_list[0].kwargs["json"]["model"]
         assert out.model_id == served
@@ -175,14 +234,28 @@ class TestOpenRouterClient:
             self._make_response('{"ok": true}', status=200),
         ]
         with patch.object(client._session, "post", side_effect=responses):
-            first = client.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            first = client.chat_json(
+                role="Validator",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         # Fresh client (no cooldowns): the first candidate has no cache entry
         # and now fails on the network; the second hits cache.
         client2 = OpenRouterClient(api_key="test", cache_dir=tmp_cache, cooldown_sec=0)
         with patch.object(
             client2._session, "post", return_value=self._make_response("", status=429)
         ) as post2:
-            again = client2.chat_json(role="Validator", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            again = client2.chat_json(
+                role="Validator",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         assert post2.call_count == 1  # first candidate only; second served from cache
         assert again.content == first.content
         assert again.model_id == first.model_id
@@ -203,13 +276,21 @@ class TestCachePersistence:
     def test_cache_written_to_disk(self, tmp_path: Path) -> None:
         client = OpenRouterClient(api_key="test", cache_dir=tmp_path / "cache")
         with patch.object(
-            client._session, "post",
+            client._session,
+            "post",
             return_value=MagicMock(
                 status_code=200,
                 json=lambda: {"choices": [{"message": {"content": '{"n": 7}'}}]},
             ),
         ):
-            client.chat_json(role="Trainer", task_id="t", round_index=0, prompt="p", seed=0, dataset="adamson_full")
+            client.chat_json(
+                role="Trainer",
+                task_id="t",
+                round_index=0,
+                prompt="p",
+                seed=0,
+                dataset="adamson_full",
+            )
         cache_files = list((tmp_path / "cache").rglob("*.json"))
         assert cache_files, "expected at least one cache file"
         payload = json.loads(cache_files[0].read_text())

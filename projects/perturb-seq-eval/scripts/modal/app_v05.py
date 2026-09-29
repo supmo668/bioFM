@@ -370,6 +370,8 @@ def run_v05_sweep(
         out_dir=out_dir,
     )
     print(f"[v0.6.0] preflight ok: {len(report.checks)} checks; probe={report.probe_model_id}")
+    n_live = sum(1 for e in report.roster_liveness.values() if e["live"])
+    print(f"[v0.6.0] roster liveness: {n_live}/{len(report.roster_liveness)} live (CTO #467)")
     task_plan = report.task_plan
     # A2-8: the version-namespaced LLM cache and its entry count at sweep start
     # (must be 0 for the pre-registered run; recorded, and a non-zero count
@@ -418,6 +420,7 @@ def run_v05_sweep(
         # CTO #250: labels the contract excluded, tagged with their dataset.
         labels_excluded=report.labels_excluded,
         llm_pool=[m.model_id for m in DEFAULT_POOL.models],
+        llm_roster_liveness=report.roster_liveness,  # CTO #467: probe date + verdict per id
         gpu=_GPU,
         hourly_usd=_A100_HOURLY_USD,
         budget_cap_usd=_BUDGET_HARD_KILL_USD,

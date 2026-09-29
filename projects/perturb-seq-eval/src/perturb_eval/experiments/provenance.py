@@ -64,6 +64,8 @@ REQUIRED_KEYS: tuple[str, ...] = (
     # Amendment 2 A2-4: the trainer grid as run (distinct count, seeds).
     "trainer_grid",
     "llm_pool",
+    # CTO #467: every roster model's probe verdict + date (None when not probed).
+    "llm_roster_liveness",
     "gpu",
     "hourly_usd",
     "budget_cap_usd",
@@ -284,6 +286,30 @@ _TRAINER_GRID_KEYS: tuple[str, ...] = (
 )
 
 
+def _validate_roster_liveness(table: Any) -> dict[str, dict[str, Any]] | None:
+    """CTO #467: ``{model_id: {live: bool, verdict: str, probed_at: str}}`` or ``None``."""
+    if table is None:
+        return None
+    _require(isinstance(table, Mapping), "llm_roster_liveness must be a mapping or None")
+    out: dict[str, dict[str, Any]] = {}
+    for mid, e in table.items():
+        _require(isinstance(mid, str) and bool(mid), "llm_roster_liveness: model id must be a str")
+        _require(isinstance(e, Mapping), f"llm_roster_liveness[{mid!r}] must be a mapping")
+        _require(
+            isinstance(e.get("live"), bool), f"llm_roster_liveness[{mid!r}]['live'] must be bool"
+        )
+        _require(
+            isinstance(e.get("verdict"), str),
+            f"llm_roster_liveness[{mid!r}]['verdict'] must be str",
+        )
+        _require(
+            isinstance(e.get("probed_at"), str),
+            f"llm_roster_liveness[{mid!r}]['probed_at'] must be str",
+        )
+        out[mid] = {"live": e["live"], "verdict": e["verdict"], "probed_at": e["probed_at"]}
+    return out
+
+
 def _validate_trainer_grid(grid: Any) -> dict[str, Any]:
     _require(isinstance(grid, Mapping), "trainer_grid must be a mapping (A2-4)")
     missing = [k for k in _TRAINER_GRID_KEYS if k not in grid]
@@ -329,6 +355,7 @@ def build_provenance(
     device: str | None = None,
     llm_cache_dir: str | None = None,
     trainer_grid: Mapping[str, Any],
+    llm_roster_liveness: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Start-of-run provenance record; validates presence and types.
 
@@ -412,6 +439,7 @@ def build_provenance(
         "preregistration": dict(preregistration) if preregistration is not None else None,
         "device": device,
         "llm_cache_dir": llm_cache_dir,
+        "llm_roster_liveness": _validate_roster_liveness(llm_roster_liveness),
         "gpu": gpu,
         "hourly_usd": float(hourly_usd),
         "budget_cap_usd": float(budget_cap_usd),

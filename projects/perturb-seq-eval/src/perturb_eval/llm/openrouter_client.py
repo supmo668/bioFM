@@ -26,7 +26,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import requests
 
@@ -75,81 +75,72 @@ class LLMPool:
 
 
 DEFAULT_POOL = LLMPool(
+    # Relaunch roster (principal ruling 2026-09-28; CTO #467): PAID, cheapest
+    # JSON-capable tier, one model per family. The earlier ":free" roster died on
+    # OpenRouter (6/8 ids gone; the rest rate-limited into fallbacks, which A2-1
+    # makes fatal). Every id is probed at preflight and its liveness recorded in
+    # provenance. The pre-registration pins "a rotating pool ... recorded in
+    # provenance", not the ids.
     models=(
         ModelSpec(
-            model_id="inclusionai/ling-2.6-1t:free",
-            family="ling",
-            param_count_b=1000,  # MoE, advertised 1T parameters
-            strengths=("reasoning", "long-context"),
+            model_id="deepseek/deepseek-v4-flash",
+            family="deepseek",
+            param_count_b=0,
+            strengths=("reasoning", "json", "long-context"),
         ),
         ModelSpec(
-            model_id="nousresearch/hermes-3-llama-3.1-405b:free",
-            family="hermes",
-            param_count_b=405,
-            strengths=("reasoning", "json"),
-        ),
-        ModelSpec(
-            model_id="nvidia/nemotron-3-super-120b-a12b:free",
-            family="nemotron",
-            param_count_b=120,
-            strengths=("reasoning", "json"),
-        ),
-        ModelSpec(
-            model_id="openai/gpt-oss-120b:free",
+            model_id="openai/gpt-oss-20b",
             family="oss",
-            param_count_b=120,
+            param_count_b=20,
             strengths=("instruct-following", "json"),
         ),
         ModelSpec(
-            model_id="qwen/qwen3-next-80b-a3b-instruct:free",
+            model_id="qwen/qwen3.7-flash",
             family="qwen",
-            param_count_b=80,
-            strengths=("broad-knowledge", "instruct"),
+            param_count_b=0,
+            strengths=("broad-knowledge", "instruct", "json"),
         ),
         ModelSpec(
-            model_id="meta-llama/llama-3.3-70b-instruct:free",
-            family="llama",
-            param_count_b=70,
-            strengths=("json", "instruct-following"),
-        ),
-        ModelSpec(
-            model_id="google/gemma-4-31b-it:free",
+            model_id="google/gemma-3-12b-it",
             family="gemma",
-            param_count_b=31,
+            param_count_b=12,
             strengths=("fast", "instruct-following"),
         ),
         ModelSpec(
-            model_id="google/gemma-3-27b-it:free",
-            family="gemma",
-            param_count_b=27,
-            strengths=("fast", "high-quota"),
+            model_id="mistralai/mistral-nemo",
+            family="mistral",
+            param_count_b=12,
+            strengths=("fast", "json"),
+        ),
+        ModelSpec(
+            model_id="meta-llama/llama-3.1-8b-instruct",
+            family="llama",
+            param_count_b=8,
+            strengths=("json", "instruct-following"),
+        ),
+        ModelSpec(
+            model_id="nvidia/nemotron-3-nano-30b-a3b",
+            family="nemotron",
+            param_count_b=30,
+            strengths=("reasoning", "json"),
+        ),
+        ModelSpec(
+            model_id="z-ai/glm-4.7-flash", family="glm", param_count_b=0, strengths=("fast", "json")
         ),
     ),
     role_preferences={
-        "Architect": (
-            "inclusionai/ling-2.6-1t:free",
-            "nvidia/nemotron-3-super-120b-a12b:free",
-            "nousresearch/hermes-3-llama-3.1-405b:free",
-        ),
-        "Literature": (
-            "nvidia/nemotron-3-super-120b-a12b:free",
-            "qwen/qwen3-next-80b-a3b-instruct:free",
-            "nousresearch/hermes-3-llama-3.1-405b:free",
-        ),
-        "Validator": (
-            "openai/gpt-oss-120b:free",
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "qwen/qwen3-next-80b-a3b-instruct:free",
-        ),
+        "Architect": ("deepseek/deepseek-v4-flash", "openai/gpt-oss-20b", "qwen/qwen3.7-flash"),
+        "Literature": ("qwen/qwen3.7-flash", "google/gemma-3-12b-it", "deepseek/deepseek-v4-flash"),
+        "Validator": ("openai/gpt-oss-20b", "z-ai/glm-4.7-flash", "mistralai/mistral-nemo"),
         "DataCurator": (
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "google/gemma-4-31b-it:free",
-            "qwen/qwen3-next-80b-a3b-instruct:free",
+            "mistralai/mistral-nemo",
+            "meta-llama/llama-3.1-8b-instruct",
+            "google/gemma-3-12b-it",
         ),
         "Trainer": (
-            "google/gemma-3-27b-it:free",
-            "google/gemma-4-31b-it:free",
-            "meta-llama/llama-3.3-70b-instruct:free",
+            "nvidia/nemotron-3-nano-30b-a3b",
+            "meta-llama/llama-3.1-8b-instruct",
+            "z-ai/glm-4.7-flash",
         ),
     },
 )
@@ -244,6 +235,9 @@ class OpenRouterClient:
         cooldown_sec: float = 60.0,
         timeout_sec: float = 60.0,
         session: Optional[requests.Session] = None,
+        max_wait_sec: float = 300.0,
+        sleep: Callable[[float], None] = time.sleep,
+        clock: Callable[[], float] = time.time,
     ) -> None:
         self._api_key = api_key
         self._cache_dir = Path(cache_dir)
@@ -253,6 +247,12 @@ class OpenRouterClient:
         self._timeout_sec = timeout_sec
         self._cooldowns: dict[str, float] = {}  # model_id -> unix timestamp until
         self._session = session if session is not None else requests.Session()
+        # CTO #467 relaunch: a 429/5xx marks a model cooling; while ANY model is
+        # cooling, chat_json waits (bounded by max_wait_sec per call) instead of
+        # falling back -- a fallback step invalidates the run (A2-1).
+        self._max_wait_sec = max_wait_sec
+        self._sleep = sleep
+        self._clock = clock
 
     def _candidate_models(self, role: str) -> list[ModelSpec]:
         preferred = self._pool.role_preferences.get(role, ())
@@ -267,8 +267,30 @@ class OpenRouterClient:
             if m.model_id not in seen:
                 ordered.append(m)
                 seen.add(m.model_id)
-        now = time.time()
+        now = self._clock()
         return [m for m in ordered if self._cooldowns.get(m.model_id, 0) <= now]
+
+    def _earliest_cooldown_end(self) -> Optional[float]:
+        now = self._clock()
+        pending = [t for t in self._cooldowns.values() if t > now]
+        return min(pending) if pending else None
+
+    def probe_model(self, model_id: str, prompt: str) -> tuple[bool, str, Optional[dict]]:
+        """One direct call to ONE model, no failover, no cache (preflight, CTO #467).
+
+        Returns ``(live, verdict, parsed)``: ``live`` is True only when the model
+        answered 200 with a JSON object; ``verdict`` is a short reason otherwise.
+        """
+        status, content = self._call(model_id, prompt)
+        if status != 200:
+            return False, f"http {status}", None
+        if not content:
+            return False, "http 200 / empty", None
+        try:
+            parsed = _extract_json(content)
+        except (ValueError, json.JSONDecodeError):
+            return False, "not a JSON object", None
+        return True, "ok", parsed
 
     def _cache_path(self, key: str) -> Path:
         sub = self._cache_dir / key[:2]
@@ -329,10 +351,55 @@ class OpenRouterClient:
         Raises :class:`OpenRouterError` if every candidate in the pool
         fails (network, 429, unparseable response).
         """
-        candidates = self._candidate_models(role)
-        if not candidates:
-            raise RateLimitedError("no models available (all cooling)")
+        waited = 0.0
+        last_err: Optional[str] = None
+        while True:
+            candidates = self._candidate_models(role)
+            if candidates:
+                res = self._try_candidates(
+                    candidates,
+                    role=role,
+                    task_id=task_id,
+                    round_index=round_index,
+                    prompt=prompt,
+                    seed=seed,
+                    dataset=dataset,
+                )
+                if isinstance(res, ChatResult):
+                    return res
+                last_err = res
+            # Nothing answered. Wait for the earliest cooldown (bounded) if any
+            # model is merely cooling; raise only when nothing is cooling or the
+            # wait budget is spent.
+            end = self._earliest_cooldown_end()
+            if end is None:
+                if not candidates:
+                    raise RateLimitedError("no models available (all cooling)")
+                raise OpenRouterError(
+                    f"all candidate models for role={role} failed; last_err={last_err}"
+                )
+            remaining = self._max_wait_sec - waited
+            if remaining <= 0:
+                raise RateLimitedError(
+                    f"role={role}: every model cooling and the {self._max_wait_sec:.0f}s "
+                    f"wait budget is spent; last_err={last_err}"
+                )
+            pause = max(0.0, min(end - self._clock(), remaining)) + 0.01
+            self._sleep(pause)
+            waited += pause
 
+    def _try_candidates(
+        self,
+        candidates: list[ModelSpec],
+        *,
+        role: str,
+        task_id: str,
+        round_index: int,
+        prompt: str,
+        seed: int,
+        dataset: str,
+    ) -> "ChatResult | str | None":
+        """One pass over ``candidates``; a ChatResult, else the last error text."""
         last_err: Optional[str] = None
         for model in candidates:
             key = _cache_key(
@@ -351,7 +418,7 @@ class OpenRouterClient:
 
             status, content = self._call(model.model_id, prompt)
             if status in (429, 502, 503, 504):
-                self._cooldowns[model.model_id] = time.time() + self._cooldown_sec
+                self._cooldowns[model.model_id] = self._clock() + self._cooldown_sec
                 last_err = f"{model.model_id}: http {status}"
                 continue
             if status != 200 or not content:
@@ -380,5 +447,4 @@ class OpenRouterClient:
 
             self._save_cache(key, parsed)
             return ChatResult(content=parsed, model_id=model.model_id, cache_hit=False)
-
-        raise OpenRouterError(f"all candidate models for role={role} failed; last_err={last_err}")
+        return last_err

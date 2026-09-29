@@ -91,46 +91,106 @@ class PreflightReport:
     probe_model_id: str
     backbones: tuple[str, ...]
     checks: tuple[str, ...] = field(default_factory=tuple)
+    # CTO #467: every roster model probed; {model_id: {live, verdict, probed_at}}.
+    roster_liveness: dict[str, dict[str, Any]] = field(default_factory=dict)
     # CTO #250: {dataset: label_contract provenance} and
     # ({"dataset", "label", "reason"}, ...) for provenance.tasks_excluded.
     label_contracts: dict[str, Mapping[str, Any]] = field(default_factory=dict)
     labels_excluded: tuple[dict[str, Any], ...] = field(default_factory=tuple)
 
 
-def openrouter_probe(env: Mapping[str, str]) -> str | None:
-    """Default pool probe: ONE minimal chat through :class:`OpenRouterClient`.
+PROBE_PROMPT = (
+    "Reply with ONLY this JSON object and nothing else: "
+    '{"confidence": 0.5, "dynamic_threshold_msd": 0.1}'
+)
 
-    Uses a fresh temporary cache so a cached reply cannot fake a live pool.
-    Returns the serving model id, or ``None`` when no model in the pool
-    answers. Never called in tests (they inject a stub).
+
+def openrouter_probe_all(env: Mapping[str, str]) -> dict[str, dict[str, Any]]:
+    """Probe EVERY roster model with the Validator JSON schema (CTO #467).
+
+    One direct call per model (no failover, fresh temporary cache so a cached
+    reply cannot fake a live model). A model is live only when it answers a
+    JSON object that ``parse_proposal("Validator", ...)`` accepts (A2-1, A3-3).
+    Returns ``{model_id: {"live", "verdict", "probed_at"}}``. Never prints the key.
     """
+    import datetime as _dt
     import tempfile
 
     import requests
+    from pydantic import ValidationError
 
-    from perturb_eval.llm.openrouter_client import (
-        DEFAULT_POOL,
-        OpenRouterClient,
-        OpenRouterError,
-    )
+    from perturb_eval.agentic_lifecycle.proposal_schema import parse_proposal
+    from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
+    table: dict[str, dict[str, Any]] = {}
     with tempfile.TemporaryDirectory(prefix="v06-preflight-") as tmp:
-        client = OpenRouterClient(
-            api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=DEFAULT_POOL
+        client = OpenRouterClient(api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=DEFAULT_POOL)
+        for m in DEFAULT_POOL.models:
+            probed_at = _dt.datetime.now(_dt.timezone.utc).isoformat()
+            try:
+                live, verdict, parsed = client.probe_model(m.model_id, PROBE_PROMPT)
+            except requests.RequestException as exc:
+                live, verdict, parsed = False, f"transport {type(exc).__name__}", None
+            if live:
+                try:
+                    parse_proposal("Validator", parsed)
+                except ValidationError:
+                    live, verdict = False, "JSON answered but Validator schema failed"
+            table[m.model_id] = {"live": bool(live), "verdict": verdict, "probed_at": probed_at}
+    return table
+
+
+def openrouter_probe(env: Mapping[str, str]) -> str | None:
+    """Legacy single-model probe: the first live model of :func:`openrouter_probe_all`."""
+    live = [k for k, v in openrouter_probe_all(env).items() if v["live"]]
+    return live[0] if live else None
+
+
+def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str, Any]], list[str]]:
+    """CTO #467: the probe must cover EVERY roster model; every role needs >= 2
+    live preferred models; returns (probe_model_id, normalised table, failures)."""
+    import datetime as _dt
+
+    from perturb_eval.llm.openrouter_client import DEFAULT_POOL
+
+    pool = pool if pool is not None else DEFAULT_POOL
+    expected = [m.model_id for m in pool.models]
+    failures: list[str] = []
+    if isinstance(got, str):  # legacy single-id probe
+        now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        got = {got: {"live": True, "verdict": "legacy single probe", "probed_at": now}}
+    if not isinstance(got, Mapping):
+        got = {}
+    table: dict[str, dict[str, Any]] = {}
+    for mid in expected:
+        e = got.get(mid)
+        if isinstance(e, Mapping):
+            table[mid] = {
+                "live": bool(e.get("live")),
+                "verdict": str(e.get("verdict", "")),
+                "probed_at": str(e.get("probed_at", "")),
+            }
+    unprobed = [mid for mid in expected if mid not in table]
+    if unprobed:
+        failures.append(
+            f"C-KEY-1: preflight probed {len(table)} of {len(expected)} roster models; "
+            f"unprobed: {unprobed} (every roster model must be probed, CTO #467)"
         )
-        try:
-            res = client.chat_json(
-                role="Validator",
-                task_id="__preflight__",
-                round_index=0,
-                prompt='Reply with exactly this JSON object: {"ok": true}',
-                seed=0,
-                dataset="__preflight__",
+    live = {mid for mid, e in table.items() if e["live"]}
+    if not live:
+        failures.append("C-KEY-1: OpenRouter pool probe returned no usable model")
+    for role, prefs in pool.role_preferences.items():
+        n = sum(1 for mid in prefs if mid in live)
+        if n < 2:
+            failures.append(
+                f"C-KEY-1: role {role} has {n} live preferred model(s) (< 2): "
+                f"{[(mid, table.get(mid, {}).get('verdict', 'unprobed')) for mid in prefs]}"
             )
-        except (OpenRouterError, requests.RequestException) as exc:
-            logger.warning("preflight probe: no usable model (%s)", type(exc).__name__)
-            return None
-    return res.model_id or None
+    probe_model_id = ""
+    if live:
+        order = list(pool.role_preferences.get("Validator", ())) + expected
+        probe_model_id = next(mid for mid in order if mid in live)
+    return probe_model_id, table, failures
 
 
 def _scrub(text: str, secret: str) -> str:
@@ -149,6 +209,7 @@ def preflight(
     env: Mapping[str, str],
     out_dir: Path | None = None,
     probe_fn: ProbeFn | None = None,
+    pool: Any = None,
 ) -> PreflightReport:
     """Run every sweep precondition; raise one :class:`PreflightError` listing all failures.
 
@@ -179,13 +240,14 @@ def preflight(
 
     # ---- C-KEY-1: key presence + pool probe --------------------------------
     probe_model_id = ""
+    liveness: dict[str, dict[str, Any]] = {}
     if not bool(env.get(KEY_NAME)):
         failures.append(
             f"C-KEY-1: {KEY_NAME} is not set (presence check); the lifecycle phase "
             "cannot run and a trainer-only run is not permitted (CTO #235)"
         )
     else:
-        probe = probe_fn if probe_fn is not None else openrouter_probe
+        probe = probe_fn if probe_fn is not None else openrouter_probe_all
         try:
             got = probe(env)
         except Exception as exc:  # noqa: BLE001 — reported as a failure, never bypassed
@@ -193,11 +255,13 @@ def preflight(
                 f"C-KEY-1: OpenRouter pool probe raised: {_scrub(_describe(exc), secret)}"
             )
         else:
-            if not got:
-                failures.append("C-KEY-1: OpenRouter pool probe returned no usable model")
-            else:
-                probe_model_id = str(got)
-                checks.append(f"pool probe ok ({probe_model_id})")
+            probe_model_id, liveness, probe_failures = _check_roster_liveness(got, pool)
+            failures.extend(probe_failures)
+            if probe_model_id:
+                n_live = sum(1 for e in liveness.values() if e["live"])
+                checks.append(
+                    f"pool probe ok ({probe_model_id}; {n_live}/{len(liveness)} roster models live)"
+                )
 
     # ---- C-KEY-SOURCE / C-PREREG: principal directive + CTO #265 ----------
     key_source = kwargs.get("llm_key_source")
@@ -219,18 +283,18 @@ def preflight(
             "fixed after the sweep is not a pre-registration (CTO #265)"
         )
     else:
-        checks.append(
-            f"pre-registration pinned: {prereg.get('path')} @ {prereg.get('commit')}"
-        )
+        checks.append(f"pre-registration pinned: {prereg.get('path')} @ {prereg.get('commit')}")
 
     # ---- C-DESIGN (QG C12): a pre-registered version runs the full design ----
     version = kwargs.get("version")
     if version in PREREGISTERED_VERSIONS:
         shrink = [
             f"{k}={kwargs.get(k)!r}"
-            for k, bad in (("max_tasks_override", kwargs.get("max_tasks_override") is not None),
-                           ("include_norman", kwargs.get("include_norman", True) is False),
-                           ("include_adamson", kwargs.get("include_adamson", True) is False))
+            for k, bad in (
+                ("max_tasks_override", kwargs.get("max_tasks_override") is not None),
+                ("include_norman", kwargs.get("include_norman", True) is False),
+                ("include_adamson", kwargs.get("include_adamson", True) is False),
+            )
             if bad
         ]
         if shrink:
@@ -335,6 +399,7 @@ def preflight(
         probe_model_id=probe_model_id,
         backbones=backbones,
         checks=tuple(checks),
+        roster_liveness=liveness,
         label_contracts=label_contracts,
         labels_excluded=labels_excluded,
     )
@@ -365,16 +430,15 @@ def _unresolved_tasks(
             try:
                 gene_task = (
                     gene_label_from_provenance(task, contract, delim)
-                    if contract is not None else task
+                    if contract is not None
+                    else task
                 )
                 resolved = resolve_target_indices([gene_task], gene_to_idx, delim=delim)
             except ValueError as exc:
                 out.append(f"{ds_name}/{pool_name}: task {task!r} does not resolve: {exc}")
                 continue
             if gene_task not in resolved:
-                out.append(
-                    f"{ds_name}/{pool_name}: task {task!r} is a control label, not a target"
-                )
+                out.append(f"{ds_name}/{pool_name}: task {task!r} is a control label, not a target")
                 continue
         if task not in tgi:
             out.append(

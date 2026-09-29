@@ -39,6 +39,15 @@ PERK_REASON = (
 # ---------------------------------------------------------------- evidence ----
 
 
+def _full_liveness(env):  # CTO #467: preflight now probes EVERY roster model
+    from perturb_eval.llm.openrouter_client import DEFAULT_POOL
+
+    return {
+        m.model_id: {"live": True, "verdict": "ok", "probed_at": "2026-09-28T23:00:00+00:00"}
+        for m in DEFAULT_POOL.models
+    }
+
+
 def _kd(delta: float = -1.5, n: int = 3) -> AliasEvidence:
     return AliasEvidence(
         method="knockdown",
@@ -521,7 +530,7 @@ def _pf_run(tmp_path: Path, adamson_tasks: tuple, adamson_ds: dict, norman_ds: d
         ),
         env={"OPENROUTER_API_KEY": "sk-fixture-key-0123456789"},
         out_dir=tmp_path / "out",
-        probe_fn=lambda env: "stub/model",
+        probe_fn=_full_liveness,
     )
 
 

@@ -23,6 +23,7 @@ import pytest
 from perturb_eval.agentic_lifecycle.loop import MockAgentPool, run_agentic_lifecycle
 from perturb_eval.experiments import preregistered as pr
 
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 APP_V05 = PROJECT_ROOT / "scripts" / "modal" / "app_v05.py"
 PREREG_PIN = {
@@ -36,6 +37,15 @@ EXACT_COMMAND = (
     "scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 "
     "--norman-n-doublets 5 --seeds 3"
 )
+
+
+def _full_liveness(env):  # CTO #467: preflight now probes EVERY roster model
+    from perturb_eval.llm.openrouter_client import DEFAULT_POOL
+
+    return {
+        m.model_id: {"live": True, "verdict": "ok", "probed_at": "2026-09-28T23:00:00+00:00"}
+        for m in DEFAULT_POOL.models
+    }
 
 
 def _matrix():
@@ -591,7 +601,7 @@ class TestC12PreregisteredDesignLocked:
             task_plan=TaskPlan(adamson=("TFA",), norman_singletons=(), norman_doublets=()),
             env={"OPENROUTER_API_KEY": "sk-or-test-SENTINEL"},
             out_dir=tmp_path / "o",
-            probe_fn=lambda env: "m/x:free",
+            probe_fn=_full_liveness,
         )
 
     @pytest.mark.parametrize(
