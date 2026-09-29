@@ -12,11 +12,18 @@ Rationale: 6/8 free OpenRouter models had disappeared and the rest rate-limited 
 (ruling of 2026-09-28) was superseded by the principal's Anthropic ruling. Roster = cheapest model passing each role's strict schema probe,
 with the Validator on a different tier from the roles it judges.
 
+**Implementation notes in A4-1 (CTO #480/#482):** every call records `stop_reason`, `stop_details.category` (on refusal), the requested and the
+served model id (asserted equal), `usage` and the per-role `max_tokens` ceiling (4x the dry run's observed maximum, minimum 256: DataCurator 256, Literature 1316, Architect 256, Trainer 256, Validator 1192);
+`refusal` and a served-model mismatch are fallback-class events (run invalid); `max_tokens` gets one retry at 2x, both billed, a second is a fallback-class event;
+the request never carries a `fallbacks` parameter. Sampling: Haiku 4.5 at temperature 0.3 (raw body; the same value the OpenRouter runs used), Sonnet 5.5 at API
+defaults (non-default rejected); thinking off on both (`between_tools` + effort low on Sonnet 5.5). Wire schema: structured outputs omit numeric ranges and express
+the two free-form maps as key/value pair arrays converted before parsing; ranges are enforced by the role schema after parsing (out of range = schema failure).
+
 ### A4-2: spend
 Total ceiling $30 (principal). The pre-registered lines stay: $12 stop-and-report and $28 kill, on TOTAL spend = GPU wall-clock + LLM usage
 (API-reported input/output/cache tokens x the pinned list prices: Haiku 4.5 $1/$5 per MTok, Sonnet 5.5 $2/$10; source: Anthropic first-party
 pricing as tabulated in the claude-api skill, cached 2026-09-25) + $1.3 carried in from the aborted run 20260928T220916Z-291efad.
-Dry run 2026-09-29 (5 calls, $0.0072) counted in the prior spend (1.3 + 0.0072). Measured-usage projection $7.96; upper $9.29. Earlier estimate at the upper bound: $9.30 (costed plan, measured input tokens).
+Dry run 2026-09-29 (35 calls in three authorised passes, $0.0548 total; measured projection $16.37 sequential, GPU $6.23 incl. LLM latency), $0.0072) counted in the prior spend (1.3 + 0.0072). Measured-usage projection $7.96; upper $9.29. Earlier estimate at the upper bound: $9.30 (costed plan, measured input tokens).
 
 ### A4-3: caveats stated in the methods
 Single model family (no cross-family generality claim; H3's entropy may be lower than under a multi-family pool). Same-family judge: the Validator
