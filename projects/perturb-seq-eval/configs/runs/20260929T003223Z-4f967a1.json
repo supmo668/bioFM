@@ -1,0 +1,48 @@
+{
+  "entrypoint_kwargs": {
+    "adamson_n_bins": 3,
+    "adamson_n_per_bin": 7,
+    "backbones": [
+      "linear",
+      "mlp",
+      "scgpt_small"
+    ],
+    "cooldown_sec": 60.0,
+    "doublet_delim": "_",
+    "git_dirty": false,
+    "git_sha": "4f967a1173daa4a3916d0b97eb1135ff8b9dac48",
+    "include_adamson": true,
+    "include_norman": true,
+    "llm_key_source": {
+      "cross_project": true,
+      "env": "dev",
+      "home_project": "biofm",
+      "project_slug": "syntropyhealth-app",
+      "store": "infisical"
+    },
+    "max_cells_per_pert": 200,
+    "max_tasks_override": null,
+    "n_top_hvg": 2000,
+    "norman_n_doublets": 5,
+    "norman_n_singletons": 15,
+    "preregistration": {
+      "commit": "114a01f860afaefaecfb09fbc83dc51f9577f1d6",
+      "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
+      "sha256": "f6a6c277924e4fccdae9399b2edd416de86cd77dfea54f3093023d5e6d222abb"
+    },
+    "preregistration_error": null,
+    "prior_spend_usd": 1.3,
+    "r_sweep": [
+      1,
+      2,
+      3
+    ],
+    "run_id": "20260929T003223Z-4f967a1",
+    "seeds": 3,
+    "spend_stop_usd": 12.0,
+    "temperature": 0.3,
+    "version": "v0.6.0"
+  },
+  "git_sha": "4f967a1173daa4a3916d0b97eb1135ff8b9dac48",
+  "run_id": "20260929T003223Z-4f967a1"
+}

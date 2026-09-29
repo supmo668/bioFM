@@ -1,0 +1,2153 @@
+{
+  "status": "ok",
+  "allow_partial_reason": null,
+  "n_error_records": 0,
+  "run_id": "20260929T035447Z-ce5f237",
+  "git_sha": "ce5f2379bac485930ff57c4b9e96a486676413a8",
+  "n_trainer_runs": 1107,
+  "n_lifecycle_runs": 123,
+  "n_lifecycle_finite": 123,
+  "n_tasks_analysed": 41,
+  "n_tasks_trainer": 41,
+  "n_tasks_lifecycle": 41,
+  "n_lifecycle_runs_unique_tasks": 41,
+  "n_steps_llm": 1845,
+  "n_steps_fallback": 0,
+  "n_steps_mock": 0,
+  "n_steps_unknown": 0,
+  "median_msd_adamson": 0.13150447142710986,
+  "median_msd_norman": 0.18420310334711942,
+  "architect_backbone_entropy_nats": 0.8593460390331004,
+  "architect_hvg_entropy_nats": 0.0,
+  "architect_backbone_distribution": {
+    "linear": 19,
+    "mlp": 167,
+    "scgpt_small": 183
+  },
+  "architect_backbone_executed_distribution": {
+    "linear": 19,
+    "mlp": 167,
+    "scgpt_small": 183
+  },
+  "architect_backbone_executed_entropy_nats": 0.8593460390331004,
+  "architect_backbone_n_executed_ne_stated": 0,
+  "entropy_by_role": {
+    "DataCurator": 0.8873315412784564,
+    "Literature": 5.910796644040524,
+    "Architect": 1.679909471203766,
+    "Trainer": 1.8671902051662506,
+    "Validator": 5.910796644040524
+  },
+  "gate_adamson_median_below_0_20": true,
+  "gate_norman_median_below_0_30": true,
+  "gate_architect_entropy_above_0_5_nats": true,
+  "preregistered": {
+    "H1": {
+      "gate": "H1",
+      "value": 0.13150447142710986,
+      "threshold": 0.2,
+      "pass": true,
+      "evaluable": true,
+      "reason": null,
+      "n": 21,
+      "iqr": [
+        0.08927997609285751,
+        0.15054070561581762
+      ],
+      "max": 7.820725008176758,
+      "fraction_over_gate": 0.14285714285714285,
+      "ci_low": 0.1113410799952613,
+      "ci_high": 0.1493714642527491,
+      "B": 10000,
+      "seed": 2026
+    },
+    "H2": {
+      "gate": "H2",
+      "value": 0.18420310334711942,
+      "threshold": 0.3,
+      "pass": true,
+      "evaluable": true,
+      "reason": null,
+      "n": 20,
+      "iqr": [
+        0.08237038543436315,
+        0.4168757943140754
+      ],
+      "max": 0.7285023921214384,
+      "fraction_over_gate": 0.45,
+      "ci_low": 0.09215605676854896,
+      "ci_high": 0.39482759027466074,
+      "B": 10000,
+      "seed": 2026,
+      "strata": {
+        "doublet": {
+          "n": 5,
+          "median": 0.5170913266449972,
+          "iqr": [
+            0.4146213301758803,
+            0.6595255274684788
+          ],
+          "max": 0.7285023921214384,
+          "fraction_over_gate": 0.8
+        },
+        "singleton": {
+          "n": 15,
+          "median": 0.1489608681853743,
+          "iqr": [
+            0.05048279512944377,
+            0.3408083418145037
+          ],
+          "max": 0.6842014606217892,
+          "fraction_over_gate": 0.3333333333333333
+        }
+      }
+    },
+    "H3": {
+      "gate": "H3",
+      "value": 0.8593460390331004,
+      "threshold": 0.5,
+      "pass": true,
+      "evaluable": true,
+      "reason": null,
+      "pick_counts": {
+        "linear": 19,
+        "mlp": 167,
+        "scgpt_small": 183
+      },
+      "n_llm_architect_steps": 369,
+      "n_distinct_model_ids": 1,
+      "menu": [
+        "linear",
+        "mlp",
+        "scgpt_small"
+      ],
+      "ceiling_nats": 1.0986122886681098,
+      "n_counted": 369,
+      "miller_madow_nats": null,
+      "executed_pick_counts": {
+        "linear": 19,
+        "mlp": 167,
+        "scgpt_small": 183
+      },
+      "entropy_executed_nats": 0.8593460390331004,
+      "n_executed_ne_stated": 0,
+      "n_missing_executed": 0,
+      "n_missing_stated": 0,
+      "n_off_menu_stated": 0,
+      "off_menu_values": {},
+      "by_model_id": {
+        "claude-haiku-4-5-20251001": {
+          "n": 369,
+          "pick_counts": {
+            "linear": 19,
+            "mlp": 167,
+            "scgpt_small": 183
+          },
+          "entropy_nats": 0.8593460390331004,
+          "miller_madow_nats": null
+        }
+      }
+    },
+    "H4": {
+      "gate": "H4",
+      "value": 0.7032719564662269,
+      "threshold": 0.5,
+      "pass": true,
+      "evaluable": true,
+      "reason": null,
+      "per_dataset": {
+        "adamson_full": {
+          "ace_norm": {
+            "rho": -0.6280889575819365,
+            "n": 21,
+            "ci_low": -0.8883800105656423,
+            "ci_high": -0.1824612471839653,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          },
+          "one_minus_delta_c": {
+            "rho": 0.6632023733997053,
+            "n": 21,
+            "ci_low": 0.2379200122012968,
+            "ci_high": 0.9064574025453608,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          },
+          "tdi_lifecycle": {
+            "rho": 0.6610389610389611,
+            "n": 21,
+            "ci_low": 0.23608952913823164,
+            "ci_high": 0.9036398669452742,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          }
+        },
+        "norman": {
+          "ace_norm": {
+            "rho": -0.3760371327687031,
+            "n": 20,
+            "ci_low": -0.7943858977107565,
+            "ci_high": 0.1405680791383422,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          },
+          "one_minus_delta_c": {
+            "rho": 0.7032719564662269,
+            "n": 20,
+            "ci_low": 0.33804082971460014,
+            "ci_high": 0.8907435508345979,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          },
+          "tdi_lifecycle": {
+            "rho": 0.7022556390977444,
+            "n": 20,
+            "ci_low": 0.33736965951720477,
+            "ci_high": 0.8889733840304183,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          }
+        }
+      },
+      "all_six": [
+        {
+          "dataset": "adamson_full",
+          "component": "ace_norm",
+          "rho": -0.6280889575819365,
+          "n": 21,
+          "ci_low": -0.8883800105656423,
+          "ci_high": -0.1824612471839653,
+          "reason": null,
+          "passes": false
+        },
+        {
+          "dataset": "adamson_full",
+          "component": "one_minus_delta_c",
+          "rho": 0.6632023733997053,
+          "n": 21,
+          "ci_low": 0.2379200122012968,
+          "ci_high": 0.9064574025453608,
+          "reason": null,
+          "passes": true
+        },
+        {
+          "dataset": "adamson_full",
+          "component": "tdi_lifecycle",
+          "rho": 0.6610389610389611,
+          "n": 21,
+          "ci_low": 0.23608952913823164,
+          "ci_high": 0.9036398669452742,
+          "reason": null,
+          "passes": true
+        },
+        {
+          "dataset": "norman",
+          "component": "ace_norm",
+          "rho": -0.3760371327687031,
+          "n": 20,
+          "ci_low": -0.7943858977107565,
+          "ci_high": 0.1405680791383422,
+          "reason": null,
+          "passes": false
+        },
+        {
+          "dataset": "norman",
+          "component": "one_minus_delta_c",
+          "rho": 0.7032719564662269,
+          "n": 20,
+          "ci_low": 0.33804082971460014,
+          "ci_high": 0.8907435508345979,
+          "reason": null,
+          "passes": true
+        },
+        {
+          "dataset": "norman",
+          "component": "tdi_lifecycle",
+          "rho": 0.7022556390977444,
+          "n": 20,
+          "ci_low": 0.33736965951720477,
+          "ci_high": 0.8889733840304183,
+          "reason": null,
+          "passes": true
+        }
+      ],
+      "n_tests_passing": 4,
+      "pooled_descriptive": {
+        "ace_norm": {
+          "rho": -0.5845283445613302,
+          "n": 41,
+          "ci_low": -0.7974695401249144,
+          "ci_high": -0.30268869677383575,
+          "B": 10000,
+          "seed": 2026,
+          "n_boot_valid": 10000,
+          "reason": null
+        },
+        "one_minus_delta_c": {
+          "rho": 0.768875564008919,
+          "n": 41,
+          "ci_low": 0.5875108103723009,
+          "ci_high": 0.8793194187515097,
+          "B": 10000,
+          "seed": 2026,
+          "n_boot_valid": 10000,
+          "reason": null
+        },
+        "tdi_lifecycle": {
+          "rho": 0.7674550292570931,
+          "n": 41,
+          "ci_low": 0.5857864660976472,
+          "ci_high": 0.8778859815461215,
+          "B": 10000,
+          "seed": 2026,
+          "n_boot_valid": 10000,
+          "reason": null
+        }
+      },
+      "descriptive": {
+        "adamson_full": {
+          "ace_norm_softmax": {
+            "rho": -0.5448639197242886,
+            "n": 21,
+            "ci_low": -0.8550013811350764,
+            "ci_high": -0.06730045142064517,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          },
+          "one_minus_delta_c_clipped": {
+            "rho": 0.6505547218323289,
+            "n": 21,
+            "ci_low": 0.23327520222568965,
+            "ci_high": 0.8944150927269249,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          }
+        },
+        "norman": {
+          "ace_norm_softmax": {
+            "rho": -0.3115823312471108,
+            "n": 20,
+            "ci_low": -0.7189424436089998,
+            "ci_high": 0.19355392851998177,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          },
+          "one_minus_delta_c_clipped": {
+            "rho": 0.7819755361526609,
+            "n": 20,
+            "ci_low": 0.46909192750602857,
+            "ci_high": 0.9221971889181907,
+            "B": 10000,
+            "seed": 2026,
+            "n_boot_valid": 10000,
+            "reason": null
+          }
+        }
+      },
+      "exclusions": {
+        "adamson_full": {
+          "ace_norm": {
+            "runs_undefined": 0,
+            "runs_single_round": 0,
+            "tasks_dropped": 0
+          },
+          "one_minus_delta_c": {
+            "runs_undefined": 0,
+            "runs_single_round": 0,
+            "tasks_dropped": 0
+          },
+          "tdi_lifecycle": {
+            "runs_undefined": 0,
+            "runs_single_round": 0,
+            "tasks_dropped": 0
+          }
+        },
+        "norman": {
+          "ace_norm": {
+            "runs_undefined": 0,
+            "runs_single_round": 0,
+            "tasks_dropped": 0
+          },
+          "one_minus_delta_c": {
+            "runs_undefined": 0,
+            "runs_single_round": 0,
+            "tasks_dropped": 0
+          },
+          "tdi_lifecycle": {
+            "runs_undefined": 0,
+            "runs_single_round": 0,
+            "tasks_dropped": 0
+          }
+        }
+      },
+      "n_tests": 6,
+      "structurally_undefined": {
+        "csd": "critique-matrix variance: the five-role lifecycle records no critique matrix",
+        "wfr": "winner flip rate: the five-role lifecycle has no per-round winner"
+      },
+      "tdi_lifecycle_weights": {
+        "ace_norm": 0.5833333333333334,
+        "one_minus_delta_c": 0.4166666666666667
+      },
+      "n_tasks": 41
+    },
+    "H5": {
+      "gate": "H5",
+      "value": 0.2857142857142857,
+      "threshold": 0.4,
+      "pass": false,
+      "evaluable": true,
+      "reason": null,
+      "n_fit": 21,
+      "n": 20,
+      "alpha": 1.0,
+      "features": [
+        "ace_norm",
+        "one_minus_delta_c"
+      ],
+      "weights": {
+        "ace_norm": -1.529358449452447,
+        "one_minus_delta_c": -0.2896088489980068
+      },
+      "standardise_mean": {
+        "ace_norm": 0.9962354843836623,
+        "one_minus_delta_c": 0.9232380952380952
+      },
+      "standardise_sd": {
+        "ace_norm": 0.004598430618997049,
+        "one_minus_delta_c": 0.09037799182265387
+      },
+      "intercept": 0.5384621223181709,
+      "constant_features": [],
+      "norman_tasks": [
+        "AHR",
+        "CBL",
+        "CEBPB",
+        "CEBPE_KLF1",
+        "CLDN6",
+        "COL2A1",
+        "FEV",
+        "FOSB_CEBPE",
+        "FOXA1",
+        "MAP2K3_MAP2K6",
+        "MAP2K6_IKZF3",
+        "MAP4K5",
+        "PRDM1",
+        "PTPN13",
+        "PTPN9",
+        "RUNX1T1",
+        "TBX3",
+        "TGFBR2_ETS2",
+        "UBASH3A",
+        "ZBTB1"
+      ],
+      "norman_tdi": [
+        -0.34440475951622024,
+        -0.2864549490433355,
+        1.3109407432078066,
+        1.725253031753129,
+        1.1951789328029305,
+        1.2660788935007652,
+        -0.8157155058183545,
+        1.7235911967822464,
+        -0.6784897211673265,
+        -0.5609992752088827,
+        -1.0517636049455248,
+        -0.46445900390229566,
+        2.6340169882951034,
+        -0.8349420128356206,
+        -0.21851586509686677,
+        -1.0374456311419602,
+        1.3493937572424142,
+        0.844087877205709,
+        -0.14160983702765323,
+        -0.706765299386932
+      ],
+      "ci_low": -0.2441935639504024,
+      "ci_high": 0.7257575757575757,
+      "B": 10000,
+      "seed": 2026,
+      "n_boot_valid": 10000
+    },
+    "tally": {
+      "PASS": 4,
+      "FAIL": 1,
+      "UNEVALUATED": 0,
+      "out_of": 5
+    }
+  },
+  "eval_genes_per_task": {
+    "adamson_full/AMIGO3": [
+      "MT-CYB",
+      "MT-CO1",
+      "MT-ATP6",
+      "MT-CO3",
+      "MT-ND4",
+      "MT-ND2",
+      "MT-CO2",
+      "MT-ND1",
+      "MT-ND5",
+      "MAT2A",
+      "RPS21",
+      "RPS27",
+      "RPS29",
+      "RPL37A",
+      "RPL28",
+      "VIM",
+      "RPS12",
+      "RPL37",
+      "DDIT4",
+      "RPS28"
+    ],
+    "adamson_full/ASCC3": [
+      "MT-ATP6",
+      "MT-CO1",
+      "MT-CYB",
+      "HSP90B1",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-ND2",
+      "HSPA5",
+      "HBZ",
+      "PDIA3",
+      "VIM",
+      "MT-CO2",
+      "SH3BGRL3",
+      "MT-ND5",
+      "MT-ND1",
+      "RPN2",
+      "CANX",
+      "CPVL",
+      "PDIA4",
+      "P4HB"
+    ],
+    "adamson_full/C7orf26": [
+      "TUBA1C",
+      "PA2G4",
+      "RPL37",
+      "RPL36A",
+      "HBZ",
+      "ACTG1",
+      "SNHG8",
+      "LSM2",
+      "POLR2H",
+      "NHP2L1",
+      "TUBB",
+      "AHCY",
+      "PFDN6",
+      "HIST1H4C",
+      "HBA1",
+      "SF3B5",
+      "SMIM12",
+      "PITX1",
+      "C7orf73",
+      "OST4"
+    ],
+    "adamson_full/CARS": [
+      "HBZ",
+      "HBG2",
+      "HBA1",
+      "PTMA",
+      "GAL",
+      "HBG1",
+      "HIST1H1C",
+      "MS4A4A",
+      "PHB",
+      "NME1",
+      "HIST1H2BK",
+      "SRM",
+      "EIF5A",
+      "APOC1",
+      "RPS28",
+      "PA2G4",
+      "NDUFS6",
+      "RPS21",
+      "HSPE1",
+      "RPL37A"
+    ],
+    "adamson_full/CCND3": [
+      "MT-CYB",
+      "MT-CO1",
+      "HIST1H4C",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-ND1",
+      "MT-ND2",
+      "MT-ATP6",
+      "MT-CO2",
+      "MT-ND5",
+      "VIM",
+      "CCND3",
+      "SDF2L1",
+      "HMGB2",
+      "CDC45",
+      "PA2G4",
+      "RPS27",
+      "GINS2",
+      "KIAA0101",
+      "RPS29"
+    ],
+    "adamson_full/DARS": [
+      "HBZ",
+      "MT-CO1",
+      "MT-CYB",
+      "MT-CO3",
+      "MT-ND4",
+      "MT-CO2",
+      "SDF2L1",
+      "MT-ATP6",
+      "DARS",
+      "HBA1",
+      "MT-ND1",
+      "MT-ND5",
+      "HBG2",
+      "RPS29",
+      "TOMM7",
+      "MT-ND2",
+      "RPL37A",
+      "CLCA1",
+      "ATP5E",
+      "PTGES3"
+    ],
+    "adamson_full/EIF2AK3": [
+      "HBZ",
+      "RPL37A",
+      "SDF2L1",
+      "RPS29",
+      "RPS28",
+      "RPS21",
+      "RPL37",
+      "HIST1H4C",
+      "RPS12",
+      "RPS27",
+      "RPL12",
+      "RPL28",
+      "HBA1",
+      "RPS24",
+      "MT-CO1",
+      "MT-CYB",
+      "SRM",
+      "ATP5E",
+      "GAL",
+      "RPL35"
+    ],
+    "adamson_full/GBF1": [
+      "MT-CYB",
+      "MT-CO1",
+      "MT-CO3",
+      "MT-ND4",
+      "MT-ATP6",
+      "HBZ",
+      "MT-CO2",
+      "MT-ND2",
+      "MT-ND1",
+      "RPS29",
+      "RPL37A",
+      "HIST1H4C",
+      "RPS21",
+      "HBA1",
+      "RPS12",
+      "RPS28",
+      "RPL37",
+      "RPS10",
+      "CACYBP",
+      "LDHA"
+    ],
+    "adamson_full/HSD17B12": [
+      "MT-CYB",
+      "MT-CO1",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-ATP6",
+      "SDF2L1",
+      "SH3BGRL3",
+      "INSIG1",
+      "CD52",
+      "RPS29",
+      "MT-ND2",
+      "MT-ND1",
+      "MT-CO2",
+      "TIMP1",
+      "RPL37A",
+      "RPS21",
+      "HIST1H4C",
+      "RPS12",
+      "MT-ND5",
+      "RPS27"
+    ],
+    "adamson_full/KCTD16": [
+      "MT-CYB",
+      "MT-CO1",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-ATP6",
+      "VIM",
+      "MT-ND2",
+      "MT-ND1",
+      "RPS29",
+      "RPS27",
+      "MT-ND5",
+      "MAT2A",
+      "RPS21",
+      "RPS12",
+      "RPL37A",
+      "RPL28",
+      "RPS28",
+      "RPL37",
+      "MT-CO2",
+      "RPL36A"
+    ],
+    "adamson_full/OST4": [
+      "OST4",
+      "MT-CYB",
+      "MT-CO1",
+      "MT-ATP6",
+      "MT-CO3",
+      "MT-ND4",
+      "MT-ND2",
+      "MT-ND1",
+      "VIM",
+      "MT-CO2",
+      "MT-ND5",
+      "RPS29",
+      "MAT2A",
+      "RPL37A",
+      "RPS27",
+      "RPS21",
+      "RPS12",
+      "RPS28",
+      "HIST1H4C",
+      "RPL28"
+    ],
+    "adamson_full/P4HB": [
+      "MT-CYB",
+      "MT-CO1",
+      "MT-ATP6",
+      "MT-ND4",
+      "MT-CO3",
+      "P4HB",
+      "MT-ND2",
+      "MT-ND1",
+      "MT-CO2",
+      "MT-ND5",
+      "MAT2A",
+      "VIM",
+      "RPS29",
+      "CITED2",
+      "RPS27",
+      "SH3BGRL3",
+      "RPL37A",
+      "RPS21",
+      "RPL37",
+      "MANF"
+    ],
+    "adamson_full/SAMM50": [
+      "MT-CO1",
+      "MT-CYB",
+      "HBZ",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-ATP6",
+      "PHGDH",
+      "MT-CO2",
+      "SAMM50",
+      "CLCA1",
+      "SERPINF1",
+      "MT-ND1",
+      "MS4A3",
+      "RPS29",
+      "MT-ND2",
+      "ASNS",
+      "SDF2L1",
+      "SLC25A6",
+      "PRSS57",
+      "HBA1"
+    ],
+    "adamson_full/SARS": [
+      "HBZ",
+      "HBG2",
+      "HBG1",
+      "HBA1",
+      "PTMA",
+      "MS4A4A",
+      "SDF2L1",
+      "SRM",
+      "EIF5",
+      "HIST1H1C",
+      "NME1",
+      "GAL",
+      "PHF19",
+      "PA2G4",
+      "UQCR11-1",
+      "YDJC",
+      "EIF5A",
+      "PHB",
+      "GAPDH",
+      "HIST1H2BK"
+    ],
+    "adamson_full/SEC61G": [
+      "SEC61G",
+      "SLC3A2",
+      "MT-CYB",
+      "MT-CO1",
+      "MT-CO3",
+      "MT-ATP6",
+      "HBA1",
+      "MT-ND4",
+      "MT-ND2",
+      "RPS29",
+      "GAL",
+      "MT-CO2",
+      "RPS21",
+      "RPL37",
+      "RPS28",
+      "HBZ",
+      "MT-ND1",
+      "PTMA",
+      "RPL37A",
+      "RPL38"
+    ],
+    "adamson_full/SEL1L": [
+      "MT-CO1",
+      "MT-CYB",
+      "MT-ND4",
+      "MT-ATP6",
+      "MT-CO3",
+      "HSPA5",
+      "MT-ND2",
+      "MT-ND1",
+      "VIM",
+      "MT-CO2",
+      "MAT2A",
+      "MT-ND5",
+      "RPS27",
+      "RPS29",
+      "DDIT4",
+      "RPL37A",
+      "RPS12",
+      "RPS21",
+      "RPS28",
+      "RPL28"
+    ],
+    "adamson_full/SLMO2": [
+      "HBZ",
+      "PHGDH",
+      "HBA1",
+      "RPS29",
+      "HIST1H1C",
+      "SERPINF1",
+      "SLMO2",
+      "PRSS57",
+      "GAL",
+      "RPS28",
+      "HBG2",
+      "HIST1H2BK",
+      "RPL37A",
+      "HIST1H4C",
+      "MS4A4A",
+      "MS4A3",
+      "EPRS",
+      "SMYD3",
+      "SDF2L1",
+      "DDIT4"
+    ],
+    "adamson_full/SPI1": [
+      "MT-CO1",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-CO2",
+      "MT-CYB",
+      "MT-ATP6",
+      "MT-ND2",
+      "MT-ND1",
+      "SLC25A6",
+      "MT-ND5",
+      "APOE",
+      "HSPA5",
+      "DDIT4",
+      "CHI3L2",
+      "LY6E",
+      "DDIT3",
+      "HERPUD1",
+      "HBZ",
+      "ATF4",
+      "PA2G4"
+    ],
+    "adamson_full/SRP72": [
+      "SRP72",
+      "MT-CYB",
+      "MT-ATP6",
+      "MT-CO1",
+      "MT-ND4",
+      "MT-CO3",
+      "MT-ND2",
+      "MT-ND1",
+      "SDF2L1",
+      "MANF",
+      "VIM",
+      "RPS27",
+      "RPS21",
+      "MT-ND5",
+      "MAT2A",
+      "RPS12",
+      "MT-CO2",
+      "RPL37",
+      "RPS29",
+      "RPL37A"
+    ],
+    "adamson_full/UFM1": [
+      "MT-CO1",
+      "MT-CYB",
+      "MT-CO3",
+      "MT-ND4",
+      "MT-ATP6",
+      "MT-ND2",
+      "UFM1",
+      "MT-ND1",
+      "MT-CO2",
+      "MAT2A",
+      "VIM",
+      "MT-ND5",
+      "TIMP1",
+      "RPS29",
+      "RPS27",
+      "HIST1H1E",
+      "RPS21",
+      "CITED2",
+      "HIST1H4C",
+      "RPL37A"
+    ],
+    "adamson_full/XBP1": [
+      "MT-CO1",
+      "SDF2L1",
+      "MT-CYB",
+      "RPL34",
+      "MT-CO3",
+      "RPS29",
+      "RPL28",
+      "MT-ND4",
+      "RPS10",
+      "HIST1H4C",
+      "RPL36A",
+      "RPS27",
+      "VIM",
+      "RPL37A",
+      "RPL37",
+      "RPS12",
+      "MT-ATP6",
+      "RPS28",
+      "RPL12",
+      "RWDD1"
+    ],
+    "norman/AHR": [
+      "MT-ND4",
+      "TESC",
+      "MT-CYB",
+      "MT-ATP6",
+      "MT-ND5",
+      "SH3BGRL3",
+      "MT-ND3",
+      "MT-CO3",
+      "MT-ND4L",
+      "HMGB1",
+      "HSPE1",
+      "TUBA1B",
+      "ANP32B",
+      "GAL",
+      "PTMA",
+      "PPA1",
+      "CACYBP",
+      "RSL1D1",
+      "HBG2",
+      "FBL"
+    ],
+    "norman/CBL": [
+      "HBZ",
+      "CD99",
+      "HBG2",
+      "PRSS57",
+      "CLIC1",
+      "ALAS2",
+      "PSMB3",
+      "HBA1",
+      "NEAT1",
+      "HBG1",
+      "PRDX1",
+      "SLC25A37",
+      "XRCC5",
+      "CACYBP",
+      "COL18A1",
+      "SSB",
+      "FABP5",
+      "TEX30",
+      "IDH3B",
+      "NDUFS4"
+    ],
+    "norman/CEBPB": [
+      "LST1",
+      "AIF1",
+      "HBG2",
+      "PLD3",
+      "GYPA",
+      "NME1",
+      "GYPB",
+      "CFD",
+      "ID3",
+      "ID1",
+      "PA2G4",
+      "TYROBP",
+      "RP11-301G19.1",
+      "SRM",
+      "RANBP1",
+      "ANP32B",
+      "PTMA",
+      "UBAC1",
+      "SH3BGRL3",
+      "RP11-717F1.1"
+    ],
+    "norman/CEBPE_KLF1": [
+      "TMSB10",
+      "HBZ",
+      "CEBPE",
+      "KLF1",
+      "PNMT",
+      "VIM",
+      "ANXA2",
+      "EMP3",
+      "HBA1",
+      "S100A10",
+      "GAL",
+      "S100A11",
+      "HBG2",
+      "SH3BGRL3",
+      "APOC1",
+      "MDK",
+      "BLVRB",
+      "LGALS1",
+      "HIST1H4C",
+      "FXYD5"
+    ],
+    "norman/CLDN6": [
+      "HBZ",
+      "CLDN6",
+      "ALAS2",
+      "HBG2",
+      "HBA1",
+      "RANBP1",
+      "CMTM6",
+      "ASIC4",
+      "HMGB1",
+      "GYPB",
+      "NEAT1",
+      "CLIC1",
+      "PTMA",
+      "APOE",
+      "MIF",
+      "LY6E",
+      "CACYBP",
+      "PSMB3",
+      "NME1",
+      "TEX30"
+    ],
+    "norman/COL2A1": [
+      "COL2A1",
+      "TIMP1",
+      "SH3BGRL3",
+      "HSD17B10",
+      "HBZ",
+      "CD37",
+      "APOC1",
+      "NR2F2",
+      "PITX1",
+      "HIST1H1C",
+      "PPP1R14A",
+      "HBG2",
+      "VIM",
+      "MDK",
+      "SERPINB9",
+      "AIF1",
+      "CD52",
+      "CHCHD10",
+      "CTSH",
+      "DDIT4"
+    ],
+    "norman/FEV": [
+      "FEV",
+      "HBG2",
+      "CRYBA2",
+      "APOC1",
+      "SH3BGRL3",
+      "MARCKSL1",
+      "HBG1",
+      "VIM",
+      "HBZ",
+      "RPS27",
+      "PRSS57",
+      "CST3",
+      "MT-ND6",
+      "RPS18",
+      "GAL",
+      "SLC25A6",
+      "RPL5",
+      "GNB2L1",
+      "RPL3",
+      "RPL26"
+    ],
+    "norman/FOSB_CEBPE": [
+      "LST1",
+      "CEBPE",
+      "RANBP1",
+      "NME1",
+      "HBG2",
+      "PTMA",
+      "PA2G4",
+      "HSPE1",
+      "HBZ",
+      "CYCS",
+      "GYPB",
+      "LAPTM4B",
+      "EIF5A",
+      "AIF1",
+      "MS4A3",
+      "GYPA",
+      "VIM",
+      "PSMA7",
+      "TXN",
+      "YBX1"
+    ],
+    "norman/FOXA1": [
+      "GAL",
+      "ATF7IP2",
+      "CLIC1",
+      "TEX30",
+      "PRSS57",
+      "PTMA",
+      "PRKAR2B",
+      "RANBP1",
+      "ID3",
+      "NME1",
+      "HSP90AA1",
+      "MYL4",
+      "CCT5",
+      "CKS1B",
+      "H2AFY",
+      "PHB",
+      "HMGB1",
+      "RGS10",
+      "PRDX4",
+      "SLC39A3"
+    ],
+    "norman/MAP2K3_MAP2K6": [
+      "LDHB",
+      "PSMA4",
+      "HIST1H1C",
+      "MAP2K3",
+      "KRT18",
+      "UBB",
+      "NPM1",
+      "AK2",
+      "PRDX1",
+      "PRMT1",
+      "GAL",
+      "NOL7",
+      "UFD1L",
+      "SNU13",
+      "UBE2L3",
+      "VDAC2",
+      "RAN",
+      "PSMB3",
+      "YRDC",
+      "PHB"
+    ],
+    "norman/MAP2K6_IKZF3": [
+      "HBZ",
+      "HBG2",
+      "HBG1",
+      "HBA1",
+      "HBE1",
+      "HBA2",
+      "RP11-717F1.1",
+      "GYPB",
+      "NEAT1",
+      "ALAS2",
+      "GYPA",
+      "BLVRB",
+      "MALAT1",
+      "PRDX1",
+      "PTMA",
+      "PKM",
+      "HSPE1",
+      "HIST1H1C",
+      "HMGB1",
+      "CMBL"
+    ],
+    "norman/MAP4K5": [
+      "UBE2S",
+      "HMGB2",
+      "HMGB1",
+      "SSB",
+      "CYCS",
+      "PRDX1",
+      "CKS1B",
+      "ZNF593",
+      "SKP1",
+      "ATP5F1",
+      "MT-ND6",
+      "MPLKIP",
+      "XRCC5",
+      "PTMA",
+      "NME1",
+      "RANBP1",
+      "SHFM1",
+      "HBZ",
+      "MIF",
+      "PDCD2"
+    ],
+    "norman/PRDM1": [
+      "HBZ",
+      "HBG2",
+      "GAL",
+      "NME1",
+      "PTMA",
+      "TMSB10",
+      "MDK",
+      "APOC1",
+      "PRKAR2B",
+      "ALAS2",
+      "BLVRB",
+      "SRM",
+      "C1QBP",
+      "HBA1",
+      "RANBP1",
+      "PA2G4",
+      "PPA1",
+      "HBG1",
+      "HSPE1",
+      "PEBP1"
+    ],
+    "norman/PTPN13": [
+      "COL18A1",
+      "PIM1",
+      "AK1",
+      "TP53I3",
+      "TMEM38B",
+      "ENG",
+      "METTL12",
+      "TAL2",
+      "UBE2S",
+      "NDUFAF2",
+      "UBAC1",
+      "FADS1",
+      "ID3",
+      "SRM",
+      "PITX1",
+      "PTMA",
+      "GAL",
+      "CMTM6",
+      "HES6",
+      "ODC1"
+    ],
+    "norman/PTPN9": [
+      "HBZ",
+      "UBE2S",
+      "PTPN9",
+      "PRSS57",
+      "HBG2",
+      "MALAT1",
+      "NEAT1",
+      "PPIC",
+      "CLIC1",
+      "SLC25A37",
+      "POMP",
+      "CACYBP",
+      "PSMB3",
+      "CYCS",
+      "CCT5",
+      "CTSL",
+      "SMYD3",
+      "TUBA1B",
+      "ATPIF1",
+      "LAPTM4B"
+    ],
+    "norman/RUNX1T1": [
+      "RUNX1T1",
+      "GYPB",
+      "HIST1H4C",
+      "HBZ",
+      "HBG1",
+      "NEAT1",
+      "GYPA",
+      "CTSL",
+      "VIM",
+      "RP11-301G19.1",
+      "HBG2",
+      "DNPH1",
+      "SLC25A1",
+      "APOE",
+      "GTF2I",
+      "ARPC1B",
+      "TMEM50A",
+      "STXBP5",
+      "NDUFV3",
+      "HIST1H1C"
+    ],
+    "norman/TBX3": [
+      "AVP",
+      "GYPB",
+      "PRSS57",
+      "GYPA",
+      "TEX30",
+      "ATF7IP2",
+      "RFK",
+      "BST2",
+      "GNAS",
+      "VIM",
+      "NEAT1",
+      "PYCR2",
+      "HBG2",
+      "GSTP1",
+      "PSMB3",
+      "APOE",
+      "MALAT1",
+      "LIMD2",
+      "CTSL",
+      "CD47"
+    ],
+    "norman/TGFBR2_ETS2": [
+      "HBG2",
+      "AIF1",
+      "ETS2",
+      "GPSM3",
+      "GAL",
+      "GMFG",
+      "CTSL",
+      "TMSB4X",
+      "S100A11",
+      "AC079466.1",
+      "HBG1",
+      "SH3BGRL3",
+      "APOC1",
+      "MSN",
+      "LIMD2",
+      "IFITM2",
+      "RAC2",
+      "AP1S2",
+      "ATF7IP2",
+      "MYL12A"
+    ],
+    "norman/UBASH3A": [
+      "NEAT1",
+      "MALAT1",
+      "XRCC5",
+      "UFD1L",
+      "CACYBP",
+      "PFDN2",
+      "FAM136A",
+      "SSB",
+      "CLIC1",
+      "CDC123",
+      "PSMB3",
+      "U2SURP",
+      "HMGB1",
+      "AC079466.1",
+      "OXLD1",
+      "PFDN1",
+      "NDUFV2",
+      "KIF5B",
+      "SKP1",
+      "TCP1"
+    ],
+    "norman/ZBTB1": [
+      "HBZ",
+      "HBG2",
+      "NEAT1",
+      "HBA1",
+      "FASN",
+      "MGST3",
+      "CYBA",
+      "ACTG1",
+      "HBA2",
+      "SH3BGRL3",
+      "SLC44A1",
+      "HBG1",
+      "PRSS57",
+      "BLVRB",
+      "PRDX1",
+      "MALAT1",
+      "PTMA",
+      "CTSL",
+      "NME1",
+      "MARCKSL1"
+    ]
+  },
+  "eval_genes_reason": null,
+  "eval_gene_mismatch_tasks": [],
+  "preregistration": {
+    "commit": "00fae29e35f9a8c3cedc455ee93ca9d422bcbcc0",
+    "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
+    "sha256": "6f8498eea879bb1e843511b03b821a567293402dff123487228c5f0c1330f270"
+  },
+  "prereg_version": "v0.6.0-a4",
+  "llm_cache_entries_at_start": 0,
+  "llm_cache_hit_count": 0,
+  "replay": false,
+  "replay_reasons": [],
+  "best_config_per_task": {
+    "adamson_full:AMIGO3": {
+      "task": "AMIGO3",
+      "best_msd": 0.08927997609285751,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:ASCC3": {
+      "task": "ASCC3",
+      "best_msd": 0.1824323633449687,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:C7orf26": {
+      "task": "C7orf26",
+      "best_msd": 0.17316629777181072,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 2,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:CARS": {
+      "task": "CARS",
+      "best_msd": 0.9705011872838721,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:CCND3": {
+      "task": "CCND3",
+      "best_msd": 0.13495705245960307,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:DARS": {
+      "task": "DARS",
+      "best_msd": 0.07731903207344422,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:EIF2AK3": {
+      "task": "EIF2AK3",
+      "best_msd": 0.060961833055437176,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 2,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:GBF1": {
+      "task": "GBF1",
+      "best_msd": 0.05692107275574256,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:HSD17B12": {
+      "task": "HSD17B12",
+      "best_msd": 0.13150447142710986,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 1,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:KCTD16": {
+      "task": "KCTD16",
+      "best_msd": 0.07819322220052523,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:OST4": {
+      "task": "OST4",
+      "best_msd": 0.13973932392481683,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:P4HB": {
+      "task": "P4HB",
+      "best_msd": 0.15054070561581762,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SAMM50": {
+      "task": "SAMM50",
+      "best_msd": 0.11262354131623761,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SARS": {
+      "task": "SARS",
+      "best_msd": 0.3181208985449218,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2028,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SEC61G": {
+      "task": "SEC61G",
+      "best_msd": 0.13607181337270813,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SEL1L": {
+      "task": "SEL1L",
+      "best_msd": 0.1493714642527491,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2027,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SLMO2": {
+      "task": "SLMO2",
+      "best_msd": 0.11960019330012628,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SPI1": {
+      "task": "SPI1",
+      "best_msd": 7.820725008176758,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:SRP72": {
+      "task": "SRP72",
+      "best_msd": 0.11856044006322737,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:UFM1": {
+      "task": "UFM1",
+      "best_msd": 0.1113410799952613,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "adamson_full:XBP1": {
+      "task": "XBP1",
+      "best_msd": 0.03673802042017913,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "adamson_full"
+      },
+      "n_configs_tried": 7,
+      "dataset": "adamson_full",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:AHR": {
+      "task": "AHR",
+      "best_msd": 0.0739574613004812,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 1,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:CBL": {
+      "task": "CBL",
+      "best_msd": 0.08517469347899045,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:CEBPB": {
+      "task": "CEBPB",
+      "best_msd": 0.3487291184995486,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:CEBPE_KLF1": {
+      "task": "CEBPE_KLF1",
+      "best_msd": 0.4146213301758803,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:CLDN6": {
+      "task": "CLDN6",
+      "best_msd": 0.207846868993393,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:COL2A1": {
+      "task": "COL2A1",
+      "best_msd": 0.42363918672866074,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:FEV": {
+      "task": "FEV",
+      "best_msd": 0.3328875651294588,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:FOSB_CEBPE": {
+      "task": "FOSB_CEBPE",
+      "best_msd": 0.6595255274684788,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:FOXA1": {
+      "task": "FOXA1",
+      "best_msd": 0.027008128958406354,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:MAP2K3_MAP2K6": {
+      "task": "MAP2K3_MAP2K6",
+      "best_msd": 0.5170913266449972,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:MAP2K6_IKZF3": {
+      "task": "MAP2K6_IKZF3",
+      "best_msd": 0.7285023921214384,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:MAP4K5": {
+      "task": "MAP4K5",
+      "best_msd": 0.01633148575624966,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 1,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:PRDM1": {
+      "task": "PRDM1",
+      "best_msd": 0.3750338503734411,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 3,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:PTPN13": {
+      "task": "PTPN13",
+      "best_msd": 0.1489608681853743,
+      "best_config": {
+        "backbone": "scgpt_small",
+        "R": 1,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:PTPN9": {
+      "task": "PTPN9",
+      "best_msd": 0.014866268255596126,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:RUNX1T1": {
+      "task": "RUNX1T1",
+      "best_msd": 0.09913742005810745,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:TBX3": {
+      "task": "TBX3",
+      "best_msd": 0.6842014606217892,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:TGFBR2_ETS2": {
+      "task": "TGFBR2_ETS2",
+      "best_msd": 0.14447224176879642,
+      "best_config": {
+        "backbone": "linear",
+        "R": 1,
+        "seed": 2026,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:UBASH3A": {
+      "task": "UBASH3A",
+      "best_msd": 0.011372260937020127,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2027,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    },
+    "norman:ZBTB1": {
+      "task": "ZBTB1",
+      "best_msd": 0.16055933770084588,
+      "best_config": {
+        "backbone": "mlp",
+        "R": 3,
+        "seed": 2028,
+        "dataset": "norman"
+      },
+      "n_configs_tried": 7,
+      "dataset": "norman",
+      "n_records": 27,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ]
+    }
+  }
+}
