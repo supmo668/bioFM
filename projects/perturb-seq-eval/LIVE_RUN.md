@@ -1,5 +1,10 @@
 # Running the pipeline against real data and a real LLM
 
+> **Legacy (v0.4/v0.5).** The OpenRouter `:free` roster described below is superseded: the
+> v0.6.0 pre-registered sweep serves every role through the Anthropic API
+> (`src/perturb_eval/llm/anthropic_client.py`, amendment 4 in `paper/PREREGISTRATION.md`);
+> see `README.md` for the current launch command.
+
 This document covers the "non-synthetic" path:
 
 - **Real data**: Adamson et al. 2016 Perturb-seq (K562 cells, UPR screen).

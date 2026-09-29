@@ -1,6 +1,6 @@
 # Thesis — Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction
 
-Status: thesis for the v0.6.0 regeneration (revised 2026-09-24; first drafted as v0.1, 2026-04-18). The claim below is the hypothesis the paper tests, not a finding: the hypotheses, gates and analysis plan are fixed in [`../paper/PREREGISTRATION.md`](../paper/PREREGISTRATION.md), results are pending the v0.6.0 sweep, and all v0.5.0 values are superseded (paper appendix "Corrections relative to v0.5.0").
+Status: thesis for the v0.6.0 regeneration (revised 2026-09-24; first drafted as v0.1, 2026-04-18). The claim below is the hypothesis the paper tests, not a finding: the hypotheses, gates and analysis plan are fixed in [`../paper/PREREGISTRATION.md`](../paper/PREREGISTRATION.md), results are those of the v0.6.0 sweep (run `20260929T035447Z-ce5f237`; 4 of 5 gates pass, H5 fails, reported as pre-registered), and all v0.5.0 values are superseded (paper appendix "Corrections relative to v0.5.0").
 Target venue: workshop submission to ICML 2026 FM4LS and/or a MassGen contribution RFC.
 Companion code: this directory (`projects/perturb-seq-eval/`) is the reference implementation; the orchestration layer under evaluation is `libs/cellforge-agents/`.
 
