@@ -577,7 +577,7 @@ with the Validator on a different tier from the roles it judges.
 
 **Implementation notes in A4-1 (CTO #480/#482):** every call records `stop_reason`, `stop_details.category` (on refusal), the requested and the
 served model id (asserted equal), `usage` and the per-role `max_tokens` ceiling (4x the dry run's observed maximum, minimum 256: DataCurator 256, Literature 1316, Architect 256, Trainer 256, Validator 1192);
-`refusal` and a served-model mismatch are fallback-class events (run invalid); `max_tokens` gets one retry at 2x, both billed, a second is a fallback-class event;
+`refusal` aborts the run outright (a fatal event: provenance status `failed`, the refusal's `stop_details.category` recorded — CTO #480; the run is invalid either way) and a served-model mismatch is a fallback-class event (run invalid) with no failover; `max_tokens` gets one retry at 2x, both billed, a second is a fallback-class event;
 the request never carries a `fallbacks` parameter. Sampling: Haiku 4.5 at temperature 0.3 (raw body; the same value the OpenRouter runs used), Sonnet 5.5 at API
 defaults (non-default rejected); thinking off on both (`between_tools` + effort low on Sonnet 5.5). Wire schema: structured outputs omit numeric ranges and express
 the two free-form maps as key/value pair arrays converted before parsing; ranges are enforced by the role schema after parsing (out of range = schema failure).
