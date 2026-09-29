@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-09-29T00:32:54.924136+00:00",
+  "updated_at": "2026-09-29T03:49:17.056634+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -42,6 +42,17 @@
       "summary": "relaunch fixes gated; sweep relaunched 2026-09-29T00:31Z",
       "pr": "",
       "updated_at": "2026-09-29T00:32:54.923995+00:00"
+    },
+    "A4CLIENT": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "f355ebe",
+      "qgr": "/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260928-2049-36b0e1d.md",
+      "summary": "AnthropicClient gated; relaunch pending CTO receipt verification",
+      "pr": "",
+      "updated_at": "2026-09-29T03:49:17.056350+00:00"
     }
   }
 }
