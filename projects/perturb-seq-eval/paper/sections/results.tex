@@ -18,7 +18,7 @@ is UNEVALUATED, never FAIL. Every estimator is implemented in
 ($B=10\,000$, \texttt{numpy.random.default\_rng(2026)}, 95\%). \textbf{Outcome:
 \resGateSummary.}
 
-\begin{table}[h]
+\begin{table}[ht]
 \small
 \centering
 \begin{tabular}{p{0.05\linewidth}p{0.36\linewidth}p{0.2\linewidth}p{0.27\linewidth}}
@@ -53,9 +53,10 @@ Estimator: per task, the minimum MSD on the top-$20$ evaluation genes over the
 per task; an oracle, \S\ref{subsec:oracle}); the gate is the median over tasks in each
 dataset (\texttt{preregistered.h1\_h2\_stats}).
 
-\begin{table}[h]
+\begin{table}[ht]
 \small
 \centering
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lllllll}
 \toprule
 Dataset & $n$ & median & IQR & max & fraction over gate & 95\% CI (median) \\
@@ -65,7 +66,7 @@ Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \res
 \quad singletons & \resHTwoSingletonN & \resHTwoSingletonMedian & [\resHTwoSingletonIQRLo, \resHTwoSingletonIQRHi] & \resHTwoSingletonMax & \resHTwoSingletonFracOver & --- \\
 \quad doublets & \resHTwoDoubletN & \resHTwoDoubletMedian & [\resHTwoDoubletIQRLo, \resHTwoDoubletIQRHi] & \resHTwoDoubletMax & \resHTwoDoubletFracOver & --- \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{Oracle MSD on the top-$20$ evaluation genes (best of the distinct configurations,
 selected on the evaluation split). Gates: Adamson median $<\resHOneThreshold$ (\resHOneVerdict),
 Norman median $<\resHTwoThreshold$ (\resHTwoVerdict). The Norman doublet stratum's median
@@ -127,7 +128,7 @@ ranks), $4.71\%$ (reversed ranks) and $5.84\%$ (independent), against $0.0475\%$
 test at $n=41$ (\texttt{scripts/local/prereg\_null\_fwer.py}); no correction was pre-registered,
 and all six $\rho$ are reported whatever their outcome.
 
-\begin{table}[h]
+\begin{table}[ht]
 \small
 \centering
 \begin{tabular}{p{0.24\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.16\linewidth}}

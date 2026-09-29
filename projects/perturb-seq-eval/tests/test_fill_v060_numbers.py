@@ -517,9 +517,9 @@ def test_no_pending_placeholders_remain():
 def test_every_result_macro_used_is_defined_and_input_first(macros):
     for fpath in TEX_INPUTS:
         text = _strip(fpath.read_text())
-        used = set(re.findall(r"\\(res[A-Za-z]+)", text))
+        used = set(re.findall(r"\\(res[A-Z][A-Za-z]*)", text))
         assert not (used - set(macros)), (fpath.name, sorted(used - set(macros)))
-        assert not re.search(r"\\res[A-Za-z]+(?:[ \t]+[A-Za-z(]|\d)", text), (
+        assert not re.search(r"\\res[A-Z][A-Za-z]*(?:[ \t]+[A-Za-z(]|\d)", text), (
             fpath.name
         )  # swallowed space / digit
         assert not re.search(

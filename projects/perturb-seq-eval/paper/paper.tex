@@ -274,7 +274,7 @@ clipped term are reported descriptively beside them. Both amendments were
 locked before any v0.6.0 data existed.
 
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
-$\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
+\sloppy $\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
 \max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4$. In practice the probe is
 produced by a \emph{shallow} one-round execution of the orchestrator (smaller
 tool-call budget, narrower retrieval) so it is materially cheaper than a full
@@ -320,7 +320,7 @@ $\{\Sigma_\varphi\}$, budget $B$.\\
 
 So far the paper has been algorithmic. This section is deliberately
 engineering-heavy because the paper's reviewer question
-``\emph{what did you have to contribute to \textsc{MassGen}?}'' deserves a
+``\emph{what did you have to contribute to MassGen?}'' deserves a
 precise answer. We separate our work into three buckets --- novel
 contribution, thin adapter over existing infrastructure, and explicitly-scoped
 future work --- and state each with enough detail that a reviewer can locate
@@ -333,9 +333,9 @@ one-section summary.
 Our central engineering contribution is a narrow, immutable trace schema
 that decouples the orchestrator from the evaluator. A \texttt{RoundTrace}
 carries
-$(\mathrm{round\_index}, \mathrm{agent\_names}[N],
+\[(\mathrm{round\_index}, \mathrm{agent\_names}[N],
 \mathbf{C}[N], \mathbf{S}[N,N{-}1], w, \mathrm{consensus\_score},
-\mathrm{compute\_tokens})$;
+\mathrm{compute\_tokens});\]
 a \texttt{RunTrace} is an ordered tuple of \texttt{RoundTrace}s plus
 $(\mathrm{task\_id}, \mathrm{converged}, \mathrm{backbone})$. Both are
 \texttt{frozen=True} Python dataclasses, which makes them safe to serialise,
@@ -345,9 +345,10 @@ never on the LLM-facing proposal or critique text --- which makes metric
 computation costs negligible (\textit{ca.}\ $1$ ms per run) and also
 improves privacy posture (LLM content is never consumed by the metric layer).
 
-\begin{table}[h]
+\begin{table}[ht]
 \small
 \centering
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lll}
 \toprule
 File & Kind & Status \\
@@ -359,12 +360,12 @@ File & Kind & Status \\
 \texttt{massgen\_skill\_draft/} (in-repo draft of a MassGen skill) & Ready-to-submit & not yet PR'd \\
 LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt + pure-Python scaffold & not yet calibrated on live traces \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{Contribution audit. See \texttt{docs/DESIGN.md} for the full file-by-file breakdown.}
 \label{tab:contrib}
 \end{table}
 
-\subsection{Adapting \textsc{CellForge}: duck typing, no patching}
+\subsection{Adapting CellForge: duck typing, no patching}
 
 The orchestrator in \texttt{libs/cellforge-agents/} exposes a
 \texttt{ConsensusResult} whose \texttt{.rounds[i].proposals} carry
@@ -378,7 +379,7 @@ as $\arg\max_j (c_j - \overline{S}_{\cdot j})$. No orchestrator patching is
 required. Any propose-critique-vote system that exposes these two minimal
 shapes gets the full evaluator stack for free.
 
-\subsection{\textsc{MassGen}'s native observability is rich but differently
+\subsection{MassGen's native observability is rich but differently
 shaped}\label{subsec:massgen_bridge}
 
 \textsc{MassGen}~\citep{massgen2025github} already provides a mature
@@ -415,7 +416,7 @@ repository at \texttt{massgen\_skill\_draft/}:
 \end{enumerate}
 
 The corresponding MassGen skill artifact
-(\texttt{massgen\_skill\_draft/skill.yaml}) declares an
+(\path{massgen_skill_draft/skill.yaml}) declares an
 \texttt{on\_session\_start} hook that runs preflight and an
 \texttt{on\_session\_end} hook that runs evaluate. Both handlers are
 $\leq 20$ lines of glue over \texttt{perturb\_eval.massgen\_adapter}, which
@@ -571,28 +572,28 @@ run outcome & \texttt{status}, \texttt{cost\_usd\_actual},
 hypotheses and analysis plan & \texttt{paper/PREREGISTRATION.md}, at the
   revision named by \texttt{git\_sha} \\
 known defects outside the sweep path & repository file
-  \texttt{workstreams/perturb-seq-eval/deferred-findings.md} \\
+  \path{workstreams/perturb-seq-eval/deferred-findings.md} \\
 \bottomrule
 \end{tabular}
 \end{center}
-The v0.6.0 run files are written to \texttt{artifacts/v0.6.0/}: run
+\sloppy The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
 \texttt{\resRunId} at \texttt{git\_sha} \resGitSha{} (\texttt{git\_dirty}
 \resGitDirty), \texttt{prereg\_version} \resPreregVersion; the run manifest
-\texttt{configs/runs/\resRunId.json} has SHA-256 prefix \resManifestSha. The
+\path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
 \resArchiveShaOutputs), never deleted.
 
 \paragraph{Pipeline.}
 \begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
-  \item \texttt{src/perturb\_eval/data/download.py} --- fetches Adamson's
+  \item \path{src/perturb_eval/data/download.py} --- fetches Adamson's
         three scPerturb subsets and Norman 2019 from Zenodo record
         $13350497$; each file's SHA-256 is pinned and verified, and a
         cached file without a pin or with a mismatching digest is refused.
-  \item \texttt{scripts/modal/app\_v05.py} --- preflight, trainer sweep and
+  \item \path{scripts/modal/app_v05.py} --- preflight, trainer sweep and
         lifecycle sweep on one Modal A100 under the pre-registered spend
         lines; atomic JSONL append per run.
-  \item \texttt{src/perturb\_eval/experiments/e\_v05\_real\_traces.py} ---
+  \item \path{src/perturb_eval/experiments/e_v05_real_traces.py} ---
         consumes both JSONLs and writes \texttt{summary.json}; it refuses
         mismatched task sets, runs with a fallback step, and unfinished or
         failed runs.
