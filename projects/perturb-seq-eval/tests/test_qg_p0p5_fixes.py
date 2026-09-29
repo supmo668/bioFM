@@ -903,7 +903,11 @@ class TestC11LiteratureParagraph:
         for word in ("BioGPT", "PubMed", "STRING"):
             assert word not in tex, word
         assert "no retrieval tools" in tex
-        assert "% PENDING principal ruling C2/C3/C8" in tex
+        # The C2/C3/C8 marker was resolved by amendment A2-3 (PREREGISTRATION.md):
+        # the executors APPLY the parsed fields with a fixed precedence.
+        assert "% PENDING principal ruling C2/C3/C8" not in tex
+        assert "\\emph{apply} the parsed fields" in tex
+        assert "Validator delta $>$ Architect $>$ DataCurator $>$ Trainer" in tex
 
 
 # ---------------------------------------------------------------- C27

@@ -1,26 +1,22 @@
-% Results for the v0.6.0 sweep. The sweep has not run: this section states the
-% pre-registered hypotheses, gates and estimators, and marks every value with
-% \pending{} (defined in paper.tex). The v0.5.0 results file
-% (v050_results_filled.tex) is no longer input; its values are superseded
-% (Appendix~\ref{app:corrections}).
+% Results of the v0.6.0 sweep (run \resRunId, git \resGitSha, prereg_version \resPreregVersion).
+% Every value below is a macro from sections/generated_numbers.tex, generated from
+% artifacts/v0.6.0/{summary,provenance}.json by scripts/paper/fill_v060_numbers.py. No number is typed here.
 
 \section{Results}\label{sec:results}
 
 \subsection{Pre-registered hypotheses and gates}\label{subsec:prereg}
 
-The hypotheses, gates and analysis plan below are fixed in
-\texttt{paper/PREREGISTRATION.md}; the sweep's provenance record
-(\texttt{git\_sha}, \texttt{git\_dirty}) identifies the revision of that file
-in force when the sweep ran, and \texttt{summary.json} carries the
-pre-registration pin (path, SHA-256, commit) copied from record~0. There are
-five gates; each is reported as PASS, FAIL, or UNEVALUATED with the reason, and
-the tally is stated out of five. An unevaluable gate (fewer than $3$ tasks, an
-undefined statistic, or a diagnostic run) is UNEVALUATED, never FAIL. Every
-estimator is implemented in
+The hypotheses, gates and analysis plan are fixed in \texttt{paper/PREREGISTRATION.md}
+(amendments 1--4, each locked before any v0.6.0 data existed); the sweep's provenance
+record identifies the revision in force (\texttt{git\_sha} \resGitSha, \texttt{git\_dirty}
+\resGitDirty, \texttt{prereg\_version} \resPreregVersion), and \texttt{summary.json} carries
+the pre-registration pin copied from record~0. There are five gates; each is reported as PASS,
+FAIL, or UNEVALUATED with the reason, and the tally is stated out of five. An unevaluable gate
+is UNEVALUATED, never FAIL. Every estimator is implemented in
 \texttt{src/perturb\_eval/experiments/preregistered.py} and called from
-\texttt{analyse\_v05\_run}; the function named in each subsection below is the
-estimator. Bootstrap CIs are percentile intervals over \emph{tasks}
-($B=10\,000$ resamples, \texttt{numpy.random.default\_rng(2026)}, 95\%).
+\texttt{analyse\_v05\_run}. Bootstrap CIs are percentile intervals over \emph{tasks}
+($B=10\,000$, \texttt{numpy.random.default\_rng(2026)}, 95\%). \textbf{Outcome:
+\resGateSummary.}
 
 \begin{table}[h]
 \small
@@ -29,174 +25,147 @@ estimator. Bootstrap CIs are percentile intervals over \emph{tasks}
 \toprule
 & Hypothesis & Gate & Outcome \\
 \midrule
-H1 & Trainer sweep attains low error on Adamson (oracle,
-  \S\ref{subsec:oracle}) & median $<0.20$ & \pending{H1} \\
-H2 & Trainer sweep attains low error on Norman (oracle) & median $<0.30$
-  & \pending{H2} \\
-H3 & Architect exercises its backbone choice (LLM-sourced steps)
-  & entropy $\ge 0.5$ nats & \pending{H3} \\
+H1 & Trainer sweep attains low error on Adamson (oracle, \S\ref{subsec:oracle})
+  & median $<\resHOneThreshold$ & \resHOneVerdict{} (median \resHOneMedian) \\
+H2 & Trainer sweep attains low error on Norman (oracle) & median $<\resHTwoThreshold$
+  & \resHTwoVerdict{} (median \resHTwoMedian) \\
+H3 & Architect exercises its backbone choice (stated backbone, LLM-sourced steps)
+  & entropy $\ge 0.5$ nats & \resHThreeVerdict{} (\resHThreeEntropy{} nats) \\
 H4 & A trace feature ($\mathrm{ACE}_{\mathrm{norm}}$, $1-\Delta C$ or
   $\mathrm{TDI}_{\mathrm{lifecycle}}$) ranks tasks by held-out error
-  & Spearman $\rho>0.5$ for $\ge 1$ of the three, within Adamson or within
-  Norman & \pending{H4} \\
-H5 & Ridge-calibrated $\mathrm{TDI}_{\mathrm{lifecycle}}$ transfers
-  Adamson $\to$ Norman & Spearman $\rho>0.4$ & \pending{H5} \\
+  & Spearman $\rho>0.5$ for $\ge 1$ of six within-dataset tests
+  & \resHFourVerdict{} (\resHFourNPassing{} of \resHFourNTests{} tests) \\
+H5 & Ridge-calibrated $\mathrm{TDI}_{\mathrm{lifecycle}}$ transfers Adamson $\to$ Norman
+  & Spearman $\rho>\resHFiveThreshold$ & \resHFiveVerdict{} ($\rho=\resHFiveRho$) \\
 \bottomrule
 \end{tabular}
-\caption{Pre-registered hypotheses and gates. Estimators are given in the
-subsections below and in \texttt{paper/PREREGISTRATION.md}.}
+\caption{Pre-registered hypotheses and gates. Tally: \resTallyPass{} PASS, \resTallyFail{} FAIL,
+\resTallyUneval{} UNEVALUATED of \resTallyOut. Estimators are given in the subsections below
+and in \texttt{paper/PREREGISTRATION.md}.}
 \label{tab:gates}
 \end{table}
 
 \subsection{Attainable error of the trainer sweep (H1, H2)}\label{subsec:h12}
 
-Estimator: per task, the minimum MSD on the top-$20$ DEGs over the $54$
-trainer configurations (an oracle, \S\ref{subsec:oracle}); the gate is the
-median over tasks in each dataset. Reported with the median: $n$, IQR,
-maximum, the fraction of tasks above the threshold, and a bootstrap CI over
-tasks; Norman is also split into singletons and doublets
-(\texttt{preregistered.h1\_h2\_stats}).
+Estimator: per task, the minimum MSD on the top-$20$ evaluation genes over the
+\resNDistinctConfigs{} distinct trainer configurations (\resNTrainerRecordsPerTask{} records
+per task; an oracle, \S\ref{subsec:oracle}); the gate is the median over tasks in each
+dataset (\texttt{preregistered.h1\_h2\_stats}).
 
 \begin{table}[h]
 \small
 \centering
-\begin{tabular}{lp{0.5\linewidth}}
+\begin{tabular}{lllllll}
 \toprule
-Dataset & Oracle best-of-54 MSD (median; IQR; max; fraction over gate; CI) \\
+Dataset & $n$ & median & IQR & max & fraction over gate & 95\% CI (median) \\
 \midrule
-Adamson 2016 ($21$ tasks) & \pending{Adamson oracle MSD summary} \\
-Norman 2019 ($15$ singletons, $5$ doublets) & \pending{Norman oracle MSD summary} \\
+Adamson 2016 & \resHOneN & \resHOneMedian & [\resHOneIQRLo, \resHOneIQRHi] & \resHOneMax & \resHOneFracOver & [\resHOneCILo, \resHOneCIHi] \\
+Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \resHTwoMax & \resHTwoFracOver & [\resHTwoCILo, \resHTwoCIHi] \\
+\quad singletons & \resHTwoSingletonN & \resHTwoSingletonMedian & & & & \\
+\quad doublets & \resHTwoDoubletN & \resHTwoDoubletMedian & & & & \\
 \bottomrule
 \end{tabular}
-\caption{Oracle (best of $54$ configurations, selected on the evaluation
-split) MSD on the top-$20$ DEGs. Gates: Adamson median $<0.20$, Norman
-median $<0.30$.}
+\caption{Oracle MSD on the top-$20$ evaluation genes (best of the distinct configurations,
+selected on the evaluation split). Gates: Adamson median $<\resHOneThreshold$ (\resHOneVerdict),
+Norman median $<\resHTwoThreshold$ (\resHTwoVerdict). The Norman doublet stratum's median
+(\resHTwoDoubletMedian) lies above the gate; the gate is the median over all $\resHTwoN$ tasks.}
 \label{tab:headline-msd}
 \end{table}
 
 \subsection{Architect configuration choices (H3)}\label{subsec:h3}
 
-Estimator: the Shannon entropy (nats) of the Architect's \texttt{backbone}
-picks over all LLM-sourced Architect steps, pooled across tasks, seeds and
-rounds ($\ln 3$ ceiling). Reported with it: pick counts per backbone, the
-number of LLM-sourced Architect steps, the number of distinct serving models
-and a per-\texttt{model\_id} breakdown, and the number of distinct proposals
-per role. The gate is \texttt{preregistered.h3}. Backbone-choice entropy: \pending{Architect backbone entropy (nats)
-and pick counts}. Per-role proposal diversity and per-model breakdown:
-\pending{per-role distinct proposals and per-model\_id counts}.
+Estimator: the Shannon entropy (nats) of the Architect's \emph{stated} \texttt{backbone} over
+all LLM-sourced Architect steps, pooled across tasks, seeds and rounds, with the ceiling
+$\ln 3=\resHThreeCeiling$ derived from the pinned menu (\texttt{preregistered.h3}). Stated-pick
+counts over \resHThreeNSteps{} steps: \textsc{linear} \resHThreePickLinear, \textsc{mlp}
+\resHThreePickMlp, \texttt{scgpt\_small} \resHThreePickScgpt; entropy \resHThreeEntropy{} nats
+(\resHThreeVerdict). The executed backbone equalled the stated backbone on every step
+(executed $\ne$ stated: \resHThreeExecNeStated). All Architect steps were served by one model
+(\texttt{\resRosterHaiku}; \resHThreeNModels{} distinct serving model), so the per-\texttt{model\_id}
+breakdown coincides with the pooled value.
 
 \subsection{Trace metrics against held-out error (H4)}\label{sec:tdi-real}
 
-\paragraph{Which quantities.} The four-component TDI of
-equation~(\ref{eq:tdi}) is \emph{not evaluated}. Two of its components are
-structurally undefined for the five-role lifecycle: CSD needs a critique
-matrix and WFR needs a per-round winner, and the lifecycle records neither. The
-four-component TDI was therefore never computable on this testbed. H4 uses the
-components that lifecycle traces do supply. For each run, with $C(r)$ the
-confidences of the LLM-sourced steps in round $r$:
-$\mathrm{ACE}_{\mathrm{norm}}$ of the final round, the entropy of the direct
-simplex projection of $C(\text{last})$ divided by $\ln N$
-(\texttt{metrics.ace\_d}, range $[0,1]$); the unclipped $1-\Delta C$ with
-$\Delta C=\overline{C}(\text{last})-\overline{C}(\text{first})$
-(\texttt{metrics.delta\_mean\_confidence}, for runs with at least two rounds;
-range $[0,2]$, so a run whose confidence fell ranks above one whose confidence
-stayed flat); and
+\paragraph{Which quantities.} The four-component TDI of equation~(\ref{eq:tdi}) is
+\emph{not evaluated}: CSD needs a critique matrix and WFR a per-round winner, and the
+five-role lifecycle records neither. H4 uses the components the traces supply. For each run,
+with $C(r)$ the confidences of the LLM-sourced steps in round $r$:
+$\mathrm{ACE}_{\mathrm{norm}}$ of the final round, the entropy of the direct simplex
+projection of $C(\text{last})$ divided by $\ln N$ (\texttt{metrics.ace\_d}, range $[0,1]$);
+the unclipped $1-\Delta C$ with $\Delta C=\overline{C}(\text{last})-\overline{C}(\text{first})$
+(range $[0,2]$, so a run whose confidence fell ranks above one whose confidence stayed flat);
+and
 \begin{equation}
   \mathrm{TDI}_{\mathrm{lifecycle}} = \tfrac{7}{12}\,\mathrm{ACE}_{\mathrm{norm}}
     + \tfrac{5}{12}\,\bigl(1-\Delta C\bigr) \in \bigl[0,\tfrac{17}{12}\bigr],
 \end{equation}
-the default weights $\alpha=0.35$ and $\gamma=0.25$ renormalised over the
-two terms, with no outer clip. $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a score on
-$[0,17/12]$, not an index on $[0,1]$. The softmax entropy
-(\texttt{metrics.ace\_norm}, $\tau=1$) and the clipped
-$1-\min(\max(\Delta C,0),1)$ are reported descriptively beside them. The
-softmax was replaced before any data existed (pre-registration amendment~2):
-on confidences in $[0,1]$ it spans only about $[0.92,1]$ for five roles, so
-rounded LLM confidences would produce ties that decide a rank test. $\mathrm{TDI}_{\mathrm{lifecycle}}$ is a \emph{different quantity}
-from the four-component TDI, and its $\rho$ is not comparable with the
-v0.4.1 TDI $\rho$. A round with fewer than two LLM-sourced steps leaves the
-component undefined for that run. For a one-round run, $\Delta C$ (and so
-$1-\Delta C$ and $\mathrm{TDI}_{\mathrm{lifecycle}}$) is undefined rather
-than set to $0$. The $\Delta C=0$ convention would score immediate
-convergence as maximal difficulty, a built-in bias against H4.
-$\mathrm{ACE}_{\mathrm{norm}}$ is unaffected. Undefined values are reported
-with the reason and are not imputed
-(\texttt{preregistered.per\_run\_components}). A task with no defined value
-drops out of that component's $\rho$ and is counted: \pending{per-dataset
-exclusion counts (runs undefined, single-round runs, tasks dropped)}.
+the default weights renormalised over the two terms, with no outer clip. The softmax entropy
+and the clipped $1-\min(\max(\Delta C,0),1)$ are reported descriptively beside them (the softmax
+was replaced before any data existed, amendment~2). Undefined values are never imputed; in this
+run no component was undefined (runs undefined: \resHFourRunsUndefined; tasks dropped:
+\resHFourTasksDropped), every run having exactly three rounds.
 
-\paragraph{Estimator.} The unit is the task. Per task, each component and
-the lifecycle's final MSD are the medians over the task's three seeds
-(\texttt{preregistered.per\_task\_table}). This relies on the seed reaching
-the lifecycle run: before that fix, the three seeds were identical. Spearman
-$\rho$ is computed \emph{within} Adamson ($21$ tasks) and \emph{within}
-Norman ($20$ tasks) separately, with default weights and no in-sample
-calibration (\texttt{preregistered.h4}). All six values are reported with
-$n$ and a bootstrap CI, and each needs at least $3$ tasks. The gate passes if
-any of the six exceeds $0.5$. The $\rho$ pooled over all $41$ tasks is
-descriptive only and never gates. The six tests are dependent:
-$\mathrm{TDI}_{\mathrm{lifecycle}}$ is a fixed combination of the other two
-within each dataset. Let $p$ be the null probability that a single test's
-$\hat\rho$ exceeds $0.5$ (the gate thresholds the statistic, not a $p$-value).
-Measured by permutation through the pre-registered estimator itself
-(\texttt{scripts/local/prereg\_null\_fwer.py}, seed 2026): $p = 1.32\%$ at
-$n=20$ and $1.07\%$ at $n=21$; a Monte Carlo of the whole six-test gate gives a
-false-positive rate of $2.35\%$ (ACE$_{\mathrm{norm}}$ and $1-\Delta C$
-with identical ranks), $4.71\%$ (reversed ranks) and $5.84\%$ (independent),
-against $0.0475\%$ for a single pooled test at $n=41$ --- roughly $50\times$ to
-$123\times$ higher, the price of testing within datasets. The range is over
-these three dependence arms; intermediate negative dependence was not
-simulated. No correction was pre-registered; instead all
-six $\rho$ are reported with their $n$ whatever the outcome, so a pass carried
-by one test is visible in the table.
-The dependence is mechanical, not hypothetical: in a committed fixture
-(\texttt{tests/test\_preregistered.py}, \texttt{TestH4ReportAllSix}) with
-$1-\Delta C$ held constant, $\mathrm{TDI}_{\mathrm{lifecycle}}$ inherits the
-ranking of ACE$_{\mathrm{norm}}$, so a single real signal produces \emph{two}
-passing tests. This is why the gate is reported as a six-row table rather than
-a pass count, and why the false-positive rate is given as a range: its two
-endpoints are the two extremes of a dependence between ACE$_{\mathrm{norm}}$
-and $1-\Delta C$ that cannot be measured without assuming the structure
-under test.
+\paragraph{Estimator.} The unit is the task; per task, each component and the lifecycle's
+final MSD are medians over the three seeds. Spearman $\rho$ is computed \emph{within}
+Adamson and \emph{within} Norman separately, with default weights and no in-sample
+calibration; all six values are reported with $n$ and a bootstrap CI, and the gate passes if any
+of the six exceeds $0.5$. The pooled $\rho$ is descriptive only. The six tests are dependent
+(TDI is a fixed combination of the other two); the pre-registered null false-positive rate of
+the whole gate, measured by permutation through the estimator itself, is $2.35\%$ (identical
+ranks), $4.71\%$ (reversed ranks) and $5.84\%$ (independent), against $0.0475\%$ for one pooled
+test at $n=41$ (\texttt{scripts/local/prereg\_null\_fwer.py}); no correction was pre-registered,
+and all six $\rho$ are reported whatever their outcome.
 
 \begin{table}[h]
 \small
 \centering
-\begin{tabular}{p{0.27\linewidth}p{0.2\linewidth}p{0.2\linewidth}p{0.2\linewidth}}
+\begin{tabular}{p{0.24\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.16\linewidth}}
 \toprule
-Component & Adamson $\rho$ ($n$, CI) & Norman $\rho$ ($n$, CI) & Pooled $\rho$ (descriptive) \\
+Component & Adamson $\rho$ ($n=\resHFourAdaAceN$; CI) & Norman $\rho$ ($n=\resHFourNorAceN$; CI) & Pooled $\rho$ (descr.) \\
 \midrule
-$\mathrm{ACE}_{\mathrm{norm}}$ (final round) & \pending{rho ACE-norm, Adamson}
-  & \pending{rho ACE-norm, Norman} & \pending{rho ACE-norm, pooled} \\
-$1-\Delta C$ & \pending{rho 1-dC, Adamson} & \pending{rho 1-dC, Norman}
-  & \pending{rho 1-dC, pooled} \\
-$\mathrm{TDI}_{\mathrm{lifecycle}}$ (default weights)
-  & \pending{rho TDI-lifecycle, Adamson} & \pending{rho TDI-lifecycle, Norman}
-  & \pending{rho TDI-lifecycle, pooled} \\
+$\mathrm{ACE}_{\mathrm{norm}}$ (final round) & \resHFourAdaAceRho{} [\resHFourAdaAceCILo, \resHFourAdaAceCIHi] & \resHFourNorAceRho{} [\resHFourNorAceCILo, \resHFourNorAceCIHi] & \resHFourPooledAceRho \\
+$1-\Delta C$ & \resHFourAdaDcRho{} [\resHFourAdaDcCILo, \resHFourAdaDcCIHi] & \resHFourNorDcRho{} [\resHFourNorDcCILo, \resHFourNorDcCIHi] & \resHFourPooledDcRho \\
+$\mathrm{TDI}_{\mathrm{lifecycle}}$ & \resHFourAdaTdiRho{} [\resHFourAdaTdiCILo, \resHFourAdaTdiCIHi] & \resHFourNorTdiRho{} [\resHFourNorTdiCILo, \resHFourNorTdiCIHi] & \resHFourPooledTdiRho \\
 \midrule
 CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (not evaluated)} \\
 \bottomrule
 \end{tabular}
-\caption{Pre-registered gate: $\rho>0.5$ for at least one of the three
-computable quantities within Adamson or within Norman (six tests; pooled
-$\rho$ descriptive only). The four-component TDI is not evaluated.}
+\caption{All six pre-registered tests (reported regardless of outcome). Gate: $\rho>0.5$ for at
+least one; \resHFourNPassing{} of \resHFourNTests{} pass (\resHFourVerdict): $1-\Delta C$ and
+$\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. Pooled $\rho$ never gates.}
 \label{tab:tdi-real}
 \end{table}
 
+\paragraph{The ACE rows.} $\mathrm{ACE}_{\mathrm{norm}}$ correlates \emph{negatively} with
+held-out error in both datasets ($\rho=\resHFourAdaAceRho$ Adamson, $\resHFourNorAceRho$ Norman),
+against the pre-registered positive direction; its two tests fail the one-sided gate. The H4 pass
+is carried by the confidence-drop component and by the composite that inherits it. Any reading of
+the negative sign is exploratory and post hoc: it generates no claim here, and a test of it is a
+new pre-registration before any new data.
+
 \subsection{Cross-dataset transfer (H5)}\label{subsec:h5}
 
-Estimator (\texttt{preregistered.h5}): weights for
-$\mathrm{ACE}_{\mathrm{norm}}$ and $1-\Delta C$ are fitted by ridge regression
-on the Adamson tasks, with ridge parameter $\alpha=1.0$ fixed in advance.
-Each feature is standardised with the Adamson mean and s.d., and the target is
-the per-task lifecycle MSD. The fitted weights and the Adamson standardisation
-are then applied \emph{unchanged} to the Norman tasks, so no Norman value
-enters the fit. The gate is Spearman $\rho$ between Norman TDI and Norman
-held-out MSD. Transfer $\rho$: \pending{cross-dataset rho with n and CI}.
+Estimator (\texttt{preregistered.h5}): ridge weights ($\alpha=1.0$, fixed in advance) for
+$\mathrm{ACE}_{\mathrm{norm}}$ and $1-\Delta C$ are fitted on the Adamson tasks (features
+standardised with the Adamson mean and s.d.; target the per-task lifecycle MSD) and applied
+\emph{unchanged} to the Norman tasks; no Norman value enters the fit. Fitted weights:
+$\mathrm{ACE}_{\mathrm{norm}}$ \resHFiveWAce, $1-\Delta C$ \resHFiveWDc{} (standardised units).
+Transfer $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
+gate $\rho>\resHFiveThreshold$: \textbf{\resHFiveVerdict}. The calibrated index does not
+transfer at the pre-registered level; no re-fit, threshold or sign change is applied.
 
 \subsection{Run record}\label{subsec:runrecord}
 
-Fallback steps (a valid run has none): \pending{fallback-step count}.
-Held-out tasks analysed per dataset: \pending{n tasks per dataset from
-summary.json}. Exclusions under the label contract:
-\pending{excluded labels and cell counts from provenance}.
+Run \resRunId{} at git \resGitSha{} (\texttt{git\_dirty} \resGitDirty), \texttt{prereg\_version}
+\resPreregVersion. Lifecycle runs: \resNLifecycleRuns{} (three rounds each); steps:
+\resNSteps, all LLM-sourced; fallback steps (a valid run has none): \resNFallback. LLM cache
+namespace entries at start: \resCacheStart; cache hits: \resCacheHits; replay: \resReplay.
+API calls: \resNCalls{} (\texttt{end\_turn} \resStopEndTurn, \texttt{max\_tokens} \resStopMaxTokens,
+the latter retried once at twice the ceiling and answered); refusals: \resRefusals; served model
+$\ne$ requested: \resServedMismatch. Tokens: \resTokensIn{} input, \resTokensOut{} output.
+Trainer records: \resNTrainerRuns. Spend: LLM \$\resSpendLLM{} (Haiku \$\resSpendHaiku, Sonnet
+\$\resSpendSonnet, including preflight probes \$\resSpendPreflight), GPU \$\resSpendGPU{}
+(\resGPUHours{} A100-hours), carried-in prior \$\resSpendPrior; total \$\resSpendTotal{} against
+the \$\resSpendStopLine{} stop-and-report and \$\resKillLine{} kill lines (neither reached:
+stop reason \resStopReasonNone). Run manifest \texttt{configs/runs/\resRunId.json}
+(SHA-256 prefix \resManifestSha).

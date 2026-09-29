@@ -1,5 +1,5 @@
-% Experimental setup for the v0.6.0 sweep. Design facts only; every result
-% value is \pending{} (defined in paper.tex).
+% Experimental setup for the v0.6.0 sweep, as pre-registered (amendments 1-4). Design facts
+% only; every result value is a macro from sections/generated_numbers.tex.
 
 \section{Experimental Setup}\label{sec:setup_exp}
 
@@ -45,18 +45,19 @@ is learned from the data rather than assumed.
 
 \subsection{Features and evaluation}\label{subsec:eval}
 
-\paragraph{Features.} For each held-out task, the top-$2000$ highly variable
-genes are selected on that task's \emph{training} cells only, with the target
-gene(s) force-included. Models for different tasks therefore use different
-feature spaces, and every cross-task median reported here is a median over
-models with differing inputs.
+\paragraph{Features.} For each held-out task, highly variable genes are selected on that
+task's \emph{training} cells only; the trainer sweep uses $2000$, and in the lifecycle the
+count is the agents' applied choice (amendment~2, A2-3), so feature spaces vary by run as
+well as by task, and every cross-task median is a median over models with differing inputs.
+The target gene(s) and the $20$ evaluation genes are force-included in every feature set.
 
-\paragraph{Evaluation genes.} The error metric is the mean squared deviation
-(MSD) between predicted and observed mean log-fold-change on the $20$ genes
-with the largest absolute mean difference between the held-out
-perturbation's cells and control cells --- the CPA/GEARS
-convention~\citep{lotfollahi2023cpa,roohani2024gears}. These genes are chosen
-using the held-out cells.
+\paragraph{Evaluation genes.} The error metric is the mean squared deviation (MSD) between
+predicted and observed mean log-fold-change on the $20$ genes with the largest absolute mean
+difference between the held-out perturbation's cells and control cells --- the CPA/GEARS
+convention~\citep{lotfollahi2023cpa,roohani2024gears}. These genes are chosen once per task
+on the full post-QC gene axis and shared by the trainer and lifecycle paths (A2-5); the
+analyser refuses a run in which the two paths' lists differ. They are chosen using the
+held-out cells.
 
 \subsection{Backbone pool}\label{subsec:backbones}
 
@@ -67,11 +68,14 @@ identifier \texttt{scgpt\_small}; not a pretrained foundation model).
 
 \subsection{Trainer sweep and the oracle quantity}\label{subsec:oracle}
 
-For every task the trainer sweep fits all $54$ configurations
-$\{\textsc{linear}, \textsc{mlp}, \texttt{scgpt\_small}\} \times
-N\in\{3,5\} \times R\in\{1,2,3\} \times 3$ seeds, with the seed passed to the
-trainer. The quantity gated in H1/H2 is, per task, the minimum MSD over the
-$54$ configurations, then its median over tasks. The minimum is selected on
+For every task the trainer sweep fits $\{\textsc{linear}, \textsc{mlp}, \texttt{scgpt\_small}\}
+\times R\in\{1,2,3\} \times 3$ seeds ($2026$--$2028$): \resNTrainerRecordsPerTask{} records per
+task. The \textsc{linear} backbone ignores both $R$ and the seed, so the grid holds
+\resNDistinctConfigs{} distinct $(\text{backbone}, R)$ configurations
+(\resNDistinctFits{} distinct fits including seeds); the counts are recorded in provenance
+(amendments~2 and 3: $N$ was removed as an axis, and the stated count is the distinct
+$(\text{backbone}, R)$ count). The quantity gated in H1/H2 is, per task, the minimum MSD over
+every finite record, then its median over tasks. The minimum is selected on
 the same evaluation genes and cells it is scored on, so it is an
 \emph{oracle}: an attainable upper bound on what the configuration space can
 reach, not an estimate of held-out performance. There is no nested
@@ -79,60 +83,64 @@ validation/test split.
 
 \subsection{Agentic lifecycle}\label{subsec:lifecycle}
 
-% PENDING principal ruling C2/C3/C8: the DataCurator, Architect and Validator
-% items below describe the schema fields; whether each field is applied by the
-% executors is under ruling and this list is revised after it.
-Five agents --- DataCurator, Literature, Architect, Trainer, Validator ---
-produce Pydantic-validated proposals over the following configuration space:
+Five agents --- DataCurator, Literature, Architect, Trainer, Validator --- produce
+Pydantic-validated proposals. Every proposal states a verbalised \texttt{confidence} in $[0,1]$;
+a missing, non-numeric or out-of-range value is a schema failure, the step falls back and the
+run is invalid --- confidence is never imputed (amendment~2, A2-1). Every run has exactly three
+rounds with no early stop; the Validator's verdict and its required threshold
+\texttt{dynamic\_threshold\_msd} $\in[0.02,0.3]$ are recorded, not acted on (A2-2, A3-3).
+The executors \emph{apply} the parsed fields --- the HVG count, learning rate, ridge $\lambda$
+and epochs --- with precedence Validator delta $>$ Architect $>$ DataCurator $>$ Trainer $>$
+defaults, and the applied value and its source are recorded per round (A2-3, A3-2); the
+DataCurator's mito-QC threshold is recorded but not applied (no per-cell mito fraction is
+loaded; A3-1). The Architect's \texttt{backbone} is required and must be on the pinned menu
+$\{$\textsc{linear}, \textsc{mlp}, \texttt{scgpt\_small}$\}$; each Architect step records the
+backbone it \emph{stated} and the backbone that \emph{ran} after the Validator's rotation rule,
+and H3 gates on the stated backbone with the executed one reported alongside (A2-6). The
+Literature role is an LLM prompt with no retrieval tools; its expected up/down-regulated genes
+are passed to the next round's Architect prompt. Fields the agents may state but no executor
+applies (\texttt{n\_agents}, \texttt{n\_rounds}, \texttt{split\_strategy},
+\texttt{batch\_correction}, \texttt{hvg\_method}) are recorded only.
 
-\begin{itemize}
-  \item \textbf{DataCurator}: \texttt{hvg\_method}$\in$\{seurat, scanpy\},
-  \texttt{hvg\_count}$\in$\{500, 1000, 2000, 5000\},
-  \texttt{qc\_mito\_max}, \texttt{split\_strategy}$\in$\{per\_pert\_holdout, unseen\_gene\},
-  \texttt{batch\_correction}$\in$\{none, combat, harmony\}.
-  \item \textbf{Literature}: an LLM prompt with no retrieval tools (no
-  database or search access); its JSON reply is validated against the Literature
-  schema (pathway prior, expected up/down-regulated genes), and the expected
-  genes are passed to the next round's Architect prompt.
-  \item \textbf{Architect}: backbone $\in$\{linear, mlp, scgpt\_small\},
-  \texttt{n\_agents}$\in$[2,8], \texttt{n\_rounds}$\in$[1,5],
-  \texttt{hvg\_count}, \texttt{learning\_rate}$>0$,
-  \texttt{ridge\_lambda}$\ge 0$, \texttt{epochs}$\in$[1,500].
-  \item \textbf{Trainer}: \texttt{lr}, \texttt{epochs},
-  \texttt{ridge\_lambda}.
-  \item \textbf{Validator}: dynamic threshold $\in$[0.02, 0.3] derived
-  from the task's probe signature; returns a
-  \texttt{StructuredCritique} with \texttt{which\_genes\_failed} and
-  \texttt{suggested\_next\_config\_delta}, which the Architect applies in the
-  next round.
-\end{itemize}
+\paragraph{LLM condition (amendment~4).} The agents are served through the Anthropic Messages
+API by a pinned roster: \texttt{\resRosterHaiku} for DataCurator, Literature, Architect and
+Trainer, and \texttt{\resRosterSonnet} for the Validator, so the judge sits on a different tier
+from the roles it judges; each role fails over to the other model. Every reply is constrained
+to the role's JSON schema by structured outputs (numeric ranges are enforced by the role schema
+after parsing, never clamped). Thinking is off on both models (Haiku 4.5: none; Sonnet 5.5:
+\texttt{between\_tools} at low effort). Sampling: Haiku at temperature $0.3$ --- the value the
+earlier OpenRouter roster used, so the Architect's H3 condition is unchanged --- and Sonnet 5.5 at
+API defaults. Per-role output ceilings ($4\times$ the dry run's observed maximum, minimum 256):
+DataCurator \resCeilingCurator, Literature \resCeilingLiterature, Architect \resCeilingArchitect,
+Trainer \resCeilingTrainer, Validator \resCeilingValidator; a \texttt{max\_tokens} stop is retried
+once at twice the ceiling, both billed, and a second is a fallback-class event. Every call records
+its \texttt{stop\_reason}, the requested and the served model (asserted equal --- a mismatch is a
+fallback-class event with no failover), and its token usage; a refusal aborts the run; the request
+never carries a server-side fallback parameter; 401/402/403 abort. Preflight probes both roster
+models with every role's schema before any spend and records the liveness table in provenance.
+Each lifecycle step is labelled \texttt{source} $\in\{\texttt{llm},\texttt{fallback}\}$ with its
+\texttt{model\_id}; a run with any fallback step is invalid, and the pre-registered run starts on
+an empty, version-namespaced LLM cache so that no reply is replayed (A2-8; cache entries at
+start \resCacheStart, hits \resCacheHits). Each task runs the lifecycle with three seeds; the seed
+is passed to the trainer and into the LLM cache key.
 
-\paragraph{LLM condition.} The agents are served by a rotating pool of
-OpenRouter models with failover between pool members. The pool roster is
-recorded in provenance, and every lifecycle step records the model that
-served it (\texttt{model\_id}) and is labelled \texttt{source} $\in$
-\{\texttt{llm}, \texttt{fallback}\}, where \texttt{fallback} marks the
-rule-based default the pool returns after an LLM failure. A run with any
-fallback step is invalid by construction: it is marked failed and the
-analyser refuses to summarise it. Agent-choice statistics are computed over
-LLM-sourced steps only. Each task runs the lifecycle with three seeds; the
-seed is passed to the trainer and into the LLM cache key. The per-task seed
-medians used for H4 and H5 depend on this: in the v0.5.0 artifacts the seed
-did not reach the lifecycle run, and the three seeds were identical runs.
-
-\paragraph{What the lifecycle trace records.} Each step records its role,
-round, proposal, LLM confidence, \texttt{source} and \texttt{model\_id}. The
-five roles do not critique each other, and no round has a winner. The trace
-therefore has no critique matrix and no winner sequence, so CSD, WFR and the
-four-component TDI of \S\ref{sec:metrics} cannot be computed on this testbed.
-H4 and H5 use only the confidence-derived quantities
-(\S\ref{sec:tdi-real}).
+\paragraph{What the lifecycle trace records.} Each step records its role, round, proposal, LLM
+confidence, \texttt{source}, \texttt{model\_id}, \texttt{stop\_reason} and served model; Architect
+steps record stated and executed backbones; Validator steps the verdict and threshold. The five
+roles do not critique each other, and no round has a winner, so CSD, WFR and the four-component
+TDI of \S\ref{sec:metrics} cannot be computed on this testbed; H4 and H5 use only the
+confidence-derived quantities (\S\ref{sec:tdi-real}).
 
 \subsection{Compute}\label{subsec:compute}
 
-Preflight, trainer sweep and lifecycle sweep run in one process on a single
-Modal A100-40GB container with an in-loop budget cap of \$28; the cap is a
-limit, not the spend. Every run is appended atomically to
-\texttt{trainer\_runs.jsonl} or \texttt{lifecycle\_runs.jsonl}, whose
-record~0 is the run's provenance record. Actual spend and GPU-hours:
-\pending{actual cost (USD) and GPU-hours from provenance.json}.
+Preflight, trainer sweep and lifecycle sweep run in one process on a single Modal A100-40GB
+container. Spend is measured as GPU wall-clock plus LLM usage at the pinned list prices plus
+the spend carried in from an aborted earlier attempt, against pre-registered lines of
+\$\resSpendStopLine{} (stop and report) and \$\resKillLine{} (kill) under a \$\resCeilingLine{}
+ceiling (A4-2); the lines are limits, not the spend. Every run is appended atomically to
+\texttt{trainer\_runs.jsonl} or \texttt{lifecycle\_runs.jsonl}, whose record~0 is the run's
+provenance record. Actual spend: LLM \$\resSpendLLM, GPU \$\resSpendGPU{} (\resGPUHours{}
+A100-hours), prior \$\resSpendPrior; total \$\resSpendTotal, neither line reached. The costed
+plan projected \$\resProjTotal{} (LLM \$\resProjLLM, GPU \$\resProjGPU{} at
+\resProjLatency{}\,s of LLM latency per round while the GPU is held); the GPU line ran over
+because the per-round latency was higher than projected.

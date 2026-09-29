@@ -24,10 +24,10 @@
 
 \graphicspath{{figures/}}
 
-% ---- Result placeholders ----
-% No v0.6.0 result exists yet. Every value that the sweep will supply is
-% written as \pending{<what fills it>}; nothing is estimated or projected.
-\newcommand{\pending}[1]{\textbf{[pending v0.6.0 regeneration --- #1]}}
+% ---- Result values ----
+% Every result value is a macro generated from artifacts/v0.6.0 by
+% scripts/paper/fill_v060_numbers.py (no number is typed by hand).
+\input{sections/generated_numbers}
 
 % ---- Title ----
 \title{Does Agent Confidence Entropy Predict Task Difficulty?\\
@@ -67,13 +67,20 @@ We pre-register five hypotheses with gates: attainable error on
 Architect agent's backbone-choice entropy, the rank correlation of each TDI
 component with held-out error, and cross-dataset transfer of a calibrated
 TDI. The design is $41$ held-out K562 tasks ($21$ Adamson, $15$ Norman
-singletons, $5$ Norman doublets) drawn deterministically, a
-$54$-configuration trainer sweep and three agentic lifecycle runs per task,
-all in one process. The LLM condition is a rotating pool of OpenRouter
-models whose serving model is recorded per step; a run with any rule-based
-fallback step is invalid. Every run records its git revision, resolved
+singletons, $5$ Norman doublets) drawn deterministically, a trainer sweep of
+\resNTrainerRecordsPerTask{} records per task and three fixed-length agentic
+lifecycle runs per task, all in one process. The LLM condition is a pinned
+roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles,
+Sonnet 5.5 for the Validator) whose served model is recorded and asserted
+per call; a run with any rule-based fallback step is invalid. Every run records its git revision, resolved
 configuration, library versions, dataset SHA-256 digests, task plan and
-label contract. Gate outcomes are \pending{five gate outcomes H1--H5}.
+label contract. Gate outcomes: \resGateSummary{} --- the trainer sweep attains the pre-registered
+error on both screens (H1, H2), the Architect exercises its backbone choice
+(H3), and the confidence-drop component and the composite rank tasks by
+held-out error within both screens (H4); the Adamson-calibrated composite
+does not transfer to Norman at the pre-registered level (H5, $\rho=\resHFiveRho$
+against $>\resHFiveThreshold$). Confidence entropy itself correlates negatively
+with error in both screens, against the pre-registered direction.
 The values reported in the v0.5.0 release of this work are superseded in
 full; the defects behind each are listed in the appendix.
 \end{abstract}
@@ -427,8 +434,17 @@ claim-form title, abstract or contribution list
 can attain (an oracle, \S\ref{subsec:oracle}); they say nothing about whether
 the agents find those configurations. H3 asks whether the Architect uses its
 backbone choice at all; H4/H5 ask whether the trace metrics carry difficulty
-information. The interpretation of the outcomes is
-\pending{discussion of gate outcomes H1--H5}.
+information. On this run H1--H3 pass; H4 passes on the confidence-drop
+component ($1-\Delta C$) and on the composite that inherits it, in both
+screens, while confidence entropy runs the opposite way to the hypothesis;
+and H5 fails: the Adamson-calibrated composite reaches $\rho=\resHFiveRho$ on
+Norman against a gate of $\resHFiveThreshold$. Read together, the trace
+carries within-screen difficulty information through how confidence
+\emph{moves} across rounds, not through how spread it is at the end, and that
+information did not calibrate across screens at the pre-registered level. The
+title question is answered as posed: not by confidence entropy, on this
+evidence. The negative ACE sign is reported, not interpreted; a directional
+hypothesis about it would be a new pre-registration.
 
 \paragraph{What a single-round probe can and cannot observe.} A single-round
 probe by definition cannot observe convergence. It sees only the starting
@@ -454,8 +470,9 @@ evaluated. Integrating pretrained \textsc{scGPT}~\citep{cui2024scgpt},
 \textsc{Geneformer}~\citep{theodoris2023geneformer}, or
 \textsc{scFoundation} is the most consequential follow-up.
 
-\paragraph{Oracle, not held-out, error.} H1/H2 select the best of $54$
-configurations on the same evaluation genes and cells they are scored on
+\paragraph{Oracle, not held-out, error.} H1/H2 select the best of
+\resNDistinctConfigs{} distinct configurations (\resNTrainerRecordsPerTask{}
+records per task) on the same evaluation genes and cells they are scored on
 (\S\ref{subsec:oracle}). There is no nested validation/test split; the
 quantity is an attainable upper bound.
 
@@ -464,11 +481,22 @@ using the held-out cells (the CPA/GEARS convention), and each task's HVG set
 is selected on that task's training cells, so the cross-task medians
 aggregate models with different inputs (\S\ref{subsec:eval}).
 
-\paragraph{LLM condition.} The agents are served by a rotating pool of
-OpenRouter models with failover. Model identity is recorded per step but not
-controlled; H3 is evaluated over the pooled model mixture, and a difference
-in agent behaviour between pool members is a confound that the per-step
-\texttt{model\_id} exposes but does not remove.
+\paragraph{LLM condition: a single model family.} All five roles are served
+by Anthropic Claude models (amendment~4), so nothing here supports a claim of
+cross-family generality, and the choice-entropy measurand (H3) may be lower
+than a multi-family pool would give. The Validator judges proposals from the
+same family; it sits on a different tier (Sonnet 5.5) from the four Haiku 4.5
+proposer roles, which is reported, not a remedy --- residual same-family judge
+bias is acknowledged. Model identity is recorded and asserted per call.
+
+\paragraph{Sample size and the ACE sign.} The within-screen tests use $n=21$
+and $n=20$ tasks; every $\rho$ carries a bootstrap CI over tasks
+(Table~\ref{tab:tdi-real}), and the pre-registered null false-positive rate of
+the six-test gate is a few percent. Confidence entropy correlated negatively
+with error in both screens; that direction was not pre-registered, generates
+no claim, and would need its own pre-registration to test. On Norman the
+doublet stratum's oracle median (\resHTwoDoubletMedian) lies above the H2 gate
+while the all-task median passes; the stratum is reported, as pre-registered.
 
 \paragraph{Cell-line and dataset scope.} Both datasets are K562, and the
 Architect's backbone-choice distribution is K562-conditioned. Genome-scale
@@ -493,11 +521,12 @@ than competing direction.
 \section{Reproducibility}\label{sec:reproducibility}
 
 The sweep is one Modal command,
-\texttt{modal run scripts/modal/app\_v05.py::entrypoint}, which runs a
+\texttt{modal run scripts/modal/app\_v05.py::entrypoint} (with the pinned
+\texttt{--prior-spend-usd}), which runs a
 CPU preflight, the trainer sweep and the lifecycle sweep in one process.
 The preflight fetches and verifies the dataset digests, builds and validates
 the task plan, and refuses the whole run --- before any GPU work --- if the
-OpenRouter key is absent, any roster model is unprobed or any role has fewer than two live preferred models (every model is probed with its role's JSON schema), a stratum cannot be filled
+Anthropic key is absent, any roster model is unprobed or any role has fewer than two live models (each model is probed with every role's JSON schema), a stratum cannot be filled
 exactly, or a target gene cannot be resolved.
 
 \paragraph{Where each provenance element lives.} ``Provenance-complete'' in
@@ -534,8 +563,13 @@ known defects outside the sweep path & repository file
 \bottomrule
 \end{tabular}
 \end{center}
-The v0.6.0 run files are written to \texttt{artifacts/v0.6.0/};
-\pending{run\_id and git\_sha of the v0.6.0 sweep}.
+The v0.6.0 run files are written to \texttt{artifacts/v0.6.0/}: run
+\texttt{\resRunId} at \texttt{git\_sha} \resGitSha{} (\texttt{git\_dirty}
+\resGitDirty), \texttt{prereg\_version} \resPreregVersion; the run manifest
+\texttt{configs/runs/\resRunId.json} has SHA-256 prefix \resManifestSha. The
+cache namespace and output directory of an earlier aborted attempt were archived
+with SHA-256 manifests (prefixes \resArchiveShaCache{} and
+\resArchiveShaOutputs), never deleted.
 
 \paragraph{Pipeline.}
 \begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
@@ -544,8 +578,8 @@ The v0.6.0 run files are written to \texttt{artifacts/v0.6.0/};
         $13350497$; each file's SHA-256 is pinned and verified, and a
         cached file without a pin or with a mismatching digest is refused.
   \item \texttt{scripts/modal/app\_v05.py} --- preflight, trainer sweep and
-        lifecycle sweep on one Modal A100 with an in-loop budget cap; atomic
-        JSONL append per run.
+        lifecycle sweep on one Modal A100 under the pre-registered spend
+        lines; atomic JSONL append per run.
   \item \texttt{src/perturb\_eval/experiments/e\_v05\_real\_traces.py} ---
         consumes both JSONLs and writes \texttt{summary.json}; it refuses
         mismatched task sets, runs with a fallback step, and unfinished or
@@ -580,8 +614,11 @@ multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation. We test whether these signals predict task
 difficulty under five pre-registered gates on $41$ held-out K562 tasks, with
 every run carrying its revision, configuration, dataset digests, task plan,
-label contract and per-step serving model. The answer is
-\pending{conclusion from gate outcomes H1--H5}.
+label contract and per-step serving model. The answer, as pre-registered: \resGateSummary. The trace carries
+within-screen difficulty information through the change in confidence across
+rounds and through the composite that inherits it, not through confidence
+entropy, which ran against the hypothesised direction; the calibrated
+composite did not transfer across screens at the pre-registered level.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the
