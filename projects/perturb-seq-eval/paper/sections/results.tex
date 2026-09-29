@@ -61,8 +61,8 @@ Dataset & $n$ & median & IQR & max & fraction over gate & 95\% CI (median) \\
 \midrule
 Adamson 2016 & \resHOneN & \resHOneMedian & [\resHOneIQRLo, \resHOneIQRHi] & \resHOneMax & \resHOneFracOver & [\resHOneCILo, \resHOneCIHi] \\
 Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \resHTwoMax & \resHTwoFracOver & [\resHTwoCILo, \resHTwoCIHi] \\
-\quad singletons & \resHTwoSingletonN & \resHTwoSingletonMedian & & & & \\
-\quad doublets & \resHTwoDoubletN & \resHTwoDoubletMedian & & & & \\
+\quad singletons & \resHTwoSingletonN & \resHTwoSingletonMedian & [\resHTwoSingletonIQRLo, \resHTwoSingletonIQRHi] & \resHTwoSingletonMax & \resHTwoSingletonFracOver & --- \\
+\quad doublets & \resHTwoDoubletN & \resHTwoDoubletMedian & [\resHTwoDoubletIQRLo, \resHTwoDoubletIQRHi] & \resHTwoDoubletMax & \resHTwoDoubletFracOver & --- \\
 \bottomrule
 \end{tabular}
 \caption{Oracle MSD on the top-$20$ evaluation genes (best of the distinct configurations,
@@ -82,7 +82,8 @@ counts over \resHThreeNSteps{} steps: \textsc{linear} \resHThreePickLinear, \tex
 (\resHThreeVerdict). The executed backbone equalled the stated backbone on every step
 (executed $\ne$ stated: \resHThreeExecNeStated). All Architect steps were served by one model
 (\texttt{\resRosterHaiku}; \resHThreeNModels{} distinct serving model), so the per-\texttt{model\_id}
-breakdown coincides with the pooled value.
+breakdown coincides with the pooled value. Per-role distinct-proposal counts are not computed
+(the pre-registration flags them as optional and to be reported as such).
 
 \subsection{Trace metrics against held-out error (H4)}\label{sec:tdi-real}
 
@@ -127,6 +128,9 @@ $\mathrm{ACE}_{\mathrm{norm}}$ (final round) & \resHFourAdaAceRho{} [\resHFourAd
 $1-\Delta C$ & \resHFourAdaDcRho{} [\resHFourAdaDcCILo, \resHFourAdaDcCIHi] & \resHFourNorDcRho{} [\resHFourNorDcCILo, \resHFourNorDcCIHi] & \resHFourPooledDcRho \\
 $\mathrm{TDI}_{\mathrm{lifecycle}}$ & \resHFourAdaTdiRho{} [\resHFourAdaTdiCILo, \resHFourAdaTdiCIHi] & \resHFourNorTdiRho{} [\resHFourNorTdiCILo, \resHFourNorTdiCIHi] & \resHFourPooledTdiRho \\
 \midrule
+softmax $\mathrm{ACE}_{\mathrm{norm}}$ (descriptive) & \resHFourAdaAceSoftmaxRho{} [\resHFourAdaAceSoftmaxCILo, \resHFourAdaAceSoftmaxCIHi] & \resHFourNorAceSoftmaxRho{} [\resHFourNorAceSoftmaxCILo, \resHFourNorAceSoftmaxCIHi] & --- \\
+clipped $1-\Delta C$ (descriptive) & \resHFourAdaDcClippedRho{} [\resHFourAdaDcClippedCILo, \resHFourAdaDcClippedCIHi] & \resHFourNorDcClippedRho{} [\resHFourNorDcClippedCILo, \resHFourNorDcClippedCIHi] & --- \\
+\midrule
 CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (not evaluated)} \\
 \bottomrule
 \end{tabular}
@@ -136,18 +140,23 @@ $\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. Pooled $\rho$ never gates.
 \label{tab:tdi-real}
 \end{table}
 
-\paragraph{The ACE rows.} $\mathrm{ACE}_{\mathrm{norm}}$ correlates \emph{negatively} with
-held-out error in both datasets ($\rho=\resHFourAdaAceRho$ Adamson, $\resHFourNorAceRho$ Norman),
-against the pre-registered positive direction; its two tests fail the one-sided gate. The H4 pass
-is carried by the confidence-drop component and by the composite that inherits it. Any reading of
-the negative sign is exploratory and post hoc: it generates no claim here, and a test of it is a
-new pre-registration before any new data.
+\paragraph{The ACE rows.} The two $\mathrm{ACE}_{\mathrm{norm}}$ point estimates are negative
+($\rho=\resHFourAdaAceRho$ on Adamson, where the CI excludes zero; $\resHFourNorAceRho$ on
+Norman, where the Norman CI includes zero), against the pre-registered positive direction, so
+both tests fail the one-sided gate. The H4 pass is carried by the confidence-drop component and
+by the composite that inherits it; the Adamson $\mathrm{ACE}_{\mathrm{norm}}$ values have s.d.
+\resHFiveStdSdAce{} about a mean of \resHFiveStdMeanAce{} (the H5 standardisation below), so the
+composite ranks tasks almost as $1-\Delta C$ alone does. Any reading of the negative sign is
+exploratory and post hoc: it generates no claim here, and a test of it is a new
+pre-registration before any new data.
 
 \subsection{Cross-dataset transfer (H5)}\label{subsec:h5}
 
 Estimator (\texttt{preregistered.h5}): ridge weights ($\alpha=1.0$, fixed in advance) for
 $\mathrm{ACE}_{\mathrm{norm}}$ and $1-\Delta C$ are fitted on the Adamson tasks (features
-standardised with the Adamson mean and s.d.; target the per-task lifecycle MSD) and applied
+standardised with the Adamson mean and s.d.: $\mathrm{ACE}_{\mathrm{norm}}$ \resHFiveStdMeanAce{} $\pm$
+\resHFiveStdSdAce, $1-\Delta C$ \resHFiveStdMeanDc{} $\pm$ \resHFiveStdSdDc; target the per-task
+lifecycle MSD) and applied
 \emph{unchanged} to the Norman tasks; no Norman value enters the fit. Fitted weights:
 $\mathrm{ACE}_{\mathrm{norm}}$ \resHFiveWAce, $1-\Delta C$ \resHFiveWDc{} (standardised units).
 Transfer $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
@@ -157,14 +166,21 @@ transfer at the pre-registered level; no re-fit, threshold or sign change is app
 \subsection{Run record}\label{subsec:runrecord}
 
 Run \resRunId{} at git \resGitSha{} (\texttt{git\_dirty} \resGitDirty), \texttt{prereg\_version}
-\resPreregVersion. Lifecycle runs: \resNLifecycleRuns{} (three rounds each); steps:
-\resNSteps, all LLM-sourced; fallback steps (a valid run has none): \resNFallback. LLM cache
+\resPreregVersion. Tasks analysed: \resNTasks. Lifecycle runs: \resNLifecycleRuns, each of
+exactly three rounds; steps: \resNSteps, all LLM-sourced (fallback \resNFallback, mock
+\resNStepsMock, unknown \resNStepsUnknown; a valid run has none of these). LLM cache
 namespace entries at start: \resCacheStart; cache hits: \resCacheHits; replay: \resReplay.
 API calls: \resNCalls{} (\texttt{end\_turn} \resStopEndTurn, \texttt{max\_tokens} \resStopMaxTokens,
 the latter retried once at twice the ceiling and answered); refusals: \resRefusals; served model
-$\ne$ requested: \resServedMismatch. Tokens: \resTokensIn{} input, \resTokensOut{} output.
-Trainer records: \resNTrainerRuns. Spend: LLM \$\resSpendLLM{} (Haiku \$\resSpendHaiku, Sonnet
-\$\resSpendSonnet, including preflight probes \$\resSpendPreflight), GPU \$\resSpendGPU{}
+$\ne$ requested: \resServedMismatch. Tokens: \resTokensIn{} input, \resTokensOut{} output. Served model per role: DataCurator,
+Literature, Architect and Trainer on \texttt{\resRoleServedCurator} (\resRoleCallsCurator,
+\resRoleCallsLiterature, \resRoleCallsArchitect{} and \resRoleCallsTrainer{} calls), Validator on
+\texttt{\resRoleServedValidator} (\resRoleCallsValidator{} calls); failovers \resNFailover.
+Prices (USD per million tokens, input/output): Haiku \resPriceHaikuIn/\resPriceHaikuOut, Sonnet
+\resPriceSonnetIn/\resPriceSonnetOut, cache reads and writes at the pinned multipliers; preflight
+liveness: \resLivenessOkPairs{} of \resLivenessTotalPairs{} model--role probes live.
+Trainer records: \resNTrainerRuns{} (\resNTrainerRecordsPerTask{} per task). Spend: LLM \$\resSpendLLM{} (sweep calls: Haiku \$\resSpendHaiku, Sonnet
+\$\resSpendSonnet; plus preflight probes \$\resSpendPreflight), GPU \$\resSpendGPU{}
 (\resGPUHours{} A100-hours), carried-in prior \$\resSpendPrior; total \$\resSpendTotal{} against
 the \$\resSpendStopLine{} stop-and-report and \$\resKillLine{} kill lines (neither reached:
 stop reason \resStopReasonNone). Run manifest \texttt{configs/runs/\resRunId.json}
