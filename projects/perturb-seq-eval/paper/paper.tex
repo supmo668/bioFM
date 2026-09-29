@@ -79,8 +79,8 @@ error on both screens (H1, H2), the Architect exercises its backbone choice
 (H3), and the confidence-drop component and the composite rank tasks by
 held-out error within both screens (H4); the Adamson-calibrated composite
 does not transfer to Norman at the pre-registered level (H5, $\rho=\resHFiveRho$
-against $>\resHFiveThreshold$). Confidence entropy itself correlates negatively
-with error in both screens, against the pre-registered direction.
+against $>\resHFiveThreshold$). The confidence-entropy point estimates run against the pre-registered
+direction in both screens (exploratory; no claim is made).
 The values reported in the v0.5.0 release of this work are superseded in
 full; the defects behind each are listed in the appendix.
 \end{abstract}
@@ -209,8 +209,7 @@ single-chain allocation.
 \subsection{Agent Confidence Entropy (ACE)}
 
 Let $p(r) = \mathrm{softmax}(\mathbf{C}(r)/\tau)$ be the softmax of the
-confidence vector at round $r$ with temperature $\tau$ (we use $\tau=1$
-throughout). ACE is the Shannon entropy of this distribution, normalised to
+confidence vector at round $r$ with temperature $\tau$ (we use $\tau=1$). ACE is the Shannon entropy of this distribution, normalised to
 $[0,1]$ by its maximum:
 \begin{equation}
   \mathrm{ACE}(r) = -\sum_{i=1}^{N} p_i(r) \log p_i(r),\quad
@@ -263,6 +262,16 @@ difficulty label.
 
 % =====================================================================
 \section{Preflight Probe and Bayesian Recommender}\label{sec:probe}
+
+\paragraph{Pre-registered forms (amendments A2-10, A2-11).} For the
+pre-registered tests in \S\ref{sec:results}, $\mathrm{ACE}_{\mathrm{norm}}$ is
+the entropy of the \emph{direct simplex projection} of the confidence vector
+(\texttt{metrics.ace\_d}, no temperature), and the confidence-drop term is the
+\emph{unclipped} $1-\Delta C\in[0,2]$; the lifecycle composite renormalises the
+two default weights over these two terms and is not clipped, so
+$\mathrm{TDI}_{\mathrm{lifecycle}}\in[0,17/12]$. The softmax form above and the
+clipped term are reported descriptively beside them. Both amendments were
+locked before any v0.6.0 data existed.
 
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
 $\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
@@ -438,13 +447,15 @@ information. On this run H1--H3 pass; H4 passes on the confidence-drop
 component ($1-\Delta C$) and on the composite that inherits it, in both
 screens, while confidence entropy runs the opposite way to the hypothesis;
 and H5 fails: the Adamson-calibrated composite reaches $\rho=\resHFiveRho$ on
-Norman against a gate of $\resHFiveThreshold$. Read together, the trace
-carries within-screen difficulty information through how confidence
-\emph{moves} across rounds, not through how spread it is at the end, and that
-information did not calibrate across screens at the pre-registered level. The
-title question is answered as posed: not by confidence entropy, on this
-evidence. The negative ACE sign is reported, not interpreted; a directional
-hypothesis about it would be a new pre-registration.
+Norman against a gate of $\resHFiveThreshold$. Read together: H4 passes on $1-\Delta C$ in both screens and on
+$\mathrm{TDI}_{\mathrm{lifecycle}}$, which, given the narrow observed spread of
+$\mathrm{ACE}_{\mathrm{norm}}$, ranks nearly identically; the two
+$\mathrm{ACE}_{\mathrm{norm}}$ tests fail the pre-registered one-sided gate; and
+the Adamson-calibrated composite does not transfer at the pre-registered level.
+The title question is answered as posed: on this evidence, confidence entropy
+does not predict difficulty in the pre-registered direction. No mechanism is
+inferred; the negative point estimates are reported, not interpreted, and a
+directional hypothesis about them would be a new pre-registration.
 
 \paragraph{What a single-round probe can and cannot observe.} A single-round
 probe by definition cannot observe convergence. It sees only the starting
@@ -489,11 +500,12 @@ same family; it sits on a different tier (Sonnet 5.5) from the four Haiku 4.5
 proposer roles, which is reported, not a remedy --- residual same-family judge
 bias is acknowledged. Model identity is recorded and asserted per call.
 
-\paragraph{Sample size and the ACE sign.} The within-screen tests use $n=21$
-and $n=20$ tasks; every $\rho$ carries a bootstrap CI over tasks
+\paragraph{Sample size and the ACE sign.} The within-screen tests use $n=\resHFourAdaAceN$
+and $n=\resHFourNorAceN$ tasks; every $\rho$ carries a bootstrap CI over tasks
 (Table~\ref{tab:tdi-real}), and the pre-registered null false-positive rate of
-the six-test gate is a few percent. Confidence entropy correlated negatively
-with error in both screens; that direction was not pre-registered, generates
+the six-test gate is a few percent. The confidence-entropy point estimates were negative in both screens (the
+Adamson CI excludes zero, the Norman CI includes it); that direction was not
+pre-registered, generates
 no claim, and would need its own pre-registration to test. On Norman the
 doublet stratum's oracle median (\resHTwoDoubletMedian) lies above the H2 gate
 while the all-task median passes; the stratum is reported, as pre-registered.
@@ -526,8 +538,8 @@ The sweep is one Modal command,
 CPU preflight, the trainer sweep and the lifecycle sweep in one process.
 The preflight fetches and verifies the dataset digests, builds and validates
 the task plan, and refuses the whole run --- before any GPU work --- if the
-Anthropic key is absent, any roster model is unprobed or any role has fewer than two live models (each model is probed with every role's JSON schema), a stratum cannot be filled
-exactly, or a target gene cannot be resolved.
+Anthropic key is absent, any roster model is unprobed or any role has fewer than two live models (each model is probed with every role's JSON schema), a pool is smaller than its requested count (the draw is topped
+up or trimmed to the per-pool total, A2-7), or a target gene cannot be resolved.
 
 \paragraph{Where each provenance element lives.} ``Provenance-complete'' in
 the title refers to the following artifacts; all paths are relative to the
@@ -614,11 +626,11 @@ multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation. We test whether these signals predict task
 difficulty under five pre-registered gates on $41$ held-out K562 tasks, with
 every run carrying its revision, configuration, dataset digests, task plan,
-label contract and per-step serving model. The answer, as pre-registered: \resGateSummary. The trace carries
-within-screen difficulty information through the change in confidence across
-rounds and through the composite that inherits it, not through confidence
-entropy, which ran against the hypothesised direction; the calibrated
-composite did not transfer across screens at the pre-registered level.
+label contract and per-step serving model. The answer, as pre-registered: \resGateSummary. Within each screen the change in confidence across rounds, and the composite
+that inherits it, rank tasks by held-out error at the pre-registered level;
+confidence entropy does not, in the pre-registered direction; and the
+calibrated composite did not transfer across screens at the pre-registered
+level.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the
