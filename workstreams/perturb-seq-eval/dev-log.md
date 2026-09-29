@@ -1,3 +1,4 @@
 - A2-fixes — amendment-2 measurand fixes gated (11 findings fixed/ruled; amendment 3 locked 114a01f, prereg_version v0.6.0-a3) (commit 371c274)
 - RELAUNCH — roster/preflight/client/spend fixes gated (13 findings fixed; receipt 2a499b0); sweep relaunched from 4f967a1 with prior spend 1.3 (commit 4f967a1)
 - A4CLIENT — AnthropicClient (amendment 4) gated: 13 findings fixed (receipt 36b0e1d); relaunch ready pending CTO verification (commit f355ebe)
+- SWEEP v0.6.0 run 20260929T035447Z-ce5f237 complete and valid: 4/5 gates pass (H5 fails); $8.93 total; artifacts committed

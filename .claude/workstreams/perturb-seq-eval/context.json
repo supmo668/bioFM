@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-09-29T03:49:17.056634+00:00",
+  "updated_at": "2026-09-29T07:01:52.736728+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -53,6 +53,17 @@
       "summary": "AnthropicClient gated; relaunch pending CTO receipt verification",
       "pr": "",
       "updated_at": "2026-09-29T03:49:17.056350+00:00"
+    },
+    "SWEEP": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "bb3e2e2",
+      "qgr": "",
+      "summary": "v0.6.0 sweep complete, valid, 4/5 gates pass, $8.93",
+      "pr": "",
+      "updated_at": "2026-09-29T07:01:52.736571+00:00"
     }
   }
 }
