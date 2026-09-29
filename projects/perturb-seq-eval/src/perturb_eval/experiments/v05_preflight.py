@@ -71,7 +71,7 @@ TASK_POOL_DATASET: dict[str, str] = {
 
 DatasetSource = Union[Mapping[str, Any], Callable[[], Mapping[str, Any]]]
 PlanSource = Union[TaskPlan, Callable[[Mapping[str, Mapping[str, Any]]], TaskPlan]]
-ProbeFn = Callable[[Mapping[str, str]], "str | None"]
+ProbeFn = Callable[[Mapping[str, str]], Any]
 
 
 class PreflightError(RuntimeError):
@@ -99,51 +99,95 @@ class PreflightReport:
     labels_excluded: tuple[dict[str, Any], ...] = field(default_factory=tuple)
 
 
-PROBE_PROMPT = (
-    "Reply with ONLY this JSON object and nothing else: "
-    '{"confidence": 0.5, "dynamic_threshold_msd": 0.1}'
-)
+# QG-6 (strict reading of CTO #467 "the same JSON probe the roles use"): each
+# role's PREFERRED models are probed with that role's own schema; a model not
+# preferred by any role gets the Validator probe. A model is live only when
+# every role it is preferred for accepts its reply (parse_proposal(role, ...)).
+ROLE_PROBE_PAYLOADS: dict[str, dict[str, Any]] = {
+    "DataCurator": {
+        "hvg_method": "seurat",
+        "hvg_count": 2000,
+        "qc_mito_max": 12.0,
+        "confidence": 0.5,
+    },
+    "Literature": {
+        "pathway_prior": {},
+        "tool_calls": [],
+        "expected_up": [],
+        "expected_down": [],
+        "confidence": 0.5,
+    },
+    "Architect": {
+        "backbone": "linear",
+        "hvg_count": 2000,
+        "learning_rate": 0.01,
+        "ridge_lambda": 1.0,
+        "epochs": 30,
+        "confidence": 0.5,
+    },
+    "Trainer": {"lr": 0.01, "epochs": 30, "ridge_lambda": 1.0, "confidence": 0.5},
+    "Validator": {"dynamic_threshold_msd": 0.1, "confidence": 0.5},
+}
 
 
-def openrouter_probe_all(env: Mapping[str, str]) -> dict[str, dict[str, Any]]:
-    """Probe EVERY roster model with the Validator JSON schema (CTO #467).
+def role_probe_prompt(role: str) -> str:
+    import json as _json
 
-    One direct call per model (no failover, fresh temporary cache so a cached
-    reply cannot fake a live model). A model is live only when it answers a
-    JSON object that ``parse_proposal("Validator", ...)`` accepts (A2-1, A3-3).
-    Returns ``{model_id: {"live", "verdict", "probed_at"}}``. Never prints the key.
+    return (
+        f"Preflight probe for the {role} role. Reply with ONLY this JSON object and nothing else: "
+        + _json.dumps(ROLE_PROBE_PAYLOADS[role])
+    )
+
+
+def openrouter_probe_all(env: Mapping[str, str], pool: Any = None) -> dict[str, dict[str, Any]]:
+    """Probe EVERY roster model, per role it is preferred for (CTO #467, QG-6).
+
+    One direct call per (model, role) -- no failover, fresh temporary cache so a
+    cached reply cannot fake a live model. Returns
+    ``{model_id: {"live", "verdict", "probed_at", "roles": {role: {"ok", "verdict"}}}}``.
+    Any exception for one probe is recorded as that probe's verdict (QG-11);
+    the key is never printed.
     """
     import datetime as _dt
     import tempfile
 
-    import requests
     from pydantic import ValidationError
 
     from perturb_eval.agentic_lifecycle.proposal_schema import parse_proposal
     from perturb_eval.llm.openrouter_client import DEFAULT_POOL, OpenRouterClient
 
+    pool = pool if pool is not None else DEFAULT_POOL
+    roles_for: dict[str, list[str]] = {m.model_id: [] for m in pool.models}
+    for role, prefs in pool.role_preferences.items():
+        for mid in prefs:
+            roles_for.setdefault(mid, []).append(role)
     table: dict[str, dict[str, Any]] = {}
     with tempfile.TemporaryDirectory(prefix="v06-preflight-") as tmp:
-        client = OpenRouterClient(api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=DEFAULT_POOL)
-        for m in DEFAULT_POOL.models:
+        client = OpenRouterClient(api_key=env[KEY_NAME], cache_dir=Path(tmp), pool=pool)
+        for m in pool.models:
             probed_at = _dt.datetime.now(_dt.timezone.utc).isoformat()
-            try:
-                live, verdict, parsed = client.probe_model(m.model_id, PROBE_PROMPT)
-            except requests.RequestException as exc:
-                live, verdict, parsed = False, f"transport {type(exc).__name__}", None
-            if live:
+            roles = roles_for.get(m.model_id) or ["Validator"]
+            per_role: dict[str, dict[str, Any]] = {}
+            for role in roles:
                 try:
-                    parse_proposal("Validator", parsed)
-                except ValidationError:
-                    live, verdict = False, "JSON answered but Validator schema failed"
-            table[m.model_id] = {"live": bool(live), "verdict": verdict, "probed_at": probed_at}
+                    live, verdict, parsed = client.probe_model(m.model_id, role_probe_prompt(role))
+                except Exception as exc:  # noqa: BLE001 — recorded per probe, never raised
+                    live, verdict, parsed = False, f"transport {type(exc).__name__}", None
+                if live:
+                    try:
+                        parse_proposal(role, parsed)
+                    except ValidationError:
+                        live, verdict = False, f"JSON answered but {role} schema failed"
+                per_role[role] = {"ok": bool(live), "verdict": verdict}
+            all_ok = all(r["ok"] for r in per_role.values())
+            bad = [f"{role}: {r['verdict']}" for role, r in per_role.items() if not r["ok"]]
+            table[m.model_id] = {
+                "live": all_ok,
+                "verdict": "ok" if all_ok else "; ".join(bad),
+                "probed_at": probed_at,
+                "roles": per_role,
+            }
     return table
-
-
-def openrouter_probe(env: Mapping[str, str]) -> str | None:
-    """Legacy single-model probe: the first live model of :func:`openrouter_probe_all`."""
-    live = [k for k, v in openrouter_probe_all(env).items() if v["live"]]
-    return live[0] if live else None
 
 
 def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str, Any]], list[str]]:
@@ -165,10 +209,16 @@ def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str
     for mid in expected:
         e = got.get(mid)
         if isinstance(e, Mapping):
+            roles = e.get("roles") if isinstance(e.get("roles"), Mapping) else {}
             table[mid] = {
-                "live": bool(e.get("live")),
+                "live": e.get("live") is True,
                 "verdict": str(e.get("verdict", "")),
                 "probed_at": str(e.get("probed_at", "")),
+                "roles": {
+                    str(r): {"ok": v.get("ok") is True, "verdict": str(v.get("verdict", ""))}
+                    for r, v in roles.items()
+                    if isinstance(v, Mapping)
+                },
             }
     unprobed = [mid for mid in expected if mid not in table]
     if unprobed:
@@ -180,7 +230,13 @@ def _check_roster_liveness(got: Any, pool: Any) -> tuple[str, dict[str, dict[str
     if not live:
         failures.append("C-KEY-1: OpenRouter pool probe returned no usable model")
     for role, prefs in pool.role_preferences.items():
-        n = sum(1 for mid in prefs if mid in live)
+        # QG-6: a model counts for a role only if it passed THAT role's probe
+        # (falls back to the overall liveness when no per-role result exists).
+        n = sum(
+            1
+            for mid in prefs
+            if mid in table and table[mid]["roles"].get(role, {"ok": table[mid]["live"]})["ok"]
+        )
         if n < 2:
             failures.append(
                 f"C-KEY-1: role {role} has {n} live preferred model(s) (< 2): "
@@ -232,7 +288,9 @@ def preflight(
     out_dir
         ``/data/<version>/``; must be absent or empty.
     probe_fn
-        ``env -> model_id | None``; defaults to :func:`openrouter_probe`.
+        ``env -> {model_id: {live, verdict, probed_at, roles}}`` (a legacy
+        ``str`` / ``None`` is accepted but fails the probe-count rule);
+        defaults to :func:`openrouter_probe_all` over ``pool``.
     """
     failures: list[str] = []
     checks: list[str] = []
@@ -247,7 +305,7 @@ def preflight(
             "cannot run and a trainer-only run is not permitted (CTO #235)"
         )
     else:
-        probe = probe_fn if probe_fn is not None else openrouter_probe_all
+        probe = probe_fn if probe_fn is not None else (lambda e: openrouter_probe_all(e, pool=pool))
         try:
             got = probe(env)
         except Exception as exc:  # noqa: BLE001 — reported as a failure, never bypassed
@@ -455,6 +513,7 @@ __all__ = [
     "PreflightError",
     "PreflightReport",
     "TASK_POOL_DATASET",
-    "openrouter_probe",
+    "openrouter_probe_all",
+    "ROLE_PROBE_PAYLOADS",
     "preflight",
 ]

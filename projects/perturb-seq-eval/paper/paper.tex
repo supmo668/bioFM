@@ -497,7 +497,7 @@ The sweep is one Modal command,
 CPU preflight, the trainer sweep and the lifecycle sweep in one process.
 The preflight fetches and verifies the dataset digests, builds and validates
 the task plan, and refuses the whole run --- before any GPU work --- if the
-OpenRouter key is absent, no pool model is usable, a stratum cannot be filled
+OpenRouter key is absent, any roster model is unprobed or any role has fewer than two live preferred models (every model is probed with its role's JSON schema), a stratum cannot be filled
 exactly, or a target gene cannot be resolved.
 
 \paragraph{Where each provenance element lives.} ``Provenance-complete'' in
@@ -522,7 +522,7 @@ task plan & \texttt{tasks} (resolved lists, strata, eligible-pool sizes) \\
 label contract & per-dataset \texttt{label\_contract} and
   \texttt{tasks\_excluded} (label and reason) \\
 HVG mode & \texttt{hvg\_selection} (train-only; per-task HVG counts) \\
-LLM pool & \texttt{llm\_pool} (roster) \\
+LLM pool & \texttt{llm\_pool} (roster) and \texttt{llm\_roster\_liveness} (per model: probe date, verdict, per-role result) \\
 serving model per step & \texttt{model\_id} and \texttt{source} on every
   lifecycle step in \texttt{lifecycle\_runs.jsonl} \\
 run outcome & \texttt{status}, \texttt{cost\_usd\_actual},
