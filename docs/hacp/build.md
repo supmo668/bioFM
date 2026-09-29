@@ -35,6 +35,7 @@ flowchart LR
 | Workstream | Kind | What it shows | Surface | Written |
 |---|---|---|---|---|
 | aviary-biosim | Presentation (walkthrough + product cut) | the v2r loop and `BioSimEnv` placed in the system, the five decisions taken, the six HACP sections at `ab8f6f5`, and what is done / owed / undecided at the end of the workstream | [web Artifact](https://claude.ai/artifact/EqRkyfyMT5Jj8ecAcVpsYg) — **not published to the HACP index** (Notion connector not connected at write time; row owed). Source: `workstreams/_adhoc/aviary-biosim-walkthrough.md`, `…-walkthrough-product.md` | 2026-09-28 |
+| lung-on-chipsim | Presentation (product cut) | the rig is built, the experiment has not run: the 6,802-compound reference table and every downstream step waiting on a human-owned input; state re-measured 2026-09-29 (T18 delivered, T14 0/26, no runs) | [web Artifact](https://claude.ai/artifact/HDtaxnfh79HumoLY7NWKws) — republished 2026-09-29 (the 2026-09-19 link died); **not published to the HACP index** (Notion connector not connected). Source: `workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-walkthrough-product.md` | 2026-09-19 / 2026-09-29 |
 
 ## Convention
 
