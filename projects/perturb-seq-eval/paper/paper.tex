@@ -16,6 +16,7 @@
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{enumitem}
+\setlength{\emergencystretch}{1.5em} % third-pass stretch for paragraphs dense with code identifiers
 % No algorithm2e / algorithm / algpseudocode assumed available in the
 % target TeX distribution — we inline the procedure as a numbered list.
 
@@ -368,12 +369,12 @@ LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt
 
 \subsection{Adapting CellForge: duck typing, no patching}
 
-The orchestrator in \texttt{libs/cellforge-agents/} exposes a
-\texttt{ConsensusResult} whose \texttt{.rounds[i].proposals} carry
-\texttt{.agent}, \texttt{.confidence}, \texttt{.content}, and whose
-\texttt{.rounds[i].critiques} carry \texttt{.from\_agent},
-\texttt{.on\_agent}, \texttt{.severity}. The adapter in
-\texttt{src/perturb\_eval/instrumentation.py} is $\approx\!40$ lines of
+The orchestrator (\path{libs/cellforge-agents/}) exposes a result
+object, \texttt{ConsensusResult}, whose \path{.rounds[i].proposals} carry
+\path{.agent}, \path{.confidence}, \path{.content}, and whose
+\path{.rounds[i].critiques} carry \path{.from_agent},
+\path{.on_agent}, \path{.severity}. The adapter in
+\path{src/perturb_eval/instrumentation.py} is $\approx\!40$ lines of
 pure projection: it duck-types those two interfaces, builds a critique
 matrix that excludes self-critique, and reconstructs the per-round winner
 as $\arg\max_j (c_j - \overline{S}_{\cdot j})$. No orchestrator patching is
@@ -417,9 +418,9 @@ repository at \texttt{massgen\_skill\_draft/}:
 \end{enumerate}
 
 The corresponding MassGen skill artifact
-(\path{massgen_skill_draft/skill.yaml}) declares an
-\path{on_session_start} hook that runs preflight and an
-\path{on_session_end} hook that runs evaluate. Both handlers are
+(\path{massgen_skill_draft/skill.yaml}) declares two hooks:
+\path{on_session_start} runs preflight and \path{on_session_end} runs
+evaluate. Both handlers are
 $\leq 20$ lines of glue over \path{perturb_eval.massgen_adapter}, which
 keeps the skill minimal and audit-friendly.
 
@@ -477,11 +478,11 @@ choices to a model is recoverable after the fact (Appendix~\ref{app:corrections}
 % =====================================================================
 \section{Limitations and Threats to Validity}\label{sec:limits}
 
-\paragraph{Backbone scope.} The backbones are small models trained per task
+\paragraph{Backbone scope.} \begin{sloppypar}The backbones are small models trained per task
 (\S\ref{subsec:backbones}); no pretrained single-cell foundation model is
 evaluated. Integrating pretrained \textsc{scGPT}~\citep{cui2024scgpt},
 \textsc{Geneformer}~\citep{theodoris2023geneformer}, or
-\textsc{scFoundation} is the most consequential follow-up.
+\textsc{scFoundation} is the most consequential follow-up.\end{sloppypar}
 
 \paragraph{Oracle, not held-out, error.} H1/H2 select the best of
 \resNDistinctConfigs{} distinct configurations (\resNTrainerRecordsPerTask{}
@@ -584,10 +585,10 @@ The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
 \path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
-\resArchiveShaOutputs), never deleted. The landed revision (\resLandSha) differs from the
-run's \resGitSha{} in \resPostRunPathCount{} source files in paths the run did not exercise
-(\S\ref{subsec:runrecord}); re-running the landed analyser on the committed run files
-reproduces \texttt{summary.json}.
+\resArchiveShaOutputs), never deleted. The revision at which v0.6.0 landed on main
+(\resLandSha) differs from the run's \resGitSha{} in \resPostRunPathCount{} source files, in
+code paths the run did not reach (\S\ref{subsec:runrecord}); the landed analyser, re-run on
+the committed run files, reproduces every committed value of \texttt{summary.json}.
 \end{sloppypar}
 
 \paragraph{Pipeline.}
