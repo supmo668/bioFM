@@ -358,10 +358,11 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         expect[f"resRoleCalls{word}"] = str(sum(1 for c in log if c["role"] == role))
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     for a in am:
-        word = {"A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
-        expect[f"resAmend{word}Version"] = a["prereg_version"]
+        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
+        expect[f"resAmend{word}Version"] = a["prereg_version"] or "(none)"
         expect[f"resAmend{word}Date"] = a["lock_date_utc"]
         expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
+        expect[f"resAmend{word}Note"] = a["lock_note"]
         expect[f"resAmend{word}Change"] = a["change"]
     s5 = json.loads((ROOT / "artifacts" / "v0.5.0" / "summary.json").read_text())
     p5 = json.loads((ROOT / "artifacts" / "v0.5.0" / "provenance.json").read_text())
@@ -607,6 +608,32 @@ def test_no_hand_typed_result_numbers(rel):
     prereg = (PAPER / "PREREGISTRATION.md").read_text()
     for lit in ALLOWED_LITERALS[name]:
         assert lit in prereg, lit
+
+
+def test_corrections_integers_are_macros_or_quoted_design_facts():
+    """corrections.tex may hold integers only as design facts or labelled register quotes; result values are macros."""
+    text = _strip(CORR.read_text())
+    assert "$41$" not in text and "of 36 each" not in text and "$15+5$" not in text
+    assert "\\resNTasks" in text and "\\resVFiveNTasks" in text and "\\resHTwoSingletonN" in text
+    text = re.sub(r"\\res[A-Z][A-Za-z]*", "", text)
+    text = re.sub(
+        r"\\(path|texttt|ref|label|cite[pt]?)\{[^}]*\}", "", text
+    )  # paths, code, references
+    text = re.sub(
+        r"\\#\d+|DF-\d+|[\d.]+(em|pt|ex)\b|\d\.\d+", "", text
+    )  # register ids, lengths, decimals
+    ints = set(re.findall(r"(?<![\w.\\])\d+(?![\w.])", text))
+    allowed = {
+        "2",
+        "3",
+        "4",
+        "5",
+        "7",
+        "8",
+        "15",
+        "91",
+    }  # shared tasks, seeds, digests, register quotes
+    assert ints <= allowed, sorted(ints - allowed)
 
 
 def test_braces_balanced():
@@ -910,11 +937,27 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
 def test_amendment_records_match_git_and_the_preregistration():
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     prereg = (PAPER / "PREREGISTRATION.md").read_text()
-    assert [a["id"] for a in am] == ["A2", "A3", "A4"]
+    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4"]
+    land = json.loads((PAPER / "data" / "land_v060.json").read_text())
     for a in am:
         n = a["id"][1]
-        assert f"## Amendment {n} (`prereg_version` = `{a['prereg_version']}`)" in prereg
+        if a["prereg_version"]:
+            assert f"## Amendment {n} (`prereg_version` = `{a['prereg_version']}`)" in prereg
+        else:
+            assert (
+                f"Amendment {n} ({a['lock_date_utc']}, `{a['lock_commits'][0]}`)" in prereg
+            )  # A1, named in the preamble
+        first = a["lock_commits"][0]
+        head_line = a["introduces"]  # the text the lock commit added to PREREGISTRATION.md
+        assert head_line in _git(
+            "show", f"{first}:projects/perturb-seq-eval/paper/PREREGISTRATION.md"
+        )
+        assert head_line not in _git(
+            "show", f"{first}^:projects/perturb-seq-eval/paper/PREREGISTRATION.md"
+        )
         for c in a["lock_commits"]:
+            assert re.fullmatch(r"[0-9a-f]{7,40}", c), c
+            _git("merge-base", "--is-ancestor", c, land["run_git_sha"])  # locked before the run
             files = _git("show", "--name-only", "--format=", c)
             assert "paper/PREREGISTRATION.md" in files, c
             date = subprocess.run(
@@ -926,7 +969,23 @@ def test_amendment_records_match_git_and_the_preregistration():
                 env={**__import__("os").environ, "TZ": "UTC"},
             ).stdout.strip()
             assert date == a["lock_date_utc"], (c, date)
-        assert "_" not in a["change"] and "\\" not in a["change"]  # typeset verbatim
+        assert (
+            "\\" not in a["change"] and "{" not in a["change"]
+        )  # typeset verbatim (`_` is escaped by render)
+        assert (
+            "1.3548" not in a["change"]
+        )  # A4-2 states 1.3 carried in from the aborted run + the dry run separately
+    a4 = next(a for a in am if a["id"] == "A4")
+    assert sorted(
+        _git(
+            "log",
+            "--format=%h",
+            f"{a4['lock_commits'][0]}^..{land['run_git_sha']}",
+            "--",
+            "paper/PREREGISTRATION.md",
+        ).split()
+    ) == sorted(a4["lock_commits"])
+    assert a4.get("lock_note")
     res = RESULTS.read_text()
     assert "\\label{tab:amendments}" in res and res.count("\\ref{tab:amendments}") >= 2
     assert SETUP.read_text().count("\\ref{tab:amendments}") >= 2
@@ -934,17 +993,21 @@ def test_amendment_records_match_git_and_the_preregistration():
 
 def test_v050_record_commit_and_register_quotes():
     vr = json.loads((PAPER / "data" / "v050_record.json").read_text())
+    rc = vr["record_commit"]
+    assert re.fullmatch(r"[0-9a-f]{7,40}", rc)
     added = _git(
         "log", "--format=%h", "--diff-filter=A", "--", "artifacts/v0.5.0/summary.json"
     ).split()
+    assert added and added[-1].startswith(rc), added
+    _git("merge-base", "--is-ancestor", rc, "HEAD")
     assert (
-        added
-        and added[-1].startswith(vr["record_commit"])
-        or vr["record_commit"].startswith(added[-1])
-    ), added
+        _git("diff", "--name-only", rc, "HEAD", "--", "artifacts/v0.5.0").strip() == ""
+    )  # record unchanged since
     register = (ROOT.parents[1] / vr["narrative_register"]).read_text()
+    corr_text = CORR.read_text()
     for q in vr["narrative_quotes"]:
-        assert q in register, q
+        assert q["register"] in register, q
+        assert q["tex"] in corr_text, q
     corr = CORR.read_text()
     for mac in (
         "VFiveAdamsonMedian",
@@ -964,3 +1027,21 @@ def test_v050_record_commit_and_register_quotes():
     assert (
         "\\resThinkingSonnet" in setup and "\\resStopMaxTokens" in setup and "\\resNCalls" in setup
     )
+
+
+def test_land_sha_is_the_pr_merge(land):
+    full = _git("rev-parse", land["land_git_sha"]).strip()
+    assert full == land["land_git_sha_full"]
+    assert _git("log", "-1", "--format=%s", full).startswith(
+        f"Merge pull request #{land['pr_number']} "
+    )
+    assert len(_git("log", "-1", "--format=%P", full).split()) == 2
+    _git("merge-base", "--is-ancestor", land["run_git_sha"], full)
+
+
+def test_render_number_allow_list(fv):
+    assert r"\newcommand{\resX}{1\,944}" in fv.render({"X": "1\\,944"})
+    assert r"\newcommand{\resX}{a\_b}" in fv.render({"X": "a_b"})
+    for bad in ("1\\,94", "1\\,944x", "a%b", "a{b"):
+        with pytest.raises(ValueError):
+            fv.render({"X": bad})
