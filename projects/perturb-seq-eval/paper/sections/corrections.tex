@@ -8,7 +8,10 @@
 \section{Corrections relative to v0.5.0}\label{app:corrections}
 
 All values reported in the v0.5.0 release of this work are superseded; none
-is carried into this version. The v0.5.0 artifact set does not describe a
+is carried into this version. The v0.5.0 figures quoted below are read from the v0.5.0 record
+(\texttt{artifacts/v0.5.0/}, added at commit \texttt{\resVFiveRecordCommit}), never typed; the two
+narrative figures (the Norman split and the \texttt{YIPF5} share) are quoted from the
+publication-rigour register that found them. The v0.5.0 artifact set does not describe a
 single experiment, and several values were computed on inputs a code defect
 had altered. The defects, by register id (review and addendum:
 \path{workstreams/perturb-seq-eval/qa/_adhoc/2026-09-23-publication-rigor-review.md};
@@ -52,18 +55,18 @@ DF rows: \path{workstreams/perturb-seq-eval/deferred-findings.md}):
 \toprule
 Superseded v0.5.0 value or claim & Superseded by & Replacement \\
 \midrule
-Adamson median best-config MSD $0.147$; Adamson gate PASS
+Adamson median best-config MSD $\resVFiveAdamsonMedian$; Adamson gate PASS
   & A1, DF-07, DF-10, \#227 & H1, \resHOneVerdict \\
-Norman median best-config MSD $0.131$; Norman gate PASS
+Norman median best-config MSD $\resVFiveNormanMedian$; Norman gate PASS
   & A1, A4, DF-06, \#227 & H2, \resHTwoVerdict \\
 Norman $n=15$ described as $15$ singletons $+\,5$ doublets (artifact: $7+8$)
   & R3, A4 & $15+5$ asserted at preflight \\
-$1\,944$ trainer cells ($36$ tasks $\times$ $54$)
+$\resVFiveNTrainerRuns$ trainer cells ($\resVFiveNTasks$ tasks $\times$ $\resVFiveConfigsPerTask$)
   & A1, A4 & $41$ tasks $\times$ \resNTrainerRecordsPerTask{} records (\resNDistinctConfigs{} distinct configurations) \\
-$108$ lifecycle runs over $36$ held-out tasks
+$\resVFiveNLifecycleRuns$ lifecycle runs over $\resVFiveNTasks$ held-out tasks
   & A1, A2 & $41$ tasks $\times$ $3$ seeds, same task set as the trainer \\
-Architect backbone entropy $0.36$ nats; \texttt{scgpt\_small} in $91\%$ of
-  $138$ picks; HVG-count entropy $0.30$ nats
+Architect backbone entropy $\resVFiveBackboneEntropy$ nats; \texttt{scgpt\_small} in $\resVFiveScgptSharePct\%$ of
+  $\resVFiveNPicks$ picks; HVG-count entropy $\resVFiveHVGEntropy$ nats
   & A1, A2, A3, R2, DF-10 & H3, \resHThreeVerdict; HVG-count entropy \resHVGEntropy{} nats \\
 TDI and component $\rho$ reported as n/a; transfer $\rho$ n/a
   & R1 & H4, H5 \\
@@ -71,7 +74,7 @@ TDI and component $\rho$ reported as n/a; transfer $\rho$ n/a
   & R1 & tally out of five \\
 ``\textsc{Nemotron-30B} throughout''
   & R2 & pinned Anthropic roster, served \texttt{model\_id} asserted per call \\
-Spend \$4.04 over 3.06 GPU-hours; \$28 quoted as the envelope
+Spend \$\resVFiveSpend{} over \resVFiveGPUHours{} GPU-hours; \$\resVFiveBudgetCap{} quoted as the envelope
   & A1, R9 & LLM \$\resSpendLLM, GPU \$\resSpendGPU{} (\resGPUHours{} A100-h), total \$\resSpendTotal \\
 ``SHA-gated'' fetchers & A7 & four digests pinned, fail closed \\
 Byte-equivalent re-run from ``the same code revision'' & R9 & re-run at the

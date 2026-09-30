@@ -33,6 +33,7 @@ ALLOWED_LITERALS = {
     "results.tex": {"0.5", "2.35", "4.71", "5.84", "0.0475", "1.0"},
     "experimental_setup.tex": {"0.02", "0.3"},
     "paper.tex": set(),
+    "corrections.tex": set(),
 }
 # Design facts that are not sweep results and not pre-registration constants (model size,
 # the v0.5 default TDI weights quoted in the Metrics section).
@@ -40,6 +41,7 @@ DESIGN_LITERALS = {
     "results.tex": set(),
     "experimental_setup.tex": {"2.1"},
     "paper.tex": {"0.35", "0.25", "0.15"},
+    "corrections.tex": set(),
 }
 
 
@@ -60,9 +62,10 @@ def fv():
 
 @pytest.fixture(scope="module")
 def macros() -> dict[str, str]:
-    return dict(
+    raw = dict(
         re.findall(r"^\\newcommand\{\\(res[A-Za-z]+)\}\{(.*)\}$", GEN.read_text(), flags=re.M)
     )
+    return {k: v.replace("\\_", "_") for k, v in raw.items()}
 
 
 @pytest.fixture(scope="module")
@@ -273,6 +276,13 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resLandSha": land["land_git_sha"],
         "resLandPR": str(land["pr_number"]),
         "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
+        "resThinkingHaiku": "none",
+        "resThinkingSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["thinking"]["type"],
+        "resEffortSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["effort"],
+        "resTemperatureHaiku": f(
+            p["llm_report"]["sampling"]["claude-haiku-4-5-20251001"]["temperature"], 1
+        ),
+        "resSamplingSonnet": "API defaults",
         "resEvalGeneTasks": str(len(s["eval_genes_per_task"])),
         "resEvalGeneMismatch": str(len(s["eval_gene_mismatch_tasks"])),
     }
@@ -346,6 +356,36 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         assert len(served) == 1, (role, served)
         expect[f"resRoleServed{word}"] = served.pop()
         expect[f"resRoleCalls{word}"] = str(sum(1 for c in log if c["role"] == role))
+    am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
+    for a in am:
+        word = {"A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
+        expect[f"resAmend{word}Version"] = a["prereg_version"]
+        expect[f"resAmend{word}Date"] = a["lock_date_utc"]
+        expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
+        expect[f"resAmend{word}Change"] = a["change"]
+    s5 = json.loads((ROOT / "artifacts" / "v0.5.0" / "summary.json").read_text())
+    p5 = json.loads((ROOT / "artifacts" / "v0.5.0" / "provenance.json").read_text())
+    dist = s5["architect_backbone_distribution"]
+    expect.update(
+        {
+            "resVFiveRecordCommit": json.loads((PAPER / "data" / "v050_record.json").read_text())[
+                "record_commit"
+            ],
+            "resVFiveAdamsonMedian": f(s5["median_msd_adamson"]),
+            "resVFiveNormanMedian": f(s5["median_msd_norman"]),
+            "resVFiveNTasks": str(s5["n_tasks_analysed"]),
+            "resVFiveNTrainerRuns": f"{s5['n_trainer_runs']:,}".replace(",", "\\,"),
+            "resVFiveConfigsPerTask": str(s5["n_trainer_runs"] // s5["n_tasks_analysed"]),
+            "resVFiveNLifecycleRuns": str(s5["n_lifecycle_runs"]),
+            "resVFiveBackboneEntropy": f(s5["architect_backbone_entropy_nats"], 2),
+            "resVFiveHVGEntropy": f(s5["architect_hvg_entropy_nats"], 2),
+            "resVFiveNPicks": str(sum(dist.values())),
+            "resVFiveScgptSharePct": f(100 * dist["scgpt_small"] / sum(dist.values()), 0),
+            "resVFiveSpend": f(p5["total_cost_usd"], 2),
+            "resVFiveGPUHours": f(p5["total_gpu_seconds"] / 3600, 2),
+            "resVFiveBudgetCap": f(p5["budget_cap_usd"], 0),
+        }
+    )
     missing = sorted(set(expect) - set(macros))
     assert not missing, missing
     wrong = {k: (macros[k], v) for k, v in expect.items() if macros[k] != v}
@@ -506,8 +546,9 @@ def test_missing_manifest_is_an_error(fv, tmp_path):
 
 
 def test_render_refuses_unsafe_values(fv):
-    with pytest.raises(ValueError):
-        fv.render({"StopReasonNone": "spend_stop"})
+    assert r"\newcommand{\resStopReasonNone}{spend\_stop}" in fv.render(
+        {"StopReasonNone": "spend_stop"}
+    )
     with pytest.raises(ValueError):
         fv.render({"RunId": "a%b"})
     with pytest.raises(ValueError):
@@ -542,7 +583,13 @@ def test_every_result_macro_used_is_defined_and_input_first(macros):
 
 
 @pytest.mark.parametrize(
-    "rel", ["sections/results.tex", "sections/experimental_setup.tex", "paper.tex"]
+    "rel",
+    [
+        "sections/results.tex",
+        "sections/experimental_setup.tex",
+        "paper.tex",
+        "sections/corrections.tex",
+    ],
 )
 def test_no_hand_typed_result_numbers(rel):
     """Any decimal literal in result-bearing prose must be a pre-registered constant, not a sweep value."""
@@ -551,6 +598,7 @@ def test_no_hand_typed_result_numbers(rel):
     text = re.sub(
         r"\\setlength\{[^}]*\}\{[^}]*\}", "", text
     )  # preamble lengths (e.g. emergencystretch)
+    text = re.sub(r"[\d.]+(em|pt|ex)\b", "", text)  # layout lengths (e.g. leftmargin=1.2em)
     text = re.sub(r"(Haiku|Sonnet|Opus|Apache-)\s*\d\.\d", "", text)  # model versions / licence
     literals = set(re.findall(r"(?<![\w.])\d*\.\d+(?!\.\d)", text))
     name = Path(rel).name
@@ -855,4 +903,64 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
     committed = art[0]
     assert new == committed, sorted(
         k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
+    )
+
+
+# --------------------------------------------------------------------------- amendments / v0.5.0 record vs git and the register
+def test_amendment_records_match_git_and_the_preregistration():
+    am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
+    prereg = (PAPER / "PREREGISTRATION.md").read_text()
+    assert [a["id"] for a in am] == ["A2", "A3", "A4"]
+    for a in am:
+        n = a["id"][1]
+        assert f"## Amendment {n} (`prereg_version` = `{a['prereg_version']}`)" in prereg
+        for c in a["lock_commits"]:
+            files = _git("show", "--name-only", "--format=", c)
+            assert "paper/PREREGISTRATION.md" in files, c
+            date = subprocess.run(
+                ["git", "log", "-1", "--format=%cd", "--date=format-local:%Y-%m-%d", c],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**__import__("os").environ, "TZ": "UTC"},
+            ).stdout.strip()
+            assert date == a["lock_date_utc"], (c, date)
+        assert "_" not in a["change"] and "\\" not in a["change"]  # typeset verbatim
+    res = RESULTS.read_text()
+    assert "\\label{tab:amendments}" in res and res.count("\\ref{tab:amendments}") >= 2
+    assert SETUP.read_text().count("\\ref{tab:amendments}") >= 2
+
+
+def test_v050_record_commit_and_register_quotes():
+    vr = json.loads((PAPER / "data" / "v050_record.json").read_text())
+    added = _git(
+        "log", "--format=%h", "--diff-filter=A", "--", "artifacts/v0.5.0/summary.json"
+    ).split()
+    assert (
+        added
+        and added[-1].startswith(vr["record_commit"])
+        or vr["record_commit"].startswith(added[-1])
+    ), added
+    register = (ROOT.parents[1] / vr["narrative_register"]).read_text()
+    for q in vr["narrative_quotes"]:
+        assert q in register, q
+    corr = CORR.read_text()
+    for mac in (
+        "VFiveAdamsonMedian",
+        "VFiveNormanMedian",
+        "VFiveNTrainerRuns",
+        "VFiveNLifecycleRuns",
+        "VFiveBackboneEntropy",
+        "VFiveScgptSharePct",
+        "VFiveNPicks",
+        "VFiveHVGEntropy",
+        "VFiveSpend",
+        "VFiveGPUHours",
+        "VFiveRecordCommit",
+    ):
+        assert f"\\res{mac}" in corr, mac
+    setup = SETUP.read_text()
+    assert (
+        "\\resThinkingSonnet" in setup and "\\resStopMaxTokens" in setup and "\\resNCalls" in setup
     )

@@ -38,8 +38,10 @@ HAIKU = "claude-haiku-4-5-20251001"
 SONNET = "claude-sonnet-5-5"
 PRIMARY = {role: (SONNET if role == "Validator" else HAIKU) for role in ROLES}
 # Macro values are typeset verbatim; anything outside this alphabet (or a verdict) is refused.
-SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /]*")
-ENSUREMATH_NEG = re.compile(r"\\ensuremath\{-\d+(\.\d+)?\}")
+SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /_]*")  # `_` is escaped at emission
+ENSUREMATH_NEG = re.compile(
+    r"\\ensuremath\{-\d+(\.\d+)?\}|\d{1,3}(\\,\d{3})+"
+)  # negatives; thin-space thousands
 VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}"}
 
 
@@ -69,6 +71,8 @@ def build(
     manifest: Path,
     archives: list[Path],
     land: Path | None = None,
+    amendments: Path | None = None,
+    v050: Path | None = None,
 ) -> dict[str, str]:
     s = json.loads((artifacts / "summary.json").read_text())
     p = json.loads((artifacts / "provenance.json").read_text())
@@ -289,6 +293,47 @@ def build(
     m["LandSha"] = ld["land_git_sha"]
     m["LandPR"] = str(ld["pr_number"])
     m["PostRunPathCount"] = str(len(ld["post_run_changed_paths"]))
+    # ---- A4-1 thinking / sampling facts from the run record (CTO #532 ii)
+    th = rep["thinking"]
+    sm = rep["sampling"]
+    m["ThinkingHaiku"] = str((th.get(HAIKU) or {}).get("thinking", {}).get("type", "none"))
+    m["ThinkingSonnet"] = str((th.get(SONNET) or {}).get("thinking", {}).get("type", "none"))
+    m["EffortSonnet"] = str((th.get(SONNET) or {}).get("effort", "default"))
+    m["TemperatureHaiku"] = f(sm[HAIKU]["temperature"], 1)
+    m["SamplingSonnet"] = (
+        "API defaults"
+        if not sm.get(SONNET)
+        else "; ".join(f"{k} {v}" for k, v in sm[SONNET].items())
+    )
+    # ---- amendments table (CTO #532 i): ids, versions, lock commits, UTC lock dates, one-line change
+    am = json.loads(
+        (amendments or (PROJECT_ROOT / "paper" / "data" / "amendments_v060.json")).read_text()
+    )
+    for a in am["amendments"]:
+        word = {"A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
+        m[f"Amend{word}Version"] = a["prereg_version"]
+        m[f"Amend{word}Date"] = a["lock_date_utc"]
+        m[f"Amend{word}Commit"] = ", ".join(a["lock_commits"])
+        m[f"Amend{word}Change"] = a["change"]
+    # ---- v0.5.0 record (CTO #532 iii): every v0.5.0 figure in the corrections appendix is read, not typed
+    vr = json.loads((v050 or (PROJECT_ROOT / "paper" / "data" / "v050_record.json")).read_text())
+    s5 = json.loads((PROJECT_ROOT / "artifacts" / "v0.5.0" / "summary.json").read_text())
+    p5 = json.loads((PROJECT_ROOT / "artifacts" / "v0.5.0" / "provenance.json").read_text())
+    dist = s5["architect_backbone_distribution"]
+    m["VFiveRecordCommit"] = vr["record_commit"]
+    m["VFiveAdamsonMedian"] = f(s5["median_msd_adamson"])
+    m["VFiveNormanMedian"] = f(s5["median_msd_norman"])
+    m["VFiveNTasks"] = str(s5["n_tasks_analysed"])
+    m["VFiveNTrainerRuns"] = f"{s5['n_trainer_runs']:,}".replace(",", "\\,")
+    m["VFiveConfigsPerTask"] = str(s5["n_trainer_runs"] // s5["n_tasks_analysed"])
+    m["VFiveNLifecycleRuns"] = str(s5["n_lifecycle_runs"])
+    m["VFiveBackboneEntropy"] = f(s5["architect_backbone_entropy_nats"], 2)
+    m["VFiveHVGEntropy"] = f(s5["architect_hvg_entropy_nats"], 2)
+    m["VFiveNPicks"] = str(sum(dist.values()))
+    m["VFiveScgptSharePct"] = f(100 * dist["scgpt_small"] / sum(dist.values()), 0)
+    m["VFiveSpend"] = f(p5["total_cost_usd"], 2)
+    m["VFiveGPUHours"] = f(p5["total_gpu_seconds"] / 3600, 2)
+    m["VFiveBudgetCap"] = f(p5["budget_cap_usd"], 0)
     # ---- integrity anchors (a missing file is an error, never n/a)
     # A2-5: H1/H2 and H4/H5 cite the same per-task evaluation-gene list (summary.json)
     m["EvalGeneTasks"] = str(len(s["eval_genes_per_task"]))
@@ -310,6 +355,8 @@ def render(m: dict[str, str]) -> str:
         v = m[k]
         if v not in VERDICTS and not ENSUREMATH_NEG.fullmatch(v) and not SAFE_VALUE.fullmatch(v):
             raise ValueError(f"macro {k} holds a value that is not TeX-safe: {v!r}")
+        if v not in VERDICTS and not ENSUREMATH_NEG.fullmatch(v):
+            v = v.replace("_", "\\_")
         lines.append(f"\\newcommand{{\\res{k}}}{{{v}}}")
     return "\n".join(lines) + "\n"
 
