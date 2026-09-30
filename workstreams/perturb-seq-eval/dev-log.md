@@ -3,3 +3,4 @@
 - A4CLIENT — AnthropicClient (amendment 4) gated: 13 findings fixed (receipt 36b0e1d); relaunch ready pending CTO verification (commit f355ebe)
 - SWEEP v0.6.0 run 20260929T035447Z-ce5f237 complete and valid: 4/5 gates pass (H5 fails); $8.93 total; artifacts committed
 - MANUSCRIPT — v0.6.0 manuscript filled from artifacts via generated macros (187 \res macros, fill_v060_numbers.py --check); gated: 23 findings fixed (receipt 6394ca9); build products untracked; 1145 tests pass (commit 8e44aae)
+- DEPOSIT — run-vs-land provenance sentence (land record paper/data/land_v060.json → macros; six named paths pinned to git) + overfull fixes (tectonic: 0 overfull, 0 undefined, 15 pages); gated: 8 findings fixed (receipt b2be4dd); 1160 tests (commit db74e0f)
