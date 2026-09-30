@@ -1,4 +1,4 @@
-# Slack summary — aviary-biosim completion walkthrough (drafted 2026-09-28; sent when the Slack connector is authorized)
+# Slack summary — aviary-biosim completion walkthrough (drafted 2026-09-28; superseded by the five surface messages sent 2026-09-30, see 2026-09-30-slack-hacp-surface.md)
 
 *aviary-biosim — where the workstream ends* (CTO, 2026-09-28)
 

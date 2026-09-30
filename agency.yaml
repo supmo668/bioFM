@@ -84,6 +84,7 @@ quality:
   lint_command: ""                     # e.g. "pnpm exec oxlint"
   typecheck_command: ""                # e.g. "pnpm exec tsc --noEmit"
   test_command: ""                     # e.g. "pnpm exec jest"
+  test_timeout: 900                    # CTO 2026-09-30 (#554): lung-on-chipsim suite measured 453s (one sample); a timer must not decide the row-61 final gate. A timeout is reported as a timeout, never as a substantive fail.
   # Per-role overrides (read by hooks/quality-check.sh as <key>_<role>; NOT yet by /quality-gate
   # Step 8 or commit-precheck, which read only the global key; see .claude/aiadlc-feedback).
   # aviary-biosim (#329): tests proven able to fail (planted assert -> exit 1). format/lint/typecheck
