@@ -4,7 +4,8 @@ cut: product
 workstream: lung-on-chipsim
 branch: lung-on-chipsim
 date: 2026-09-19
-artifact: https://claude.ai/artifact/HDtaxnfh79HumoLY7NWKws
+artifact: https://claude.ai/artifact/HDtaxnfh79HumoLY7NWKws (superseded)
+hacp_row: https://app.notion.com/p/3eb749bd250d81daa9f9f674cde3c60f
 artifact_history: "Pw8C8QxzqL2FTuMEJ7w8tp (2026-09-19) stopped resolving — reported by lung-on-chipsim #492 on 2026-09-29; republished from this file, unchanged, with the 2026-09-29 re-measured state appended, by the CTO the same day"
 ---
 

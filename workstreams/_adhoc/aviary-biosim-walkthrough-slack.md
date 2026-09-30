@@ -14,4 +14,4 @@
 
 *Not claimed.* Known-constraint recovery, not new biology; no wet experiment; attribution, not reproduction; self-improvement unmeasured.
 
-Full walkthrough + one-screen product cut: https://claude.ai/artifact/EqRkyfyMT5Jj8ecAcVpsYg (private Artifact; not yet a row in the HACP index — Notion connector was down at write time).
+Full walkthrough + one-screen product cut: https://app.notion.com/p/3eb749bd250d810abd55ffd606eae42b (HACP index row, §build). Result review for perturb-seq-eval v0.6.0: https://app.notion.com/p/3eb749bd250d8112a6aeca8ae015149c (§eval).
