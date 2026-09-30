@@ -1,0 +1,15 @@
+{
+  "source": "CTO dispatch #526 (master-updated): bioFM PR #8, branch perturb-seq-eval @ 7f40e95 merged into main @ 5a45d4a6ad760b6c8eac739fce0c2b205e12d0bf; pr-prep receipt d154d52",
+  "run_git_sha": "ce5f237",
+  "land_git_sha": "5a45d4a",
+  "pr_number": 8,
+  "post_run_changed_paths": [
+    "src/perturb_eval/llm/anthropic_client.py",
+    "src/perturb_eval/experiments/provenance.py",
+    "src/perturb_eval/experiments/e_v05_real_traces.py",
+    "src/perturb_eval/agentic_lifecycle/architect_dispatch.py",
+    "scripts/modal/app_v05.py"
+  ],
+  "post_run_change_kinds": "served-model mismatch aborts without failover; 'replay' is a finalisable status; a recorded served-model mismatch withdraws the analyser's licence; docstrings and one recorded-reason string",
+  "reproduction_check": "the analyser at the landed revision, re-run on the committed trainer_runs.jsonl, lifecycle_runs.jsonl and provenance.json, reproduces the committed summary.json with no differing value; the only addition is served_mismatch_count = 0"
+}

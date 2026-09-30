@@ -274,8 +274,9 @@ clipped term are reported descriptively beside them. Both amendments were
 locked before any v0.6.0 data existed.
 
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
-$\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
-\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4$. In practice the probe is
+\[\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
+\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4.\]
+In practice the probe is
 produced by a \emph{shallow} one-round execution of the orchestrator (smaller
 tool-call budget, narrower retrieval) so it is materially cheaper than a full
 run.
@@ -417,9 +418,9 @@ repository at \texttt{massgen\_skill\_draft/}:
 
 The corresponding MassGen skill artifact
 (\path{massgen_skill_draft/skill.yaml}) declares an
-\texttt{on\_session\_start} hook that runs preflight and an
-\texttt{on\_session\_end} hook that runs evaluate. Both handlers are
-$\leq 20$ lines of glue over \texttt{perturb\_eval.massgen\_adapter}, which
+\path{on_session_start} hook that runs preflight and an
+\path{on_session_end} hook that runs evaluate. Both handlers are
+$\leq 20$ lines of glue over \path{perturb_eval.massgen_adapter}, which
 keeps the skill minimal and audit-friendly.
 
 \paragraph{What we have \emph{not} done.} We have not (a) submitted the
@@ -583,10 +584,14 @@ The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
 \path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
-\resArchiveShaOutputs), never deleted.
+\resArchiveShaOutputs), never deleted. The landed revision (\resLandSha) differs from the
+run's \resGitSha{} in \resPostRunPathCount{} source files in paths the run did not exercise
+(\S\ref{subsec:runrecord}); re-running the landed analyser on the committed run files
+reproduces \texttt{summary.json}.
 \end{sloppypar}
 
 \paragraph{Pipeline.}
+\begin{sloppypar}
 \begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
   \item \path{src/perturb_eval/data/download.py} --- fetches Adamson's
         three scPerturb subsets and Norman 2019 from Zenodo record
@@ -600,6 +605,7 @@ with SHA-256 manifests (prefixes \resArchiveShaCache{} and
         mismatched task sets, runs with a fallback step, and unfinished or
         failed runs.
 \end{itemize}
+\end{sloppypar}
 
 \paragraph{Seeds.} The task draw uses CRC32-derived strata and
 \texttt{seed=2026}; the per-run seed is passed to the trainer and into the

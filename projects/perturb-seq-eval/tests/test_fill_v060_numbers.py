@@ -75,6 +75,11 @@ def art():
     return s, p, proj, runs
 
 
+@pytest.fixture(scope="module")
+def land():
+    return json.loads((PAPER / "data" / "land_v060.json").read_text())
+
+
 def _strip(text: str) -> str:
     text = re.sub(r"\\[{}%]", "", text)  # escaped braces / percent are not structure
     return re.sub(r"(?<!\\)%.*", "", text)  # comments
@@ -102,7 +107,7 @@ def test_check_is_cwd_independent(tmp_path):
 
 
 # --------------------------------------------------------------------------- macro <-> key path
-def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
+def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
     s, p, proj, runs = art
     pr = s["preregistered"]
     h4 = {(r["dataset"], r["component"]): r for r in pr["H4"]["all_six"]}
@@ -265,6 +270,9 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
         "resLivenessTotalPairs": str(
             sum(len(mdl["roles"]) for mdl in p["llm_roster_liveness"].values())
         ),
+        "resLandSha": land["land_git_sha"],
+        "resLandPR": str(land["pr_number"]),
+        "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
         "resEvalGeneTasks": str(len(s["eval_genes_per_task"])),
         "resEvalGeneMismatch": str(len(s["eval_gene_mismatch_tasks"])),
     }
@@ -560,7 +568,7 @@ def test_braces_balanced():
         assert depth == 0, fpath.name
 
 
-def test_prose_claims_match_artifacts(art):
+def test_prose_claims_match_artifacts(art, land):
     """Qualitative sentences that depend on artifact facts are pinned to those facts."""
     s, p, _, runs = art
     pr = s["preregistered"]
@@ -614,6 +622,16 @@ def test_prose_claims_match_artifacts(art):
     assert (
         "\\resHFourAdaAceN" in main and "\\resHFourNorAceN" in main
     )  # Limitations n, not hand-typed
+    # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the reproduction check
+    assert (
+        "\\resLandSha" in res
+        and "\\resPostRunPathCount" in res
+        and "reproduces \\texttt{summary.json}" in res
+    )
+    assert "\\resLandSha" in main
+    assert land["run_git_sha"] == p["git_sha"][:7] and land["land_git_sha"] != land["run_git_sha"]
+    for path in land["post_run_changed_paths"]:
+        assert (ROOT / path).exists(), path
 
 
 def test_methods_wording_matches_the_amendments():
@@ -692,7 +710,7 @@ def test_post_run_docs_and_prose_are_current():
     """After the sweep, nothing may still describe results as pending or the LLM condition as OpenRouter."""
     res, setup, main = RESULTS.read_text(), SETUP.read_text(), MAIN.read_text()
     assert (
-        "eval\\_genes\\_per\\_task" in res
+        "\\path{eval_genes_per_task}" in res
         and "\\resEvalGeneTasks" in res
         and "\\resEvalGeneMismatch" in res
     )

@@ -64,7 +64,11 @@ def _sha16(path: Path) -> str:
 
 
 def build(
-    artifacts: Path, projection: Path, manifest: Path, archives: list[Path]
+    artifacts: Path,
+    projection: Path,
+    manifest: Path,
+    archives: list[Path],
+    land: Path | None = None,
 ) -> dict[str, str]:
     s = json.loads((artifacts / "summary.json").read_text())
     p = json.loads((artifacts / "provenance.json").read_text())
@@ -269,6 +273,15 @@ def build(
     m["ProjTotal"] = f(proj["total_usd"], 2)
     m["ProjLatency"] = f(proj["gpu_latency_per_round_s"], 1)
     m["CeilingLine"] = f(proj["ceiling_usd"], 0)
+    # ---- run revision vs landed revision (deposit gate, CTO #509/#526): the paths that changed after
+    # the run are named from the land record, never typed into the .tex
+    land_path = land or (PROJECT_ROOT / "paper" / "data" / "land_v060.json")
+    ld = json.loads(land_path.read_text())
+    if ld["run_git_sha"] != p["git_sha"][: len(ld["run_git_sha"])]:
+        raise ValueError("land record's run_git_sha does not match provenance git_sha")
+    m["LandSha"] = ld["land_git_sha"]
+    m["LandPR"] = str(ld["pr_number"])
+    m["PostRunPathCount"] = str(len(ld["post_run_changed_paths"]))
     # ---- integrity anchors (a missing file is an error, never n/a)
     # A2-5: H1/H2 and H4/H5 cite the same per-task evaluation-gene list (summary.json)
     m["EvalGeneTasks"] = str(len(s["eval_genes_per_task"]))
@@ -320,6 +333,7 @@ def main() -> int:
             / "output-archive-20260928T220916Z-291efad.manifest.json",
         ],
     )
+    ap.add_argument("--land", type=Path, default=PROJECT_ROOT / "paper" / "data" / "land_v060.json")
     ap.add_argument(
         "--out", type=Path, default=PROJECT_ROOT / "paper" / "sections" / "generated_numbers.tex"
     )
@@ -327,7 +341,7 @@ def main() -> int:
         "--check", action="store_true", help="regenerate and fail if the committed file differs"
     )
     a = ap.parse_args()
-    text = render(build(a.artifacts, a.projection, a.manifest, a.archive_manifests))
+    text = render(build(a.artifacts, a.projection, a.manifest, a.archive_manifests, a.land))
     if a.check:
         current = a.out.read_text() if a.out.exists() else ""
         if current != text:

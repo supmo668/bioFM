@@ -52,8 +52,8 @@ Estimator: per task, the minimum MSD on the top-$20$ evaluation genes over the
 \resNDistinctConfigs{} distinct trainer configurations (\resNTrainerRecordsPerTask{} records
 per task; an oracle, \S\ref{subsec:oracle}); the gate is the median over tasks in each
 dataset (\texttt{preregistered.h1\_h2\_stats}). The evaluation genes are the per-task list in
-\texttt{summary.json} $\to$ \texttt{eval\_genes\_per\_task} (\resEvalGeneTasks{} tasks), shared
-with the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
+\texttt{summary.json} $\to$ \path{eval_genes_per_task} (\resEvalGeneTasks{} tasks), shared with
+the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
 
 \begin{table}[ht]
 \small
@@ -121,7 +121,7 @@ run no component was undefined (runs undefined: \resHFourRunsUndefined; tasks dr
 \resHFourTasksDropped), every run having exactly three rounds.
 
 \paragraph{Estimator.} The unit is the task; per task, each component and the lifecycle's
-final MSD (on the same \texttt{eval\_genes\_per\_task} list as H1/H2, A2-5) are medians over
+final MSD (on the same \path{eval_genes_per_task} list as H1/H2, A2-5) are medians over
 the three seeds. Spearman $\rho$ is computed \emph{within}
 Adamson and \emph{within} Norman separately, with default weights and no in-sample
 calibration; all six values are reported with $n$ and a bootstrap CI, and the gate passes if any
@@ -199,4 +199,14 @@ Trainer records: \resNTrainerRuns{} (\resNTrainerRecordsPerTask{} per task). Spe
 (\resGPUHours{} A100-hours), carried-in prior \$\resSpendPrior; total \$\resSpendTotal{} against
 the \$\resSpendStopLine{} stop-and-report and \$\resKillLine{} kill lines (neither reached:
 stop reason \resStopReasonNone). Run manifest \texttt{configs/runs/\resRunId.json}
-(SHA-256 prefix \resManifestSha).
+(SHA-256 prefix \resManifestSha). The run's code revision (\resGitSha) and the landed revision
+of this manuscript (\resLandSha, PR~\resLandPR) differ in \resPostRunPathCount{} named source
+files (\path{src/perturb_eval/llm/anthropic_client.py},
+\path{src/perturb_eval/experiments/provenance.py},
+\path{src/perturb_eval/experiments/e_v05_real_traces.py},
+\path{src/perturb_eval/agentic_lifecycle/architect_dispatch.py},
+\path{scripts/modal/app_v05.py}) in paths the run did not exercise --- a served-model mismatch
+now aborts without failover, ``replay'' is a finalisable status, a recorded mismatch withdraws
+the analyser's licence, and docstrings --- with \resServedMismatch{} mismatches, \resNFailover{}
+failovers and replay \resReplay{} recorded; the analyser at the landed revision, re-run on the
+committed run files, reproduces \texttt{summary.json} with no differing value.
