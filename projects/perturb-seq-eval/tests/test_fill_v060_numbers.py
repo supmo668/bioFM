@@ -548,6 +548,9 @@ def test_no_hand_typed_result_numbers(rel):
     """Any decimal literal in result-bearing prose must be a pre-registered constant, not a sweep value."""
     text = _strip((PAPER / rel).read_text())
     text = re.sub(r"\{[\d.]+\\linewidth\}", "", text)  # column / minipage widths
+    text = re.sub(
+        r"\\setlength\{[^}]*\}\{[^}]*\}", "", text
+    )  # preamble lengths (e.g. emergencystretch)
     text = re.sub(r"(Haiku|Sonnet|Opus|Apache-)\s*\d\.\d", "", text)  # model versions / licence
     literals = set(re.findall(r"(?<![\w.])\d*\.\d+(?!\.\d)", text))
     name = Path(rel).name
@@ -623,12 +626,20 @@ def test_prose_claims_match_artifacts(art, land):
         "\\resHFourAdaAceN" in main and "\\resHFourNorAceN" in main
     )  # Limitations n, not hand-typed
     # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the reproduction check
+    assert "\\resLandSha" in res and "\\resPostRunPathCount" in res and "\\resLandPR" in res
+    assert "reproduces every committed value" in res and "\\path{served_mismatch_count}" in res
     assert (
-        "\\resLandSha" in res
-        and "\\resPostRunPathCount" in res
-        and "reproduces \\texttt{summary.json}" in res
+        "code paths the run did not reach" in res
+        and "revision at which v0.6.0 landed on main" in res
     )
-    assert "\\resLandSha" in main
+    assert (
+        "\\resLandSha" in main
+        and "\\resPostRunPathCount" in main
+        and "reproduces every committed value" in main
+    )
+    para = res[res.index("\\resLandSha") : res.index("reproduces every committed value")]
+    named = re.findall(r"\\path\{((?:src|scripts/modal)/[^}]*\.py)\}", para)
+    assert sorted(named) == sorted(land["post_run_changed_paths"]), named
     assert land["run_git_sha"] == p["git_sha"][:7] and land["land_git_sha"] != land["run_git_sha"]
     for path in land["post_run_changed_paths"]:
         assert (ROOT / path).exists(), path
@@ -742,4 +753,106 @@ def test_post_run_docs_and_prose_are_current():
     )
     assert (
         "legacy" in (ROOT / "src/perturb_eval/llm/openrouter_client.py").read_text()[:400].lower()
+    )
+
+
+# --------------------------------------------------------------------------- land record vs git / generator
+def _git(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout
+
+
+def test_post_run_paths_are_exactly_the_git_diff(land):
+    """The paths the paper names as changed after the run are exactly git's answer (src + scripts/modal);
+    a later src/modal change forces the land record and the sentence to be revisited."""
+    _git("cat-file", "-e", f"{land['run_git_sha']}^{{commit}}")  # fails loudly on a shallow clone
+    _git("merge-base", "--is-ancestor", land["land_git_sha"], "HEAD")
+    changed = sorted(
+        _git(
+            "diff",
+            "--name-only",
+            "--relative",
+            land["run_git_sha"],
+            land["land_git_sha"],
+            "--",
+            "src",
+            "scripts/modal",
+        ).split()
+    )
+    assert changed == sorted(land["post_run_changed_paths"]), changed
+    assert (
+        _git(
+            "diff",
+            "--name-only",
+            "--relative",
+            land["land_git_sha"],
+            "HEAD",
+            "--",
+            "src",
+            "scripts/modal",
+        ).split()
+        == []
+    )
+
+
+def _build_with_land(fv, tmp_path, patch):
+    ld = json.loads((PAPER / "data" / "land_v060.json").read_text())
+    patch(ld)
+    lp = tmp_path / "land.json"
+    lp.write_text(json.dumps(ld))
+    return fv.build(
+        ART,
+        PAPER / "data" / "projection_v060.json",
+        ROOT / "configs" / "runs" / "20260929T035447Z-ce5f237.json",
+        [],
+        lp,
+    )
+
+
+@pytest.mark.parametrize("sha", ["deadbee", "5a45d4a", "ce5f238", "", "c"])
+def test_land_record_for_another_run_is_rejected(fv, tmp_path, sha):
+    with pytest.raises(ValueError):
+        _build_with_land(fv, tmp_path, lambda d: d.__setitem__("run_git_sha", sha))
+
+
+def test_land_sha_must_look_like_a_sha_and_differ_from_the_run(fv, tmp_path):
+    with pytest.raises(ValueError):
+        _build_with_land(fv, tmp_path, lambda d: d.__setitem__("land_git_sha", "see PR"))
+    with pytest.raises(ValueError):
+        _build_with_land(fv, tmp_path, lambda d: d.__setitem__("land_git_sha", d["run_git_sha"]))
+
+
+def test_land_record_drives_the_land_macros(fv, tmp_path):
+    n = len(json.loads((PAPER / "data" / "land_v060.json").read_text())["post_run_changed_paths"])
+
+    def patch(d):
+        d["land_git_sha"] = "abc1234"
+        d["pr_number"] = 99
+        d["post_run_changed_paths"].append("src/x.py")
+
+    m = _build_with_land(fv, tmp_path, patch)
+    assert (m["LandSha"], m["LandPR"], m["PostRunPathCount"]) == ("abc1234", "99", str(n + 1))
+
+
+def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
+    """The reproduction check the paper cites: the analyser at this revision, on the committed run files,
+    reproduces every committed value; the only addition is served_mismatch_count = 0."""
+    import os
+
+    for name in ("trainer_runs.jsonl", "lifecycle_runs.jsonl", "provenance.json"):
+        shutil.copy(ART / name, tmp_path / name)
+    subprocess.run(
+        [sys.executable, "-m", "perturb_eval.experiments.e_v05_real_traces", str(tmp_path)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+    )
+    new = json.loads((tmp_path / "summary.json").read_text())
+    assert new.pop("served_mismatch_count") == 0
+    committed = art[0]
+    assert new == committed, sorted(
+        k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
     )
