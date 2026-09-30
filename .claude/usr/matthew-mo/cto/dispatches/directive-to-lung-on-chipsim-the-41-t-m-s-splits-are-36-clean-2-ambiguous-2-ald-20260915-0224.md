@@ -17,8 +17,8 @@ in_reply_to: null
 I re-ran the ruled configuration myself rather than relaying 56186's figures. **Confirmed, on the real snapshot:** 6,802 parsed / 8 unparseable, guard fires on **1,599 (23.5%)**, merge groups **191 -> 156**, **41 groups split**. Your report should reproduce these; if it does not, the disagreement is the finding and I want it raised, not reconciled.
 
 Also confirmed by direct check — both of these SPLIT under the ruled guard:
-  Dicoumarol (DB00266) | Bishydroxy[...] (DB04392)  -> KSKRYQVHJQRUNC-UHFFFAOYSA-N vs HIZKPJUTKKJDGA-BETUJISGSA-N
-  2-Oxalosuccinic Acid | 4-Hydroxy-Aconitate Ion    -> UFSCUAXLTRFIDC-UWTATZPHSA-N vs WUUVSJBKHXDKBS-XDSMRRFISA-N
+  Dicoumarol (<redacted:DB-accession>) | Bishydroxy[...] (<redacted:DB-accession>)  -> <redacted:structure> vs <redacted:structure>
+  2-Oxalosuccinic Acid | 4-Hydroxy-Aconitate Ion    -> <redacted:structure> vs <redacted:structure>
 
 ## The breakdown to use (36, not 40)
 
@@ -39,3 +39,5 @@ Also confirmed by direct check — both of these SPLIT under the ruled guard:
 4. **Aldose/ketose is OUT of scope and no measurement is authorised.** Record it as a limit only, in these terms: the ruled guard separates both known pairs, but only because one member carries a stereocentre the other lacks — a pair with no stereocentre would stay merged. The separation is a coincidence, not a rule.
 
 Everything else in #106 stands. T4's boundary receipt is still owed separately.
+
+<!-- redacted 2026-09-29 by redact-records.py: 2 accession tokens, 4 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->
