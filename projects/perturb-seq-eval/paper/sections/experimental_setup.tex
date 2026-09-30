@@ -52,7 +52,7 @@ is learned from the data rather than assumed.
 
 \paragraph{Features.} For each held-out task, highly variable genes are selected on that
 task's \emph{training} cells only; the trainer sweep uses $2000$, and in the lifecycle the
-count is the agents' applied choice (amendment~2, A2-3), so feature spaces may vary by run as
+count is the agents' applied choice (amendment~2, A2-3; Table~\ref{tab:amendments}), so feature spaces may vary by run as
 well as by task, and every cross-task median is a median over models with differing inputs.
 The target gene(s) and the $20$ evaluation genes are force-included in every feature set.
 In this run every applied choice was \resHVGAppliedValue{} (\resHVGDistinctApplied{} distinct
@@ -118,19 +118,22 @@ are passed to the next round's Architect prompt. Fields the agents may state but
 applies (\texttt{n\_agents}, \texttt{n\_rounds}, \texttt{split\_strategy},
 \texttt{batch\_correction}, \texttt{hvg\_method}) are recorded only.
 
-\paragraph{LLM condition (amendment~4).} The agents are served through the Anthropic Messages
+\paragraph{LLM condition (amendment~4, Table~\ref{tab:amendments}).} The agents are served through the Anthropic Messages
 API by a pinned roster: \texttt{\resRosterHaiku} for DataCurator, Literature, Architect and
 Trainer, and \texttt{\resRosterSonnet} for the Validator, so the judge sits on a different tier
 from the roles it judges; each role fails over to the other model. Every reply is constrained
 to the role's JSON schema by structured outputs (numeric ranges are enforced by the role schema
 after parsing, never clamped); the two free-form maps in the Literature and Validator
 schemas travel as key/value arrays and are rebuilt after parsing (A4-1). Every prompt
-states the dataset and its modality (A2-8). Thinking is off on both models (Haiku 4.5: none; Sonnet 5.5:
-\texttt{between\_tools} at low effort). Sampling: Haiku at temperature $0.3$ (the value the earlier OpenRouter roster used) and
-Sonnet 5.5 at API defaults, which rejects non-default sampling. Per-role output ceilings ($4\times$ the dry run's observed maximum, minimum 256):
+states the dataset and its modality (A2-8). Thinking, as recorded in \texttt{llm\_report.thinking}: Haiku 4.5 \resThinkingHaiku; Sonnet 5.5
+\texttt{\resThinkingSonnet} at \resEffortSonnet{} effort. Sampling, as recorded: Haiku at temperature
+\resTemperatureHaiku{} (the value the earlier OpenRouter roster used) and Sonnet 5.5 at
+\resSamplingSonnet, which rejects non-default sampling. Per-role output ceilings ($4\times$ the dry run's observed maximum, minimum 256):
 DataCurator \resCeilingCurator, Literature \resCeilingLiterature, Architect \resCeilingArchitect,
 Trainer \resCeilingTrainer, Validator \resCeilingValidator; a \texttt{max\_tokens} stop is retried
-once at twice the ceiling, both billed, and a second is a fallback-class event. Every call records
+once at twice the ceiling, both billed, and a second is a fallback-class event. In this run
+\resStopMaxTokens{} of \resNCalls{} calls stopped at its ceiling and was retried once at twice the
+ceiling, answering \texttt{end\_turn}; the other \resStopEndTurn{} stopped at \texttt{end\_turn}. Every call records
 its \texttt{stop\_reason}, the requested and the served model (asserted equal --- a mismatch is a
 fallback-class event with no failover), and its token usage; a refusal aborts the run; the request
 never carries a server-side fallback parameter; 401/402/403/404 abort. Preflight probes both roster
