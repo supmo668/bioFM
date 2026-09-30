@@ -1,11 +1,51 @@
 {
-  "source": "paper/PREREGISTRATION.md amendment headers; lock commits from git (dates are the lock commits' UTC dates); CTO #532",
+  "source": "paper/PREREGISTRATION.md (amendment 1 in the preamble; amendments 2-4 as sections); lock commits from git with their UTC dates; CTO #532",
   "amendments": [
-    {"id": "A2", "prereg_version": "v0.6.0-a2", "lock_commits": ["3bf2a9a"], "lock_date_utc": "2026-09-27",
-     "change": "measurand fixes: required verbalised confidence; fixed three rounds; applied agent choices with precedence; N dropped from the trainer grid; one evaluation-gene universe shared by both paths; H3 on the stated backbone with a pinned menu; the task draw described as implemented; dataset and modality in every prompt and an empty version-namespaced cache; FWER bracket with a permutation bound; direct-simplex ACE (ace d) as the ACE feature; unclipped delta C"},
-    {"id": "A3", "prereg_version": "v0.6.0-a3", "lock_commits": ["114a01f"], "lock_date_utc": "2026-09-28",
-     "change": "mito-QC threshold recorded, not applied; Trainer role as a precedence tier; Validator threshold required (an unstated value is a schema failure); the stated grid count is the number of distinct (backbone, R) configurations, seven"},
-    {"id": "A4", "prereg_version": "v0.6.0-a4", "lock_commits": ["a48ae5f", "535cb68", "00fae29"], "lock_date_utc": "2026-09-29",
-     "change": "provider changed to the Anthropic API with a pinned roster (Haiku 4.5 for four roles, Sonnet 5.5 for the Validator), structured outputs, per-role ceilings with one retry at twice the ceiling, refusal and served-model rules; spend lines of 12, 28 and 30 USD on the total including 1.3548 USD carried in; single-family and same-family-judge caveats stated in the methods"}
+    {
+      "id": "A1",
+      "prereg_version": "",
+      "lock_commits": [
+        "0c2932a"
+      ],
+      "lock_date_utc": "2026-09-25",
+      "lock_note": "lock commit",
+      "change": "H4 multiplicity quantified by permutation through the estimator (all six rho reported whatever their outcome)",
+      "introduces": "under the null (no association)"
+    },
+    {
+      "id": "A2",
+      "prereg_version": "v0.6.0-a2",
+      "lock_commits": [
+        "3bf2a9a"
+      ],
+      "lock_date_utc": "2026-09-27",
+      "change": "measurand fixes: required verbalised confidence; fixed three rounds; applied agent choices with precedence; N dropped from the trainer grid; one evaluation-gene universe shared by both paths; H3 on the stated backbone with a pinned menu; the task draw described as implemented; dataset and modality in every prompt and an empty version-namespaced cache; FWER bracket with a permutation bound; direct-simplex ACE (metrics.ace_d) as the ACE feature; unclipped delta C",
+      "lock_note": "lock commit",
+      "introduces": "## Amendment 2"
+    },
+    {
+      "id": "A3",
+      "prereg_version": "v0.6.0-a3",
+      "lock_commits": [
+        "114a01f"
+      ],
+      "lock_date_utc": "2026-09-28",
+      "change": "mito-QC threshold recorded, not applied; Trainer role as a precedence tier; Validator threshold required (an unstated value is a schema failure); the stated grid count is the number of distinct (backbone, R) configurations, seven",
+      "lock_note": "lock commit",
+      "introduces": "## Amendment 3"
+    },
+    {
+      "id": "A4",
+      "prereg_version": "v0.6.0-a4",
+      "lock_commits": [
+        "a48ae5f",
+        "535cb68",
+        "00fae29"
+      ],
+      "lock_date_utc": "2026-09-29",
+      "change": "provider changed to the Anthropic API with a pinned roster (Haiku 4.5 for four roles, Sonnet 5.5 for the Validator), structured outputs, per-role ceilings with one retry at twice the ceiling, refusal and served-model rules; spend lines of 12, 28 and 30 USD on the total, including the 1.3 USD carried in from the aborted run and the dry run; single-family and same-family-judge caveats stated in the methods",
+      "lock_note": "a48ae5f is the lock; 535cb68 and 00fae29 are text fixes (CTO 486 and 480), all before any data",
+      "introduces": "## Amendment 4"
+    }
   ]
 }

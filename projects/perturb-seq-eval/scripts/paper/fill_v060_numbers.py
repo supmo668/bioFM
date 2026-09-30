@@ -309,23 +309,35 @@ def build(
     am = json.loads(
         (amendments or (PROJECT_ROOT / "paper" / "data" / "amendments_v060.json")).read_text()
     )
+    words = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}
+    if [a["id"] for a in am["amendments"]] != list(words):
+        raise ValueError("amendments record must list A1, A2, A3, A4 in order")
     for a in am["amendments"]:
-        word = {"A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
-        m[f"Amend{word}Version"] = a["prereg_version"]
+        word = words[a["id"]]
+        for c in a["lock_commits"]:
+            if not re.fullmatch(r"[0-9a-f]{7,40}", c):
+                raise ValueError(f"amendment {a['id']}: lock commit {c!r} is not a git sha")
+        m[f"Amend{word}Version"] = a["prereg_version"] or "(none)"
         m[f"Amend{word}Date"] = a["lock_date_utc"]
         m[f"Amend{word}Commit"] = ", ".join(a["lock_commits"])
+        m[f"Amend{word}Note"] = a["lock_note"]
         m[f"Amend{word}Change"] = a["change"]
     # ---- v0.5.0 record (CTO #532 iii): every v0.5.0 figure in the corrections appendix is read, not typed
     vr = json.loads((v050 or (PROJECT_ROOT / "paper" / "data" / "v050_record.json")).read_text())
     s5 = json.loads((PROJECT_ROOT / "artifacts" / "v0.5.0" / "summary.json").read_text())
     p5 = json.loads((PROJECT_ROOT / "artifacts" / "v0.5.0" / "provenance.json").read_text())
     dist = s5["architect_backbone_distribution"]
+    if not re.fullmatch(r"[0-9a-f]{7,40}", vr["record_commit"]):
+        raise ValueError("v0.5.0 record_commit is not a git sha")
     m["VFiveRecordCommit"] = vr["record_commit"]
     m["VFiveAdamsonMedian"] = f(s5["median_msd_adamson"])
     m["VFiveNormanMedian"] = f(s5["median_msd_norman"])
     m["VFiveNTasks"] = str(s5["n_tasks_analysed"])
     m["VFiveNTrainerRuns"] = f"{s5['n_trainer_runs']:,}".replace(",", "\\,")
-    m["VFiveConfigsPerTask"] = str(s5["n_trainer_runs"] // s5["n_tasks_analysed"])
+    q, r = divmod(s5["n_trainer_runs"], s5["n_tasks_analysed"])
+    if r:
+        raise ValueError("v0.5.0 trainer runs are not a whole number of configurations per task")
+    m["VFiveConfigsPerTask"] = str(q)
     m["VFiveNLifecycleRuns"] = str(s5["n_lifecycle_runs"])
     m["VFiveBackboneEntropy"] = f(s5["architect_backbone_entropy_nats"], 2)
     m["VFiveHVGEntropy"] = f(s5["architect_hvg_entropy_nats"], 2)
