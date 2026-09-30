@@ -277,8 +277,15 @@ def build(
     # the run are named from the land record, never typed into the .tex
     land_path = land or (PROJECT_ROOT / "paper" / "data" / "land_v060.json")
     ld = json.loads(land_path.read_text())
-    if ld["run_git_sha"] != p["git_sha"][: len(ld["run_git_sha"])]:
+    for key in ("run_git_sha", "land_git_sha"):
+        if not re.fullmatch(r"[0-9a-f]{7,40}", str(ld[key])):
+            raise ValueError(f"land record's {key} is not a 7-40 hex git sha: {ld[key]!r}")
+    if not p["git_sha"].startswith(ld["run_git_sha"]):
         raise ValueError("land record's run_git_sha does not match provenance git_sha")
+    if p["git_sha"].startswith(ld["land_git_sha"]) or ld["land_git_sha"].startswith(
+        ld["run_git_sha"]
+    ):
+        raise ValueError("land record's land_git_sha must differ from the run's git sha")
     m["LandSha"] = ld["land_git_sha"]
     m["LandPR"] = str(ld["pr_number"])
     m["PostRunPathCount"] = str(len(ld["post_run_changed_paths"]))

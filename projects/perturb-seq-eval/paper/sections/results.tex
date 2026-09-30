@@ -180,6 +180,7 @@ transfer at the pre-registered level; no re-fit, threshold or sign change is app
 
 \subsection{Run record}\label{subsec:runrecord}
 
+\begin{sloppypar}
 Run \resRunId{} at git \resGitSha{} (\texttt{git\_dirty} \resGitDirty), \texttt{prereg\_version}
 \resPreregVersion. Tasks analysed: \resNTasks. Lifecycle runs: \resNLifecycleRuns, each of
 exactly three rounds; steps: \resNSteps, all LLM-sourced (fallback \resNFallback, mock
@@ -199,14 +200,18 @@ Trainer records: \resNTrainerRuns{} (\resNTrainerRecordsPerTask{} per task). Spe
 (\resGPUHours{} A100-hours), carried-in prior \$\resSpendPrior; total \$\resSpendTotal{} against
 the \$\resSpendStopLine{} stop-and-report and \$\resKillLine{} kill lines (neither reached:
 stop reason \resStopReasonNone). Run manifest \texttt{configs/runs/\resRunId.json}
-(SHA-256 prefix \resManifestSha). The run's code revision (\resGitSha) and the landed revision
-of this manuscript (\resLandSha, PR~\resLandPR) differ in \resPostRunPathCount{} named source
-files (\path{src/perturb_eval/llm/anthropic_client.py},
+(SHA-256 prefix \resManifestSha). The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on main
+(\resLandSha, PR~\resLandPR) differ in \resPostRunPathCount{} source files under \path{src/} and
+\path{scripts/modal/} (\path{src/perturb_eval/llm/anthropic_client.py},
+\path{src/perturb_eval/llm/openrouter_client.py},
 \path{src/perturb_eval/experiments/provenance.py},
 \path{src/perturb_eval/experiments/e_v05_real_traces.py},
 \path{src/perturb_eval/agentic_lifecycle/architect_dispatch.py},
-\path{scripts/modal/app_v05.py}) in paths the run did not exercise --- a served-model mismatch
-now aborts without failover, ``replay'' is a finalisable status, a recorded mismatch withdraws
-the analyser's licence, and docstrings --- with \resServedMismatch{} mismatches, \resNFailover{}
-failovers and replay \resReplay{} recorded; the analyser at the landed revision, re-run on the
-committed run files, reproduces \texttt{summary.json} with no differing value.
+\path{scripts/modal/app_v05.py}), in code paths the run did not reach --- a served-model
+mismatch now aborts without failover, ``replay'' is a finalisable status, a recorded mismatch
+withdraws the analyser's licence, and docstrings and one recorded-reason string --- with
+\resServedMismatch{} mismatches, \resNFailover{} failovers and replay \resReplay{} recorded; the
+analyser at the landed revision, re-run on the committed run files,
+reproduces every committed value of \texttt{summary.json}; the landed analyser adds one key,
+\path{served_mismatch_count}, equal to \resServedMismatch.
+\end{sloppypar}
