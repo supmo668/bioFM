@@ -1,0 +1,11 @@
+{
+  "source": "workstreams/perturb-seq-eval/qgr/relaunch-costed-plan-anthropic.md, CORRECTION section (CTO #484, 2026-09-29); plan figures, not measurements",
+  "calls_per_role": 369,
+  "llm_usd": 2.93,
+  "gpu_usd": 2.90,
+  "gpu_latency_per_round_s": 9.2,
+  "total_usd": 7.19,
+  "stop_line_usd": 12.0,
+  "kill_line_usd": 28.0,
+  "ceiling_usd": 30.0
+}

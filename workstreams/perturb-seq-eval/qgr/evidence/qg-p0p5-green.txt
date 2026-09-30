@@ -1,0 +1,158 @@
+# QG P0-P5 accepted-finding fixes — GREEN transcript
+# post-fix working tree on 451f730 (uncommitted), 2026-09-25T10:26:31Z
+
+## 1. new/updated bug-exposing tests
+PASSED TestC4TrainerErrorTaxonomy::test_type_error_propagates
+PASSED TestC4TrainerErrorTaxonomy::test_backbone_unavailable_propagates
+PASSED TestC4TrainerErrorTaxonomy::test_memory_error_gives_flagged_error_record
+PASSED TestC4TrainerErrorTaxonomy::test_clean_run_record_is_not_an_error_record
+PASSED TestC15ParamsPerRound::test_backbone_and_params_recorded_per_round
+PASSED TestC15ParamsPerRound::test_n_params_reset_when_last_round_fails
+PASSED TestC15ParamsPerRound::test_collect_params_uses_per_round_pairs
+PASSED TestC6CacheKeyAndFlag::test_dataset_is_in_the_cache_key
+PASSED TestC6CacheKeyAndFlag::test_dataset_is_required
+PASSED TestC6CacheKeyAndFlag::test_chat_result_flags_cache_hit
+PASSED TestC6CacheKeyAndFlag::test_pool_threads_dataset_and_flags_cache_hit
+PASSED TestC6CacheKeyAndFlag::test_loop_passes_dataset_and_records_cache_hit_on_step
+PASSED TestC6CacheKeyAndFlag::test_mock_steps_have_no_cache_flag
+PASSED TestC6CacheKeyAndFlag::test_run_requires_dataset
+PASSED TestC6CacheKeyAndFlag::test_provenance_records_cache_dir
+PASSED TestC9ScgptDevice::test_cpu_device_recorded
+PASSED TestC9ScgptDevice::test_cuda_available_moves_model_and_tensors
+PASSED TestC9ScgptDevice::test_provenance_records_device
+PASSED TestC5DatasetTaskKey::test_snai1_in_both_datasets_counts_once_each
+PASSED TestC5DatasetTaskKey::test_same_task_name_in_different_datasets_raises
+PASSED TestC5DatasetTaskKey::test_one_task_key_helper
+PASSED TestC10C18PinAndDiagnostic::test_pinned_fixture_is_evaluable
+PASSED TestC10C18PinAndDiagnostic::test_unpinned_run_is_diagnostic
+PASSED TestC10C18PinAndDiagnostic::test_null_pin_is_unpinned
+PASSED TestC10C18PinAndDiagnostic::test_pins_differ_raise
+PASSED TestC10C18PinAndDiagnostic::test_legacy_no_provenance_is_diagnostic
+PASSED TestC10C18PinAndDiagnostic::test_partial_diagnostic_withdraws_all_five
+PASSED TestC10C18PinAndDiagnostic::test_tally_counts_none_as_unevaluated
+PASSED TestC12PreregisteredDesignLocked::test_preregistered_version_refuses_shrunk_design[over0]
+PASSED TestC12PreregisteredDesignLocked::test_preregistered_version_refuses_shrunk_design[over1]
+PASSED TestC12PreregisteredDesignLocked::test_preregistered_version_refuses_shrunk_design[over2]
+PASSED TestC12PreregisteredDesignLocked::test_non_preregistered_version_may_shrink
+PASSED TestC14StatusAndEntropies::test_fallback_beats_budget
+PASSED TestC14StatusAndEntropies::test_exactly_at_cap_is_ok
+PASSED TestC14StatusAndEntropies::test_transient_errors_alone_are_ok
+PASSED TestC14StatusAndEntropies::test_stop_reason_is_partial
+PASSED TestC14StatusAndEntropies::test_entropies_none_without_llm_steps
+PASSED TestC14StatusAndEntropies::test_entropies_match_the_analyser_llm_only
+PASSED TestC14StatusAndEntropies::test_app_v05_uses_the_single_producers
+PASSED TestOwn1SpendStop::test_spend_guard_boundaries_strict[0.0-None]
+PASSED TestOwn1SpendStop::test_spend_guard_boundaries_strict[12.0-None]
+PASSED TestOwn1SpendStop::test_spend_guard_boundaries_strict[12.0001-spend_stop]
+PASSED TestOwn1SpendStop::test_spend_guard_boundaries_strict[28.0-spend_stop]
+PASSED TestOwn1SpendStop::test_spend_guard_boundaries_strict[28.0001-hard_kill]
+PASSED TestOwn1SpendStop::test_spend_guard_boundaries_strict[100.0-hard_kill]
+PASSED TestOwn1SpendStop::test_sweep_kwarg_default_and_recorded
+PASSED TestOwn1SpendStop::test_finalize_records_stop_reason_and_cost
+PASSED TestC16ControlPredicates::test_one_predicate_per_dataset_in_label_contract
+PASSED TestC16ControlPredicates::test_perturbations_is_control_delegates
+PASSED TestC16ControlPredicates::test_loaders_use_the_contract_predicates
+PASSED TestC22VersionValidated::test_good[v0.6.0]
+PASSED TestC22VersionValidated::test_good[v0.6.0-smoke]
+PASSED TestC22VersionValidated::test_good[v1.2.3rc1]
+PASSED TestC22VersionValidated::test_good[v0.6.0.a_b]
+PASSED TestC22VersionValidated::test_bad[]
+PASSED TestC22VersionValidated::test_bad[v0.6]
+PASSED TestC22VersionValidated::test_bad[0.6.0]
+PASSED TestC22VersionValidated::test_bad[../etc]
+PASSED TestC22VersionValidated::test_bad[v0.6.0/../../etc]
+PASSED TestC22VersionValidated::test_bad[/abs]
+PASSED TestC22VersionValidated::test_bad[v0.6.0 x]
+PASSED TestC22VersionValidated::test_bad[v0.6.0/sub]
+PASSED TestC22VersionValidated::test_bad[v0.6.0\n]
+PASSED TestC22VersionValidated::test_resolves_under_root
+PASSED TestC22VersionValidated::test_app_v05_uses_it
+PASSED TestC23C24DocsAndCli::test_exact_command_documented[scripts/modal/app_v05.py]
+PASSED TestC23C24DocsAndCli::test_exact_command_documented[README.md]
+PASSED TestC23C24DocsAndCli::test_exact_command_documented[paper/README.md]
+PASSED TestC23C24DocsAndCli::test_cli_defaults_to_v060
+PASSED TestC23C24DocsAndCli::test_cli_positional_dir
+PASSED TestC23C24DocsAndCli::test_no_v050_log_tags
+PASSED TestC11LiteratureParagraph::test_literature_role_is_a_bare_prompt
+PASSED TestC27Nits::test_mock_pool_is_hashseed_independent
+PASSED TestC27Nits::test_rho_is_public_with_private_alias
+PASSED tests/test_data_download.py::TestVerifySha256::test_match_passes
+PASSED tests/test_data_download.py::TestVerifySha256::test_mismatch_raises
+PASSED tests/test_data_download.py::TestVerifySha256::test_missing_file_raises
+PASSED tests/test_data_download.py::TestFetchAdamson::test_skips_when_present_and_sha_matches
+PASSED tests/test_data_download.py::TestFetchAdamson::test_downloads_when_missing
+PASSED tests/test_data_download.py::TestFetchAdamson::test_raises_on_sha_mismatch_after_download
+PASSED tests/test_data_download.py::TestFetchAdamson::test_default_path_is_under_project_data
+PASSED tests/test_data_download.py::TestFetchNorman::test_default_filename
+PASSED tests/test_data_download.py::TestFetchNorman::test_idempotent
+PASSED tests/test_data_download.py::TestFetchNorman::test_zenodo_url_uses_correct_record
+PASSED tests/test_data_download.py::TestDatasetSpec::test_has_adamson_and_norman
+PASSED tests/test_data_download.py::TestDatasetSpec::test_urls_point_to_zenodo
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_raises_when_cached_file_has_no_sha_pin
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_trust_unpinned_returns_cached_path_with_warning
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_raises_on_fresh_download_with_no_pin
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_fetch_adamson_all_raises_when_unpinned
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_mismatch_raises_and_does_not_leave_bad_file
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_mismatch_even_with_trust_unpinned_raises
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_is_pinned
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_pilot_pin_is_recorded
+PASSED tests/test_data_download.py::TestFailClosedUnpinned::test_pilot_pin_equals_local_file_digest
+PASSED tests/test_data_download.py::test_all_specs_pinned
+96 passed in 20.51s
+
+## 2. behavioural probes (post-fix API)
+C4 GREEN: TypeError from backbone.fit propagates: bad arg
+C4 GREEN: MemoryError -> error record flagged: True transient builtins.MemoryError
+C15 GREEN: n_params_per_round = (('mlp', 1410), ('linear', None)) n_params = None
+C27 GREEN PYTHONHASHSEED=0 -> DataCurator confidence 0.8225405983927682
+C27 GREEN PYTHONHASHSEED=1 -> DataCurator confidence 0.8225405983927682
+C27 GREEN PYTHONHASHSEED=12345 -> DataCurator confidence 0.8225405983927682
+
+## 3. full suite: .venv/bin/python -m pytest -q -p no:cacheprovider
+........................................................................ [ 96%]
+............................                                             [100%]
+748 passed in 25.61s
+
+## 4. guardrail: tests/test_no_synthetic_generators.py
+6 passed in 0.04s
+
+## 5. ruff F on touched .py files (34 files)
+  scripts/local/prereg_null_fwer.py
+  scripts/local/run_lifecycle_dryrun.py
+  scripts/local/v05_dry_run.py
+  scripts/modal/app_lifecycle.py
+  scripts/modal/app_lifecycle_optimizer.py
+  scripts/modal/app_v05.py
+  src/perturb_eval/agentic_lifecycle/cellforge_pool.py
+  src/perturb_eval/agentic_lifecycle/llm_agent_pool.py
+  src/perturb_eval/agentic_lifecycle/loop.py
+  src/perturb_eval/agentic_lifecycle/trainer_exec.py
+  src/perturb_eval/agentic_lifecycle/types.py
+  src/perturb_eval/backbones/scgpt_small.py
+  src/perturb_eval/data/label_contract.py
+  src/perturb_eval/data/perturbations.py
+  src/perturb_eval/experiments/e2_adamson.py
+  src/perturb_eval/experiments/e_v05_real_traces.py
+  src/perturb_eval/experiments/norman.py
+  src/perturb_eval/experiments/preregistered.py
+  src/perturb_eval/experiments/provenance.py
+  src/perturb_eval/experiments/v05_preflight.py
+  src/perturb_eval/experiments/v05_sweep.py
+  src/perturb_eval/llm/openrouter_client.py
+  tests/test_agentic_lifecycle.py
+  tests/test_data_download.py
+  tests/test_e_v05_real_traces.py
+  tests/test_freedom_e2e.py
+  tests/test_hvg.py
+  tests/test_llm_agent_pool.py
+  tests/test_llm_cache_key.py
+  tests/test_openrouter_client.py
+  tests/test_provenance.py
+  tests/test_v05_analysis.py
+  tests/test_v05_sweep.py
+  tests/test_qg_p0p5_fixes.py
+$ .venv/bin/ruff check --select F <files>
+All checks passed!
+
+## 6. ast.parse app_v05.py
+app_v05.py parses OK

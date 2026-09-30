@@ -1,0 +1,383 @@
+# obs.nperts / raw-label audit (read-only, CPU, Modal)
+2026-09-24T21:01:05Z
+{
+ "Adamson2016_pilot.h5ad": {
+  "n_labels": 10,
+  "nperts_value_counts_cells": {
+   "2": 5752,
+   "0": 10,
+   "1": 6
+  },
+  "perturbation_type": {
+   "CRISPR": 5768
+  },
+  "n_labels_with_nperts_gt1": 8,
+  "labels_with_nperts_gt1_sample": {
+   "62(mod)_pBA581": [
+    "2"
+   ],
+   "BHLHE40_pDS258": [
+    "2"
+   ],
+   "CREB1_pDS269": [
+    "2"
+   ],
+   "DDIT3_pDS263": [
+    "2"
+   ],
+   "EP300_pDS268": [
+    "2"
+   ],
+   "SNAI1_pDS266": [
+    "2"
+   ],
+   "SPI1_pDS255": [
+    "2"
+   ],
+   "ZNF326_pDS262": [
+    "2"
+   ]
+  }
+ },
+ "Adamson2016_10X005.h5ad": {
+  "n_labels": 21,
+  "nperts_value_counts_cells": {
+   "3": 9617,
+   "4": 5058,
+   "0": 296,
+   "2": 22,
+   "1": 13
+  },
+  "perturbation_type": {
+   "CRISPR": 15006
+  },
+  "n_labels_with_nperts_gt1": 19,
+  "labels_with_nperts_gt1_sample": {
+   "3x_neg_ctrl_pMJ144-1": [
+    "4"
+   ],
+   "3x_neg_ctrl_pMJ144-2": [
+    "4"
+   ],
+   "ATF4_pBA576": [
+    "2"
+   ],
+   "ATF6_IRE1_pMJ152": [
+    "3"
+   ],
+   "ATF6_PERK_IRE1_pMJ158": [
+    "4"
+   ],
+   "ATF6_PERK_pMJ150": [
+    "3"
+   ],
+   "ATF6_only_pMJ145": [
+    "3"
+   ],
+   "C7orf26_pDS004": [
+    "2"
+   ],
+   "Gal4-4(mod)_pBA582": [
+    "2"
+   ],
+   "IER3IP1_pDS003": [
+    "2"
+   ],
+   "IRE1_only_pMJ148": [
+    "3"
+   ],
+   "PERK_IRE1_pMJ154": [
+    "3"
+   ],
+   "PERK_only_pMJ146": [
+    "3"
+   ],
+   "PSMA1_pDS007": [
+    "2"
+   ],
+   "PSMD12_pDS009": [
+    "2"
+   ],
+   "SNAI1_pDS266": [
+    "2"
+   ],
+   "XBP1_pBA578": [
+    "2"
+   ],
+   "XBP1_pBA579": [
+    "2"
+   ],
+   "YIPF5_pDS001": [
+    "2"
+   ]
+  }
+ },
+ "Adamson2016_10X010.h5ad": {
+  "n_labels": 115,
+  "nperts_value_counts_cells": {
+   "2": 62623,
+   "0": 2613,
+   "1": 101
+  },
+  "perturbation_type": {
+   "CRISPR": 65337
+  },
+  "n_labels_with_nperts_gt1": 113,
+  "labels_with_nperts_gt1_sample": {
+   "62(mod)_pBA581": [
+    "2"
+   ],
+   "63(mod)_pBA580": [
+    "2"
+   ],
+   "AARS_pDS381": [
+    "2"
+   ],
+   "AMIGO3_pDS434": [
+    "2"
+   ],
+   "ARHGAP22_pDS458": [
+    "2"
+   ],
+   "ASCC3_pDS051": [
+    "2"
+   ],
+   "ASCC3_pDS052": [
+    "2"
+   ],
+   "ATF4_pBA576": [
+    "2"
+   ],
+   "ATF4_pBA577": [
+    "2"
+   ],
+   "ATF4_pBA608": [
+    "2"
+   ],
+   "ATF6_pBA586": [
+    "2"
+   ],
+   "ATP5B_pDS055": [
+    "2"
+   ],
+   "C7orf26_pDS004": [
+    "2"
+   ],
+   "CAD_pDS468": [
+    "2"
+   ],
+   "CARS_pDS460": [
+    "2"
+   ],
+   "CCND3_pDS005": [
+    "2"
+   ],
+   "CCND3_pDS006": [
+    "2"
+   ],
+   "CHERP_pDS024": [
+    "2"
+   ],
+   "COPB1_pDS065": [
+    "2"
+   ],
+   "COPZ1_pDS462": [
+    "2"
+   ],
+   "DAD1_pDS499": [
+    "2"
+   ],
+   "DARS_pDS495": [
+    "2"
+   ],
+   "DDOST_pDS382": [
+    "2"
+   ],
+   "DDRGK1_pDS041": [
+    "2"
+   ],
+   "DERL2_pDS042": [
+    "2"
+   ],
+   "DHDDS_pDS383": [
+    "2"
+   ],
+   "DNAJC19_pDS026": [
+    "2"
+   ],
+   "DNAJC19_pDS074": [
+    "2"
+   ],
+   "EIF2AK3_pBA572": [
+    "2"
+   ],
+   "EIF2AK3_pBA573": [
+    "2"
+   ],
+   "EIF2B2_pDS463": [
+    "2"
+   ],
+   "EIF2B3_pDS508": [
+    "2"
+   ],
+   "EIF2B4_pDS491": [
+    "2"
+   ],
+   "EIF2S1_pDS386": [
+    "2"
+   ],
+   "ERN1_pBA574": [
+    "2"
+   ],
+   "ERN1_pBA575": [
+    "2"
+   ],
+   "FARSB_pDS390": [
+    "2"
+   ],
+   "FECH_pDS494": [
+    "2"
+   ],
+   "GBF1_pDS043": [
+    "2"
+   ],
+   "GBF1_pDS044": [
+    "2"
+   ]
+  }
+ },
+ "NormanWeissman2019_filtered.h5ad": {
+  "n_labels": 237,
+  "nperts_value_counts_cells": {
+   "1": 57831,
+   "2": 41759,
+   "0": 11855
+  },
+  "perturbation_type": {
+   "CRISPR": 111445
+  },
+  "n_labels_with_nperts_gt1": 131,
+  "labels_with_nperts_gt1_sample": {
+   "AHR_FEV": [
+    "2"
+   ],
+   "AHR_KLF1": [
+    "2"
+   ],
+   "BCL2L11_BAK1": [
+    "2"
+   ],
+   "BCL2L11_TGFBR2": [
+    "2"
+   ],
+   "BPGM_SAMD1": [
+    "2"
+   ],
+   "BPGM_ZBTB1": [
+    "2"
+   ],
+   "C3orf72_FOXL2": [
+    "2"
+   ],
+   "CBL_CNN1": [
+    "2"
+   ],
+   "CBL_PTPN12": [
+    "2"
+   ],
+   "CBL_PTPN9": [
+    "2"
+   ],
+   "CBL_TGFBR2": [
+    "2"
+   ],
+   "CBL_UBASH3A": [
+    "2"
+   ],
+   "CBL_UBASH3B": [
+    "2"
+   ],
+   "CDKN1B_CDKN1A": [
+    "2"
+   ],
+   "CDKN1C_CDKN1A": [
+    "2"
+   ],
+   "CDKN1C_CDKN1B": [
+    "2"
+   ],
+   "CEBPB_CEBPA": [
+    "2"
+   ],
+   "CEBPB_MAPK1": [
+    "2"
+   ],
+   "CEBPB_OSR2": [
+    "2"
+   ],
+   "CEBPB_PTPN12": [
+    "2"
+   ],
+   "CEBPE_CEBPA": [
+    "2"
+   ],
+   "CEBPE_CEBPB": [
+    "2"
+   ],
+   "CEBPE_CNN1": [
+    "2"
+   ],
+   "CEBPE_KLF1": [
+    "2"
+   ],
+   "CEBPE_PTPN12": [
+    "2"
+   ],
+   "CEBPE_RUNX1T1": [
+    "2"
+   ],
+   "CEBPE_SPI1": [
+    "2"
+   ],
+   "CNN1_MAPK1": [
+    "2"
+   ],
+   "CNN1_UBASH3A": [
+    "2"
+   ],
+   "DUSP9_ETS2": [
+    "2"
+   ],
+   "DUSP9_IGDCC3": [
+    "2"
+   ],
+   "DUSP9_KLF1": [
+    "2"
+   ],
+   "DUSP9_MAPK1": [
+    "2"
+   ],
+   "DUSP9_PRTG": [
+    "2"
+   ],
+   "DUSP9_SNAI1": [
+    "2"
+   ],
+   "ETS2_CEBPE": [
+    "2"
+   ],
+   "ETS2_CNN1": [
+    "2"
+   ],
+   "ETS2_IGDCC3": [
+    "2"
+   ],
+   "ETS2_IKZF3": [
+    "2"
+   ],
+   "ETS2_MAP7D1": [
+    "2"
+   ]
+  }
+ }
+}

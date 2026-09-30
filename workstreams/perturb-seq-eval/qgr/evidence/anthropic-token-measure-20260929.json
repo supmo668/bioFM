@@ -1,0 +1,74 @@
+{
+ "tasks": [
+  "ZNF326",
+  "DDIT3"
+ ],
+ "rounds": 3,
+ "counts": {
+  "claude-haiku-4-5-20251001": {
+   "DataCurator": {
+    "n": 6,
+    "mean_in": 320,
+    "max_in": 354,
+    "shared_prefix_tokens": 87
+   },
+   "Literature": {
+    "n": 6,
+    "mean_in": 273,
+    "max_in": 307,
+    "shared_prefix_tokens": 84
+   },
+   "Architect": {
+    "n": 6,
+    "mean_in": 300,
+    "max_in": 303,
+    "shared_prefix_tokens": 91
+   },
+   "Trainer": {
+    "n": 6,
+    "mean_in": 240,
+    "max_in": 274,
+    "shared_prefix_tokens": 85
+   },
+   "Validator": {
+    "n": 6,
+    "mean_in": 266,
+    "max_in": 300,
+    "shared_prefix_tokens": 85
+   }
+  },
+  "claude-sonnet-5-5": {
+   "DataCurator": {
+    "n": 6,
+    "mean_in": 400,
+    "max_in": 443,
+    "shared_prefix_tokens": 120
+   },
+   "Literature": {
+    "n": 6,
+    "mean_in": 365,
+    "max_in": 408,
+    "shared_prefix_tokens": 118
+   },
+   "Architect": {
+    "n": 6,
+    "mean_in": 385,
+    "max_in": 388,
+    "shared_prefix_tokens": 125
+   },
+   "Trainer": {
+    "n": 6,
+    "mean_in": 314,
+    "max_in": 357,
+    "shared_prefix_tokens": 119
+   },
+   "Validator": {
+    "n": 6,
+    "mean_in": 353,
+    "max_in": 396,
+    "shared_prefix_tokens": 118
+   }
+  }
+ },
+ "measured_at": "2026-09-29T02:27:00Z"
+}

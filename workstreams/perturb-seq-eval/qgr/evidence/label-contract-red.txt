@@ -1,0 +1,50 @@
+# CTO #250/#251 label contract — RED stage 1: against current code (git HEAD 4025da4, label_contract.py absent)
+$ .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_label_contract.py
+==================================== ERRORS ====================================
+________________ ERROR collecting tests/test_label_contract.py _________________
+ImportError while importing test module '/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_label_contract.py:18: in <module>
+    from perturb_eval.data.label_contract import (
+E   ModuleNotFoundError: No module named 'perturb_eval.data.label_contract'
+=========================== short test summary info ============================
+ERROR tests/test_label_contract.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.17s
+
+# RED stage 2: label_contract.py written; loaders / preflight / provenance / app_v05 NOT yet wired
+$ .venv/bin/python -m pytest -q -p no:cacheprovider --tb=line -rf tests/test_label_contract.py
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py:373: KeyError: 'label_contract'
+E   TypeError: load_norman_matrix() got an unexpected keyword argument 'contract'
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py:382: TypeError: load_norman_matrix() got an unexpected keyword argument 'contract'
+E   perturb_eval.experiments.v05_preflight.PreflightError: v0.6 preflight failed (3 failure(s)):
+      - adamson_full/adamson: tas<redacted> 'PERK' does not resolve: 1 perturbation target gene(s) absent from the gene vocabulary (len(gene_to_idx)=2); refusing to substitute. Missing (label, gene): ('PERK', 'PERK')
+      - norman/norman_singletons: tas<redacted> 'OLDSYM' does not resolve: 1 perturbation target gene(s) absent from the gene vocabulary (len(gene_to_idx)=2); refusing to substitute. Missing (label, gene): ('OLDSYM', 'OLDSYM')
+      - norman/norman_doublets: tas<redacted> 'OLDSYM_FOXL2' does not resolve: 1 perturbation target gene(s) absent from the gene vocabulary (len(gene_to_idx)=2); refusing to substitute. Missing (label, gene): ('OLDSYM_FOXL2', 'OLDSYM')
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/src/perturb_eval/experiments/v05_preflight.py:246: perturb_eval.experiments.v05_preflight.PreflightError: v0.6 preflight failed (3 failure(s)):
+E   TypeError: build_provenance() got an unexpected keyword argument 'labels_excluded'
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py:452: TypeError: build_provenance() got an unexpected keyword argument 'labels_excluded'
+E   TypeError: build_provenance() got an unexpected keyword argument 'labels_excluded'
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py:472: TypeError: build_provenance() got an unexpected keyword argument 'labels_excluded'
+E   Failed: DID NOT RAISE ValueError
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py:485: Failed: DID NOT RAISE ValueError
+E   assert 'ds["label_contract"]' in '"""v0.5.0 single-stage Modal sweep: real Adamson + Norman, A100, budget-capped.\n\nDesign:\n  * A100-40G ($1.32/hr Mo...y} config={cfg}")\n    out = run_v05_sweep.remote(**sweep_kwargs)\n    print(json.dumps(out, indent=2, default=str))\n'
+/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval/tests/test_label_contract.py:498: assert 'ds["label_contract"]' in '"""v0.5.0 single-stage Modal sweep: real Adamson + Norman, A100, budget-capped.\n\nDesign:\n  * A100-40G ($1.32/hr Mo...y} config={cfg}")\n    out = run_v05_sweep.remote(**sweep_kwargs)\n    print(json.dumps(out, indent=2, default=str))\n'
+=========================== short test summary info ============================
+FAILED tests/test_label_contract.py::TestAdamsonLoader::test_structural_control_and_exclusion
+FAILED tests/test_label_contract.py::TestAdamsonLoader::test_alias_resolves_to_gene_column_task_label_unchanged
+FAILED tests/test_label_contract.py::TestAdamsonLoader::test_combined_loader_applies_contract
+FAILED tests/test_label_contract.py::TestAdamsonLoader::test_task_plan_never_draws_excluded_or_structural_control
+FAILED tests/test_label_contract.py::TestNormanPerComponentAlias::test_doublet_alias_applies_per_component_both_orders
+FAILED tests/test_label_contract.py::TestNormanPerComponentAlias::test_default_contract_recorded
+FAILED tests/test_label_contract.py::TestNormanPerComponentAlias::test_excluded_whole_label_dropped
+FAILED tests/test_label_contract.py::TestPreflightAndProvenance::test_preflight_resolves_aliased_tasks_and_reports_contracts
+FAILED tests/test_label_contract.py::TestPreflightAndProvenance::test_build_provenance_carries_contract_and_exclusions
+FAILED tests/test_label_contract.py::TestPreflightAndProvenance::test_build_provenance_rejects_exclusion_without_dataset
+FAILED tests/test_label_contract.py::TestPreflightAndProvenance::test_build_provenance_rejects_malformed_label_contract
+FAILED tests/test_label_contract.py::TestPreflightAndProvenance::test_app_v05_wires_contract_and_exclusions
+12 failed, 27 passed in 1.12s

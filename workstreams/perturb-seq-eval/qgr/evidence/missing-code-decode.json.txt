@@ -1,0 +1,34 @@
+# Pre-fix h5py decode of obs/perturbation codes == -1 (read-only, CPU, Modal)
+2026-09-24T21:17:31Z
+{
+ "Adamson2016_pilot.h5ad": {
+  "n_cells": 5768,
+  "n_code_minus1": 10,
+  "last_category": "ZNF326_pDS262",
+  "last_category_true_cells": 557,
+  "last_category_prefix_decode_cells": 567
+ },
+ "Adamson2016_10X005.h5ad": {
+  "n_cells": 15006,
+  "n_code_minus1": 296,
+  "last_category": "YIPF5_pDS001",
+  "last_category_true_cells": 1,
+  "last_category_prefix_decode_cells": 297
+ },
+ "Adamson2016_10X010.h5ad": {
+  "n_cells": 65337,
+  "n_code_minus1": 2613,
+  "last_category": "YIPF5_pDS226",
+  "last_category_true_cells": 574,
+  "last_category_prefix_decode_cells": 3187
+ },
+ "NormanWeissman2019_filtered.h5ad": {
+  "n_cells": 111445,
+  "n_code_minus1": 0,
+  "last_category": "control",
+  "last_category_true_cells": 11855,
+  "last_category_prefix_decode_cells": 11855
+ }
+}
+## local pilot verification
+codes==-1: 10; last category ZNF326_pDS262: pre-fix 567, correct 557

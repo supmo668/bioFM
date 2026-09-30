@@ -1,0 +1,230 @@
+# C-RG-1 RED — tests/test_hvg.py against PRE-FIX code (T8b), 2026-09-24T19:51:55Z, HEAD dedd605
+# cmd: .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_hvg.py -rA
+FFF.FFFFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+___ TestTrainOnlyPropertyThroughRealPaths.test_adamson_single_file_grid_cell ___
+
+self = <test_hvg.TestTrainOnlyPropertyThroughRealPaths object at 0x11123f1a0>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_adamson_single_file_grid_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111de3170>
+
+    def test_adamson_single_file_grid_cell(self, tmp_path: Path, monkeypatch) -> None:
+        from perturb_eval.experiments.e2_adamson import (
+            load_adamson_matrix,
+            train_grid_cell_adamson,
+        )
+    
+        path = tmp_path / "adamson.h5ad"
+        _write_adamson(path)
+        ds = load_adamson_matrix(path, n_top_hvg=N_HVG, max_cells_per_pert=400)
+        rec = _FitRecorder(monkeypatch)
+    
+        train_grid_cell_adamson(_phi(), "TFA", 0, h5ad_path=path, dataset_cache=ds)
+        held_a = _genes_in_fit(rec.expressions[-1], "TFA")
+        train_grid_cell_adamson(_phi(), "TFB", 0, h5ad_path=path, dataset_cache=ds)
+        held_b = _genes_in_fit(rec.expressions[-1], "TFB")
+    
+>       assert "GA" not in held_a, f"held-out TFA's own shift leaked into features: {held_a}"
+E       AssertionError: held-out TFA's own shift leaked into features: {'GA', 'TFB', 'GB', 'M5', 'M4', 'TFA'}
+E       assert 'GA' not in {'GA', 'GB', 'M4', 'M5', 'TFA', 'TFB'}
+
+tests/test_hvg.py:141: AssertionError
+__ TestTrainOnlyPropertyThroughRealPaths.test_adamson_combined_trainer_sweep ___
+
+self = <test_hvg.TestTrainOnlyPropertyThroughRealPaths object at 0x111de3c20>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_adamson_combined_trainer_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111ef9940>
+
+    def test_adamson_combined_trainer_sweep(self, tmp_path: Path, monkeypatch) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_combined
+>       from perturb_eval.experiments.heldout import iter_trainer_records
+E       ModuleNotFoundError: No module named 'perturb_eval.experiments.heldout'
+
+tests/test_hvg.py:150: ModuleNotFoundError
+_______ TestTrainOnlyPropertyThroughRealPaths.test_norman_trainer_sweep ________
+
+self = <test_hvg.TestTrainOnlyPropertyThroughRealPaths object at 0x111de35c0>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_norman_trainer_sweep0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111ef91c0>
+
+    def test_norman_trainer_sweep(self, tmp_path: Path, monkeypatch) -> None:
+>       from perturb_eval.experiments.heldout import iter_trainer_records
+E       ModuleNotFoundError: No module named 'perturb_eval.experiments.heldout'
+
+tests/test_hvg.py:165: ModuleNotFoundError
+_ TestVarianceIsTrainingRowsOnly.test_helper_gene_var_equals_training_rows_var _
+
+self = <test_hvg.TestVarianceIsTrainingRowsOnly object at 0x111de2de0>
+
+    def test_helper_gene_var_equals_training_rows_var(self) -> None:
+>       from perturb_eval.data.hvg import select_hvg_train_only
+E       ModuleNotFoundError: No module named 'perturb_eval.data.hvg'
+
+tests/test_hvg.py:209: ModuleNotFoundError
+______ TestVarianceIsTrainingRowsOnly.test_real_path_passes_training_mask ______
+
+self = <test_hvg.TestVarianceIsTrainingRowsOnly object at 0x111de3290>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_real_path_passes_training0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111f6a840>
+
+    def test_real_path_passes_training_mask(self, tmp_path: Path, monkeypatch) -> None:
+>       import perturb_eval.data.hvg as hvg
+E       ModuleNotFoundError: No module named 'perturb_eval.data.hvg'
+
+tests/test_hvg.py:222: ModuleNotFoundError
+_ TestEveryPathRoutesThroughHelper.test_trainer_sweep_selects_once_per_held_out_task[adamson_full] _
+
+self = <test_hvg.TestEveryPathRoutesThroughHelper object at 0x111de2930>
+dataset = 'adamson_full'
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_trainer_sweep_selects_onc0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111f6bbf0>
+
+    @pytest.mark.parametrize("dataset", ["adamson_full", "norman"])
+    def test_trainer_sweep_selects_once_per_held_out_task(
+        self, dataset: str, tmp_path: Path, monkeypatch
+    ) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_combined
+>       from perturb_eval.experiments.heldout import iter_trainer_records
+E       ModuleNotFoundError: No module named 'perturb_eval.experiments.heldout'
+
+tests/test_hvg.py:268: ModuleNotFoundError
+_ TestEveryPathRoutesThroughHelper.test_trainer_sweep_selects_once_per_held_out_task[norman] _
+
+self = <test_hvg.TestEveryPathRoutesThroughHelper object at 0x111de2d80>
+dataset = 'norman'
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_trainer_sweep_selects_onc1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111f6b590>
+
+    @pytest.mark.parametrize("dataset", ["adamson_full", "norman"])
+    def test_trainer_sweep_selects_once_per_held_out_task(
+        self, dataset: str, tmp_path: Path, monkeypatch
+    ) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_combined
+>       from perturb_eval.experiments.heldout import iter_trainer_records
+E       ModuleNotFoundError: No module named 'perturb_eval.experiments.heldout'
+
+tests/test_hvg.py:268: ModuleNotFoundError
+_ TestEveryPathRoutesThroughHelper.test_adamson_grid_cell_selects_once_per_call _
+
+self = <test_hvg.TestEveryPathRoutesThroughHelper object at 0x111e115b0>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_adamson_grid_cell_selects0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111e401a0>
+
+    def test_adamson_grid_cell_selects_once_per_call(self, tmp_path: Path, monkeypatch) -> None:
+        from perturb_eval.experiments.e2_adamson import (
+            load_adamson_matrix,
+            train_grid_cell_adamson,
+        )
+    
+        path = tmp_path / "adamson.h5ad"
+        _write_adamson(path)
+        ds = load_adamson_matrix(path, n_top_hvg=N_HVG, max_cells_per_pert=400)
+>       spy = _SelectSpy(monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_hvg.py:299: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_hvg._SelectSpy object at 0x111efbc50>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111e401a0>
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+>       import perturb_eval.data.hvg as hvg
+E       ModuleNotFoundError: No module named 'perturb_eval.data.hvg'
+
+tests/test_hvg.py:250: ModuleNotFoundError
+____ TestEveryPathRoutesThroughHelper.test_lifecycle_selects_once_per_round ____
+
+self = <test_hvg.TestEveryPathRoutesThroughHelper object at 0x111e12f60>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111e412e0>
+
+    def test_lifecycle_selects_once_per_round(self, monkeypatch) -> None:
+        from perturb_eval.agentic_lifecycle.loop import MockAgentPool, run_agentic_lifecycle
+    
+        _, group = _counts()
+>       spy = _SelectSpy(monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_hvg.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_hvg._SelectSpy object at 0x111e413d0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111e412e0>
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+>       import perturb_eval.data.hvg as hvg
+E       ModuleNotFoundError: No module named 'perturb_eval.data.hvg'
+
+tests/test_hvg.py:250: ModuleNotFoundError
+_ TestCombinedLoaderResolvesTargets.test_target_missing_from_shared_vocab_raises _
+
+self = <test_hvg.TestCombinedLoaderResolvesTargets object at 0x111e112b0>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_target_missing_from_share0')
+
+    def test_target_missing_from_shared_vocab_raises(self, tmp_path: Path) -> None:
+        import anndata as ad
+        from scipy.sparse import csr_matrix
+    
+        from perturb_eval.experiments.e2_adamson import load_adamson_combined
+    
+        counts, group = _counts()
+        # File 1 has TFB in its vocabulary; file 2 renames that column, so
+        # TFB is absent from the shared (intersected) vocabulary.
+        p1, p2 = tmp_path / "one.h5ad", tmp_path / "two.h5ad"
+        _write_adamson(p1)
+        genes2 = list(GENES)
+        genes2[1] = "OTHER"
+        keep = group != "TFB"
+        raw = np.where(group == "CTRL", "*", np.char.add(group, "_pDS263"))[keep]
+        adata = ad.AnnData(
+            X=csr_matrix(counts[keep]),
+            obs={"perturbation": raw},
+            var={"gene_symbol": np.array(genes2)},
+        )
+        adata.obs["perturbation"] = adata.obs["perturbation"].astype("category")
+        adata.write_h5ad(p2)
+    
+>       with pytest.raises(ValueError, match="TFB"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_hvg.py:348: Failed
+_ TestCombinedLoaderResolvesTargets.test_combined_targets_are_tuples_over_full_vocab _
+
+self = <test_hvg.TestCombinedLoaderResolvesTargets object at 0x111e10b00>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-645/test_combined_targets_are_tupl0')
+
+    def test_combined_targets_are_tuples_over_full_vocab(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_combined
+    
+        path = tmp_path / "adamson.h5ad"
+        _write_adamson(path)
+        ds = load_adamson_combined([path], n_top_hvg=N_HVG, max_cells_per_pert=400)
+        col = {g: i for i, g in enumerate(ds["gene_names"])}
+>       assert ds["target_gene_idx"] == {"TFA": (col["TFA"],), "TFB": (col["TFB"],)}
+E       AssertionError: assert {'TFA': 4, 'TFB': 5} == {'TFA': (4,), 'TFB': (5,)}
+E         
+E         Differing items:
+E         {'TFA': 4} != {'TFA': (4,)}
+E         {'TFB': 5} != {'TFB': (5,)}
+E         Use -v to get more diff
+
+tests/test_hvg.py:358: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_lifecycle_loop
+FAILED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_adamson_single_file_grid_cell
+FAILED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_adamson_combined_trainer_sweep
+FAILED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_norman_trainer_sweep
+FAILED tests/test_hvg.py::TestVarianceIsTrainingRowsOnly::test_helper_gene_var_equals_training_rows_var
+FAILED tests/test_hvg.py::TestVarianceIsTrainingRowsOnly::test_real_path_passes_training_mask
+FAILED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_trainer_sweep_selects_once_per_held_out_task[adamson_full]
+FAILED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_trainer_sweep_selects_once_per_held_out_task[norman]
+FAILED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_adamson_grid_cell_selects_once_per_call
+FAILED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_lifecycle_selects_once_per_round
+FAILED tests/test_hvg.py::TestCombinedLoaderResolvesTargets::test_target_missing_from_shared_vocab_raises
+FAILED tests/test_hvg.py::TestCombinedLoaderResolvesTargets::test_combined_targets_are_tuples_over_full_vocab
+11 failed, 1 passed in 0.25s
+
+# NOTE: test_lifecycle_loop PASSES pre-fix — agentic_lifecycle/loop.py already ranked HVG on X[train_mask] (data_curator_exec.py:28 over train rows); it is re-routed through select_hvg_train_only for a single code path (c), not because it leaked.
+# Property RED (the leak itself): test_adamson_single_file_grid_cell — GA (a non-target gene shifted only in held-out TFA cells) is in the TFA-held-out feature set.

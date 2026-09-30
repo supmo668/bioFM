@@ -82,7 +82,6 @@ def _trajectory_fig_with_ci(
     fig = go.Figure()
     for opt, stats in payload["per_optimizer"].items():
         mean = stats["best_msd_per_iter_mean"]
-        per_seed_final = np.asarray(stats["per_seed_final_msd"])
         # Band: iteration-wise CI approximated by the final-step CI width
         # scaled to each iter's mean. This is an approximation — the
         # authoritative per-iter CIs would need per-(iter, run) bootstrap,

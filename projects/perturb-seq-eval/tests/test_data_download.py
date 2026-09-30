@@ -126,3 +126,130 @@ class TestDatasetSpec:
         from perturb_eval.data.download import DATASETS
         for name, spec in DATASETS.items():
             assert "zenodo.org" in spec.url, f"{name} URL not from Zenodo"
+
+
+# ---------------------------------------------------------------------------
+# T19 / A7 — fail closed on unpinned data (A&D §5 W6)
+# ---------------------------------------------------------------------------
+
+import logging
+import re
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_LOCAL_PILOT = _PROJECT_ROOT / "data" / "Adamson2016_pilot.h5ad"
+_PILOT_SHA = "119e3c1cf7dede4e13f887b86f9bcd797a9dc29213ee57d36aa80012d93f1c1c"
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+
+class TestFailClosedUnpinned:
+    @pytest.fixture(autouse=True)
+    def _norman_unpinned(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # The real norman spec is pinned (T21). These tests exercise the fail-closed
+        # property for an UNPINNED spec, independent of the real pins, so they
+        # substitute an unpinned copy of the spec for the duration of each test.
+        import dataclasses
+        from perturb_eval.data import download
+        monkeypatch.setitem(
+            download.DATASETS, "norman",
+            dataclasses.replace(download.DATASETS["norman"], sha256=None),
+        )
+
+    def test_raises_when_cached_file_has_no_sha_pin(self, tmp_path: Path) -> None:
+        # norman is unpinned here (fixture): a cached file must NOT be trusted.
+        cached = tmp_path / "NormanWeissman2019_filtered.h5ad"
+        _write_bytes(cached, b"unverified-bytes")
+        with patch("perturb_eval.data.download._download") as mock_dl:
+            with pytest.raises(ValueError, match=r"norman.*NormanWeissman2019_filtered\.h5ad"):
+                fetch_norman(dest_dir=tmp_path, min_bytes=0)
+            mock_dl.assert_not_called()
+
+    def test_trust_unpinned_returns_cached_path_with_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        cached = tmp_path / "NormanWeissman2019_filtered.h5ad"
+        _write_bytes(cached, b"unverified-bytes")
+        with caplog.at_level(logging.WARNING, logger="perturb_eval.data.download"):
+            with patch("perturb_eval.data.download._download") as mock_dl:
+                out = fetch_norman(dest_dir=tmp_path, min_bytes=0, trust_unpinned=True)
+                mock_dl.assert_not_called()
+        assert out == cached
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("norman" in r.getMessage() and "unpinned" in r.getMessage().lower()
+                   for r in warnings), [r.getMessage() for r in warnings]
+
+    def test_raises_on_fresh_download_with_no_pin(self, tmp_path: Path) -> None:
+        with patch("perturb_eval.data.download._download") as mock_dl:
+            mock_dl.side_effect = lambda url, dest: dest.write_bytes(b"x")
+            with pytest.raises(ValueError, match="norman"):
+                fetch_norman(dest_dir=tmp_path, min_bytes=0)
+            mock_dl.assert_not_called()
+        assert not (tmp_path / "NormanWeissman2019_filtered.h5ad").exists()
+
+    def test_fetch_adamson_all_raises_when_unpinned(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # QG C17: the real Adamson specs are pinned, so without unpinning them this
+        # test raised a SHA256 *mismatch* (after re-downloading) and passed for the
+        # wrong reason. Unpin all three subsets; the refusal must be the no-pin one,
+        # and nothing may be downloaded.
+        import dataclasses
+        from perturb_eval.data import download
+        from perturb_eval.data.download import ADAMSON_SUBSETS, DATASETS, fetch_adamson_all
+        assert set(ADAMSON_SUBSETS) == {"adamson_pilot", "adamson_10X005", "adamson_10X010"}
+        for key in ADAMSON_SUBSETS:
+            monkeypatch.setitem(
+                download.DATASETS, key, dataclasses.replace(DATASETS[key], sha256=None)
+            )
+            _write_bytes(tmp_path / DATASETS[key].local_filename, b"cached")
+        with patch("perturb_eval.data.download._download") as mock_dl:
+            mock_dl.side_effect = lambda url, dest: dest.write_bytes(b"refetched")
+            with pytest.raises(ValueError, match="no SHA256 pin"):
+                fetch_adamson_all(dest_dir=tmp_path, min_bytes=0)
+            mock_dl.assert_not_called()
+
+    def test_mismatch_raises_and_does_not_leave_bad_file(self, tmp_path: Path) -> None:
+        # Cached file with the wrong digest: re-download, verify, still wrong -> raise,
+        # and the mismatched bytes must not stay in the cache.
+        cached = tmp_path / "Adamson2016_pilot.h5ad"
+        _write_bytes(cached, b"stale")
+        with patch("perturb_eval.data.download._download") as mock_dl:
+            mock_dl.side_effect = lambda url, dest: dest.write_bytes(b"still-wrong")
+            with pytest.raises(ValueError, match="SHA256 mismatch"):
+                fetch_adamson(dest_dir=tmp_path, sha256="0" * 64, min_bytes=0)
+            assert mock_dl.call_count == 1
+        assert not cached.exists()
+
+    def test_mismatch_even_with_trust_unpinned_raises(self, tmp_path: Path) -> None:
+        with patch("perturb_eval.data.download._download") as mock_dl:
+            mock_dl.side_effect = lambda url, dest: dest.write_bytes(b"wrong")
+            with pytest.raises(ValueError, match="SHA256 mismatch"):
+                fetch_adamson(dest_dir=tmp_path, sha256="0" * 64, min_bytes=0,
+                              trust_unpinned=True)
+
+    def test_is_pinned(self) -> None:
+        pinned = DatasetSpec(name="a", remote_filename="r", local_filename="l",
+                             url="u", sha256="a" * 64)
+        unpinned = DatasetSpec(name="a", remote_filename="r", local_filename="l", url="u")
+        malformed = DatasetSpec(name="a", remote_filename="r", local_filename="l",
+                                url="u", sha256="not-hex")
+        assert pinned.is_pinned() is True
+        assert unpinned.is_pinned() is False
+        assert malformed.is_pinned() is False
+
+    def test_pilot_pin_is_recorded(self) -> None:
+        from perturb_eval.data.download import DATASETS
+        assert DATASETS["adamson_pilot"].sha256 == _PILOT_SHA
+
+    @pytest.mark.skipif(not _LOCAL_PILOT.exists(),
+                        reason="local-pilot-absent: data/Adamson2016_pilot.h5ad not present")
+    def test_pilot_pin_equals_local_file_digest(self) -> None:
+        from perturb_eval.data.download import DATASETS, _sha256_of
+        assert _sha256_of(_LOCAL_PILOT) == DATASETS["adamson_pilot"].sha256
+
+
+def test_all_specs_pinned() -> None:
+    # Module level on purpose: TestFailClosedUnpinned unpins norman via an autouse fixture.
+    from perturb_eval.data.download import DATASETS
+    for name, spec in DATASETS.items():
+        assert spec.sha256 is not None and _HEX64.match(spec.sha256), name
+        assert spec.is_pinned(), name

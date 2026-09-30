@@ -16,6 +16,7 @@ from perturb_eval.optimizers import (
     available_optimizers,
     build_optimizer,
 )
+from perturb_eval.optimizers.base import backbones_of, config_to_vec, nearest_config
 from perturb_eval.types import Config, DEFAULT_CONFIG_SPACE
 
 
@@ -27,6 +28,14 @@ _SMALL_PHI: tuple[Config, ...] = tuple(
     for b in ("scGPT", "scPRINT-2")
 )  # 8 configs
 
+# The backbone set every real experiment uses (T18 / A5). 3 x 3 x 3 = 27 configs.
+_REAL_PHI: tuple[Config, ...] = tuple(
+    Config(n_agents=a, n_rounds=r, backbone=b)
+    for a in (1, 3, 5)
+    for r in (1, 2, 3)
+    for b in ("linear", "mlp", "scgpt_small")
+)
+
 
 def _quad_objective(phi: Config, context: np.ndarray) -> float:
     """Synthetic objective: lower is better. Depends on both phi and context.
@@ -37,6 +46,45 @@ def _quad_objective(phi: Config, context: np.ndarray) -> float:
     size = phi.n_agents * phi.n_rounds
     hardness = float(context[0])
     return (size - 8 * hardness) ** 2 + 0.1 * np.random.default_rng(phi.n_rounds).uniform()
+
+
+# ---------------------------------------------------------------------------
+# Config embedding (T18 / A5): backbone one-hot derived from the space
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+class TestConfigEmbedding:
+    @pytest.mark.parametrize("space", [_SMALL_PHI, _REAL_PHI], ids=["legacy", "real"])
+    def test_embedding_is_injective_over_space(self, space: tuple[Config, ...]) -> None:
+        bb = backbones_of(space)
+        assert len({tuple(config_to_vec(c, bb)) for c in space}) == len(space)
+
+    def test_backbones_of_is_sorted_unique(self) -> None:
+        assert backbones_of(_REAL_PHI) == ("linear", "mlp", "scgpt_small")
+        assert backbones_of(_SMALL_PHI) == ("scGPT", "scPRINT-2")
+
+    @pytest.mark.parametrize("target", ["linear", "mlp", "scgpt_small"])
+    def test_nearest_config_reaches_every_backbone(self, target: str) -> None:
+        bb = backbones_of(_REAL_PHI)
+        phi = Config(n_agents=3, n_rounds=2, backbone=target)
+        got = nearest_config(config_to_vec(phi, bb), _REAL_PHI, bb)
+        assert got == phi
+
+    def test_unknown_backbone_raises(self) -> None:
+        bb = backbones_of(_REAL_PHI)
+        with pytest.raises(ValueError, match="backbone"):
+            config_to_vec(Config(n_agents=3, n_rounds=2, backbone="scGPT"), bb)
+
+    @pytest.mark.parametrize("name", ["cma_es", "contextual_gp"])
+    def test_optimizers_accept_real_space(self, name: str) -> None:
+        opt = build_optimizer(name, config_space=_REAL_PHI, seed=0)
+        ctx = np.zeros(4)
+        observed = [
+            Observation(config=c, context=ctx, objective=float(i))
+            for i, c in enumerate(_REAL_PHI[:6])
+        ]
+        assert opt.suggest(context=ctx, observed=observed) in _REAL_PHI
 
 
 # ---------------------------------------------------------------------------

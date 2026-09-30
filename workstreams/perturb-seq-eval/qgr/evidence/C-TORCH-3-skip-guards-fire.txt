@@ -1,0 +1,14 @@
+# C-TORCH-3 — skip guards observed firing in a torch-less venv
+# commit base: 2a58fc6 + working tree; 2026-09-24T19:57:39Z
+# torch importable? False
+## targeted run
+..s....s.                                                                [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_architect_dispatch_v05.py:40: could not import 'torch': No module named 'torch'
+SKIPPED [1] tests/test_freedom_e2e.py:92: could not import 'torch': No module named 'torch'
+7 passed, 2 skipped in 0.51s
+## full suite (torch-less)
+SKIPPED [1] tests/test_architect_dispatch_v05.py:40: could not import 'torch': No module named 'torch'
+SKIPPED [1] tests/test_backbones.py:328: could not import 'torch': No module named 'torch'
+SKIPPED [1] tests/test_freedom_e2e.py:92: could not import 'torch': No module named 'torch'
+300 passed, 3 skipped in 1.30s

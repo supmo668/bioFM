@@ -1,0 +1,49 @@
+# C-RG-2 RED (pre-implementation) — 2026-09-24T19:45:05Z — git dedd605 + uncommitted test edits
+$ .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_adamson_combined.py
+...FF..                                                                  [100%]
+=================================== FAILURES ===================================
+_ TestLoadAdamsonMatrixTargets.test_raw_guide_label_normalised_before_parsing __
+
+self = <test_adamson_combined.TestLoadAdamsonMatrixTargets object at 0x1117630e0>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-618/test_raw_guide_label_normalise0')
+
+    def test_raw_guide_label_normalised_before_parsing(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_matrix
+    
+        # Raw labels are "TFA_pDS263" (guide) and "62(mod)_pBA581" (control):
+        # parsed raw on '_' they would look like doublets / unknown genes.
+        p = tmp_path / "pilot.h5ad"
+        _write_synthetic_adamson(
+            p, tf_names=["TFA", "TFB"], seed=1, control_label="62(mod)_pBA581"
+        )
+        ds = load_adamson_matrix(p, n_top_hvg=100, max_cells_per_pert=50)
+        col = {g: i for i, g in enumerate(ds["gene_names"])}
+>       assert ds["target_gene_idx"] == {"TFA": (col["TFA"],), "TFB": (col["TFB"],)}
+E       AssertionError: assert {'TFA': 3, 'TFB': 24} == {'TFA': (3,), 'TFB': (24,)}
+E         
+E         Differing items:
+E         {'TFA': 3} != {'TFA': (3,)}
+E         {'TFB': 24} != {'TFB': (24,)}
+E         Use -v to get more diff
+
+tests/test_adamson_combined.py:109: AssertionError
+______ TestLoadAdamsonMatrixTargets.test_target_absent_from_vocab_raises _______
+
+self = <test_adamson_combined.TestLoadAdamsonMatrixTargets object at 0x111790980>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-618/test_target_absent_from_vocab_0')
+
+    def test_target_absent_from_vocab_raises(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_matrix
+    
+        p = tmp_path / "pilot.h5ad"
+        # "NOTAGENE" is not in the fixture's gene vocabulary.
+        _write_synthetic_adamson(p, tf_names=["TFA", "NOTAGENE"], seed=1)
+>       with pytest.raises(ValueError, match="NOTAGENE"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_adamson_combined.py:120: Failed
+=========================== short test summary info ============================
+FAILED tests/test_adamson_combined.py::TestLoadAdamsonMatrixTargets::test_raw_guide_label_normalised_before_parsing
+FAILED tests/test_adamson_combined.py::TestLoadAdamsonMatrixTargets::test_target_absent_from_vocab_raises
+2 failed, 5 passed in 0.21s
