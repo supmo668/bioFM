@@ -83,32 +83,32 @@ this is not a change to T18's standing ownership rule and should not be read as 
 # ============================================================================
 
 compounds:
-  - {canonical_inchikey: ASMXXROZKSBQIH-VITNCHFBSA-N, name: "Aclidinium", evidence_doi: "10.1007/164_2016_68"}
-  - {canonical_inchikey: SGRYPYWGNKJSDL-UHFFFAOYSA-N, name: "Amlexanox", evidence_doi: "10.1002/bmc.5288"}
-  - {canonical_inchikey: IBIIDGIPJPTFBZ-XYWKZLDCSA-N, name: "Beclomethasone", evidence_doi: "10.1089/jamp.2021.0046"}
-  - {canonical_inchikey: FZGVEKPRDOIXJY-UHFFFAOYSA-N, name: "Bitolterol", evidence_doi: "10.1002/j.1875-9114.1985.tb03410.x"}
-  - {canonical_inchikey: UNISKOOZAQCSPC-KWVAZRHASA-N, name: "Budesonide", evidence_doi: "10.1186/s12931-015-0318-z"}
-  - {canonical_inchikey: STJMRWALKKWQGH-UHFFFAOYSA-N, name: "Clenbuterol", evidence_doi: "10.1016/bs.podrm.2017.02.002"}
-  - {canonical_inchikey: KSCFJBIXMNOVSH-UHFFFAOYSA-N, name: "Dyphylline", evidence_doi: "10.1016/0091-6749(75)90128-1"}
-  - {canonical_inchikey: UCTWMZQNUQWSLP-VIFPVBQESA-N, name: "Epinephrine", evidence_doi: "10.1007/s11095-026-04048-w"}
-  - {canonical_inchikey: XSFJVAJPIHIPKU-XWCQMRHXSA-N, name: "Flunisolide", evidence_doi: "10.2500/aap.2015.36.3835"}
-  - {canonical_inchikey: WMWTYOKRWGGJOA-CENSZEJFSA-N, name: "Fluticasone Propionate", evidence_doi: "10.1111/bph.15621"}
-  - {canonical_inchikey: BPZSYCZIITTYBL-UHFFFAOYSA-N, name: "Formoterol", evidence_doi: "10.1089/jamp.2021.0046"}
-  - {canonical_inchikey: ZJVFLBOZORBYFE-UHFFFAOYSA-N, name: "Ibudilast", evidence_doi: "10.1517/14656560903426189"}
-  - {canonical_inchikey: QZZUEBNBZAPZLX-QFIPXVFZSA-N, name: "Indacaterol", evidence_doi: "10.1056/NEJMoa1516385"}
-  - {canonical_inchikey: OEXHQOGQTVQTAT-JRNQLAHRSA-N, name: "Ipratropium bromide", evidence_doi: "10.1007/164_2016_68"}
-  - {canonical_inchikey: HUYWAWARQUIQLE-UHFFFAOYSA-N, name: "Isoetarine", evidence_doi: "10.1007/BF02991319"}
-  - {canonical_inchikey: UCHDWCPVSPXUMX-TZIWLTJVSA-N, name: "Montelukast", evidence_doi: "10.1002/(sici)1099-081x(199712)18:9<769::aid-bdd60>3.0.co;2-k"}
-  - {canonical_inchikey: RQTOOFIXOKYGAN-UHFFFAOYSA-N, name: "Nedocromil", evidence_doi: "10.1177/106002809302700515"}
-  - {canonical_inchikey: VQDBNKDJNJQRDG-UHFFFAOYSA-N, name: "Pirbuterol", evidence_doi: "10.2165/00003495-198530010-00002"}
-  - {canonical_inchikey: FKNXQNWAXFXVNW-BLLLJJGKSA-N, name: "Procaterol", evidence_doi: "10.3390/ijms19071999"}
-  - {canonical_inchikey: MNDBXUUTURYVHR-UHFFFAOYSA-N, name: "Roflumilast", evidence_doi: "10.1016/bs.apha.2023.05.001"}
-  - {canonical_inchikey: NDAUXUAQIAJITI-UHFFFAOYSA-N, name: "Salbutamol", evidence_doi: "10.1111/bph.15621"}
-  - {canonical_inchikey: GIIZNNXWQWCKIB-UHFFFAOYSA-N, name: "Salmeterol", evidence_doi: "10.1111/bph.15621"}
-  - {canonical_inchikey: XWTYSIMOBUGWOL-UHFFFAOYSA-N, name: "Terbutaline", evidence_doi: "10.1056/NEJMoa1715274"}
-  - {canonical_inchikey: ZFXYFBGIUFBOJW-UHFFFAOYSA-N, name: "Theophylline", evidence_doi: "10.1016/bs.apha.2023.05.001"}
-  - {canonical_inchikey: LERNTVKEWCAPOY-KYQOMENCSA-N, name: "Tiotropium", evidence_doi: "10.2165/00003495-200262080-00008"}
-  - {canonical_inchikey: GFNANZIMVAIWHM-OBYCQNJPSA-N, name: "Triamcinolone", evidence_doi: "10.1089/08942680152484090"}
+  - {canonical_inchikey: <redacted:structure>, name: "Aclidinium", evidence_doi: "10.1007/164_2016_68"}
+  - {canonical_inchikey: <redacted:structure>, name: "Amlexanox", evidence_doi: "10.1002/bmc.5288"}
+  - {canonical_inchikey: <redacted:structure>, name: "Beclomethasone", evidence_doi: "10.1089/jamp.2021.0046"}
+  - {canonical_inchikey: <redacted:structure>, name: "Bitolterol", evidence_doi: "10.1002/j.1875-9114.1985.tb03410.x"}
+  - {canonical_inchikey: <redacted:structure>, name: "Budesonide", evidence_doi: "10.1186/s12931-015-0318-z"}
+  - {canonical_inchikey: <redacted:structure>, name: "Clenbuterol", evidence_doi: "10.1016/bs.podrm.2017.02.002"}
+  - {canonical_inchikey: <redacted:structure>, name: "Dyphylline", evidence_doi: "10.1016/0091-6749(75)90128-1"}
+  - {canonical_inchikey: <redacted:structure>, name: "Epinephrine", evidence_doi: "10.1007/s11095-026-04048-w"}
+  - {canonical_inchikey: <redacted:structure>, name: "Flunisolide", evidence_doi: "10.2500/aap.2015.36.3835"}
+  - {canonical_inchikey: <redacted:structure>, name: "Fluticasone Propionate", evidence_doi: "10.1111/bph.15621"}
+  - {canonical_inchikey: <redacted:structure>, name: "Formoterol", evidence_doi: "10.1089/jamp.2021.0046"}
+  - {canonical_inchikey: <redacted:structure>, name: "Ibudilast", evidence_doi: "10.1517/14656560903426189"}
+  - {canonical_inchikey: <redacted:structure>, name: "Indacaterol", evidence_doi: "10.1056/NEJMoa1516385"}
+  - {canonical_inchikey: <redacted:structure>, name: "Ipratropium bromide", evidence_doi: "10.1007/164_2016_68"}
+  - {canonical_inchikey: <redacted:structure>, name: "Isoetarine", evidence_doi: "10.1007/BF02991319"}
+  - {canonical_inchikey: <redacted:structure>, name: "Montelukast", evidence_doi: "10.1002/(sici)1099-081x(199712)18:9<769::aid-bdd60>3.0.co;2-k"}
+  - {canonical_inchikey: <redacted:structure>, name: "Nedocromil", evidence_doi: "10.1177/106002809302700515"}
+  - {canonical_inchikey: <redacted:structure>, name: "Pirbuterol", evidence_doi: "10.2165/00003495-198530010-00002"}
+  - {canonical_inchikey: <redacted:structure>, name: "Procaterol", evidence_doi: "10.3390/ijms19071999"}
+  - {canonical_inchikey: <redacted:structure>, name: "Roflumilast", evidence_doi: "10.1016/bs.apha.2023.05.001"}
+  - {canonical_inchikey: <redacted:structure>, name: "Salbutamol", evidence_doi: "10.1111/bph.15621"}
+  - {canonical_inchikey: <redacted:structure>, name: "Salmeterol", evidence_doi: "10.1111/bph.15621"}
+  - {canonical_inchikey: <redacted:structure>, name: "Terbutaline", evidence_doi: "10.1056/NEJMoa1715274"}
+  - {canonical_inchikey: <redacted:structure>, name: "Theophylline", evidence_doi: "10.1016/bs.apha.2023.05.001"}
+  - {canonical_inchikey: <redacted:structure>, name: "Tiotropium", evidence_doi: "10.2165/00003495-200262080-00008"}
+  - {canonical_inchikey: <redacted:structure>, name: "Triamcinolone", evidence_doi: "10.1089/08942680152484090"}
 ```
 
 ## Next
@@ -119,3 +119,5 @@ compounds:
    found.
 3. This is the T18 artifact — T13 (`adjudication-worksheet`) is unblocked. Proceed at your own
    pace; nothing else is outstanding from me.
+
+<!-- redacted 2026-09-29 by redact-records.py: 0 accession tokens, 26 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->

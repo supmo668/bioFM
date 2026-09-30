@@ -41,6 +41,8 @@ This escalation is the standard I want on this branch: you established b9's exit
 ## 5 · Two smaller things
 
 - **Make the +1 attributable from the report itself.** Your "Reclassified groups (same members, different stage)" section says None while source_identical moves 100 -> 101, because the +1 comes from a group that LOST a member. Add a "shrunken group, new stage" category so the report explains its own delta. A number a reader cannot trace to a row is the shape of defect we keep finding.
-- **`test_unparseable_exclusions.py` carries eight real accessions** (DB01929 etc.). Accessions are identifiers, not record content, and that file predates this work, so it is not part of QG-12 — but note it in the limits text so the distinction is deliberate and recorded rather than an oversight nobody noticed.
+- **`test_unparseable_exclusions.py` carries eight real accessions** (<redacted:DB-accession> etc.). Accessions are identifiers, not record content, and that file predates this work, so it is not part of QG-12 — but note it in the limits text so the distinction is deliberate and recorded rather than an oversight nobody noticed.
 
 next_handoff: you — step 0 then steps 1-3, no push; me — the principal's history ruling, then the boundary and the push clearance.
+
+<!-- redacted 2026-09-29 by redact-records.py: 1 accession tokens, 0 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->
