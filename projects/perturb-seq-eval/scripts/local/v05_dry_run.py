@@ -6,8 +6,11 @@ Validates the end-to-end path before Phase 3 spends $ on Modal:
   2. ``mean_abs_logfc_per_target`` scores each TF; ``stratified_subsample``
      picks ~20 TFs balanced across 3 strength bins (seed=2026).
   3. A subset of 3 tasks runs through the LLMAgentPool (with a
-     deterministic stub client — no network) for speed.
-  4. Final MSD must be finite and Architect entropy > 0.
+     deterministic stub client — no network) for speed, for the
+     pre-registered ``LIFECYCLE_N_ROUNDS`` rounds (A2-2).
+  4. Final MSD must be finite, Architect entropy > 0, and NO step may be a
+     fallback (QG-8: every stub reply is schema-valid — confidence in [0, 1],
+     on-menu Architect backbone — so a fallback means the path is broken).
 
 Run:
     python3 scripts/local/v05_dry_run.py
@@ -15,6 +18,7 @@ Run:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import time
@@ -28,18 +32,47 @@ from perturb_eval.agentic_lifecycle.freedom_probe import (
 )
 from perturb_eval.agentic_lifecycle.llm_agent_pool import LLMAgentPool
 from perturb_eval.agentic_lifecycle.loop import run_agentic_lifecycle
+from perturb_eval.agentic_lifecycle.proposal_schema import BACKBONE_MENU
 from perturb_eval.data.subsample import (
     mean_abs_logfc_per_target,
     stratified_subsample,
 )
 from perturb_eval.experiments.e2_adamson import load_adamson_combined
+from perturb_eval.experiments.v05_sweep import LIFECYCLE_N_ROUNDS
+from perturb_eval.llm.openrouter_client import ChatResult
 
 
 class _DeterministicStubClient:
-    def chat_json(self, *, role: str, task_id: str, round_index: int, prompt: str) -> dict:  # noqa: ARG002
-        h = abs(hash((task_id, round_index, role))) % 100
+    """Schema-valid, process-independent stand-in for the LLM client.
+
+    QG-8: every reply states a ``confidence`` in [0, 1] (A2-1) and the
+    Architect an on-menu ``backbone`` (A2-6), so every step parses as an
+    "llm" step; the draw is keyed by a stable digest, not the process-salted
+    builtin hash.
+    """
+
+    @staticmethod
+    def _draw(task_id: str, round_index: int, role: str) -> int:
+        digest = hashlib.sha256(f"{task_id}|{round_index}|{role}".encode()).digest()
+        return int.from_bytes(digest[:4], "big") % 100
+
+    def chat_json(
+        self, *, role: str, task_id: str, round_index: int, prompt: str, seed: int, dataset: str
+    ) -> ChatResult:
+        return ChatResult(
+            content=self._payload(role=role, task_id=task_id, round_index=round_index),
+            model_id="stub/deterministic",
+        )
+
+    def _payload(self, *, role: str, task_id: str, round_index: int) -> dict:
+        h = self._draw(task_id, round_index, role)
+        confidence = round(0.5 + (h % 50) / 100.0, 2)  # in [0.5, 0.99]
         if role == "DataCurator":
-            return {"hvg_method": "seurat", "hvg_count": 500 if h % 2 else 1000}
+            return {
+                "hvg_method": "seurat",
+                "hvg_count": 500 if h % 2 else 1000,
+                "confidence": confidence,
+            }
         if role == "Literature":
             return {
                 "pathway_prior": {},
@@ -47,23 +80,24 @@ class _DeterministicStubClient:
                 "tool_calls": ["biogpt"],
                 "expected_up": [],
                 "expected_down": [],
+                "confidence": confidence,
             }
         if role == "Architect":
-            backbones = ("linear", "mlp", "scgpt_small")
             return {
-                "backbone": backbones[h % 3],
+                "backbone": BACKBONE_MENU[h % len(BACKBONE_MENU)],
                 "n_agents": 5,
-                "n_rounds": 2,
+                "n_rounds": LIFECYCLE_N_ROUNDS,
                 "hvg_count": 500 if h % 2 else 1000,
                 "learning_rate": 1e-2 if h % 2 else 5e-3,
                 "ridge_lambda": 1.0,
                 "epochs": 30,
+                "confidence": confidence,
             }
         if role == "Trainer":
-            return {"lr": 1e-2, "epochs": 10, "ridge_lambda": 1.0}
+            return {"lr": 1e-2, "epochs": 10, "ridge_lambda": 1.0, "confidence": confidence}
         if role == "Validator":
-            return {"dynamic_threshold_msd": 0.1}
-        return {}
+            return {"dynamic_threshold_msd": 0.1, "confidence": confidence}
+        raise ValueError(f"unknown role {role!r}")
 
 
 def main() -> int:
@@ -86,7 +120,7 @@ def main() -> int:
     ds = load_adamson_combined(h5ads, n_top_hvg=2000, max_cells_per_pert=80)
     print(
         f"[dry-run] combined: X={ds['X'].shape}, "
-        f"n_perts={len(ds['perturbations'])} in {time.time()-t0:.1f}s"
+        f"n_perts={len(ds['perturbations'])} in {time.time() - t0:.1f}s"
     )
 
     # Stratify by |logFC|.
@@ -99,16 +133,11 @@ def main() -> int:
     bin_edges = np.quantile(strengths, np.linspace(0, 1, n_bins + 1))
     bin_ids = np.clip(np.digitize(strengths, bin_edges[1:-1]), 0, n_bins - 1)
     stratified = stratified_subsample(tfs, bin_ids, n_per_stratum=7, seed=2026)
-    print(
-        f"[dry-run] |logFC| stratified: {len(stratified)} TFs (all 3 bins represented)"
-    )
-    print(
-        f"[dry-run] strength range: min={strengths.min():.3f} "
-        f"max={strengths.max():.3f}"
-    )
+    print(f"[dry-run] |logFC| stratified: {len(stratified)} TFs (all 3 bins represented)")
+    print(f"[dry-run] strength range: min={strengths.min():.3f} max={strengths.max():.3f}")
 
     # Run lifecycle on 3 tasks (spanning the strength range) for speed.
-    sample_tasks = [stratified[0], stratified[len(stratified)//2], stratified[-1]]
+    sample_tasks = [stratified[0], stratified[len(stratified) // 2], stratified[-1]]
     print(f"[dry-run] running lifecycle on {sample_tasks} ...")
 
     cache_dir = repo_root / "artifacts" / "v0.5.0" / "dry_run_cache"
@@ -126,16 +155,21 @@ def main() -> int:
             target_gene_idx=ds["target_gene_idx"],
             held_out=task,
             agent_pool=pool,
-            max_rounds=2,
+            max_rounds=LIFECYCLE_N_ROUNDS,  # A2-2: the pre-registered round count
+            seed=2026,  # no per-run seed loop in the dry run; fixed run seed
+            dataset="adamson_full",
         )
         runs.append(run)
         print(
             f"  {task}: MSD={run.final_msd_topk:.4f} "
             f"bb={run.backbone_used} rounds={run.n_rounds} "
-            f"wall={time.time()-t0:.1f}s"
+            f"wall={time.time() - t0:.1f}s"
         )
 
     traces = [list(r.steps) for r in runs]
+    fallback_steps = [
+        (r.task_id, s.round_index, s.agent_name) for r in runs for s in r.steps if s.source != "llm"
+    ]
     h_backbone = per_agent_field_entropy(traces, agent="Architect", field="backbone")
     h_hvg = per_agent_field_entropy(traces, agent="Architect", field="hvg_count")
 
@@ -144,6 +178,8 @@ def main() -> int:
         "n_tasks_after_stratify": int(len(stratified)),
         "n_tasks_tested": len(sample_tasks),
         "finite_runs": sum(1 for r in runs if np.isfinite(r.final_msd_topk)),
+        "n_rounds": LIFECYCLE_N_ROUNDS,
+        "n_fallback_steps": len(fallback_steps),
         "mean_msd": float(np.mean([r.final_msd_topk for r in runs])),
         "architect_backbone_entropy_nats": float(h_backbone),
         "architect_hvg_entropy_nats": float(h_hvg),
@@ -161,6 +197,14 @@ def main() -> int:
     if summary["finite_runs"] == 0:
         print("[dry-run] FAIL: no finite runs", file=sys.stderr)
         return 2
+    if fallback_steps:
+        # QG-8: the stub is schema-valid, so a fallback step means the
+        # pool -> parse -> loop path is broken (and would invalidate a real run, C-KEY-2).
+        print(
+            f"[dry-run] FAIL: {len(fallback_steps)} fallback step(s): {fallback_steps}",
+            file=sys.stderr,
+        )
+        return 3
     if summary["n_tasks_after_stratify"] < 15:
         print(
             f"[dry-run] WARN: stratification yielded only {summary['n_tasks_after_stratify']} tasks",

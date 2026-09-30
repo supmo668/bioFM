@@ -8,9 +8,11 @@ instead of just a backbone string. See
 
 from __future__ import annotations
 
+import math
+from collections.abc import Collection, Mapping
 from typing import Any, Optional
 
-from perturb_eval.backbones import available_backbones, build_backbone
+from perturb_eval.backbones import _REGISTRY, available_backbones, build_backbone
 
 _ALIAS = {
     "scgpt": "scgpt_small",
@@ -22,10 +24,34 @@ _ALIAS = {
 }
 
 
+class BackboneUnavailableError(RuntimeError):
+    """A KNOWN backbone (registry or alias) cannot be built in this environment.
+
+    C-TORCH-2 (CTO #241): never degraded to ``linear`` — that would make the
+    Architect's backbone distribution measure the import, not the agent.
+    """
+
+
 def _canonical_backbone(name: str) -> str:
+    """Canonicalise an Architect backbone name.
+
+    * unknown name (not in the registry, not an alias) -> ``"linear"``
+      (documented fallback for free-text LLM output);
+    * known name not in :func:`available_backbones` -> raises
+      :class:`BackboneUnavailableError` (C-TORCH-2).
+    """
     lower = name.strip().lower()
     resolved = _ALIAS.get(lower, lower)
-    return resolved if resolved in available_backbones() else "linear"
+    if resolved not in _REGISTRY:
+        return "linear"
+    available = available_backbones()
+    if resolved not in available:
+        reason = "torch is not importable" if resolved == "scgpt_small" else "not available"
+        raise BackboneUnavailableError(
+            f"backbone {resolved!r} (requested as {name!r}) is known but unavailable in "
+            f"this environment: {reason}; available: {sorted(available)}"
+        )
+    return resolved
 
 
 def resolve_architect_config(
@@ -38,7 +64,8 @@ def resolve_architect_config(
     Returns a fully-populated config dict with keys
     ``{backbone, hvg_count, learning_rate, ridge_lambda, epochs,
     n_agents, n_rounds}``. Unknown backbones are canonicalised via the
-    alias table and fall back to ``linear`` if still unrecognised.
+    alias table and fall back to ``linear`` if still unrecognised; a known
+    backbone that is unavailable here raises :class:`BackboneUnavailableError`.
 
     Parameters
     ----------
@@ -47,8 +74,8 @@ def resolve_architect_config(
         module defaults.
     critique_delta
         Validator's ``suggested_next_config_delta`` from the previous
-        round. Applied after the base proposal; invalid backbone deltas
-        are silently ignored (we fall back to the proposal's backbone).
+        round. Applied after the base proposal; an unrecognised backbone
+        delta canonicalises to ``linear``; a known-but-unavailable one raises.
     """
     cfg: dict[str, Any] = {
         "backbone": "linear",
@@ -79,6 +106,141 @@ def resolve_architect_config(
     # Final sanity pass on backbone in case delta introduced junk.
     cfg["backbone"] = _canonical_backbone(str(cfg["backbone"]))
     return cfg
+
+
+# A2-3: every agent-controlled field, its default, and the key each tier states
+# it under (schema names; ``n_top_hvg`` / ``pct_mito_max`` are the legacy
+# DataCurator keys still emitted by the non-LLM mock pool). Precedence per
+# field: Validator delta > Architect > DataCurator > Trainer > default. The
+# Trainer tier is not named in amendment 2; it sits just above the default so
+# the Trainer's own schema fields are applied only when no ranked tier states
+# them (it overlaps the Architect only on learning_rate / ridge_lambda / epochs).
+APPLIED_FIELDS: dict[str, dict[str, Any]] = {
+    "backbone": {"default": "linear", "architect": ("backbone",)},
+    "hvg_count": {
+        "default": 2000,
+        "architect": ("hvg_count",),
+        "datacurator": ("hvg_count", "n_top_hvg"),
+    },
+    "qc_mito_max": {"default": 12.0, "datacurator": ("qc_mito_max", "pct_mito_max")},
+    "learning_rate": {"default": 1e-2, "architect": ("learning_rate",), "trainer": ("lr",)},
+    "ridge_lambda": {"default": 1.0, "architect": ("ridge_lambda",), "trainer": ("ridge_lambda",)},
+    "epochs": {"default": 40, "architect": ("epochs",), "trainer": ("epochs",)},
+}
+_TIERS = ("architect", "datacurator", "trainer")
+
+# QG-2 (A2-3): fields that are RESOLVED and RECORDED but NOT APPLIED by any
+# executor, with the reason. ``qc_mito_max`` is only logged by
+# ``execute_data_curator``: the lifecycle dataset carries no per-cell mito
+# fraction and no cell filter exists (whether to implement one is an open
+# A2-3 ruling). The per-round record must never file such a field as applied.
+NOT_APPLIED_FIELDS: dict[str, str] = {
+    "qc_mito_max": (
+        "no per-cell mito fraction in the lifecycle dataset; filter not implemented "
+        "(execute_data_curator only logs the value) — recorded, not applied (amendment 3, A3-1)"
+    ),
+}
+
+
+def applied_config_record(values: Mapping[str, Any], sources: Mapping[str, str]) -> dict[str, Any]:
+    """One round's ``applied_config_per_round`` entry (A2-3, QG-2).
+
+    ``{"values", "sources", "applied", "not_applied_reason"}``: ``applied`` is an
+    explicit per-field flag over every field in ``values`` — ``False`` for the
+    fields in :data:`NOT_APPLIED_FIELDS`, whose reason is in
+    ``not_applied_reason`` — so a resolved value is never mistaken for an
+    executed one.
+    """
+    unknown = set(NOT_APPLIED_FIELDS) - set(values)
+    if unknown:
+        raise ValueError(f"NOT_APPLIED_FIELDS names fields not in the record: {sorted(unknown)}")
+    return {
+        "values": dict(values),
+        "sources": dict(sources),
+        "applied": {k: k not in NOT_APPLIED_FIELDS for k in values},
+        "not_applied_reason": {k: NOT_APPLIED_FIELDS[k] for k in values if k in NOT_APPLIED_FIELDS},
+    }
+
+
+def _stated_value(
+    content: Mapping[str, Any] | None, stated: Collection[str] | None, keys: tuple[str, ...]
+) -> tuple[bool, Any]:
+    """``(True, value)`` for the first of ``keys`` the tier STATED.
+
+    ``stated=None`` (a non-LLM pool, which reports no stated set) treats every
+    key present in ``content`` as stated. For an LLM step ``stated`` is the
+    parsed model's ``model_fields_set``: a schema default is not a statement.
+    """
+    if not content:
+        return False, None
+    for key in keys:
+        if key in content and content[key] is not None and (stated is None or key in stated):
+            return True, content[key]
+    return False, None
+
+
+def resolve_applied_config(
+    *,
+    datacurator: Mapping[str, Any] | None,
+    datacurator_stated: Collection[str] | None,
+    architect: Mapping[str, Any] | None,
+    architect_stated: Collection[str] | None,
+    critique_delta: Optional[Mapping[str, Any]],
+    trainer: Mapping[str, Any] | None = None,
+    trainer_stated: Collection[str] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """The applied configuration for one round, and which tier supplied each field (A2-3).
+
+    Returns ``(values, sources)`` over :data:`APPLIED_FIELDS`; each source is
+    ``"validator"``, ``"architect"``, ``"datacurator"``, ``"trainer"`` or
+    ``"default"``. Backbone names are canonicalised by :func:`_canonical_backbone`.
+    """
+    tiers = {
+        "architect": (architect, architect_stated),
+        "datacurator": (datacurator, datacurator_stated),
+        "trainer": (trainer, trainer_stated),
+    }
+    delta = dict(critique_delta or {})
+    values: dict[str, Any] = {}
+    sources: dict[str, str] = {}
+    for name, spec in APPLIED_FIELDS.items():
+        if name in delta and delta[name] is not None:
+            values[name], sources[name] = delta[name], "validator"
+        else:
+            values[name], sources[name] = spec["default"], "default"
+            for tier in _TIERS:
+                keys = spec.get(tier)
+                if not keys:
+                    continue
+                content, stated = tiers[tier]
+                found, val = _stated_value(content, stated, keys)
+                if found:
+                    values[name], sources[name] = val, tier
+                    break
+    values["backbone"] = _canonical_backbone(str(values["backbone"]))
+    # QG-5: a Validator delta (an unvalidated dict) or a non-LLM pool's content
+    # bypasses the schema, so a non-finite value can reach here. Raise a clear
+    # error; never apply it and never silently substitute a default.
+    for k in ("hvg_count", "epochs", "qc_mito_max", "learning_rate", "ridge_lambda"):
+        _require_finite(k, values[k], sources[k])
+    values["hvg_count"] = int(values["hvg_count"])
+    values["epochs"] = int(values["epochs"])
+    for k in ("qc_mito_max", "learning_rate", "ridge_lambda"):
+        values[k] = float(values[k])
+    return values, sources
+
+
+def _require_finite(name: str, value: Any, source: str) -> None:
+    """QG-5: ``value`` must be a finite real number; raise ``ValueError`` otherwise."""
+    try:
+        ok = not isinstance(value, bool) and math.isfinite(float(value))
+    except (TypeError, ValueError, OverflowError):
+        ok = False
+    if not ok:
+        raise ValueError(
+            f"applied config field {name!r} = {value!r} (from {source!r}) is not a finite "
+            "number; refusing to apply it (QG-5: never substituted silently)"
+        )
 
 
 def dispatch_architect(proposal: dict) -> tuple:

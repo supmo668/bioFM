@@ -1,0 +1,27 @@
+# C-RG-1 GREEN — tests/test_hvg.py after T8b fix, 2026-09-24T19:55:56Z, HEAD dedd605 + working tree
+# cmd: .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_hvg.py -rA
+............                                                             [100%]
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_adamson_single_file_grid_cell
+PASSED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_adamson_combined_trainer_sweep
+PASSED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_norman_trainer_sweep
+PASSED tests/test_hvg.py::TestTrainOnlyPropertyThroughRealPaths::test_lifecycle_loop
+PASSED tests/test_hvg.py::TestVarianceIsTrainingRowsOnly::test_helper_gene_var_equals_training_rows_var
+PASSED tests/test_hvg.py::TestVarianceIsTrainingRowsOnly::test_real_path_passes_training_mask
+PASSED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_trainer_sweep_selects_once_per_held_out_task[adamson_full]
+PASSED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_trainer_sweep_selects_once_per_held_out_task[norman]
+PASSED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_adamson_grid_cell_selects_once_per_call
+PASSED tests/test_hvg.py::TestEveryPathRoutesThroughHelper::test_lifecycle_selects_once_per_round
+PASSED tests/test_hvg.py::TestCombinedLoaderResolvesTargets::test_target_missing_from_shared_vocab_raises
+PASSED tests/test_hvg.py::TestCombinedLoaderResolvesTargets::test_combined_targets_are_tuples_over_full_vocab
+12 passed in 0.17s
+
+# full suite: .venv/bin/python -m pytest -q -p no:cacheprovider
+...............                                                          [100%]
+303 passed in 3.21s
+
+# done-when: grep -rn "var(axis=0)" src/perturb_eval/experiments/
+(exit 1 — no matches)
+# all var(axis=0) in src/:
+src/perturb_eval/data/hvg.py:61:        out[a:b] = np.asarray(X[mask, a:b], dtype=np.float64).var(axis=0)

@@ -204,3 +204,140 @@ class TestMSD:
         truth = np.zeros(4)
         pred = np.ones(4)
         assert mean_squared_deviation(pred, truth, np.arange(4)) == pytest.approx(1.0)
+
+
+# ---------------------------------------------------------------------------
+# T9 / D1 — multi-target contract: ``target_gene_idx: Mapping[str, tuple[int, ...]]``
+# ---------------------------------------------------------------------------
+
+# Regression pin captured from the pre-T9 single-int code path (commit 16f4f54)
+# on ``_pin_setup()``. A 1-tuple and a plain int must reproduce these
+# bit-for-bit (rtol=0, atol=0).
+_PIN_LINEAR = [
+    0.0018316583237388457, -0.08090151514344297, 0.009073835886043824,
+    0.00114820377095907, 0.05077691989006361, -0.6317395604314169,
+    0.01801914330536336, -0.06555686935383834, 0.06152788966762908,
+    0.06207339829435761, -0.6331045698353186, 0.009449865180770992,
+    -0.011774689481254633, 0.06684052376052133, 0.1031091229110146,
+    -1.944742291219042,
+]
+_PIN_MLP = [
+    -0.009365195013296586, -0.14963805361775354, 0.19098722259695713,
+    -0.2678582565891176, 0.40536695483053803, -0.9189982415483317,
+    0.37012031111759813, -0.32211288458697085, -0.37221127966963297,
+    0.18888931797622535, -0.9502761244104112, -0.09854404831468926,
+    0.182800894177524, 0.5907664585269514, -0.03091329616600319,
+    -0.2854345396762541,
+]
+
+
+def _pin_setup() -> tuple[dict, str, np.ndarray]:
+    ds = _toy_dataset(n_cells=120, n_genes=16, perturbations=("A", "B", "C"), seed=7)
+    held = "C"
+    return ds, held, ds["labels"] != held
+
+
+def _pin_predict(cls, as_tuple: bool) -> np.ndarray:
+    ds, held, m = _pin_setup()
+    wrap = (lambda i: (i,)) if as_tuple else (lambda i: i)
+    tg = {p: wrap(i) for p, i in ds["target_gene_idx"].items() if p != held}
+    bb = cls()
+    bb.fit(ds["X"][m], ds["labels"][m].tolist(), ds["control_mask"][m], tg,
+           BackboneTrainConfig(seed=11, max_iter=50))
+    return bb.predict_logfc(held, wrap(ds["target_gene_idx"][held]), 16)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("cls,pin", [(LinearBackbone, _PIN_LINEAR), (MLPBackbone, _PIN_MLP)])
+@pytest.mark.parametrize("as_tuple", [False, True], ids=["int", "1-tuple"])
+def test_single_target_regression_pin_bit_exact(cls, pin, as_tuple: bool) -> None:
+    pred = _pin_predict(cls, as_tuple)
+    np.testing.assert_allclose(pred, np.asarray(pin), rtol=0, atol=0)
+    assert pred.tobytes() == np.asarray(pin, dtype=np.float64).tobytes()
+
+
+def _doublet_dataset() -> tuple[dict, dict[str, tuple[int, ...]]]:
+    """Toy data plus a doublet ``A_B`` knocking down columns 3 and 5."""
+    ds = _toy_dataset(n_cells=200, n_genes=20, perturbations=("A", "B", "C"), seed=3)
+    rng = np.random.default_rng(99)
+    rows = rng.standard_normal((40, 20)) * 0.3 + 2.0
+    rows[:, 3] -= 2.0
+    rows[:, 5] -= 1.0
+    ds["X"] = np.vstack([ds["X"], rows])
+    ds["labels"] = np.concatenate([ds["labels"], np.asarray(["A_B"] * 40)])
+    ds["control_mask"] = ds["labels"] == "CTRL"
+    targets = {p: (i,) for p, i in ds["target_gene_idx"].items()}
+    targets["A_B"] = (3, 5)
+    return ds, targets
+
+
+@pytest.mark.unit
+class TestMultiTarget:
+    def test_as_targets_helper(self) -> None:
+        from perturb_eval.backbones.base import _as_targets
+
+        assert _as_targets(4) == (4,)
+        assert _as_targets(np.int64(4)) == (4,)
+        assert _as_targets((3, 5)) == (3, 5)
+        assert _as_targets([3, 5]) == (3, 5)
+        assert all(type(i) is int for i in _as_targets((np.int64(3), 5)))
+
+    def test_linear_doublet_dip_is_mean_of_target_columns(self) -> None:
+        ds, targets = _doublet_dataset()
+        bb = LinearBackbone()
+        bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets, BackboneTrainConfig())
+        # Recompute the dip feature independently: mean over each
+        # perturbation's target columns, then mean across perturbations.
+        mu_ctrl = ds["X"][ds["control_mask"]].mean(axis=0)
+        dips = []
+        for p, idx in targets.items():
+            lfc = ds["X"][ds["labels"] == p].mean(axis=0) - mu_ctrl
+            dips.append(lfc[list(idx)].mean())
+        assert bb._target_dip == pytest.approx(float(np.mean(dips)), abs=1e-12)
+        # A_B's own contribution is the mean of columns 3 and 5 (≈ -1.5).
+        lfc_ab = ds["X"][ds["labels"] == "A_B"].mean(axis=0) - mu_ctrl
+        assert lfc_ab[[3, 5]].mean() == pytest.approx(-1.5, abs=0.2)
+
+    def test_linear_predict_writes_dip_into_every_target(self) -> None:
+        ds, targets = _doublet_dataset()
+        held = "A_B"
+        m = ds["labels"] != held
+        bb = LinearBackbone()
+        bb.fit(ds["X"][m], ds["labels"][m].tolist(), ds["control_mask"][m],
+               {p: t for p, t in targets.items() if p != held}, BackboneTrainConfig())
+        pred = bb.predict_logfc(held, (3, 5), n_genes=20)
+        assert pred[3] == bb._target_dip
+        assert pred[5] == bb._target_dip
+        assert pred[4] != bb._target_dip
+        # out-of-range members are ignored, in-range ones still written
+        pred2 = bb.predict_logfc(held, (3, 999), n_genes=20)
+        assert pred2[3] == bb._target_dip
+
+    def test_mlp_doublet_fit_and_predict(self) -> None:
+        ds, targets = _doublet_dataset()
+        bb = MLPBackbone()
+        art = bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets,
+                     BackboneTrainConfig(max_iter=20))
+        assert art.n_train_perturbations == 4
+        pred = bb.predict_logfc("A_B", (3, 5), n_genes=20)
+        assert pred.shape == (20,) and np.all(np.isfinite(pred))
+        # doublet features differ from either singleton
+        assert not np.array_equal(pred, bb.predict_logfc("A", (3,), n_genes=20))
+
+    def test_scgpt_small_doublet_fit_and_predict(self) -> None:
+        pytest.importorskip("torch")
+        from perturb_eval.backbones import SCGPTSmallBackbone
+        from perturb_eval.backbones.scgpt_small import _ArchitectureConfig
+
+        ds, targets = _doublet_dataset()
+        arch = _ArchitectureConfig(embed_dim=16, n_layers=1, n_heads=2, ffn_dim=32)
+        bb = SCGPTSmallBackbone(arch)
+        art = bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets,
+                     BackboneTrainConfig(max_iter=5))
+        assert art.n_train_perturbations == 4
+        pred = bb.predict_logfc("A_B", (3, 5), n_genes=20)
+        assert pred.shape == (20,) and np.all(np.isfinite(pred))
+        # 1-tuple and plain int take the identical path
+        np.testing.assert_array_equal(
+            bb.predict_logfc("A", (3,), n_genes=20), bb.predict_logfc("A", 3, n_genes=20)
+        )

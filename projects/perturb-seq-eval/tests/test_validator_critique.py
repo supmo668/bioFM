@@ -18,6 +18,7 @@ from perturb_eval.agentic_lifecycle.validator_gate import (
     score_and_gate,
     suggest_config_delta,
 )
+from perturb_eval.data.hvg import top_deg_columns
 
 
 class _BadBackbone:
@@ -68,6 +69,8 @@ class TestStructuredCritiqueEmitted:
             control_mask=ctrl,
             held_out="p1",
             held_out_target_idx=0,
+            # A2-5: the task's eval genes, selected once on the full gene axis.
+            eval_cols=top_deg_columns(X, labels, ctrl, "p1"),
             threshold_msd=0.01,
         )
         assert isinstance(report, ExecutedValidation)
@@ -87,6 +90,8 @@ class TestStructuredCritiqueEmitted:
             control_mask=ctrl,
             held_out="p1",
             held_out_target_idx=0,
+            # A2-5: the task's eval genes, selected once on the full gene axis.
+            eval_cols=top_deg_columns(X, labels, ctrl, "p1"),
             threshold_msd=0.5,
         )
         assert report.accepted
@@ -102,6 +107,8 @@ class TestStructuredCritiqueEmitted:
             control_mask=ctrl,
             held_out="p1",
             held_out_target_idx=0,
+            # A2-5: the task's eval genes, selected once on the full gene axis.
+            eval_cols=top_deg_columns(X, labels, ctrl, "p1"),
             threshold_msd=0.01,
         )
         delta = report.critique.suggested_next_config_delta
@@ -113,23 +120,32 @@ class TestStructuredCritiqueEmitted:
 class TestSuggestConfigDelta:
     def test_empty_when_accepted(self) -> None:
         delta = suggest_config_delta(
-            accepted=True, msd=0.01, threshold_msd=0.1,
-            current_backbone="linear", deg_sign_agreement=0.9,
+            accepted=True,
+            msd=0.01,
+            threshold_msd=0.1,
+            current_backbone="linear",
+            deg_sign_agreement=0.9,
         )
         assert delta == {}
 
     def test_switches_backbone_when_sign_agreement_low(self) -> None:
         delta = suggest_config_delta(
-            accepted=False, msd=0.5, threshold_msd=0.1,
-            current_backbone="linear", deg_sign_agreement=0.3,
+            accepted=False,
+            msd=0.5,
+            threshold_msd=0.1,
+            current_backbone="linear",
+            deg_sign_agreement=0.3,
         )
         assert "backbone" in delta
         assert delta["backbone"] != "linear"
 
     def test_lowers_lr_when_msd_high_but_sign_ok(self) -> None:
         delta = suggest_config_delta(
-            accepted=False, msd=0.5, threshold_msd=0.1,
-            current_backbone="linear", deg_sign_agreement=0.75,
+            accepted=False,
+            msd=0.5,
+            threshold_msd=0.1,
+            current_backbone="linear",
+            deg_sign_agreement=0.75,
         )
         # Direction is right but magnitude off — try smaller LR.
         assert "learning_rate" in delta or "ridge_lambda" in delta

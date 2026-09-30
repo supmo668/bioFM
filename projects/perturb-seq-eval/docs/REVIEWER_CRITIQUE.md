@@ -1,4 +1,9 @@
-# Reviewer Critique — Journal Readiness Assessment
+---
+scope: v0.4.1 (retracted line)
+status: historical — reviews the retracted v0.4.1 manuscript, not the current paper
+---
+
+# Reviewer Critique — v0.4.1 (retracted line) — Journal Readiness Assessment
 
 > Harsh-but-fair reviewer pass on the supplement as committed 2026-04-21.
 > Reviewer persona: senior ML + computational-biology reviewer who has

@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from perturb_eval.experiments.e_v05_real_traces import (
@@ -18,7 +17,6 @@ from perturb_eval.experiments.e_v05_real_traces import (
     analyse_v05_run,
     best_config_per_task,
     median_msd_per_config,
-    tdi_vs_held_out_msd,
 )
 
 
@@ -50,9 +48,11 @@ class TestBestConfigPerTask:
             ],
         )
         best = best_config_per_task(trainer)
-        assert best["TFA"].best_msd == pytest.approx(0.2)
-        assert best["TFA"].best_config["backbone"] == "mlp"
-        assert best["TFB"].best_msd == pytest.approx(0.8)
+        # QG C5: keyed on (dataset, task).
+        assert best[("adamson_full", "TFA")].best_msd == pytest.approx(0.2)
+        assert best[("adamson_full", "TFA")].best_config["backbone"] == "mlp"
+        assert best[("adamson_full", "TFB")].best_msd == pytest.approx(0.8)
+        assert best[("adamson_full", "TFA")].dataset == "adamson_full"
 
     def test_aggregates_median_across_seeds(self, tmp_path: Path) -> None:
         trainer = tmp_path / "trainer.jsonl"
@@ -68,33 +68,6 @@ class TestBestConfigPerTask:
         # (linear, 3, 1) median = 0.2
         entry = next(r for r in median if r["backbone"] == "linear")
         assert entry["median_msd"] == pytest.approx(0.2)
-
-
-class TestTDIVsHeldOutMSD:
-    def test_returns_spearman_float_per_feature(self, tmp_path: Path) -> None:
-        lifecycle = tmp_path / "lifecycle.jsonl"
-        # Build traces where ACE correlates with MSD.
-        rows = []
-        rng = np.random.default_rng(0)
-        for task_i in range(20):
-            # fake ACE feature in steps; msd scales with it
-            ace = 0.1 + task_i * 0.04
-            msd = ace * 5 + rng.normal(0, 0.05)
-            rows.append(
-                {
-                    "task_id": f"t{task_i}",
-                    "seed": 1,
-                    "final_msd_topk": float(msd),
-                    "steps": [
-                        {"agent_name": "Architect", "proposal_content": {"ace_proxy": float(ace)}},
-                    ],
-                }
-            )
-        _write_lifecycle_jsonl(lifecycle, rows)
-        corr = tdi_vs_held_out_msd(lifecycle, feature_path=("Architect", "ace_proxy"))
-        # Positive Spearman since ace_proxy grows with msd.
-        assert corr["spearman"] > 0.8
-        assert corr["n"] == 20
 
 
 class TestAnalyseV05Run:
@@ -116,15 +89,19 @@ class TestAnalyseV05Run:
                 for i in range(5)
             ],
         )
+        # T15: lifecycle task set must equal the trainer task set (was TF* only,
+        # which the old analyser silently partial-joined). T16: steps carry
+        # source="llm" so they count toward entropy.
         _write_lifecycle_jsonl(
             lifecycle,
             [
-                {"task_id": f"TF{i}", "seed": 1,
+                {"dataset": ds, "task_id": f"{prefix}{i}", "seed": 1,
                  "final_msd_topk": 0.15 + 0.01 * i,
                  "steps": [
-                     {"agent_name": "Architect",
+                     {"agent_name": "Architect", "source": "llm",
                       "proposal_content": {"backbone": ["linear", "mlp", "scgpt_small"][i % 3]}},
                  ]}
+                for prefix, ds in (("TF", "adamson_full"), ("N", "norman"))
                 for i in range(5)
             ],
         )
@@ -135,7 +112,8 @@ class TestAnalyseV05Run:
         assert "n_trainer_runs" in summary
         assert "n_lifecycle_runs" in summary
         assert summary["n_trainer_runs"] == 10
-        assert summary["n_lifecycle_runs"] == 5
+        assert summary["n_lifecycle_runs"] == 10
+        assert summary["n_tasks_trainer"] == summary["n_tasks_lifecycle"] == 10
         # Gate check fields present (even if gate isn't met on tiny synthetic fixture).
         assert "gate_adamson_median_below_0_20" in summary
         assert "gate_norman_median_below_0_30" in summary
@@ -152,7 +130,8 @@ class TestRobustToMissingData:
         assert summary["n_trainer_runs"] == 0
         assert summary["n_lifecycle_runs"] == 0
 
-    def test_skips_malformed_lines(self, tmp_path: Path) -> None:
+    def test_refuses_malformed_lines(self, tmp_path: Path) -> None:
+        """CTO #245 Q2: an unparseable line is refused with its location, never skipped."""
         trainer = tmp_path / "trainer.jsonl"
         trainer.write_text(
             '{"dataset": "adamson_full", "task": "TFA", "backbone": "linear", '
@@ -161,8 +140,8 @@ class TestRobustToMissingData:
             '{"dataset": "adamson_full", "task": "TFB", "backbone": "mlp", '
             '"N": 3, "R": 1, "seed": 1, "msd_topk": 0.2}\n'
         )
-        best = best_config_per_task(trainer)
-        assert set(best) == {"TFA", "TFB"}
+        with pytest.raises(ValueError, match=r"line 2 \(byte offset \d+\)"):
+            best_config_per_task(trainer)
 
     def test_skips_infinite_msd(self, tmp_path: Path) -> None:
         trainer = tmp_path / "trainer.jsonl"
@@ -176,7 +155,7 @@ class TestRobustToMissingData:
             ],
         )
         best = best_config_per_task(trainer)
-        assert best["TFA"].best_msd == pytest.approx(0.2)
+        assert best[("adamson_full", "TFA")].best_msd == pytest.approx(0.2)
 
 
 class TestBestConfigPerTaskDTO:

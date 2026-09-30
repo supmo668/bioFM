@@ -16,7 +16,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from perturb_eval.optimizers.base import Observation, config_to_vec, nearest_config
+from perturb_eval.optimizers.base import (
+    Observation,
+    backbones_of,
+    config_to_vec,
+    nearest_config,
+)
 from perturb_eval.types import Config
 
 
@@ -42,11 +47,12 @@ class OnePlusLambdaES:
         popsize: int = 4,
     ) -> None:
         self._space = config_space
+        self._backbones = backbones_of(config_space)
         self._rng = np.random.default_rng(seed)
         self._sigma = sigma0
         self._popsize = popsize
         # Seed mean at the centroid of the embedded space.
-        embeddings = np.stack([config_to_vec(c) for c in config_space], axis=0)
+        embeddings = np.stack([config_to_vec(c, self._backbones) for c in config_space], axis=0)
         self._mean = embeddings.mean(axis=0)
         self._dim = self._mean.size
         self._last_batch: list[np.ndarray] = []
@@ -66,11 +72,11 @@ class OnePlusLambdaES:
             self._sigma = float(np.clip(self._sigma, 1e-3, 2.0))
             # Move mean toward the best of the recent batch.
             best = recent[int(np.argmin(ys))]
-            self._mean = 0.5 * self._mean + 0.5 * config_to_vec(best.config)
+            self._mean = 0.5 * self._mean + 0.5 * config_to_vec(best.config, self._backbones)
 
         # Sample one offspring and project onto Φ.
         sample = self._mean + self._sigma * self._rng.standard_normal(self._dim)
-        return nearest_config(sample, self._space)
+        return nearest_config(sample, self._space, self._backbones)
 
 
 # Backwards-compatible alias. Old code that constructs ``CMAESOptimizer`` keeps

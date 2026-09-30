@@ -1,0 +1,223 @@
+{
+ "measured_at": "2026-09-29T02:33:34Z",
+ "calls": [
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Validator",
+   "task": "ZNF326",
+   "round": 0,
+   "requested_model": "claude-sonnet-5-5",
+   "served_model": "claude-sonnet-5-5",
+   "served_equals_requested": true,
+   "stop_reason": "end_turn",
+   "stop_category": null,
+   "input_tokens": 765,
+   "output_tokens": 170,
+   "cache_read": 0,
+   "cost_usd": 0.00323,
+   "latency_s": 2.3,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Validator",
+   "task": "ZNF326",
+   "round": 1,
+   "requested_model": "claude-sonnet-5-5",
+   "served_model": "claude-sonnet-5-5",
+   "served_equals_requested": true,
+   "stop_reason": "end_turn",
+   "stop_category": null,
+   "input_tokens": 893,
+   "output_tokens": 206,
+   "cache_read": 0,
+   "cost_usd": 0.00385,
+   "latency_s": 2.8,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Validator",
+   "task": "ZNF326",
+   "round": 2,
+   "requested_model": "claude-sonnet-5-5",
+   "served_model": "claude-sonnet-5-5",
+   "served_equals_requested": true,
+   "stop_reason": "end_turn",
+   "stop_category": null,
+   "input_tokens": 893,
+   "output_tokens": 185,
+   "cache_read": 0,
+   "cost_usd": 0.00364,
+   "latency_s": 2.4,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Validator",
+   "task": "DDIT3",
+   "round": 0,
+   "requested_model": "claude-sonnet-5-5",
+   "served_model": "claude-sonnet-5-5",
+   "served_equals_requested": true,
+   "stop_reason": "end_turn",
+   "stop_category": null,
+   "input_tokens": 765,
+   "output_tokens": 298,
+   "cache_read": 0,
+   "cost_usd": 0.00451,
+   "latency_s": 3.2,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Validator",
+   "task": "DDIT3",
+   "round": 1,
+   "requested_model": "claude-sonnet-5-5",
+   "served_model": "claude-sonnet-5-5",
+   "served_equals_requested": true,
+   "stop_reason": "end_turn",
+   "stop_category": null,
+   "input_tokens": 893,
+   "output_tokens": 188,
+   "cache_read": 0,
+   "cost_usd": 0.00367,
+   "latency_s": 1.9,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "DataCurator",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Architect",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Trainer",
+   "model_id": "claude-haiku-4-5-20251001",
+   "error": "TypeError"
+  },
+  {
+   "role": "Validator",
+   "task": "DDIT3",
+   "round": 2,
+   "requested_model": "claude-sonnet-5-5",
+   "served_model": "claude-sonnet-5-5",
+   "served_equals_requested": true,
+   "stop_reason": "end_turn",
+   "stop_category": null,
+   "input_tokens": 893,
+   "output_tokens": 198,
+   "cache_read": 0,
+   "cost_usd": 0.00377,
+   "latency_s": 2.6,
+   "verdict": "schema ok"
+  }
+ ],
+ "total_cost_usd": 0.02265,
+ "note": "The 24 records with error 'TypeError' are CLIENT-SIDE: anthropic SDK 1.x removed the typed `temperature` argument of messages.create(); the exception was raised before any request was sent (unbilled). Those 24 Haiku prompts were re-run with temperature passed in the raw body and are recorded in anthropic-dry-run-30-haiku-24-20260929.json. The six Sonnet 5.5 Validator calls in this file are the authoritative Validator measurements."
+}

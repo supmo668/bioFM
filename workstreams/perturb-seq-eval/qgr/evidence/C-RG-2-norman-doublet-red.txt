@@ -1,0 +1,55 @@
+# C-RG-2 RED (pre-implementation) — 2026-09-24T19:45:02Z — git dedd605 + uncommitted test edits
+$ .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_norman_loader.py
+.......FF.                                                               [100%]
+=================================== FAILURES ===================================
+_ TestNormanDoubletsAndMissingTargets.test_underscore_doublet_maps_to_both_target_columns _
+
+self = <test_norman_loader.TestNormanDoubletsAndMissingTargets object at 0x111732d20>
+norman_h5ad = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-617/test_underscore_doublet_maps_t0/NormanWeissman2019.h5ad')
+
+    def test_underscore_doublet_maps_to_both_target_columns(self, norman_h5ad: Path) -> None:
+        from perturb_eval.experiments.norman import load_norman_matrix
+    
+        ds = load_norman_matrix(norman_h5ad)
+        col = {g: i for i, g in enumerate(ds["gene_names"])}
+>       assert ds["target_gene_idx"]["JUN_FOS"] == (col["JUN"], col["FOS"])
+E       assert 17 == (18, 5)
+
+tests/test_norman_loader.py:141: AssertionError
+__ TestNormanDoubletsAndMissingTargets.test_singleton_outside_hvg_cut_raises ___
+
+self = <test_norman_loader.TestNormanDoubletsAndMissingTargets object at 0x111730ce0>
+tmp_path = PosixPath('/private/var/folders/ld/y7g6vtg5147_gv424c_d2l1h0000gn/T/pytest-of-mo/pytest-617/test_singleton_outside_hvg_cut0')
+
+    def test_singleton_outside_hvg_cut_raises(self, tmp_path: Path) -> None:
+        import anndata as ad
+        from scipy.sparse import csr_matrix
+    
+        from perturb_eval.experiments.norman import load_norman_matrix
+    
+        # Fixed design: gene LOWVAR is constant (zero variance) so a
+        # 10-gene HVG cut always drops it; its singleton must raise.
+        n_genes = 30
+        gene_names = np.array([f"GENE{i:03d}" for i in range(n_genes)])
+        gene_names[0], gene_names[1] = "JUN", "LOWVAR"
+        labels = ["non-targeting"] * 20 + ["JUN"] * 20 + ["LOWVAR"] * 20
+        X = np.tile(np.arange(1, n_genes + 1, dtype=np.float32), (len(labels), 1))
+        X[: len(labels) // 2] *= 3.0  # variance in every column ...
+        X[:, 1] = 1.0  # ... except LOWVAR's
+        adata = ad.AnnData(
+            X=csr_matrix(X),
+            obs={"perturbation": np.array(labels)},
+            var={"gene_symbol": gene_names},
+        )
+        path = tmp_path / "norman_lowvar.h5ad"
+        adata.write_h5ad(path)
+    
+>       with pytest.raises(ValueError, match="LOWVAR"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_norman_loader.py:170: Failed
+=========================== short test summary info ============================
+FAILED tests/test_norman_loader.py::TestNormanDoubletsAndMissingTargets::test_underscore_doublet_maps_to_both_target_columns
+FAILED tests/test_norman_loader.py::TestNormanDoubletsAndMissingTargets::test_singleton_outside_hvg_cut_raises
+2 failed, 8 passed in 0.43s

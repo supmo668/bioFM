@@ -1,0 +1,12 @@
+# C-RG-2 GREEN (post-implementation) — 2026-09-24T19:45:44Z — git dedd605 + uncommitted T8 edits
+$ .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_adamson_combined.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/projects/perturb-seq-eval
+configfile: pyproject.toml
+plugins: zarr-3.4.0, cov-7.1.0, fast-array-utils-1.5.1
+collected 7 items
+
+tests/test_adamson_combined.py .......                                   [100%]
+
+============================== 7 passed in 0.10s ===============================

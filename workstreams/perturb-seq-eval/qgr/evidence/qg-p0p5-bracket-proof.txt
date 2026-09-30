@@ -1,0 +1,7 @@
+# Bracket proof-it-can-fail (rule 3b/3c) 2026-09-25T19:45:53Z
+ref rc=0
+CONTENT probe: changed digest lines -> 2
+CONTENT revert: identical rc=0
+METADATA probe: new branch lines -> 1
+METADATA revert: identical rc=0
+EMPTY-SET guard rc=3 (must be non-zero)

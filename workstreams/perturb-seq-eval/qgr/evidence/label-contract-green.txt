@@ -1,0 +1,15 @@
+# CTO #250/#251 label contract — GREEN (label_contract.py + loaders + preflight + provenance + app_v05 wired)
+$ .venv/bin/python -m pytest -q -p no:cacheprovider -v tests/test_label_contract.py
+============================== 39 passed in 0.95s ==============================
+
+# Doublet-trap mutation check (#251 item 2): gene_label replaced by a WHOLE-LABEL lookup
+=========================== short test summary info ============================
+FAILED tests/test_label_contract.py::TestNormanPerComponentAlias::test_doublet_alias_applies_per_component_both_orders
+1 failed in 0.05s
+
+# Full suite
+$ .venv/bin/python -m pytest -q -p no:cacheprovider
+567 passed in 6.76s
+
+# ruff F on touched files
+All checks passed!

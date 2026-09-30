@@ -4,6 +4,33 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
+## [Unreleased] — v0.6.0 (pre-registered sweep run; manuscript filled)
+
+### Added (amendments 3–4, the sweep, the filled manuscript)
+
+- **Amendments 3 and 4** to `paper/PREREGISTRATION.md`, locked before any v0.6.0 data: A3-1 mito threshold recorded-only, A3-2 Trainer precedence tier, A3-3 Validator threshold required, A3-4 stated grid count = 7 distinct configurations; A4-1 Anthropic roster (Haiku 4.5 for four roles, Sonnet 5.5 Validator; structured outputs; ceilings; one `max_tokens` retry; refusal/served-model rules), A4-2 spend lines $12/$28/$30 on the total including $1.3548 carried in, A4-3 caveats.
+- **`src/perturb_eval/llm/anthropic_client.py`**: the amendment-4 client; `openrouter_client.py` is legacy (shared types + `PREREG_VERSION`).
+- **The pre-registered run** `20260929T035447Z-ce5f237` (git `ce5f237`, `prereg_version` v0.6.0-a4) under `artifacts/v0.6.0/` with its manifest in `configs/runs/`: 0 fallbacks, 0 cache hits, 0 served-model mismatches, 0 refusals; spend $8.93. Gates H1–H4 PASS, H5 FAIL (as pre-registered).
+- **Manuscript filled from the artifacts**: `scripts/paper/fill_v060_numbers.py` writes `paper/sections/generated_numbers.tex` (every result value a `\res...` macro; `--check` is a test); results, methods, abstract, discussion, limitations, conclusion and the corrections appendix rewritten on the macros. LaTeX build products are no longer tracked.
+
+### Fixed (post-run, non-measurand — paths the run never exercised; disclosed in the PR)
+
+- `anthropic_client.py`: a served-model mismatch now raises `ServedModelMismatch` (no failover), as A4-1 requires; previously the base error was raised and the call failed over to the other roster model. The run recorded 0 mismatches and 0 failovers in 1846 calls.
+- `provenance.py`: `"replay"` added to `STATUSES`, so a replay run finalises its provenance instead of raising at the end. The run's `replay` is false.
+- Analyser (`e_v05_real_traces.py`): a provenance served-model mismatch count above 0 now withdraws the licence (`SERVED_MODEL_MISMATCH_DIAGNOSTIC_ONLY`); `summary.json` gains `served_mismatch_count`. Re-running the analyser on the committed run files reproduces the committed `summary.json` values (the new field is 0).
+- Docstrings/strings: `app_v05.py` no longer describes an OpenRouter free-tier condition; `architect_dispatch.NOT_APPLIED_FIELDS` cites A3-1 instead of "ruling pending" (the committed artifact carries the old string in `not_applied_reason`; erratum).
+
+## [Superseded] — v0.6.0 regeneration (manuscript aligned before the sweep)
+
+### Changed (title and framing)
+
+- **Title** (principal's choice), propagated to `paper/paper.tex`, `docs/THESIS.md`, `publish.yml`, `CITATION.cff`, `README.md`, `paper/README.md`: *Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction*. The question form makes a null result publishable; a null answer is not to be traded back into a claim title.
+- **`paper/PREREGISTRATION.md` added**: five hypotheses and gates (Adamson oracle median < 0.20, Norman < 0.30, Architect backbone entropy ≥ 0.5 nats over LLM-sourced steps, TDI ρ > 0.5 for ≥ 1 component, cross-dataset ρ > 0.4), estimators, and the analysis-plan conventions. H4/H5 have no analyser estimator yet (flagged in the file).
+- **Results were placeholders at this point** (since filled; see the entry above). Every result value in the manuscript was `\pending{...}`; `sections/v050_results_filled.tex` is no longer input. All v0.5.0 values are superseded; the new appendix `sections/corrections.tex` maps each to the register rows that supersede it (A1, A2, A3, A4, A7, DF-06, DF-07, DF-10, #227, R1–R3, R9).
+- **Setup rewritten to the rebuilt experiment**: 41 tasks (21 Adamson = 3 bins × 7; Norman 15 singletons + 5 doublets) from one deterministic draw (CRC32 strata, seed 2026) in one process; structural Adamson label contract and Ensembl-ID Norman joins recorded in provenance; Norman described as CRISPR activation, Adamson as CRISPR interference; train-only HVG per task; top-20-DEG evaluation genes stated as the CPA/GEARS convention; best-of-54 relabelled an oracle; LLM condition stated at that time as a rotating OpenRouter pool with per-step `model_id` and `source` (superseded by amendment 4, Anthropic roster), fallback runs invalid; `scgpt_small` described once as a from-scratch 2.1 M-parameter transformer.
+- **Removed** from the manuscript: the real/synthetic framing and its LaTeX comments, "Nemotron-30B" and "for demonstration purposes", the byte-equivalence claim (now "re-run at the recorded SHA and configuration"), and the claim that pretrained SCFMs are configurable backbones.
+- `docs/REVIEWER_CRITIQUE.md` re-scoped to v0.4.1 (retracted line); `README.md` / `paper/README.md` entry points corrected to `scripts/modal/app_v05.py` and the `e_v05_real_traces` analyser.
+
 ## [0.5.0+layout] — 2026-04-24 (post-publish housekeeping)
 
 ### Repository structure

@@ -1,0 +1,84 @@
+% Corrections relative to v0.5.0. This is the ONLY place v0.5.0 values
+% appear, each marked superseded and mapped to the register row(s) that
+% supersede it. Register ids: R*/A* = workstreams/perturb-seq-eval/qa/_adhoc/
+% 2026-09-23-publication-rigor-review.md (review + Addendum); DF-* =
+% workstreams/perturb-seq-eval/deferred-findings.md; #227 = CTO ruling on HVG
+% selection over all cells.
+
+\section{Corrections relative to v0.5.0}\label{app:corrections}
+
+All values reported in the v0.5.0 release of this work are superseded; none
+is carried into this version. The v0.5.0 artifact set does not describe a
+single experiment, and several values were computed on inputs a code defect
+had altered. The defects, by register id (review and addendum:
+\path{workstreams/perturb-seq-eval/qa/_adhoc/2026-09-23-publication-rigor-review.md};
+DF rows: \path{workstreams/perturb-seq-eval/deferred-findings.md}):
+
+\begin{description}[leftmargin=1.2em,itemsep=1pt,font=\normalfont\bfseries]
+  \item[A1] The trainer and lifecycle files covered almost disjoint task
+    sets (2 shared of 36 each), produced by two processes whose task draws
+    diverged (A6: process-salted stratification); statistics joining them
+    were computed across that intersection.
+  \item[A2] The seed was recorded but not passed to the lifecycle trainer or
+    the LLM cache key; the three seeds per task were byte-identical copies.
+  \item[A3] Lifecycle steps did not record whether a proposal came from an
+    LLM or the rule-based fallback; four of five roles emitted their schema
+    default throughout.
+  \item[A4] Norman doublet labels were tested with the wrong delimiter, so
+    the doublet stratum was empty and each doublet task was trained and
+    scored with a randomly chosen gene as its target.
+  \item[A7] No dataset digest was pinned; the fetchers were described as
+    SHA-gated but trusted any cached file.
+  \item[DF-06] Norman labels that did not resolve to a symbol were given a
+    random target and entered the training set of every Norman task not
+    holding them out.
+  \item[DF-07] The Adamson task \texttt{ATF6} pooled four distinct
+    constructs (single, two doubles, one triple) into one population.
+  \item[DF-10] Adamson cells with a missing annotation were decoded as the
+    file's last category; the \texttt{YIPF5} population was about 91\%
+    unannotated cells, and both \texttt{YIPF5} and \texttt{ZNF326} entered
+    training for other Adamson tasks and were lifecycle held-out tasks.
+  \item[\#227] Highly variable genes were selected on all cells, including
+    the held-out perturbation's cells.
+  \item[R1, R2, R3, R9] Unevaluated gates dropped from the tally; LLM
+    condition misstated and unrecorded; documented Norman design contradicted
+    by the artifact; provenance record without revision, seed or digests.
+\end{description}
+
+\begin{table}[h]
+\small
+\centering
+\begin{tabular}{p{0.44\linewidth}p{0.18\linewidth}p{0.28\linewidth}}
+\toprule
+Superseded v0.5.0 value or claim & Superseded by & Replacement \\
+\midrule
+Adamson median best-config MSD $0.147$; Adamson gate PASS
+  & A1, DF-07, DF-10, \#227 & H1, \resHOneVerdict \\
+Norman median best-config MSD $0.131$; Norman gate PASS
+  & A1, A4, DF-06, \#227 & H2, \resHTwoVerdict \\
+Norman $n=15$ described as $15$ singletons $+\,5$ doublets (artifact: $7+8$)
+  & R3, A4 & $15+5$ asserted at preflight \\
+$1\,944$ trainer cells ($36$ tasks $\times$ $54$)
+  & A1, A4 & $41$ tasks $\times$ \resNTrainerRecordsPerTask{} records (\resNDistinctConfigs{} distinct configurations) \\
+$108$ lifecycle runs over $36$ held-out tasks
+  & A1, A2 & $41$ tasks $\times$ $3$ seeds, same task set as the trainer \\
+Architect backbone entropy $0.36$ nats; \texttt{scgpt\_small} in $91\%$ of
+  $138$ picks; HVG-count entropy $0.30$ nats
+  & A1, A2, A3, R2, DF-10 & H3, \resHThreeVerdict; HVG-count entropy \resHVGEntropy{} nats \\
+TDI and component $\rho$ reported as n/a; transfer $\rho$ n/a
+  & R1 & H4, H5 \\
+``Two of three pre-registered gates pass''
+  & R1 & tally out of five \\
+``\textsc{Nemotron-30B} throughout''
+  & R2 & pinned Anthropic roster, served \texttt{model\_id} asserted per call \\
+Spend \$4.04 over 3.06 GPU-hours; \$28 quoted as the envelope
+  & A1, R9 & LLM \$\resSpendLLM, GPU \$\resSpendGPU{} (\resGPUHours{} A100-h), total \$\resSpendTotal \\
+``SHA-gated'' fetchers & A7 & four digests pinned, fail closed \\
+Byte-equivalent re-run from ``the same code revision'' & R9 & re-run at the
+  recorded SHA and configuration \\
+\bottomrule
+\end{tabular}
+\caption{One-to-one map from each superseded v0.5.0 value to the register
+rows that supersede it.}
+\label{tab:corrections}
+\end{table}

@@ -1,0 +1,14 @@
+# Stop-hook proof (CTO #365) 2026-09-25T19:56:14Z: hooks/quality-check.sh, cache cleared before each run
+clean(agency.yaml dirty only) rc=0 
+PLANTED format rc=2 "reason":"Format failed (`quality.format_command`) — fix before completing
+
+PLANTED lint F821 rc=2 "reason":"Lint failed (`quality.lint_command`) — fix before completing
+Tests failed (`quality.test_command`) — fix before completing
+
+PLANTED test fail rc=2 "reason":"Format failed (`quality.format_command`) — fix before completing
+Tests failed (`quality.test_command`) — fix before completing
+
+reverted rc=0 
+
+# Command proofs (live tree, reverted via git-safe restore): FMT no-py-change rc=0; planted tracked rc=1; reverted rc=0; planted untracked rc=1; removed rc=0; LINT from worktree root rc=0.
+# Branch-vs-origin/main format shape (CTO suggestion) measured: 79 .py files, 70 would be reformatted -> rc=1 (rejected: would block every turn).

@@ -1,0 +1,97 @@
+# CTO conditions attached to signed plan r3 (hash 418cc1e)
+
+Binding build conditions from CTO dispatch #233 (2026-09-24). Kept here, outside `build-plan.md`, so the
+principal-signed plan hash is not drifted; each condition tightens a task, none widens scope.
+
+| id | applies to | condition |
+|---|---|---|
+| C-KEY-1 | T22 preflight | Lifecycle phase FAILS CLOSED when `OPENROUTER_API_KEY` is absent **or** a pool probe returns no usable model. Assertion, not warning, not fallback. Presence check only — the value is never read or printed. |
+| C-KEY-2 | T12 / T24 | Any `source=="fallback"` step during the real sweep marks the run FAILED (analyser refuses to summarise; provenance `status: "failed_fallback"`). `source` is diagnostic, never a licence. |
+| C-KEY-3 | T24 | Lifecycle sweep BLOCKED until the principal provisions the key. Not provisioned as of #233 (Infisical bioFM/dev: 404). |
+| C-RG-1 | T8b | Red-then-green: run the HVG property test against pre-fix code, capture it RED, then fix and capture GREEN. Both transcripts go into the iteration QGR. |
+| C-RG-2 | T8 / T11 (D1) | Same red-then-green standard for the Norman doublet assertion. |
+| D1-confirm | T2/T11/T24 | "Norman keeps 15+5" = the documented design restored: 15 singletons + 5 doublets = 20 Norman tasks; with 21 Adamson = 41 tasks. |
+
+RESOLVED by CTO #235 — RULED (A): hold the whole sweep until the key exists; run once; do NOT build (B)'s guard.
+If the key has not landed when P0-P4 are done, report at the sweep gate (do not idle) — (B) only as a recorded, expiring exception.
+
+History (raised in reply to #233): #233 permits the trainer sweep to run before the key exists. That
+would make trainer and lifecycle two processes — the A1 shape #202 forbids. Proposed: one process once the key
+lands; if a split is ruled acceptable, the lifecycle run must load the trainer provenance record and hard-fail
+unless its resolved task list, dataset digests and git SHA are identical.
+
+## C-TORCH-1 (from the #239 alias-test question) — applies to T22 preflight + T0 baseline
+`test_alias_scgpt_to_scgpt_small` is RED because `_canonical_backbone` (`agentic_lifecycle/architect_dispatch.py:25-28`)
+returns `"linear"` whenever the resolved name is not in `available_backbones()`, and `available_backbones()` omits
+`scgpt_small` when torch is not importable (`backbones/__init__.py:28`). The local venv has no torch, so the alias
+resolves `scgpt → scgpt_small → (unavailable) → linear`. The Modal image pins `torch>=2.2` (`app_v05.py:57`), so the
+sweep is not affected TODAY — but the mechanism is a silent substitution in the A4 family: if torch ever fails to
+import on Modal, every Architect `scgpt_small` pick becomes `linear` with no error, and the backbone-entropy figure
+measures the import, not the agent.
+- **T22:** preflight asserts every backbone in the resolved `backbones` kwarg is in `available_backbones()`; fails closed.
+- **Test:** the alias test gets `pytest.importorskip("torch")` (a local-environment skip, never a pass), plus a new
+  torch-independent test that a KNOWN-but-unavailable backbone raises instead of degrading (ruling requested — see reply).
+
+## C-TORCH-2 (CTO #241, RULED) — tightens T22 + adds a small task at the P2 boundary
+- `_canonical_backbone`: **known-but-unavailable → raise**; unknown name → `linear` unchanged (documented fallback).
+- (a) Verify no caller swallows it: trace every path from `_canonical_backbone` up through the Architect and the
+  sweep; any broad `except` around config resolution must re-raise. Name the paths in the report.
+- (b) T22 preflight asserts every resolved sweep backbone is in `available_backbones()`, so the raise is dead code
+  in a healthy run. If it can fire during a normal sweep, the preflight is incomplete.
+- Alias test uses `pytest.importorskip("torch")`; every gate report states skips **counted and named**
+  (e.g. "N passed, 1 skipped (torch absent: test_alias_scgpt_to_scgpt_small)"), never folded into green.
+- Report back: which local tests pass for the wrong reason without torch (compare suite with vs without torch).
+
+## C-TORCH-3 (CTO #243, RATIFIED + 2 additions) — P2-boundary mini-task + T13/T22
+- **Exact pin, not a floor:** `torch==2.14.0` in pyproject's `scgpt` group AND the Modal image (`app_v05.py`), matching the
+  local CPU venv. If the Modal image cannot take the exact pin (CUDA wheel availability), keep the floor, say why in the
+  report, and the resolved-version record below becomes mandatory.
+- **Provenance (T13):** `lib_versions` records the RESOLVED versions imported at run time (`torch.__version__`,
+  `torch.version.cuda`, numpy, anndata, h5py, scanpy, pandas, pydantic) — never the constraint string.
+- **Skip guards must be seen firing:** `pytest.importorskip("torch")` on `test_alias_scgpt_to_scgpt_small` and
+  `test_architect_choice_entropy_above_gate`; run the suite ONCE in a torch-less venv and capture both reported as
+  SKIPPED by name → `workstreams/perturb-seq-eval/qgr/evidence/C-TORCH-3-skip-guards-fire.txt`.
+- Standing heuristic (CTO): any "if unavailable, use X" is guilty until proven loud — reviewers grep for it at every gate.
+
+## Carry-forward into T22 (found integrating P3, 2026-09-24)
+- `app_v05.py` (P3/T13) currently marks a run `partial` when the lifecycle sweep is SKIPPED for lack of a key. That is a
+  trainer-only run — the split shape CTO #235 ruled out. T22 must replace it: key absent (presence check only) or a pool
+  probe with no usable model ⇒ **refuse the whole run in preflight, before any GPU work** (C-KEY-1). No skip path remains.
+- Paper-fill tooling (`scripts/paper/fill_v050_numbers.py`) must refuse any `summary.json` whose `status` is not `ok`
+  (analyser escape hatches produce `*_DIAGNOSTIC_ONLY` summaries with null gates) — noted for the CTO; out of #202 scope.
+
+## LABEL CONTRACT (CTO #250 -> #251 -> #253, binding)
+- Principle: an agent rules on what code/data DEMONSTRATE, never on what literature asserts.
+- Adamson structural parser (#253 a-f): strip plasmid suffix `_p[A-Z]+[0-9]+(-[0-9]+)?`, strip `_only`; one component -> gene task
+  (same-gene plasmids pool; provenance.guides_per_gene); >1 component -> excluded "multi-gene construct; unsupported by D1" (raw label
+  recorded); label containing `neg_ctrl` -> structural control. Red-then-green on the real 10X005 raw labels.
+- `3x` (`3x_neg_ctrl_*`) -> STRUCTURAL CONTROL (#253 supersedes #250 ruling 3). `Gal4-4(mod)` -> structural control.
+- `PERK`/`IRE1` excluded, reason EXACTLY: "alias not corroborated: target not detected in this subset (control mean 0.0) and the label
+  pools multiple constructs; excluded rather than aliased." Never record a claim that the symbols differ.
+- Norman: stable-ID joins `C3orf72`->`FOXL2NB` (ENSG00000206262, corroborated? no — inconclusive: "join structural, expression cross-check
+  inconclusive") and `C19orf26`->`CBARP` (ENSG00000099625, corroborated: +0.301, rank 33,690/33,694, CRISPRa => UP). Join column named
+  literally `ensemble_id` (upstream typo); a missing column RAISES naming expected + found columns — pinned by a test. `KIAA1804` excluded
+  "target gene not locatable in the dataset vocabulary under either name".
+- Adamson 21 = 3 bins x 7 must remain fillable; exact-fill assertion as in T11; if unreachable, ESCALATE the number (plan-level quantity).
+
+## PRINCIPAL DIRECTIVES (2026-09-24, direct, AskUserQuestion)
+- **OpenRouter key (G2 resolved):** use `OPENROUTER_API_KEY` from Infisical project **SyntropyHealth App** (`syntropyhealth-app`,
+  id 589d1e3b-5798-48ea-97c0-2d58086a375b), env **dev**. Injected only via
+  `infisical run --projectId 589d1e3b-… --env dev -- modal run …` — never printed, never written to disk. Presence verified with a
+  presence-only check (value not read). Provenance records the SOURCE (project slug + env), never the value. Not in bioFM (CLI 403 / MCP 404).
+- **PR:** principal pushes `main` first; then `/worktree-sync` → gates → `/pr-prep` → `/pr-submit` with only this branch's commits
+  (a PR today would carry 186 unpushed CTO trunk commits — #239).
+- **Title:** question form — "Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of
+  Agentic Hyperparameter Tuning for Perturb-seq Response Prediction". Principal directs the wording/submission-file alignment pass NOW
+  (supersedes the "language pass last" sequencing for setup/method/metadata text). Result numbers are NOT rewritten until the v0.6.0
+  sweep: v0.5.0 result values are marked superseded/pending, never replaced with guesses.
+
+## SWEEP GO (CTO #283, 2026-09-25) — conditions, all binding
+1. Gates first: the sweep runs only from the RECEIPTED P0-P5 boundary SHA; if any gate fix touches the trainer or
+   lifecycle path, from the post-fix receipted SHA, never an earlier one.
+2. One process, fully logged: git SHA, pre-registration hash (0c2932a), seeds, full config, model_id PER CALL (R2);
+   manifest beside the outputs.
+3. Spend: $28 in-loop kill stays; ADDITIONALLY stop and report if actual spend passes **$12** (2x estimate) — the
+   estimate model was wrong. Report actual spend + GPU-hours at the end.
+4. Report: receipted SHA, manifest path, actual spend, every failed/skipped task NAMED individually.
+Gate-stage finding OWN-1: the $12 stop is not implemented (only the $28 kill exists) — fixed inside this gate.

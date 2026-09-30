@@ -1,0 +1,35 @@
+{
+  "archived_at": "2026-09-28T23:13:21.817138+00:00",
+  "source_namespace": "llm/v0.6.0-a3",
+  "archive_path": "llm/_archive/20260928T220916Z-291efad/",
+  "reason": "aborted run 20260928T220916Z-291efad; 0 lifecycle runs recorded; replies from a live model during the aborted lifecycle phase; archived (not deleted) per CTO #467 so the relaunch starts on an empty namespace (A2-8)",
+  "n_entries": 2,
+  "entries": [
+    {
+      "key": "v0.6.0-a3/1b/1bc917e09dd4a800c057c8b8a462f2f379a7b884328e82843c4440788a86465c.json",
+      "sha256": "d70d2c2d9a228768cc46e5dc6065a573c6c66551b9eaf8dbf043d2f7e1656540",
+      "bytes": 149,
+      "top_level_keys": [
+        "batch_correction",
+        "confidence",
+        "hvg_count",
+        "hvg_method",
+        "qc_mito_max",
+        "split_strategy"
+      ]
+    },
+    {
+      "key": "v0.6.0-a3/37/376d4afe94bdec695774492caf570b82daa1f8513398055dff0e02ce51766660.json",
+      "sha256": "d70d2c2d9a228768cc46e5dc6065a573c6c66551b9eaf8dbf043d2f7e1656540",
+      "bytes": 149,
+      "top_level_keys": [
+        "batch_correction",
+        "confidence",
+        "hvg_count",
+        "hvg_method",
+        "qc_mito_max",
+        "split_strategy"
+      ]
+    }
+  ]
+}

@@ -15,7 +15,7 @@ See ``.claude/plans/v0.5.0-real-perturb-seq.md`` §Phase 2.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,12 +25,39 @@ HvgMethod = Literal["seurat", "scanpy"]
 SplitStrategy = Literal["per_pert_holdout", "unseen_gene"]
 BatchCorrection = Literal["none", "combat", "harmony"]
 BackboneName = Literal["linear", "mlp", "scgpt_small"]
+# Amendment 2 (A2-6): the pinned Architect menu. The Architect is offered exactly
+# these on every step and the Validator's rotation is over the same three; any
+# change is a measurand change (H3's ceiling is ln|menu|).
+BACKBONE_MENU: tuple[str, ...] = get_args(BackboneName)
 
 
-class _BaseProposal(BaseModel):
-    """Base class that tolerates extra keys from noisy LLM output."""
+# Amendment 2 (A2-1): every role states its own confidence in [0, 1]. Strict:
+# a string, bool, null, NaN/inf or out-of-range value is a schema failure
+# (ValidationError -> the step falls back -> the run is invalid, C-KEY-2). There
+# is NO default: confidence is never imputed.
+Confidence = Annotated[float, Field(strict=True, ge=0.0, le=1.0, allow_inf_nan=False)]
 
-    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+# QG-5: finite, bounded hyper-parameters. JSON ``Infinity`` / ``NaN`` (which
+# ``json.loads`` accepts) and absurd magnitudes such as 1e308 are a schema
+# failure on every numeric field, not only ``confidence``; the step falls back
+# and the run is invalid (C-KEY-2). The bounds are generous relative to the
+# prompt ranges and the schema defaults (lr 1e-2, λ 1.0, epochs 40/50).
+MAX_LEARNING_RATE = 1.0
+MAX_RIDGE_LAMBDA = 1e6
+MAX_EPOCHS = 500
+
+
+class _Lenient(BaseModel):
+    """Tolerates extra keys from noisy LLM output; rejects non-finite floats (QG-5)."""
+
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True, allow_inf_nan=False)
+
+
+class _BaseProposal(_Lenient):
+    """A role proposal; ``confidence`` is required on every role (A2-1)."""
+
+    confidence: Confidence
 
 
 class DataCuratorProposal(_BaseProposal):
@@ -51,28 +78,28 @@ class LiteratureProposal(_BaseProposal):
     def model_post_init(self, _ctx: Any, /) -> None:
         for gene, weight in self.pathway_prior.items():
             if not (0.0 <= weight <= 1.0):
-                raise ValueError(
-                    f"pathway_prior[{gene!r}] = {weight} outside [0, 1]"
-                )
+                raise ValueError(f"pathway_prior[{gene!r}] = {weight} outside [0, 1]")
 
 
 class ArchitectProposal(_BaseProposal):
-    backbone: BackboneName = "linear"
+    # A2-6: required and on-menu; an omitted or off-menu backbone is a schema
+    # failure, never defaulted.
+    backbone: BackboneName
     n_agents: int = Field(default=5, ge=2, le=8)
     n_rounds: int = Field(default=2, ge=1, le=5)
     hvg_count: HvgCount = 2000
-    learning_rate: float = Field(default=1e-2, gt=0)
-    ridge_lambda: float = Field(default=1.0, ge=0)
-    epochs: int = Field(default=40, ge=1, le=500)
+    learning_rate: float = Field(default=1e-2, gt=0, le=MAX_LEARNING_RATE)
+    ridge_lambda: float = Field(default=1.0, ge=0, le=MAX_RIDGE_LAMBDA)
+    epochs: int = Field(default=40, ge=1, le=MAX_EPOCHS)
 
 
 class TrainerProposal(_BaseProposal):
-    lr: float = Field(default=1e-2, gt=0)
-    epochs: int = Field(default=50, ge=1, le=500)
-    ridge_lambda: float = Field(default=1.0, ge=0)
+    lr: float = Field(default=1e-2, gt=0, le=MAX_LEARNING_RATE)
+    epochs: int = Field(default=50, ge=1, le=MAX_EPOCHS)
+    ridge_lambda: float = Field(default=1.0, ge=0, le=MAX_RIDGE_LAMBDA)
 
 
-class StructuredCritique(_BaseProposal):
+class StructuredCritique(_Lenient):
     """Validator critique feedback loop payload."""
 
     which_genes_failed: tuple[str, ...] = ()
@@ -81,7 +108,10 @@ class StructuredCritique(_BaseProposal):
 
 
 class ValidatorProposal(_BaseProposal):
-    dynamic_threshold_msd: float = Field(default=0.1, ge=0.02, le=0.3)
+    # Amendment 3 (QG-9, principal 2026-09-28): the threshold is REQUIRED. An
+    # unstated threshold is a schema failure (A2-1 never imputed), never the
+    # old default 0.1 acting as the Validator's "chosen" threshold (A2-2).
+    dynamic_threshold_msd: float = Field(ge=0.02, le=0.3)
     critique: StructuredCritique = Field(default_factory=StructuredCritique)
 
 
@@ -94,12 +124,30 @@ _ROLE_TO_SCHEMA: dict[str, type[_BaseProposal]] = {
 }
 
 
+def schema_defaults(role: str) -> dict[str, Any]:
+    """The role schema's defaults for its OPTIONAL fields only.
+
+    Required fields (``confidence``, the Architect's ``backbone``) are absent:
+    the rule-based fallback never invents a stated value for them (A2-1/A2-6).
+    """
+    schema = _ROLE_TO_SCHEMA[role]
+    out: dict[str, Any] = {}
+    for name, f in schema.model_fields.items():
+        if f.is_required():
+            continue
+        val = f.get_default(call_default_factory=True)
+        out[name] = val.model_dump() if isinstance(val, BaseModel) else val
+    return out
+
+
 def parse_proposal(role: str, data: dict) -> _BaseProposal:
     """Validate a raw LLM/dict payload into the role-specific schema.
 
     Extra fields are tolerated (LLMs frequently add commentary keys).
-    Missing optional fields fall back to defaults; missing required
-    fields raise :class:`ValueError` via Pydantic.
+    Missing optional fields fall back to defaults (the returned model's
+    ``model_fields_set`` says which fields the payload actually stated);
+    missing required fields (``confidence`` on every role, ``backbone`` on the
+    Architect; A2-1/A2-6) raise :class:`pydantic.ValidationError`.
     """
     try:
         schema = _ROLE_TO_SCHEMA[role]
@@ -109,6 +157,10 @@ def parse_proposal(role: str, data: dict) -> _BaseProposal:
 
 
 __all__ = [
+    "BACKBONE_MENU",
+    "MAX_EPOCHS",
+    "MAX_LEARNING_RATE",
+    "MAX_RIDGE_LAMBDA",
     "ArchitectProposal",
     "DataCuratorProposal",
     "LiteratureProposal",
@@ -116,4 +168,5 @@ __all__ = [
     "TrainerProposal",
     "ValidatorProposal",
     "parse_proposal",
+    "schema_defaults",
 ]

@@ -17,6 +17,7 @@ def _write_synthetic_adamson(
     n_cells_per_pert: int = 30,
     n_genes: int = 50,
     seed: int = 0,
+    control_label: str = "*",
 ) -> None:
     """Write a minimal h5ad matching scPerturb's Adamson packaging."""
     import anndata as ad
@@ -36,7 +37,7 @@ def _write_synthetic_adamson(
     # Controls (use "*" as Adamson pilot does).
     for _ in range(n_cells_per_pert):
         rows.append(rng.gamma(2.0, 1.0, size=n_genes))
-        labels.append("*")
+        labels.append(control_label)
     # Perturbations — each TF shifts its own gene down.
     for i, tf in enumerate(tf_names):
         for _ in range(n_cells_per_pert):
@@ -88,6 +89,36 @@ class TestLoadAdamsonCombined:
 
         with pytest.raises(ValueError):
             load_adamson_combined([])
+
+
+class TestLoadAdamsonMatrixTargets:
+    """C-RG-2 / A4: raw guide labels are normalised before '_'-parsing, and a
+    target absent from the vocabulary raises instead of a random substitute."""
+
+    def test_raw_guide_label_normalised_before_parsing(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_matrix
+
+        # Raw labels are "TFA_pDS263" (guide) and "62(mod)_pBA581" (control):
+        # parsed raw on '_' they would look like doublets / unknown genes.
+        p = tmp_path / "pilot.h5ad"
+        _write_synthetic_adamson(
+            p, tf_names=["TFA", "TFB"], seed=1, control_label="62(mod)_pBA581"
+        )
+        ds = load_adamson_matrix(p, n_top_hvg=100, max_cells_per_pert=50)
+        col = {g: i for i, g in enumerate(ds["gene_names"])}
+        assert ds["target_gene_idx"] == {"TFA": (col["TFA"],), "TFB": (col["TFB"],)}
+        assert ds["perturbations"] == ("TFA", "TFB")
+        assert ds["control_mask"].sum() > 0
+        assert (ds["labels"][ds["control_mask"]] == "CTRL").all()
+
+    def test_target_absent_from_vocab_raises(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.e2_adamson import load_adamson_matrix
+
+        p = tmp_path / "pilot.h5ad"
+        # "NOTAGENE" is not in the fixture's gene vocabulary.
+        _write_synthetic_adamson(p, tf_names=["TFA", "NOTAGENE"], seed=1)
+        with pytest.raises(ValueError, match="NOTAGENE"):
+            load_adamson_matrix(p, n_top_hvg=100, max_cells_per_pert=50)
 
 
 class TestMeanAbsLogfcPerTarget:
