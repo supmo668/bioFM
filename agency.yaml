@@ -89,6 +89,17 @@ quality:
   # aviary-biosim (#329): tests proven able to fail (planted assert -> exit 1). format/lint/typecheck
   # deliberately unset: ruff defaults fail 93 pre-existing errors; lint adoption is scoped work after F08.
   test_command_aviary-biosim: "uv run --with pytest --with pyyaml --with fhaviary --with openai --with weave --with requests python -B -m pytest science/tests -q && uv run --with pytest --with pyyaml python -B -m pytest .claude/skills/v2r-loop/scripts/tests -q"
+  # perturb-seq-eval per-agent keys (CTO #328/#365; re-added on main by the CTO 2026-09-29 after the #494 merge conflict; the agent branch copy is superseded by this one)
+  format_command_perturb-seq-eval: "cd projects/perturb-seq-eval && { git diff --name-only --diff-filter=ACMR HEAD -- '*.py'; git ls-files --others --exclude-standard -- '*.py'; } | sed 's|^projects/perturb-seq-eval/||' | xargs -r .venv/bin/ruff format --check"
+  lint_command_perturb-seq-eval: "cd projects/perturb-seq-eval && .venv/bin/ruff check --select E9,F63,F7,F82 src tests scripts"
+  typecheck_command_perturb-seq-eval: ""
+  test_command_perturb-seq-eval: "cd projects/perturb-seq-eval && .venv/bin/python -m pytest -q -p no:cacheprovider tests"
+  # lung-on-chipsim per-agent keys (G-14, principal-approved 2026-09-16; re-added on main by the CTO 2026-09-29 after #521 — the branch copy is superseded by this one; the extended accession oracle is REQUIRED in every gate for that role)
+  format_command_lung-on-chipsim: "cd projects/lung-on-chipsim && uv run ruff format --check ."
+  lint_command_lung-on-chipsim: "cd projects/lung-on-chipsim && uv run ruff check ."
+  typecheck_command_lung-on-chipsim: ""   # deliberate: no mypy/pyright configured (grep 0)
+  test_command_lung-on-chipsim: "cd projects/lung-on-chipsim && uv run pytest -q"
+  accession_oracle_extended_command_lung-on-chipsim: "cd projects/lung-on-chipsim && AIADLC_ACCESSION_ORACLE_EXTENDED=1 uv run pytest -q -p no:cacheprovider tests/test_accession_pattern_matrix.py"
   # Definition of Done (Scrum) — the explicit, shared statement of what "complete"
   # means, checked at /phase-complete by tools/dod-check. Recognised MECHANICAL
   # keys are verified automatically (qg-receipt, docs-ticket-linked, ticket-linked,
