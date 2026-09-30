@@ -20,5 +20,5 @@ A fourth instance, in the provenance layer rather than the code (lung-on-chipsim
 
 ## Unverified
 
-The Notion write target recorded in config has not been exercised end to end; the first real
-propagation is verified by reading the row back, not by a successful response.
+The Notion write target recorded in config was exercised end to end on 2026-09-30: five rows written
+through the plugin's Notion server and read back from the index data source (this file's mirror: https://app.notion.com/3e7749bd250d8148b712f5019cd77797).

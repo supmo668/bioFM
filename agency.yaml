@@ -373,8 +373,8 @@ autonomy:
 # ── Notifications (P5/P6) ─────────────────────────────────────────────────────
 notifications:
   slack:
-    enabled: false
-    channel: ""                  # e.g. "#aiadlc-qa" — target for human-QA hand-offs
+    enabled: true
+    channel: "#research-approvals"                  # e.g. "#aiadlc-qa" — target for human-QA hand-offs
     webhook: ""                  # optional incoming-webhook URL; if set, tools/notify
                                  # POSTs directly (else the skill sends via Slack MCP)
 

@@ -1,6 +1,6 @@
 # perturb-seq-eval v0.6.0 — result review
 
-<!-- HACP Presentation · Project=bioFM · Section=eval · local source; the Notion row (CTO-written) mirrors this file.
+<!-- HACP Presentation · Project=bioFM · Section=eval · local source; the Notion row (CTO-written, https://app.notion.com/p/3eb749bd250d8112a6aeca8ae015149c) mirrors this file.
      Written by the CTO 2026-09-29 from the landed tree (bioFM main @ 5a45d4a, PR #8) and the run artifacts of
      20260929T035447Z-ce5f237 (prereg_version v0.6.0-a4). Every number below is read from summary.json /
      provenance.json through the manuscript's generated macros, never typed. -->
