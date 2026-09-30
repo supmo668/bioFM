@@ -33,6 +33,7 @@ ALLOWED_LITERALS = {
     "results.tex": {"0.5", "2.35", "4.71", "5.84", "0.0475", "1.0"},
     "experimental_setup.tex": {"0.02", "0.3"},
     "paper.tex": set(),
+    "corrections.tex": set(),
 }
 # Design facts that are not sweep results and not pre-registration constants (model size,
 # the v0.5 default TDI weights quoted in the Metrics section).
@@ -40,6 +41,7 @@ DESIGN_LITERALS = {
     "results.tex": set(),
     "experimental_setup.tex": {"2.1"},
     "paper.tex": {"0.35", "0.25", "0.15"},
+    "corrections.tex": set(),
 }
 
 
@@ -60,9 +62,10 @@ def fv():
 
 @pytest.fixture(scope="module")
 def macros() -> dict[str, str]:
-    return dict(
+    raw = dict(
         re.findall(r"^\\newcommand\{\\(res[A-Za-z]+)\}\{(.*)\}$", GEN.read_text(), flags=re.M)
     )
+    return {k: v.replace("\\_", "_") for k, v in raw.items()}
 
 
 @pytest.fixture(scope="module")
@@ -73,6 +76,11 @@ def art():
     runs = [json.loads(line) for line in (ART / "lifecycle_runs.jsonl").read_text().splitlines()]
     runs = [r for r in runs if r.get("record_type") != "provenance" and "steps" in r]
     return s, p, proj, runs
+
+
+@pytest.fixture(scope="module")
+def land():
+    return json.loads((PAPER / "data" / "land_v060.json").read_text())
 
 
 def _strip(text: str) -> str:
@@ -102,7 +110,7 @@ def test_check_is_cwd_independent(tmp_path):
 
 
 # --------------------------------------------------------------------------- macro <-> key path
-def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
+def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
     s, p, proj, runs = art
     pr = s["preregistered"]
     h4 = {(r["dataset"], r["component"]): r for r in pr["H4"]["all_six"]}
@@ -265,6 +273,16 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
         "resLivenessTotalPairs": str(
             sum(len(mdl["roles"]) for mdl in p["llm_roster_liveness"].values())
         ),
+        "resLandSha": land["land_git_sha"],
+        "resLandPR": str(land["pr_number"]),
+        "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
+        "resThinkingHaiku": "none",
+        "resThinkingSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["thinking"]["type"],
+        "resEffortSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["effort"],
+        "resTemperatureHaiku": f(
+            p["llm_report"]["sampling"]["claude-haiku-4-5-20251001"]["temperature"], 1
+        ),
+        "resSamplingSonnet": "API defaults",
         "resEvalGeneTasks": str(len(s["eval_genes_per_task"])),
         "resEvalGeneMismatch": str(len(s["eval_gene_mismatch_tasks"])),
     }
@@ -338,6 +356,37 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art):
         assert len(served) == 1, (role, served)
         expect[f"resRoleServed{word}"] = served.pop()
         expect[f"resRoleCalls{word}"] = str(sum(1 for c in log if c["role"] == role))
+    am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
+    for a in am:
+        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
+        expect[f"resAmend{word}Version"] = a["prereg_version"] or "(none)"
+        expect[f"resAmend{word}Date"] = a["lock_date_utc"]
+        expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
+        expect[f"resAmend{word}Note"] = a["lock_note"]
+        expect[f"resAmend{word}Change"] = a["change"]
+    s5 = json.loads((ROOT / "artifacts" / "v0.5.0" / "summary.json").read_text())
+    p5 = json.loads((ROOT / "artifacts" / "v0.5.0" / "provenance.json").read_text())
+    dist = s5["architect_backbone_distribution"]
+    expect.update(
+        {
+            "resVFiveRecordCommit": json.loads((PAPER / "data" / "v050_record.json").read_text())[
+                "record_commit"
+            ],
+            "resVFiveAdamsonMedian": f(s5["median_msd_adamson"]),
+            "resVFiveNormanMedian": f(s5["median_msd_norman"]),
+            "resVFiveNTasks": str(s5["n_tasks_analysed"]),
+            "resVFiveNTrainerRuns": f"{s5['n_trainer_runs']:,}".replace(",", "\\,"),
+            "resVFiveConfigsPerTask": str(s5["n_trainer_runs"] // s5["n_tasks_analysed"]),
+            "resVFiveNLifecycleRuns": str(s5["n_lifecycle_runs"]),
+            "resVFiveBackboneEntropy": f(s5["architect_backbone_entropy_nats"], 2),
+            "resVFiveHVGEntropy": f(s5["architect_hvg_entropy_nats"], 2),
+            "resVFiveNPicks": str(sum(dist.values())),
+            "resVFiveScgptSharePct": f(100 * dist["scgpt_small"] / sum(dist.values()), 0),
+            "resVFiveSpend": f(p5["total_cost_usd"], 2),
+            "resVFiveGPUHours": f(p5["total_gpu_seconds"] / 3600, 2),
+            "resVFiveBudgetCap": f(p5["budget_cap_usd"], 0),
+        }
+    )
     missing = sorted(set(expect) - set(macros))
     assert not missing, missing
     wrong = {k: (macros[k], v) for k, v in expect.items() if macros[k] != v}
@@ -498,8 +547,9 @@ def test_missing_manifest_is_an_error(fv, tmp_path):
 
 
 def test_render_refuses_unsafe_values(fv):
-    with pytest.raises(ValueError):
-        fv.render({"StopReasonNone": "spend_stop"})
+    assert r"\newcommand{\resStopReasonNone}{spend\_stop}" in fv.render(
+        {"StopReasonNone": "spend_stop"}
+    )
     with pytest.raises(ValueError):
         fv.render({"RunId": "a%b"})
     with pytest.raises(ValueError):
@@ -534,12 +584,22 @@ def test_every_result_macro_used_is_defined_and_input_first(macros):
 
 
 @pytest.mark.parametrize(
-    "rel", ["sections/results.tex", "sections/experimental_setup.tex", "paper.tex"]
+    "rel",
+    [
+        "sections/results.tex",
+        "sections/experimental_setup.tex",
+        "paper.tex",
+        "sections/corrections.tex",
+    ],
 )
 def test_no_hand_typed_result_numbers(rel):
     """Any decimal literal in result-bearing prose must be a pre-registered constant, not a sweep value."""
     text = _strip((PAPER / rel).read_text())
     text = re.sub(r"\{[\d.]+\\linewidth\}", "", text)  # column / minipage widths
+    text = re.sub(
+        r"\\setlength\{[^}]*\}\{[^}]*\}", "", text
+    )  # preamble lengths (e.g. emergencystretch)
+    text = re.sub(r"[\d.]+(em|pt|ex)\b", "", text)  # layout lengths (e.g. leftmargin=1.2em)
     text = re.sub(r"(Haiku|Sonnet|Opus|Apache-)\s*\d\.\d", "", text)  # model versions / licence
     literals = set(re.findall(r"(?<![\w.])\d*\.\d+(?!\.\d)", text))
     name = Path(rel).name
@@ -548,6 +608,32 @@ def test_no_hand_typed_result_numbers(rel):
     prereg = (PAPER / "PREREGISTRATION.md").read_text()
     for lit in ALLOWED_LITERALS[name]:
         assert lit in prereg, lit
+
+
+def test_corrections_integers_are_macros_or_quoted_design_facts():
+    """corrections.tex may hold integers only as design facts or labelled register quotes; result values are macros."""
+    text = _strip(CORR.read_text())
+    assert "$41$" not in text and "of 36 each" not in text and "$15+5$" not in text
+    assert "\\resNTasks" in text and "\\resVFiveNTasks" in text and "\\resHTwoSingletonN" in text
+    text = re.sub(r"\\res[A-Z][A-Za-z]*", "", text)
+    text = re.sub(
+        r"\\(path|texttt|ref|label|cite[pt]?)\{[^}]*\}", "", text
+    )  # paths, code, references
+    text = re.sub(
+        r"\\#\d+|DF-\d+|[\d.]+(em|pt|ex)\b|\d\.\d+", "", text
+    )  # register ids, lengths, decimals
+    ints = set(re.findall(r"(?<![\w.\\])\d+(?![\w.])", text))
+    allowed = {
+        "2",
+        "3",
+        "4",
+        "5",
+        "7",
+        "8",
+        "15",
+        "91",
+    }  # shared tasks, seeds, digests, register quotes
+    assert ints <= allowed, sorted(ints - allowed)
 
 
 def test_braces_balanced():
@@ -560,7 +646,7 @@ def test_braces_balanced():
         assert depth == 0, fpath.name
 
 
-def test_prose_claims_match_artifacts(art):
+def test_prose_claims_match_artifacts(art, land):
     """Qualitative sentences that depend on artifact facts are pinned to those facts."""
     s, p, _, runs = art
     pr = s["preregistered"]
@@ -614,6 +700,24 @@ def test_prose_claims_match_artifacts(art):
     assert (
         "\\resHFourAdaAceN" in main and "\\resHFourNorAceN" in main
     )  # Limitations n, not hand-typed
+    # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the reproduction check
+    assert "\\resLandSha" in res and "\\resPostRunPathCount" in res and "\\resLandPR" in res
+    assert "reproduces every committed value" in res and "\\path{served_mismatch_count}" in res
+    assert (
+        "code paths the run did not reach" in res
+        and "revision at which v0.6.0 landed on main" in res
+    )
+    assert (
+        "\\resLandSha" in main
+        and "\\resPostRunPathCount" in main
+        and "reproduces every committed value" in main
+    )
+    para = res[res.index("\\resLandSha") : res.index("reproduces every committed value")]
+    named = re.findall(r"\\path\{((?:src|scripts/modal)/[^}]*\.py)\}", para)
+    assert sorted(named) == sorted(land["post_run_changed_paths"]), named
+    assert land["run_git_sha"] == p["git_sha"][:7] and land["land_git_sha"] != land["run_git_sha"]
+    for path in land["post_run_changed_paths"]:
+        assert (ROOT / path).exists(), path
 
 
 def test_methods_wording_matches_the_amendments():
@@ -692,7 +796,7 @@ def test_post_run_docs_and_prose_are_current():
     """After the sweep, nothing may still describe results as pending or the LLM condition as OpenRouter."""
     res, setup, main = RESULTS.read_text(), SETUP.read_text(), MAIN.read_text()
     assert (
-        "eval\\_genes\\_per\\_task" in res
+        "\\path{eval_genes_per_task}" in res
         and "\\resEvalGeneTasks" in res
         and "\\resEvalGeneMismatch" in res
     )
@@ -725,3 +829,219 @@ def test_post_run_docs_and_prose_are_current():
     assert (
         "legacy" in (ROOT / "src/perturb_eval/llm/openrouter_client.py").read_text()[:400].lower()
     )
+
+
+# --------------------------------------------------------------------------- land record vs git / generator
+def _git(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout
+
+
+def test_post_run_paths_are_exactly_the_git_diff(land):
+    """The paths the paper names as changed after the run are exactly git's answer (src + scripts/modal);
+    a later src/modal change forces the land record and the sentence to be revisited."""
+    _git("cat-file", "-e", f"{land['run_git_sha']}^{{commit}}")  # fails loudly on a shallow clone
+    _git("merge-base", "--is-ancestor", land["land_git_sha"], "HEAD")
+    changed = sorted(
+        _git(
+            "diff",
+            "--name-only",
+            "--relative",
+            land["run_git_sha"],
+            land["land_git_sha"],
+            "--",
+            "src",
+            "scripts/modal",
+        ).split()
+    )
+    assert changed == sorted(land["post_run_changed_paths"]), changed
+    assert (
+        _git(
+            "diff",
+            "--name-only",
+            "--relative",
+            land["land_git_sha"],
+            "HEAD",
+            "--",
+            "src",
+            "scripts/modal",
+        ).split()
+        == []
+    )
+
+
+def _build_with_land(fv, tmp_path, patch):
+    ld = json.loads((PAPER / "data" / "land_v060.json").read_text())
+    patch(ld)
+    lp = tmp_path / "land.json"
+    lp.write_text(json.dumps(ld))
+    return fv.build(
+        ART,
+        PAPER / "data" / "projection_v060.json",
+        ROOT / "configs" / "runs" / "20260929T035447Z-ce5f237.json",
+        [],
+        lp,
+    )
+
+
+@pytest.mark.parametrize("sha", ["deadbee", "5a45d4a", "ce5f238", "", "c"])
+def test_land_record_for_another_run_is_rejected(fv, tmp_path, sha):
+    with pytest.raises(ValueError):
+        _build_with_land(fv, tmp_path, lambda d: d.__setitem__("run_git_sha", sha))
+
+
+def test_land_sha_must_look_like_a_sha_and_differ_from_the_run(fv, tmp_path):
+    with pytest.raises(ValueError):
+        _build_with_land(fv, tmp_path, lambda d: d.__setitem__("land_git_sha", "see PR"))
+    with pytest.raises(ValueError):
+        _build_with_land(fv, tmp_path, lambda d: d.__setitem__("land_git_sha", d["run_git_sha"]))
+
+
+def test_land_record_drives_the_land_macros(fv, tmp_path):
+    n = len(json.loads((PAPER / "data" / "land_v060.json").read_text())["post_run_changed_paths"])
+
+    def patch(d):
+        d["land_git_sha"] = "abc1234"
+        d["pr_number"] = 99
+        d["post_run_changed_paths"].append("src/x.py")
+
+    m = _build_with_land(fv, tmp_path, patch)
+    assert (m["LandSha"], m["LandPR"], m["PostRunPathCount"]) == ("abc1234", "99", str(n + 1))
+
+
+def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
+    """The reproduction check the paper cites: the analyser at this revision, on the committed run files,
+    reproduces every committed value; the only addition is served_mismatch_count = 0."""
+    import os
+
+    for name in ("trainer_runs.jsonl", "lifecycle_runs.jsonl", "provenance.json"):
+        shutil.copy(ART / name, tmp_path / name)
+    subprocess.run(
+        [sys.executable, "-m", "perturb_eval.experiments.e_v05_real_traces", str(tmp_path)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+    )
+    new = json.loads((tmp_path / "summary.json").read_text())
+    assert new.pop("served_mismatch_count") == 0
+    committed = art[0]
+    assert new == committed, sorted(
+        k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
+    )
+
+
+# --------------------------------------------------------------------------- amendments / v0.5.0 record vs git and the register
+def test_amendment_records_match_git_and_the_preregistration():
+    am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
+    prereg = (PAPER / "PREREGISTRATION.md").read_text()
+    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4"]
+    land = json.loads((PAPER / "data" / "land_v060.json").read_text())
+    for a in am:
+        n = a["id"][1]
+        if a["prereg_version"]:
+            assert f"## Amendment {n} (`prereg_version` = `{a['prereg_version']}`)" in prereg
+        else:
+            assert (
+                f"Amendment {n} ({a['lock_date_utc']}, `{a['lock_commits'][0]}`)" in prereg
+            )  # A1, named in the preamble
+        first = a["lock_commits"][0]
+        head_line = a["introduces"]  # the text the lock commit added to PREREGISTRATION.md
+        assert head_line in _git(
+            "show", f"{first}:projects/perturb-seq-eval/paper/PREREGISTRATION.md"
+        )
+        assert head_line not in _git(
+            "show", f"{first}^:projects/perturb-seq-eval/paper/PREREGISTRATION.md"
+        )
+        for c in a["lock_commits"]:
+            assert re.fullmatch(r"[0-9a-f]{7,40}", c), c
+            _git("merge-base", "--is-ancestor", c, land["run_git_sha"])  # locked before the run
+            files = _git("show", "--name-only", "--format=", c)
+            assert "paper/PREREGISTRATION.md" in files, c
+            date = subprocess.run(
+                ["git", "log", "-1", "--format=%cd", "--date=format-local:%Y-%m-%d", c],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**__import__("os").environ, "TZ": "UTC"},
+            ).stdout.strip()
+            assert date == a["lock_date_utc"], (c, date)
+        assert (
+            "\\" not in a["change"] and "{" not in a["change"]
+        )  # typeset verbatim (`_` is escaped by render)
+        assert (
+            "1.3548" not in a["change"]
+        )  # A4-2 states 1.3 carried in from the aborted run + the dry run separately
+    a4 = next(a for a in am if a["id"] == "A4")
+    assert sorted(
+        _git(
+            "log",
+            "--format=%h",
+            f"{a4['lock_commits'][0]}^..{land['run_git_sha']}",
+            "--",
+            "paper/PREREGISTRATION.md",
+        ).split()
+    ) == sorted(a4["lock_commits"])
+    assert a4.get("lock_note")
+    res = RESULTS.read_text()
+    assert "\\label{tab:amendments}" in res and res.count("\\ref{tab:amendments}") >= 2
+    assert SETUP.read_text().count("\\ref{tab:amendments}") >= 2
+
+
+def test_v050_record_commit_and_register_quotes():
+    vr = json.loads((PAPER / "data" / "v050_record.json").read_text())
+    rc = vr["record_commit"]
+    assert re.fullmatch(r"[0-9a-f]{7,40}", rc)
+    added = _git(
+        "log", "--format=%h", "--diff-filter=A", "--", "artifacts/v0.5.0/summary.json"
+    ).split()
+    assert added and added[-1].startswith(rc), added
+    _git("merge-base", "--is-ancestor", rc, "HEAD")
+    assert (
+        _git("diff", "--name-only", rc, "HEAD", "--", "artifacts/v0.5.0").strip() == ""
+    )  # record unchanged since
+    register = (ROOT.parents[1] / vr["narrative_register"]).read_text()
+    corr_text = CORR.read_text()
+    for q in vr["narrative_quotes"]:
+        assert q["register"] in register, q
+        assert q["tex"] in corr_text, q
+    corr = CORR.read_text()
+    for mac in (
+        "VFiveAdamsonMedian",
+        "VFiveNormanMedian",
+        "VFiveNTrainerRuns",
+        "VFiveNLifecycleRuns",
+        "VFiveBackboneEntropy",
+        "VFiveScgptSharePct",
+        "VFiveNPicks",
+        "VFiveHVGEntropy",
+        "VFiveSpend",
+        "VFiveGPUHours",
+        "VFiveRecordCommit",
+    ):
+        assert f"\\res{mac}" in corr, mac
+    setup = SETUP.read_text()
+    assert (
+        "\\resThinkingSonnet" in setup and "\\resStopMaxTokens" in setup and "\\resNCalls" in setup
+    )
+
+
+def test_land_sha_is_the_pr_merge(land):
+    full = _git("rev-parse", land["land_git_sha"]).strip()
+    assert full == land["land_git_sha_full"]
+    assert _git("log", "-1", "--format=%s", full).startswith(
+        f"Merge pull request #{land['pr_number']} "
+    )
+    assert len(_git("log", "-1", "--format=%P", full).split()) == 2
+    _git("merge-base", "--is-ancestor", land["run_git_sha"], full)
+
+
+def test_render_number_allow_list(fv):
+    assert r"\newcommand{\resX}{1\,944}" in fv.render({"X": "1\\,944"})
+    assert r"\newcommand{\resX}{a\_b}" in fv.render({"X": "a_b"})
+    for bad in ("1\\,94", "1\\,944x", "a%b", "a{b"):
+        with pytest.raises(ValueError):
+            fv.render({"X": bad})

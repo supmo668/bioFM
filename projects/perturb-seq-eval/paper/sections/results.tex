@@ -16,7 +16,28 @@ is UNEVALUATED, never FAIL. Every estimator is implemented in
 \texttt{src/perturb\_eval/experiments/preregistered.py} and called from
 \texttt{analyse\_v05\_run}. Bootstrap CIs are percentile intervals over \emph{tasks}
 ($B=10\,000$, \texttt{numpy.random.default\_rng(2026)}, 95\%). \textbf{Outcome:
-\resGateSummary.}
+\resGateSummary.} The amendments are named in Table~\ref{tab:amendments}; each amended quantity
+below cites its amendment.
+
+\begin{table}[ht]
+\footnotesize
+\centering
+\begin{tabular}{p{0.03\linewidth}p{0.09\linewidth}p{0.1\linewidth}p{0.17\linewidth}p{0.45\linewidth}}
+\toprule
+& version & locked (UTC) & lock commit(s) & change \\
+\midrule
+A1 & \resAmendOneVersion & \resAmendOneDate & \texttt{\resAmendOneCommit} & \resAmendOneChange \\
+A2 & \texttt{\resAmendTwoVersion} & \resAmendTwoDate & \texttt{\resAmendTwoCommit} & \resAmendTwoChange \\
+A3 & \texttt{\resAmendThreeVersion} & \resAmendThreeDate & \texttt{\resAmendThreeCommit} & \resAmendThreeChange \\
+A4 & \texttt{\resAmendFourVersion} & \resAmendFourDate & \texttt{\resAmendFourCommit} & \resAmendFourChange \\
+\bottomrule
+\end{tabular}
+\caption{Amendments to the pre-registration, each locked before any v0.6.0 data existed
+(\texttt{paper/PREREGISTRATION.md}; amendment~1 predates the \texttt{prereg\_version} tag). The
+run's \texttt{prereg\_version} is \resPreregVersion. For A4, \resAmendFourNote. Dates and commits
+are transcribed from git and verified against it by test.}
+\label{tab:amendments}
+\end{table}
 
 \begin{table}[ht]
 \small
@@ -52,8 +73,8 @@ Estimator: per task, the minimum MSD on the top-$20$ evaluation genes over the
 \resNDistinctConfigs{} distinct trainer configurations (\resNTrainerRecordsPerTask{} records
 per task; an oracle, \S\ref{subsec:oracle}); the gate is the median over tasks in each
 dataset (\texttt{preregistered.h1\_h2\_stats}). The evaluation genes are the per-task list in
-\texttt{summary.json} $\to$ \texttt{eval\_genes\_per\_task} (\resEvalGeneTasks{} tasks), shared
-with the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
+\texttt{summary.json} $\to$ \path{eval_genes_per_task} (\resEvalGeneTasks{} tasks), shared with
+the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
 
 \begin{table}[ht]
 \small
@@ -82,7 +103,7 @@ The Norman doublet stratum's median
 Estimator: the plug-in Shannon entropy (nats) of the Architect's \emph{stated} \texttt{backbone} over
 all LLM-sourced Architect steps, pooled across tasks, seeds and rounds --- a statement about the
 pool, not about any task, seed or round --- with the ceiling $\ln 3=\resHThreeCeiling$ derived from
-the pinned menu (\texttt{preregistered.h3}). Stated-pick counts over \resHThreeNSteps{} steps
+the pinned menu (\texttt{preregistered.h3}; A2-6, Table~\ref{tab:amendments}). Stated-pick counts over \resHThreeNSteps{} steps
 (\resHThreeNCounted{} counted; missing stated \resHThreeNMissingStated, off-menu
 \resHThreeNOffMenu): \textsc{linear} \resHThreePickLinear, \textsc{mlp} \resHThreePickMlp,
 \texttt{scgpt\_small} \resHThreePickScgpt; entropy \resHThreeEntropy{} nats (\resHThreeVerdict).
@@ -114,14 +135,15 @@ and
   \mathrm{TDI}_{\mathrm{lifecycle}} = \tfrac{7}{12}\,\mathrm{ACE}_{\mathrm{norm}}
     + \tfrac{5}{12}\,\bigl(1-\Delta C\bigr) \in \bigl[0,\tfrac{17}{12}\bigr],
 \end{equation}
-the default weights renormalised over the two terms, with no outer clip. The softmax entropy
+the default weights renormalised over the two terms, with no outer clip (A2-10, A2-11;
+Table~\ref{tab:amendments}). The softmax entropy
 and the clipped $1-\min(\max(\Delta C,0),1)$ are reported descriptively beside them (the softmax
 was replaced before any data existed, amendment~2). Undefined values are never imputed; in this
 run no component was undefined (runs undefined: \resHFourRunsUndefined; tasks dropped:
 \resHFourTasksDropped), every run having exactly three rounds.
 
 \paragraph{Estimator.} The unit is the task; per task, each component and the lifecycle's
-final MSD (on the same \texttt{eval\_genes\_per\_task} list as H1/H2, A2-5) are medians over
+final MSD (on the same \path{eval_genes_per_task} list as H1/H2, A2-5) are medians over
 the three seeds. Spearman $\rho$ is computed \emph{within}
 Adamson and \emph{within} Norman separately, with default weights and no in-sample
 calibration; all six values are reported with $n$ and a bootstrap CI, and the gate passes if any
@@ -180,6 +202,7 @@ transfer at the pre-registered level; no re-fit, threshold or sign change is app
 
 \subsection{Run record}\label{subsec:runrecord}
 
+\begin{sloppypar}
 Run \resRunId{} at git \resGitSha{} (\texttt{git\_dirty} \resGitDirty), \texttt{prereg\_version}
 \resPreregVersion. Tasks analysed: \resNTasks. Lifecycle runs: \resNLifecycleRuns, each of
 exactly three rounds; steps: \resNSteps, all LLM-sourced (fallback \resNFallback, mock
@@ -199,4 +222,18 @@ Trainer records: \resNTrainerRuns{} (\resNTrainerRecordsPerTask{} per task). Spe
 (\resGPUHours{} A100-hours), carried-in prior \$\resSpendPrior; total \$\resSpendTotal{} against
 the \$\resSpendStopLine{} stop-and-report and \$\resKillLine{} kill lines (neither reached:
 stop reason \resStopReasonNone). Run manifest \texttt{configs/runs/\resRunId.json}
-(SHA-256 prefix \resManifestSha).
+(SHA-256 prefix \resManifestSha). The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on main
+(\resLandSha, PR~\resLandPR) differ in \resPostRunPathCount{} source files under \path{src/} and
+\path{scripts/modal/} (\path{src/perturb_eval/llm/anthropic_client.py},
+\path{src/perturb_eval/llm/openrouter_client.py},
+\path{src/perturb_eval/experiments/provenance.py},
+\path{src/perturb_eval/experiments/e_v05_real_traces.py},
+\path{src/perturb_eval/agentic_lifecycle/architect_dispatch.py},
+\path{scripts/modal/app_v05.py}), in code paths the run did not reach --- a served-model
+mismatch now aborts without failover, ``replay'' is a finalisable status, a recorded mismatch
+withdraws the analyser's licence, and docstrings and one recorded-reason string --- with
+\resServedMismatch{} mismatches, \resNFailover{} failovers and replay \resReplay{} recorded; the
+analyser at the landed revision, re-run on the committed run files,
+reproduces every committed value of \texttt{summary.json}; the landed analyser adds one key,
+\path{served_mismatch_count}, equal to \resServedMismatch.
+\end{sloppypar}

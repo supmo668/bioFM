@@ -38,8 +38,10 @@ HAIKU = "claude-haiku-4-5-20251001"
 SONNET = "claude-sonnet-5-5"
 PRIMARY = {role: (SONNET if role == "Validator" else HAIKU) for role in ROLES}
 # Macro values are typeset verbatim; anything outside this alphabet (or a verdict) is refused.
-SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /]*")
-ENSUREMATH_NEG = re.compile(r"\\ensuremath\{-\d+(\.\d+)?\}")
+SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /_]*")  # `_` is escaped at emission
+ENSUREMATH_NEG = re.compile(
+    r"\\ensuremath\{-\d+(\.\d+)?\}|\d{1,3}(\\,\d{3})+"
+)  # negatives; thin-space thousands
 VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}"}
 
 
@@ -64,7 +66,13 @@ def _sha16(path: Path) -> str:
 
 
 def build(
-    artifacts: Path, projection: Path, manifest: Path, archives: list[Path]
+    artifacts: Path,
+    projection: Path,
+    manifest: Path,
+    archives: list[Path],
+    land: Path | None = None,
+    amendments: Path | None = None,
+    v050: Path | None = None,
 ) -> dict[str, str]:
     s = json.loads((artifacts / "summary.json").read_text())
     p = json.loads((artifacts / "provenance.json").read_text())
@@ -269,6 +277,75 @@ def build(
     m["ProjTotal"] = f(proj["total_usd"], 2)
     m["ProjLatency"] = f(proj["gpu_latency_per_round_s"], 1)
     m["CeilingLine"] = f(proj["ceiling_usd"], 0)
+    # ---- run revision vs landed revision (deposit gate, CTO #509/#526): the paths that changed after
+    # the run are named from the land record, never typed into the .tex
+    land_path = land or (PROJECT_ROOT / "paper" / "data" / "land_v060.json")
+    ld = json.loads(land_path.read_text())
+    for key in ("run_git_sha", "land_git_sha"):
+        if not re.fullmatch(r"[0-9a-f]{7,40}", str(ld[key])):
+            raise ValueError(f"land record's {key} is not a 7-40 hex git sha: {ld[key]!r}")
+    if not p["git_sha"].startswith(ld["run_git_sha"]):
+        raise ValueError("land record's run_git_sha does not match provenance git_sha")
+    if p["git_sha"].startswith(ld["land_git_sha"]) or ld["land_git_sha"].startswith(
+        ld["run_git_sha"]
+    ):
+        raise ValueError("land record's land_git_sha must differ from the run's git sha")
+    m["LandSha"] = ld["land_git_sha"]
+    m["LandPR"] = str(ld["pr_number"])
+    m["PostRunPathCount"] = str(len(ld["post_run_changed_paths"]))
+    # ---- A4-1 thinking / sampling facts from the run record (CTO #532 ii)
+    th = rep["thinking"]
+    sm = rep["sampling"]
+    m["ThinkingHaiku"] = str((th.get(HAIKU) or {}).get("thinking", {}).get("type", "none"))
+    m["ThinkingSonnet"] = str((th.get(SONNET) or {}).get("thinking", {}).get("type", "none"))
+    m["EffortSonnet"] = str((th.get(SONNET) or {}).get("effort", "default"))
+    m["TemperatureHaiku"] = f(sm[HAIKU]["temperature"], 1)
+    m["SamplingSonnet"] = (
+        "API defaults"
+        if not sm.get(SONNET)
+        else "; ".join(f"{k} {v}" for k, v in sm[SONNET].items())
+    )
+    # ---- amendments table (CTO #532 i): ids, versions, lock commits, UTC lock dates, one-line change
+    am = json.loads(
+        (amendments or (PROJECT_ROOT / "paper" / "data" / "amendments_v060.json")).read_text()
+    )
+    words = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}
+    if [a["id"] for a in am["amendments"]] != list(words):
+        raise ValueError("amendments record must list A1, A2, A3, A4 in order")
+    for a in am["amendments"]:
+        word = words[a["id"]]
+        for c in a["lock_commits"]:
+            if not re.fullmatch(r"[0-9a-f]{7,40}", c):
+                raise ValueError(f"amendment {a['id']}: lock commit {c!r} is not a git sha")
+        m[f"Amend{word}Version"] = a["prereg_version"] or "(none)"
+        m[f"Amend{word}Date"] = a["lock_date_utc"]
+        m[f"Amend{word}Commit"] = ", ".join(a["lock_commits"])
+        m[f"Amend{word}Note"] = a["lock_note"]
+        m[f"Amend{word}Change"] = a["change"]
+    # ---- v0.5.0 record (CTO #532 iii): every v0.5.0 figure in the corrections appendix is read, not typed
+    vr = json.loads((v050 or (PROJECT_ROOT / "paper" / "data" / "v050_record.json")).read_text())
+    s5 = json.loads((PROJECT_ROOT / "artifacts" / "v0.5.0" / "summary.json").read_text())
+    p5 = json.loads((PROJECT_ROOT / "artifacts" / "v0.5.0" / "provenance.json").read_text())
+    dist = s5["architect_backbone_distribution"]
+    if not re.fullmatch(r"[0-9a-f]{7,40}", vr["record_commit"]):
+        raise ValueError("v0.5.0 record_commit is not a git sha")
+    m["VFiveRecordCommit"] = vr["record_commit"]
+    m["VFiveAdamsonMedian"] = f(s5["median_msd_adamson"])
+    m["VFiveNormanMedian"] = f(s5["median_msd_norman"])
+    m["VFiveNTasks"] = str(s5["n_tasks_analysed"])
+    m["VFiveNTrainerRuns"] = f"{s5['n_trainer_runs']:,}".replace(",", "\\,")
+    q, r = divmod(s5["n_trainer_runs"], s5["n_tasks_analysed"])
+    if r:
+        raise ValueError("v0.5.0 trainer runs are not a whole number of configurations per task")
+    m["VFiveConfigsPerTask"] = str(q)
+    m["VFiveNLifecycleRuns"] = str(s5["n_lifecycle_runs"])
+    m["VFiveBackboneEntropy"] = f(s5["architect_backbone_entropy_nats"], 2)
+    m["VFiveHVGEntropy"] = f(s5["architect_hvg_entropy_nats"], 2)
+    m["VFiveNPicks"] = str(sum(dist.values()))
+    m["VFiveScgptSharePct"] = f(100 * dist["scgpt_small"] / sum(dist.values()), 0)
+    m["VFiveSpend"] = f(p5["total_cost_usd"], 2)
+    m["VFiveGPUHours"] = f(p5["total_gpu_seconds"] / 3600, 2)
+    m["VFiveBudgetCap"] = f(p5["budget_cap_usd"], 0)
     # ---- integrity anchors (a missing file is an error, never n/a)
     # A2-5: H1/H2 and H4/H5 cite the same per-task evaluation-gene list (summary.json)
     m["EvalGeneTasks"] = str(len(s["eval_genes_per_task"]))
@@ -290,6 +367,8 @@ def render(m: dict[str, str]) -> str:
         v = m[k]
         if v not in VERDICTS and not ENSUREMATH_NEG.fullmatch(v) and not SAFE_VALUE.fullmatch(v):
             raise ValueError(f"macro {k} holds a value that is not TeX-safe: {v!r}")
+        if v not in VERDICTS and not ENSUREMATH_NEG.fullmatch(v):
+            v = v.replace("_", "\\_")
         lines.append(f"\\newcommand{{\\res{k}}}{{{v}}}")
     return "\n".join(lines) + "\n"
 
@@ -320,6 +399,7 @@ def main() -> int:
             / "output-archive-20260928T220916Z-291efad.manifest.json",
         ],
     )
+    ap.add_argument("--land", type=Path, default=PROJECT_ROOT / "paper" / "data" / "land_v060.json")
     ap.add_argument(
         "--out", type=Path, default=PROJECT_ROOT / "paper" / "sections" / "generated_numbers.tex"
     )
@@ -327,7 +407,7 @@ def main() -> int:
         "--check", action="store_true", help="regenerate and fail if the committed file differs"
     )
     a = ap.parse_args()
-    text = render(build(a.artifacts, a.projection, a.manifest, a.archive_manifests))
+    text = render(build(a.artifacts, a.projection, a.manifest, a.archive_manifests, a.land))
     if a.check:
         current = a.out.read_text() if a.out.exists() else ""
         if current != text:

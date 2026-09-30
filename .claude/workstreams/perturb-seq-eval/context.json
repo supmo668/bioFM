@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-09-29T07:43:11.017187+00:00",
+  "updated_at": "2026-09-30T06:48:45.911401+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -75,6 +75,17 @@
       "summary": "manuscript filled from artifacts via generated macros; gated, 23 findings fixed; next /pr-prep -> /sync (after main pushed) -> /pr-submit",
       "pr": "",
       "updated_at": "2026-09-29T07:43:11.017020+00:00"
+    },
+    "DEPOSIT": {
+      "status": "in-progress",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "e2d16dc",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260929-2259-b2be4dd.md",
+      "summary": "deposit + rigour items done; pr-prep #2 receipt next, then push + pr-submit (one PR per CTO #532)",
+      "pr": "",
+      "updated_at": "2026-09-30T06:48:45.911201+00:00"
     }
   }
 }

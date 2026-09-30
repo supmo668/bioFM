@@ -16,6 +16,7 @@
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{enumitem}
+\setlength{\emergencystretch}{1.5em} % third-pass stretch for paragraphs dense with code identifiers
 % No algorithm2e / algorithm / algpseudocode assumed available in the
 % target TeX distribution — we inline the procedure as a numbered list.
 
@@ -274,8 +275,9 @@ clipped term are reported descriptively beside them. Both amendments were
 locked before any v0.6.0 data existed.
 
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
-$\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
-\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4$. In practice the probe is
+\[\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
+\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4.\]
+In practice the probe is
 produced by a \emph{shallow} one-round execution of the orchestrator (smaller
 tool-call budget, narrower retrieval) so it is materially cheaper than a full
 run.
@@ -367,12 +369,12 @@ LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt
 
 \subsection{Adapting CellForge: duck typing, no patching}
 
-The orchestrator in \texttt{libs/cellforge-agents/} exposes a
-\texttt{ConsensusResult} whose \texttt{.rounds[i].proposals} carry
-\texttt{.agent}, \texttt{.confidence}, \texttt{.content}, and whose
-\texttt{.rounds[i].critiques} carry \texttt{.from\_agent},
-\texttt{.on\_agent}, \texttt{.severity}. The adapter in
-\texttt{src/perturb\_eval/instrumentation.py} is $\approx\!40$ lines of
+The orchestrator (\path{libs/cellforge-agents/}) exposes a result
+object, \texttt{ConsensusResult}, whose \path{.rounds[i].proposals} carry
+\path{.agent}, \path{.confidence}, \path{.content}, and whose
+\path{.rounds[i].critiques} carry \path{.from_agent},
+\path{.on_agent}, \path{.severity}. The adapter in
+\path{src/perturb_eval/instrumentation.py} is $\approx\!40$ lines of
 pure projection: it duck-types those two interfaces, builds a critique
 matrix that excludes self-critique, and reconstructs the per-round winner
 as $\arg\max_j (c_j - \overline{S}_{\cdot j})$. No orchestrator patching is
@@ -416,10 +418,10 @@ repository at \texttt{massgen\_skill\_draft/}:
 \end{enumerate}
 
 The corresponding MassGen skill artifact
-(\path{massgen_skill_draft/skill.yaml}) declares an
-\texttt{on\_session\_start} hook that runs preflight and an
-\texttt{on\_session\_end} hook that runs evaluate. Both handlers are
-$\leq 20$ lines of glue over \texttt{perturb\_eval.massgen\_adapter}, which
+(\path{massgen_skill_draft/skill.yaml}) declares two hooks:
+\path{on_session_start} runs preflight and \path{on_session_end} runs
+evaluate. Both handlers are
+$\leq 20$ lines of glue over \path{perturb_eval.massgen_adapter}, which
 keeps the skill minimal and audit-friendly.
 
 \paragraph{What we have \emph{not} done.} We have not (a) submitted the
@@ -476,11 +478,11 @@ choices to a model is recoverable after the fact (Appendix~\ref{app:corrections}
 % =====================================================================
 \section{Limitations and Threats to Validity}\label{sec:limits}
 
-\paragraph{Backbone scope.} The backbones are small models trained per task
+\paragraph{Backbone scope.} \begin{sloppypar}The backbones are small models trained per task
 (\S\ref{subsec:backbones}); no pretrained single-cell foundation model is
 evaluated. Integrating pretrained \textsc{scGPT}~\citep{cui2024scgpt},
 \textsc{Geneformer}~\citep{theodoris2023geneformer}, or
-\textsc{scFoundation} is the most consequential follow-up.
+\textsc{scFoundation} is the most consequential follow-up.\end{sloppypar}
 
 \paragraph{Oracle, not held-out, error.} H1/H2 select the best of
 \resNDistinctConfigs{} distinct configurations (\resNTrainerRecordsPerTask{}
@@ -583,10 +585,14 @@ The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
 \path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
-\resArchiveShaOutputs), never deleted.
+\resArchiveShaOutputs), never deleted. The revision at which v0.6.0 landed on main
+(\resLandSha) differs from the run's \resGitSha{} in \resPostRunPathCount{} source files, in
+code paths the run did not reach (\S\ref{subsec:runrecord}); the landed analyser, re-run on
+the committed run files, reproduces every committed value of \texttt{summary.json}.
 \end{sloppypar}
 
 \paragraph{Pipeline.}
+\begin{sloppypar}
 \begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
   \item \path{src/perturb_eval/data/download.py} --- fetches Adamson's
         three scPerturb subsets and Norman 2019 from Zenodo record
@@ -600,6 +606,7 @@ with SHA-256 manifests (prefixes \resArchiveShaCache{} and
         mismatched task sets, runs with a fallback step, and unfinished or
         failed runs.
 \end{itemize}
+\end{sloppypar}
 
 \paragraph{Seeds.} The task draw uses CRC32-derived strata and
 \texttt{seed=2026}; the per-run seed is passed to the trainer and into the
