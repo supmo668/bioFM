@@ -18,6 +18,7 @@
 | perturb-seq-eval | pre-registration amendment 2 locked | `3bf2a9a` | **recorded** | pre-registration file + approval log |
 | perturb-seq-eval | v0.6.0 pre-registered gates | 4 / 5 PASS (H5 FAIL, ρ = 0.286); 123/123 runs, 0 fallbacks / refusals / mismatches; $8.93 | **measured** 2026-09-29, landed PR #8 (`5a45d4a`) + PR #12 (`5637497`) | [result review (Notion)](https://app.notion.com/p/3eb749bd250d8112a6aeca8ae015149c) · `workstreams/perturb-seq-eval/qa/_adhoc/v060-result-review.md` |
 | lung-on-chipsim | results | none | **absent by design** — `fit.py` refuses to run without sourced priors; evaluator not yet frozen (M0c) | `workstreams/lung-on-chipsim/paper/2026-09-26-stage1-registered-report-design.md` §1 |
+| lung-on-chipsim | **Stage 1 final gate** | FAIL on the same mechanism; 9 dated instances, 6 introduced by the repair of a previous one; no receipt signed, nothing pushed, branch archived | **measured** 2026-10-01, closure verified by the CTO (no receipt in `qgr/`; remote 435 commits behind) | `workstreams/lung-on-chipsim/qgr/stage1-closure.md` + `2026-10-01-cto-disposition.md` |
 | lung-on-chipsim | content-guard gates run on E-22/E-23 | 9 gates; gates 6, 7, 8 and 9 FAIL accepted — gate 9 (2026-09-29): 6 defects / 19 findings / 5 readers, all invisible to 1,257 tests; E-23 CLOSED at the scope reached, no receipt | **measured**, each survivor paired with why nothing saw it | `workstreams/lung-on-chipsim/qgr/`, approval-log rows 47–55 |
 
 ## What the gate can and cannot see
