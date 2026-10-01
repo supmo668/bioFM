@@ -58,3 +58,17 @@ notify: not sent — post this payload via the Slack MCP (channel: #research-app
 }
 ```
 
+
+## Second batch — SENT 2026-10-01 (principal: "send all related HACP surface to slack")
+
+The remaining bioFM HACP rows that had never been announced, plus the two subproject indexes. Each message carries the Notion URL(s).
+
+| Surface | Kind | Slack message |
+|---|---|---|
+| bioFM — Index (+ build/design/eval/risk section rows) | Index L0 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889442285399 |
+| aviary-biosim (bioFM) — Index (new 2026-10-01; walkthrough re-indexed beneath it) | Index L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889444147889 |
+| ChipSim (bioFM) — Index (+ §vision/§design/§eval/§risk/§decision; product cut moved here) | Index L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889445791209 |
+| lung-on-chipsim — Stage 1 registered report: design brief | Brief §eval | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889447484489 |
+| perturb-seq-eval — P0–P5 rulings (amendment 2) | Decision | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889448779829 |
+
+Every bioFM row in the HACP index (18 as of 2026-10-01) is now either announced directly or reachable from an announced index row.
