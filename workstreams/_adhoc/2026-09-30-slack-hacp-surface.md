@@ -58,3 +58,29 @@ notify: not sent — post this payload via the Slack MCP (channel: #research-app
 }
 ```
 
+
+## Second batch — SENT 2026-10-01 (principal: "send all related HACP surface to slack")
+
+The remaining bioFM HACP rows that had never been announced, plus the two subproject indexes. Each message carries the Notion URL(s).
+
+| Surface | Kind | Slack message |
+|---|---|---|
+| bioFM — Index (+ build/design/eval/risk section rows) | Index L0 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889442285399 |
+| aviary-biosim (bioFM) — Index (new 2026-10-01; walkthrough re-indexed beneath it) | Index L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889444147889 |
+| ChipSim (bioFM) — Index (+ §vision/§design/§eval/§risk/§decision; product cut moved here) | Index L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889445791209 |
+| lung-on-chipsim — Stage 1 registered report: design brief | Brief §eval | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889447484489 |
+| perturb-seq-eval — P0–P5 rulings (amendment 2) | Decision | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790889448779829 |
+
+Every bioFM row in the HACP index (18 as of 2026-10-01) is now either announced directly or reachable from an announced index row.
+
+## Third batch — SENT 2026-10-01 (principal: "provide only the 3 project level HACP review surface to slack via walkthrough with hierarchical granularity using in-line sublinks")
+
+Three walkthrough messages, one per project-level index, each routing down with inline sublinks and inlining nothing (REFERENCE-HACP: "links, never inlines", L0 → L1 → L2 → L3). Leaf rows are reached through their index, not announced separately.
+
+| Surface | Level | Slack message |
+|---|---|---|
+| bioFM — Index (routes to both subprojects, four sections, two decisions, the perturb result review) | L0 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790892194533239 |
+| aviary-biosim (bioFM) — Index — now carrying the applied-context result | L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790892231953099 |
+| ChipSim (bioFM) — Index | L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790892233455609 |
+
+Also 2026-10-01: the aviary-biosim subproject index gained **"The applied context — what the environment was built to find out"** (principal: the review surface "lacks depth on the result for the underlying drug discovery environment"). Written to `docs/hacp/aviary-biosim/index.md` first, mirrored to the Notion row, read back. Every figure in it is evidence-backed from the submodule's `whitepaper` branch (`paper/evidence/science.json`, `science-input.json`, `agent-run.json`, `claims.yaml`) and carries its label; the ortholog-embedding comparison is deliberately excluded because it is not in the evidence set.
