@@ -1,0 +1,169 @@
+{
+  "base": "e1a1cc4",
+  "command": "bracket.py --root <repo-root> --base e1a1cc4 --head HEAD",
+  "content_digest": "80526253ee769fb65ccdb1134a3e6c4c397f874df55f748d139fec1d0d821945",
+  "gated_files": [
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/dispatch-to-cto-pre-build-answer-to-501-yes-the-cto-addition-adds--20260929-0151.md",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-all-5-mechanisms-in-marker-subtraction-cannot-reac-20260929-0446.md",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-holding-c-2-on-a-clause-vs-clause-conflict-inside--20260929-0317.md",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-principle-the-approval-log-records-the-route-autho-20260929-0020.md",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-r2-50-draft-for-signature-463-clause-e-amended-in--20260929-0145.md",
+    "projects/lung-on-chipsim/tests/shape_scan.py",
+    "projects/lung-on-chipsim/tests/test_bracket.py",
+    "projects/lung-on-chipsim/tests/test_shape_scan.py",
+    "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py",
+    "workstreams/lung-on-chipsim/plan/build-plan.md",
+    "workstreams/lung-on-chipsim/plan/plan-approval-log.md",
+    "workstreams/lung-on-chipsim/plan/plan-approval.md",
+    "workstreams/lung-on-chipsim/qgr/evidence/bracket.py",
+    "workstreams/lung-on-chipsim/qgr/evidence/r250-classify.py"
+  ],
+  "head_sha": "6b642d8aed4d3e24ff081c15424fd4e2ea9c84b1",
+  "metadata": {
+    "branches": [
+      "091e741904586f474c8fb09d87bcc0819b170873188287cabdb2ce3c30478720",
+      "0dcd936f1c54b0d310a9ff58bfe21763e683be74646aa56a083d510ad97faa6b",
+      "185a98846bfec4757490ec1905d737d83aab31533c305643158820d03eef304b",
+      "2bbab2f61d67b6075dec811cb5b83a33cde9872714d642a9afb2338f8f1d2a5d",
+      "37ddbf8647b23357c63ccbc83f88975c7c91c7e92093027e26ed592ae6ca0354",
+      "5a4fe80eec2d6ee8e9b15012236f9dceab3e06b2706bf9cbff75b338d6e11833",
+      "739f8046b42fbb41f3684b82444ec27f1f1e6b622325315e0830fbc28329fb3b",
+      "788f0a2fa4f35eadf78af4be4bb923e481064db7c421675c3cda58e9c908d6bf",
+      "7c3b9b3822df9b8b2891594936ed341012c3ba326543cd5fea7a743accc5b15b",
+      "8c149afb9aa187a5de6ce99f79485f159419fb105a9d62c64e7cc063ae77dc77",
+      "8e6e8d956f13204cb20dfc0b48529fa03861c9df9c2fb65ef29be253bee5f7dd",
+      "9911d32ac75f94b907d3dbec91a6467a9bbc2f58473b1562f59e0d12049797bd",
+      "c774806597513e59803b5aa9ed30decb7053fedc7b77eba588c40e960f931280",
+      "caa47a73ec098da3d41e4afe76bfb2dd45b8ff410b37985f16274bbc3f268b2b",
+      "d7f13182de6bff14229793db237a6417d2127fdbd97fd7122b9a456d5b010266",
+      "e21296b1d4b381ec93e0f2172a7791f46dfada4dee0418b8de2eadc894d7a7fe",
+      "e7bd2463db14abbf3a75da2b75caa94e91faf15321f5a3375a6b467ef370a117"
+    ],
+    "stash": [
+      "140abbe0b8da239cf7ac241d23a40556389b7d0008ceef90c5a54a65887061e1",
+      "19c5268140f1e95df3725ef8b2117157688ea22253a839010e693f9ae0d2adb4",
+      "32874d212a4c8ea4dbdfcd864fcae2f29e1f3b0ae01e44992c9193f52eb8046b",
+      "360e2821821a2343208309995e55e8df6f3976c36331e11dca4c1cc850fdac1a",
+      "55c1c6f012c9b49006033e139116e1a382976b49ab40d57ce9b1ab99292ad161",
+      "5816af8567ab0b2f5db9ed960417d60530917d775bb5851d3431ce27e91e7759",
+      "5ef9ca915447873efbbe66c8c9fdfc4549571a8e82c63cebead8989e032e6274",
+      "6c7c740730854fc0932cdcd22026b167ad1207c0fb78903d02c6a4d5e544a8fb",
+      "6e04bc323d5771a765fd7415a7fe71507ce9ea7c98fb4c6286303f04250a2c76",
+      "7eba497d7940e81fb20700dab3e05d7736d2017f439fa5b36acbfa211ef39d6f",
+      "847396415caf5a6830fffa40d2e8d8c407017a8e0b12367f7afa3a4dbc81b202",
+      "8c058597cd963cb3d80941f88abe2c4788625634eb631076d174a282a5c480b2",
+      "c459a21731511f1a6b17d984dfe4b7699360f4979ec57d1c0218c5bad5580955",
+      "e3f88382a2f80722c8ecc08d6cb138f15add1f28de6f047c0e3955ff356206f4",
+      "e66d8ba68a3acccd45accf5a401fbd86a1d98e8028c5bbd16cd3c4a2ae998ec0",
+      "f0c35b2c52f9e244dae4a7cdf8b83f5c6b473cf7d97bbd737d7905f011f3fb3e"
+    ],
+    "status": [
+      "fc2a5aff3540ee9115e18a1761655afb59cf3c238dceba3c32d43097e7e5349c"
+    ],
+    "tags": [
+      "6dca183548532e4d8cb4cd774c3dad26684a6b3dead4825f79f9ee8fc20a599b"
+    ],
+    "worktrees": [
+      "1746bd084b22cc227143bf8f346a4c80addf5d7d533ded9b1b3f5cb42bec7c2e",
+      "1f823f502178fea4ed404b1b5cee39ac522a6a98a5eb8a7ff3918e10ac444169",
+      "28971463711fd559ced06441778088d8dff77c606e1c44ec90b620c937977b56",
+      "29c35c1994f223a7a129404d9390d4ae12da23da3a7490645ef11a82ff3b1cc7",
+      "3c67b6c87d917bee8e2e7865b1d75e8f9a58003c5116cb4e13b0e64a7378adbd",
+      "3d53fe882f7ed98c32b08ab3a773b5a88373a7efde36b6109e4882f642646199",
+      "43af49fed1c81520722af9dfa3b77ec0163280bbfa928a67b229d265a6de3729",
+      "44aa18878ab31d4649983c340e72ea505a6bef5f8c75ea27c69fbd045c2163d9",
+      "55ec3e4c653cef819e322231dff6486f28643177f42881891e1e8e697dfbe530",
+      "878bc951aae03751f873ebcce7342836d5116fb10da396e1c9da810f5782368e",
+      "8a03d662a074e614bc2ac9563ba3189e44388fde4ecd21be3cf21c1d97443d4b",
+      "91a63aeda9ea0bb1b38e83058d3b96b9e4296936404316fc7b1756294afcc391",
+      "9b09d04e3033a47dbc698a3a4c0c97f3f388e8c0d0afa6d8630cde7bac81dcf5",
+      "9fd317666cea9b579532be55c8c704beec96b1adf660d08c33d59c77d03d2c5e",
+      "df2a52a8cab825af83cb8b6de9a2c164d447860bb7d48d217864750848dd3d2d",
+      "f01788acf4aa0d58357c9baf6cf3f83d1e171b3a77fc07ddd0e36489cf8065b8"
+    ]
+  },
+  "metadata_counts": {
+    "branches": 17,
+    "stash": 16,
+    "status": 1,
+    "tags": 1,
+    "worktrees": 16
+  },
+  "metadata_digest": "c11958da5a6302ee7e01ee4d9a64bbc1e64ebd9ea02f619e42f42d653d2a033a",
+  "per_file": {
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/dispatch-to-cto-pre-build-answer-to-501-yes-the-cto-addition-adds--20260929-0151.md": "4d2f61c5289738fd44d7fcf16dd618ddf1709ca81575cf7a6240963148718cc9",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-all-5-mechanisms-in-marker-subtraction-cannot-reac-20260929-0446.md": "b83605537d6ad1a75ac929491931ba92eb30bdc7c74ea9b61d694a0fd6f205ae",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-holding-c-2-on-a-clause-vs-clause-conflict-inside--20260929-0317.md": "5af64c5cad15633b8f475264ed10d4cd7077565bcd797650a80b1966843fb55b",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-principle-the-approval-log-records-the-route-autho-20260929-0020.md": "a2af15eff1ccb09eb3fd248dbba858a5b1918cec3c56fdec87ef74d41c169f5d",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-r2-50-draft-for-signature-463-clause-e-amended-in--20260929-0145.md": "b408b9c104c30f69c1c53f7826459a7e0c6fa5fdd498ec36a996dfca056b514a",
+    "projects/lung-on-chipsim/tests/shape_scan.py": "1544d963e3698ebb376428dd60abd38013cad5fd46b99804b6e002ae29ab9adc",
+    "projects/lung-on-chipsim/tests/test_bracket.py": "e1d28c5cc06906777c8c6996113d06e9c881de8bf9dc9ca2c2616c4fd647867c",
+    "projects/lung-on-chipsim/tests/test_shape_scan.py": "10aa8faffdef35da65c0af4f2035c191b826ec6a4b666eb19a2fe67ce9885b2b",
+    "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py": "f36451e903c01799cf964129d51db65936aca436969089962c787d9799d1aeee",
+    "workstreams/lung-on-chipsim/plan/build-plan.md": "ae894db24f5466c26ab920c45fb278c034af29e56160db2c415007d177843854",
+    "workstreams/lung-on-chipsim/plan/plan-approval-log.md": "5b4207bf234641fabe81783aec90d116c1e7f69ebf9764641637f8c4e23d6a87",
+    "workstreams/lung-on-chipsim/plan/plan-approval.md": "34a79eb10c3bffa80cb5ef9bb99d7b25f447ad99077408a74622eb90301b55a7",
+    "workstreams/lung-on-chipsim/qgr/evidence/bracket.py": "3c8fee3fe17ef49a092e77a6767def88abcec91a89238ff36c39280e3c93e8f8",
+    "workstreams/lung-on-chipsim/qgr/evidence/r250-classify.py": "d40c24d157abc971cb5c15fc2c55233d6a75f3e0742ee6684390f6a2b477586a"
+  },
+  "shape_scan": {
+    "absent_from_worktree": [],
+    "could_not_scan": {},
+    "files_scanned": 14,
+    "files_with_unaccounted": 4,
+    "per_file": {
+      "projects/lung-on-chipsim/tests/test_shape_scan.py": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          39,
+          243,
+          333,
+          338
+        ],
+        "structure_unaccounted": 4
+      },
+      "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          93,
+          95,
+          109,
+          115,
+          116,
+          211,
+          217,
+          218,
+          229,
+          302,
+          518,
+          831
+        ],
+        "structure_unaccounted": 15
+      },
+      "workstreams/lung-on-chipsim/plan/build-plan.md": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          1361,
+          1393
+        ],
+        "structure_unaccounted": 3
+      },
+      "workstreams/lung-on-chipsim/plan/plan-approval-log.md": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          24,
+          27
+        ],
+        "structure_unaccounted": 3
+      }
+    },
+    "scanned_and_empty": [],
+    "tool_loaded": true,
+    "unaccounted_shapes": 25,
+    "verdict_half_live": "could-not-scan only; unaccounted pending r2.50b marker subtraction"
+  }
+}

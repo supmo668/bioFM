@@ -1,0 +1,4 @@
+# Gate 5 findings after reviewer-scorer (threshold 80). Range 561be17..be6e07e.
+PASS (>=80): R01 92 HIGH discard on unusable ledger | R14 92 LOW "coverage on BOTH paths" false | R04 90 MED errors.py/pipeline/r2.28 fourth-state prose | R05 88 MED single-code-point axis one body only ("CLOSED" overstated) | R08 85 MED truncating read survives ceiling rows | R13 85 LOW could-not-scan counts untested | R06 84 MED scanner call-site post-filter unbound | R07 82 LOW command test injects one class | R10 82 LOW WIRED test substring-only | R11 82 LOW axis-1 bodies not checked as digits | R02 80 LOW exit-2 exception text unescaped | R03 80 LOW (pre-existing) row paths unescaped
+BELOW: R12 76 cited-tests scope | R09 70 ratio (0.89,0.9) band | R16 70 set-dup / RATIO_ROWS consumption | R15 60 doc nits | R17 25 harness dup def
+Raw list: gate5-findings-raw (sha256 5b915e2e...) reproduced from /tmp/locmut/gate5/findings-raw.md
