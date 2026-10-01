@@ -1,0 +1,178 @@
+{
+  "base": "288821d",
+  "command": "bracket.py --root /Users/mo/github/personal/bioFM/worktrees/lung-on-chipsim --base 288821d --head HEAD",
+  "content_digest": "88514802f87962487eadd42d2beea6822fe896c44d62f6ac8b71262800140cfe",
+  "gated_files": [
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/dispatch-to-cto-aiadlc-feedback-3-batched-dispatch-catchup-reports-20260928-1240.md",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-r2-49b-clause-e-draft-for-re-sign-3-of-your-5-prop-20260928-1239.md",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-ruling-needed-r2-49-e-0-unaccounted-by-marking-is--20260927-2253.md",
+    "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py",
+    "projects/lung-on-chipsim/tests/association_reference.py",
+    "projects/lung-on-chipsim/tests/shape_scan.py",
+    "projects/lung-on-chipsim/tests/test_bracket.py",
+    "projects/lung-on-chipsim/tests/test_record_content_guard.py",
+    "projects/lung-on-chipsim/tests/test_shape_scan.py",
+    "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py",
+    "workstreams/lung-on-chipsim/plan/build-plan.md",
+    "workstreams/lung-on-chipsim/plan/plan-approval-log.md",
+    "workstreams/lung-on-chipsim/plan/plan-approval.md",
+    "workstreams/lung-on-chipsim/qgr/evidence/bracket.py",
+    "workstreams/lung-on-chipsim/qgr/evidence/gate6-bracket.md",
+    "workstreams/lung-on-chipsim/qgr/evidence/gate7-bracket.md",
+    "workstreams/lung-on-chipsim/qgr/evidence/gate7-bracket.py"
+  ],
+  "head_sha": "14baa461a66c61176270ecdfe50631f8f1a3d806",
+  "metadata": {
+    "branches": [
+      "+ cellforge-agents",
+      "  cto/coord-flush-20260911",
+      "  cto/coord-flush-20260914",
+      "  cto/publish-coordination-audit-chain-20260926",
+      "  cto/untrack-agent-marker",
+      "* lung-on-chipsim",
+      "+ main",
+      "+ perturb-seq-eval",
+      "+ v2r-loop",
+      "  worktree-agent-a19bdd801702471f6",
+      "+ worktree-agent-a1ca2f63f1687edf5",
+      "  worktree-agent-a3ad140fd73598060",
+      "+ worktree-agent-a786fd28b010e4884",
+      "+ worktree-agent-a7fca51b98841ff93",
+      "  worktree-agent-aaabb6dba7a1ce7e6",
+      "+ worktree-agent-acdf690f8b1031d9b",
+      "  worktree-agent-af202026297979f38"
+    ],
+    "stash": [
+      "WIP on lung-on-chipsim: 6052e2b lung-on-chipsim/lung-on-chipsim: gate 6 fix 5 (#410 ruling 4): the bracket's exit code carries the CONTENT verdict only, and the shared stash is keyed by content -- 26 lines of noise for one real change, found by reading the first fix's output",
+      "WIP on perturb-seq-eval: 35edc6f perturb-seq-eval/perturb-seq-eval: misc(perturb-seq-eval): reply #415 \u2014 verified HACP Index identifiers for docs.notion.scopes.cto",
+      "WIP on lung-on-chipsim: e15f5f1 lung-on-chipsim/lung-on-chipsim: coord: CORRECTION to my own gate-4 verdict -- finding 9's second sentence was unmeasured and is false (pytest exits 2; no silent green), and a WI-2 item rests on it",
+      "WIP on lung-on-chipsim: 9bdf74c Merge branch 'main' into lung-on-chipsim",
+      "WIP on lung-on-chipsim: b681f89 lung-on-chipsim/lung-on-chipsim: coord: correction to the CTO \u2014 my second-writer explanation covered nine minutes, not a week",
+      "WIP on lung-on-chipsim: 4137feb Merge branch 'main' into lung-on-chipsim",
+      "WIP on lung-on-chipsim: 2349966 Merge branch 'main' into lung-on-chipsim",
+      "WIP on lung-on-chipsim: 4c30f24 Merge branch 'main' into lung-on-chipsim",
+      "WIP on lung-on-chipsim: 5dcca00 lung-on-chipsim/lung-on-chipsim: misc(lung-on-chipsim): dispatch #96 \u2014 T4 ruling cannot meet (b)/(c) as signed; not executed",
+      "WIP on lung-on-chipsim: 242e2a2 TASK-chipsim-lbm-audit-R9 - lung-on-chipsim/lung-on-chipsim for matthew-mo: R9 projects from MEASURED throughput and halts pre-emptively; the 0.80 floor gets a scope",
+      "WIP on lung-on-chipsim: 60d6640 TASK-chipsim-lbm-audit-R5 - lung-on-chipsim/lung-on-chipsim for matthew-mo: R5 pair-count power curve \u2014 measured, not chosen; and clustering barely moves it",
+      "WIP on lung-on-chipsim: 06da9c8 lung-on-chipsim/lung-on-chipsim: docs(lung-on-chipsim): dev-log \u2014 A&D r1.0 + S12 and its QG cycle",
+      "WIP on lung-on-chipsim: 03d51ab Merge branch 'main' into lung-on-chipsim",
+      "WIP on lung-on-chipsim: e24ae14 TASK-lung-on-chipsim-T3 - lung-on-chipsim/lung-on-chipsim for matthew-mo: fix: use datetime.UTC alias (ruff UP017)",
+      "WIP on lung-on-chipsim: 10d98aa Merge branch 'main' into lung-on-chipsim"
+    ],
+    "status": [
+      " M config/monitor-pids.json"
+    ],
+    "tags": [
+      "v0.3.0"
+    ],
+    "worktrees": [
+      "/Users/mo/github/personal/bioFM                                                                                                                    1d6e53b [main]",
+      "/private/tmp/claude-501/-Users-mo-github-personal-bioFM-worktrees-perturb-seq-eval/b6e15309-e9db-4897-bc5a-e9435f8e80ab/scratchpad/qg-a2/review-wt 4840f0d (detached HEAD)",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-a19bdd801702471f6                                                                          be6e07e (detached HEAD)",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-a1ca2f63f1687edf5                                                                          22ff0d6 [worktree-agent-a1ca2f63f1687edf5]",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-a3ad140fd73598060                                                                          be6e07e (detached HEAD)",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-a786fd28b010e4884                                                                          14d80cf [worktree-agent-a786fd28b010e4884]",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-a7fca51b98841ff93                                                                          14d80cf [worktree-agent-a7fca51b98841ff93]",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-aaabb6dba7a1ce7e6                                                                          be6e07e (detached HEAD)",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-acdf690f8b1031d9b                                                                          22ff0d6 [worktree-agent-acdf690f8b1031d9b]",
+      "/Users/mo/github/personal/bioFM/.claude/worktrees/agent-af202026297979f38                                                                          be6e07e (detached HEAD)",
+      "/Users/mo/github/personal/bioFM/worktrees/cellforge-agents                                                                                         228d354 [cellforge-agents]",
+      "/Users/mo/github/personal/bioFM/worktrees/lung-on-chipsim                                                                                          14baa46 [lung-on-chipsim]",
+      "/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval                                                                                         4840f0d [perturb-seq-eval]",
+      "/Users/mo/github/personal/bioFM/worktrees/v2r-loop                                                                                                 7f5ff4d [v2r-loop]"
+    ]
+  },
+  "metadata_counts": {
+    "branches": 17,
+    "stash": 15,
+    "status": 1,
+    "tags": 1,
+    "worktrees": 14
+  },
+  "metadata_digest": "9e8b92f3cd5fe1e877aa7304ed1707a44c8b0c94f5fd98b00ac46e7cac5c6f88",
+  "per_file": {
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/dispatch-to-cto-aiadlc-feedback-3-batched-dispatch-catchup-reports-20260928-1240.md": "feb199b35cb52b25c1aee0c062dac2c9b635b294ad1aeae95040f884bee86e99",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-r2-49b-clause-e-draft-for-re-sign-3-of-your-5-prop-20260928-1239.md": "fbcb31b24e8d0f5a0b392e3664c918c65fbc6c36f4467b32a9123fbba067e112",
+    ".claude/usr/matthew-mo/lung-on-chipsim/dispatches/escalation-to-cto-ruling-needed-r2-49-e-0-unaccounted-by-marking-is--20260927-2253.md": "81e170916b260ba47be2845508ad7bd33e8cfdc41db66e27cf077d87b18244f1",
+    "projects/lung-on-chipsim/chipsim/ingest/drugbank_snapshot.py": "4e5c92cbabeaf7cdd74fa674da60ecc4a1d99e5ed5ad3e1e4b557226ed7f9a24",
+    "projects/lung-on-chipsim/tests/association_reference.py": "15b1497bac46dbffec1b63e4548866a8041bebbe8f4fbc03eed8d42c4d1681f6",
+    "projects/lung-on-chipsim/tests/shape_scan.py": "b730f385655301f4036022f7848613c874cc98a3061d65403b0be063e626c46e",
+    "projects/lung-on-chipsim/tests/test_bracket.py": "441c05f3e1f2486edf2a4b726d349e8c7f010320e8d0c0229da456cf0e14b5cf",
+    "projects/lung-on-chipsim/tests/test_record_content_guard.py": "db02d699620a37dd1b18037af068c258c56245571e21212e364b5b9d95aa0536",
+    "projects/lung-on-chipsim/tests/test_shape_scan.py": "e7272b1d331eabf5422af86293ed8f53b0624acdb97b0be3af6f9d95cc260a86",
+    "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py": "601d71490eb8eb7ce0c5e2b11bdf31e206f35e39ef68b0e6faa7fb0668f26f3d",
+    "workstreams/lung-on-chipsim/plan/build-plan.md": "26d95adf918944bc1e24f5d6ad6a89573e7e670876a97e8bb78d1618d0436c36",
+    "workstreams/lung-on-chipsim/plan/plan-approval-log.md": "849eff142d0eef18f357dbe3e5fe451a1929df71d83e3e15f84d5752069771dc",
+    "workstreams/lung-on-chipsim/plan/plan-approval.md": "756bc45d320389382a9e778c6d8c6cef94fbb7a5e43120ff8c49b3287303da1b",
+    "workstreams/lung-on-chipsim/qgr/evidence/bracket.py": "3fcc07783fe35a3a1b70713870905360253177b86d5ca73a3bd7775316139c18",
+    "workstreams/lung-on-chipsim/qgr/evidence/gate6-bracket.md": "e2fe2f01d3aa27d6b502d1f58db9036c0a9c7c02bd1fdac7a837806f37b9aac1",
+    "workstreams/lung-on-chipsim/qgr/evidence/gate7-bracket.md": "7ee8d655ea090c9e38dff13e796a63575e6610b34a80cbae1f6893d315c8d4c2",
+    "workstreams/lung-on-chipsim/qgr/evidence/gate7-bracket.py": "<unreadable: FileNotFoundError>"
+  },
+  "shape_scan": {
+    "absent_from_worktree": [
+      "workstreams/lung-on-chipsim/qgr/evidence/gate7-bracket.py"
+    ],
+    "could_not_scan": {},
+    "files_scanned": 16,
+    "files_with_unaccounted": 5,
+    "per_file": {
+      "projects/lung-on-chipsim/tests/test_record_content_guard.py": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          492
+        ],
+        "structure_unaccounted": 1
+      },
+      "projects/lung-on-chipsim/tests/test_shape_scan.py": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          28
+        ],
+        "structure_unaccounted": 1
+      },
+      "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          92,
+          94,
+          108,
+          114,
+          115,
+          210,
+          216,
+          217,
+          228,
+          301,
+          517,
+          781
+        ],
+        "structure_unaccounted": 15
+      },
+      "workstreams/lung-on-chipsim/plan/build-plan.md": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          1286,
+          1318
+        ],
+        "structure_unaccounted": 3
+      },
+      "workstreams/lung-on-chipsim/plan/plan-approval-log.md": {
+        "accession_lines": [],
+        "accession_unaccounted": 0,
+        "structure_lines": [
+          24,
+          27
+        ],
+        "structure_unaccounted": 3
+      }
+    },
+    "tool_loaded": true,
+    "unaccounted_shapes": 23,
+    "verdict_half_live": "could-not-scan only; unaccounted pending r2.49b scope"
+  }
+}

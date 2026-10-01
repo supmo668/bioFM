@@ -1,0 +1,61 @@
+{
+  "measured_at_commit": "9f753d7",
+  "pass_condition": "every in-scope site classified into exactly one of W/F/C/N AND could_not_scan == 0; 'in_scope_unaccounted == 0' was WITHDRAWN as the pass condition by the principal",
+  "buckets_in_scope": {
+    "W": 12,
+    "F": 48,
+    "C": 19,
+    "N": 62
+  },
+  "in_scope_sites": 141,
+  "in_scope_classified": 141,
+  "in_scope_unclassified": 0,
+  "could_not_scan_files": 0,
+  "scanned_and_empty": [
+    "projects/lung-on-chipsim/configs/.gitkeep",
+    "projects/lung-on-chipsim/data/interim/.gitkeep",
+    "projects/lung-on-chipsim/data/processed/.gitkeep",
+    "projects/lung-on-chipsim/data/raw/.gitkeep",
+    "projects/lung-on-chipsim/journal/.gitkeep",
+    "projects/lung-on-chipsim/orchestration/n8n/.gitkeep"
+  ],
+  "out_of_guard_scope_shapes": 445,
+  "out_of_guard_scope_files": 20,
+  "totals_all_buckets": {
+    "IN SCOPE (Python/prose) -- GUARD ENFORCES": 141,
+    "OUT P1 signed text": 3,
+    "OUT P2 signature ledger": 3,
+    "OUT P4 generated output": 327,
+    "OUT P5 citation-governed": 114,
+    "OUT-OF-GUARD-SCOPE configs": 9,
+    "OUT-OF-GUARD-SCOPE fixtures": 436,
+    "scanned-and-empty": 0
+  },
+  "files_all_buckets": {
+    "IN SCOPE (Python/prose) -- GUARD ENFORCES": 18,
+    "OUT P1 signed text": 1,
+    "OUT P2 signature ledger": 1,
+    "OUT P4 generated output": 2,
+    "OUT P5 citation-governed": 2,
+    "OUT-OF-GUARD-SCOPE configs": 1,
+    "OUT-OF-GUARD-SCOPE fixtures": 19,
+    "scanned-and-empty": 6
+  },
+  "needs_curation_by_file": {
+    "projects/lung-on-chipsim/tests/test_unparseable_exclusions.py": 18,
+    "workstreams/lung-on-chipsim/parked/README.md": 9,
+    "projects/lung-on-chipsim/tests/test_generated_columns.py": 6,
+    "projects/lung-on-chipsim/tests/test_tracked_adjudication.py": 6,
+    "projects/lung-on-chipsim/tests/test_merge_report.py": 5,
+    "projects/lung-on-chipsim/tests/test_adjudication.py": 4,
+    "projects/lung-on-chipsim/tests/test_structure_pattern_differential.py": 3,
+    "workstreams/lung-on-chipsim/qgr/evidence/e23-draft-measure.py": 3,
+    "projects/lung-on-chipsim/README.md": 2,
+    "projects/lung-on-chipsim/tests/test_relative_stereo_downstream.py": 2,
+    "projects/lung-on-chipsim/chipsim/harmonize/ids.py": 1,
+    "projects/lung-on-chipsim/tests/test_record_bearing_writers.py": 1,
+    "projects/lung-on-chipsim/tests/test_record_content_guard.py": 1,
+    "workstreams/lung-on-chipsim/qgr/findings-20260917-s7.md": 1
+  },
+  "caveat": "F is an UPPER bound and N a LOWER bound: the citation predicate was shown at gate 9 to be satisfiable by prose explaining it, so some sites in F belong in N. Bound, not repaired."
+}
