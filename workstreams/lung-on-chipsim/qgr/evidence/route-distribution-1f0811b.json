@@ -1,0 +1,402 @@
+{
+  "measured_at_commit": "1f0811b",
+  "rule": "route field matched against ordered CATEGORY_PATTERNS, FIRST MATCH WINS; order is part of the rule; unmatched rows are reported as UNCLASSIFIED",
+  "numbered_revisions": 59,
+  "non_numbered_rows": 4,
+  "total_data_rows": 63,
+  "numbered_by_category": {
+    "standing-delegation": 46,
+    "principal-directed": 5,
+    "human-direct": 2,
+    "standing-ruling-applied": 2,
+    "cto-correction": 2,
+    "principal-verbatim": 2
+  },
+  "non_numbered_by_category": {
+    "principal-via-grill": 1,
+    "principal-askuserquestion": 1,
+    "cto-correction": 1,
+    "log-convention": 1
+  },
+  "unclassified_rows": 0,
+  "mapping": [
+    {
+      "row": "1",
+      "kind": "numbered",
+      "category": "human-direct",
+      "raw": "human-direct"
+    },
+    {
+      "row": "2",
+      "kind": "numbered",
+      "category": "principal-directed",
+      "raw": "principal-directed"
+    },
+    {
+      "row": "3",
+      "kind": "numbered",
+      "category": "principal-directed",
+      "raw": "principal-directed"
+    },
+    {
+      "row": "4",
+      "kind": "numbered",
+      "category": "principal-directed",
+      "raw": "principal-directed, cto-invoked"
+    },
+    {
+      "row": "5",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "6",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "7",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "8",
+      "kind": "numbered",
+      "category": "human-direct",
+      "raw": "human-direct"
+    },
+    {
+      "row": "9",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "10",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "11",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "12",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "13",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "14",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "15",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "16",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "17",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "18",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "19",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "20",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "21",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "22",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "23",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "24",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "25",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "26",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "27",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "28",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "29",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "principal + standing-delegation"
+    },
+    {
+      "row": "30",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "31",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "32",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "33",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "34",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "35",
+      "kind": "numbered",
+      "category": "principal-directed",
+      "raw": "principal-directed"
+    },
+    {
+      "row": "36",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "37",
+      "kind": "numbered",
+      "category": "principal-directed",
+      "raw": "principal-directed"
+    },
+    {
+      "row": "38",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "39",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "40",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "41",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "42",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "43",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "44",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "45",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "46",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "47",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "48",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "49",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "50",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "51",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "52",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "53",
+      "kind": "numbered",
+      "category": "standing-delegation",
+      "raw": "standing-delegation"
+    },
+    {
+      "row": "54",
+      "kind": "numbered",
+      "category": "standing-ruling-applied",
+      "raw": "standing ruling applied (row 54, principal time box) + standing-delegation"
+    },
+    {
+      "row": "55",
+      "kind": "numbered",
+      "category": "cto-correction",
+      "raw": "CTO correction, agent-raised (#502); standing-delegation"
+    },
+    {
+      "row": "56",
+      "kind": "numbered",
+      "category": "cto-correction",
+      "raw": "CTO clarification, agent-raised (#504); standing-delegation"
+    },
+    {
+      "row": "57",
+      "kind": "numbered",
+      "category": "principal-verbatim",
+      "raw": "principal (AskUserQuestion, this CTO session 2026-09-29; verbatim option: \"Descope req 5 to reporting; file-level counts; 56 \u2192 limitation\") applied by the CTO"
+    },
+    {
+      "row": "58",
+      "kind": "numbered",
+      "category": "standing-ruling-applied",
+      "raw": "standing ruling applied (row 54 time box; #507/#510)"
+    },
+    {
+      "row": "59",
+      "kind": "numbered",
+      "category": "principal-verbatim",
+      "raw": "principal (AskUserQuestion, this CTO session 2026-09-29; verbatim option: \"Leave as-is, record the ruling\")"
+    },
+    {
+      "row": "2026-09-28 11:30",
+      "kind": "non-numbered",
+      "category": "principal-via-grill",
+      "raw": "principal (via /grill-me)"
+    },
+    {
+      "row": "2026-09-28 16:06",
+      "kind": "non-numbered",
+      "category": "principal-askuserquestion",
+      "raw": "principal (AskUserQuestion, CTO session)"
+    },
+    {
+      "row": "2026-09-29 00:25",
+      "kind": "non-numbered",
+      "category": "cto-correction",
+      "raw": "CTO (route correction, principal-confirmed)"
+    },
+    {
+      "row": "2026-09-29 00:25",
+      "kind": "non-numbered",
+      "category": "log-convention",
+      "raw": "CTO (log convention)"
+    }
+  ]
+}

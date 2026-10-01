@@ -1,0 +1,20 @@
+# Gate 5 raw findings (pre-scorer). Range 561be17..be6e07e, lung-on-chipsim, E-22 r2.47a.
+Sources: SEC=reviewer-security, DES=reviewer-design, CODE=reviewer-code, TEST=reviewer-test, OWN=author.
+
+R01 [HIGH] chipsim/record_content.py DeclarationDataUnusable handler discards rendered scan + accession hits (only reachable exit-2 path: over-size ledger after both halves). Report says "nothing is declared, so more files fail" which is false there. Contradicts errors.py:52-58 "listing still rendered beside the reason". MEASURED by SEC, DES(reasoned), CODE, OWN (hit + unreadable file both absent; exit 2, coverage 4 of 5). Sources: SEC-1, DES-2, CODE-F1, OWN.
+R02 [MEDIUM] record_content.py exception text interpolated raw into the exit-2 report; commands print verbatim; previously escaped via render_path. MEASURED raw ESC (SEC-2, OWN-1; red test written, fix applied uncommitted).
+R03 [LOW] record_content.py hit/ledger rows print rel unescaped (pre-existing; line edited in range). MEASURED raw ESC + newline injection (SEC-3).
+R04 [HIGH] errors.py:27-29,56 + pipeline.py:551 + drugbank_snapshot.py:572 still say guard defect lands in exit 3 / "no fourth state"; r2.47(d) makes it propagate (exit 1). Signed r2.28 "every path lands in one of three states" has no r2.47 pointer. MEASURED exit 1 (CODE-F2); DES-1, DES-3.
+R05 [HIGH] test: single-code-point axis uses only the probe body; body-conditional one-char guards (leading and trailing, ; and Q) survive corpus+axis. "SINGLE-CODE-POINT contexts are CLOSED" overstated; signed (b) text same. MEASURED (TEST-F1, CODE-F3).
+R06 [HIGH] test: scanner call-site post-filter at drugbank_snapshot.py:517 (skip match followed by ';') survives full suite; oracle+pin bind only the constant, not the scanner. MEASURED full suite (TEST-F2).
+R07 [HIGH] test: pipeline commands could convert bare base / RuntimeError to exit 3 (except Exception: re-raise only GuardInvariantViolated; return 3) and survive; command test injects only GuardInvariantViolated. MEASURED (TEST-F3).
+R08 [HIGH] test: ceiling rows are homogeneous NUL, so a truncating read (read_bytes()[:48MiB]) survives the full suite. (c)'s "48 MiB mutant fails" holds only for the constant form. MEASURED (TEST-F4).
+R09 [MEDIUM] test: ratio threshold in (0.89,0.9) survives (e.g. >= const-0.001, or literal 0.8999 bypassing the constant). Rows are /100. MEASURED (TEST-F5, CODE-F4).
+R10 [MEDIUM] test: extended-tier WIRED test is substring-only; '=10', '-k not_a_test', 'true', '|| true' pass. MEASURED (TEST-F6, SEC-4, CODE-F5, DES-4). Also DES-4: receipt must record the invocation line.
+R11 [MEDIUM] test: axis-1 exact test does not check bodies are digits (translate-to-letters mutant passes). MEASURED (TEST-F7).
+R12 [MEDIUM] test: cited-tests check scope narrower than claim: files edited in range missing from _E22_FILES (pipeline.py, guards/record_content.py, test_record_content_guard.py); unbackticked and path::name citations unscanned. MEASURED (TEST-F8, DES-14).
+R13 [LOW] test: could-not-scan branch known-so-far counts untested (None,None mutant passes). MEASURED (TEST-F9).
+R14 [LOW] docs: record_content.py:~186 "coverage on BOTH paths" false (trailer only when hits/ledger). (TEST-R1, CODE note, SEC info).
+R15 [LOW] docs: DES-5 injected-fault labelling inconsistent; "Measured: no production raise site..." names no measurement. DES-7 "every raise site puts the path in its message" unscoped universal. DES-6 accession_scanned docstring narrower than behaviour (None also if half raised mid-way). DES-8 NUL-homogeneity sentence names no derivation. DES-9 ceiling equality MESSAGE must say the reference is written from the clause. DES-10 three different runtimes for single-cp axis. DES-11 ratio REACH test does not check absence of UTF-16 BOM. DES-12 line-number citation 68-75 (block starts 67). DES-13 readability_reference.py:13 over 100 chars.
+R16 [LOW] test: TEST-R2 set equality misses duplicate entry lines; TEST-R3 removing *RATIO_ROWS from BOUNDARY_CASES passes the REACH test.
+R17 [INFO] DES-16 bracket harness defines pytest_sessionstart twice (first shadowed).
