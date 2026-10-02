@@ -84,3 +84,17 @@ Three walkthrough messages, one per project-level index, each routing down with 
 | ChipSim (bioFM) — Index | L1 | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790892233455609 |
 
 Also 2026-10-01: the aviary-biosim subproject index gained **"The applied context — what the environment was built to find out"** (principal: the review surface "lacks depth on the result for the underlying drug discovery environment"). Written to `docs/hacp/aviary-biosim/index.md` first, mirrored to the Notion row, read back. Every figure in it is evidence-backed from the submodule's `whitepaper` branch (`paper/evidence/science.json`, `science-input.json`, `agent-run.json`, `claims.yaml`) and carries its label; the ortholog-embedding comparison is deliberately excluded because it is not in the evidence set.
+
+## Fourth batch — SENT 2026-10-02 (principal: "use walkthrough paper for all 3 in HACP manner including decision needed to unblock with publication ready results")
+
+Three `/walkthrough-paper` poster pages, one per paper, written to local sources first and mirrored to Notion as L1 Presentation rows under their lowest owning index. Sent with airdlc v0.79.0's new Slack convention (`tools/notify message --cta action`, payload posted unchanged, `*[biofm/CTO · action]*` tag).
+
+| Paper | Notion (L1) | Indexed by | Slack |
+|---|---|---|---|
+| perturb-seq-eval v0.6.0 — agent confidence entropy vs task difficulty | https://app.notion.com/p/3ed749bd250d8116bc04fa76cb812008 | bioFM · eval | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790918821591039 |
+| aviary-biosim white paper — the sealed-referee build loop + BioSimEnv | https://app.notion.com/p/3ed749bd250d81578b47f9d2a18febbb | aviary-biosim (bioFM) — Index | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790918822300089 |
+| lung-on-chipsim Stage 1 — the report that measured its own approval log | https://app.notion.com/p/3ed749bd250d8163b58bd2a75b3edb14 | ChipSim (bioFM) — Index | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1790918823089179 |
+
+Each page ends in **"Decision needed to unblock a publication-ready result"** — the explicit human ask L1 requires. Verified by read-back: all three carry Kind=Presentation, Granularity=L1, and the correct `Indexed by` parent. The aviary page names **no** sequence identifier (F33 scopes the accession to `paper/evidence/` + methods); checked, 0 matches.
+
+**One Notion step a tool cannot do:** mermaid blocks render as code until switched to preview mode, which is a per-block UI toggle. Three pages, one diagram each.
