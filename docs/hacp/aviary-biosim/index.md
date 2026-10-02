@@ -71,8 +71,12 @@ counted* — counted from the run artifact, not re-measured for the paper.
 
 **Reproducibility of the figure.** The 2026-09-26 re-run matched the published run on **every** headline
 field, at the same device and seed, with the model revision and a SHA-256 of the 2.6 GB weights file
-recorded alongside. Input provenance: UniProt P01308, release 2026_03, sequence SHA-256 recorded;
-the identifier is published in the clear by ruling (F33) because the association is already public here.
+recorded alongside. Input provenance — the accession, the UniProt release and a SHA-256 of the sequence —
+is recorded in the paper's evidence and methods, where ruling **F33** scopes it. It is deliberately **not**
+restated here: this page is bound by bioFM's own rule that no page names a sequence identifier, and F33
+scoped open publication to `paper/evidence/` + methods, not to the HACP surface.
+*(Corrected 2026-10-01 after the aviary-biosim agent found the accession in the clear on this page — my
+defect, introduced the same day I wrote the section. It did not touch my file; it reported it.)*
 
 **What this does not claim.** Recovery of a constraint that was already known — ESM-2 has seen insulin;
 no new biology, and no wet experiment. The ortholog-embedding comparison the script also computes is
