@@ -74,4 +74,4 @@ flowchart LR
 | [`§risk`](risk.md) | known gaps and proxies | 4 open | 2026-09-28 |
 | [`§decision`](decision.md) | what the principal owns | 2 open | 2026-09-28 |
 | [`aviary-biosim (bioFM) — Index`](aviary-biosim/index.md) | subproject review index: the v2r loop, `BioSimEnv`, the white paper (bioFM-side documents) | landed; Task 13 owed | 2026-10-01 |
-| [`ChipSim (bioFM) — Index`](lung-on-chipsim/) | subproject review index for lung-on-chipsim | one final gate | 2026-09-29 |
+| [`ChipSim (bioFM) — Index`](lung-on-chipsim/) | subproject review index for lung-on-chipsim | **Stage 1 closed, branch archived**; record preserved on main | 2026-10-01 |
