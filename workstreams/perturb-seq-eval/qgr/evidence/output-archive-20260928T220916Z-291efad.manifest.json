@@ -1,0 +1,26 @@
+{
+  "archived_at": "2026-09-29T00:35:21.824596+00:00",
+  "source": "perturb-eval-data:/v0.6.0/",
+  "archive_path": "v0.6.0-aborted-20260928T220916Z-291efad/",
+  "reason": "output files of aborted run 20260928T220916Z-291efad (trainer phase complete: 1107 records; lifecycle phase aborted on first fallbacks; 0 lifecycle runs) moved aside so the pre-registered version dir v0.6.0 is empty for the relaunch; archived, not deleted (CTO #467 philosophy)",
+  "entries": [
+    {
+      "file": "lifecycle_runs.jsonl",
+      "sha256": "ba06850ec2486d76ee0ce13a3b4bfeb6da2f304ce90a403ccc0990254ffb4a2f",
+      "bytes": 19390,
+      "lines": 1
+    },
+    {
+      "file": "provenance.json",
+      "sha256": "501fefa0bad8dfd2df4c40dd59dc6778940a09bed778bf1297a323074043c6de",
+      "bytes": 26683,
+      "lines": 1005
+    },
+    {
+      "file": "trainer_runs.jsonl",
+      "sha256": "49405b1debe55e3a1c615cdc4ea3b5306b72f62c65c9a5b2dcaf8bf27675be62",
+      "bytes": 691864,
+      "lines": 1108
+    }
+  ]
+}

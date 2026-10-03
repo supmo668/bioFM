@@ -32,7 +32,7 @@ from perturb_eval.experiments import (
 )
 from perturb_eval.experiments.e3_optimizer_comparison import _phi_key
 from perturb_eval.optimizers.contextual_gp import _hamming_like, _matern52
-from perturb_eval.optimizers.base import config_to_vec
+from perturb_eval.optimizers.base import backbones_of, config_to_vec
 from perturb_eval.types import Config, RoundTrace, RunTrace
 
 
@@ -111,7 +111,8 @@ def build_factor_kernel_matrix(
     ls_x: float = 1.0,
 ) -> np.ndarray:
     """Dense Φ × X kernel matrix over the product of configs and contexts."""
-    phi_emb = np.stack([config_to_vec(c) for c in config_space], axis=0)
+    bb = backbones_of(config_space)
+    phi_emb = np.stack([config_to_vec(c, bb) for c in config_space], axis=0)
     task_names = sorted(contexts)
     x_emb = np.stack([contexts[t] for t in task_names], axis=0)
     # Cartesian product of (phi, task) → one row per (i, j) pair.

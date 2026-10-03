@@ -7,6 +7,7 @@ that Protocol, not on any particular implementation.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -36,6 +37,22 @@ class BackboneFitArtifacts:
     extra: dict = field(default_factory=dict)
 
 
+# D1 (AND §6): a perturbation's targets are a tuple of gene-column indices —
+# singletons are 1-tuples, doublets 2-tuples. A bare ``int`` is still accepted
+# during the transition and normalised to a 1-tuple by :func:`_as_targets`.
+TargetIdx = int | Sequence[int]
+
+
+def _as_targets(v: TargetIdx) -> tuple[int, ...]:
+    """Normalise a target spec to ``tuple[int, ...]`` (int → ``(int,)``)."""
+    if isinstance(v, (int, np.integer)):
+        return (int(v),)
+    out = tuple(int(i) for i in v)
+    if not out:
+        raise ValueError("empty target tuple")
+    return out
+
+
 class BackbonePredictor(Protocol):
     """Protocol every backbone must satisfy.
 
@@ -51,14 +68,14 @@ class BackbonePredictor(Protocol):
         expression: np.ndarray,            # (n_cells, n_genes), log-normalized
         perturbation_labels: list[str],    # (n_cells,) string labels, "CTRL" for control
         control_mask: np.ndarray,          # (n_cells,) bool
-        target_gene_idx: dict[str, int],   # perturbation name → gene-column index
+        target_gene_idx: Mapping[str, TargetIdx],  # perturbation → target gene column(s)
         cfg: BackboneTrainConfig,
     ) -> BackboneFitArtifacts: ...
 
     def predict_logfc(
         self,
         perturbation: str,
-        target_gene_idx: int,
+        target_gene_idx: TargetIdx,
         n_genes: int,
     ) -> np.ndarray: ...                   # (n_genes,)
 

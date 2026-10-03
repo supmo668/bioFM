@@ -1,0 +1,70 @@
+{
+  "measured_at_commit": "1f0811b",
+  "files_scanned": 10,
+  "files_unreadable": 0,
+  "files_with_unaccounted_shapes": 1,
+  "files_that_read_as_cited": 0,
+  "note": "reads_as_cited is checked because gate 9 showed the predicate can be satisfied by prose explaining it; a report about that defect tripping it would be the defect one level up",
+  "per_file": [
+    {
+      "file": "workstreams/lung-on-chipsim/paper/stage1-claims-list.md",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/paper/stage1-limitations.md",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/gate8-findings.md",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/gate9-findings.md",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/gate8-design-note.md",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/evidence/bracket.py",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/evidence/e23-draft-measure.py",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 10,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/evidence/r250-classify.py",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/evidence/route-distribution.py",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    },
+    {
+      "file": "workstreams/lung-on-chipsim/qgr/evidence/scan-artifacts.py",
+      "accession_unaccounted": 0,
+      "structure_unaccounted": 0,
+      "reads_as_cited": false
+    }
+  ]
+}

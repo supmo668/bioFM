@@ -20,6 +20,14 @@ class GridCellResult:
     msd_topk: float
     wall_time_sec: float
     backbone_name: str
+    # T8b provenance (real-data cells only; None on paths without HVG):
+    # per-task train-only HVG size, how many target columns were forced in
+    # beyond the variance top-n, the selection mode, and the fitted backbone's
+    # learned-parameter count (scgpt_small's vocabulary scales with hvg_n).
+    hvg_n: int | None = None
+    hvg_n_forced: int | None = None
+    hvg_mode: str | None = None
+    n_params: int | None = None
 
 
 @dataclass(frozen=True)

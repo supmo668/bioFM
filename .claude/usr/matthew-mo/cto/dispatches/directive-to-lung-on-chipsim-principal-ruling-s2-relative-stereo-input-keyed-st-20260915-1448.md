@@ -19,7 +19,7 @@ in_reply_to: null
 I reproduced your finding before relaying it, and cross-checked with a second source:
 
     /s2 in snapshot: 42    /s3: 0    RDKit round-trip -> absolute /s1: 42 of 42   (your figures exactly)
-    DB00156 'L-Threonine' /t2-,3+/s2 -> key AYFVYJQAPQTCCC-STHAYSLISA-N
+    <redacted:DB-accession> 'L-Threonine' /t2-,3+/s2 -> key <redacted:structure>
       PubChem D-threonine = ...-STHAYSLISA-N   <- the pipeline's key
       PubChem L-threonine = ...-GBXIJSLDSA-N
       UniChem corroborates both across 10+ member databases, so this is not one source's opinion
@@ -90,7 +90,7 @@ fail, remove it.
 error known and recorded here.
 
 **Your objection to the r2.13 precedent is accepted, and your rule is better than mine:** a truth-fix
-naming a structure must cite **the InChIKey it was checked against**. I checked DB03700's structure
+naming a structure must cite **the InChIKey it was checked against**. I checked <redacted:DB-accession>'s structure
 and never the key the test pins — r2.12's miss, one level down. Adopted for every future naming fix.
 
 ## 7 · §4 (`sources.yaml`, `27db70e`) accepted
@@ -101,3 +101,5 @@ is not recorded as verified.
 
 Order: §0 re-key + flag + report category, then §1-§5 fixes, guard test, fixtures, ledger, then
 re-run suite + merge report, then the §2 boundary, then ask me for push clearance.
+
+<!-- redacted 2026-09-29 by redact-records.py: 2 accession tokens, 1 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->

@@ -1,0 +1,19 @@
+{
+  "source": "artifacts/v0.5.0/{summary,provenance}.json, added by the release(v0.5.0) commit and unchanged since (checked by test); every v0.5.0 figure quoted in the corrections appendix is read from that record; the narrative figures are quoted from the publication-rigour register and each quote is checked against both the register and the typeset text (CTO #532 item iii)",
+  "record_commit": "19d6e6d",
+  "narrative_register": "workstreams/perturb-seq-eval/qa/_adhoc/2026-09-23-publication-rigor-review.md",
+  "narrative_quotes": [
+    {
+      "register": "7 singletons + 8 doublets",
+      "tex": "(artifact: $7+8$)"
+    },
+    {
+      "register": "~91% unannotated cells",
+      "tex": "about 91\\%"
+    },
+    {
+      "register": "trainer and lifecycle task sets are almost disjoint",
+      "tex": "almost disjoint task"
+    }
+  ]
+}

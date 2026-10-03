@@ -10,12 +10,15 @@ No torch, no sklearn — pure numpy. Trains in under 100 ms on Adamson pilot.
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 
 import numpy as np
 
 from perturb_eval.backbones.base import (
     BackboneFitArtifacts,
     BackboneTrainConfig,
+    TargetIdx,
+    _as_targets,
     log_fold_change,
     per_perturbation_mean,
 )
@@ -34,7 +37,7 @@ class LinearBackbone:
         expression: np.ndarray,
         perturbation_labels: list[str],
         control_mask: np.ndarray,
-        target_gene_idx: dict[str, int],
+        target_gene_idx: Mapping[str, TargetIdx],
         cfg: BackboneTrainConfig,
     ) -> BackboneFitArtifacts:
         t0 = time.perf_counter()
@@ -49,7 +52,10 @@ class LinearBackbone:
                 continue
             lfc = log_fold_change(mu, mean_ctrl)
             per_pert_logfc.append(lfc)
-            target_dips.append(float(lfc[target_gene_idx[p]]))
+            # D1: on-target dip = mean over the perturbation's target columns
+            # (a 1-tuple reduces to the single-column value exactly).
+            idx = _as_targets(target_gene_idx[p])
+            target_dips.append(float(lfc[list(idx)].mean()))
 
         if not per_pert_logfc:
             raise ValueError("no non-control perturbations with target_gene_idx entries")
@@ -71,7 +77,7 @@ class LinearBackbone:
     def predict_logfc(
         self,
         perturbation: str,
-        target_gene_idx: int,
+        target_gene_idx: TargetIdx,
         n_genes: int,
     ) -> np.ndarray:
         if self._mean_logfc is None:
@@ -81,6 +87,7 @@ class LinearBackbone:
                 f"n_genes mismatch: fit with {self._mean_logfc.size}, predict with {n_genes}"
             )
         pred = self._mean_logfc.copy()
-        if 0 <= target_gene_idx < n_genes:
-            pred[target_gene_idx] = self._target_dip
+        for t in _as_targets(target_gene_idx):
+            if 0 <= t < n_genes:
+                pred[t] = self._target_dip
         return pred

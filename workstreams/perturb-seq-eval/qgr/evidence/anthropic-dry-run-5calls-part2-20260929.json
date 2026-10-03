@@ -1,0 +1,28 @@
+{
+ "measured_at": "2026-09-29T02:31:03Z",
+ "calls": [
+  {
+   "role": "Literature",
+   "model_id": "claude-haiku-4-5-20251001",
+   "stop_reason": "end_turn",
+   "input_tokens": 587,
+   "output_tokens": 224,
+   "cache_read": 0,
+   "cost_usd": 0.00171,
+   "latency_s": 7.4,
+   "verdict": "schema ok"
+  },
+  {
+   "role": "Validator",
+   "model_id": "claude-sonnet-5-5",
+   "stop_reason": "end_turn",
+   "input_tokens": 765,
+   "output_tokens": 183,
+   "cache_read": 0,
+   "cost_usd": 0.00336,
+   "latency_s": 2.9,
+   "verdict": "schema ok"
+  }
+ ],
+ "total_cost_usd": 0.00507
+}

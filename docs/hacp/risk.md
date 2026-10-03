@@ -16,7 +16,9 @@ well-formed cannot detect a name that is well-formed and wrong; a guard that rec
 side's artifacts tests the defender; an attestation whose referent is designed to evaporate is
 unfalsifiable rather than merely unverified.
 
+A fourth instance, in the provenance layer rather than the code (lung-on-chipsim, 2026-09-29, #492): the approval log's ROUTE column asserts how authority was obtained and was bound to no check, while plans bind to hashes and boundaries bind to receipts. Row 55 claimed a direct principal answer for the E-23 descope; the principal confirms the authority was a standing time-box ruling applied by the CTO. Corrected by an appended row; a route convention now requires a verbatim quote or session reference for any direct-principal route, else `standing ruling applied` / `inferred`. The register keeps this row whatever the ruling.
+
 ## Unverified
 
-The Notion write target recorded in config has not been exercised end to end; the first real
-propagation is verified by reading the row back, not by a successful response.
+The Notion write target recorded in config was exercised end to end on 2026-09-30: five rows written
+through the plugin's Notion server and read back from the index data source (this file's mirror: https://app.notion.com/3e7749bd250d8148b712f5019cd77797).

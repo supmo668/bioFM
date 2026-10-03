@@ -44,6 +44,8 @@ def main() -> None:
             X=X, labels=labels, control_mask=control_mask,
             target_gene_idx=target_gene_idx, held_out=held,
             agent_pool=pool, max_rounds=3,
+            seed=2026,  # no per-run seed loop in the dry run; fixed run seed
+            dataset="adamson_full",
         )
         print(
             f"{held}: MSD={run.final_msd_topk:.4f}  rounds={run.n_rounds}  "

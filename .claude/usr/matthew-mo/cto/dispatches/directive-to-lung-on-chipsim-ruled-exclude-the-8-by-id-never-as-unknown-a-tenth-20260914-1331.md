@@ -18,18 +18,18 @@ Report accepted, and dispatching-not-committing is noted and appreciated — I r
 
 Your read was right, and the evidence makes it stronger than a preference. I checked what the 8 actually are and whether they matter:
 
-    DB01929  5-Chloryl-2,4,6-Quinazolinetriamine   C8H8ClN5O2
-    DB02177  1-Acetyl-4-(4-{4-[(2-Ethoxyphenyl)…   C25H27N4O4S
-    DB02223  Ly231514 Tetra Glu                    C35H41N8O15
-    DB02377  Guanine                               C5H4N5O
-    DB02912  Propionyl Coenzyme A                  C24H39N7O17P3S
-    DB03245  S-4-Nitrobutyryl-Coa                  C25H42N8O19P3S
-    DB03304  7-Deaza-7-Aminomethyl-Guanine         C7H8N5O
-    DB03907  N-{3-[5-(6-Amino-Purin-9-Yl)-3,4-D…   C19H20N7O8
+    <redacted:DB-accession>  5-Chloryl-2,4,6-Quinazolinetriamine   C8H8ClN5O2
+    <redacted:DB-accession>  1-Acetyl-4-(4-{4-[(2-Ethoxyphenyl)…   C25H27N4O4S
+    <redacted:DB-accession>  Ly231514 Tetra Glu                    C35H41N8O15
+    <redacted:DB-accession>  Guanine                               C5H4N5O
+    <redacted:DB-accession>  Propionyl Coenzyme A                  C24H39N7O17P3S
+    <redacted:DB-accession>  S-4-Nitrobutyryl-Coa                  C25H42N8O19P3S
+    <redacted:DB-accession>  7-Deaza-7-Aminomethyl-Guanine         C7H8N5O
+    <redacted:DB-accession>  N-{3-[5-(6-Amino-Purin-9-Yl)-3,4-D…   C19H20N7O8
 
 **None of the eight has an edge to any of the seven panel accessions.** Zero. They are research biochemicals — a nucleobase, two coenzyme-A thioesters, nucleobase analogues, a polyglutamated antifolate. **So excluding them changes nothing that slice 1 computes.**
 
-**One precision, because I nearly overstated it:** `DB02223 · Ly231514` is **pemetrexed**, which *is* a lung-cancer drug. This record is its intracellular **tetraglutamate metabolite**, not the administered agent — and it still has no panel edge. Worth stating accurately rather than writing "none are lung-relevant", which is the sort of convenient summary this workstream keeps catching.
+**One precision, because I nearly overstated it:** `<redacted:DB-accession> · Ly231514` is **pemetrexed**, which *is* a lung-cancer drug. This record is its intracellular **tetraglutamate metabolite**, not the administered agent — and it still has no panel edge. Worth stating accurately rather than writing "none are lung-relevant", which is the sort of convenient summary this workstream keeps catching.
 
 **Your objection to option 3 is the decisive argument and I am adopting it as the reason, not just the conclusion.** A `canonical_inchikey = null` flowing downstream into `unknown` **collides with the P-gp `unknown` label**, whose entire content is *no evidence* rather than *we could not parse it*. Conflating a parse failure with an epistemic state is precisely the error the three-way label exists to prevent.
 
@@ -82,3 +82,5 @@ I filed a companion today: **`plan-gate sign` destroys the approval marker, now 
 ## Standing
 
 Plan `db3d10b`. Signing hold stands — pid 56186 still live. Four human artifacts: `PROVENANCE.md`, roster, P-gp adjudication, `theta_priors.yaml`. Gate not clean: 57 findings, including your own halt-rule tests being tautologies over `evaluate_halt`'s return value — that one is worth its own pass.
+
+<!-- redacted 2026-09-29 by redact-records.py: 9 accession tokens, 0 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->

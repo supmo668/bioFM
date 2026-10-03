@@ -1,0 +1,49 @@
+# CTO #253 construct parser — GREEN (working tree on 4f6f365 + #253 implementation)
+2026-09-24T21:15:01Z
+
+## Real 10X005 raw labels through parse_adamson_construct
+*                        kind=control    components=('*',) plasmid=None
+3x_neg_ctrl_pMJ144-1     kind=control    components=('3x', 'neg', 'ctrl') plasmid=pMJ144-1
+3x_neg_ctrl_pMJ144-2     kind=control    components=('3x', 'neg', 'ctrl') plasmid=pMJ144-2
+ATF4_pBA576              kind=gene       components=('ATF4',) plasmid=pBA576
+ATF6_IRE1_pMJ152         kind=multi_gene components=('ATF6', 'IRE1') plasmid=pMJ152
+ATF6_PERK_IRE1_pMJ158    kind=multi_gene components=('ATF6', 'PERK', 'IRE1') plasmid=pMJ158
+ATF6_PERK_pMJ150         kind=multi_gene components=('ATF6', 'PERK') plasmid=pMJ150
+ATF6_only_pMJ145         kind=gene       components=('ATF6',) plasmid=pMJ145
+C7orf26_pDS004           kind=gene       components=('C7orf26',) plasmid=pDS004
+Gal4-4(mod)_pBA582       kind=control    components=('Gal4-4(mod)',) plasmid=pBA582
+IER3IP1_pDS003           kind=gene       components=('IER3IP1',) plasmid=pDS003
+IRE1_only_pMJ148         kind=gene       components=('IRE1',) plasmid=pMJ148
+PERK_IRE1_pMJ154         kind=multi_gene components=('PERK', 'IRE1') plasmid=pMJ154
+PERK_only_pMJ146         kind=gene       components=('PERK',) plasmid=pMJ146
+PSMA1_pDS007             kind=gene       components=('PSMA1',) plasmid=pDS007
+PSMD12_pDS009            kind=gene       components=('PSMD12',) plasmid=pDS009
+SNAI1_pDS266             kind=gene       components=('SNAI1',) plasmid=pDS266
+XBP1_pBA578              kind=gene       components=('XBP1',) plasmid=pBA578
+XBP1_pBA579              kind=gene       components=('XBP1',) plasmid=pBA579
+YIPF5_pDS001             kind=gene       components=('YIPF5',) plasmid=pDS001
+
+## Local REAL pilot h5ad, new loader: code -1 no longer relabelled as cats[-1]
+ZNF326 cells = 557 (was 567)
+labels_excluded = [{'label': 'nan', 'reason': "missing perturbation annotation (raw label 'nan')", 'raw_labels': ['nan'], 'n_cells': 10}]
+guides_per_gene = {'BHLHE40': ['pDS258'], 'CREB1': ['pDS269'], 'DDIT3': ['pDS263'], 'EP300': ['pDS268'], 'SNAI1': ['pDS266'], 'SPI1': ['pDS255'], 'ZNF326': ['pDS262']}
+
+## eligible_adamson_genes over the FULL raw-label inventory (raw-label-inventory.json.txt, all 3 Adamson files, 10X010 uncapped)
+97 eligible single-gene tasks (>= 21 required; vocab + |logFC| bins not checked here)
+['AARS', 'AMIGO3', 'ARHGAP22', 'ASCC3', 'ATF4', 'ATF6', 'ATP5B', 'BHLHE40', 'C7orf26', 'CAD', 'CARS', 'CCND3', 'CHERP', 'COPB1', 'COPZ1', 'CREB1', 'DAD1', 'DARS', 'DDIT3', 'DDOST', 'DDRGK1', 'DERL2', 'DHDDS', 'DNAJC19', 'EIF2AK3', 'EIF2B2', 'EIF2B3', 'EIF2B4', 'EIF2S1', 'EP300', 'ERN1', 'FARSB', 'FECH', 'GBF1', 'GMPPB', 'GNPNAT1', 'HARS', 'HSD17B12', 'HSPA5', 'HSPA9', 'HYOU1', 'IARS2', 'IDH3A', 'IER3IP1', 'KCTD16', 'MANF', 'MARS', 'MRGBP', 'MRPL39', 'MTHFD1', 'NEDD8', 'OST4', 'P4HB', 'PDIA6', 'PPWD1', 'PSMA1', 'PSMD12', 'PSMD4', 'PTDSS1', 'QARS', 'SAMM50', 'SARS', 'SCYL1', 'SEC61A1', 'SEC61B', 'SEC61G', 'SEC63', 'SEL1L', 'SLC35B1', 'SLC39A7', 'SLMO2', 'SNAI1', 'SOCS1', 'SPCS2', 'SPCS3', 'SPI1', 'SRP68', 'SRP72', 'SRPR', 'SRPRB', 'STT3A', 'SYVN1', 'TARS', 'TELO2', 'TIMM23', 'TIMM44', 'TMED10', 'TMED2', 'TMEM167A', 'TTI1', 'TTI2', 'UFL1', 'UFM1', 'XBP1', 'XRN1', 'YIPF5', 'ZNF326']
+
+## pytest: new + updated tests
+........................................................................ [ 67%]
+..................................                                       [100%]
+106 passed in 2.00s
+
+## full suite
+623 passed in 5.21s
+## guardrail
+6 passed in 0.04s
+## ruff F (touched files)
+All checks passed!
+
+## after app_v05 guides_per_gene wiring: full suite
+623 passed in 5.15s
+All checks passed!

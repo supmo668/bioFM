@@ -725,15 +725,90 @@ n8n Community Edition (ETL workflow export) · git. **No GPU in this plan.**
   scalars; a wrapped scalar recovering a key is a HIT. A ledger-specific rendering rule, separate from
   E-24's encoding rule. Both red-then-green. **(e)** `shape_scan` becomes a control or is deleted:
   exact-match placeholder rule; a `could-not-scan` state distinct from clean, and an empty input is
-  could-not-scan; the gate bracket CALLS it and fails on could-not-scan or any unaccounted shape; it
+  could-not-scan *[CLARIFIED r2.50b (#504) — read against the r2.50 entry: this sentence binds the SCANNER, which receives
+  a string and cannot tell a zero-byte read from a failed one, so given nothing it certifies nothing; the BRACKET, which
+  opens the file and knows whether the read succeeded, classifies a tracked file that exists and reads as zero bytes as
+  SCANNED-AND-EMPTY (zero shapes, clean, never exit 3) and a file it could not read as could-not-scan (fatal). Both
+  directions carry a false-exclusion test: a zero-byte tracked file must NOT fail the gate; an unreadable file MUST.]*; the gate bracket CALLS it and fails on could-not-scan or any unaccounted shape; it
   implements r2.48b scope-by-property so the 37-file unaccounted count reaches 0 by MARKING; a test fails
-  on any unmarked shaped value. **(f)** "CLOSED" is struck wherever the clause says COVERED, NOT CLOSED
+  on any unmarked shaped value. *[AMENDED r2.50 (#454, #458, #461, #463, #500) — the full-scope guard is DESCOPED BY THE PRINCIPAL under
+  the #444 time box (approval-log row 54, applied at row 55, route corrected 2026-09-29 after #492). Requirement 4 read
+  "implements r2.48b scope-by-property so the 37-file unaccounted count reaches 0 by MARKING"; measured, that count is
+  1,028 shapes across 44 files, of which 87% are structurally unmarkable. It is NARROWED to: the guard ENFORCES the
+  in-scope Python and prose sites only — measured 136 shapes in 18 files — and PASSES iff every in-scope site is CLASSIFIED into exactly one accounting bucket (see
+  requirement 5 below; a needs-curation site is classified, counted and reported, not marked) AND could-not-scan = 0
+  *[r2.50c (#506): 'in-scope unaccounted = 0' is no longer the pass condition — measured, it cannot be reached truthfully]*. The five ruled properties of #454/#455 become PLAN TEXT here rather than deferring to a document
+  that does not exist: P1 signed text (the file's own hash equals the recorded plan_hash); P2 signature ledger (the file
+  says of itself that it is the approval log); P4 generated output (a generator-written stamp in a STRUCTURAL position —
+  a substring match is a measured false exclusion); P5 citation-governed config, judged on the ENCLOSING MAPPING and never
+  on the line (measuring P5 by line reported 0 of 123 qualifying; by mapping it is 88 — a checker bug, not a property the
+  tree fails). Each is reported with its count every run. P3 (fixture PROVENANCE.md) is MOOT for E-23: no PROVENANCE.md is
+  required to close this clause and no retrieval date is invented. Fixtures (19 files, 436 shapes) and non-qualifying
+  configs (2 files, 35) are OUT-OF-GUARD-SCOPE — reported with their counts every run and recorded as a STATED LIMITATION
+  in the Stage 1 registered report. The sum identity is asserted by a test: total = in-scope accounted + in-scope
+  unaccounted + Σ out-of-scope(P_k) + out-of-guard-scope + could-not-scan. Config sites are classified from the UNION of
+  the raw lines and the yaml-decoded scalars; a site the decode cannot reach is classified from its line, never dropped
+  (measured: 1 such site, borne by a YAML comment). Requirement 5 is DESCOPED TO REPORTING by the principal (r2.50c, #506, AskUserQuestion 2026-09-29, option chosen
+  verbatim: "Descope req 5 to reporting; file-level counts; 56 → limitation"): every in-scope site is classified into
+  exactly one of four buckets, reported by count and file every run — (W) accounted by a marker on the site's own line or
+  within MARKER_WINDOW_LINES lines immediately above it; (F) accounted by a FILE-LEVEL citation header (CID + retrieval
+  date in the module docstring or file header), judged on the enclosing file the way P5 is judged on the enclosing
+  mapping — the by-line rule was a measured false exclusion (45 sites at the r2.50c measurement) and an inline restatement
+  would be a second copy of a claim with nothing checking the two agree; (C) a constructed shape-only probe governed by
+  clause (i), classifiable by the agent WITHOUT comparing any constant against an adjacent structure literal or looking
+  any identifier up; (N) NEEDS-CURATION — a site with no citation in the file whose status (real chemistry needing a
+  citation, or a synthetic value that looks real) can only be decided by the comparison the agent is forbidden to make.
+  (N) sites are NEVER marked; they are counted, listed by file in the harness output, recorded as a STATED LIMITATION in
+  the Stage 1 registered report next to the out-of-guard-scope count, and carried as the PRINCIPAL'S Stage 2 curation
+  item (a curation claim, like the compound roster). The sum identity gains the four buckets: in-scope = W + F + C + N.
+  No marker is written on a guess. MARKER_WINDOW_LINES = 2 — one constant,
+  defined once, imported everywhere, never restated, with a test that FAILS if a second literal appears (the same
+  discipline and value as _TUPLE_WINDOW). EVERY COUNT IN THIS AMENDMENT (1,028 / 44; 136 / 18; 436 / 19; 35 / 2; 88;
+  123; 1) is the measurement at the r2.50 sign (2026-09-29, tree as scanned by tests/shape_scan.py) — a dated observation
+  recorded so a reader can see what was descoped, NEVER a target: the harness regenerates each of them every run, the
+  done-condition is the derived identity above, and a drift from these numbers is reported, not tolerated and not a
+  failure in itself (clause (f) governs).]* **(f)** "CLOSED" is struck wherever the clause says COVERED, NOT CLOSED
   (third recurrence); the equivalence proof reads `_STRUCTURE_RE` or is deleted and the survivor carried
   as unproven; the column witness records 2,086 and [2049, 2085] as closed; counts are regenerated by the
   harness, never typed; the strict xfail is parametrised so every break character runs. **(g)** One shared
   `qgr/evidence/bracket.py`, tested once; the per-gate copies are deleted.
   **STOPPING RULE (CTO, #444):** if gate 8 fails on the same family, no patch: a one-page design note, and
   E-23's scope goes to the principal for a time box.
+- **E-23 r2.50 — MECHANISMS, NOT REPAIRS: a claim that cannot outrun its check** *(agent-drafted #500 from the
+  gate-8 design note §3 after gate 8 FAILED (#461) on the same family; the #444 stopping rule engaged and the principal's
+  time box (row 54) applied; signed AS DRAFTED with one CTO addition, marked)*. Gate 8 found the family SIX times in one
+  change set and THREE times independently across four reviewers; the sharpest instance was inside the fix written to
+  stop it. Patching the instances is instance 47, so r2.50 spends its single revision on the mechanisms that make a claim
+  checkable. **(1) DERIVED QUANTIFIERS.** Any test name or message containing *every / any / all / N* is backed by a
+  parametrisation whose cardinality is DERIVED from the artefact it quantifies over. The nine break characters were right
+  only because the set was enumerated from `str.splitlines()`; the four tails were wrong because the set was
+  hand-written. **(2) FALSE-EXCLUSION TESTS.** Every exclusion predicate carries a FALSE-EXCLUSION test as well as a
+  false-inclusion test. Three of gate 8's worst findings are exclusions that silently removed real sites; a false
+  exclusion reads exactly like a clean result, which is why no differential caught any of them. **(3) RAISE-PROMISES
+  PROVEN.** A helper that promises to raise is PROVEN to raise by a property test over regex constructs (counted groups,
+  MIN_REPEAT, anchors, lookarounds, SUBPATTERN), not by a hand-maintained list of node types — and `_characters_at` is
+  fixed under that test. The hole was in the arm that LOOKED handled. **(4) DERIVATIONS CONSUME THE WHOLE ARTEFACT.** A
+  derivation takes the compiled object — pattern AND flags — or asserts the flags it assumes. The equivalence proof reads
+  `.pattern` and is blind to `.flags`, 640 lines after the same file states that an IGNORECASE compile has an identical
+  `.pattern`. **(5) THE INSTRUMENT IS INSIDE THE SCOPE IT ENFORCES.** `bracket.py` records digests and counts, never
+  verbatim foreign stash subjects, untracked filenames or host paths, and runs the production detectors over its OWN
+  output before writing; a hit is could-not-write and the gate fails. Gate 7's committed artifact carries a
+  perturb-seq-eval stash subject; gate 8's is clean by luck, not by a control. **THE THREE CONVERGENT DEFECTS ARE PINNED
+  AS INSTANCES** of the mechanisms above, each with a regression test: the exact-match placeholder rule still accounts an
+  alphanumeric tail (all four reviewers) → (2); an EMPTY tracked file is SCANNED-AND-EMPTY, never exit 3, with six
+  `.gitkeep` tracked (security, code, me) → (2); the equivalence proof is blind to regex flags (code, me) → (4).
+  *[CTO addition, r2.50 sign (#463); corrected r2.50a (#502) — clause (f) forbids typed counts:]* **MARKER SUBTRACTION is the
+  closure mechanism for the in-scope shapes** — each is accounted by a marker on its own line or within MARKER_WINDOW_LINES
+  above it, per the amended clause (e). The DONE-CONDITION is derived and only derived *[r2.50c]*: every in-scope site is in exactly one of
+  W / F / C / N (in_scope_unclassified == 0) AND could_not_scan == 0; N is reported, never marked. The harness regenerates every count every run and reports, beside the pass, the shapes subtracted per
+  in-scope file and the out-of-guard-scope total it does not touch, so the descope is visible in the same table that shows
+  the pass and any drift from the at-sign measurement is visible rather than tolerated. This is a checkable obligation on
+  the harness's OUTPUT and gate 9 holds the build to it. **RETROACTIVITY:** the committed gate-7
+  evidence is NOT edited — retroactive edits are the principal's (#463 item 4). It is recorded in the approval log and in
+  the Stage 1 limitations as an observed instance of the family; mechanism (5) prevents recurrence. **STOPPING RULE
+  (principal's time box, row 54):** gate 9 is the LAST gate on E-23 and runs on the five mechanisms and the four-bucket
+  reporting (r2.50c). A gate-9 fail on the same family closes E-23 at the scope it reached — no r2.51 — and the remaining findings go to the Stage 1 limitations, with the counts as regenerated by
+  the harness at gate 9, not just the category.
 - **The error taxonomy is TWO classes, not three** *(r2.29)*. "**Scan could not be performed**"
   (exit 3) and "**declaration data unusable**" (exit 2) already have different exit semantics and are
   today distinguished only by which call site happens to catch them. A third class for topology buys

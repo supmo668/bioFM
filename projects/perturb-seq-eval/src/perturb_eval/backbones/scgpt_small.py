@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import importlib.util
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -23,12 +24,26 @@ import numpy as np
 from perturb_eval.backbones.base import (
     BackboneFitArtifacts,
     BackboneTrainConfig,
+    TargetIdx,
+    _as_targets,
     log_fold_change,
     per_perturbation_mean,
 )
 
 
 HAS_TORCH = importlib.util.find_spec("torch") is not None
+
+
+def training_device() -> str:
+    """``"cuda"`` when ``torch.cuda.is_available()``, else ``"cpu"`` (QG C9).
+
+    The sweep function holds an A100; before this, the model and its tensors
+    never left the CPU. The chosen device is recorded on the fit artifacts
+    (``extra["device"]``) and in the run provenance (``device``).
+    """
+    import torch
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 @dataclass
@@ -54,7 +69,23 @@ class SCGPTSmallBackbone:
         self._arch = arch or _ArchitectureConfig()
         self._mean_logfc: np.ndarray | None = None
         self._target_embeddings: dict[int, np.ndarray] = {}
+        self._model = None
+        self._n_genes_used = 0
         self._fitted = False
+        self.device: str | None = None
+
+    @staticmethod
+    def _pad_targets(target_ids: list[tuple[int, ...]], device: str = "cpu"):
+        """Right-pad target tuples to a (B, T) index tensor + (B, T, 1) mask on ``device``."""
+        import torch
+
+        width = max(len(t) for t in target_ids)
+        idx = torch.zeros((len(target_ids), width), dtype=torch.long)
+        mask = torch.zeros((len(target_ids), width, 1), dtype=torch.float32)
+        for r, t in enumerate(target_ids):
+            idx[r, : len(t)] = torch.tensor(t, dtype=torch.long)
+            mask[r, : len(t)] = 1.0
+        return idx.to(device), mask.to(device)
 
     def _rank_bin(self, X: "np.ndarray") -> "np.ndarray":
         """Assign each cell's genes to discrete expression-rank bins."""
@@ -72,7 +103,7 @@ class SCGPTSmallBackbone:
         expression: np.ndarray,
         perturbation_labels: list[str],
         control_mask: np.ndarray,
-        target_gene_idx: dict[str, int],
+        target_gene_idx: Mapping[str, TargetIdx],
         cfg: BackboneTrainConfig,
     ) -> BackboneFitArtifacts:
         t0 = time.perf_counter()
@@ -80,6 +111,7 @@ class SCGPTSmallBackbone:
         import torch.nn as nn
 
         torch.manual_seed(cfg.seed)
+        device = training_device()
         labels = np.asarray(perturbation_labels)
         means = per_perturbation_mean(expression, labels)
         mean_ctrl = np.mean(expression[control_mask], axis=0)
@@ -92,12 +124,16 @@ class SCGPTSmallBackbone:
 
         # Per-perturbation observed log-FC, residualised around the training mean.
         Ys: list[np.ndarray] = []
-        target_ids: list[int] = []
+        target_ids: list[tuple[int, ...]] = []
         for p, mu in means.items():
             if p not in target_gene_idx:
                 continue
-            idx = int(target_gene_idx[p])
-            if not 0 <= idx < n_genes_used:
+            # D1: multi-target; drop members outside the vocab, skip the
+            # perturbation if none remain (singleton behaviour unchanged).
+            idx = tuple(
+                t for t in _as_targets(target_gene_idx[p]) if 0 <= t < n_genes_used
+            )
+            if not idx:
                 continue  # skip perturbations whose target is outside vocab
             Ys.append(log_fold_change(mu, mean_ctrl))
             target_ids.append(idx)
@@ -119,8 +155,20 @@ class SCGPTSmallBackbone:
                 self.encoder = nn.TransformerEncoder(enc_layer, num_layers=nl)
                 self.head = nn.Linear(d, n_g)
 
-            def forward(self, target_idx: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
-                e = self.target_emb(target_idx).unsqueeze(1)    # (B, 1, D)
+            def forward(  # type: ignore[override]
+                self, target_idx: torch.Tensor, mask: torch.Tensor | None = None
+            ) -> torch.Tensor:
+                if target_idx.dim() == 1:                       # (B,) singletons
+                    target_idx = target_idx.unsqueeze(1)
+                if mask is None:
+                    mask = torch.ones((*target_idx.shape, 1), dtype=torch.float32,
+                                      device=target_idx.device)
+                # D1: mean-pool the target embeddings over each row's targets.
+                # For a 1-tuple this is emb * 1.0 / 1.0 — identical to the
+                # former single-embedding lookup.
+                e = (self.target_emb(target_idx) * mask).sum(1, keepdim=True) / mask.sum(
+                    1, keepdim=True
+                )                                               # (B, 1, D)
                 z = self.encoder(e).squeeze(1)                  # (B, D)
                 return self.head(z)                             # (B, n_g)
 
@@ -130,14 +178,14 @@ class SCGPTSmallBackbone:
             h=self._arch.n_heads,
             nl=self._arch.n_layers,
             ff=self._arch.ffn_dim,
-        )
+        ).to(device)
         opt = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
-        target_tensor = torch.tensor(target_ids, dtype=torch.long)
+        target_tensor, target_mask = self._pad_targets(target_ids, device)
         # Truncate gene axis for tensor ops — the residual mean still holds the full-length prediction.
-        Yr_trunc = torch.tensor(Yr[:, :n_genes_used], dtype=torch.float32)
+        Yr_trunc = torch.tensor(Yr[:, :n_genes_used], dtype=torch.float32).to(device)
         for _ in range(cfg.max_iter):
             opt.zero_grad()
-            pred = model(target_tensor)
+            pred = model(target_tensor, target_mask)
             loss = ((pred - Yr_trunc) ** 2).mean()
             loss.backward()
             opt.step()
@@ -145,18 +193,21 @@ class SCGPTSmallBackbone:
         # Cache per-target predictions as numpy (inference is cheap).
         model.eval()
         with torch.no_grad():
-            all_targets = torch.arange(n_genes_used)
+            all_targets = torch.arange(n_genes_used).to(device)
             preds_all = model(all_targets).cpu().numpy()  # (n_genes_used, n_genes_used)
         self._target_embeddings = {
             i: self._pad_to_full(preds_all[i], n_genes)
             for i in range(n_genes_used)
         }
+        self._model = model
+        self._n_genes_used = n_genes_used
         self._fitted = True
+        self.device = device
         return BackboneFitArtifacts(
             backbone_name=self.name,
             n_train_perturbations=len(Ys),
             train_seconds=time.perf_counter() - t0,
-            extra={"n_genes_used": n_genes_used},
+            extra={"n_genes_used": n_genes_used, "device": device},
         )
 
     @staticmethod
@@ -170,16 +221,27 @@ class SCGPTSmallBackbone:
     def predict_logfc(
         self,
         perturbation: str,
-        target_gene_idx: int,
+        target_gene_idx: TargetIdx,
         n_genes: int,
     ) -> np.ndarray:
         if not self._fitted or self._mean_logfc is None:
             raise RuntimeError("SCGPTSmallBackbone.predict_logfc called before fit()")
         # If the held-out perturbation's target is outside the trained vocab,
         # fall back to the mean log-FC pattern (residual = 0).
-        residual = self._target_embeddings.get(
-            int(target_gene_idx), np.zeros(n_genes, dtype=np.float64)
-        )
+        targets = _as_targets(target_gene_idx)
+        in_vocab = tuple(t for t in targets if 0 <= t < self._n_genes_used)
+        if len(targets) == 1 or len(in_vocab) <= 1:
+            key = in_vocab[0] if in_vocab else targets[0]
+            residual = self._target_embeddings.get(
+                key, np.zeros(n_genes, dtype=np.float64)
+            )
+        else:
+            import torch
+
+            idx, mask = self._pad_targets([in_vocab], self.device or "cpu")
+            with torch.no_grad():
+                short = self._model(idx, mask).cpu().numpy()[0]
+            residual = self._pad_to_full(short, n_genes)
         base = self._mean_logfc.copy()
         if base.size < n_genes:
             out = np.zeros(n_genes, dtype=np.float64)

@@ -79,6 +79,9 @@ class CellForgeAgentPool:
         round_index: int,
         task_id: str,
         context: dict,
+        *,
+        seed: int,  # noqa: ARG002 — CellForge agents are deterministic; seed unused
+        dataset: str,  # noqa: ARG002 — no LLM cache
     ) -> dict:
         """Delegate to the CellForge agent and normalise the output shape
         to what :func:`run_agentic_lifecycle` expects."""
@@ -107,4 +110,8 @@ class CellForgeAgentPool:
             "content": dict(proposal.content),
             "rationale": proposal.rationale,
             "confidence": float(proposal.confidence),
+            # CellForge agents are deterministic and draw no pool model, so
+            # they report the non-LLM "mock" source (see types.StepSource).
+            "model_id": None,
+            "source": "mock",
         }

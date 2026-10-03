@@ -7,34 +7,34 @@
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
 
 title: >-
-  Agent Confidence Entropy as an Empirical Difficulty Oracle for Multi-Agent
-  Group Generation, with a Bayesian Pre-Test for Agentic Hyperparameter
-  Tuning on Perturb-Seq Experimental Design
+  Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
+  Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
+  Response Prediction
 
 # One-paragraph description used as the abstract across all venues.
-# Last aligned to docs/SUPPLEMENT.md §5.5 end-to-end lifecycle on 2026-04-23.
+# Last aligned 2026-09-24 to paper/paper.tex and paper/PREREGISTRATION.md
+# (v0.6.0 regeneration pending: hypotheses, not findings; no result values).
 description: |
-  We introduce a contextual Bayesian optimization framework for multi-agent
-  group-generation hyperparameters with the latent task difficulty as the
-  context, validated end-to-end on real Perturb-seq data. v0.5.0 retracts
-  the v0.4.1 synthetic DGP and headline E1–E5 sweeps entirely; every
-  reported number now comes from real Adamson 2016 (all three scPerturb
-  subsets, 97 TF perturbations stratified by mean |Δlog1p| into 21
-  held-out tasks) and Norman 2019 (15 singletons + 5 doublets stratified
-  by guide-count quartile, seed=2026). The agentic lifecycle runs on
-  Modal A100 with five free-acting LLM agents (Nemotron-3 Super 120B,
-  Ling 1T MoE, Hermes-3 405B, GPT-OSS 120B, Qwen3-Next 80B, Llama 3.3
-  70B, Gemma-4 31B / 3-27B; all on free-tier OpenRouter) making genuine
-  per-task choices over backbone, HVG count, learning rate, ridge λ,
-  and epochs, with the Validator returning a structured critique that
-  the next round's Architect applies as a configuration delta. Two of
-  three pre-registered gates pass: Adamson median best-config MSD
-  0.147 < 0.20; Norman 0.131 < 0.30. Architect backbone-choice entropy
-  is 0.36 nats — agents converge on the from-scratch scGPT-like
-  backbone (2.1 M parameters) for 91 % of unseen K562 perturbations
-  while exercising independent variation on the data-curation axis
-  (HVG-count entropy 0.30 nats). Total Modal cost: $4.04, well under
-  the $28 hard kill. LLM cost: $0.
+  Multi-agent group-generation systems spend test-time compute uniformly
+  across tasks. We ask whether the agents' own confidence-and-critique trace
+  predicts task difficulty. On a five-agent orchestrator for Perturb-seq
+  response prediction we define four compute-free trace metrics (Agent
+  Confidence Entropy, Critique Severity Dispersion, a convergence signal and
+  a Winner Flip Rate) and their composite Task Difficulty Index (TDI), and
+  pre-register five hypotheses with gates: attainable (oracle, best-of-54)
+  error on Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR
+  activation), the Architect agent's backbone-choice entropy over
+  LLM-sourced steps, the rank correlation of each TDI component with
+  held-out error, and cross-dataset transfer of a calibrated TDI. The design
+  is 41 held-out K562 tasks (21 Adamson; 15 Norman singletons and 5
+  doublets) drawn deterministically, a 54-configuration trainer sweep and
+  three agentic lifecycle runs per task in one process. The LLM condition is
+  a rotating pool of OpenRouter models whose serving model is recorded per
+  step; a run with any rule-based fallback step is invalid. Every run
+  records its git revision, resolved configuration, library versions,
+  dataset SHA-256 digests, task plan and label contract. Gate outcomes are
+  pending the v0.6.0 sweep. All values reported in the v0.5.0 release are
+  superseded; the manuscript lists the defect behind each.
 
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
@@ -50,7 +50,8 @@ keywords:
   - multi-agent LLM
   - test-time compute
   - biological foundation model
-  - scGPT
+  - pre-registration
+  - provenance
 
 # Licence applied to the paper + data. For mixed upload you can override
 # per-file below.
@@ -60,7 +61,7 @@ license: cc-by-4.0
 # Directories are auto-zipped by scripts/publish/submit_to_venues.py.
 #
 # Bundle rationale (see research/PUBLISHING_RUNBOOK.md §2.5):
-#   * paper.pdf           — the peer-review-style manuscript (synthetic experiments).
+#   * paper.pdf           — the peer-review-style manuscript.
 #   * supplement.zip      — the Adamson + revision-pass journal docs (all `docs/`
 #                           Markdown + cross-referenced README). The SUPPLEMENT.md
 #                           here is the reviewer-facing reproduction + results artifact.
@@ -69,13 +70,13 @@ license: cc-by-4.0
 files:
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "Peer-review-style manuscript (v0.5.0: real Adamson + Norman results, synthetic DGP retracted)."
+    description: "Peer-review-style manuscript: pre-registered hypotheses and gates; results pending the v0.6.0 regeneration."
   - path: docs
     name: supplement.zip
     description: "Supplement documentation (SUPPLEMENT.md, SUPPLEMENT_DESIGN.md, REVIEWER_CRITIQUE.md, THESIS.md, DESIGN.md, MODAL.md, PUBLICATION_CHECKLIST.md, INTERNAL_FOLLOWUP.md)."
   - path: artifacts/v0.5.0
     name: v050_run_artifacts.zip
-    description: "v0.5.0 Modal A100 sweep artifacts: trainer_runs.jsonl (1944 runs), lifecycle_runs.jsonl (108 runs), summary.json (analyser output), provenance.json (cost + entropy)."
+    description: "Superseded v0.5.0 sweep artifacts, kept as the record the manuscript's 'Corrections relative to v0.5.0' appendix refers to; not the source of any reported result."
 
 # Per-venue configuration. Set enabled:false to skip.
 venues:

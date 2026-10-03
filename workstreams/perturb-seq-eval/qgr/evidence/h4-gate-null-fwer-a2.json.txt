@@ -1,0 +1,21 @@
+{
+  "defs": "a2",
+  "seed": 2026,
+  "threshold": 0.5,
+  "n_perm": 200000,
+  "n_sim": 100000,
+  "estimator": "perturb_eval.experiments.preregistered.rho (average-rank Spearman; alias _rho)",
+  "per_test_null_P(rho>0.5)": {
+    "20": 0.01319,
+    "21": 0.01067,
+    "41": 0.000475
+  },
+  "gate_fwer_6_tests": {
+    "components_independent": 0.05842,
+    "components_identical": 0.02354,
+    "components_reversed": 0.04711
+  },
+  "pooled_single_test_n41": 0.000475,
+  "gate_fwer_max_over_arms": 0.05842,
+  "ratio_gate_upper_to_pooled": 122.98947368421052
+}

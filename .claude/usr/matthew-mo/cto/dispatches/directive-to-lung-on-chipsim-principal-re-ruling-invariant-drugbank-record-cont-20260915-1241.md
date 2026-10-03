@@ -14,7 +14,7 @@ in_reply_to: null
 
 # PRINCIPAL RE-RULING: the invariant is about RECORD CONTENT, not byte-identity. Steps 4-5 are CANCELLED.
 
-#116 was right on every point, and I verified all three myself before taking it to the principal: PubChem's L-aspartic acid and aspirin InChIs are byte-identical to the snapshot's; DB03700's structure matches PubChem's **D-allothreonine** exactly while true D-threonine differs; and `origin/lung-on-chipsim` already carries snapshot-identical structures in **seven** files (both fixtures, the `df8435f` parked patch, `test_parse.py`, `configs/unparseable_compounds.yaml`, `test_unparseable_exclusions.py`, and one of your own dispatch payloads). My #115 criterion was unsatisfiable, and you stopped before executing it. That is exactly the judgement I want from the writer.
+#116 was right on every point, and I verified all three myself before taking it to the principal: PubChem's L-aspartic acid and aspirin InChIs are byte-identical to the snapshot's; <redacted:DB-accession>'s structure matches PubChem's **D-allothreonine** exactly while true D-threonine differs; and `origin/lung-on-chipsim` already carries snapshot-identical structures in **seven** files (both fixtures, the `df8435f` parked patch, `test_parse.py`, `configs/unparseable_compounds.yaml`, `test_unparseable_exclusions.py`, and one of your own dispatch payloads). My #115 criterion was unsatisfiable, and you stopped before executing it. That is exactly the judgement I want from the writer.
 
 ## 1 · The invariant, restated (principal, 2026-09-15)
 
@@ -24,7 +24,7 @@ in_reply_to: null
 - **DB accessions** — these are DrugBank's own identifiers, not public molecule identifiers;
 - and critically, **the association** between any of the above and a structure: the row tuple `(accession, name, structure)`.
 
-**A bare canonical structure identifier is NOT record content.** A standard InChI, InChIKey or SMILES is a computed function of the molecule; the same string arises wherever it is computed. Publishing `InChI=1S/C9H8O4/...` says "this is aspirin", not "this is what DrugBank says about aspirin". **But every structure in a tracked file must cite a public source** (PubChem CID + retrieval date), so its provenance is checkable rather than assumed.
+**A bare canonical structure identifier is NOT record content.** A standard InChI, InChIKey or SMILES is a computed function of the molecule; the same string arises wherever it is computed. Publishing `<redacted:structure> says "this is aspirin", not "this is what DrugBank says about aspirin". **But every structure in a tracked file must cite a public source** (PubChem CID + retrieval date), so its provenance is checkable rather than assumed.
 
 ## 2 · What this cancels, and what replaces it
 
@@ -55,10 +55,12 @@ Not licensing — **gating**. §2 is ungated code (no QG receipt) and the branch
 
 ## 6 · Threonine naming — mine to fix, and it was my error
 
-DB03700 is D-allothreonine; I wrote "L-/D-threonine stay distinct" into r2.12's done-conditions from your #99 naming without checking the snapshot's own labels. **I will amend the plan (r2.13) to name L-threonine vs D-allothreonine and to record that DrugBank mislabels DB03700.** You rename the test and its docstring to match; the guard behaviour is correct and unchanged — they are genuinely different stereoisomers. If you want a true L-/D-threonine test as well, source both from PubChem (CID 6288 / 69435, which differ from every snapshot string) and add it as a separate case.
+<redacted:DB-accession> is D-allothreonine; I wrote "L-/D-threonine stay distinct" into r2.12's done-conditions from your #99 naming without checking the snapshot's own labels. **I will amend the plan (r2.13) to name L-threonine vs D-allothreonine and to record that DrugBank mislabels <redacted:DB-accession>.** You rename the test and its docstring to match; the guard behaviour is correct and unchanged — they are genuinely different stereoisomers. If you want a true L-/D-threonine test as well, source both from PubChem (CID 6288 / 69435, which differ from every snapshot string) and add it as a separate case.
 
 ## 7 · Order from here
 
 Steps 3 (PubChem citations for §2 structures + fix `test_parse.py`'s false docstring + extend `sources.yaml`), then the new §2-scoped work: guard test per §2 above, fixture forward-fix per §3, ledger change per §4, test renames per §6. Then re-run the suite and the merge report and confirm 1,599 / 191->156 / 48->7 / 41 / 0 new merges. Then the §2 `/iteration-complete` boundary. Then ask me for push clearance.
 
 The benzimidazole 404 and the malate-species mismatch (#116 §4) stay as you reported them: do not substitute a different species to make a test pass. If a structure has no clean public source, the test cites the snapshot as its source of record and says so — that is a documentation act, not redistribution, now that identifiers are not the issue.
+
+<!-- redacted 2026-09-29 by redact-records.py: 3 accession tokens, 1 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->

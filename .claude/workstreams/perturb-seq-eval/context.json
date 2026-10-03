@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "workstream": "perturb-seq-eval",
+  "updated_at": "2026-09-30T06:48:45.911401+00:00",
+  "linear": {
+    "initiative_url": "",
+    "initiative_id": ""
+  },
+  "github": {
+    "repo": ""
+  },
+  "phases": {
+    "and": {
+      "status": "approved",
+      "artifact": "workstreams/perturb-seq-eval/AND.md",
+      "linear": "",
+      "gh": "",
+      "commit": "",
+      "qgr": "",
+      "summary": "",
+      "pr": "",
+      "updated_at": "2026-09-24T18:59:36.105857+00:00"
+    },
+    "A2-fixes": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "371c274",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260928-1504-1f3dc41.md",
+      "summary": "amendment-2 measurand fixes gated; amendment 3 locked; 1036 tests",
+      "pr": "",
+      "updated_at": "2026-09-28T22:05:02.237992+00:00"
+    },
+    "RELAUNCH": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "4f967a1",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260928-1731-2a499b0.md",
+      "summary": "relaunch fixes gated; sweep relaunched 2026-09-29T00:31Z",
+      "pr": "",
+      "updated_at": "2026-09-29T00:32:54.923995+00:00"
+    },
+    "A4CLIENT": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "f355ebe",
+      "qgr": "/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval/workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260928-2049-36b0e1d.md",
+      "summary": "AnthropicClient gated; relaunch pending CTO receipt verification",
+      "pr": "",
+      "updated_at": "2026-09-29T03:49:17.056350+00:00"
+    },
+    "SWEEP": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "2e82d33",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260929-0041-6394ca9.md",
+      "summary": "v0.6.0 sweep run 20260929T035447Z-ce5f237 valid; 4/5 gates pass (H5 FAIL); verified by CTO #491",
+      "pr": "",
+      "updated_at": "2026-09-29T07:43:10.873903+00:00"
+    },
+    "MANUSCRIPT": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "8e44aae",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260929-0041-6394ca9.md",
+      "summary": "manuscript filled from artifacts via generated macros; gated, 23 findings fixed; next /pr-prep -> /sync (after main pushed) -> /pr-submit",
+      "pr": "",
+      "updated_at": "2026-09-29T07:43:11.017020+00:00"
+    },
+    "DEPOSIT": {
+      "status": "in-progress",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "e2d16dc",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20260929-2259-b2be4dd.md",
+      "summary": "deposit + rigour items done; pr-prep #2 receipt next, then push + pr-submit (one PR per CTO #532)",
+      "pr": "",
+      "updated_at": "2026-09-30T06:48:45.911201+00:00"
+    }
+  }
+}

@@ -16,6 +16,7 @@
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{enumitem}
+\setlength{\emergencystretch}{1.5em} % third-pass stretch for paragraphs dense with code identifiers
 % No algorithm2e / algorithm / algpseudocode assumed available in the
 % target TeX distribution — we inline the procedure as a numbered list.
 
@@ -24,11 +25,18 @@
 
 \graphicspath{{figures/}}
 
+% ---- Result values ----
+% Every result value is a macro generated from artifacts/v0.6.0 by
+% scripts/paper/fill_v060_numbers.py (no number is typed by hand).
+\input{sections/generated_numbers}
+
 % ---- Title ----
-\title{Agent Confidence Entropy as a Pre-hoc Difficulty Oracle for
-       Multi-Agent Group Generation:\\
-       Bayesian Agentic Hyperparameter Tuning on Perturb-Seq
-       Experimental Design}
+\title{Does Agent Confidence Entropy Predict Task Difficulty?\\
+       A Pre-registered, Provenance-Complete Test of Agentic
+       Hyperparameter Tuning for Perturb-seq Response Prediction}
+\hypersetup{pdftitle={Does Agent Confidence Entropy Predict Task Difficulty?
+  A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter
+  Tuning for Perturb-seq Response Prediction}}
 
 \author{%
   Mangyin Mo\\
@@ -45,36 +53,37 @@
 \maketitle
 
 \begin{abstract}
-We study test-time compute (TTC) scaling in the multi-agent setting, taking as
-our testbed a five-agent orchestrator for perturb-seq experimental design
-inspired by \textsc{CellForge}~\citep{chen2025cellforge} and operated via the
-\textsc{MassGen} framework~\citep{massgen2025github}. We introduce four
-lightweight, compute-free metrics derived from the agents' own per-round
-confidence-and-critique trace --- Agent Confidence Entropy (ACE), Critique
-Severity Dispersion (CSD), a convergence signal based on the round-over-round
-change in mean confidence ($\Delta C$), and a Winner Flip Rate (WFR) --- and
-combine them into a composite Task Difficulty Index (TDI).
-Every reported number in this paper comes from real Perturb-seq data: all
-three \textsc{Adamson 2016}~\citep{adamson2016perturbseq} scPerturb subsets
-($97$ TF perturbations stratified by mean $|\Delta\!\log\!1\textrm{p}|$ on the
-target gene into $21$ held-out tasks) and \textsc{Norman 2019}~\citep{norman2019perturbseq}
-($15$ singletons + $5$ doublets stratified by guide-count quartile, $\textrm{seed}=2026$).
-We run $1\,944$ trainer cells (\{\textsc{linear}, \textsc{mlp},
-\textsc{scgpt\_small}\} $\times$ $N\!\in\!\{3,5\}$ $\times$ $R\!\in\!\{1,2,3\}$ $\times$
-$3$ seeds per task) plus $108$ end-to-end agentic lifecycle runs in which
-five free-acting LLM agents (we use \textsc{Nemotron-30B} throughout for
-demonstration purposes) make genuine per-task choices over backbone, HVG
-count, learning rate, ridge $\lambda$ and epochs, with the Validator
-returning a structured critique that the next round's Architect applies as
-a configuration delta. Two of three pre-registered gates pass: median
-best-config MSD on the top-$20$ DEGs is $0.147 < 0.20$ on Adamson and
-$0.131 < 0.30$ on Norman. Architect backbone-choice entropy is $0.36$ nats
---- agents converge on \textsc{scgpt\_small} for $91\%$ of unseen K562
-perturbations while exercising independent variation on the data-curation
-axis (HVG-count entropy $0.30$ nats). Every record consumed by every
-metric is sourced from the published scPerturb Zenodo bundle (record
-$13350497$) via SHA-gated fetchers. Code, frozen datasets, and
-reproducibility artifacts are released with the paper.
+Multi-agent group-generation systems spend test-time compute uniformly
+across tasks. We ask whether the agents' own confidence-and-critique trace
+predicts how hard a task is, which would let the compute be allocated
+adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
+response prediction inspired by \textsc{CellForge}~\citep{chen2025cellforge}
+and operated via \textsc{MassGen}~\citep{massgen2025github}, we define four
+compute-free trace metrics --- Agent Confidence Entropy (ACE), Critique
+Severity Dispersion (CSD), a convergence signal ($\Delta C$), and a Winner
+Flip Rate (WFR) --- and their composite, the Task Difficulty Index (TDI).
+We pre-register five hypotheses with gates: attainable error on
+\textsc{Adamson 2016}~\citep{adamson2016perturbseq} (CRISPR interference) and
+\textsc{Norman 2019}~\citep{norman2019perturbseq} (CRISPR activation), the
+Architect agent's backbone-choice entropy, the rank correlation of each TDI
+component with held-out error, and cross-dataset transfer of a calibrated
+TDI. The design is $41$ held-out K562 tasks ($21$ Adamson, $15$ Norman
+singletons, $5$ Norman doublets) drawn deterministically, a trainer sweep of
+\resNTrainerRecordsPerTask{} records per task and three fixed-length agentic
+lifecycle runs per task, all in one process. The LLM condition is a pinned
+roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles,
+Sonnet 5.5 for the Validator) whose served model is recorded and asserted
+per call; a run with any rule-based fallback step is invalid. Every run records its git revision, resolved
+configuration, library versions, dataset SHA-256 digests, task plan and
+label contract. Gate outcomes: \resGateSummary{} --- the trainer sweep attains the pre-registered
+error on both screens (H1, H2), the Architect exercises its backbone choice
+(H3), and the confidence-drop component and the composite rank tasks by
+held-out error within both screens (H4); the Adamson-calibrated composite
+does not transfer to Norman at the pre-registered level (H5, $\rho=\resHFiveRho$
+against $>\resHFiveThreshold$). The confidence-entropy point estimates run against the pre-registered
+direction in both screens (exploratory; no claim is made).
+The values reported in the v0.5.0 release of this work are superseded in
+full; the defects behind each are listed in the appendix.
 \end{abstract}
 
 % =====================================================================
@@ -99,13 +108,14 @@ dispatches several specialised agents --- typically a data curator, a
 literature/prior agent, a model architect, a trainer, and a biological
 validator --- and coordinates them through propose-critique-vote rounds. Every
 such system today spends compute \emph{uniformly}: the same number of agents
-for the same number of rounds regardless of whether the task is GSK3B
-knockout (well-studied, linear pathway) or a novel combinatorial
-perturbation. \emph{This paper asks whether the group's own internal
-dynamics carry enough signal to allocate its compute adaptively.}
+for the same number of rounds regardless of whether the task is a
+well-characterised single-gene perturbation or a novel combinatorial one.
+\emph{This paper asks whether the group's own internal dynamics carry enough
+signal to allocate its compute adaptively}, and tests that question under a
+pre-registered design so that either answer is informative.
 
 \paragraph{Contributions.} We make four contributions, all within the
-empirical frame of perturb-seq experimental design~\citep{norman2019perturbseq,%
+empirical frame of Perturb-seq response prediction~\citep{norman2019perturbseq,%
 adamson2016perturbseq} but generalising to any propose-critique-vote system:
 
 \begin{enumerate}[leftmargin=*]
@@ -116,27 +126,25 @@ adamson2016perturbseq} but generalising to any propose-critique-vote system:
         four-dimensional signature is intended to serve as a sufficient
         statistic for a Bayesian recommender over orchestration
         hyperparameters $\varphi = (N, R, \textrm{backbone})$.
-  \item We evaluate every claim end-to-end on \emph{real} Perturb-seq data
-        --- \textsc{Adamson 2016} (all three scPerturb subsets) and
-        \textsc{Norman 2019} singletons + doublets --- over $1\,944$ trainer
-        cells and $108$ full agentic lifecycle runs on a single Modal A100,
-        within a $\$28$ hard-kill budget. We report both the gates that
-        pass and the one that fails honestly.
-  \item We release the calibration harness, the \textsc{MassGen}-installable
-        evaluation skill that produces metric reports on any propose-critique
-        run, and the SHA-gated dataset fetchers + atomic JSONL trace logs
-        that make the entire run reproducible from a single Modal command.
+  \item We pre-register five hypotheses and their gates
+        (\S\ref{sec:results}; \texttt{paper/PREREGISTRATION.md}) and test them
+        on $41$ held-out K562 tasks from \textsc{Adamson 2016} and
+        \textsc{Norman 2019}, with a trainer sweep and an agentic lifecycle
+        run over the identical task set in one process.
+  \item We release a provenance-complete run record --- git revision,
+        resolved configuration, resolved library versions, dataset digests,
+        task plan, label contract, and the serving model of every agent step
+        --- together with the calibration harness and the
+        \textsc{MassGen}-installable evaluation skill
+        (\S\ref{sec:reproducibility}).
 \end{enumerate}
 
-\paragraph{Scope.} Every empirical claim in this paper is anchored to real
-\textsc{Adamson 2016}~\citep{adamson2016perturbseq} and
-\textsc{Norman 2019}~\citep{norman2019perturbseq} K562 Perturb-seq cells
-sourced from the published scPerturb~\citep{peidli2024scperturb} Zenodo bundle
-(record $13350497$). \emph{No synthetic Perturb-seq data is generated or
-consumed by any reported result.} Genome-scale validation on
+\paragraph{Scope.} Both datasets are K562 Perturb-seq screens from the
+scPerturb~\citep{peidli2024scperturb} repackaging (Zenodo record
+$13350497$). Genome-scale validation on
 \textsc{Replogle 2022}~\citep{replogle2022perturbseq} is the natural next step
-and is enumerated in \S\ref{sec:limits}; the paper deliberately does not
-extrapolate beyond K562.
+and is enumerated in \S\ref{sec:limits}; the paper does not extrapolate
+beyond K562.
 
 % =====================================================================
 \section{Background and Related Work}\label{sec:related}
@@ -167,11 +175,11 @@ couples CRISPR perturbations with single-cell RNA-sequencing readouts,
 offering a clean testbed for agentic scientific reasoning because ground-truth
 hardness can be proxied from literature density, replicate agreement, and
 donor-split transfer~\citep{norman2019perturbseq,adamson2016perturbseq,
-replogle2022perturbseq}. Backbones such as
+replogle2022perturbseq}. Pretrained single-cell foundation models such as
 \textsc{scGPT}~\citep{cui2024scgpt}, \textsc{Geneformer}%
 ~\citep{theodoris2023geneformer}, \textsc{scFoundation}~\citep{hao2024scfoundation},
-and \textsc{scPRINT}~\citep{kalfon2025scprint} provide pre-trained
-representations that the architect agent can configure.
+and \textsc{scPRINT}~\citep{kalfon2025scprint} are related work; none of them
+is among the backbones evaluated here (\S\ref{subsec:backbones}).
 
 % =====================================================================
 \section{Problem Setup}\label{sec:setup}
@@ -187,10 +195,12 @@ $\mathbf{C}(r)\!\in\!\mathbb{R}^N$ and $\mathbf{S}(r)\!\in\!\mathbb{R}^{N\times(
 denote the per-round tuples.
 
 A task $t$ has a latent intrinsic difficulty $d_t\!\in\![0,1]$. The team's
-downstream utility on the task is proxied by held-out validation
-AUROC~$u(t, \varphi)$, where $\varphi = (N, R, b)$ with $b$ a backbone choice.
+downstream utility on the task is proxied by the prediction error
+$u(t, \varphi)$ on the held-out perturbation (MSD on its top-$20$
+differentially expressed genes, \S\ref{subsec:eval}), where
+$\varphi = (N, R, b)$ with $b$ a backbone choice.
 \emph{Agentic hyperparameter tuning} is the problem of picking
-$\varphi^\star\!\in\!\Phi$ minimising compute subject to a target utility ---
+$\varphi^\star\!\in\!\Phi$ minimising compute subject to a target error ---
 the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation.
 
@@ -200,8 +210,7 @@ single-chain allocation.
 \subsection{Agent Confidence Entropy (ACE)}
 
 Let $p(r) = \mathrm{softmax}(\mathbf{C}(r)/\tau)$ be the softmax of the
-confidence vector at round $r$ with temperature $\tau$ (we use $\tau=1$
-throughout). ACE is the Shannon entropy of this distribution, normalised to
+confidence vector at round $r$ with temperature $\tau$ (we use $\tau=1$). ACE is the Shannon entropy of this distribution, normalised to
 $[0,1]$ by its maximum:
 \begin{equation}
   \mathrm{ACE}(r) = -\sum_{i=1}^{N} p_i(r) \log p_i(r),\quad
@@ -255,9 +264,20 @@ difficulty label.
 % =====================================================================
 \section{Preflight Probe and Bayesian Recommender}\label{sec:probe}
 
+\paragraph{Pre-registered forms (amendments A2-10, A2-11).} For the
+pre-registered tests in \S\ref{sec:results}, $\mathrm{ACE}_{\mathrm{norm}}$ is
+the entropy of the \emph{direct simplex projection} of the confidence vector
+(\texttt{metrics.ace\_d}, no temperature), and the confidence-drop term is the
+\emph{unclipped} $1-\Delta C\in[0,2]$; the lifecycle composite renormalises the
+two default weights over these two terms and is not clipped, so
+$\mathrm{TDI}_{\mathrm{lifecycle}}\in[0,17/12]$. The softmax form above and the
+clipped term are reported descriptively beside them. Both amendments were
+locked before any v0.6.0 data existed.
+
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
-$\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
-\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4$. In practice the probe is
+\[\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
+\max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4.\]
+In practice the probe is
 produced by a \emph{shallow} one-round execution of the orchestrator (smaller
 tool-call budget, narrower retrieval) so it is materially cheaper than a full
 run.
@@ -293,24 +313,16 @@ $\{\Sigma_\varphi\}$, budget $B$.\\
 \end{center}
 
 % =====================================================================
-% v0.5.0: Experimental Setup is now real-data-only — Adamson 2016 (3 subsets)
-% + Norman 2019, with the agentic lifecycle widened to genuine multi-axis
-% configuration freedom. The v0.4.1 synthetic DGP and its E1–E5 sweeps are
-% retracted in this version (see CHANGELOG).
-\input{sections/v050_experimental_setup}
+\input{sections/experimental_setup}
 
-% v0.5.0: Results are now real-data-only — held-out MSD on top-20 DEGs
-% across Adamson 2016 (combined) + Norman 2019, with the agentic lifecycle
-% reporting Architect choice entropy as a proxy for genuine configuration
-% freedom. v0.4.1's synthetic-DGP figs/tables are retracted in this version.
-\input{sections/v050_results_filled}
+\input{sections/results}
 
 % =====================================================================
 \section{Implementation and Observability Layer}\label{sec:impl}
 
 So far the paper has been algorithmic. This section is deliberately
 engineering-heavy because the paper's reviewer question
-``\emph{what did you have to contribute to \textsc{MassGen}?}'' deserves a
+``\emph{what did you have to contribute to MassGen?}'' deserves a
 precise answer. We separate our work into three buckets --- novel
 contribution, thin adapter over existing infrastructure, and explicitly-scoped
 future work --- and state each with enough detail that a reviewer can locate
@@ -323,9 +335,9 @@ one-section summary.
 Our central engineering contribution is a narrow, immutable trace schema
 that decouples the orchestrator from the evaluator. A \texttt{RoundTrace}
 carries
-$(\mathrm{round\_index}, \mathrm{agent\_names}[N],
+\[(\mathrm{round\_index}, \mathrm{agent\_names}[N],
 \mathbf{C}[N], \mathbf{S}[N,N{-}1], w, \mathrm{consensus\_score},
-\mathrm{compute\_tokens})$;
+\mathrm{compute\_tokens});\]
 a \texttt{RunTrace} is an ordered tuple of \texttt{RoundTrace}s plus
 $(\mathrm{task\_id}, \mathrm{converged}, \mathrm{backbone})$. Both are
 \texttt{frozen=True} Python dataclasses, which makes them safe to serialise,
@@ -335,9 +347,10 @@ never on the LLM-facing proposal or critique text --- which makes metric
 computation costs negligible (\textit{ca.}\ $1$ ms per run) and also
 improves privacy posture (LLM content is never consumed by the metric layer).
 
-\begin{table}[h]
+\begin{table}[ht]
 \small
 \centering
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lll}
 \toprule
 File & Kind & Status \\
@@ -349,26 +362,26 @@ File & Kind & Status \\
 \texttt{massgen\_skill\_draft/} (in-repo draft of a MassGen skill) & Ready-to-submit & not yet PR'd \\
 LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt + pure-Python scaffold & not yet calibrated on live traces \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{Contribution audit. See \texttt{docs/DESIGN.md} for the full file-by-file breakdown.}
 \label{tab:contrib}
 \end{table}
 
-\subsection{Adapting \textsc{CellForge}: duck typing, no patching}
+\subsection{Adapting CellForge: duck typing, no patching}
 
-The orchestrator in \texttt{libs/cellforge-agents/} exposes a
-\texttt{ConsensusResult} whose \texttt{.rounds[i].proposals} carry
-\texttt{.agent}, \texttt{.confidence}, \texttt{.content}, and whose
-\texttt{.rounds[i].critiques} carry \texttt{.from\_agent},
-\texttt{.on\_agent}, \texttt{.severity}. The adapter in
-\texttt{src/perturb\_eval/instrumentation.py} is $\approx\!40$ lines of
+The orchestrator (\path{libs/cellforge-agents/}) exposes a result
+object, \texttt{ConsensusResult}, whose \path{.rounds[i].proposals} carry
+\path{.agent}, \path{.confidence}, \path{.content}, and whose
+\path{.rounds[i].critiques} carry \path{.from_agent},
+\path{.on_agent}, \path{.severity}. The adapter in
+\path{src/perturb_eval/instrumentation.py} is $\approx\!40$ lines of
 pure projection: it duck-types those two interfaces, builds a critique
 matrix that excludes self-critique, and reconstructs the per-round winner
 as $\arg\max_j (c_j - \overline{S}_{\cdot j})$. No orchestrator patching is
 required. Any propose-critique-vote system that exposes these two minimal
 shapes gets the full evaluator stack for free.
 
-\subsection{\textsc{MassGen}'s native observability is rich but differently
+\subsection{MassGen's native observability is rich but differently
 shaped}\label{subsec:massgen_bridge}
 
 \textsc{MassGen}~\citep{massgen2025github} already provides a mature
@@ -405,212 +418,229 @@ repository at \texttt{massgen\_skill\_draft/}:
 \end{enumerate}
 
 The corresponding MassGen skill artifact
-(\texttt{massgen\_skill\_draft/skill.yaml}) declares an
-\texttt{on\_session\_start} hook that runs preflight and an
-\texttt{on\_session\_end} hook that runs evaluate. Both handlers are
-$\leq 20$ lines of glue over \texttt{perturb\_eval.massgen\_adapter}, which
+(\path{massgen_skill_draft/skill.yaml}) declares two hooks:
+\path{on_session_start} runs preflight and \path{on_session_end} runs
+evaluate. Both handlers are
+$\leq 20$ lines of glue over \path{perturb_eval.massgen_adapter}, which
 keeps the skill minimal and audit-friendly.
 
 \paragraph{What we have \emph{not} done.} We have not (a) submitted the
 skill to \textsc{MassGen} upstream, (b) calibrated the severity rater
-against human annotators on real \textsc{MassGen} traces, or (c) validated
+against human annotators on recorded \textsc{MassGen} traces, or (c) validated
 the vote-share confidence projection against an alternative projection
 (e.g.\ an LLM-rated confidence). Each of these is one incremental
 engineering step and we flag them here so the boundary between our paper's
 claims and ``plug it in and it works'' is unambiguous.
 
-% v0.5.0: §8.5 \"Why synthetic DGP is still informative\" deleted entirely.
-% The synthetic DGP is gone; nothing to defend.
-
 % =====================================================================
 \section{Discussion}\label{sec:discussion}
 
-\paragraph{What the group dynamics reveal.} The strongest empirical signal
-across our metrics is the \emph{round-over-round change in mean confidence}.
-On real K562 Perturb-seq held-out tasks, this signal — together with the
-ACE/CSD/WFR companions — ranks tasks by held-out MSD with the trace-feature
-correlations reported in Table~\ref{tab:tdi-real}. We interpret the result as
-evidence that \emph{convergence is the primary observable of difficulty in a
-well-functioning multi-agent system}: the amount by which the team's mean
-confidence rises in a fixed number of rounds is a consolidated summary of
-``is this tractable for this team?''.
+\paragraph{Why the question is posed as a question.} The title asks whether
+agent confidence entropy predicts task difficulty rather than asserting that
+it does, so that a null answer is publishable as it stands; a null or failed
+outcome on H4/H5 is reported as the answer and is not traded back into a
+claim-form title, abstract or contribution list
+(\texttt{paper/PREREGISTRATION.md}).
 
-\paragraph{Why the probe is weaker than the post-hoc metric.} A single-round
+\paragraph{Reading the gates together.} H1/H2 bound what the trainer sweep
+can attain (an oracle, \S\ref{subsec:oracle}); they say nothing about whether
+the agents find those configurations. H3 asks whether the Architect uses its
+backbone choice at all; H4/H5 ask whether the trace metrics carry difficulty
+information. On this run H1--H3 pass; H4 passes on the confidence-drop
+component ($1-\Delta C$) and on the composite that inherits it, in both
+screens, while confidence entropy runs the opposite way to the hypothesis;
+and H5 fails: the Adamson-calibrated composite reaches $\rho=\resHFiveRho$ on
+Norman against a gate of $\resHFiveThreshold$. Read together: H4 passes on $1-\Delta C$ in both screens and on
+$\mathrm{TDI}_{\mathrm{lifecycle}}$, which, given the narrow observed spread of
+$\mathrm{ACE}_{\mathrm{norm}}$, ranks nearly identically; the two
+$\mathrm{ACE}_{\mathrm{norm}}$ tests fail the pre-registered one-sided gate; and
+the Adamson-calibrated composite does not transfer at the pre-registered level.
+The title question is answered as posed: on this evidence, confidence entropy
+does not predict difficulty in the pre-registered direction. No mechanism is
+inferred; the negative point estimates are reported, not interpreted, and a
+directional hypothesis about them would be a new pre-registration.
+
+\paragraph{What a single-round probe can and cannot observe.} A single-round
 probe by definition cannot observe convergence. It sees only the starting
 distribution of agent confidences and critiques, which encodes a snapshot of
-prior agreement but not the response-to-critique dynamics that generate the
-downstream signal. This is a structural limitation of the minimal probe we
-test, not of the framework.
+prior agreement but not the response-to-critique dynamics that $\Delta C$ and
+WFR summarise. This is a structural property of the minimal probe, not an
+empirical finding.
 
 \paragraph{Implications for upstream systems.} For
 \textsc{CellForge}~\citep{chen2025cellforge} and
-\textsc{MassGen}~\citep{massgen2025github}, the immediate actionable
-recommendation is: \emph{emit the $\{C(r), S(r), w(r)\}$ trace as a
-first-class output} of every orchestrator run. TDI and its diagnostics cost
-less than $1$\,ms per run and are trivial to surface through an existing
-skill interface; even without a calibrated recommender, the run-level
-quantities (ACE trajectory, $\Delta C$, WFR) are directly useful to human
-operators as a sanity check.
+\textsc{MassGen}~\citep{massgen2025github}, one recommendation does not depend
+on the gate outcomes: \emph{emit the $\{C(r), S(r), w(r)\}$ trace, and the
+serving model of every step, as first-class outputs} of every orchestrator
+run. Without them neither difficulty metrics nor the attribution of agent
+choices to a model is recoverable after the fact (Appendix~\ref{app:corrections}).
 
 % =====================================================================
 \section{Limitations and Threats to Validity}\label{sec:limits}
 
-We flag five limitations that a reviewer should weigh.
+\paragraph{Backbone scope.} \begin{sloppypar}The backbones are small models trained per task
+(\S\ref{subsec:backbones}); no pretrained single-cell foundation model is
+evaluated. Integrating pretrained \textsc{scGPT}~\citep{cui2024scgpt},
+\textsc{Geneformer}~\citep{theodoris2023geneformer}, or
+\textsc{scFoundation} is the most consequential follow-up.\end{sloppypar}
 
-\paragraph{Backbone scope.} The Architect's pool is
-$\{\textsc{linear}, \textsc{mlp}, \textsc{scgpt\_small}\}$ where
-\textsc{scgpt\_small} is a $2.1$\,M-parameter from-scratch gene-token
-transformer, not the pretrained \textsc{scGPT-whole-human} of
-\citet{cui2024scgpt}. Genuine SCFM integration --- pretrained
-\textsc{scGPT}, \textsc{Geneformer}~\citep{theodoris2023geneformer},
-or \textsc{scFoundation} --- is the single most consequential follow-up.
-The current paper deliberately uses the small-scale-control name
-\textsc{scgpt\_small} to avoid implying we tested a real foundation
-model.
+\paragraph{Oracle, not held-out, error.} H1/H2 select the best of
+\resNDistinctConfigs{} distinct configurations (\resNTrainerRecordsPerTask{}
+records per task) on the same evaluation genes and cells they are scored on
+(\S\ref{subsec:oracle}). There is no nested validation/test split; the
+quantity is an attainable upper bound.
 
-\paragraph{Cell-line and dataset scope.} Both datasets are K562. The
-$3$ scPerturb Adamson subsets and Norman 2019 collectively span
-$\sim\!97 + \sim\!100$ TFs, but the Architect's ``which backbone wins''
-distribution is K562-conditioned. Genome-scale validation on
-\textsc{Replogle 2022}~\citep{replogle2022perturbseq} and a non-K562
-follow-up are explicit next steps.
+\paragraph{Evaluation genes and feature spaces.} The top-$20$ DEGs are chosen
+using the held-out cells (the CPA/GEARS convention), and each task's HVG set
+is selected on that task's training cells, so the cross-task medians
+aggregate models with different inputs (\S\ref{subsec:eval}).
 
-\paragraph{Architect entropy gate.} Our pre-registered Architect
-backbone-choice entropy floor was $0.5$ nats; the realised value is
-$0.36$ nats. The LLM agents (\textsc{Nemotron-30B} for demonstration)
-converge on \textsc{scgpt\_small} for $91\%$ of unseen K562
-perturbations. We report this as a missed gate rather than re-prompt
-around it: it is
-substantively the right call given a coherent backbone signal, and
-the data-curation axis (HVG count, $0.30$ nats) does exhibit
-genuine task-conditional variation.
+\paragraph{LLM condition: a single model family.} All five roles are served
+by Anthropic Claude models (amendment~4), so nothing here supports a claim of
+cross-family generality, and the choice-entropy measurand (H3) may be lower
+than a multi-family pool would give. The Validator judges proposals from the
+same family; it sits on a different tier (Sonnet 5.5) from the four Haiku 4.5
+proposer roles, which is reported, not a remedy --- residual same-family judge
+bias is acknowledged. Model identity is recorded and asserted per call.
+
+\paragraph{Sample size and the ACE sign.} The within-screen tests use $n=\resHFourAdaAceN$
+and $n=\resHFourNorAceN$ tasks; every $\rho$ carries a bootstrap CI over tasks
+(Table~\ref{tab:tdi-real}), and the pre-registered null false-positive rate of
+the six-test gate is a few percent. The confidence-entropy point estimates were negative in both screens (the
+Adamson CI excludes zero, the Norman CI includes it); that direction was not
+pre-registered, generates
+no claim, and would need its own pre-registration to test. On Norman the
+doublet stratum's oracle median (\resHTwoDoubletMedian) lies above the H2 gate
+while the all-task median passes; the stratum is reported, as pre-registered.
+
+\paragraph{Cell-line and dataset scope.} Both datasets are K562, and the
+Architect's backbone-choice distribution is K562-conditioned. Genome-scale
+validation on \textsc{Replogle 2022}~\citep{replogle2022perturbseq} and a
+non-K562 follow-up are explicit next steps.
 
 \paragraph{Configuration space.} $|\Phi|$ remains modest. Widening to
 include continuous learning-rate schedules, per-agent retrieval depth,
 and explicit batch-correction ablations is straightforward but would
-expand the trainer-cell sweep beyond the $\$28$ Modal envelope. Our
-Bayesian recommender is also a MAP estimator; full posterior sampling
-would expose uncertainty currently swept into point predictions.
+expand the trainer sweep beyond its budget cap. Our Bayesian recommender is
+also a MAP estimator; full posterior sampling would expose uncertainty
+currently swept into point predictions.
 
 \paragraph{Reward model free-riding.} We deliberately do not train a
-process reward model. A PRM over agent traces would likely outperform
-our hand-designed metrics, but it would also require an expensive
-labelling phase. The paper's claim is that hand-designed difficulty
-metrics over the already-produced trace are cheap and already
-actionable; a PRM is a complementary rather than competing direction.
-
-\paragraph{Reproducibility.} The pipeline is one Modal command:
-\texttt{modal run scripts/modal/app\_v05.py::entrypoint}. All
-randomness flows through \texttt{numpy.default\_rng(2026)}. Datasets
-are pulled programmatically from scPerturb's Zenodo bundle (record
-$13350497$) via SHA-gated, truncation-guarded fetchers; no manual
-\texttt{.h5ad} placement is required. \emph{No synthetic data is
-generated at any stage of the pipeline}; a CI guardrail in
-\texttt{tests/test\_no\_synthetic\_generators.py} enforces this
-invariant repository-wide.
+process reward model. A PRM over agent traces could outperform hand-designed
+metrics, but it would also require an expensive labelling phase. The
+question tested here is whether hand-designed difficulty metrics over the
+already-produced trace carry the signal; a PRM is a complementary rather
+than competing direction.
 
 % =====================================================================
 \section{Reproducibility}\label{sec:reproducibility}
 
-Every number, figure, and table in this paper is produced by a single
-end-to-end pipeline anchored on \emph{real} Perturb-seq data (no synthetic
-generation at any stage):
-\begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
-  \item \texttt{src/perturb\_eval/data/download.py} --- fetches Adamson's
-        three scPerturb subsets and Norman 2019 from Zenodo record
-        $13350497$ via SHA-gated, truncation-guarded
-        \texttt{urllib.request.urlretrieve}. Idempotent: cached files are
-        SHA- and size-verified before re-use.
-  \item \texttt{scripts/modal/app\_v05.py} --- single-stage Modal A100
-        sweep with a $\$28$ hard-kill watchdog. Atomic JSONL append per
-        run guarantees resume-safety under spot pre-emption.
-  \item \texttt{src/perturb\_eval/experiments/e\_v05\_real\_traces.py} ---
-        consumes \texttt{trainer\_runs.jsonl} + \texttt{lifecycle\_runs.jsonl}
-        and emits \texttt{summary.json} with median per-dataset MSDs,
-        per-agent choice entropies, and the three pre-registered gate
-        booleans.
-  \item \texttt{scripts/paper/fill\_v050\_numbers.py} --- single source of
-        truth between \texttt{summary.json} and the LaTeX
-        \texttt{\{\{TOKEN\}\}} placeholders in
-        \texttt{paper/sections/v050\_results.tex}.
-\end{itemize}
+The sweep is one Modal command,
+\texttt{modal run scripts/modal/app\_v05.py::entrypoint} (with the pinned
+\texttt{--prior-spend-usd}), which runs a
+CPU preflight, the trainer sweep and the lifecycle sweep in one process.
+The preflight fetches and verifies the dataset digests, builds and validates
+the task plan, and refuses the whole run --- before any GPU work --- if the
+Anthropic key is absent, any roster model is unprobed or any role has fewer than two live models (each model is probed with every role's JSON schema), a pool is smaller than its requested count (the draw is topped
+up or trimmed to the per-pool total, A2-7), or a target gene cannot be resolved.
 
-\paragraph{Seeded determinism.} All randomness flows through
-\texttt{numpy.random.default\_rng(2026)}, instantiated once per loader and
-once per sweep. Rerunning the Modal command with the same code revision
-produces byte-equivalent JSONLs on identical \texttt{numpy} / \texttt{scipy}
-ABIs.
-
-\paragraph{Datasets are pinned, not generated.} The paper's empirical
-substrate is the published scPerturb~\citep{peidli2024scperturb} bundle
-on Zenodo record $13350497$, file SHAs and minimum-size guards listed
-in \texttt{DATASETS} dict in \texttt{src/perturb\_eval/data/download.py}.
-\emph{No script in the codebase generates synthetic Perturb-seq cells.}
-A CI guardrail (\texttt{tests/test\_no\_synthetic\_generators.py})
-fails on any reintroduction of a generator pattern.
-
-\paragraph{Artifact dependency graph.}
-\begin{center}\small\ttfamily
-fetch\_adamson + fetch\_norman $\to$ /data/datasets/*.h5ad\\
-$\to$ run\_v05\_sweep $\to$ trainer\_runs.jsonl + lifecycle\_runs.jsonl\\
-$\to$ analyse\_v05\_run $\to$ summary.json\\
-$\to$ fill\_v050\_numbers.py $\to$ v050\_results\_filled.tex $\to$ paper.pdf
+\paragraph{Where each provenance element lives.} ``Provenance-complete'' in
+the title refers to the following artifacts; all paths are relative to the
+project directory unless stated.
+\begin{center}
+\small
+\begin{tabular}{p{0.38\linewidth}p{0.54\linewidth}}
+\toprule
+Element & Artifact \\
+\midrule
+git SHA and dirty flag & \texttt{git\_sha}, \texttt{git\_dirty} in record~0 of
+  \texttt{trainer\_runs.jsonl} and \texttt{lifecycle\_runs.jsonl}, and in
+  \texttt{provenance.json} \\
+resolved entrypoint kwargs & \texttt{entrypoint\_kwargs} in the same records;
+  copy in \texttt{configs/runs/<run\_id>.json} \\
+resolved library versions & \texttt{lib\_versions} (versions imported at run
+  time, not constraint strings) \\
+dataset digests & \texttt{datasets} (path, SHA-256, cell and gene counts per
+  file) \\
+task plan & \texttt{tasks} (resolved lists, strata, eligible-pool sizes) \\
+label contract & per-dataset \texttt{label\_contract} and
+  \texttt{tasks\_excluded} (label and reason) \\
+HVG mode & \texttt{hvg\_selection} (train-only; per-task HVG counts) \\
+LLM pool & \texttt{llm\_pool} (roster) and \texttt{llm\_roster\_liveness} (per model: probe date, verdict, per-role result) \\
+serving model per step & \texttt{model\_id} and \texttt{source} on every
+  lifecycle step in \texttt{lifecycle\_runs.jsonl} \\
+run outcome & \texttt{status}, \texttt{cost\_usd\_actual},
+  \texttt{gpu\_seconds}, counts in \texttt{provenance.json} \\
+hypotheses and analysis plan & \texttt{paper/PREREGISTRATION.md}, at the
+  revision named by \texttt{git\_sha} \\
+known defects outside the sweep path & repository file
+  \path{workstreams/perturb-seq-eval/deferred-findings.md} \\
+\bottomrule
+\end{tabular}
 \end{center}
+\begin{sloppypar}
+The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
+\texttt{\resRunId} at \texttt{git\_sha} \resGitSha{} (\texttt{git\_dirty}
+\resGitDirty), \texttt{prereg\_version} \resPreregVersion; the run manifest
+\path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
+cache namespace and output directory of an earlier aborted attempt were archived
+with SHA-256 manifests (prefixes \resArchiveShaCache{} and
+\resArchiveShaOutputs), never deleted. The revision at which v0.6.0 landed on main
+(\resLandSha) differs from the run's \resGitSha{} in \resPostRunPathCount{} source files, in
+code paths the run did not reach (\S\ref{subsec:runrecord}); the landed analyser, re-run on
+the committed run files, reproduces every committed value of \texttt{summary.json}.
+\end{sloppypar}
+
+\paragraph{Pipeline.}
+\begin{sloppypar}
+\begin{itemize}[leftmargin=*,topsep=0pt,itemsep=0pt]
+  \item \path{src/perturb_eval/data/download.py} --- fetches Adamson's
+        three scPerturb subsets and Norman 2019 from Zenodo record
+        $13350497$; each file's SHA-256 is pinned and verified, and a
+        cached file without a pin or with a mismatching digest is refused.
+  \item \path{scripts/modal/app_v05.py} --- preflight, trainer sweep and
+        lifecycle sweep on one Modal A100 under the pre-registered spend
+        lines; atomic JSONL append per run.
+  \item \path{src/perturb_eval/experiments/e_v05_real_traces.py} ---
+        consumes both JSONLs and writes \texttt{summary.json}; it refuses
+        mismatched task sets, runs with a fallback step, and unfinished or
+        failed runs.
+\end{itemize}
+\end{sloppypar}
+
+\paragraph{Seeds.} The task draw uses CRC32-derived strata and
+\texttt{seed=2026}; the per-run seed is passed to the trainer and into the
+LLM cache key. The provenance record carries what is needed to re-run the
+sweep at the recorded SHA and configuration. Pool-model availability at
+re-run time is outside the record's control; the per-step
+\texttt{model\_id} states which model served each step.
 
 \paragraph{Software stack.} Pipeline runtime depends on \texttt{numpy},
 \texttt{scipy}, \texttt{anndata}, \texttt{h5py}, \texttt{torch} (for
-\textsc{mlp} + \textsc{scgpt\_small}), \texttt{pydantic}, \texttt{requests},
-and \texttt{modal}. LaTeX uses TeX Live with \texttt{natbib},
-\texttt{booktabs}, \texttt{hyperref}, \texttt{caption}, and \texttt{enumitem}.
-
-\paragraph{Tests.} The repository ships $209$ unit + integration tests
-(\texttt{pytest -q}) covering the metric, probe, recommender,
-instrumentation, calibration, model, downloaders, subsampler, Norman
-loader, OpenRouter rotation client, schemas, validator critique,
-freedom probe, LLM agent pool, end-to-end freedom check, real-trace
-analyser, and the synthetic-data guardrail itself. They execute in
-under $15$ s.
-
-\paragraph{Sixteen tests for the reference TTC implementations.} The
-framework-free reference implementations of best-of-$N$, majority vote,
-weighted majority, iterative revision, and adaptive-budget allocation in
-\texttt{research/test-time-compute-guide/ref\_impl/} are covered by their own
-16-test suite; these are pedagogical rather than experimental but we include
-them so the single-chain TTC comparisons in \S\ref{sec:related} are not
-claims over a reader's prior knowledge alone.
+\textsc{mlp} and \texttt{scgpt\_small}), \texttt{pydantic}, \texttt{requests},
+and \texttt{modal}; the versions resolved at run time are in
+\texttt{lib\_versions}. LaTeX uses \texttt{natbib}, \texttt{booktabs},
+\texttt{hyperref}, \texttt{caption}, and \texttt{enumitem}.
 
 \paragraph{Companion design document.} The file \texttt{docs/DESIGN.md} in
-the project records the contribution audit, the MassGen bridge specification,
-and a reviewer-oriented validation checklist. It also lists three
-falsifying outcomes that would contradict the paper's central claims and
-explains exactly which one-line configuration change surfaces each.
+the project records the contribution audit and the MassGen bridge
+specification.
 
 % =====================================================================
 \section{Conclusion}\label{sec:conclusion}
 
 We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
 four-feature lens on multi-agent group-generation traces, combined into a
-calibrated Task Difficulty Index. We have positioned the TDI and its probe as
-the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
-single-chain allocation, and released a Bayesian recommender that turns
-agentic orchestration into a small and well-posed hyperparameter-tuning
-problem. We validate the framework end-to-end on \emph{real} Perturb-seq data
-(Adamson 2016 across all three scPerturb subsets and Norman 2019 with both
-singletons and doublets), with an agentic lifecycle in which five
-free-acting LLM agents (\textsc{Nemotron-30B} for demonstration; the
-client supports any OpenAI-compatible chat endpoint) make genuine
-configuration choices over backbone, HVG count, learning rate,
-ridge $\lambda$, and epochs. Both pre-registered
-held-out-MSD gates pass (Adamson median $0.147 < 0.20$; Norman median
-$0.131 < 0.30$); the Architect's backbone-choice entropy is $0.36$ nats
-across $108$ lifecycle runs ($\ln 3 \approx 1.10$ ceiling), with the
-agents converging on \texttt{scgpt\_small} for $91\%$ of unseen
-perturbations while exercising independent variation on the data-curation
-axis (HVG-count entropy $0.30$ nats). The remaining gap to the
-$\ge\!0.5$-nat backbone-entropy target is a stated future-work item:
-expanding the backbone pool with a pretrained SCFM at multiple scales
-(Cui 2024) is expected to widen the Architect's selectivity in the
-configuration space.
+Task Difficulty Index, and positioned the TDI and its probe as the
+multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
+single-chain allocation. We test whether these signals predict task
+difficulty under five pre-registered gates on $41$ held-out K562 tasks, with
+every run carrying its revision, configuration, dataset digests, task plan,
+label contract and per-step serving model. The answer, as pre-registered: \resGateSummary. Within each screen the change in confidence across rounds, and the composite
+that inherits it, rank tasks by held-out error at the pre-registered level;
+confidence entropy does not, in the pre-registered direction; and the
+calibrated composite did not transfer across screens at the pre-registered
+level.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the
@@ -621,5 +651,9 @@ any propose-critique-vote orchestrator.
 \small
 \bibliographystyle{plainnat}
 \bibliography{references}
+
+\normalsize
+\appendix
+\input{sections/corrections}
 
 \end{document}

@@ -91,3 +91,9 @@ This belongs to the "mechanism reports success while the property is absent" fam
 # git-safe-commit stages the whole tree unless --staged (aviary-biosim #435, CTO-verified in the 0.60.0 source)
 
 `tools/git-safe-commit` runs `git add -A` unless `--staged` is passed (`STAGED_ONLY` defaults false). `/quality-gate` Step 4's "atomic per-finding commits" snippet does not pass `--staged`, so per-finding commits silently sweep every dirty file in the tree: on the F08 re-gate, commits labelled for two findings carried five to seven others. This also defeats the fleet rule "stage explicit paths only" at the tool level. Fix: when the index is non-empty, default to staged-only and warn about unstaged files; add `--staged` to the Step 4 snippet.
+
+---
+
+# agent-identity warns when the .aiadlc-agent marker differs from the worktree directory name (aviary-biosim #452)
+
+A purpose-named scratch worktree (e.g. `aviary-biosim-272-scratch`, branch `whitepaper`) carries a marker `aviary-biosim` for the real agent; `agent-identity` warns because its heuristic expects marker == directory name. Without the marker, identity falls back to the BRANCH name, which produced three different commit prefixes on one branch. The marker should be authoritative and the directory-name heuristic only a fallback.

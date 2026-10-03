@@ -1,0 +1,255 @@
+# CTO #250/#251 evidence pass — label->gene mapping, measured (read-only, CPU, Modal)
+2026-09-24T21:01:05Z
+## label_evidence.py
+{
+ "adamson": {
+  "PERK": {
+   "Adamson2016_10X005.h5ad": {
+    "n_labelled_cells": 3189,
+    "n_control_cells": 13,
+    "top5_most_down": [
+     [
+      "DDIT4",
+      -0.5984
+     ],
+     [
+      "DDIT3",
+      -0.5393
+     ],
+     [
+      "PRSS1",
+      -0.5204
+     ],
+     [
+      "TRIB3",
+      -0.5087
+     ],
+     [
+      "S100A11",
+      -0.4385
+     ]
+    ],
+    "gene": "EIF2AK3",
+    "in_vocab": true,
+    "mean_log_labelled": 0.0018,
+    "mean_log_control": 0.0,
+    "delta": 0.0018,
+    "delta_rank_among_genes": 25267,
+    "n_genes": 32738
+   }
+  },
+  "IRE1": {
+   "Adamson2016_10X005.h5ad": {
+    "n_labelled_cells": 1685,
+    "n_control_cells": 13,
+    "top5_most_down": [
+     [
+      "PRSS1",
+      -0.4379
+     ],
+     [
+      "C7orf73",
+      -0.3915
+     ],
+     [
+      "TMSB10",
+      -0.332
+     ],
+     [
+      "PIGP",
+      -0.2997
+     ],
+     [
+      "HIST1H2BC",
+      -0.2792
+     ]
+    ],
+    "gene": "ERN1",
+    "in_vocab": true,
+    "mean_log_labelled": 0.0149,
+    "mean_log_control": 0.0211,
+    "delta": -0.0062,
+    "delta_rank_among_genes": 4187,
+    "n_genes": 32738
+   }
+  }
+ },
+ "norman": {
+  "C3orf72": {
+   "n_labelled_cells": 264,
+   "n_control_cells": 11855,
+   "top5_most_down": [
+    [
+     "GAL",
+     -0.5216
+    ],
+    [
+     "TXN",
+     -0.3647
+    ],
+    [
+     "UBE2S",
+     -0.3645
+    ],
+    [
+     "MRPS15",
+     -0.3625
+    ],
+    [
+     "NME1",
+     -0.3595
+    ]
+   ],
+   "gene": "FOXL2NB",
+   "in_vocab": true,
+   "mean_log_labelled": 0.008,
+   "mean_log_control": 0.0019,
+   "delta": 0.0061,
+   "delta_rank_among_genes": 29770,
+   "n_genes": 33694,
+   "ensembl_id": "ENSG00000206262"
+  },
+  "C19orf26": {
+   "n_labelled_cells": 872,
+   "n_control_cells": 11855,
+   "top5_most_down": [
+    [
+     "GAL",
+     -0.2269
+    ],
+    [
+     "FABP5",
+     -0.1593
+    ],
+    [
+     "TEX30",
+     -0.1568
+    ],
+    [
+     "PTPN7",
+     -0.1441
+    ],
+    [
+     "IFITM2",
+     -0.1408
+    ]
+   ],
+   "gene": "CBARP",
+   "in_vocab": true,
+   "mean_log_labelled": 0.3128,
+   "mean_log_control": 0.0115,
+   "delta": 0.3013,
+   "delta_rank_among_genes": 33690,
+   "n_genes": 33694,
+   "ensembl_id": "ENSG00000099625"
+  },
+  "KIAA1804": {
+   "n_labelled_cells": 278,
+   "n_control_cells": 11855,
+   "top5_most_down": [
+    [
+     "GAL",
+     -0.2468
+    ],
+    [
+     "PRSS57",
+     -0.1978
+    ],
+    [
+     "SNRPF",
+     -0.1787
+    ],
+    [
+     "PDCD5",
+     -0.1585
+    ],
+    [
+     "PRDX1",
+     -0.1557
+    ]
+   ]
+  }
+ },
+ "ensembl": {
+  "C3orf72->FOXL2NB": {
+   "norman_FOXL2NB": "ENSG00000206262",
+   "adamson_C3orf72": {
+    "Adamson2016_pilot.h5ad": "ENSG00000206262",
+    "Adamson2016_10X005.h5ad": "ENSG00000206262",
+    "Adamson2016_10X010.h5ad": "ENSG00000206262"
+   },
+   "identical": true
+  },
+  "C19orf26->CBARP": {
+   "norman_CBARP": "ENSG00000099625",
+   "adamson_C19orf26": {
+    "Adamson2016_pilot.h5ad": "ENSG00000099625",
+    "Adamson2016_10X005.h5ad": "ENSG00000099625",
+    "Adamson2016_10X010.h5ad": "ENSG00000099625"
+   },
+   "identical": true
+  },
+  "adamson_symbol_ids": {
+   "C3orf72": {
+    "Adamson2016_pilot.h5ad": "ENSG00000206262",
+    "Adamson2016_10X005.h5ad": "ENSG00000206262",
+    "Adamson2016_10X010.h5ad": "ENSG00000206262"
+   },
+   "C19orf26": {
+    "Adamson2016_pilot.h5ad": "ENSG00000099625",
+    "Adamson2016_10X005.h5ad": "ENSG00000099625",
+    "Adamson2016_10X010.h5ad": "ENSG00000099625"
+   },
+   "EIF2AK3": {
+    "Adamson2016_pilot.h5ad": "ENSG00000172071",
+    "Adamson2016_10X005.h5ad": "ENSG00000172071",
+    "Adamson2016_10X010.h5ad": "ENSG00000172071"
+   },
+   "ERN1": {
+    "Adamson2016_pilot.h5ad": "ENSG00000178607",
+    "Adamson2016_10X005.h5ad": "ENSG00000178607",
+    "Adamson2016_10X010.h5ad": "ENSG00000178607"
+   }
+  }
+ },
+ "nperts": {
+  "PERK": {
+   "Adamson2016_10X005.h5ad": [
+    "3"
+   ]
+  },
+  "IRE1": {
+   "Adamson2016_10X005.h5ad": [
+    "3"
+   ]
+  },
+  "3x": {
+   "Adamson2016_10X005.h5ad": [
+    "4"
+   ]
+  },
+  "Gal4-4(mod)": {
+   "Adamson2016_10X005.h5ad": [
+    "2"
+   ],
+   "Adamson2016_10X010.h5ad": [
+    "2"
+   ]
+  },
+  "C3orf72": {
+   "NormanWeissman2019_filtered.h5ad": [
+    "1"
+   ]
+  },
+  "C19orf26": {
+   "NormanWeissman2019_filtered.h5ad": [
+    "1"
+   ]
+  },
+  "KIAA1804": {
+   "NormanWeissman2019_filtered.h5ad": [
+    "1"
+   ]
+  }
+ }
+}

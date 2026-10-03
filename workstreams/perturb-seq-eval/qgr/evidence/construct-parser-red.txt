@@ -1,0 +1,96 @@
+# CTO #253 construct parser — RED against pre-#253 code (4f6f365, working tree before implementation)
+2026-09-24T21:10:10Z
+
+## Characterisation: old e2_adamson._normalise_pert_label on the REAL 10X005 raw labels
+'ATF6'   <- ['ATF6_IRE1_pMJ152', 'ATF6_PERK_IRE1_pMJ158', 'ATF6_PERK_pMJ150', 'ATF6_only_pMJ145']
+'PERK'   <- ['PERK_IRE1_pMJ154', 'PERK_only_pMJ146']
+'IRE1'   <- ['IRE1_only_pMJ148']
+'3x'     <- ['3x_neg_ctrl_pMJ144-1', '3x_neg_ctrl_pMJ144-2']
+'XBP1'   <- ['XBP1_pBA578', 'XBP1_pBA579']
+
+## pytest (new tests)
+
+    def test_id_mismatch_raises(self, tmp_path: Path) -> None:
+        from perturb_eval.experiments.norman import load_norman_matrix
+    
+        p = tmp_path / "n.h5ad"
+        bad = list(NORMAN_IDS)
+        bad[NORMAN_GENES.index("CBARP")] = "ENSG00000000099"
+        _write_norman(p, NORMAN_REAL_LABELS, ids=bad)
+>       with pytest.raises(ValueError, match="CBARP"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'CBARP'
+E         Actual message: "5 perturbation target gene(s) absent from the gene vocabulary (len(gene_to_idx)=5); refusing to substitute. Missing (label, gene): ('C3orf72_FOXL2', 'C3orf72'), ('TGFBR2_C19orf26', 'C19orf26'), ('C3orf72', 'C3orf72'), ('C19orf26', 'C19orf26'), ('KIAA1804', 'KIAA1804')"
+
+tests/test_construct_parser.py:466: AssertionError
+_____________ test_adamson_3x7_fills_exactly_and_reports_bin_pools _____________
+
+    def test_adamson_3x7_fills_exactly_and_reports_bin_pools() -> None:
+        summary = {"adamson_full": {g: float(i) / 10 for i, g in enumerate(_GENES_30)}}
+        plan = _plan(summary=summary, **_PLAN_BINS)
+        assert len(plan.adamson) == 21 and len(set(plan.adamson)) == 21
+>       bins = [plan.eligible_counts[f"adamson_bin_{b}"] for b in range(3)]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'adamson_bin_0'
+
+tests/test_v05_tasks.py:249: KeyError
+=========================== short test summary info ============================
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_atf6_pools_only_the_single_gene_construct
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_task_set
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_same_gene_plasmids_pool_into_one_task
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_controls
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_perk_ire1_excluded_with_exact_reason
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_missing_annotation_excluded_with_cell_count
+ERROR tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_provenance_is_json
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_single_gene_with_plasmid
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_only_marker_stripped
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_multi_gene_components_as_written[ATF6_IRE1_pMJ152-comps0]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_multi_gene_components_as_written[ATF6_PERK_pMJ150-comps1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_multi_gene_components_as_written[ATF6_PERK_IRE1_pMJ158-comps2]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_multi_gene_components_as_written[PERK_IRE1_pMJ154-comps3]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_real_controls[*-None]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_real_controls[62(mod)_pBA581-pBA581]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_real_controls[63(mod)_pBA580-pBA580]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_real_controls[3x_neg_ctrl_pMJ144-1-pMJ144-1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_real_controls[3x_neg_ctrl_pMJ144-2-pMJ144-2]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_real_controls[Gal4-4(mod)_pBA582-pBA582]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[nan]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[TFA]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[TFA_pds1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[ATF6_only_extra_pMJ1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[(odd)_pDS1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[A__B_pDS1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[ TFA_pDS1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_unparseable_raises_naming_label[only_pDS1]
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_every_real_label_classifies
+FAILED tests/test_construct_parser.py::TestParseAdamsonConstruct::test_old_normaliser_is_gone
+FAILED tests/test_construct_parser.py::TestAdamsonLoaderReal10X005::test_combined_loader_merges_guides_and_exclusions
+FAILED tests/test_construct_parser.py::TestEligibleAdamsonGenes::test_real_inventory_count
+FAILED tests/test_construct_parser.py::TestAdamsonContract::test_3x_is_structural_control
+FAILED tests/test_construct_parser.py::TestAdamsonContract::test_perk_ire1_excluded_verbatim
+FAILED tests/test_construct_parser.py::TestAdamsonContract::test_supersession_noted
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_valid
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw0]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw1]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw2]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw3]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw4]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw5]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_invalid_raises[kw6]
+FAILED tests/test_construct_parser.py::TestExpressionCrosscheck::test_crosscheck_cannot_stand_in_for_join_or_knockdown
+FAILED tests/test_construct_parser.py::TestNormanContract::test_aliases - Ass...
+FAILED tests/test_construct_parser.py::TestNormanContract::test_crosscheck_values
+FAILED tests/test_construct_parser.py::TestNormanContract::test_provenance_wording_and_inconclusive_never_corroborated
+FAILED tests/test_construct_parser.py::TestNormanContract::test_kiaa1804_excluded
+FAILED tests/test_construct_parser.py::TestNormanLoaderStableIdJoin::test_real_doublets_resolve_per_component
+FAILED tests/test_construct_parser.py::TestNormanLoaderStableIdJoin::test_missing_ensemble_id_column_raises_naming_expected_and_found
+FAILED tests/test_construct_parser.py::TestNormanLoaderStableIdJoin::test_id_mismatch_raises
+FAILED tests/test_v05_tasks.py::test_adamson_3x7_fills_exactly_and_reports_bin_pools
+45 failed, 15 passed, 7 errors in 2.68s
+
+## Characterisation: old load_adamson_matrix on the local REAL pilot h5ad (data/Adamson2016_pilot.h5ad)
+## obs.perturbation categorical code -1 (missing annotation, 10 cells) is read as cats[-1]
+categories[-1] = ZNF326_pDS262 | cells with code -1 = 10 | cells with ZNF326 code = 557
+old loader: cells labelled ZNF326 = 567 (557 real + 10 unannotated)

@@ -24,7 +24,7 @@ Decided 2026-09-15 on 56186's per-layer table (#104). **This supersedes my #98 w
 2. In `canonical_inchikey`: after salt-strip + uncharge, record the pre-tautomer InChI's /t, /m and /s layers; canonicalize the tautomer; if ANY of those three changed or vanished, return the PRE-tautomer InChIKey. **/b is not compared** — a double-bond geometry change alone must NOT trigger fallback.
 3. Tests, all against real snapshot InChIs:
    - L-/D-Thr, L-Ile/allo-Ile, L-/D-Asp, L-/D-Phe: DISTINCT.
-   - Nitisinone keto/enol DB00348/DB08307: still MERGED (unaffected by this layer set).
+   - Nitisinone keto/enol <redacted:DB-accession>/<redacted:DB-accession>: still MERGED (unaffected by this layer set).
    - Benzimidazole 1H/3H/CRA_1144: still MERGED — this is the case /b would have wrongly split, so it is the regression test for the ruling.
    - **Malate Ion | Malate Like Intermediate: asserted to SPLIT, as an accepted known loss.** Name the test so it reads as deliberate (e.g. `test_malate_pair_splits_known_accepted_loss`) with the reason in the docstring: they are tautomers of one compound whose pre-tautomer skeleton hashes already differ (BJEPYKJPYRNKOW vs QFBHYOKSQPPXHZ); the guard cannot keep them together without also re-merging true stereoisomers. A known loss with a test is a recorded limit; a known loss without one is a latent surprise.
 
@@ -34,3 +34,5 @@ Decided 2026-09-15 on 56186's per-layer table (#104). **This supersedes my #98 w
 6. Record the malate loss and the aldose/ketose scope question in the limits section of the docs, separately — the second is NOT part of this ruling and stays open.
 
 git-safe-commit, confirm HEAD moved, then the QG receipt. **T4's boundary receipt is still owed to me separately.**
+
+<!-- redacted 2026-09-29 by redact-records.py: 2 accession tokens, 0 structure tokens replaced by typed placeholders; ruling #529/#530 (principal, AskUserQuestion) — record otherwise unchanged -->

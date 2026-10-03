@@ -1,10 +1,10 @@
 ---
 workstream: aviary-biosim
 plan_path: docs/superpowers/plans/2026-09-26-v2r-biosim-whitepaper-plan.md
-plan_hash: 0ab65e9
+plan_hash: 4a8bb59
 approved: true
-approved_by: principal-directed (2026-09-26: approve all, drive results) via CTO
-date: 2026-09-26T13:10
+approved_by: principal-directed (2026-09-26) via CTO — re-sign r2
+date: 2026-09-26T23:51
 ---
 
 # Plan approval: aviary-biosim
@@ -13,4 +13,4 @@ The human's 1B1 "Over and out" lock in /grill-me IS the final human
 plan-review gate. This file records it so /build can verify it.
 
 ## Summary
-#272 white-paper plan c885126: Tasks 0-13; G1 set (referee_command_aviary-biosim), G2 hash, G3 label rule, G4 repository pipeline, G5 Mangyin Mo + ORCID, G6 yes; torch task authorised; claims check A7 is the review entry condition
+r2: Task 2's script block replaced by the shipped exit-3 contract (0 ran / 1 failed / 3 could-not-run, zero-collected a hard error), already confirmed by the CTO at 3d1fd5f; no other plan change (b366667)
