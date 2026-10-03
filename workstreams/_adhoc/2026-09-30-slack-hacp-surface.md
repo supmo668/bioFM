@@ -98,3 +98,20 @@ Three `/walkthrough-paper` poster pages, one per paper, written to local sources
 Each page ends in **"Decision needed to unblock a publication-ready result"** — the explicit human ask L1 requires. Verified by read-back: all three carry Kind=Presentation, Granularity=L1, and the correct `Indexed by` parent. The aviary page names **no** sequence identifier (F33 scopes the accession to `paper/evidence/` + methods); checked, 0 matches.
 
 **One Notion step a tool cannot do:** mermaid blocks render as code until switched to preview mode, which is a per-block UI toggle. Three pages, one diagram each.
+
+## Fifth batch — 2026-10-03: the L2/L3 layers (principal: "where's the whitepaper? place all review / draft materials on Notion in accordance to HACP")
+
+Four new pages completing the granularity ladder beneath the three L1 review surfaces. HACP rule honoured throughout: index pages route, leaf pages carry the artifact, and each page declares exactly one `Granularity`.
+
+| Page | Kind · Granularity | Indexed by | URL |
+|---|---|---|---|
+| aviary-biosim white paper — manuscript draft map | Dev doc · **L2** | aviary-biosim (bioFM) — Index | https://app.notion.com/p/3ee749bd250d816ea32bd99502c7d759 |
+| aviary-biosim white paper — claims ↔ evidence ledger | Dev doc · **L3** | aviary-biosim (bioFM) — Index | https://app.notion.com/p/3ee749bd250d81f6aadfd24be919837d |
+| lung-on-chipsim Stage 1 — draft materials (archived) | Dev doc · **L2** | ChipSim (bioFM) — Index | https://app.notion.com/p/3ee749bd250d81499e86db496bb977de |
+| perturb-seq-eval v0.6.0 — manuscript + pre-registration | Dev doc · **L2** | bioFM · eval | https://app.notion.com/p/3ee749bd250d81d6a71de0c77e684974 |
+
+Slack (one `--cta action` message, the exposure is a decision): https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1791058241800189
+
+**What the question surfaced.** The whitepaper branch is on **no remote** — `supmo668/Aviary-BioSim` carries only `main` (`301e7fc6`) and `aviary-biosim` (`ab8f6f5e`). It is 120 commits ahead of that repo's main at `fcef0d6`, in a worktree **of the submodule** parked at `worktrees/aviary-biosim-272-scratch` (its git dir is `projects/aviary-biosim/.git`, which is why it reads as a bioFM worktree and is not one). Nine commits have landed since `fa243cf`, all `#272` QG finding fixes, unreported — boundary report requested from the owning agent.
+
+Verified by read-back: all four rows carry the right Kind, Granularity and `Indexed by`. No sequence identifier appears on any of them (F33).
