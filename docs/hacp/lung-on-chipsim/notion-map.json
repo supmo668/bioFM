@@ -4,6 +4,15 @@
   "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped.",
   "index_row": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
   "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
+  "automation": {
+    "kind": "Claude Code Routine (claude.ai → Routines)",
+    "name": "HACP sync — ChipSim review surface (Notion SoT ↔ bioFM floor)",
+    "routine_id": "trig_01XxSYo848sEf2iqWYjPkzee",
+    "cadence": "weekly, Monday 08:47 America/Los_Angeles (CRON_TZ=America/Los_Angeles 47 8 * * 1)",
+    "enabled": "2026-10-04 by the principal (\"keep review surface synced to notion HACP\"; \"enable without permission\")",
+    "behaviour": "per page: Notion wins / floor wins / conflict (report only) by comparing the Notion Updated time and the page's last commit date against `synced`; never writes a biological number or an identifier pairing; runs hacp_linkcheck.py and hacp_sync_check.py before pushing",
+    "ci_guard": ".github/workflows/hacp-docs.yml runs scripts/hacp_sync_check.py on every push and pull request that touches docs/hacp/"
+  },
   "pages": {
     "index.md": {
       "notion": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
