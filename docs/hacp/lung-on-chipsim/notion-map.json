@@ -1,0 +1,65 @@
+{
+  "project": "lung-on-chipsim",
+  "source_of_truth": "notion",
+  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped.",
+  "index_row": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
+  "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
+  "pages": {
+    "index.md": {
+      "notion": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
+      "kind": "Index",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-03"
+    },
+    "vision.md": {
+      "notion": "https://app.notion.com/p/8cd749bd250d82c99f1a01b3109740d9",
+      "kind": "Section",
+      "section": "vision",
+      "granularity": "L2 — Detail",
+      "synced": "2026-09-29"
+    },
+    "design.md": {
+      "notion": "https://app.notion.com/p/993749bd250d8342b87b01a0770ed527",
+      "kind": "Section",
+      "section": "design",
+      "granularity": "L2 — Detail",
+      "synced": "2026-09-29"
+    },
+    "build.md": {
+      "notion": "https://app.notion.com/p/3ef749bd250d814a85f7e874c707dcac",
+      "kind": "Section",
+      "section": "build",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-03"
+    },
+    "eval.md": {
+      "notion": "https://app.notion.com/p/285749bd250d82a1be65013e05dce48c",
+      "kind": "Section",
+      "section": "eval",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-03"
+    },
+    "risk.md": {
+      "notion": "https://app.notion.com/p/724749bd250d82f9980881f5c06a1a87",
+      "kind": "Section",
+      "section": "risk",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-03"
+    },
+    "decision.md": {
+      "notion": "https://app.notion.com/p/b51749bd250d83e19016816d349af66f",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-03"
+    },
+    "stage2-kickoff-checklist.md": {
+      "notion": "https://app.notion.com/p/3ef749bd250d814883f1ebac81c884ee",
+      "kind": "Checklist",
+      "section": "build",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-03"
+    }
+  }
+}

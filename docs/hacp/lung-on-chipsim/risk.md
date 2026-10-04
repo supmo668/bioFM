@@ -1,14 +1,18 @@
 # §risk — ChipSim (lung-on-chipsim)
 
-<!-- HACP L2 leaf · local source; Parent = bioFM §risk. Compiled 2026-09-28. -->
+<!-- HACP L2 leaf · Section = risk · Indexed by "ChipSim (bioFM) — Index".
+     SOURCE OF TRUTH: the Notion row (principal, 2026-10-03). This file mirrors it; see notion-map.json.
+     Compiled 2026-09-28; update callout added 2026-10-03. -->
 
 **Tag:** `§risk` · **Layer:** L2 (leaf under [bioFM §risk](../risk.md)) · **Holds:** known gaps, proxies, anything unverified · **Reaches:** the approval log, the gate reports, the README's own open items
 
-**TL;DR** — Eleven gaps are open. The one that costs the most is not technical: two weeks of effort
-went into making the verification layer trustworthy rather than into moving the science forward,
-and the CTO's own gate-7 diagnosis was "machinery growing faster than the evidence that any of it
-works". The recurring defect family across the fleet also applies here: a check derives a
-correctness-relevant answer from something adjacent to the thing it describes.
+**TL;DR** — Eleven gaps were open on 2026-09-28; the closure transformed two and added one. The
+one that cost the most was not technical: two weeks went into making the verification layer
+trustworthy rather than into moving the science forward, and it closed without a result. The
+recurring defect family across the fleet applies here in its sharpest form: a fix is verified
+against the thing that was changed, not against the property the claim names.
+
+> **Update 2026-10-03.** Row 1 (the verification layer outgrowing its evidence) is **closed by ruling**: E-23 stopped at the scope reached and Stage 1 was archived; its residue is the 36 registered findings a successor must not open by repairing. Row 7 (the remote behind the worktree) is **transformed**: the archive ruling preserved the workstream record on `main` but no code, so the M1 transport code is on no remote — [§decision](decision.md) A2. **Row 12, new:** the science-bearing code of M0a slice 1 (roster, DVC pointers, audit, worksheet CLI) lives only on the archived branch at `c04e701`; until the successor branch takes it by content (A1), the build phase has no code base on `main` to start from. Rows 2–6 and 8–11 stand as written.
 
 ## Known gaps
 

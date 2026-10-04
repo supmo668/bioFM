@@ -5,9 +5,12 @@ workstream: lung-on-chipsim
 branch: lung-on-chipsim (origin tip c04e701, 2026-09-20) · main 6d0d6c5
 date: 2026-09-28
 surface_local: docs/hacp/lung-on-chipsim/index.md
-surface_artifact: https://claude.ai/artifact/VL8WMBZERBehinw1z36yQm
-surface_notion: https://app.notion.com/p/3e9ac60c018c81618c71c5c6c192cb06
+surface_notion: https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49
+surface_notion_note: "ChipSim (bioFM) — Index, the HACP L1 subproject row; SOURCE OF TRUTH since 2026-10-03 (principal); the floor mirrors it"
+surface_artifact_superseded: https://claude.ai/artifact/VL8WMBZERBehinw1z36yQm
+surface_notion_draft_superseded: https://app.notion.com/p/3e9ac60c018c81618c71c5c6c192cb06
 supersedes_counts_of: lung-on-chipsim-walkthrough-product.md (2026-09-19)
+renewed: 2026-10-03 — Stage 1 closed and archived 2026-10-01; the index now carries the Stage 2 build-phase unblock ledger, timeline and kickoff checklist
 ---
 
 # The rig is built; the experiment has not run — and the decision record is the result

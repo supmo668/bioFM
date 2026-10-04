@@ -144,10 +144,13 @@ proved on an ESM-2 protein experiment. Its own HACP floor lives in that repo und
 
 Each project's reviewable state is compiled into six sections (`§vision`, `§design`, `§build`,
 `§eval`, `§risk`, `§decision`) under [`docs/hacp/`](docs/hacp/). The bioFM-level pages are the
-Index rows; per-project pages are leaves under them. A GitHub Action
-([`hacp-docs`](.github/workflows/hacp-docs.yml)) fails the build on any relative link in the floor
-that does not resolve, because a local path that points at a missing file is a claim that looks
-true and is not.
+Index rows; per-project pages are leaves under them. **For the ChipSim (lung-on-chipsim) surface
+the Notion HACP rows are the source of truth for human review and communication (principal,
+2026-10-03)**; the floor under [`docs/hacp/lung-on-chipsim/`](docs/hacp/lung-on-chipsim/) mirrors
+them, and [`notion-map.json`](docs/hacp/lung-on-chipsim/notion-map.json) records each row's URL and
+last sync. A GitHub Action ([`hacp-docs`](.github/workflows/hacp-docs.yml)) fails the build on any
+relative link in the floor that does not resolve, and on any ChipSim page edited after its recorded
+sync date; a weekly routine re-mirrors floor and Notion and reads the rows back.
 
 ```mermaid
 flowchart LR

@@ -1,12 +1,16 @@
 # §eval — ChipSim (lung-on-chipsim)
 
-<!-- HACP L2 leaf · local source; Parent = bioFM §eval. Compiled 2026-09-28. -->
+<!-- HACP L2 leaf · Section = eval · Indexed by "ChipSim (bioFM) — Index".
+     SOURCE OF TRUTH: the Notion row (principal, 2026-10-03). This file mirrors it; see notion-map.json.
+     Compiled 2026-09-28; update callout added 2026-10-03. -->
 
 **Tag:** `§eval` · **Layer:** L2 (leaf under [bioFM §eval](../eval.md)) · **Holds:** what proves it works — the measured suite, signed receipts, pre-registered commitments, the only computed results · **Reaches:** the gate reports, the receipts under `qgr/`, the ADRs
 
 **TL;DR** — Three kinds of evidence exist and none of them is a biological result: a suite
-measured today on the branch tip, nine receipts recorded at their gates, and two power
-simulations that are the project's only computed numbers. Every figure below says which it is.
+measured on the branch tip, receipts recorded at their gates, and two power simulations that are
+the project's only computed numbers. Every figure below says which it is.
+
+> **Update 2026-10-03.** Everything below the line was measured or recorded on 2026-09-28 and still holds for `c04e701`. Since then: **E-23 gate 8 FAILED** (2026-09-28, time box applied), **gate 9 FAILED** on the same family and E-23 closed at the scope reached (2026-09-29, row 58); the **Stage 1 final gate FAILED** on the same mechanism and Stage 1 was archived (2026-10-01) with no receipt, nothing pushed. The archived tip's last suite run was 900 s killed at 82% under 23 concurrent pytest processes against 453 s clean; the two are not comparable and a clean re-measurement is owed by the CTO before any timing-ceiling call. The next evidence this page expects is the successor branch's clean suite (week 0) and the M1 smoke run with its replay check (week 2) — see the [Stage 2 kickoff checklist](stage2-kickoff-checklist.md).
 
 ## Measured for this review, 2026-09-28
 
