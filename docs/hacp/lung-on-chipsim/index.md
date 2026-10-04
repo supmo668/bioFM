@@ -3,7 +3,8 @@
 <!-- HACP L1 subproject index · Kind = Index · Indexed by "bioFM — Index".
      SOURCE OF TRUTH: the Notion row https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49
      (principal, 2026-10-03: Notion HACP is the SoT for human review and communication). This file
-     mirrors it; notion-map.json records each page's URL and last sync. Renewed 2026-10-03. -->
+     mirrors it; notion-map.json records each page's URL and last sync. Renewed 2026-10-03;
+     twelve rulings taken 2026-10-04 in the principal's grill, locked "Over and out". -->
 
 > ## Stage 1 is CLOSED and the branch is ARCHIVED — 2026-10-01
 >
@@ -15,8 +16,8 @@
 |---|---|
 | **Project** | `lung-on-chipsim` — a proof-of-concept in-silico lung-on-a-chip: predict on-chip drug exposure and barrier response, with every scientific input human-entered and cited |
 | **This page** | The L1 review index for the project. One screen. **For review and communication this Notion page is the source of truth (principal, 2026-10-03)**; the floor copy under `docs/hacp/lung-on-chipsim/` mirrors it and is regenerated from it. |
-| **Phase** | **Stage 2 build phase: the science.** Stage 1 (the registered report on the methodology) closed 2026-10-01. What remains is the work that produces the first biological result, and it is blocked only on inputs a human must write and one governance decision — see [§decision](decision.md), the build-phase unblock ledger. |
-| **Verdict** | **The rig is built. The experiment has not run.** No fit, no coverage, no frozen evaluator, 0 of 80–100 curated chip records. Since 2026-10-03 the compound roster is **approved as final** (26 entries), which releases the adjudication worksheet and the audit's power check. |
+| **Phase** | **Stage 2 build phase: the science, governance cleared.** Stage 1 closed 2026-10-01. On 2026-10-04 the principal ruled every open governance question (see [§decision](decision.md)): the successor branch is taken by content, the archive push is due 10-06, the withheld files stay withheld, the closure is published as a methods note, C1–C3 are closed. What remains is **only** human-written scientific input and one signature. |
+| **Verdict** | **The rig is built. The experiment has not run — and nothing in the way of it is a decision any more.** No fit, no coverage, no frozen evaluator, 0 of 80–100 curated chip records. The roster is approved as final (26 entries, 2026-10-03) and the twelve governance rulings of 2026-10-04 leave four human inputs, one signature and the CTO's branch cut. |
 | **Measured from** | `main` @ `38bf64e` (2026-10-03) and the archived branch on `origin` @ `c04e701` (2026-09-20). The archived tip (435 commits further, holding the M1 transport code) is on no remote; it is cited from the CTO's records, never as verified. |
 | **Protocol** | HACP (`REFERENCE-HACP.md`, shipped with the airdlc plugin). Parent: [bioFM — Index](../index.md). |
 | **Public** | The repository is public. No page here writes a DrugBank accession or pairs an identifier with a substance. |
@@ -27,19 +28,19 @@
 |---|---|---|
 | [`§vision`](vision.md) | current — imported from Notion 2026-08-26, unchanged | 1 PRD, 1 A&D, 1 audit PVR |
 | [`§design`](design.md) | current, 8 divergences recorded | 61 numbered plan revisions · 4 decision records |
-| [`§build`](build.md) | Stage 1 archived; Stage 2 successor branch proposed; roster approved; worksheet next | 29 agent tasks built · 0 results · 3 code locations |
+| [`§build`](build.md) | Stage 1 archived; Stage 2 successor branch **ruled 2026-10-04**; roster approved; worksheet next | 29 agent tasks built · 0 results · 3 code locations |
 | [`§eval`](eval.md) | 0 biological results by design; last clean suite 1,013 passed on `c04e701` (2026-09-28); Stage 1 final gate FAIL (2026-10-01) | 1 measured run · 10 recorded gates · 0 results |
 | [`§risk`](risk.md) | 11 gaps on 2026-09-28; two transformed by the closure, one added (the science code is on no remote) | 12 |
-| [`§decision`](decision.md) | **the build-phase unblock ledger**: 8 critical-path items, 9 owed, 11 resolved | 8 + 9 |
-| [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order, week 0 → week 7 | 1 ticked of 36 |
+| [`§decision`](decision.md) | **the build-phase unblock ledger**: 8 critical-path items, 5 owed, 20 resolved — every governance question ruled 2026-10-04 | 8 + 5 |
+| [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order, week 0 → week 7 | 3 ticked of 36 |
 
 **TL;DR** — A data spine for one lung barrier is built and verified; the methodology paper written
 on it closed without a result and that closure is itself a finding. The build phase now has a
-fixed compound set. Four kinds of human input (adjudication, θ priors with a transport prior,
-reference compounds, curated chip records), one signature (the evaluator freeze), and one code
-decision (which files the successor branch takes) stand between today and the first evaluator
-run. The timeline below puts the first result in the week of 2026-11-18, with the single
-unmeasured duration, record curation, re-estimated after the first ten records.
+fixed compound set **and no open governance question**: the principal's grill of 2026-10-04 ruled
+all twelve. Four kinds of human input (adjudication, θ priors with a transport prior, reference
+compounds, curated chip records) and one signature (the evaluator freeze) stand between today and
+the first evaluator run. The timeline below puts the first result in the week of 2026-11-18, with
+the single unmeasured duration, record curation, re-estimated after the first ten records.
 
 ## Build phase: what unblocks what
 
@@ -67,12 +68,12 @@ flowchart LR
 
 | Week | Dates | Principal | CTO / agent | Exit condition |
 |---|---|---|---|---|
-| 0 | 10-03 → 10-07 | push the archived tip to `archive/` (A2); sign plan r3; rule C1–C3 | cut the successor branch by content (A1); clean suite re-measurement; land the floor | r3 verified; the successor suite green and timed |
+| 0 | 10-03 → 10-07 | push the archived tip to `archive/` (A2); sign plan r3 (C1–C3 ruled 10-04) | cut the successor branch by content (A1); clean suite re-measurement; land the floor | r3 verified; the successor suite green and timed |
 | 1 | 10-08 → 10-14 | T14 adjudication (60–90 min); T20 / T28 / T21 entries (~1 h); `PROVENANCE.md` (5 min) | emit the T13 worksheet; run the audit power check on the realised roster; write the M0b schema, validator and sealed-allocation tool; regenerate the README | every M1 input present and validator-green |
 | 2 | 10-15 → 10-21 | start M0b curation; decide whether the pair stratum runs in parallel | T15 loads labels; M1 smoke run with the replay check; seal the allocation **before** the first record is read | the fit executes on sourced θ; the allocation digest is written |
 | 3–5 | 10-22 → 11-11 | M0b records to 80–100 | build the M0c evaluator: frozen splits, three controls, locked test set | the validator accepts every record; the evaluator's signature slot is empty |
 | 6 | 11-12 → 11-18 | sign the evaluator freeze (B8) | first evaluator run on the sealed allocation; result-review row under §eval | ordering ρ, top-10 recovery, coverage with per-group CIs, gate-evaluation count reported |
-| 7 | 11-19 → 11-25 | rule A4 (closure as a methods note); choose the Stage 2 path | — | publication path recorded |
+| 7 | 11-19 → 11-25 | ratify the closure methods note (A4a, drafted by 10-17); choose the Stage 2 path | — | publication path recorded |
 
 Every date is a target, not a measurement. The plan's own human-time estimates are used where
 they exist (T14, T20, T21, T28, T1); M0b has none and its 3–4 weeks is a planning assumption
@@ -107,21 +108,29 @@ replaced by the measured rate in week 2.
 | E-23 time box and descope | one revision after a gate-8 fail (r2.50: mechanisms, not repairs); requirement 5 descoped to reporting | patch the survivors; a ninth revision | machinery growing faster than the evidence that any of it works | closed at the scope reached when gate 9 failed on the same family — approval log rows 54–58 | 2026-09-28 / 09-29 |
 | Stage 1 repair | **stopped** — *"Stop; the mechanism is the result"* | another repair round | across four gate rounds one mechanism recurred, four times introduced by repair | the closure is the result — row 61, `qgr/stage1-closure.md` | 2026-09-30 |
 | Stage 1 disposition | **archive; preserve the record on main** | reopen; land; delete | the record must not depend on one machine's disk; repair is how six of nine instances arrived | 78 of 83 files on `main`; five withheld — `qgr/2026-10-01-cto-disposition.md` | 2026-10-01 |
-| Where Stage 2 builds | a successor branch from `main`, science-bearing files by content, guard machinery left closed (proposed) | land the archived branch; restart | the archived branch carries 36 registered findings and five withheld files; a restart loses 29 gated tasks | [§decision](decision.md) A1, for the principal's signature | proposed 2026-10-03 |
+| **Where Stage 2 builds** | a successor branch from `main`, science-bearing files by content, guard machinery left closed | land the archived branch; restart from `main` | the archived branch carries 36 registered findings and five withheld files; a restart loses 29 gated tasks | the CTO cuts it on the r3 signature — [§decision](decision.md) A1 | **ruled 2026-10-04** |
+| **The Stage 1 record's withheld files** | leave the five on the archived branch; the gap stays recorded | redact, then publish to `main` | redacting hash-covered evidence is the principal's alone, and the record on `main` already states the gap | A3 closed; no redaction work scheduled | **2026-10-04** |
+| **The Stage 1 closure as a publication** | a standalone short methods note: the mechanism, nine instances, the pinning rule | fold it into the Stage 2 paper; do not publish | it is the only publishable thing the branch produced, and it travels to every other work-stream | CTO drafts by 2026-10-17; the principal is author of record and ratifies | **2026-10-04** |
+| **M0b curation shape** | one curator, the principal; the rate is re-measured after ten records | a named second curator; defer M0b behind the M1 smoke run | the 3–4 week figure is an assumption, and a measured rate is worth more than a second pair of hands against one validator | the schema, validator and sealed-allocation tool are written first | **2026-10-04** |
+| **AM-6 residual (C2)** | struck as superseded by ADR-0002 | pre-register the ≥30-per-group contingency; leave it open | the arithmetic was closed in 2026-09; the count check belongs against real records | the README line goes in the C4 regeneration | **2026-10-04** |
+| **SLC15A1 (C1)** | kept under the T8 ruling; re-checked at the M1 re-ratification | revisit now with a citation; drop it from the panel | contested in the literature is not positive evidence of absence, and the panel is signed once, settled | no change to the ratified panel before Stage 2 | **2026-10-04** |
 
 ## Decisions needed
 
-Eight critical-path items and nine owed, every one the principal's except the land. The science
-stops at the first four. Detail, owners, acceptance checks and targets in
+**No decision is outstanding.** The grill of 2026-10-04 ruled all twelve items, so what is left is
+production, not adjudication. Detail, owners, acceptance checks and targets in
 [§decision](decision.md); the ordered pre-conditions in the
 [Stage 2 kickoff checklist](stage2-kickoff-checklist.md).
 
-1. **A1 / A2** — the successor branch by content, and the archive push that makes the M1 code reachable.
-2. **B1 · T14** — 26 adjudicated P-gp labels with DOIs (60–90 min), over the approved roster.
-3. **B2 / B3 / B4 · T20, T28, T21** — θ priors, the transport prior, the reference compounds; the fit cannot start without them.
-4. **B6 · M0b** — 80–100 curated chip records, the binding cost; the allocation is sealed before the first record is read.
-5. **B8 · M0c** — the evaluator freeze signature before any fit on real records.
-6. **A4** — whether the Stage 1 closure is published as a methods note.
+What the principal still **writes or does**, in order:
+
+1. **A2 · the archive push** — one command by 2026-10-06; it is the only copy of the M1 transport code.
+2. **Plan r3 · the signature** — 10 minutes; it is what lets the CTO cut the successor branch.
+3. **B1 · T14** — 26 adjudicated P-gp labels with DOIs (60–90 min) by 2026-10-14.
+4. **B2 / B3 / B4 · T20, T28, T21** — θ priors, the transport prior, the reference compounds (~1 h) by 2026-10-14.
+5. **B5 · `PROVENANCE.md`** — the prose half of T1, in the principal's own words (5 min).
+6. **B6 · M0b** — 80–100 curated chip records as sole curator; the rate is re-measured after ten.
+7. **B8 · M0c** — the evaluator freeze signature before any fit on real records.
 
 ## Sections
 
@@ -131,11 +140,11 @@ State summary only. The **ChipSim index** database at the bottom of the Notion p
 |---|---|---|---|
 | [`§vision`](vision.md) | the PRD's one claim, the minimum viable chip, the three controls | current | 2026-09-28 |
 | [`§design`](design.md) | the A&D, the hash-locked decision record, four ADRs, eight divergences | current | 2026-09-28 |
-| [`§build`](build.md) | phases, where the code is, the human-owned ledger, what is in flight | renewed | 2026-10-03 |
+| [`§build`](build.md) | phases, where the code is, the human-owned ledger, what is in flight | renewed | 2026-10-04 |
 | [`§eval`](eval.md) | the measured suite, ten recorded gates, the pre-registered commitments, the power simulations | 2026-10-03 update callout | 2026-10-03 |
 | [`§risk`](risk.md) | twelve gaps and the recurring defect family | 2026-10-03 update callout | 2026-10-03 |
-| [`§decision`](decision.md) | the build-phase unblock ledger | renewed | 2026-10-03 |
-| [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order | new | 2026-10-03 |
+| [`§decision`](decision.md) | the build-phase unblock ledger, with the twelve rulings of 2026-10-04 | renewed | 2026-10-04 |
+| [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order | 3 of 36 ticked | 2026-10-04 |
 
 ## Mirrors and sync
 
@@ -149,5 +158,5 @@ State summary only. The **ChipSim index** database at the bottom of the Notion p
 
 Counts marked *measured* were read from the files or produced by running the suite; counts marked
 *recorded* are copied from a receipt, a signed plan row, or the closure record with its date.
-Renewed 2026-10-03 from the 2026-09-28 paper cut after the Stage 1 closure; the product cut of
+Renewed 2026-10-03 from the 2026-09-28 paper cut after the Stage 1 closure, and updated 2026-10-04 with the principal's twelve Stage 2 rulings; the product cut of
 2026-09-19 and the paper walkthrough of 2026-10-02 remain indexed as Presentations.

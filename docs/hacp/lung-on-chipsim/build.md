@@ -2,7 +2,7 @@
 
 <!-- HACP L2 leaf · Section = build · Indexed by "ChipSim (bioFM) — Index".
      SOURCE OF TRUTH: the Notion row (principal, 2026-10-03). This file mirrors it; see notion-map.json.
-     Renewed 2026-10-03 after the Stage 1 closure of 2026-10-01. -->
+     Renewed 2026-10-03 after the Stage 1 closure of 2026-10-01; the A1/B6 rulings of 2026-10-04 folded in. -->
 
 **Tag:** `§build` · **Layer:** L2 (leaf under [bioFM §build](../build.md)) · **Holds:** phases, where the code is, the human-owned ledger, what is in flight · **Reaches:** `main`, the archived branch on `origin` at `c04e701`, the build plan, the gate records
 
@@ -10,7 +10,8 @@
 went through nine gates and closed at the scope it reached, and Stage 1 was archived on
 2026-10-01 with its record preserved on `main`. The code that the next phase builds on is
 split across three places, and bringing the science-bearing subset onto a successor branch is
-the first build-phase item. The roster is approved; the adjudication worksheet is the next
+the first build-phase item — **ruled 2026-10-04**: by content, with the guard machinery left
+closed. The roster is approved; the adjudication worksheet is the next
 artifact.
 
 ## Phases
@@ -26,7 +27,7 @@ flowchart LR
   T18["T18 · roster<br>26 compounds · landed 09-20 · approved 10-03"]:::done
   E2X["E-21 → E-23 · content guard<br>9 gates · closed at scope reached · 09-29"]:::closed
   S1["Stage 1 registered report<br>final gate FAIL · archived · 10-01"]:::closed
-  A1["Stage 2 successor branch<br>science subset by content · plan r3"]:::live
+  A1["Stage 2 successor branch · RULED 10-04<br>science subset by content · plan r3"]:::live
   W["T13 worksheet · 26 rows"]:::live
   B1["T14 adjudication"]:::human
   M1["M1 · transport ODE + MAP fit<br>code on the archived tip · needs A2"]:::live
@@ -65,22 +66,23 @@ its output is a claim.
 | T1 | Licence posture in the human's own words | **half** — structured commitment in `provenance.yaml`; `PROVENANCE.md` prose owed (B5) |
 | T8 | Seven accessions and seven faces checked by hand, then `ratified: true` | **delivered** 2026-09-12 |
 | T18 | 20–40 lung-relevant compounds with published exposure | **delivered** 2026-09-20 · **approved as final** 2026-10-03, 26 entries |
-| T14 | A P-gp verdict per compound with an evidence DOI | **next** — worksheet to be emitted over the approved roster (B1); 0 of 26 |
+| T14 | A P-gp verdict per compound with an evidence DOI | **next** — worksheet to be emitted over the approved roster (B1); 0 of 26; due 2026-10-14 (accepted 10-04) |
 | T20 | Six device and physiology θ fields, each cited | absent — four citable now (B2) |
 | T21 | 3–8 reference compounds with published on-chip transport | absent (B4) |
 | T28 | The `(α, k_sink)` transport prior | absent (B3) |
-| M0b | 80–100 curated chip records, sealed three-way | absent — 0 records (B6) |
+| M0b | 80–100 curated chip records, sealed three-way | absent — 0 records (B6); single curator, ruled 10-04 |
 | M0c | A signature on the evaluator freeze | absent (B8) |
 
 ## In flight
 
 | Item | State | Evidence |
 |---|---|---|
-| Stage 2 successor branch (A1) | proposed 2026-10-03; needs plan r3 signed and a QG receipt; the CTO's clean suite re-measurement is owed at cut time | [§decision](decision.md) A1 |
+| Stage 2 successor branch (A1) | **ruled 2026-10-04** (by content, guard machinery left closed); waits only on the plan r3 signature and a QG receipt; the CTO's clean suite re-measurement is owed at cut time | [§decision](decision.md) A1 |
 | T13 adjudication worksheet | ready to emit once A1 exists and the DVC payload is pulled; approve-on-execute is recorded by T29 | build plan T13, T29 |
 | Audit power check on the realised roster | ready to run: series structure from SMILES, simulated power at Δρ = 0.5 against the 0.80 floor; a simulation, not a biological value | `audit/series.py`, `audit/power.py`; ADR-0003 |
-| M0b record schema + validator + sealed-allocation tool | to write before the first record is curated | ADR-0002 |
-| Module README regeneration (C4) | at the successor's first boundary | — |
+| M0b record schema + validator + sealed-allocation tool | to write **before** the first record is curated; the principal curates alone and the rate is re-measured after ten records (ruled 2026-10-04) | ADR-0002 |
+| Module README regeneration (C4) | at the successor's first boundary; carries the AM-6 strike ruled 2026-10-04 | — |
+| Stage 1 closure methods note (A4a) | ruled publishable 2026-10-04 as a standalone note; CTO drafts by 10-17, the principal is author of record | `qgr/stage1-closure.md` |
 
 ## Closed, with the record preserved
 
