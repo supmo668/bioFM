@@ -43,6 +43,16 @@ route convention of row 70; until then the ledger is the record and the plan of 
 | C3 | **Row 59 closes item H** | no further pre-existing site needs a ruling; the read-only scan passed at the tip with zero shapes on the audit surface | C3 **closed** |
 | Floor | **The CTO merges the HACP floor to `main` this week** | trunk writes stay the CTO's; no pull request is opened from an agent session | every `Local path` on the ChipSim rows resolves once it lands |
 
+## Blanket approval recorded 2026-10-04
+
+| Decision | Route | What it covers, and what it cannot |
+|---|---|---|
+| **"approve all"** — every item the 2026-10-04 grill left pending the principal's assent, including plan r3 and the agent-side preparation the twelve rulings authorise | principal, same session as the grill ([session](https://claude.ai/code/session_0181c6Cgx1w4D61dgPg73r7f)), after the grill's own lock *"Over and out"*; the CTO carries it into the approval log beside the twelve rulings | **Covers:** folding the rulings as plan r3; cutting the successor branch on that signature; the agent-side M1 input contracts, now built (see [§experiment](experiment.md)). **Cannot cover:** A2, which is a `git push` only the principal's machine can perform; the CTO's trunk writes; and M0b/M0c code, for which the build plan supplies no done-conditions — a [plan draft](../../../workstreams/lung-on-chipsim/plan/m0b-m0c-plan-draft-2026-10-04.md) went to the principal instead |
+
+An approval is not a substitute for an artifact. Three of the four kinds of human input the
+science waits on (T20, T28, T21) are claims about the literature: approving the work does not
+produce them, and the validators built on 2026-10-04 refuse the fit until they exist.
+
 ## The dependency graph, with owners
 
 ```mermaid
@@ -100,6 +110,8 @@ flowchart LR
 | A4a | **Draft the Stage 1 closure methods note** — ruled publishable 2026-10-04 as a standalone note | CTO drafts; principal is author of record and ratifies under the T8 pattern | the mechanism, its nine instances (six introduced by repair) and the pinning rule; the only publishable thing the branch produced ([paper walkthrough](https://app.notion.com/p/3ed749bd250d8163b58bd2a75b3edb14)) | venue chosen on the draft | draft 2026-10-17 |
 | B5 | `PROVENANCE.md`, the prose half of T1 | principal | the plan requires it "in your own words"; the CTO has deliberately not drafted it. Item 1 of r2.15 was **declined** by the principal: it stays human-authored | — | 2026-10-14 |
 | B7 | R5 pair stratum, ~50 matched pairs | principal | curated, never discovered from the diversity roster (ADR-0004); zero Modal spend; needed for the audit's cliff test, not for the first ordering result | curate in parallel with M0b; defer until after the first result | 2026-11-11 |
+| M1b | Fill T20, T28 and T21 against the validators built 2026-10-04 | principal | the scaffolds, the CLI checks and the refusal messages are in place ([§experiment](experiment.md)); `theta-check` exits non-zero until each file is admissible | — | 2026-10-14 |
+| M0b0 | Sign or refuse the M0b/M0c plan draft, and answer its one open question: does the sealed allocation seal record identities or record slots? | principal | the build plan defers both milestones to "its own plan" and gives no done-conditions, so no code was written for them | sign as r3b; amend; refuse | 2026-10-07 |
 | C4 | Regenerate the module README, carrying the C2 strike | agent, at the successor's first boundary | the status table still reports 284 tests and 0 of 5 human artifacts; the ≥30-per-group line is struck as superseded by ADR-0002 (ruled 10-04) | — | with A1 |
 | M1a | Re-check SLC15A1 with the three provisional faces at the M1 re-ratification, with a citation | principal | kept under the T8 ruling (ruled 10-04); the panel is signed once, settled, with minisign at M1 ([T8 record](../../../workstreams/lung-on-chipsim/T8-review-record.md)) | — | M1 |
 

@@ -13,7 +13,8 @@ Tick an item only against the artifact it names. An item with no artifact stays 
 - [x] **Roster approved as final** — 26 entries; recorded 2026-10-03 as a standing assumption from the principal's session instruction; the CTO carries it into the approval log as a signed row
 - [ ] **A2** archived Stage 1 tip pushed to `archive/lung-on-chipsim-stage1` on `origin` (principal, 2 min)
 - [ ] **A1 executed** — successor branch `lung-on-chipsim-stage2` cut from `main` as ruled; science-bearing files taken by content from `c04e701` and the archived tip; guard machinery left where it closed (CTO, on the r3 signature)
-- [ ] **Plan r3** signed by the principal; `plan-gate verify` green on the successor branch
+- [x] **Plan r3 approved** by the principal 2026-10-04 ("approve all"); the CTO folds and signs it, then `plan-gate verify` must come back green on the successor branch
+- [ ] **`plan-gate verify`** green on the successor branch after the fold (CTO)
 - [ ] **Clean suite re-measurement** on the successor branch, no concurrent pytest processes, recorded with its wall time (CTO; owed since 2026-10-01)
 - [x] **C1 / C2 / C3 ruled** 2026-10-04 — SLC15A1 kept under the T8 ruling (re-checked at M1); the AM-6 residual struck as superseded by ADR-0002; row 59 closes identifier-constraint retroactivity
 - [x] **A1 / A3 / A4 ruled** 2026-10-04 — successor branch by content; the five withheld files stay on the archived branch with the gap recorded; the closure is published as a standalone methods note
@@ -23,12 +24,14 @@ Tick an item only against the artifact it names. An item with no artifact stays 
 
 - [ ] **T13 worksheet emitted** over the approved roster, 26 rows, approve-on-execute recorded (agent; needs the DVC payload)
 - [ ] **B1 · T14** 26 verdicts with DOIs entered; `load_adjudicated_labels` green (principal, 60–90 min)
-- [ ] **B2 · T20** θ priors: four cited fields + two `assumed: true` with widths; `_require_sourced_theta` green (principal, 20–30 min)
+- [x] **S13 / S14 scaffolds + T24 / T28 / T21 validators** built 2026-10-04: no value slots filled, every refusal a test that can fail (agent — [§experiment](experiment.md))
+- [ ] **B2 · T20** θ priors: four cited fields + two `assumed: true`; `chipsim theta-check` exits 0 (principal, 20–30 min)
 - [ ] **B3 · T28** transport prior entered with its source (principal, 15–20 min)
 - [ ] **B4 · T21** 3–8 reference compounds with published on-chip ordering (principal, 20–30 min)
 - [ ] **B5** `PROVENANCE.md` written (principal, 5 min)
 - [ ] **Audit power check** run on the realised roster: series structure, n_eff, simulated power vs the 0.80 floor; reported as a simulation with its seed (agent)
-- [ ] **M0b record schema + validator + sealed-allocation tool** written and gated **before any curation starts** (agent; ruled 2026-10-04)
+- [ ] **M0b/M0c plan draft** signed, amended or refused by the principal, including the identities-or-slots question (principal; the build plan defers both milestones and gives no done-conditions)
+- [ ] **M0b record schema + validator + sealed-allocation tool** written and gated **before any curation starts** (agent; blocked on the plan above, not on effort)
 - [ ] **C4** module README regenerated at the boundary (agent)
 
 ## Week 2 — the fit can run (by 2026-10-21)

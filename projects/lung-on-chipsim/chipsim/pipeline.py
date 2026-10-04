@@ -51,7 +51,21 @@ SUBCOMMANDS = (
 #: Declared separately rather than folded into SUBCOMMANDS so the workflow-export
 #: check keeps comparing against the ETL list exactly. Every registered subcommand
 #: must appear in exactly one of these two tuples — see test_workflow_export.
-NON_ETL_SUBCOMMANDS = ("panel-seal",)
+NON_ETL_SUBCOMMANDS = (
+    "panel-seal",
+    # S13/S14 scaffold emitters. They write an EMPTY template a human then fills, so
+    # they are not ETL stages and must not sit in an automated pipeline: a scheduled
+    # re-emit is exactly defect 22's failure mode. Both writers refuse to blank a
+    # filled file on their own, so this exclusion is a second line, not the only one.
+    "theta-scaffold",
+    "transport-prior-scaffold",
+    # Read-only validators over human-owned files, for a human checking their own work
+    # before the fit runs. Never pipeline nodes: there is nothing an automated stage can
+    # do with the verdict that a human has not finished writing their inputs.
+    "theta-check",
+    "transport-prior-check",
+    "reference-compounds-check",
+)
 
 MODULE_PATH = "chipsim.pipeline"
 
@@ -276,6 +290,78 @@ def _cmd_panel_seal(ns) -> int:
     return 0
 
 
+def _cmd_theta_scaffold(ns: argparse.Namespace) -> int:
+    from chipsim.transport.theta import SCAFFOLD_RELPATH, write_scaffold
+
+    out = ns.out or (project_root() / SCAFFOLD_RELPATH)
+    print(f"theta scaffold written: {write_scaffold(out, force=ns.force)}")
+    print(
+        "Copy it to configs/theta_priors.yaml yourself and fill it. No agent step "
+        "creates that path: its absence is how Global Constraint #1 is enforced (S6)."
+    )
+    return 0
+
+
+def _cmd_transport_prior_scaffold(ns: argparse.Namespace) -> int:
+    from chipsim.transport.prior import SCAFFOLD_RELPATH, write_scaffold
+
+    out = ns.out or (project_root() / SCAFFOLD_RELPATH)
+    print(f"transport-prior scaffold written: {write_scaffold(out, force=ns.force)}")
+    return 0
+
+
+def _cmd_theta_check(ns: argparse.Namespace) -> int:
+    """Report whether a filled theta file would be accepted by the M1 fit.
+
+    Exits non-zero on refusal so a human can gate on it, and prints the cited/assumed
+    split either way: two of six assumed is a stated limitation, not a failure.
+    """
+    from chipsim.transport.theta import ThetaConfig, ThetaError
+
+    try:
+        cfg = ThetaConfig.load(ns.theta)
+    except ThetaError as exc:
+        print(f"theta REFUSED: {exc}")
+        return 1
+    print(f"theta accepted: {ns.theta}")
+    print(f"  cited: {cfg.cited_count}  assumed: {cfg.assumed_count}")
+    if cfg.assumed_fields():
+        print(f"  assumed field(s): {', '.join(cfg.assumed_fields())}")
+    return 0
+
+
+def _cmd_transport_prior_check(ns: argparse.Namespace) -> int:
+    from chipsim.transport.prior import TransportPrior, TransportPriorError
+
+    try:
+        prior = TransportPrior.load(ns.prior)
+    except TransportPriorError as exc:
+        print(f"transport prior REFUSED: {exc}")
+        return 1
+    print(f"transport prior accepted: {ns.prior}")
+    assumed = prior.assumed_entries()
+    print(f"  explicit assumption(s): {', '.join(assumed) if assumed else 'none'}")
+    return 0
+
+
+def _cmd_reference_compounds_check(ns: argparse.Namespace) -> int:
+    from chipsim.harmonize.reference_compounds import (
+        ReferenceCompoundError,
+        load_reference_compounds,
+    )
+
+    try:
+        frame = load_reference_compounds(ns.reference)
+    except ReferenceCompoundError as exc:
+        print(f"reference compounds REFUSED: {exc}")
+        return 1
+    print(f"reference compounds accepted: {ns.reference} ({len(frame)} entries)")
+    return 0
+
+
+#: Subcommand -> handler. Declared after every handler is defined, and asserted
+#: against the parser in tests/test_workflow_export.py so a registered subcommand
+#: without a handler fails there rather than at a user's first invocation.
 _HANDLERS = {
     "fetch": _cmd_fetch,
     "hash-verify": _cmd_hash_verify,
@@ -283,6 +369,11 @@ _HANDLERS = {
     "provenance-tests": _cmd_provenance_tests,
     "write": _cmd_write,
     "panel-seal": _cmd_panel_seal,
+    "theta-scaffold": _cmd_theta_scaffold,
+    "transport-prior-scaffold": _cmd_transport_prior_scaffold,
+    "theta-check": _cmd_theta_check,
+    "transport-prior-check": _cmd_transport_prior_check,
+    "reference-compounds-check": _cmd_reference_compounds_check,
 }
 
 
@@ -335,6 +426,47 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--panel", required=True, type=Path)
+
+    p = sub.add_parser(
+        "theta-scaffold",
+        help="write S13's EMPTY theta template (no values — T20 is human-owned)",
+        description=(
+            "Write the theta-priors scaffold: six fields, every value and citation "
+            "empty, every field flagged assumed.\n\n"
+            "It refuses to write configs/theta_priors.yaml or configs/assumptions.yaml "
+            "(S6: their absence is the enforcement mechanism for the rule that no agent "
+            "writes a biological number), and it refuses to overwrite a file that "
+            "already carries filled entries unless --force is passed."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("--out", type=Path, default=None)
+    p.add_argument("--force", action="store_true")
+
+    p = sub.add_parser(
+        "transport-prior-scaffold",
+        help="write S14's EMPTY (alpha, k_sink) prior template",
+    )
+    p.add_argument("--out", type=Path, default=None)
+    p.add_argument("--force", action="store_true")
+
+    p = sub.add_parser(
+        "theta-check",
+        help="validate a filled theta file the way the fit will (read-only)",
+    )
+    p.add_argument("--theta", required=True, type=Path)
+
+    p = sub.add_parser(
+        "transport-prior-check",
+        help="validate a filled transport-prior file (read-only)",
+    )
+    p.add_argument("--prior", required=True, type=Path)
+
+    p = sub.add_parser(
+        "reference-compounds-check",
+        help="validate T21's M1 reference-compound file (read-only)",
+    )
+    p.add_argument("--reference", required=True, type=Path)
 
     return ap
 

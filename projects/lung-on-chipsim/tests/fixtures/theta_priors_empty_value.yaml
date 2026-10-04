@@ -1,0 +1,18 @@
+# ============================================================================
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# Exists only so agent-owned done-conditions can fail honestly while the
+# human-gated tasks (T20/T21/T28) are outstanding. Build-plan S5 / defect 33.
+# Every number below is a SENTINEL chosen for arithmetic convenience, carries no
+# physical meaning, and is not a measurement of anything. No pipeline path may
+# read this file.
+# ============================================================================
+# porosity is flagged assumed but has no value: an assumption is still a value
+# the fit needs, so "assumed" must not excuse an empty slot.
+
+theta:
+  flow_ul_min: {value: 1.0, unit: uL/min, citation: "10.0000/chipsim.fixture.theta.001", assumed: false}
+  membrane_um: {value: 1.0, unit: um, citation: "10.0000/chipsim.fixture.theta.002", assumed: false}
+  porosity:    {value: null, unit: fraction, citation: null, assumed: true}
+  strain_pct:  {value: 1.0, unit: percent, citation: "10.0000/chipsim.fixture.theta.003", assumed: false}
+  area_mm2:    {value: 1.0, unit: mm^2, citation: null, assumed: true}
+  coating:     {value: "FIXTURE-COATING", unit: categorical, citation: "10.0000/chipsim.fixture.theta.004", assumed: false}

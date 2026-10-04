@@ -42,6 +42,13 @@
       "granularity": "L2 — Detail",
       "synced": "2026-10-04"
     },
+    "experiment.md": {
+      "notion": "https://app.notion.com/p/3ef749bd250d81a78efffdbadd500d29",
+      "kind": "Section",
+      "section": "build",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-04"
+    },
     "eval.md": {
       "notion": "https://app.notion.com/p/285749bd250d82a1be65013e05dce48c",
       "kind": "Section",

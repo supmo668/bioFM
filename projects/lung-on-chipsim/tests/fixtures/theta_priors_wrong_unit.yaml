@@ -1,0 +1,18 @@
+# ============================================================================
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# Exists only so agent-owned done-conditions can fail honestly while the
+# human-gated tasks (T20/T21/T28) are outstanding. Build-plan S5 / defect 33.
+# Every number below is a SENTINEL chosen for arithmetic convenience, carries no
+# physical meaning, and is not a measurement of anything. No pipeline path may
+# read this file.
+# ============================================================================
+# membrane_um declares mm where the schema requires um: a value entered in
+# another unit must fail at load rather than rescale the fit.
+
+theta:
+  flow_ul_min: {value: 1.0, unit: uL/min, citation: "10.0000/chipsim.fixture.theta.001", assumed: false}
+  membrane_um: {value: 1.0, unit: mm, citation: "10.0000/chipsim.fixture.theta.002", assumed: false}
+  porosity:    {value: 0.5, unit: fraction, citation: null, assumed: true}
+  strain_pct:  {value: 1.0, unit: percent, citation: "10.0000/chipsim.fixture.theta.003", assumed: false}
+  area_mm2:    {value: 1.0, unit: mm^2, citation: null, assumed: true}
+  coating:     {value: "FIXTURE-COATING", unit: categorical, citation: "10.0000/chipsim.fixture.theta.004", assumed: false}
