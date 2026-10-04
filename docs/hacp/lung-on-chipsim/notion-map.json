@@ -10,7 +10,7 @@
       "kind": "Index",
       "section": "vision",
       "granularity": "L1 — Review",
-      "synced": "2026-10-03"
+      "synced": "2026-10-04"
     },
     "vision.md": {
       "notion": "https://app.notion.com/p/8cd749bd250d82c99f1a01b3109740d9",
@@ -31,35 +31,35 @@
       "kind": "Section",
       "section": "build",
       "granularity": "L2 — Detail",
-      "synced": "2026-10-03"
+      "synced": "2026-10-04"
     },
     "eval.md": {
       "notion": "https://app.notion.com/p/285749bd250d82a1be65013e05dce48c",
       "kind": "Section",
       "section": "eval",
       "granularity": "L2 — Detail",
-      "synced": "2026-10-03"
+      "synced": "2026-10-04"
     },
     "risk.md": {
       "notion": "https://app.notion.com/p/724749bd250d82f9980881f5c06a1a87",
       "kind": "Section",
       "section": "risk",
       "granularity": "L2 — Detail",
-      "synced": "2026-10-03"
+      "synced": "2026-10-04"
     },
     "decision.md": {
       "notion": "https://app.notion.com/p/b51749bd250d83e19016816d349af66f",
       "kind": "Decision",
       "section": "decision",
       "granularity": "L2 — Detail",
-      "synced": "2026-10-03"
+      "synced": "2026-10-04"
     },
     "stage2-kickoff-checklist.md": {
       "notion": "https://app.notion.com/p/3ef749bd250d814883f1ebac81c884ee",
       "kind": "Checklist",
       "section": "build",
       "granularity": "L1 — Review",
-      "synced": "2026-10-03"
+      "synced": "2026-10-04"
     }
   }
 }
