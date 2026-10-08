@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-09-30T06:48:45.911401+00:00",
+  "updated_at": "2026-10-08T23:41:16.431786+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -86,6 +86,17 @@
       "summary": "deposit + rigour items done; pr-prep #2 receipt next, then push + pr-submit (one PR per CTO #532)",
       "pr": "",
       "updated_at": "2026-09-30T06:48:45.911201+00:00"
+    },
+    "DEPOSIT-PREP": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "gh": "",
+      "commit": "5407606",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20261008-1640-47ebb3f.md",
+      "summary": "deposit prep gated; submission awaits principal",
+      "pr": "",
+      "updated_at": "2026-10-08T23:41:16.431601+00:00"
     }
   }
 }
