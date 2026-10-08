@@ -21,7 +21,10 @@ def _load(rel: str, name: str):
     spec = importlib.util.spec_from_file_location(name, ROOT / rel)
     mod = importlib.util.module_from_spec(spec)
     sys.modules[name] = mod  # dataclasses resolve their module by name
-    spec.loader.exec_module(mod)
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.modules.pop(name, None)
     return mod
 
 
@@ -52,8 +55,11 @@ def test_method_sentence_matches_the_run_evidence():
         "pinned roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles, "
         "Sonnet 5.5 for the Validator) whose served model is recorded and asserted per call" in desc
     )
-    for stale in ("OpenRouter", "rotating", "54", "pending", "best-of"):
+    import re
+
+    for stale in ("OpenRouter", "rotating", "pending", "best-of"):
         assert stale not in desc, stale
+    assert not re.search(r"\b54\b", desc)
     p = json.loads((ART / "provenance.json").read_text())
     s = json.loads((ART / "summary.json").read_text())
     assert set(p["llm_pool"]) == {HAIKU, SONNET}
@@ -95,12 +101,11 @@ def test_related_identifiers_assert_a_new_version_not_identity():
     rel = _cfg()["venues"]["zenodo"]["related_identifiers"]
     relations = {(r["identifier"], r["relation"]) for r in rel}
     assert not any(r["relation"] == "isIdenticalTo" for r in rel)
-    assert ("10.6084/m9.figshare.32086920", "isNewVersionOf") in relations
+    assert ("10.6084/m9.figshare.32086920.v5", "isNewVersionOf") in relations
     assert (
         "10.5281/zenodo.20060974",
         "isNewVersionOf",
     ) in relations  # latest v0.5.1 Zenodo version
-    assert ("https://github.com/supmo668/bioFM", "isSupplementedBy") in relations
     cit = (ROOT / "CITATION.cff").read_text()
     assert "10.5281/zenodo.20060974" in cit  # the version the new deposit supersedes is on record
 
@@ -119,7 +124,7 @@ def test_stage_run_artifacts_copies_the_run_with_checksums(tmp_path):
     bd = _load("scripts/publish/build_deposit.py", "bd")
     dst = bd.stage_run_artifacts(tmp_path)
     names = sorted(p.name for p in dst.iterdir())
-    assert names == sorted([*bd.RUN_FILES, f"{bd.RUN_ID}.json", "SHA256SUMS"])
+    assert names == sorted([*bd.RUN_FILES, f"{bd.RUN_ID}.json", "SHA256SUMS", "BUILD_INFO"])
     import hashlib
 
     for line in (dst / "SHA256SUMS").read_text().splitlines():
@@ -129,18 +134,210 @@ def test_stage_run_artifacts_copies_the_run_with_checksums(tmp_path):
     assert manifest.startswith("323af965b631ce83")
 
 
-def test_zenodo_submitter_refuses_a_published_deposit(tmp_path, monkeypatch):
-    sv = _load("scripts/publish/submit_to_venues.py", "sv")
+class _Resp:
+    def __init__(self, body=None):
+        self._body = body or {}
+        self.status_code = 200
+
+    def json(self):
+        return self._body
+
+    def raise_for_status(self):
+        return None
+
+
+def _submitter(monkeypatch, tmp_path, venue, state):
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_test")
+    calls = []
+
+    def record(method):
+        def f(url, **kw):
+            calls.append((method, url, kw))
+            if method == "post" and url.endswith("/deposit/depositions"):
+                return _Resp({"id": 1, "links": {"bucket": "https://bucket/B"}})
+            if method == "put" and "/deposit/depositions/" in url:
+                return _Resp({"metadata": {"prereserve_doi": {"doi": "10.5072/zenodo.1"}}})
+            return _Resp({})
+
+        return f
+
+    for m in ("post", "put", "get", "delete"):
+        monkeypatch.setattr(sv.requests, m, record(m))
+    monkeypatch.setattr(sv, "_raise_on", lambda r: None)
+    for env in ("ZENODO_TOKEN", "FIGSHARE_TOKEN"):
+        monkeypatch.setenv(env, "test-token-not-a-placeholder")
     state_path = tmp_path / "state.json"
-    state_path.write_text(json.dumps({"zenodo": {"deposit_id": 19748260, "published": True}}))
-    monkeypatch.setenv("ZENODO_TOKEN", "test-token-not-a-placeholder")
+    state_path.write_text(json.dumps(state))
     cfg = sv.PublishConfig.load(ROOT / "publish.yml")
-    state = sv.State(state_path)
-    try:
-        sub = sv.ZenodoSubmitter(cfg, state, dry_run=True)
-    except TypeError:
-        sub = sv.ZenodoSubmitter(cfg, state)
+    cls = {"zenodo": sv.ZenodoSubmitter, "figshare": sv.FigshareSubmitter}[venue]
+    return sv, cls(cfg, sv.State(state_path), dry_run=True), calls, state_path, cfg
+
+
+def test_zenodo_submitter_refuses_a_published_deposit_without_any_request(tmp_path, monkeypatch):
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", {"zenodo": {"deposit_id": 19748260, "published": True}}
+    )
     import pytest
 
-    with pytest.raises(RuntimeError, match="already published"):
+    with pytest.raises(sv.PublishedRecordError, match="already published"):
         sub.submit([])
+    assert calls == []
+    assert json.loads(state_path.read_text())["zenodo"] == {
+        "deposit_id": 19748260,
+        "published": True,
+    }
+
+
+def test_figshare_submitter_refuses_a_published_article_without_any_request(tmp_path, monkeypatch):
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", {"figshare": {"article_id": 32086920, "published": True}}
+    )
+    import pytest
+
+    with pytest.raises(sv.PublishedRecordError, match="already published"):
+        sub.submit([])
+    assert calls == []
+
+
+def test_zenodo_first_deposit_sends_the_publish_yml_metadata(tmp_path, monkeypatch):
+    sv, sub, calls, state_path, cfg = _submitter(monkeypatch, tmp_path, "zenodo", {})
+    sub.submit([])
+    posts = [c for c in calls if c[0] == "post"]
+    assert [c[1] for c in posts] == [
+        f"{sub.base}/deposit/depositions"
+    ]  # created; dry-run: no publish
+    meta = next(c for c in calls if c[0] == "put")[2]["json"]["metadata"]
+    assert meta["description"] == cfg.description
+    assert meta["creators"][0]["name"] == "Mo, Mang-yin"
+    assert meta["version"] == "0.6.0"
+    assert not any(r["relation"] == "isIdenticalTo" for r in meta["related_identifiers"])
+    st = json.loads(state_path.read_text())["zenodo"]
+    assert st["deposit_id"] == 1 and "published" not in st
+
+
+def test_zenodo_draft_resume_uploads_into_the_recorded_bucket(tmp_path, monkeypatch):
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", {"zenodo": {"deposit_id": 5, "bucket": "https://bucket/B"}}
+    )
+    f = tmp_path / "x.txt"
+    f.write_text("x")
+    sub.submit([{"name": "x.txt", "path": f}])
+    assert not any(c[0] == "post" and c[1].endswith("/deposit/depositions") for c in calls)
+    assert any(c[0] == "put" and c[1] == "https://bucket/B/x.txt" for c in calls)
+
+
+def test_main_reports_a_published_record_and_continues(tmp_path, monkeypatch):
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_main")
+    src = (ROOT / "scripts" / "publish" / "submit_to_venues.py").read_text()
+    assert "except (requests.HTTPError, PublishedRecordError)" in src
+
+
+def test_files_paths_follow_the_build_step(tmp_path, monkeypatch):
+    bd = _load("scripts/publish/build_deposit.py", "bd_paths")
+    files = {f["name"]: f for f in _cfg()["files"]}
+    assert Path(files["v060_run_artifacts.zip"]["path"]) == (
+        bd.OUT / "v060_run_artifacts"
+    ).relative_to(ROOT)
+    assert Path(files["paper_build.log"]["path"]) == (bd.OUT / "paper_build.log").relative_to(ROOT)
+    for f in files.values():
+        if not f["path"].startswith("build/") and f["path"] != "paper/paper.pdf":
+            assert (ROOT / f["path"]).exists(), f["path"]
+    monkeypatch.setattr(bd.shutil, "which", lambda name: None)
+    import pytest
+
+    with pytest.raises(RuntimeError, match="tectonic not found"):
+        bd.build_pdf(tmp_path)
+
+
+def test_staged_run_matches_the_committed_artifacts_and_is_restaged_clean(tmp_path):
+    import hashlib
+
+    bd = _load("scripts/publish/build_deposit.py", "bd_stage")
+    dst = bd.stage_run_artifacts(tmp_path)
+    (dst / "stray.txt").write_text("x")
+    dst = bd.stage_run_artifacts(tmp_path)
+    assert not (dst / "stray.txt").exists()
+    lines = (dst / "SHA256SUMS").read_text().splitlines()
+    names = {line.split("  ")[1] for line in lines}
+    assert names == set(bd.RUN_FILES) | {f"{bd.RUN_ID}.json"} and len(lines) == 5
+    for name in bd.RUN_FILES:
+        assert (
+            hashlib.sha256((dst / name).read_bytes()).digest()
+            == hashlib.sha256((ART / name).read_bytes()).digest()
+        )
+    assert "staged from git" in (dst / "BUILD_INFO").read_text()
+
+
+def test_check_fails_on_a_hand_edit_and_write_mode_is_idempotent(tmp_path, monkeypatch, capsys):
+    rd = _load("scripts/paper/render_publish_description.py", "rd_check")
+    pub, cit = tmp_path / "publish.yml", tmp_path / "CITATION.cff"
+    pub.write_text(
+        (ROOT / "publish.yml")
+        .read_text()
+        .replace("Multi-agent group-generation", "Multi-agent GROUP-generation", 1)
+    )
+    cit.write_text((ROOT / "CITATION.cff").read_text())
+    monkeypatch.setattr(rd, "PUBLISH", pub)
+    monkeypatch.setattr(rd, "CITATION", cit)
+    monkeypatch.setattr(sys, "argv", ["x", "--check"])
+    assert rd.main() == 1 and "publish.yml" in capsys.readouterr().err
+    monkeypatch.setattr(sys, "argv", ["x"])
+    assert rd.main() == 0
+    once = (pub.read_text(), cit.read_text())
+    assert rd.main() == 0 and (pub.read_text(), cit.read_text()) == once
+    monkeypatch.setattr(sys, "argv", ["x", "--check"])
+    assert rd.main() == 0
+    new, old = yaml.safe_load(pub.read_text()), yaml.safe_load((ROOT / "publish.yml").read_text())
+    assert {k: v for k, v in new.items() if k != "description"} == {
+        k: v for k, v in old.items() if k != "description"
+    }
+    desc_lines = pub.read_text().split("description: |\n", 1)[1].split("\n\n", 1)[0].splitlines()
+    for line in desc_lines:
+        assert not line.rstrip().endswith("-"), line  # no hyphen break inside the block scalar
+
+
+def test_render_rules(tmp_path, monkeypatch):
+    rd = _load("scripts/paper/render_publish_description.py", "rd_rules")
+    gen = tmp_path / "gen.tex"
+    gen.write_text(
+        "\\newcommand{\\resA}{\\ensuremath{-0.12}}\n\\newcommand{\\resB}{\\textbf{3}}\n"
+        "\\newcommand{\\resC}{1\\,234}\n\\newcommand{\\resD}{\\textemdash}\n"
+    )
+    paper = tmp_path / "p.tex"
+
+    def run(body):
+        paper.write_text(f"\\begin{{abstract}}\n{body}\n\\end{{abstract}}")
+        return rd.render()
+
+    monkeypatch.setattr(rd, "GEN", gen)
+    monkeypatch.setattr(rd, "PAPER", paper)
+    assert run("$\\Delta C$ and $\\rho=\\resA$ and $>\\resB$.") == "ΔC and ρ = −0.12 and > 3."
+    assert run("a---b, 1--2, \\resC{} cells, \\resD.") == "a—b, 1–2, 1,234 cells, —."
+    assert (
+        run("x~\\citep{k}. % comment\nNext \\textsc{Adamson} sentence.")
+        == "x. Next Adamson sentence."
+    )
+    import pytest
+
+    with pytest.raises(ValueError):
+        run("(\\citet{k}) 10\\%")
+    with pytest.raises(KeyError):
+        run("\\resZ")
+
+
+def test_keywords_and_citation_version_are_true_of_the_work():
+    tex = " ".join(
+        (ROOT / "paper" / p).read_text().lower()
+        for p in ("paper.tex", "sections/results.tex", "sections/experimental_setup.tex")
+    )
+    cit = yaml.safe_load((ROOT / "CITATION.cff").read_text())
+    for kw in _cfg()["keywords"]:
+        assert kw.lower() in tex, kw
+    assert set(cit["keywords"]) >= set(_cfg()["keywords"]) - {"provenance"}
+    assert str(cit["version"]) == _cfg()["version"] == "0.6.0"
+    prereg = json.loads((ART / "provenance.json").read_text())["prereg_version"]
+    assert prereg.startswith("v" + _cfg()["version"])
+    notes = " ".join(r.get("notes", "") for r in cit.get("references", []))
+    assert (
+        "used as the" not in notes
+    )  # no reference claims a tool role the v0.6.0 study does not use
