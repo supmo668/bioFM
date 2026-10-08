@@ -25,7 +25,7 @@ flowchart LR
 
 | Workstream | Branch / plan | State | Next boundary |
 |---|---|---|---|
-| aviary-biosim | `aviary-biosim` @ `ab8f6f5`; plan #272 r2 (`4a8bb59`) on `whitepaper` @ `b366667` | F08 land-ready; Tasks 0–12 done | `/airdlc:pr-cto-land … --no-release` (principal); Task 13 `/iteration-complete` (agent) |
+| aviary-biosim | `whitepaper` @ `c66e64c` **pushed**; draft PR [Aviary-BioSim#2](https://github.com/supmo668/Aviary-BioSim/pull/2); receipt `2a9b966` CTO-verified | #272 Tasks 0–13 complete; pr-prep gate closed (76 raw → 13 fixed, 7 routed to the CTO); suites at `c66e64c` 328/42/17/122, mutants 48/48+1 | **CTO A7 rigour review**, queued on the principal's go — the draft does not merge until it runs |
 | lung-on-chipsim | **ARCHIVED 2026-10-01** — branch unlanded, unpushed; record preserved on main | `lung-on-chipsim` @ `8face11`; plan r2.50c (`ae894db`) | **E-23 CLOSED** at gate 9 FAIL (same family; no receipt; no r2.51) under the principal's time box; five mechanisms in, requirement 5 descoped to W/F/C/N reporting; findings → Stage 1 limitations | Stage 1 registered report (#411) opens: limitations section + claims list → CTO rigour review |
 | perturb-seq-eval | `perturb-seq-eval` @ `4840f0d`; amendment 2 `3bf2a9a` | fixes formatted, 925 green | QG receipt → sweep runs on the standing GO (#283) |
 | cellforge-agents | — | not surfaced this cycle | — |
