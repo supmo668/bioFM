@@ -192,6 +192,20 @@ def test_snapshot_hashes_match_manifest():
     and hashing a fabricated one would assert nothing.
     """
     manifest_path = RAW_DIR / MANIFEST_NAME
+    payload = sorted(
+        q.name
+        for q in RAW_DIR.iterdir()
+        if q.is_file()
+        and q.name not in {"provenance.yaml", "PROVENANCE.md", MANIFEST_NAME}
+        and not q.name.endswith(".dvc")
+    )
+    if not payload and not manifest_path.is_file():
+        # T2 is delivered (the live provenance exists) but T4a's fetch has not run on
+        # this checkout: the payload is DVC-tracked and `dvc pull` has not been run.
+        # There is nothing to hash. This is a skip, not a pass, and it is keyed on the
+        # payload's absence — a manifest missing beside a PRESENT payload still fails
+        # below, because that is the mutation-after-fetch case this test exists for.
+        pytest.skip("snapshot not fetched on this checkout (T4a): run `dvc pull` to hash it")
     assert manifest_path.is_file(), f"{MANIFEST_NAME} missing beside the snapshot"
     recorded = json.loads(manifest_path.read_text())
 
@@ -253,6 +267,7 @@ def test_drugbank_not_vendored_catches_payload(path):
         "data/raw/drugbank/SHA256SUMS.json",
         "data/raw/drugbank/provenance.yaml",
         "data/raw/drugbank/PROVENANCE.md",
+        "data/raw/sources.yaml",
     ],
 )
 def test_vendoring_rule_allows_what_must_stay_tracked(path):

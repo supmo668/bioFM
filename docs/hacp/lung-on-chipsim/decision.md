@@ -20,6 +20,16 @@ asks an agent to write a biological number.
 |---|---|---|
 | **T18 compound roster approved as final: 26 entries, each with an evidence DOI** | principal, via Claude session 2026-10-03 (*"Assume admin approval on compound roster"*; [session](https://claude.ai/code/session_0181c6Cgx1w4D61dgPg73r7f)); to be carried into the approval log as a signed row by the CTO | T13 may emit the adjudication worksheet over the final roster; the audit's series-structure and power check may run on the realised roster; M0b record curation may start against a fixed compound set |
 
+## Rule amendment recorded 2026-10-08: the M1 inputs are agent-drafted from cited sources, principal-ratified
+
+| Decision | Route | What it changes |
+|---|---|---|
+| **The six θ fields, the transport prior and the reference compounds may be drafted by an agent from cited sources, for the principal to ratify by copying into `configs/`.** | principal, verbatim 2026-10-08 ([session](https://claude.ai/code/session_0181c6Cgx1w4D61dgPg73r7f)): *"Resolve tests or CI and research to fill the 6 fields with best effort from known data sources. Unbacked data cannot be used and reference must be cited in the experimental design for molecular specification. Approximations could be used where metholdogy is supported. Create the most informed set-up to initiate the LungChim modelling & simulation"*; the CTO carries it into the approval log | Global Constraint 1 is amended for the M1 inputs only, to the pattern r2.15 item 1 proposed and the principal declined for `PROVENANCE.md`: agent-drafted, cited, human-ratified. **Unchanged:** S6's absence guard (the drafts live outside `configs/` and the copy is the ratification); the validators (the same ones accept or refuse the ratified file); the rule for every other biological number in the project. **Added:** every proposed value carries a provenance class, `cited`, `derived` or `assumed`, in the file and in the design document |
+
+What the amendment does not do: it does not make an uncited number admissible. "Unbacked data
+cannot be used" is the principal's own condition, and the three validators enforce it the same
+way for an agent's draft as for a human's.
+
 ## Rulings taken 2026-10-04 (principal grill, twelve items)
 
 Route: principal, structured grill in Claude session
