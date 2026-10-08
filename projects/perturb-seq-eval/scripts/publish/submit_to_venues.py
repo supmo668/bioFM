@@ -220,9 +220,7 @@ class ZenodoSubmitter:
         self.dry_run = dry_run
         vcfg = cfg.venues.get("zenodo", {})
         sandbox = vcfg.get("sandbox", False)
-        self.base = (
-            "https://sandbox.zenodo.org/api" if sandbox else "https://zenodo.org/api"
-        )
+        self.base = "https://sandbox.zenodo.org/api" if sandbox else "https://zenodo.org/api"
         if token_is_missing("ZENODO_TOKEN"):
             raise RuntimeError(
                 "ZENODO_TOKEN missing or placeholder — fill it in .env "
@@ -233,6 +231,15 @@ class ZenodoSubmitter:
 
     def submit(self, files: list[dict]) -> str:
         dep_id = self.state.get("zenodo", "deposit_id")
+        if dep_id is not None and self.state.get("zenodo", "published"):
+            # A published Zenodo deposit is locked: uploading into its bucket fails, and a
+            # new release must be a NEW VERSION created from the latest version
+            # (POST .../actions/newversion) under the same concept DOI. Fail closed rather
+            # than PUT into a locked bucket or overwrite the published record's metadata.
+            raise RuntimeError(
+                f"zenodo deposit {dep_id} is already published; create a new version from the "
+                "latest version (actions/newversion) and record its draft id in publish.state.json"
+            )
         if dep_id is None:
             r = requests.post(
                 f"{self.base}/deposit/depositions",
@@ -268,7 +275,11 @@ class ZenodoSubmitter:
                     {
                         "name": c["name"],
                         **({"affiliation": c["affiliation"]} if c.get("affiliation") else {}),
-                        **({"orcid": c["orcid"]} if c.get("orcid") and _valid_orcid(c["orcid"]) else {}),
+                        **(
+                            {"orcid": c["orcid"]}
+                            if c.get("orcid") and _valid_orcid(c["orcid"])
+                            else {}
+                        ),
                     }
                     for c in self.cfg.creators
                 ],
@@ -276,9 +287,7 @@ class ZenodoSubmitter:
                 "license": self.cfg.license.replace("_", "-"),
                 "access_right": "open",
                 "related_identifiers": self.vcfg.get("related_identifiers", []),
-                "communities": [
-                    {"identifier": c} for c in self.vcfg.get("communities", [])
-                ],
+                "communities": [{"identifier": c} for c in self.vcfg.get("communities", [])],
             }
         }
         r = requests.put(
@@ -361,7 +370,8 @@ class FigshareSubmitter:
         # skip any name that already exists (compare on MD5 for safety).
         existing_resp = requests.get(
             f"{self.base}/account/articles/{art_id}",
-            headers=self.headers, timeout=30,
+            headers=self.headers,
+            timeout=30,
         )
         _raise_on(existing_resp)
         existing_by_name: dict[str, str] = {}
@@ -379,7 +389,8 @@ class FigshareSubmitter:
 
         r = requests.post(
             f"{self.base}/account/articles/{art_id}/reserve_doi",
-            headers=self.headers, timeout=30,
+            headers=self.headers,
+            timeout=30,
         )
         _raise_on(r)
         reserved_doi = r.json().get("doi")
@@ -391,7 +402,8 @@ class FigshareSubmitter:
 
         r = requests.post(
             f"{self.base}/account/articles/{art_id}/publish",
-            headers=self.headers, timeout=60,
+            headers=self.headers,
+            timeout=60,
         )
         _raise_on(r)
         self.state.set("figshare", "published", True)
@@ -412,7 +424,8 @@ class FigshareSubmitter:
         # 2. Retrieve upload part info
         r = requests.get(
             f"{self.base}/account/articles/{art_id}/files/{file_id}",
-            headers=self.headers, timeout=30,
+            headers=self.headers,
+            timeout=30,
         )
         _raise_on(r)
         upload_url = r.json()["upload_url"]
@@ -433,7 +446,8 @@ class FigshareSubmitter:
         # 4. Complete upload
         r = requests.post(
             f"{self.base}/account/articles/{art_id}/files/{file_id}",
-            headers=self.headers, timeout=60,
+            headers=self.headers,
+            timeout=60,
         )
         _raise_on(r)
 
@@ -452,8 +466,7 @@ class OSFSubmitter:
         self.dry_run = dry_run
         if token_is_missing("OSF_TOKEN"):
             raise RuntimeError(
-                "OSF_TOKEN missing or placeholder — fill it in .env "
-                "(see .env.example at repo root)"
+                "OSF_TOKEN missing or placeholder — fill it in .env (see .env.example at repo root)"
             )
         self.headers = {
             "Authorization": f"Bearer {os.environ['OSF_TOKEN']}",
@@ -528,9 +541,7 @@ class OSFSubmitter:
                     primary_id = entry["id"]
                     break
             if not primary_id:
-                raise RuntimeError(
-                    f"could not resolve OSF file GUID for {primary['name']}"
-                )
+                raise RuntimeError(f"could not resolve OSF file GUID for {primary['name']}")
             self.state.set("osf", "primary_file_id", primary_id)
 
         # Additional files (supplement) uploaded same way. Skip if a file
@@ -583,15 +594,15 @@ class OSFSubmitter:
                     },
                     "relationships": {
                         "node": {"data": {"type": "nodes", "id": proj_id}},
-                        "provider": {
-                            "data": {"type": "providers", "id": self.provider}
-                        },
+                        "provider": {"data": {"type": "providers", "id": self.provider}},
                     },
                 }
             }
             r = requests.post(
-                f"{self.api}/preprints/", headers=self.headers,
-                json=payload, timeout=60,
+                f"{self.api}/preprints/",
+                headers=self.headers,
+                json=payload,
+                timeout=60,
             )
             _raise_on(r)
             pp_id = r.json()["data"]["id"]
@@ -603,19 +614,20 @@ class OSFSubmitter:
             if subjects:
                 patch = {
                     "data": {
-                        "id": pp_id, "type": "preprints",
+                        "id": pp_id,
+                        "type": "preprints",
                         "relationships": {
                             "subjects": {
-                                "data": [
-                                    [{"type": "subjects", "id": s}] for s in subjects
-                                ]
+                                "data": [[{"type": "subjects", "id": s}] for s in subjects]
                             }
                         },
                     }
                 }
                 r = requests.patch(
                     f"{self.api}/preprints/{pp_id}/",
-                    headers=self.headers, json=patch, timeout=60,
+                    headers=self.headers,
+                    json=patch,
+                    timeout=60,
                 )
                 _raise_on(r)
             self.state.set("osf", "subjects_set", True)
@@ -649,7 +661,10 @@ class OSFSubmitter:
             timeout=30,
         )
         _raise_on(r)
-        doi_candidate = r.json()["data"]["attributes"].get("preprint_doi_created") or f"10.17605/OSF.IO/{pp_id.upper()}"
+        doi_candidate = (
+            r.json()["data"]["attributes"].get("preprint_doi_created")
+            or f"10.17605/OSF.IO/{pp_id.upper()}"
+        )
         self.state.set("osf", "doi", doi_candidate)
         self.state.set("osf", "published", True)
         print(f"[osf] published: https://osf.io/preprints/{self.provider}/{pp_id}")
@@ -731,7 +746,9 @@ def main() -> int:
     p.add_argument("--dry-run", action="store_true", help="skip the final publish step")
     p.add_argument("--state", type=Path, default=Path("publish.state.json"))
     p.add_argument(
-        "--env", type=Path, default=None,
+        "--env",
+        type=Path,
+        default=None,
         help="Path to .env (default: walk upward from cwd)",
     )
     args = p.parse_args()
@@ -769,7 +786,8 @@ def main() -> int:
         "osf": OSFSubmitter,
     }
     targets = (
-        [args.subcommand] if args.subcommand != "all"
+        [args.subcommand]
+        if args.subcommand != "all"
         else [v for v in ("zenodo", "figshare", "osf") if cfg.venues.get(v, {}).get("enabled")]
     )
 
@@ -778,7 +796,9 @@ def main() -> int:
         if not cfg.venues.get(venue, {}).get("enabled", False):
             print(f"[{venue}] disabled in publish.yml — skipping")
             continue
-        env_var = {"zenodo": "ZENODO_TOKEN", "figshare": "FIGSHARE_TOKEN", "osf": "OSF_TOKEN"}[venue]
+        env_var = {"zenodo": "ZENODO_TOKEN", "figshare": "FIGSHARE_TOKEN", "osf": "OSF_TOKEN"}[
+            venue
+        ]
         if token_is_missing(env_var):
             print(
                 f"[{venue}] ⚠ skipped: {env_var} is placeholder/missing in .env — "

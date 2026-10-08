@@ -11,35 +11,43 @@ title: >-
   Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
   Response Prediction
 
-# One-paragraph description used as the abstract across all venues.
-# Last aligned 2026-09-24 to paper/paper.tex and paper/PREREGISTRATION.md
-# (v0.6.0 regeneration pending: hypotheses, not findings; no result values).
+# GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 description: |
   Multi-agent group-generation systems spend test-time compute uniformly
   across tasks. We ask whether the agents' own confidence-and-critique trace
-  predicts task difficulty. On a five-agent orchestrator for Perturb-seq
-  response prediction we define four compute-free trace metrics (Agent
-  Confidence Entropy, Critique Severity Dispersion, a convergence signal and
-  a Winner Flip Rate) and their composite Task Difficulty Index (TDI), and
-  pre-register five hypotheses with gates: attainable (oracle, best-of-54)
-  error on Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR
-  activation), the Architect agent's backbone-choice entropy over
-  LLM-sourced steps, the rank correlation of each TDI component with
-  held-out error, and cross-dataset transfer of a calibrated TDI. The design
-  is 41 held-out K562 tasks (21 Adamson; 15 Norman singletons and 5
-  doublets) drawn deterministically, a 54-configuration trainer sweep and
-  three agentic lifecycle runs per task in one process. The LLM condition is
-  a rotating pool of OpenRouter models whose serving model is recorded per
-  step; a run with any rule-based fallback step is invalid. Every run
-  records its git revision, resolved configuration, library versions,
-  dataset SHA-256 digests, task plan and label contract. Gate outcomes are
-  pending the v0.6.0 sweep. All values reported in the v0.5.0 release are
-  superseded; the manuscript lists the defect behind each.
+  predicts how hard a task is, which would let the compute be allocated
+  adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
+  response prediction inspired by CellForge and operated via MassGen, we
+  define four compute-free trace metrics — Agent Confidence Entropy (ACE),
+  Critique Severity Dispersion (CSD), a convergence signal (ΔC), and a Winner
+  Flip Rate (WFR) — and their composite, the Task Difficulty Index (TDI). We
+  pre-register five hypotheses with gates: attainable error on Adamson 2016
+  (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
+  agent's backbone-choice entropy, the rank correlation of each TDI component
+  with held-out error, and cross-dataset transfer of a calibrated TDI. The
+  design is 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman
+  doublets) drawn deterministically, a trainer sweep of 27 records per task
+  and three fixed-length agentic lifecycle runs per task, all in one process.
+  The LLM condition is a pinned roster of Anthropic Claude models (Haiku 4.5
+  for the four proposer roles, Sonnet 5.5 for the Validator) whose served
+  model is recorded and asserted per call; a run with any rule-based fallback
+  step is invalid. Every run records its git revision, resolved configuration,
+  library versions, dataset SHA-256 digests, task plan and label contract.
+  Gate outcomes: 4 of 5 gates pass; H5 fails (0 unevaluated) — the trainer
+  sweep attains the pre-registered error on both screens (H1, H2), the
+  Architect exercises its backbone choice (H3), and the confidence-drop
+  component and the composite rank tasks by held-out error within both screens
+  (H4); the Adamson-calibrated composite does not transfer to Norman at the
+  pre-registered level (H5, ρ = 0.286 against > 0.4). The confidence-entropy
+  point estimates run against the pre-registered direction in both screens
+  (exploratory; no claim is made). The values reported in the v0.5.0 release
+  of this work are superseded in full; the defects behind each are listed in
+  the appendix.
 
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
 creators:
-  - name: "Mo, Mangyin"
+  - name: "Mo, Mang-yin"
     affiliation: "Carnegie Mellon University"
     orcid: "0009-0009-5233-3142"
 
@@ -68,15 +76,23 @@ license: cc-by-4.0
 #   * modal_run_artifacts — JSON/JSONL inputs and regenerated PDF/PNG/HTML figures.
 #                           The `revision/` subdirectory has bootstrap CIs + γ_T.
 files:
+  # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
+  # gitignored, so the build is part of the deposit, not a precondition).
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "Peer-review-style manuscript: pre-registered hypotheses and gates; results pending the v0.6.0 regeneration."
+    description: "Manuscript with the v0.6.0 pre-registered results, built with tectonic from the landed sources; the build log is paper_build.log."
+  - path: build/deposit/paper_build.log
+    name: paper_build.log
+    description: "tectonic build log of paper.pdf (overfull/undefined-reference counts are in the log)."
+  - path: build/deposit/v060_run_artifacts
+    name: v060_run_artifacts.zip
+    description: "The pre-registered v0.6.0 run 20260929T035447Z-ce5f237 (git ce5f237, prereg_version v0.6.0-a4): trainer_runs.jsonl, lifecycle_runs.jsonl, provenance.json, summary.json, the run manifest and SHA256SUMS. Every result in paper.pdf is generated from these files."
   - path: docs
     name: supplement.zip
     description: "Supplement documentation (SUPPLEMENT.md, SUPPLEMENT_DESIGN.md, REVIEWER_CRITIQUE.md, THESIS.md, DESIGN.md, MODAL.md, PUBLICATION_CHECKLIST.md, INTERNAL_FOLLOWUP.md)."
   - path: artifacts/v0.5.0
     name: v050_run_artifacts.zip
-    description: "Superseded v0.5.0 sweep artifacts, kept as the record the manuscript's 'Corrections relative to v0.5.0' appendix refers to; not the source of any reported result."
+    description: "SUPERSEDED: the v0.5.0 sweep artifacts, superseded in full by the v0.6.0 run. Kept only as the record the manuscript's 'Corrections relative to v0.5.0' appendix cites; not the source of any reported result."
 
 # Per-venue configuration. Set enabled:false to skip.
 venues:
@@ -91,11 +107,16 @@ venues:
     # Related identifiers. Real URLs only — any "REPO/PATH"-style placeholder
     # makes it into the published Zenodo metadata if left unreplaced.
     related_identifiers:
+      # The code that produced this deposit (public repository).
       - identifier: "https://github.com/supmo668/bioFM"
-        relation: "isSupplementTo"
+        relation: "isSupplementedBy"
         scheme: "url"
+      # v0.6.0 is a NEW VERSION of the v0.5.x work, not identical to it.
+      - identifier: "10.5281/zenodo.20060974"
+        relation: "isNewVersionOf"
+        scheme: "doi"
       - identifier: "10.6084/m9.figshare.32086920"
-        relation: "isIdenticalTo"
+        relation: "isNewVersionOf"
         scheme: "doi"
 
   figshare:

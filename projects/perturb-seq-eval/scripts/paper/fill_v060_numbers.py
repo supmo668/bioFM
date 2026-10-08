@@ -42,7 +42,7 @@ SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /_]*")  # `_` is escaped at emissi
 ENSUREMATH_NEG = re.compile(
     r"\\ensuremath\{-\d+(\.\d+)?\}|\d{1,3}(\\,\d{3})+"
 )  # negatives; thin-space thousands
-VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}"}
+VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}", r"\textemdash"}
 
 
 def f(x, d: int = 3) -> str:
@@ -317,7 +317,7 @@ def build(
         for c in a["lock_commits"]:
             if not re.fullmatch(r"[0-9a-f]{7,40}", c):
                 raise ValueError(f"amendment {a['id']}: lock commit {c!r} is not a git sha")
-        m[f"Amend{word}Version"] = a["prereg_version"] or "(none)"
+        m[f"Amend{word}Version"] = a["prereg_version"] or r"\textemdash"  # A1 predates the tag
         m[f"Amend{word}Date"] = a["lock_date_utc"]
         m[f"Amend{word}Commit"] = ", ".join(a["lock_commits"])
         m[f"Amend{word}Note"] = a["lock_note"]

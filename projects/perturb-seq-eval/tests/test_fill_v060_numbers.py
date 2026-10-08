@@ -359,7 +359,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     for a in am:
         word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
-        expect[f"resAmend{word}Version"] = a["prereg_version"] or "(none)"
+        expect[f"resAmend{word}Version"] = a["prereg_version"] or r"\textemdash"
         expect[f"resAmend{word}Date"] = a["lock_date_utc"]
         expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
         expect[f"resAmend{word}Note"] = a["lock_note"]
