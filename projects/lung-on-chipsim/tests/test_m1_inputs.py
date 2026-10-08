@@ -306,3 +306,139 @@ def test_t21_strips_before_the_duplicate_check(tmp_path):
     path.write_text(yaml.safe_dump(doc))
     with pytest.raises(ReferenceCompoundError, match="repeats canonical_inchikey"):
         load_reference_compounds(path)
+
+
+# --------------------------------------------------------------------------- #
+# Sourcing worksheet · the "unbacked data cannot be used" rule, mechanized
+# --------------------------------------------------------------------------- #
+
+
+def _row(**kw):
+    base = {"field": "flow_ul_min", "needs": "x", "unit": "uL/min"}
+    base.update(kw)
+    return {"worksheet": {"theta": [base]}}
+
+
+def _write(tmp_path, doc):
+    path = tmp_path / "worksheet.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    return path
+
+
+def test_sourcing_accepts_an_empty_row():
+    """An unfinished worksheet is the honest state of work whose sources are unreachable.
+
+    Failing on it would push whoever holds it to fill the rows from whatever is to hand,
+    which is the outcome the whole rule exists to prevent.
+    """
+    from chipsim.transport.sourcing import load_sourcing_worksheet
+
+    path = (
+        PROJECT_ROOT.parent.parent
+        / "workstreams/lung-on-chipsim/experiment-setup/sourcing-worksheet.yaml"
+    )
+    w = load_sourcing_worksheet(path)
+    assert [r["field"] for r in w["theta"]] == list(FIELD_NAMES[:0]) + [
+        "flow_ul_min",
+        "membrane_um",
+        "porosity",
+        "strain_pct",
+        "area_mm2",
+        "coating",
+    ]
+    assert all(r.get("value") in (None, "") for rows in w.values() for r in rows)
+
+
+def test_sourcing_refuses_a_value_with_no_quote(tmp_path):
+    """The central rule: a row may be empty, but may not be filled without its backing."""
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(value=1.0, provenance="cited", doi="10.0000/x", doi_confirmed=True)
+    with pytest.raises(SourcingError, match="empty `quote`"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_refuses_a_value_with_no_doi(tmp_path):
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(value=1.0, provenance="cited", quote="the channel was perfused", doi_confirmed=True)
+    with pytest.raises(SourcingError, match="empty `doi`"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_refuses_an_unconfirmed_doi(tmp_path):
+    """A DOI from a search summary is the fabricated citation this project refuses."""
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(value=1.0, provenance="cited", quote="q", doi="10.0000/x")
+    with pytest.raises(SourcingError, match="doi_confirmed"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_refuses_a_filled_row_with_no_provenance_class(tmp_path):
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(value=1.0, quote="q", doi="10.0000/x", doi_confirmed=True)
+    with pytest.raises(SourcingError, match="must declare one of"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_requires_the_derivation_for_a_derived_value(tmp_path):
+    """The derived number appears in no source, so the arithmetic is all a reader can check."""
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(
+        value=0.4,
+        provenance="derived",
+        quote="pores were 10 um",
+        doi="10.0000/x",
+        doi_confirmed=True,
+    )
+    with pytest.raises(SourcingError, match="no `derivation`"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_requires_a_width_for_an_assumed_value(tmp_path):
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(value=0.4, provenance="assumed")
+    with pytest.raises(SourcingError, match="no `assumed_width`"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_refuses_an_assumed_value_that_quotes_a_source(tmp_path):
+    """Quoting a source for a value you are calling unsourced misrepresents both."""
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(value=0.4, provenance="assumed", assumed_width="0.3-0.5", quote="q")
+    with pytest.raises(SourcingError, match="carries a `quote`"):
+        load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+def test_sourcing_accepts_a_properly_backed_row(tmp_path):
+    from chipsim.transport.sourcing import completion_report, load_sourcing_worksheet
+
+    doc = _row(
+        value=1.0,
+        provenance="cited",
+        quote="FIXTURE: the channel was perfused at 1 unit per minute",
+        doi="10.0000/chipsim.fixture.sourcing",
+        doi_confirmed=True,
+    )
+    w = load_sourcing_worksheet(_write(tmp_path, doc))
+    assert completion_report(w)["theta"] == {
+        "rows": 1,
+        "filled": 1,
+        "empty": 0,
+        "cited": 1,
+        "derived": 0,
+        "assumed": 0,
+    }
+
+
+def test_sourcing_rejects_an_unknown_key(tmp_path):
+    from chipsim.transport.sourcing import SourcingError, load_sourcing_worksheet
+
+    doc = _row(valeu=1.0)
+    with pytest.raises(SourcingError, match="unknown key"):
+        load_sourcing_worksheet(_write(tmp_path, doc))

@@ -1,0 +1,196 @@
+# ============================================================================
+# M1 input sourcing worksheet — T20 (theta), T28 (transport prior), T21 (reference
+# compounds).
+#
+# EVERY `value` IS EMPTY, DELIBERATELY. On 2026-10-08 the principal authorised
+# agent-drafted-from-cited-sources for these inputs, under the principal's own
+# condition: "Unbacked data cannot be used and reference must be cited". The
+# primary sources could not be read in that session: this container's egress
+# policy answered 403 to CONNECT for pmc.ncbi.nlm.nih.gov,
+# pubchem.ncbi.nlm.nih.gov, doi.org, www.nature.com, pubs.rsc.org,
+# www.science.org, www.ebi.ac.uk and en.wikipedia.org. Web SEARCH worked, but a
+# search summary is a model's prose over snippets, not a page anybody read — and
+# a number taken from one cannot be quoted, its DOI cannot be confirmed, and the
+# authors' own figure cannot be told from a later paper's re-citation of it.
+#
+# So this file carries what an agent may legitimately produce without a fetched
+# page: the FIELD LIST, the UNITS, the DERIVATION FORMULAE, and the fetch queue
+# (which paper, and where inside it each number lives). Filling the values is a
+# mechanical job once a page can be opened.
+#
+# The rule, enforced by chipsim.transport.sourcing.load_sourcing_worksheet:
+#   a row may be EMPTY; a row may NOT carry a value without the quote behind it.
+#
+# `doi` fields below are UNCONFIRMED (doi_confirmed is unset on every row) —
+# they come from search summaries and must be resolved against a fetched page
+# before any value that cites them is admissible.
+# ============================================================================
+
+schema_version: 1
+recorded_on: "2026-10-08"
+recorded_by: "agent draft under the principal's 2026-10-08 instruction; no value filled"
+device: "Huh 2010 alveolar PDMS chip. Every theta row must come from that device or its
+  fabrication protocol (Huh 2013). The Benam 2016 airway chip has a RIGID polyester membrane and
+  no cyclic strain; commercial-era specs come from non-peer-reviewed sources and contradict Huh
+  2010 on membrane thickness. A merged theta would describe no real chip."
+contamination_warning: "During sourcing, the search relay repeatedly returned membrane and pore
+  geometry from gut-chip and kidney-chip PATENT embodiments in answer to lung-chip questions, and
+  twice volunteered a figure prefixed 'from memory'. Treat any candidate resembling those as
+  contaminated until read in a lung paper."
+egress_blocked:
+  - pmc.ncbi.nlm.nih.gov
+  - pubchem.ncbi.nlm.nih.gov
+  - doi.org
+  - www.nature.com
+  - pubs.rsc.org
+  - www.science.org
+  - www.ebi.ac.uk
+  - en.wikipedia.org
+
+worksheet:
+
+  # -- T20: the six theta fields the M1 fit reads ----------------------------
+  theta:
+    - field: flow_ul_min
+      needs: medium flow rate in the perfused channel
+      unit: uL/min
+      source: "Huh et al. 2010 Science 328(5986):1662-1668, and the fabrication detail in Huh et al. 2013 Nat Protoc 8:2135-2157"
+      doi: "10.1126/science.1188302"
+      target: "Science article page or its supplementary materials; Nature Protocols for the perfusion step"
+      locate: "methods / supplementary: perfusion rate, often stated in uL/h — convert and show the conversion"
+      note: "if the source states uL/h, provenance is `derived` with the conversion as the derivation (uL/min = uL/h / 60). NO candidate survived scrutiny in the 2026-10-08 search: every figure traced to a simulation input, a vendor blog, an air-channel flush that is not perfusion, or a different device. A quoted wall shear stress may be a better-constrained anchor if no flow rate is stated."
+      value:
+      provenance:
+      quote:
+
+    - field: membrane_um
+      needs: porous PDMS membrane thickness
+      unit: um
+      source: "Huh et al. 2013 Nat Protoc 8:2135-2157 (fabrication); cross-check Huh et al. 2010"
+      doi: "10.1038/nprot.2013.137"
+      target: "Nature Protocols article page; membrane fabrication section"
+      locate: "membrane casting / spin-coating step states the thickness directly"
+      value:
+      provenance:
+      quote:
+
+    - field: porosity
+      needs: membrane porosity as a fraction of open area
+      unit: fraction
+      source: "Huh et al. 2013 Nat Protoc 8:2135-2157 — expected to state pore diameter and spacing rather than porosity"
+      doi: "10.1038/nprot.2013.137"
+      target: "Nature Protocols; membrane fabrication / photolithography mask description"
+      locate: "pore diameter and pore pitch, plus the lattice arrangement (square vs hexagonal)"
+      derivation: "square lattice: porosity = pi*(d/2)^2 / pitch^2 ; hexagonal: porosity = (2*pi/sqrt(3))*(d/2)^2 / pitch^2 . Needs the lattice stated, not assumed: the two differ by ~15% for the same d and pitch."
+      note: "pore diameter is quoted for this device but NO pitch and NO lattice were found, so the formula has no input. The most likely correct entry is `assumed: true` with a stated width, which the scaffold supports as a stated gap the journal reports rather than an error. Pore-spacing figures circulating for gut-chip patents must not be substituted."
+      value:
+      provenance:
+      quote:
+
+    - field: strain_pct
+      needs: cyclic strain amplitude applied to the membrane, with its frequency
+      unit: percent
+      source: "Huh et al. 2010 Science 328(5986):1662-1668 (physiological breathing strain and frequency)"
+      doi: "10.1126/science.1188302"
+      target: "Science article page; the cyclic stretch characterisation"
+      locate: "stretch applied to mimic breathing, stated as % strain at a stated Hz or breaths/min"
+      note: "the frequency belongs in the design document even though the schema field carries only the amplitude"
+      value:
+      provenance:
+      quote:
+
+    - field: area_mm2
+      needs: membrane exchange area between the two channels
+      unit: mm^2
+      source: "Huh et al. 2013 Nat Protoc 8:2135-2157 (channel geometry)"
+      doi: "10.1038/nprot.2013.137"
+      target: "Nature Protocols; device layout / mould dimensions"
+      locate: "channel width and the length of the overlapping region of the two channels"
+      derivation: "area_mm2 = channel_width_mm * overlap_length_mm (rectangular overlap). Both inputs must be quoted; the product appears in no source."
+      note: "some protocol papers state the culture area directly — if so, provenance is `cited`, not `derived`"
+      value:
+      provenance:
+      quote:
+
+    - field: coating
+      needs: the ECM coating on the membrane, named as the source names it
+      unit: categorical
+      source: "Huh et al. 2013 Nat Protoc 8:2135-2157 (surface activation and coating step)"
+      doi: "10.1038/nprot.2013.137"
+      target: "Nature Protocols; membrane coating step"
+      locate: "the ECM substance and concentration applied before seeding; record the collagen type if one is given"
+      note: "this field is a NAME, not a measurement; the concentration goes in the design document. Huh 2010 is expected to name the ECM only generically; concentration figures circulating for other organ chips must not be attached to it."
+      value:
+      provenance:
+      quote:
+
+  # -- T28: the (alpha, k_sink) log-normal prior -----------------------------
+  transport_prior:
+    - field: alpha_prior.mean_log
+      needs: centre of a log-normal prior on the transport scaling term
+      unit: log(cm/s)
+      source: "on-chip apparent-permeability measurements; see the fetch queue in experimental-design.md"
+      target: "chip/microphysiological-system permeability papers, NOT Transwell"
+      locate: "the Papp table or the per-compound values in the results"
+      derivation: "mean_log = mean of ln(Papp) over the quoted on-chip values; state n and list every value used"
+      note: "Papp is not alpha. The design document must state the mapping from an apparent permeability to the model's scaling term before this is filled, or the prior centres the wrong quantity."
+      value:
+      provenance:
+      quote:
+
+    - field: alpha_prior.sigma_log
+      needs: width of that prior
+      unit: log units
+      source: same as alpha_prior.mean_log
+      target: same
+      locate: same
+      derivation: "sigma_log from the spread of ln(Papp) across the quoted values; treating min-max as a 95% interval divides the log-range by 3.92. Widen deliberately: a handful of papers understates the population spread, and the published values span multiple device types."
+      value:
+      provenance:
+      quote:
+
+    - field: k_sink_prior.mean_log
+      needs: centre of a log-normal prior on the first-order loss rate
+      unit: log(1/h)
+      source: "PDMS small-molecule absorption measurements; see the fetch queue"
+      target: "PDMS-absorption papers reporting fraction lost at a stated time"
+      locate: "per-compound percentage absorbed, usually in a figure rather than a table"
+      derivation: "sources report a FRACTION at a time, not a rate: k = -ln(1 - f_lost)/t . This assumes single-exponential loss."
+      note: "CAVEAT, decide before filling: PDMS uptake is commonly saturable as the bulk polymer equilibrates, and at least one source reports absorption that is variable and time-dependent. If loss is not single-exponential, a single k_sink is misspecified and these are effective rates over the measurement window only, not transferable constants. Record that as a stated limitation or change the model."
+      value:
+      provenance:
+      quote:
+
+    - field: k_sink_prior.sigma_log
+      needs: width of that prior
+      unit: log units
+      source: same as k_sink_prior.mean_log
+      target: same
+      locate: same
+      derivation: "from the spread of ln(k) across the converted values, as above"
+      note: "at least one reported compound showed no detectable loss versus a non-absorbing control. A log-normal cannot reach zero, so the left tail must be deliberately generous — that is an argument for a wider sigma than the data's own spread, and it belongs in the design document."
+      value:
+      provenance:
+      quote:
+
+  # -- T21: 3-8 reference compounds with a published on-chip measurement -----
+  reference_compounds:
+    - field: candidate_1.identity
+      needs: compound name, PubChem CID and InChIKey, read off a PubChem page
+      unit: identifier
+      target: "pubchem.ncbi.nlm.nih.gov — BLOCKED in this session"
+      locate: "the compound's PubChem record"
+      note: "an InChIKey is an opaque 27-character string and is the project's join key; it is never written from memory. This row stays empty until PubChem can be opened."
+      value:
+      provenance:
+      quote:
+
+    - field: candidate_1.published_transport_value
+      needs: the published on-chip transport or permeability measurement
+      unit: as published
+      target: "the paper that measured it, on a chip or microphysiological system"
+      locate: "the results table or per-compound figure"
+      note: "T21's set is an INDEPENDENT yardstick (plan scope note): a static Transwell or 3D-model value does not qualify, however convenient. One identified cross-platform comparison suggests the same compound differs substantially between a chip and a static 3D model, so mixing platforms would import that spread into the gate."
+      value:
+      provenance:
+      quote:

@@ -99,13 +99,42 @@ with done-conditions a human can refuse, and stopped. It carries one open method
 for the principal: whether the sealed allocation seals record *identities* or record *slots*.
 Only slots are consistent with sealing before any record is read.
 
+## Update 2026-10-08: tests green, and the inputs could not be sourced
+
+> **Tests and CI: resolved.** The offline suite is green for the first time on this branch — **447 passed, 0 failed, 5 skipped**. The three failures it carried were fixed at their causes, not suppressed: the manifest test now skips only when the snapshot is unfetched and still fails when a payload is present without its manifest; the vendoring allow-list names `data/raw/sources.yaml`, the principal-approved release-provenance record it had been flagging as redistributed DrugBank for three weeks; and the panel test was replaced by the attribution check its own docstring asked for once a human ratified. CI now gates on the whole offline suite.
+
+> **The six θ fields are NOT filled, under the principal's own condition.** The instruction of 2026-10-08 authorised agent-drafted-from-cited-sources, with the condition *"Unbacked data cannot be used and reference must be cited"*. No primary source could be read: this container's egress policy answered **403 to CONNECT** for `pmc.ncbi.nlm.nih.gov`, `pubchem.ncbi.nlm.nih.gov`, `doi.org`, `www.nature.com`, `pubs.rsc.org`, `www.science.org`, `www.ebi.ac.uk` and `en.wikipedia.org`. Web search worked; a search summary is a model's prose over snippets, from which no sentence can be quoted, no DOI confirmed, and no figure read. Writing values from it would have produced exactly the fabricated citation this project is built to refuse.
+
+> **The sourcing attempt produced the fabrication failure live, which settled the question.** The search relay repeatedly returned membrane and pore geometry from **gut-chip and kidney-chip patent embodiments** in answer to lung-chip questions, and twice volunteered a figure prefixed *"from memory"*. Separately it surfaced four lung chips whose numbers are routinely quoted together but are not interchangeable — one has a rigid polyester membrane and no cyclic strain, and the commercial-era figures come from a vendor FAQ and contradict the primary paper by roughly fivefold.
+
+### What was built instead
+
+| Artifact | What it does |
+|---|---|
+| `chipsim/transport/sourcing.py` | the intake rule, mechanized: **a row may be empty; a row may not carry a value without its verbatim quote, its DOI, and a confirmed-DOI flag.** `derived` additionally needs its formula; `assumed` needs a width and must not quote a source |
+| `sourcing-worksheet.yaml` | six θ rows, four prior rows, the reference-compound slots — every value empty, each carrying its extraction target, the paper, where inside it the number lives, and the derivation formula where one applies |
+| `experimental-design.md` | the design: the two-compartment model, which field feeds which term, which device θ describes and why that had to be settled first, three supported approximations with their formulae, two caveats that change the model rather than the numbers, and the bibliography marked unverified throughout |
+| `chipsim sourcing-check` | reports how much of the worksheet is backed; exits non-zero only on a value that cannot back itself |
+| 10 new tests | each refusal is a test that can fail |
+
+### Two caveats that change the model, not just the numbers
+
+- **PDMS loss is probably not first-order.** Uptake into bulk polymer is typically saturable. If it is, a single `k_sink` is misspecified and any converted rate is an effective value over one measurement window, not a transferable constant. A decision before the prior is fixed, with three stated options in the design.
+- **A log-normal cannot represent "no measurable loss".** At least one compound in the identified literature showed none. A log-normal has no mass at zero, so the left tail must be deliberately generous — a better argument for a wide prior than convention.
+
+### The unblock, two ways
+
+Allow egress for the six publisher and identity hosts, **or** drop the PDFs into the repository and no firewall change is needed. Three of the four key documents have an open-access route; the fourth, holding `flow_ul_min` and `area_mm2`, may need a subscription. Nothing else in the chain is waiting.
+
 ## Measured
 
 | | Value | Kind |
 |---|---|---|
-| New tests, all passing | 45 (31 contract + 14 fixture-registry) | **measured 2026-10-04** |
-| Offline suite | 434 passed / 3 failed / 4 skipped / 30 deselected | **measured 2026-10-04** |
-| Pre-existing failures, unchanged by this work | 3 (two need the DVC payload on disk; one is the human panel ratification of 2026-09-12 outrunning its own test) | measured before and after |
+| New tests, all passing | 55 (41 contract + 14 fixture-registry) | **measured 2026-10-08** |
+| Offline suite | **447 passed / 0 failed / 5 skipped / 30 deselected** | **measured 2026-10-08**; was 434/3 on 10-04 |
+| Pre-existing failures | **0** — all three resolved at their causes 2026-10-08 | **measured 2026-10-08** |
+| θ fields filled with a cited value | **0 of 6** — no primary source was readable; 8 hosts returned 403 to CONNECT | **measured 2026-10-08** |
+| Worksheet rows carrying an unbacked value | **0** — the validator refuses them, and none was written | **measured 2026-10-08** |
 | Lint and type check | `ruff check`, `ruff format --check`, `ty check` all clean | **measured 2026-10-04** |
 | Biological numbers written by an agent | 0 | the standing constraint, now enforced by three validators |
 | Numeric values in either scaffold | 0 | asserted in CI, not just in a test |

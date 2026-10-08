@@ -65,6 +65,7 @@ NON_ETL_SUBCOMMANDS = (
     "theta-check",
     "transport-prior-check",
     "reference-compounds-check",
+    "sourcing-check",
 )
 
 MODULE_PATH = "chipsim.pipeline"
@@ -344,6 +345,34 @@ def _cmd_transport_prior_check(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_sourcing_check(ns: argparse.Namespace) -> int:
+    """Validate an M1 input sourcing worksheet and report how much of it is backed.
+
+    Exits non-zero only when a row carries a value it cannot back. An unfinished
+    worksheet exits 0: the honest state of work whose sources are unreachable is not a
+    failure, and failing it would push whoever holds it to fill the rows from memory.
+    """
+    from chipsim.transport.sourcing import (
+        SourcingError,
+        completion_report,
+        load_sourcing_worksheet,
+    )
+
+    try:
+        worksheet = load_sourcing_worksheet(ns.worksheet)
+    except SourcingError as exc:
+        print(f"sourcing worksheet REFUSED: {exc}")
+        return 1
+    print(f"sourcing worksheet accepted: {ns.worksheet}")
+    for group, counts in completion_report(worksheet).items():
+        print(
+            f"  {group}: {counts['filled']}/{counts['rows']} backed "
+            f"(cited {counts['cited']}, derived {counts['derived']}, "
+            f"assumed {counts['assumed']}, empty {counts['empty']})"
+        )
+    return 0
+
+
 def _cmd_reference_compounds_check(ns: argparse.Namespace) -> int:
     from chipsim.harmonize.reference_compounds import (
         ReferenceCompoundError,
@@ -374,6 +403,7 @@ _HANDLERS = {
     "theta-check": _cmd_theta_check,
     "transport-prior-check": _cmd_transport_prior_check,
     "reference-compounds-check": _cmd_reference_compounds_check,
+    "sourcing-check": _cmd_sourcing_check,
 }
 
 
@@ -467,6 +497,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="validate T21's M1 reference-compound file (read-only)",
     )
     p.add_argument("--reference", required=True, type=Path)
+
+    p = sub.add_parser(
+        "sourcing-check",
+        help="validate an M1 input sourcing worksheet: no value without its quote",
+        description=(
+            "Check a literature-sourcing worksheet for the M1 inputs.\n\n"
+            "A row may be EMPTY; a row may NOT carry a value without the verbatim quote, "
+            "the DOI and a confirmed-DOI flag behind it (principal, 2026-10-08: unbacked "
+            "data cannot be used). A `derived` value additionally needs its formula, and "
+            "an `assumed` one needs a stated width and must NOT quote a source.\n\n"
+            "An unfinished worksheet exits 0 and prints how much is backed."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("--worksheet", required=True, type=Path)
 
     return ap
 
