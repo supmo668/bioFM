@@ -68,7 +68,10 @@ def render() -> str:
 
 
 def _block(text: str, indent: str) -> list[str]:
-    return [indent + line for line in textwrap.wrap(text, width=76)]
+    return [
+        indent + line
+        for line in textwrap.wrap(text, width=76, break_on_hyphens=False, break_long_words=False)
+    ]
 
 
 def _replace_block(lines: list[str], key: str, text: str, indent: str, head: str) -> list[str]:

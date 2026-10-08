@@ -31,6 +31,9 @@ def stage_run_artifacts(out: Path = OUT) -> Path:
     dst.mkdir(parents=True)
     srcs = [PROJECT_ROOT / "artifacts" / "v0.6.0" / n for n in RUN_FILES]
     srcs.append(PROJECT_ROOT / "configs" / "runs" / f"{RUN_ID}.json")
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, capture_output=True, text=True, check=False
+    ).stdout.strip()
     sums = []
     for s in srcs:
         if not s.exists():
@@ -38,6 +41,7 @@ def stage_run_artifacts(out: Path = OUT) -> Path:
         shutil.copy2(s, dst / s.name)
         sums.append(f"{hashlib.sha256(s.read_bytes()).hexdigest()}  {s.name}")
     (dst / "SHA256SUMS").write_text("\n".join(sums) + "\n")
+    (dst / "BUILD_INFO").write_text(f"staged from git {head}; run {RUN_ID}\n")
     return dst
 
 
@@ -48,6 +52,22 @@ def build_pdf(out: Path = OUT) -> Path:
             "tectonic not found on PATH; the deposit needs paper.pdf built from the sources"
         )
     paper = PROJECT_ROOT / "paper"
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain", "--", "paper", "scripts/paper", "artifacts/v0.6.0"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    if dirty:
+        raise RuntimeError(
+            f"paper sources are not committed; paper.pdf must be built from landed sources:\n{dirty}"
+        )
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, capture_output=True, text=True, check=True
+    ).stdout.strip()
+    for stale in ("paper.pdf", "paper.log"):
+        (paper / stale).unlink(missing_ok=True)
     r = subprocess.run(
         [tectonic, "--keep-logs", "paper.tex"],
         cwd=paper,
@@ -57,8 +77,9 @@ def build_pdf(out: Path = OUT) -> Path:
     )
     out.mkdir(parents=True, exist_ok=True)
     log = out / "paper_build.log"
+    body = (paper / "paper.log").read_text() if (paper / "paper.log").exists() else ""
     log.write_text(
-        (paper / "paper.log").read_text() if (paper / "paper.log").exists() else r.stdout + r.stderr
+        f"% built from git {head}\n{body}\n% tectonic stdout/stderr:\n{r.stdout}{r.stderr}"
     )
     if r.returncode != 0 or not (paper / "paper.pdf").exists():
         raise RuntimeError(f"tectonic failed (exit {r.returncode}); see {log}")
