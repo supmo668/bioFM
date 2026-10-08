@@ -44,7 +44,7 @@ authors:
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
-version: "0.5.1"
+version: "0.6.0"  # date-released and the new DOIs are set at deposit time (publish.yml sequence)
 date-released: "2026-04-24"
 license: "Apache-2.0"
 # Concept DOI — always resolves to the latest Zenodo version. Lineage:
@@ -59,7 +59,7 @@ doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.19716140"
-    description: "Zenodo concept DOI (resolves to latest version — v4 in v0.5.1)"
+    description: "Zenodo concept DOI (resolves to the latest version)"
   - type: doi
     value: "10.5281/zenodo.20060974"
     description: "Zenodo v4 (v0.5.1 — synthetic claims fully retracted, CI guardrail added)"
@@ -74,16 +74,16 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare (mirror for supplement + artefacts; paper.pdf updated in-place to v0.5.1)"
+    description: "Figshare article (versioned; v5 = v0.5.1)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:
   - perturb-seq
-  - Bayesian optimization
-  - contextual bandit
-  - multi-agent LLM
+  - task difficulty
+  - single-cell
+  - multi-agent
   - test-time compute
-  - biological foundation model
+  - CRISPR interference
   - pre-registration
   - Adamson 2016
   - CellForge
@@ -132,7 +132,7 @@ references:
     year: 2008
     journal: "Journal of Machine Learning Research"
     volume: 9
-    notes: "greedy max-information-gain used for γ_T estimation"
+    notes: "background for the repository optimizer code (v0.4-era); not used in the v0.6.0 study"
   - type: article
     authors:
       - family-names: "Hansen"
@@ -154,7 +154,7 @@ references:
     title: "Transfer learning enables predictions in network biology"
     year: 2023
     journal: "Nature"
-    notes: "Geneformer; used as the Validator BioFM tool"
+    notes: "Geneformer; cited as related work -- no pretrained foundation model is evaluated in v0.6.0"
   - type: article
     authors:
       - family-names: "Luo"
@@ -162,7 +162,7 @@ references:
     title: "BioGPT: generative pre-trained transformer for biomedical text generation and mining"
     year: 2022
     journal: "Briefings in Bioinformatics"
-    notes: "BioGPT; used as the Literature BioFM tool"
+    notes: "BioGPT; used only in the superseded v0.5 condition"
   - type: article
     authors:
       - family-names: "Lotfollahi"

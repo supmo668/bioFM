@@ -2,9 +2,12 @@
 #
 # Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
 # script never writes to this file — DOIs and deposition IDs go into
-# `publish.state.json` (gitignored) so this stays clean.
+# `publish.state.json` (tracked: it is the deposit-lineage record) so this stays clean.
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
+
+# Version of the deposited work (sent to Zenodo as the record's version).
+version: "0.6.0"
 
 title: >-
   Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
@@ -53,11 +56,11 @@ creators:
 
 keywords:
   - perturb-seq
-  - Bayesian optimization
-  - contextual bandit
-  - multi-agent LLM
+  - task difficulty
+  - single-cell
+  - multi-agent
   - test-time compute
-  - biological foundation model
+  - CRISPR interference
   - pre-registration
   - provenance
 
@@ -65,16 +68,15 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Files to upload. Paths are relative to the project root (`projects/perturb-seq-eval/`).
-# Directories are auto-zipped by scripts/publish/submit_to_venues.py.
-#
-# Bundle rationale (see research/PUBLISHING_RUNBOOK.md §2.5):
-#   * paper.pdf           — the peer-review-style manuscript.
-#   * supplement.zip      — the Adamson + revision-pass journal docs (all `docs/`
-#                           Markdown + cross-referenced README). The SUPPLEMENT.md
-#                           here is the reviewer-facing reproduction + results artifact.
-#   * modal_run_artifacts — JSON/JSONL inputs and regenerated PDF/PNG/HTML figures.
-#                           The `revision/` subdirectory has bootstrap CIs + γ_T.
+# Deposit-time sequence (both venues already hold PUBLISHED v0.5.x records; the submitters
+# refuse to upload into a published record, see PublishedRecordError):
+#   1. python scripts/publish/build_deposit.py   (clean tree; builds paper.pdf + log, stages the run)
+#   2. Zenodo: POST /deposit/depositions/20060974/actions/newversion (v4 = latest under the
+#      concept DOI 10.5281/zenodo.19716140); record the draft id + links.bucket in
+#      publish.state.json with zenodo.published=false; delete the files the draft inherits.
+#   3. Figshare: update article 32086920's metadata (title, description, authors), delete the
+#      v0.5 files, then publish -> it becomes version 6 of the article.
+#   4. Set CITATION.cff version/date-released and add the new DOIs; principal approves the publish.
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
   # gitignored, so the build is part of the deposit, not a precondition).
@@ -89,7 +91,7 @@ files:
     description: "The pre-registered v0.6.0 run 20260929T035447Z-ce5f237 (git ce5f237, prereg_version v0.6.0-a4): trainer_runs.jsonl, lifecycle_runs.jsonl, provenance.json, summary.json, the run manifest and SHA256SUMS. Every result in paper.pdf is generated from these files."
   - path: docs
     name: supplement.zip
-    description: "Supplement documentation (SUPPLEMENT.md, SUPPLEMENT_DESIGN.md, REVIEWER_CRITIQUE.md, THESIS.md, DESIGN.md, MODAL.md, PUBLICATION_CHECKLIST.md, INTERNAL_FOLLOWUP.md)."
+    description: "SUPERSEDED: v0.5-era design and supplement documentation (docs/), kept for the record. It describes the earlier OpenRouter condition and the best-of-54 grid; it is not the source of any v0.6.0 result -- paper.pdf and v060_run_artifacts.zip are."
   - path: artifacts/v0.5.0
     name: v050_run_artifacts.zip
     description: "SUPERSEDED: the v0.5.0 sweep artifacts, superseded in full by the v0.6.0 run. Kept only as the record the manuscript's 'Corrections relative to v0.5.0' appendix cites; not the source of any reported result."
@@ -107,15 +109,15 @@ venues:
     # Related identifiers. Real URLs only — any "REPO/PATH"-style placeholder
     # makes it into the published Zenodo metadata if left unreplaced.
     related_identifiers:
-      # The code that produced this deposit (public repository).
-      - identifier: "https://github.com/supmo668/bioFM"
+      # The code that produced the run (pinned to the run's git sha ce5f237).
+      - identifier: "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
         relation: "isSupplementedBy"
         scheme: "url"
       # v0.6.0 is a NEW VERSION of the v0.5.x work, not identical to it.
       - identifier: "10.5281/zenodo.20060974"
         relation: "isNewVersionOf"
         scheme: "doi"
-      - identifier: "10.6084/m9.figshare.32086920"
+      - identifier: "10.6084/m9.figshare.32086920.v5"
         relation: "isNewVersionOf"
         scheme: "doi"
 
