@@ -114,6 +114,7 @@ class PublishConfig:
     files: list[dict]
     venues: dict
     root: Path
+    version: str = ""
 
     @classmethod
     def load(cls, path: Path) -> "PublishConfig":
@@ -129,7 +130,12 @@ class PublishConfig:
             files=raw.get("files", []),
             venues=raw.get("venues", {}),
             root=root,
+            version=str(raw.get("version", "")),
         )
+
+
+class PublishedRecordError(RuntimeError):
+    """A venue's record is already published; a new release must be a new version."""
 
 
 class State:
@@ -236,9 +242,12 @@ class ZenodoSubmitter:
             # new release must be a NEW VERSION created from the latest version
             # (POST .../actions/newversion) under the same concept DOI. Fail closed rather
             # than PUT into a locked bucket or overwrite the published record's metadata.
-            raise RuntimeError(
-                f"zenodo deposit {dep_id} is already published; create a new version from the "
-                "latest version (actions/newversion) and record its draft id in publish.state.json"
+            raise PublishedRecordError(
+                f"zenodo deposit {dep_id} is already published. A new release is a NEW VERSION: "
+                "POST actions/newversion on the LATEST published version (see publish.yml, "
+                "'Deposit-time sequence'), then record the new draft's id AND links.bucket in "
+                "publish.state.json and set zenodo.published to false; delete the files the draft "
+                "inherits before uploading."
             )
         if dep_id is None:
             r = requests.post(
@@ -287,6 +296,7 @@ class ZenodoSubmitter:
                 "license": self.cfg.license.replace("_", "-"),
                 "access_right": "open",
                 "related_identifiers": self.vcfg.get("related_identifiers", []),
+                **({"version": self.cfg.version} if self.cfg.version else {}),
                 "communities": [{"identifier": c} for c in self.vcfg.get("communities", [])],
             }
         }
@@ -341,6 +351,16 @@ class FigshareSubmitter:
 
     def submit(self, files: list[dict]) -> str:
         art_id = self.state.get("figshare", "article_id")
+        if art_id is not None and self.state.get("figshare", "published"):
+            # Uploading into a published article adds the new files BESIDE the old ones and
+            # republishes the article in place without updating its title, description or
+            # authors -- the new release would carry the previous version's metadata. Fail
+            # closed until the deposit-time sequence (publish.yml) is followed.
+            raise PublishedRecordError(
+                f"figshare article {art_id} is already published. Follow the deposit-time sequence "
+                "in publish.yml (update metadata, replace same-name files, then publish a new "
+                "version) instead of uploading into it."
+            )
         if art_id is None:
             payload = {
                 "title": self.cfg.title,
@@ -808,7 +828,7 @@ def main() -> int:
         submitter = submitters[venue](cfg, state, dry_run=args.dry_run)
         try:
             submitter.submit(files)
-        except requests.HTTPError as exc:
+        except (requests.HTTPError, PublishedRecordError) as exc:
             print(f"[{venue}] FAILED: {exc}", file=sys.stderr)
             errors += 1
 
