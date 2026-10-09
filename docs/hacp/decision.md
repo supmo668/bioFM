@@ -6,13 +6,19 @@
 
 | # | Decision | Since | What unblocks |
 |---|---|---|---|
-| 1 | Type `/airdlc:pr-cto-land aviary-biosim --no-release` (CTO-only skill; the model cannot invoke it) | 2026-09-26 | F08 lands; `master-updated` reaches the agent; the white paper branch merges main |
-| 2 | Relaunch `aviary-biosim`, then `perturb-seq-eval`, under airdlc 0.71.0 | 2026-09-28 | Task 13 boundary; the perturb sweep |
+| 1 | perturb-seq-eval deposit — the explicit go to submit to Zenodo/Figshare | 2026-10-08 | the prepared deposit (`5407606`) is submitted, after the S1 amendment |
+| 2 | D3 — white-paper evidence `git_sha` predates the script edits | 2026-10-08 | the evidence set's provenance matches the scripts that produced it |
+| 3 | D18 — no frozen snapshot of the white paper (CTO prepares, principal decides) | 2026-10-08 | a citable, immutable state for the deposit |
 
 ## Resolved (kept, dated)
 
 | Decision | Ruling | Date |
 |---|---|---|
+| A7 publication-rigour review of the white paper (Aviary-BioSim#2) | go — the CTO runs it before the draft merges | 2026-10-09 |
+| perturb-seq-eval S1 (`llm_key_source` in the deposit) | "Remove it everywhere, amend the hash" — drop it from repo and staged copies, re-derive the manifest hash, record a dated amendment | 2026-10-08 |
+| perturb-seq-eval deposit timing | "Hold for my explicit go" — nothing is submitted until a separate message | 2026-10-08 |
+| lung-on-chipsim Stage 1 | archive the branch with the record preserved on main | 2026-10-01 |
+| Land F08 (aviary-biosim) | landed `--no-release`, Aviary-BioSim `main` @ `301e7fc6`; agents relaunched under airdlc | 2026-09-28 / 2026-09-30 |
 | perturb-seq-eval P0–P5 rulings + A2-10/A2-11 | adopted; amendment 2 locked `3bf2a9a` | 2026-09-26 |
 | F33 input identifier | open publication, scoped to `paper/evidence/` + methods | 2026-09-28 |
 | Author block | Mang-yin Mo · mangyinm@alumni.cmu.edu · independent researcher · ORCID on file | 2026-09-28 |

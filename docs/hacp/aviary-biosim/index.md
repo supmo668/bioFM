@@ -9,7 +9,7 @@
 |---|---|
 | **Project** | `aviary-biosim` — the public Aviary-BioSim submodule (`projects/aviary-biosim`): the `v2r-loop` build loop, the `BioSimEnv` protein-model environment built under it, and the white paper about both |
 | **This page** | The bioFM-side index for that work. One screen; it lists the documents that live in *this* repository. The submodule's own documentation is indexed under its own project, `aviary-biosim` |
-| **Verdict** | **Delivered and landed.** Aviary-BioSim PR #1 merged to `main` at `301e7fc6` (2026-09-28, no release). The white paper is at Task 13 of 15: its boundary gate is owed, then the CTO's claims review, then the deposit |
+| **Verdict** | **Delivered and landed.** Aviary-BioSim PR #1 merged to `main` at `301e7fc6` (2026-09-28, no release). The white paper's Task 13 gate closed (receipt `2a9b966`, verified 2026-10-08) and it is a draft PR, [Aviary-BioSim#2](https://github.com/supmo668/Aviary-BioSim/pull/2); the CTO's A7 rigour review is in progress (principal go 2026-10-09), then the deposit |
 | **Protocol** | HACP (`REFERENCE-HACP.md`, shipped with the airdlc plugin). The bioFM-level sections are [`../build.md`](../build.md) … [`../decision.md`](../decision.md) |
 | **Public** | The submodule is public. This page names no sequence identifier and no secret |
 
@@ -25,7 +25,7 @@
 | Branch | At | State |
 |---|---|---|
 | `aviary-biosim` | `ab8f6f5` | landed into Aviary-BioSim `main` @ `301e7fc6`; remote branch kept until `whitepaper` is retired |
-| `whitepaper` | local, not pushed | plan #272 r2; Tasks 0–12 done; author block, F33 methods and plugin-rename sentence applied 2026-09-29/30; suites re-measured 2026-09-30 (429 green, 48/48 mutants); Task 13 gate owed |
+| `whitepaper` | `c66e64c`, pushed 2026-10-08 | plan #272 r2; Tasks 0–13 done; pr-prep gate closed (receipt `2a9b966`); draft PR #2, not merged until A7 closes |
 
 ## The applied context — what the environment was built to find out
 

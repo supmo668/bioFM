@@ -16,12 +16,12 @@
 |---|---|---|
 | [`§vision`](vision.md) | three workstreams, no PVR for perturb-seq-eval (requirements came from a review) | 3 |
 | [`§design`](design.md) | A&Ds approved for all three; lung-on-chipsim's Stage 1 registered-report design written | 3 A&D + 1 paper design |
-| [`§build`](build.md) | aviary-biosim land-ready + white paper Tasks 0–12; lung-on-chipsim E-23 closed at gate 9 (fail, by the time box); Stage 1 registered report open; perturb-seq-eval amendment 2 locked, sweep on standing GO | 3 in flight |
-| [`§eval`](eval.md) | aviary-biosim receipt `4217902` verified; perturb-seq-eval v0.6.0 gates 4/5 PASS (H5 FAIL) with a result-review row; lung-on-chipsim 0 results by design (evaluator not yet frozen) | 3 receipts, 1 result review, 1 blocked input |
+| [`§build`](build.md) | aviary-biosim F08 landed; white paper pushed (`c66e64c`), draft PR Aviary-BioSim#2, CTO A7 rigour review in progress; perturb-seq-eval v0.6.0 landed, deposit prepared and held; lung-on-chipsim Stage 1 closed and archived, Stage 2 build phase ruled 2026-10-04 (M1 input contracts on an unmerged branch) | 3 in flight |
+| [`§eval`](eval.md) | aviary-biosim receipts `4217902` (F08) and `2a9b966` (white paper) verified; perturb-seq-eval v0.6.0 gates 4/5 PASS (H5 FAIL) with a result-review row, deposit-prep receipted; lung-on-chipsim final gate FAIL, no receipt, 0 results by design | 4 receipts, 1 result review, 1 closed without receipt |
 | [`§risk`](risk.md) | evidence-integrity finding (seeded run state), unpinned prompts, held F31, unfrozen evaluator | 4 project-level |
-| [`§decision`](decision.md) | 2 principal actions open (both keyboard, not judgement) | 2 |
+| [`§decision`](decision.md) | 3 principal items open: the deposit go, D3 evidence `git_sha`, D18 frozen snapshot | 3 |
 
-**TL;DR** — Three research workstreams run under one rule: no boundary is claimed without a receipt a third party can verify, and no plan runs unsigned. aviary-biosim is one typed command from landing and its white paper is at Task 13 of 15; lung-on-chipsim is on its 49th plan revision building a content guard whose own blind spots are measured; perturb-seq-eval's pre-registration amendment 2 is locked and its sweep is authorised.
+**TL;DR** — Three research workstreams run under one rule: no boundary is claimed without a receipt a third party can verify, and no plan runs unsigned. aviary-biosim's build landed and its white paper is a draft PR under the CTO's A7 rigour review (approved 2026-10-09); perturb-seq-eval's v0.6.0 result landed (4/5 pre-registered gates) and its deposit is prepared but held for the principal's explicit go; lung-on-chipsim closed Stage 1 at a failed final gate (record preserved on main) and is in its Stage 2 build phase, where what remains is human-written scientific input.
 
 ## Where it sits
 
@@ -33,8 +33,8 @@ flowchart LR
   P["Principal<br/><small>signs plans · rules on measurands</small>"]:::quiet
   C["CTO<br/><small>main · lands · signs · writes Notion</small>"]:::trust
   A["aviary-biosim<br/><small>public submodule · white paper</small>"]:::live
-  L["lung-on-chipsim<br/><small>E-23 closed at gate 9 · Stage 1 open</small>"]:::live
-  Q["perturb-seq-eval<br/><small>amendment 2 locked · sweep GO</small>"]:::live
+  L["lung-on-chipsim<br/><small>Stage 1 closed · Stage 2 build</small>"]:::live
+  Q["perturb-seq-eval<br/><small>v0.6.0 landed · deposit held</small>"]:::live
   G["Gates<br/><small>plan-gate · QGR receipts · sealed referee</small>"]:::trust
   N["HACP index<br/><small>this page + Notion mirror</small>"]:::quiet
   P -->|"directs, approves"| C
@@ -60,8 +60,9 @@ flowchart LR
 
 ## Decisions needed
 
-- **Land F08** *(since 2026-09-26)* — the principal types `/airdlc:pr-cto-land aviary-biosim --no-release`; the CTO cannot invoke it. Preflight green.
-- **Relaunch two agents under airdlc** *(since 2026-09-28)* — aviary-biosim (Task 13 owed), then perturb-seq-eval (sweep). lung-on-chipsim is live.
+- **perturb-seq-eval deposit** *(since 2026-10-08)* — prepared (`5407606`, nothing submitted); nothing reaches Zenodo/Figshare until the principal's explicit go. The S1 ruling (remove `llm_key_source` everywhere, amend the manifest hash) is applied first.
+- **D3 — white-paper evidence `git_sha` predates script edits** *(since 2026-10-08)* — principal-owned finding from the white-paper gate.
+- **D18 — no frozen snapshot of the white paper** *(since 2026-10-08)* — CTO prepares, principal decides.
 
 ## Sections
 
@@ -69,9 +70,9 @@ flowchart LR
 |---|---|---|---|
 | [`§vision`](vision.md) | what is attempted and why now | current | 2026-09-28 |
 | [`§design`](design.md) | A&Ds, the Stage 1 paper design, decisions with declined alternatives | current | 2026-09-28 |
-| [`§build`](build.md) | phases, branches, in flight | 3 in flight | 2026-09-28 |
-| [`§eval`](eval.md) | receipts, sealed suites, what is proven and what is blocked | current | 2026-09-28 |
+| [`§build`](build.md) | phases, branches, in flight | 3 in flight | 2026-10-09 |
+| [`§eval`](eval.md) | receipts, sealed suites, what is proven and what is blocked | current | 2026-10-09 |
 | [`§risk`](risk.md) | known gaps and proxies | 4 open | 2026-09-28 |
-| [`§decision`](decision.md) | what the principal owns | 2 open | 2026-09-28 |
-| [`aviary-biosim (bioFM) — Index`](aviary-biosim/index.md) | subproject review index: the v2r loop, `BioSimEnv`, the white paper (bioFM-side documents) | landed; Task 13 owed | 2026-10-01 |
-| [`ChipSim (bioFM) — Index`](lung-on-chipsim/) | subproject review index for lung-on-chipsim | **Stage 1 closed, branch archived**; record preserved on main | 2026-10-01 |
+| [`§decision`](decision.md) | what the principal owns | 3 open | 2026-10-09 |
+| [`aviary-biosim (bioFM) — Index`](aviary-biosim/index.md) | subproject review index: the v2r loop, `BioSimEnv`, the white paper (bioFM-side documents) | landed; white paper in draft PR, A7 review in progress | 2026-10-09 |
+| [`ChipSim (bioFM) — Index`](lung-on-chipsim/) | subproject review index for lung-on-chipsim | Stage 1 closed and archived (record on main); **Stage 2 build phase** — the Notion row is the source of truth for this subproject (principal, 2026-10-03) | 2026-10-04 |
