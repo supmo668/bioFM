@@ -115,3 +115,13 @@ Slack (one `--cta action` message, the exposure is a decision): https://matthews
 **What the question surfaced.** The whitepaper branch is on **no remote** — `supmo668/Aviary-BioSim` carries only `main` (`301e7fc6`) and `aviary-biosim` (`ab8f6f5e`). It is 120 commits ahead of that repo's main at `fcef0d6`, in a worktree **of the submodule** parked at `worktrees/aviary-biosim-272-scratch` (its git dir is `projects/aviary-biosim/.git`, which is why it reads as a bioFM worktree and is not one). Nine commits have landed since `fa243cf`, all `#272` QG finding fixes, unreported — boundary report requested from the owning agent.
 
 Verified by read-back: all four rows carry the right Kind, Granularity and `Indexed by`. No sequence identifier appears on any of them (F33).
+
+## Sixth batch — 2026-10-08: whitepaper pushed, draft PR opened
+
+| Surface | Slack |
+|---|---|
+| Whitepaper pushed (`origin/whitepaper = c66e64c`), draft PR Aviary-BioSim#2, receipt `2a9b966` verified; two decisions (A7 go-ahead, D3 evidence regeneration) | https://matthews-projects.slack.com/archives/C0C4TQ3JFC4/p1791503050738079 |
+
+**The exposure is closed.** The branch I reported on 2026-10-03 as "120 commits on one disk" is pushed. The L2 draft map now opens with the resolution rather than the warning, carries the verified hash chain, and ends with a triage table assigning owners to the seven routed findings — five of which are about the **deposit**, not the paper.
+
+Earlier the same day: `docs/hacp/eval.md` corrected (evidence set is 13 files, not 10; `timeline` was a figure miscounted as evidence) — one of the eight routed findings, closed by the CTO because the file is CTO-owned.
