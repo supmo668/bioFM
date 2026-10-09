@@ -1,0 +1,103 @@
+name: chipsim-m1-inputs
+
+# The M1 human-input contracts (build-plan S13, S14, T21, T24, T28) are the only
+# mechanical support Global Constraint #1 has: no coding agent writes a biological
+# number, and these validators are what refuse an unsourced one. A regression here is
+# silent — the fit would simply start accepting θ nobody cited — so every push that
+# touches the contracts, their scaffolds or their fixtures re-runs them.
+#
+# Two invariants are asserted beyond the test suite, because both are claims about
+# ABSENCE and a test file can be deleted along with the thing it guards:
+#   - configs/theta_priors.yaml and configs/assumptions.yaml do not exist (S6);
+#   - neither scaffold carries a numeric value.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/lung-on-chipsim/chipsim/**"
+      - "projects/lung-on-chipsim/configs/**"
+      - "projects/lung-on-chipsim/pyproject.toml"
+      - "projects/lung-on-chipsim/uv.lock"
+      - "projects/lung-on-chipsim/tests/**"
+      - ".github/workflows/chipsim-m1-inputs.yml"
+  pull_request:
+    paths:
+      - "projects/lung-on-chipsim/chipsim/**"
+      - "projects/lung-on-chipsim/configs/**"
+      - "projects/lung-on-chipsim/pyproject.toml"
+      - "projects/lung-on-chipsim/uv.lock"
+      - "projects/lung-on-chipsim/tests/**"
+      - ".github/workflows/chipsim-m1-inputs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: projects/lung-on-chipsim
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install the project
+        run: uv sync --group dev
+
+      - name: Lint
+        run: uv run --no-sync ruff check chipsim tests && uv run --no-sync ruff format --check chipsim tests
+
+      - name: Type-check the input contracts
+        run: uv run --no-sync ty check chipsim/transport chipsim/harmonize/reference_compounds.py
+
+      - name: The M1 input contracts hold
+        run: uv run --no-sync pytest tests/test_m1_inputs.py -q
+
+      # The whole offline suite, now that it is green on this branch (2026-10-08): the
+      # three failures it carried were resolved at their causes — the manifest test now
+      # skips only when the snapshot is unfetched, the vendoring allow-list names the
+      # principal-approved source-provenance file, and the panel test checks the
+      # attribution its own docstring asked for once a human ratified.
+      - name: The offline suite is green
+        run: uv run --no-sync pytest -q -m "not network and not integration"
+
+      - name: S6 holds — the human-owned configs are still absent
+        run: |
+          for f in configs/theta_priors.yaml configs/assumptions.yaml; do
+            if [ -e "$f" ]; then
+              echo "::error::$f exists. It is human-owned; its absence is how Global Constraint #1 is enforced (build-plan S6)."
+              exit 1
+            fi
+          done
+          echo "S6 holds: neither human-owned config exists."
+
+      - name: Neither scaffold carries a number
+        run: |
+          uv run --no-sync python - <<'PY'
+          import pathlib, sys, yaml
+
+          def numeric_leaves(node, path=""):
+              if isinstance(node, dict):
+                  for k, v in node.items():
+                      yield from numeric_leaves(v, f"{path}.{k}")
+              elif isinstance(node, list):
+                  for i, v in enumerate(node):
+                      yield from numeric_leaves(v, f"{path}[{i}]")
+              elif isinstance(node, (int, float)) and not isinstance(node, bool):
+                  yield path
+
+          offenders = []
+          for p in sorted(pathlib.Path("configs/templates").glob("*.scaffold.yaml")):
+              offenders += [f"{p.name}{loc}" for loc in numeric_leaves(yaml.safe_load(p.read_text()))]
+          if offenders:
+              print(f"::error::numeric value(s) in a scaffold: {offenders}")
+              sys.exit(1)
+          print("no scaffold carries a numeric value.")
+          PY

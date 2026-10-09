@@ -1,0 +1,14 @@
+# ============================================================================
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# Exists only so agent-owned done-conditions can fail honestly while the
+# human-gated tasks (T20/T21/T28) are outstanding. Build-plan S5 / defect 33.
+# Every number below is a SENTINEL chosen for arithmetic convenience, carries no
+# physical meaning, and is not a measurement of anything. No pipeline path may
+# read this file.
+# ============================================================================
+# The same key twice: it would double-weight one compound in a set of at most 8.
+
+compounds:
+  - {canonical_inchikey: FIXTUREREFAAA-FIXTUREKEY-N, name: "FIXTURE-REFERENCE-00", published_transport_value: "FIXTURE-VALUE-00", evidence_doi: "10.0000/chipsim.fixture.ref.000"}
+  - {canonical_inchikey: FIXTUREREFAAA-FIXTUREKEY-N, name: "FIXTURE-REFERENCE-00-ALT", published_transport_value: "FIXTURE-VALUE-01", evidence_doi: "10.0000/chipsim.fixture.ref.001"}
+  - {canonical_inchikey: FIXTUREREFAAC-FIXTUREKEY-N, name: "FIXTURE-REFERENCE-02", published_transport_value: "FIXTURE-VALUE-02", evidence_doi: "10.0000/chipsim.fixture.ref.002"}

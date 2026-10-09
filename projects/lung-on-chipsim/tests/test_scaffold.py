@@ -265,19 +265,35 @@ def test_s6_live_panel_entries_are_well_formed():
         seen[e["symbol"]] = i
 
 
-def test_s6_live_panel_stays_unratified_until_a_human_signs():
-    """The three attestation fields are human-owned. No agent may set them.
+def test_s6_live_panel_ratification_is_attributed_and_sealed():
+    """The three attestation fields are human-owned, and a human set them (T8, 2026-09-12).
 
-    This is the mechanical form of the file's own banner. It fails the moment an
-    agent flips the flag, which is the failure the whole T8 gate exists to prevent.
-    Delete this test only when a human has genuinely ratified — and then it should
-    be replaced by a check that ratified_by is non-empty, not simply removed.
+    This replaces `test_s6_live_panel_stays_unratified_until_a_human_signs`, whose own
+    docstring said what to do once a human genuinely ratified: replace it with a check
+    that `ratified_by` is non-empty, not simply remove it. The ratification outran its
+    test by three weeks; this is the check it asked for.
+
+    What it holds: `ratified` is a real parsed boolean and is True; `ratified_by` names
+    someone; `ratified_on` is a date; and the T7a seal is present. What it cannot hold:
+    that a human rather than an agent wrote those fields. The seal is an unkeyed digest
+    over public content (its own banner says so), so attribution rests on the record in
+    the approval log, not on anything this test can read.
     """
+    import datetime as _dt
+
     doc = yaml.safe_load((PROJECT_ROOT / "configs" / "barrier_panel.yaml").read_text())
     assert "ratified" in doc, "the `ratified` key must exist — absence is not consent"
-    assert doc["ratified"] is False, (
-        "configs/barrier_panel.yaml is ratified — if a human did this, update this test; "
-        "if an agent did, revert it: T8 is human-owned"
+    assert doc["ratified"] is True, (
+        "configs/barrier_panel.yaml is no longer ratified — a ratified panel was "
+        "un-ratified; if a human did this, the T8 record must say why"
+    )
+    assert isinstance(doc.get("ratified_by"), str) and doc["ratified_by"].strip(), (
+        "ratified: true with an empty ratified_by is a flag without a person"
+    )
+    _dt.date.fromisoformat(str(doc.get("ratified_on")))
+    seal = str(doc.get("ratified_panel_sha256") or "")
+    assert re.fullmatch(r"[0-9a-f]{64}", seal), (
+        "a ratified panel must carry the T7a seal (ratified_panel_sha256, 64 hex)"
     )
 
 

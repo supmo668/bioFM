@@ -40,6 +40,10 @@ dev = [
     "pytest-cov",
     "ruff",
     "dvc",
+    # Type checking. The M1 input contracts hand frozen, read-only mappings to the
+    # fit; `ty` is what catches a caller that tries to mutate one, which a test can
+    # only catch where somebody thought to write the test.
+    "ty",
 ]
 
 [tool.pytest.ini_options]

@@ -19,10 +19,16 @@ bioFM/
 │   ├── test-time-compute/                        TTC scaling library for BioFM-265M
 │   └── cellforge-agents/                         5-agent propose-critique-vote orchestrator
 ├── projects/
-│   └── perturb-seq-eval/                         the paper-bearing research project
-│                                                  (Bayesian agentic HP tuning — thesis,
-│                                                   v0.5.0 real-data headline)
+│   ├── perturb-seq-eval/                         the paper-bearing research project
+│   │                                              (Bayesian agentic HP tuning — thesis,
+│   │                                               v0.5.0 real-data headline)
+│   ├── lung-on-chipsim/                          ChipSim — in-silico lung-on-a-chip PoC
+│   │                                              (M0 data spine; every biological input human-entered)
+│   └── aviary-biosim/                            (submodule: supmo668/Aviary-BioSim — the v2r loop
+│                                                  as a lab method, public repo)
+├── workstreams/                                  per-project PVR · A&D · sealed build plans · receipts
 └── docs/
+    └── hacp/                                     HACP review surfaces — §vision … §decision per project
 ```
 
 After cloning this repo, run:
@@ -114,6 +120,47 @@ cd projects/perturb-seq-eval
 pip install -r requirements.txt && pip install -e .
 pytest -q                      # 43/43 unit tests
 python examples/end_to_end.py  # shows metrics + coefficient fit + Bayesian routing
+```
+
+## Project 4 — ChipSim, a lung-on-a-chip in silico (lung-on-chipsim)
+
+See [`projects/lung-on-chipsim/`](projects/lung-on-chipsim/) and the review surface at
+[`docs/hacp/lung-on-chipsim/index.md`](docs/hacp/lung-on-chipsim/index.md).
+
+A proof-of-concept that predicts on-chip drug exposure and barrier response from public data,
+where the barrier is parameterised rather than simulated. The standing constraint shapes
+everything: **no coding agent writes a biological number** — the agent writes the schema and the
+validator, the human writes the value with its citation. Milestone M0a (the DrugBank data spine)
+is built and gated; the science is blocked on human-owned inputs by design.
+
+## Project 5 — Aviary-BioSim, the v2r loop as a lab method
+
+See the public repo [`supmo668/Aviary-BioSim`](https://github.com/supmo668/Aviary-BioSim)
+(submodule at `projects/aviary-biosim/`; run `git submodule update --init projects/aviary-biosim`).
+A build loop whose implementer never sees its test and whose gate re-runs the sealed test itself,
+proved on an ESM-2 protein experiment. Its own HACP floor lives in that repo under `docs/hacp/`.
+
+## Review surfaces — HACP
+
+Each project's reviewable state is compiled into six sections (`§vision`, `§design`, `§build`,
+`§eval`, `§risk`, `§decision`) under [`docs/hacp/`](docs/hacp/). The bioFM-level pages are the
+Index rows; per-project pages are leaves under them. **For the ChipSim (lung-on-chipsim) surface
+the Notion HACP rows are the source of truth for human review and communication (principal,
+2026-10-03)**; the floor under [`docs/hacp/lung-on-chipsim/`](docs/hacp/lung-on-chipsim/) mirrors
+them, and [`notion-map.json`](docs/hacp/lung-on-chipsim/notion-map.json) records each row's URL and
+last sync. A GitHub Action ([`hacp-docs`](.github/workflows/hacp-docs.yml)) fails the build on any
+relative link in the floor that does not resolve, and on any ChipSim page edited after its recorded
+sync date; a weekly routine re-mirrors floor and Notion and reads the rows back.
+
+```mermaid
+flowchart LR
+  I["bioFM — Index"] --> V["§vision"] & D["§design"] & B["§build"] & E["§eval"] & R["§risk"] & C["§decision"]
+  V --> LV["lung-on-chipsim leaf"]
+  D --> LD["lung-on-chipsim leaf"]
+  B --> LB["lung-on-chipsim leaf"]
+  E --> LE["lung-on-chipsim leaf"]
+  R --> LR["lung-on-chipsim leaf"]
+  C --> LC["lung-on-chipsim leaf"]
 ```
 
 ## Contributing back upstream
