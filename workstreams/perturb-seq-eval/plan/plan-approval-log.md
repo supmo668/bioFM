@@ -1,7 +1,11 @@
 # Approval log — perturb-seq-eval
 
-Dated amendments and rulings that change a committed record after the fact. Each entry names the
-ruling, what changed, and where the superseded value is kept.
+Append-only. One row per approval or dated amendment; the plan itself is signed in
+`plan-approval.md` (`plan_hash` 418cc1e), which no row below re-signs.
+
+| # | date | kind | route | hash | notes |
+|---|------|------|-------|------|-------|
+| 1 | 2026-10-08 | run-record amendment RR-1 | principal ruling, relayed by CTO #582 | plan 418cc1e unchanged; run manifest 323af965b631ce83 -> 70be925de94bfb37 | llm_key_source removed from 6 run files; details below |
 
 ## 2026-10-08 — RR-1: LLM key-storage record removed from the v0.6.0 run record
 

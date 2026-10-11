@@ -59,7 +59,11 @@
           "sha256_before": "36677880eab0ec4904469e85b0bb9edfbb501131c06cfc69082597ae162fce77",
           "sha256_after": "9d1ace634b6b65d91fbf9ec72bd55f66c09e212e4fe5e1c86c3867cef72d9966"
         }
-      ]
+      ],
+      "before_commit": "bb3e2e2",
+      "also_replaced_in_docs": "the documented launch command in README.md, paper/README.md and scripts/modal/app_v05.py now shows LLM_KEY_SOURCE=<store>:<project>:<env> and --env <ENV> placeholders",
+      "out_of_scope": "not in the run files and not deposited: the code that writes and requires the field (src/perturb_eval/experiments/provenance.py, v05_preflight.py C-KEY-SOURCE, scripts/modal/app_v05.py) and its unit-test fixtures, pyproject.toml author email, CHANGELOG history; retiring the field from the code is a separate decision raised with the CTO",
+      "rerun_note": "the code at the run's revision still records llm_key_source, so a re-run as documented re-creates the field; the published record was edited after the run, as this amendment states"
     }
   ]
 }
