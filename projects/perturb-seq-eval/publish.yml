@@ -74,8 +74,10 @@ license: cc-by-4.0
 #   2. Zenodo: POST /deposit/depositions/20060974/actions/newversion (v4 = latest under the
 #      concept DOI 10.5281/zenodo.19716140); record the draft id + links.bucket in
 #      publish.state.json with zenodo.published=false; delete the files the draft inherits.
-#   3. Figshare: update article 32086920's metadata (title, description, authors), delete the
-#      v0.5 files, then publish -> it becomes version 6 of the article.
+#   3. Figshare: update article 32086920's metadata (title, description, authors) and DELETE the
+#      v0.5 files; set figshare.published=false in publish.state.json; run
+#      `submit_to_venues.py figshare --dry-run` and verify the uploaded file list; then publish
+#      -> the next version of the article (check its current version number first).
 #   4. Set CITATION.cff version/date-released and add the new DOIs; principal approves the publish.
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are

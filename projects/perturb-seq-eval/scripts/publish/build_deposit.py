@@ -102,6 +102,30 @@ def main() -> int:
     if check.returncode != 0:
         print(check.stderr, file=sys.stderr)
         return 1
+    dirty = subprocess.run(
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "--",
+            "paper",
+            "scripts/paper",
+            "artifacts/v0.6.0",
+            "configs/runs",
+            "publish.yml",
+            "CITATION.cff",
+        ],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    if dirty:
+        print(
+            f"deposit inputs are not committed; stage and build from landed sources only:\n{dirty}",
+            file=sys.stderr,
+        )
+        return 1
     print(f"staged {stage_run_artifacts()}")
     if not a.skip_pdf:
         print(f"built {build_pdf()}")

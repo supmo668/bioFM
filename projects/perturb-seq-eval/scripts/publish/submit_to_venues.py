@@ -358,7 +358,7 @@ class FigshareSubmitter:
             # closed until the deposit-time sequence (publish.yml) is followed.
             raise PublishedRecordError(
                 f"figshare article {art_id} is already published. Follow the deposit-time sequence "
-                "in publish.yml (update metadata, replace same-name files, then publish a new "
+                "in publish.yml (update metadata, DELETE the old files, then publish a new "
                 "version) instead of uploading into it."
             )
         if art_id is None:
