@@ -35,11 +35,11 @@ paper/
 cd projects/perturb-seq-eval
 
 # 1. The sweep: preflight + trainer sweep + lifecycle sweep in one process.
-#    ANTHROPIC_API_KEY is injected by Infisical (never written to disk) and
-#    LLM_KEY_SOURCE records its source; preflight refuses the whole run
-#    without either, and requires paper/PREREGISTRATION.md committed with no
+#    ANTHROPIC_API_KEY is injected by Infisical (never written to disk; where
+#    it is stored is not recorded, RR-1); preflight refuses the whole run
+#    without it, and requires paper/PREREGISTRATION.md committed with no
 #    local edits (the pinned pre-registration).
-LLM_KEY_SOURCE=<store>:<project>:<env> infisical run \
+infisical run \
     --projectId <INFISICAL_PROJECT_ID> --env <ENV> -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548

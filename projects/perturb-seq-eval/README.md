@@ -103,11 +103,11 @@ synthetic-cell generator is reintroduced under `src/`, `scripts/` or `paper/`.
 
 ```bash
 # From projects/perturb-seq-eval. ANTHROPIC_API_KEY is injected by Infisical at
-# run time (never written to disk); LLM_KEY_SOURCE records where it came
-# from. Preflight refuses the whole run without either, and also requires the
-# pinned pre-registration: paper/PREREGISTRATION.md tracked and committed with
+# run time (never written to disk); the run records nothing about where it is
+# stored (LLM_KEY_SOURCE retired 2026-10-10, RR-1). Preflight refuses the whole
+# run without the key, and also requires the pinned pre-registration: paper/PREREGISTRATION.md tracked and committed with
 # no local edits. Spend: stop-and-report above $12, hard kill at $28.
-LLM_KEY_SOURCE=<store>:<project>:<env> infisical run \
+infisical run \
     --projectId <INFISICAL_PROJECT_ID> --env <ENV> -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548

@@ -97,6 +97,7 @@ secret-store name, an organisation project, an environment, a home project and a
 cross-project flag; no secret value --- was removed from \resRROneFileCount{} run files
 (the run record and the three run manifests) because it supports no claim. The run
 manifest's SHA-256 prefix \resManifestShaSuperseded{}, as first published, is superseded by
-\resManifestSha. No result changes. The code at the run's revision still records the field,
-so a re-run as documented re-creates it.
+\resManifestSha. No result changes. The code at the run's revision records the field; the
+code was changed so that it no longer does, and a re-run as now documented
+does not record it.
 \end{sloppypar}
