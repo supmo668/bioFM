@@ -172,6 +172,12 @@ cadence spelled out in §9 of that document.
 | Zenodo API trace | `publish.state.json` at repo root + `scripts/publish/submit_to_venues.py` |
 | Figshare API trace | same |
 | OSF API trace (partial success) | same — `project_id=wmeuy`, `preprint_id=dhu4z_v1` |
-| Author, ORCID, affiliation | Infisical `SyntropyHealth GTM` → `/research/perturb-seq-eval` (dev env) |
-| Token storage | Infisical `SyntropyHealth GTM` → `/research/perturb-seq-eval` (dev env) |
+| Author, ORCID, affiliation | the project's secret store (dev env); the store, its project and the path are deliberately not named here |
+| Token storage | same secret store as above; location not named here |
 | Build version | `CITATION.cff` v0.4.0, tag `v0.4.0-lifecycle`, commit `ba5923c` |
+
+> **Redacted 2026-10-11 (CTO, applying the principal's ruling of 2026-10-08 — *"Remove it
+> everywhere, amend the hash"*).** The two rows above named the secret store, its organisation
+> project and the path holding the publication tokens. No secret was ever in this file, and the
+> rows still say which facts come from the store — only its address is gone. Git history retains
+> the earlier text; this is a tip redaction, not an erasure.
