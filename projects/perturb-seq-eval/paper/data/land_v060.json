@@ -20,5 +20,6 @@
     "src/perturb_eval/experiments/provenance.py",
     "src/perturb_eval/experiments/v05_preflight.py"
   ],
-  "post_land_change_kinds": "run-record amendment RR-1 (principal 2026-10-08; CTO #582, #585): the documented launch command uses placeholders, and llm_key_source is retired from the code (the provenance field, the preflight check C-KEY-SOURCE, the LLM_KEY_SOURCE plumbing); the analyser and every measurand path are unchanged"
+  "post_land_change_kinds": "run-record amendment RR-1 (principal 2026-10-08; CTO #582, #585): the documented launch command uses placeholders, and llm_key_source is retired from the code (the provenance field, the preflight check C-KEY-SOURCE, the LLM_KEY_SOURCE plumbing); the analyser and every measurand path are unchanged",
+  "post_land_rr1_commit": "a8c64ab"
 }

@@ -874,6 +874,22 @@ def test_post_run_paths_are_exactly_the_git_diff(land):
     )
     assert after_land == sorted(land["post_land_changed_paths"]), after_land
     assert "src/perturb_eval/experiments/e_v05_real_traces.py" not in after_land
+    # ...and nothing under src/ or scripts/modal/ has changed since the RR-1 commit itself,
+    # so a later edit to those three files still forces this record to be revisited.
+    _git("merge-base", "--is-ancestor", land["post_land_rr1_commit"], "HEAD")
+    assert (
+        _git(
+            "diff",
+            "--name-only",
+            "--relative",
+            land["post_land_rr1_commit"],
+            "HEAD",
+            "--",
+            "src",
+            "scripts/modal",
+        ).split()
+        == []
+    )
 
 
 def _build_with_land(fv, tmp_path, patch):
