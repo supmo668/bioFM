@@ -39,8 +39,8 @@ cd projects/perturb-seq-eval
 #    LLM_KEY_SOURCE records its source; preflight refuses the whole run
 #    without either, and requires paper/PREREGISTRATION.md committed with no
 #    local edits (the pinned pre-registration).
-LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \
-    --projectId <INFISICAL_PROJECT_ID> --env dev -- \
+LLM_KEY_SOURCE=<store>:<project>:<env> infisical run \
+    --projectId <INFISICAL_PROJECT_ID> --env <ENV> -- \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548
 

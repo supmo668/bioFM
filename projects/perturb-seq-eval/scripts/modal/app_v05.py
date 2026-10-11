@@ -24,8 +24,8 @@ Run (from ``projects/perturb-seq-eval``; the key is injected by Infisical at
 run time and never written to disk; ``LLM_KEY_SOURCE`` records where it
 came from, and preflight refuses the run without it)::
 
-    LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \\
-        --projectId <INFISICAL_PROJECT_ID> --env dev -- \\
+    LLM_KEY_SOURCE=<store>:<project>:<env> infisical run \\
+        --projectId <INFISICAL_PROJECT_ID> --env <ENV> -- \\
         modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \\
         --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
 
