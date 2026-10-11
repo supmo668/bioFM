@@ -859,7 +859,8 @@ def test_post_run_paths_are_exactly_the_git_diff(land):
         ).split()
     )
     assert changed == sorted(land["post_run_changed_paths"]), changed
-    assert (
+    # After the land, only the recorded RR-1 paths may differ (CTO #585), and never the analyser.
+    after_land = sorted(
         _git(
             "diff",
             "--name-only",
@@ -870,8 +871,9 @@ def test_post_run_paths_are_exactly_the_git_diff(land):
             "src",
             "scripts/modal",
         ).split()
-        == []
     )
+    assert after_land == sorted(land["post_land_changed_paths"]), after_land
+    assert "src/perturb_eval/experiments/e_v05_real_traces.py" not in after_land
 
 
 def _build_with_land(fv, tmp_path, patch):

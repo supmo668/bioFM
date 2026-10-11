@@ -32,7 +32,7 @@ PREREG_PIN = {
     "commit": "0c2932a" + "0" * 33,
 }
 EXACT_COMMAND = (
-    "LLM_KEY_SOURCE=<store>:<project>:<env> infisical run "
+    "infisical run "
     "--projectId <INFISICAL_PROJECT_ID> --env <ENV> -- modal run "
     "scripts/modal/app_v05.py::entrypoint --version v0.6.0 --norman-n-singletons 15 "
     "--norman-n-doublets 5 --seeds 3"
@@ -590,7 +590,6 @@ class TestC12PreregisteredDesignLocked:
             "backbones": ("linear",),
             "version": "v0.6.0",
             "doublet_delim": "_",
-            "llm_key_source": {"store": "infisical"},
             "preregistration": dict(PREREG_PIN),
             "preregistration_error": None,
         }

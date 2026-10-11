@@ -483,15 +483,12 @@ class TestRosterAndPreflight:
     def test_preflight_key_name_is_anthropic(self):
         from perturb_eval.experiments import v05_preflight as pf
 
-        assert pf.KEY_NAME == "ANTHROPIC_API_KEY" and pf.KEY_SOURCE_NAME == "LLM_KEY_SOURCE"
+        assert pf.KEY_NAME == "ANTHROPIC_API_KEY" and not hasattr(pf, "KEY_SOURCE_NAME")
 
     def test_app_v05_wiring(self):
         src = (Path(__file__).resolve().parents[1] / "scripts" / "modal" / "app_v05.py").read_text()
         assert "fallbacks" not in src
-        assert (
-            '"ANTHROPIC_API_KEY", "LLM_KEY_SOURCE"' in src
-            and 'os.environ["ANTHROPIC_API_KEY"]' in src
-        )
+        assert 'keys = ("ANTHROPIC_API_KEY",)' in src and 'os.environ["ANTHROPIC_API_KEY"]' in src
         assert "AnthropicClient(" in src and "OpenRouterClient(" not in src
         assert '"anthropic>=1.9,<2"' in src  # Modal image dependency
         assert "llm_call_log" in src and "llm_price_table" in src

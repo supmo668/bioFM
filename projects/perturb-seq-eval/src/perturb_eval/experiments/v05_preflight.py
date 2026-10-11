@@ -13,9 +13,10 @@ Checks:
 * C-TORCH-1 — every backbone in ``kwargs["backbones"]`` is in
   :func:`available_backbones`, so the C-TORCH-2 raise is dead code in a
   healthy run.
-* C-KEY-SOURCE — ``kwargs["llm_key_source"]`` (parsed on the host from
-  ``LLM_KEY_SOURCE``) is present: provenance records WHERE the credential
-  came from (principal directive 2026-09-24).
+* C-KEY-SOURCE — REMOVED 2026-10-10 (run-record amendment RR-1, CTO #585).
+  It required provenance to record where the LLM key was stored. The
+  principal ruled that record removed everywhere (2026-10-08), so the check
+  was deleted rather than left in place passing on nothing.
 * C-PREREG — ``kwargs["preregistration"]`` (the committed, clean
   pre-registration pin) is present; ``kwargs["preregistration_error"]`` says
   why not (CTO #265).
@@ -54,7 +55,6 @@ from perturb_eval.experiments.v05_tasks import TaskPlan
 logger = logging.getLogger(__name__)
 
 KEY_NAME = "ANTHROPIC_API_KEY"  # amendment 4 (A4-1): the Anthropic Messages API
-KEY_SOURCE_NAME = "LLM_KEY_SOURCE"
 
 # Versions whose design is fixed by paper/PREREGISTRATION.md (QG C12).
 PREREGISTERED_VERSIONS: frozenset[str] = frozenset({"v0.6.0"})
@@ -292,7 +292,7 @@ def preflight(
     ----------
     kwargs
         The resolved ``run_v05_sweep`` kwargs (``backbones``, ``doublet_delim``,
-        ``llm_key_source``, ``preregistration``, ``preregistration_error``).
+        ``preregistration``, ``preregistration_error``).
     datasets_spec_or_loaded
         ``{dataset name: loaded ds dict | zero-arg loader}``. Loaders run here
         (they must fetch with ``trust_unpinned=False``); any exception is a
@@ -342,18 +342,7 @@ def preflight(
                     f"roster probe ok ({probe_model_id}; {n_live}/{len(liveness)} roster models live)"
                 )
 
-    # ---- C-KEY-SOURCE / C-PREREG: principal directive + CTO #265 ----------
-    key_source = kwargs.get("llm_key_source")
-    if not isinstance(key_source, Mapping) or not key_source:
-        failures.append(
-            f"C-KEY-SOURCE: {KEY_SOURCE_NAME} not set; provenance must record where "
-            "the credential came from (principal directive 2026-09-24)"
-        )
-    else:
-        checks.append(
-            f"key source recorded: {key_source.get('store')}:{key_source.get('project_slug')}"
-            f":{key_source.get('env')}"
-        )
+    # ---- C-PREREG: CTO #265 (C-KEY-SOURCE removed 2026-10-10, RR-1) --------
     prereg = kwargs.get("preregistration")
     if not isinstance(prereg, Mapping) or not prereg:
         reason = kwargs.get("preregistration_error") or "no pre-registration record"
@@ -530,7 +519,6 @@ def _unresolved_tasks(
 
 __all__ = [
     "KEY_NAME",
-    "KEY_SOURCE_NAME",
     "PREREGISTERED_DESIGN",
     "PREREGISTERED_VERSIONS",
     "PreflightError",

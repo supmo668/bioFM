@@ -54,13 +54,6 @@ def _plan(adamson=("TFA", "TFB"), singles=("CBL",), doubles=("CBL_UBASH3A",)) ->
     )
 
 
-KEY_SOURCE = {
-    "store": "infisical",
-    "project_slug": "syntropyhealth-app",
-    "env": "dev",
-    "home_project": "biofm",
-    "cross_project": True,
-}
 PREREG = {
     "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
     "sha256": "a" * 64,
@@ -69,13 +62,12 @@ PREREG = {
 
 
 def _kwargs(**over) -> dict:
-    # Principal directive + CTO #265: a runnable sweep carries its credential
-    # SOURCE and its committed pre-registration in the resolved kwargs.
+    # CTO #265: a runnable sweep carries its committed pre-registration in the
+    # resolved kwargs (the key-source record was retired, RR-1 / CTO #585).
     kw = {
         "backbones": ("linear", "mlp"),
         "version": "v0.6.0",
         "doublet_delim": "_",
-        "llm_key_source": dict(KEY_SOURCE),
         "preregistration": dict(PREREG),
         "preregistration_error": None,
     }
@@ -251,48 +243,55 @@ def test_multiple_failures_all_listed(tmp_path: Path, monkeypatch) -> None:
     assert len(ei.value.failures) >= 4
 
 
-# ---------------- principal directive / CTO #265: key source + pre-registration
-def test_missing_key_source_and_preregistration_both_listed(tmp_path: Path, caplog) -> None:
+# ---------------- CTO #265: pre-registration; RR-1 / CTO #585: C-KEY-SOURCE removed
+def test_missing_preregistration_is_the_only_failure(tmp_path: Path, caplog) -> None:
     caplog.set_level(logging.DEBUG)
     with pytest.raises(PreflightError) as ei:
         _run(
             tmp_path,
             kwargs=_kwargs(
-                llm_key_source=None,
                 preregistration=None,
                 preregistration_error="pre-registration 'x.md' has uncommitted edits",
             ),
         )
     msg = str(ei.value)
-    assert (
-        "C-KEY-SOURCE: LLM_KEY_SOURCE not set; provenance must record where the "
-        "credential came from (principal directive 2026-09-24)"
-    ) in msg
+    assert "C-KEY-SOURCE" not in msg
     assert (
         "C-PREREG: pre-registration not committed/clean (pre-registration 'x.md' has "
         "uncommitted edits) — a hypothesis fixed after the sweep is not a "
         "pre-registration (CTO #265)"
     ) in msg
-    assert len(ei.value.failures) == 2
+    assert len(ei.value.failures) == 1
     assert SENTINEL not in msg and SENTINEL not in repr(ei.value.failures)
     assert SENTINEL not in caplog.text
 
 
-def test_key_source_and_preregistration_absent_from_kwargs_fail(tmp_path: Path) -> None:
+def test_preregistration_absent_from_kwargs_fails(tmp_path: Path) -> None:
     kw = _kwargs()
-    for k in ("llm_key_source", "preregistration", "preregistration_error"):
+    for k in ("preregistration", "preregistration_error"):
         kw.pop(k)
     with pytest.raises(PreflightError) as ei:
         _run(tmp_path, kwargs=kw)
     msg = str(ei.value)
-    assert "C-KEY-SOURCE" in msg and "C-PREREG" in msg
+    assert "C-PREREG" in msg and "C-KEY-SOURCE" not in msg
 
 
-def test_key_source_and_preregistration_supplied_pass(tmp_path: Path) -> None:
+def test_preregistration_supplied_passes_with_no_key_source(tmp_path: Path) -> None:
     rep = _run(tmp_path)
     assert rep.ok
-    assert any("key source" in c for c in rep.checks)
+    assert not any("key source" in c for c in rep.checks)
     assert any("pre-registration" in c for c in rep.checks)
+
+
+def test_key_source_check_removed_with_a_dated_note() -> None:
+    """CTO #585 cond. 1: the check is gone (not left passing), and the module says when and why."""
+    import perturb_eval.experiments.v05_preflight as pf
+
+    src = Path(pf.__file__).read_text()
+    assert not hasattr(pf, "KEY_SOURCE_NAME")
+    assert 'kwargs.get("llm_key_source")' not in src
+    doc = pf.__doc__ or ""
+    assert "C-KEY-SOURCE — REMOVED 2026-10-10" in doc and "RR-1" in doc
 
 
 # ------------------------------------------------------------------ app_v05 source
@@ -412,19 +411,20 @@ def test_app_v05_fetch_uses_trust_unpinned_false() -> None:
         assert kw["trust_unpinned"].value is False
 
 
-def test_app_v05_env_secrets_forwards_key_and_its_source_only() -> None:
+def test_app_v05_env_secrets_forwards_the_key_only() -> None:
     fn = next(
         n for n in _app_tree().body if isinstance(n, ast.FunctionDef) and n.name == "_env_secrets"
     )
     tuples = [n for n in ast.walk(fn) if isinstance(n, ast.Tuple)]
     names = {e.value for t in tuples for e in t.elts if isinstance(e, ast.Constant)}
-    assert names == {"ANTHROPIC_API_KEY", "LLM_KEY_SOURCE"}
+    assert names == {"ANTHROPIC_API_KEY"}
 
 
-def test_app_v05_sweep_takes_key_source_and_preregistration() -> None:
+def test_app_v05_sweep_takes_preregistration_and_no_key_source() -> None:
     fn = _run_v05_sweep(_app_tree())
     kwonly = {a.arg: d for a, d in zip(fn.args.kwonlyargs, fn.args.kw_defaults)}
-    for k in ("llm_key_source", "preregistration", "preregistration_error"):
+    assert "llm_key_source" not in kwonly
+    for k in ("preregistration", "preregistration_error"):
         assert k in kwonly, k
         assert isinstance(kwonly[k], ast.Constant) and kwonly[k].value is None, k
     bp = next(
@@ -435,11 +435,11 @@ def test_app_v05_sweep_takes_key_source_and_preregistration() -> None:
         and c.func.id == "build_provenance"
     )
     got = {k.arg: ast.unparse(k.value) for k in bp.keywords}
-    assert got.get("llm_key_source") == "llm_key_source"
+    assert "llm_key_source" not in got
     assert got.get("preregistration") == "preregistration"
 
 
-def test_app_v05_entrypoint_builds_key_source_and_preregistration_on_host() -> None:
+def test_app_v05_entrypoint_builds_preregistration_on_host_and_no_key_source() -> None:
     fn = next(
         n for n in _app_tree().body if isinstance(n, ast.FunctionDef) and n.name == "entrypoint"
     )
@@ -447,8 +447,9 @@ def test_app_v05_entrypoint_builds_key_source_and_preregistration_on_host() -> N
     called = {
         c.func.id for c in ast.walk(fn) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
     }
-    assert {"parse_key_source", "preregistration_record"} <= called
-    assert "LLM_KEY_SOURCE" in src
+    assert "preregistration_record" in called and "parse_key_source" not in called
+    assert "LLM_KEY_SOURCE" not in src and "llm_key_source" not in src
+    assert "_HOME_PROJECT" not in APP_V05.read_text()
     assert "_PREREGISTRATION_REL" in src
     assert (
         '_PREREGISTRATION_REL = "projects/perturb-seq-eval/paper/PREREGISTRATION.md"'

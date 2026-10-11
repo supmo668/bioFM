@@ -262,8 +262,8 @@ def test_build_rejects_constraint_string_in_lib_versions():
         _prov(lib_versions={"numpy": ">=1.26"})
 
 
-# Principal directive + CTO #265: resolved (host-computed) sweep inputs.
-PROVENANCE_INPUT_KWARGS = {"llm_key_source", "preregistration", "preregistration_error"}
+# CTO #265: resolved (host-computed) sweep inputs. llm_key_source retired (RR-1, CTO #585).
+PROVENANCE_INPUT_KWARGS = {"preregistration", "preregistration_error"}
 
 
 def test_entrypoint_kwargs_contains_every_sweep_kwarg():
@@ -475,25 +475,21 @@ def test_finalize_has_no_unparseable_default():
         pv.finalize_provenance(_prov(), **kw)
 
 
-# ---- principal directive / CTO #265: credential source + pre-registration ----
+# ---- RR-1 (principal 2026-10-08, CTO #585): the key-source record is retired ----
 
 
-def test_llm_key_source_recorded_and_marked_cross_project() -> None:
-    src = pv.llm_key_source("infisical", "syntropyhealth-app", "dev", home_project="biofm")
-    prov = _prov(llm_key_source=src)
-    assert prov["llm_key_source"] == {
-        "store": "infisical",
-        "project_slug": "syntropyhealth-app",
-        "env": "dev",
-        "home_project": "biofm",
-        "cross_project": True,
-    }
+def test_key_source_record_is_retired_from_provenance() -> None:
+    """A re-run must not re-create the field the run-record amendment removed."""
+    assert not hasattr(pv, "llm_key_source") and not hasattr(pv, "parse_key_source")
+    prov = _prov()
+    assert "llm_key_source" not in prov
+    assert "llm_key_source" not in prov["entrypoint_kwargs"]
+    with pytest.raises(TypeError):
+        _prov(llm_key_source={"store": "x"})
+    assert "llm_key_source" not in _sweep_kwarg_names()
 
 
-def test_llm_key_source_rejects_anything_that_looks_like_a_secret() -> None:
-    for bad in ("sk-or-v1-" + "a" * 40, "x" * 201, ""):
-        with pytest.raises(ValueError):
-            pv.llm_key_source("infisical", bad, "dev", home_project="biofm")
+# ---- CTO #265: pre-registration ----
 
 
 def test_preregistration_record_from_committed_clean_file(tmp_path) -> None:
@@ -521,50 +517,6 @@ def test_preregistration_record_from_committed_clean_file(tmp_path) -> None:
 def test_provenance_carries_preregistration() -> None:
     rec = {"path": "paper/PREREGISTRATION.md", "sha256": "a" * 64, "commit": "b" * 40}
     assert _prov(preregistration=rec)["preregistration"] == rec
-
-
-def test_parse_key_source_valid_spec() -> None:
-    got = pv.parse_key_source("infisical:syntropyhealth-app:dev", home_project="biofm")
-    assert got == {
-        "store": "infisical",
-        "project_slug": "syntropyhealth-app",
-        "env": "dev",
-        "home_project": "biofm",
-        "cross_project": True,
-    }
-    assert (
-        pv.parse_key_source("infisical:biofm:prod", home_project="biofm")["cross_project"] is False
-    )
-
-
-@pytest.mark.parametrize(
-    "spec",
-    [
-        None,
-        "",
-        "infisical",
-        "infisical:app",
-        "a:b:c:d",
-        "infisical::dev",
-        " : : ",
-        "infisical:app:dev\n",
-    ],
-)
-def test_parse_key_source_malformed_is_none(spec) -> None:
-    assert pv.parse_key_source(spec, home_project="biofm") is None
-
-
-@pytest.mark.parametrize(
-    "spec",
-    [
-        "sk-or-v1-" + "a" * 40,
-        "infisical:sk-or-v1-" + "a" * 40 + ":dev",
-        "sk-proj:app:dev",
-        "infisical:app:" + "x" * 201,
-    ],
-)
-def test_parse_key_source_credential_shaped_is_none(spec) -> None:
-    assert pv.parse_key_source(spec, home_project="biofm") is None
 
 
 def test_replay_status_is_a_finalizable_status() -> None:
