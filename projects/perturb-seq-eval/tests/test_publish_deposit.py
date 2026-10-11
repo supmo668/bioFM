@@ -379,15 +379,101 @@ def test_run_record_amendment_rr1_is_complete_and_true():
             assert value not in text, (f["path"], value)
         assert hashlib.sha256((ROOT / f["path"]).read_bytes()).hexdigest() == f["sha256_after"]
         before = subprocess.run(
-            ["git", "show", f"bb3e2e2:projects/perturb-seq-eval/{f['path']}"],
+            ["git", "show", f"{rr[0]['before_commit']}:projects/perturb-seq-eval/{f['path']}"],
             cwd=ROOT,
             capture_output=True,
             check=True,
         ).stdout
         assert hashlib.sha256(before).hexdigest() == f["sha256_before"], f["path"]
-    res = (ROOT / "paper" / "sections" / "results.tex").read_text()
-    assert "\\resManifestShaSuperseded" in res and "\\resRROneDate" in res
-    assert (
-        "\\resManifestShaSuperseded"
-        in (ROOT / "paper" / "sections" / "corrections.tex").read_text()
-    )
+    import re
+
+    for rel in ("paper.tex", "sections/results.tex", "sections/corrections.tex"):
+        text = re.sub(r"(?<!\\\\)%.*", "", (ROOT / "paper" / rel).read_text())
+        for mac in ("\\resManifestShaSuperseded", "\\resRROneDate", "\\resManifestSha"):
+            assert mac in text, (rel, mac)
+        assert "323af965" not in text and "70be925d" not in text, rel  # never hand-typed
+    assert "llm_key_source" not in (ART / "summary.json").read_text()  # shipped too
+    for doc in ("README.md", "paper/README.md", "scripts/modal/app_v05.py"):
+        assert "syntropyhealth" not in (ROOT / doc).read_text(), doc
+
+
+def test_generator_refuses_a_manifest_that_does_not_match_the_amendment(tmp_path, monkeypatch):
+    import shutil as _sh
+
+    import pytest
+
+    fv = _load("scripts/paper/fill_v060_numbers.py", "fv_rr")
+    rr = json.loads((ROOT / "paper" / "data" / "run_record_amendments.json").read_text())
+    (tmp_path / "paper" / "data").mkdir(parents=True)
+    (tmp_path / "configs" / "runs").mkdir(parents=True)
+    man = tmp_path / "configs" / "runs" / "20260929T035447Z-ce5f237.json"
+    _sh.copy(ROOT / "configs" / "runs" / man.name, man)
+    (tmp_path / "artifacts").symlink_to(ROOT / "artifacts")  # v0.5.0 record read via PROJECT_ROOT
+    monkeypatch.setattr(fv, "PROJECT_ROOT", tmp_path)
+    rec = tmp_path / "paper" / "data" / "run_record_amendments.json"
+
+    def build():
+        return fv.build(
+            ART,
+            ROOT / "paper/data/projection_v060.json",
+            man,
+            [],
+            ROOT / "paper/data/land_v060.json",
+            ROOT / "paper/data/amendments_v060.json",
+            ROOT / "paper/data/v050_record.json",
+        )
+
+    rec.write_text(json.dumps(rr))
+    try:
+        m = build()
+    except FileNotFoundError as exc:  # generator reads other inputs from PROJECT_ROOT: mirror them
+        raise AssertionError(f"test fixture incomplete: {exc}") from exc
+    assert m["ManifestShaSuperseded"] == "323af965b631ce83" and m["RROneFileCount"] == "6"
+    bad = json.loads(json.dumps(rr))
+    for f in bad["amendments"][0]["files"]:
+        if f["path"].endswith(man.name):
+            f["sha256_after"] = "0" * 64
+    rec.write_text(json.dumps(bad))
+    with pytest.raises(ValueError, match="RR-1 amendment record"):
+        build()
+    rec.write_text(json.dumps({"amendments": []}))
+    with pytest.raises(ValueError, match="no RR-1"):
+        build()
+
+
+def test_build_main_refuses_uncommitted_inputs_before_staging(monkeypatch, capsys):
+    import subprocess as sp
+
+    bd = _load("scripts/publish/build_deposit.py", "bd_main")
+    calls = []
+    state = {"porcelain": " M configs/runs/20260929T035447Z-ce5f237.json\n", "render_rc": 0}
+
+    def fake(args, **kw):
+        calls.append(args)
+        if "--porcelain" in args:
+            return sp.CompletedProcess(args, 0, state["porcelain"], "")
+        return sp.CompletedProcess(args, state["render_rc"], "", "")
+
+    monkeypatch.setattr(bd.subprocess, "run", fake)
+    staged = []
+    monkeypatch.setattr(bd, "stage_run_artifacts", lambda *a, **k: staged.append(1) or Path("x"))
+    monkeypatch.setattr(sys, "argv", ["build_deposit.py", "--skip-pdf"])
+    assert bd.main() == 1 and staged == []
+    assert "deposit inputs are not committed" in capsys.readouterr().err
+    porcelain = next(c for c in calls if "--porcelain" in c)
+    for path in (
+        "paper",
+        "scripts/paper",
+        "artifacts/v0.6.0",
+        "configs/runs",
+        "publish.yml",
+        "CITATION.cff",
+        "docs",
+        "artifacts/v0.5.0",
+    ):
+        assert path in porcelain, path
+    state["porcelain"] = ""
+    assert bd.main() == 0 and staged == [1]
+    calls.clear()
+    state["render_rc"] = 1
+    assert bd.main() == 1 and not any("--porcelain" in c for c in calls)
