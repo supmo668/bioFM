@@ -392,6 +392,12 @@ def test_run_record_amendment_rr1_is_complete_and_true():
         for mac in ("\\resManifestShaSuperseded", "\\resRROneDate", "\\resManifestSha"):
             assert mac in text, (rel, mac)
         assert "323af965" not in text and "70be925d" not in text, rel  # never hand-typed
+    # CTO #585 cond. 3: RR-1's recorded hashes are frozen; a re-amendment is a new RR-n entry,
+    # never an edit of RR-1 (canonical digest of every (path, before, after) row).
+    rows = [(f["path"], f["sha256_before"], f["sha256_after"]) for f in rr[0]["files"]]
+    assert hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest() == (
+        "5118914e11fcfaab4a42234bca4d4efe1fbcd90cd63b2b9e16e49cf163248773"
+    )
     assert "llm_key_source" not in (ART / "summary.json").read_text()  # shipped too
     for doc in ("README.md", "paper/README.md", "scripts/modal/app_v05.py"):
         assert "syntropyhealth" not in (ROOT / doc).read_text(), doc
@@ -477,3 +483,18 @@ def test_build_main_refuses_uncommitted_inputs_before_staging(monkeypatch, capsy
     calls.clear()
     state["render_rc"] = 1
     assert bd.main() == 1 and not any("--porcelain" in c for c in calls)
+
+
+def test_rr1_appendix_says_a_rerun_no_longer_records_the_field():
+    """CTO #585 cond. 2: with the code retired, the appendix must not claim a re-run re-creates it."""
+    import re
+
+    text = re.sub(
+        r"(?<!\\\\)%.*", "", (ROOT / "paper" / "sections" / "corrections.tex").read_text()
+    )
+    start = text.index("\\label{app:rr}")
+    nxt = text.find("\\subsection", start)
+    rr = " ".join(text[start : nxt if nxt != -1 else len(text)].split())
+    for stale in ("re-creates", "re-create", "recreates", "still records"):
+        assert stale not in rr, stale
+    assert "no longer does" in rr and "does not record it" in rr
