@@ -78,7 +78,11 @@ license: cc-by-4.0
 #      v0.5 files; set figshare.published=false in publish.state.json; run
 #      `submit_to_venues.py figshare --dry-run` and verify the uploaded file list; then publish
 #      -> the next version of the article (check its current version number first).
-#   4. Set CITATION.cff version/date-released and add the new DOIs; principal approves the publish.
+#   4. Set CITATION.cff date-released and add the new DOIs; principal approves the publish.
+#   Commands (after steps 2-3 and the principal's go): verify with
+#     python scripts/publish/submit_to_venues.py zenodo --dry-run   (draft uploaded, NOT published)
+#     python scripts/publish/submit_to_venues.py figshare --dry-run
+#   then publish each with the same command without --dry-run.
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
   # gitignored, so the build is part of the deposit, not a precondition).

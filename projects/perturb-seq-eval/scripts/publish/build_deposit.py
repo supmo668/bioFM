@@ -24,6 +24,40 @@ RUN_ID = "20260929T035447Z-ce5f237"
 RUN_FILES = ("trainer_runs.jsonl", "lifecycle_runs.jsonl", "provenance.json", "summary.json")
 
 
+def deposit_inputs() -> list[str]:
+    """Every committed input of the deposit: the files publish.yml ships (except build outputs)
+    plus the sources the generated values and the paper come from."""
+    import yaml
+
+    cfg = yaml.safe_load((PROJECT_ROOT / "publish.yml").read_text())
+    shipped = [
+        f["path"]
+        for f in cfg["files"]
+        if not f["path"].startswith("build/") and f["path"] != "paper/paper.pdf"
+    ]
+    return sorted(
+        set(shipped)
+        | {
+            "paper",
+            "scripts/paper",
+            "artifacts/v0.6.0",
+            "configs/runs",
+            "publish.yml",
+            "CITATION.cff",
+        }
+    )
+
+
+def uncommitted_inputs() -> str:
+    return subprocess.run(
+        ["git", "status", "--porcelain", "--", *deposit_inputs()],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
 def stage_run_artifacts(out: Path = OUT) -> Path:
     dst = out / "v060_run_artifacts"
     if dst.exists():
@@ -52,13 +86,7 @@ def build_pdf(out: Path = OUT) -> Path:
             "tectonic not found on PATH; the deposit needs paper.pdf built from the sources"
         )
     paper = PROJECT_ROOT / "paper"
-    dirty = subprocess.run(
-        ["git", "status", "--porcelain", "--", "paper", "scripts/paper", "artifacts/v0.6.0"],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
+    dirty = uncommitted_inputs()
     if dirty:
         raise RuntimeError(
             f"paper sources are not committed; paper.pdf must be built from landed sources:\n{dirty}"
@@ -102,24 +130,7 @@ def main() -> int:
     if check.returncode != 0:
         print(check.stderr, file=sys.stderr)
         return 1
-    dirty = subprocess.run(
-        [
-            "git",
-            "status",
-            "--porcelain",
-            "--",
-            "paper",
-            "scripts/paper",
-            "artifacts/v0.6.0",
-            "configs/runs",
-            "publish.yml",
-            "CITATION.cff",
-        ],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
+    dirty = uncommitted_inputs()
     if dirty:
         print(
             f"deposit inputs are not committed; stage and build from landed sources only:\n{dirty}",
