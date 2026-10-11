@@ -130,8 +130,14 @@ def test_stage_run_artifacts_copies_the_run_with_checksums(tmp_path):
     for line in (dst / "SHA256SUMS").read_text().splitlines():
         digest, name = line.split("  ")
         assert hashlib.sha256((dst / name).read_bytes()).hexdigest() == digest
-    manifest = hashlib.sha256((dst / f"{bd.RUN_ID}.json").read_bytes()).hexdigest()
-    assert manifest.startswith("323af965b631ce83")
+    rr = json.loads((ROOT / "paper" / "data" / "run_record_amendments.json").read_text())[
+        "amendments"
+    ][0]
+    row = next(f for f in rr["files"] if f["path"].endswith(f"{bd.RUN_ID}.json"))
+    assert (
+        hashlib.sha256((dst / f"{bd.RUN_ID}.json").read_bytes()).hexdigest() == row["sha256_after"]
+    )
+    assert row["sha256_before"].startswith("323af965b631ce83")  # the superseded, published value
 
 
 class _Resp:
@@ -341,3 +347,47 @@ def test_keywords_and_citation_version_are_true_of_the_work():
     assert (
         "used as the" not in notes
     )  # no reference claims a tool role the v0.6.0 study does not use
+
+
+def test_run_record_amendment_rr1_is_complete_and_true():
+    """RR-1 (principal ruling 2026-10-08): the LLM key-storage record is gone from every run file,
+    each file's before/after hash is recorded, the 'before' is what the repository held, and the
+    paper prints the superseded manifest hash."""
+    import hashlib
+    import subprocess
+
+    rr = json.loads((ROOT / "paper" / "data" / "run_record_amendments.json").read_text())[
+        "amendments"
+    ]
+    assert [a["id"] for a in rr] == ["RR-1"] and rr[0]["date"] == "2026-10-08"
+    paths = {f["path"] for f in rr[0]["files"]}
+    run_files = {
+        f"artifacts/v0.6.0/{n}"
+        for n in ("provenance.json", "trainer_runs.jsonl", "lifecycle_runs.jsonl")
+    }
+    run_files |= {str(p.relative_to(ROOT)) for p in (ROOT / "configs" / "runs").glob("*.json")}
+    assert paths == run_files
+    for f in rr[0]["files"]:
+        text = (ROOT / f["path"]).read_text()
+        for value in (
+            "llm_key_source",
+            "syntropyhealth",
+            "infisical",
+            "cross_project",
+            "home_project",
+        ):
+            assert value not in text, (f["path"], value)
+        assert hashlib.sha256((ROOT / f["path"]).read_bytes()).hexdigest() == f["sha256_after"]
+        before = subprocess.run(
+            ["git", "show", f"bb3e2e2:projects/perturb-seq-eval/{f['path']}"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        assert hashlib.sha256(before).hexdigest() == f["sha256_before"], f["path"]
+    res = (ROOT / "paper" / "sections" / "results.tex").read_text()
+    assert "\\resManifestShaSuperseded" in res and "\\resRROneDate" in res
+    assert (
+        "\\resManifestShaSuperseded"
+        in (ROOT / "paper" / "sections" / "corrections.tex").read_text()
+    )

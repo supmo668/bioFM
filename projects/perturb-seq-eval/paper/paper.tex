@@ -582,7 +582,8 @@ known defects outside the sweep path & repository file
 The v0.6.0 run files are written to \path{artifacts/v0.6.0/}: run
 \texttt{\resRunId} at \texttt{git\_sha} \resGitSha{} (\texttt{git\_dirty}
 \resGitDirty), \texttt{prereg\_version} \resPreregVersion; the run manifest
-\path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha. The
+\path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha{} (run-record amendment RR-1, \resRROneDate;
+superseded prefix \resManifestShaSuperseded). The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
 \resArchiveShaOutputs), never deleted. The revision at which v0.6.0 landed on main

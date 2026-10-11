@@ -273,6 +273,9 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resLivenessTotalPairs": str(
             sum(len(mdl["roles"]) for mdl in p["llm_roster_liveness"].values())
         ),
+        "resRROneDate": "2026-10-08",
+        "resManifestShaSuperseded": "323af965b631ce83",
+        "resRROneFileCount": "6",
         "resLandSha": land["land_git_sha"],
         "resLandPR": str(land["pr_number"]),
         "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
@@ -620,7 +623,7 @@ def test_corrections_integers_are_macros_or_quoted_design_facts():
         r"\\(path|texttt|ref|label|cite[pt]?)\{[^}]*\}", "", text
     )  # paths, code, references
     text = re.sub(
-        r"\\#\d+|DF-\d+|[\d.]+(em|pt|ex)\b|\d\.\d+", "", text
+        r"\\#\d+|DF-\d+|RR-\d+|SHA-256|[\d.]+(em|pt|ex)\b|\d\.\d+", "", text
     )  # register ids, lengths, decimals
     ints = set(re.findall(r"(?<![\w.\\])\d+(?![\w.])", text))
     allowed = {

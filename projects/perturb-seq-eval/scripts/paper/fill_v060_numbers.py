@@ -351,6 +351,17 @@ def build(
     m["EvalGeneTasks"] = str(len(s["eval_genes_per_task"]))
     m["EvalGeneMismatch"] = str(len(s["eval_gene_mismatch_tasks"]))
     m["ManifestSha"] = _sha16(manifest)
+    # Dated run-record amendment RR-1 (principal ruling 2026-10-08): the superseded manifest hash is
+    # kept and printed, never quietly replaced.
+    rr = json.loads((PROJECT_ROOT / "paper" / "data" / "run_record_amendments.json").read_text())
+    rr1 = next(a for a in rr["amendments"] if a["id"] == "RR-1")
+    rel = str(manifest.resolve().relative_to(PROJECT_ROOT))
+    row = next(f for f in rr1["files"] if f["path"] == rel)
+    if row["sha256_after"][:16] != m["ManifestSha"]:
+        raise ValueError("run manifest does not match the RR-1 amendment record")
+    m["RROneDate"] = rr1["date"]
+    m["ManifestShaSuperseded"] = row["sha256_before"][:16]
+    m["RROneFileCount"] = str(len(rr1["files"]))
     for i, a in enumerate(archives):
         m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = _sha16(a)
     return m

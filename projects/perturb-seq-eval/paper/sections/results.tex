@@ -223,7 +223,11 @@ Trainer records: \resNTrainerRuns{} (\resNTrainerRecordsPerTask{} per task). Spe
 (\resGPUHours{} A100-hours), carried-in prior \$\resSpendPrior; total \$\resSpendTotal{} against
 the \$\resSpendStopLine{} stop-and-report and \$\resKillLine{} kill lines (neither reached:
 stop reason \resStopReasonNone). Run manifest \texttt{configs/runs/\resRunId.json}
-(SHA-256 prefix \resManifestSha). The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on main
+(SHA-256 prefix \resManifestSha; amended \resRROneDate{} by run-record amendment RR-1, which
+removed the record of where the LLM key was stored --- the secret-store name, an organisation
+project, an environment and a cross-project flag, no secret value --- from \resRROneFileCount{} run
+files, because it supports no claim; the earlier prefix \resManifestShaSuperseded{} is superseded,
+and every file's before/after SHA-256 is in \path{paper/data/run_record_amendments.json}). The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on main
 (\resLandSha, PR~\resLandPR) differ in \resPostRunPathCount{} source files under \path{src/} and
 \path{scripts/modal/} (\path{src/perturb_eval/llm/anthropic_client.py},
 \path{src/perturb_eval/llm/openrouter_client.py},
