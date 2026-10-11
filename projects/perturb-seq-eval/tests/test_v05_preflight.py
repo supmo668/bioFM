@@ -7,6 +7,7 @@ trainer / lifecycle work. No network: the pool probe is always a stub here.
 from __future__ import annotations
 
 import ast
+import re
 import logging
 import subprocess
 from pathlib import Path
@@ -279,7 +280,7 @@ def test_preregistration_absent_from_kwargs_fails(tmp_path: Path) -> None:
 def test_preregistration_supplied_passes_with_no_key_source(tmp_path: Path) -> None:
     rep = _run(tmp_path)
     assert rep.ok
-    assert not any("key source" in c for c in rep.checks)
+    assert not any(re.search(r"key[\s_-]?source", c, re.I) for c in rep.checks)
     assert any("pre-registration" in c for c in rep.checks)
 
 
@@ -289,7 +290,15 @@ def test_key_source_check_removed_with_a_dated_note() -> None:
 
     src = Path(pf.__file__).read_text()
     assert not hasattr(pf, "KEY_SOURCE_NAME")
-    assert 'kwargs.get("llm_key_source")' not in src
+    fn = next(
+        n
+        for n in ast.walk(ast.parse(src))
+        if isinstance(n, ast.FunctionDef) and n.name == "preflight"
+    )
+    consts = [
+        n.value for n in ast.walk(fn) if isinstance(n, ast.Constant) and isinstance(n.value, str)
+    ]
+    assert not any(re.search(r"key[\s_-]?source", c, re.I) for c in consts), consts
     doc = pf.__doc__ or ""
     assert "C-KEY-SOURCE — REMOVED 2026-10-10" in doc and "RR-1" in doc
 
@@ -415,9 +424,11 @@ def test_app_v05_env_secrets_forwards_the_key_only() -> None:
     fn = next(
         n for n in _app_tree().body if isinstance(n, ast.FunctionDef) and n.name == "_env_secrets"
     )
-    tuples = [n for n in ast.walk(fn) if isinstance(n, ast.Tuple)]
-    names = {e.value for t in tuples for e in t.elts if isinstance(e, ast.Constant)}
-    assert names == {"ANTHROPIC_API_KEY"}
+    # Every string constant in the body, however it is built (tuple, list, subscript).
+    names = {
+        n.value for n in ast.walk(fn) if isinstance(n, ast.Constant) and isinstance(n.value, str)
+    }
+    assert names - {""} == {"ANTHROPIC_API_KEY"}, names
 
 
 def test_app_v05_sweep_takes_preregistration_and_no_key_source() -> None:
