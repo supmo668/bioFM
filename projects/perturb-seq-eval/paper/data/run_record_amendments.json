@@ -1,0 +1,65 @@
+{
+  "amendments": [
+    {
+      "source": "principal ruling 2026-10-08 (relayed by CTO #582): 'Remove it everywhere, amend the hash'",
+      "date": "2026-10-08",
+      "id": "RR-1",
+      "change": "removed the llm_key_source record (secret-store name, organisation project slug, environment name, home project and a cross-project flag; no secret value) from the run record and the run manifests",
+      "rationale": "not load-bearing for any claim: a key's storage location tells a referee nothing about validity, and the fields name an organisation project, an environment and a cross-project key practice that a DOI would make permanently citable",
+      "not_removed": "llm_cache_dir and llm_cache_namespace (/biofm_cache/...) are container paths naming the public repository's cache volume, not an organisation, environment or key practice",
+      "files": [
+        {
+          "path": "artifacts/v0.6.0/provenance.json",
+          "removed": [
+            "llm_key_source",
+            "entrypoint_kwargs.llm_key_source"
+          ],
+          "sha256_before": "b19d98224b9a55580e8b7014d87d6e9ea6d12d2dc5fa6366cdc9d0bc81c4e0cc",
+          "sha256_after": "6eef2ba7280a578fb0b8517ad1238f5a44cc8cba409c1b97837e19724e6c00d4"
+        },
+        {
+          "path": "configs/runs/20260929T035447Z-ce5f237.json",
+          "removed": [
+            "entrypoint_kwargs.llm_key_source"
+          ],
+          "sha256_before": "323af965b631ce83d237644b0e97336c4b46ed48bb848ba81b4af2e90fa3e4cb",
+          "sha256_after": "70be925de94bfb37b3ffc38bbf128eb7744e25194c6e391e82d9cf53b731f3cf"
+        },
+        {
+          "path": "configs/runs/20260928T220916Z-291efad.json",
+          "removed": [
+            "entrypoint_kwargs.llm_key_source"
+          ],
+          "sha256_before": "df438d225fc06b648ceeb936a9b8d78ae7e4706bfa5ce3e08ef7cc9a87d3b6e7",
+          "sha256_after": "b434e1f8b167b1a06a8698527b6d6e742b2d74135b3c50d385539ca9d08b7af0"
+        },
+        {
+          "path": "configs/runs/20260929T003223Z-4f967a1.json",
+          "removed": [
+            "entrypoint_kwargs.llm_key_source"
+          ],
+          "sha256_before": "50c0449732fbe09e51587a6835ca15034e20a088959aab7388ce917e7bdad242",
+          "sha256_after": "c459c7d72c8d0a69b31d833a83a3d6b33cfe8005666f829707a3b361962cc6cc"
+        },
+        {
+          "path": "artifacts/v0.6.0/trainer_runs.jsonl",
+          "removed": [
+            "llm_key_source",
+            "entrypoint_kwargs.llm_key_source"
+          ],
+          "sha256_before": "9bff4cff369f017f56e4da2a1017cd69f02ef262d673380d3225e6f40a327e65",
+          "sha256_after": "47bde10ca979ea229edb236e0d0f9bb07f2d277e6ac2ccfb249d683274189667"
+        },
+        {
+          "path": "artifacts/v0.6.0/lifecycle_runs.jsonl",
+          "removed": [
+            "llm_key_source",
+            "entrypoint_kwargs.llm_key_source"
+          ],
+          "sha256_before": "36677880eab0ec4904469e85b0bb9edfbb501131c06cfc69082597ae162fce77",
+          "sha256_after": "9d1ace634b6b65d91fbf9ec72bd55f66c09e212e4fe5e1c86c3867cef72d9966"
+        }
+      ]
+    }
+  ]
+}

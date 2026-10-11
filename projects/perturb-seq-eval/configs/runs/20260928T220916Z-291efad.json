@@ -13,13 +13,6 @@
     "git_sha": "291efad42bce2f6e3ace77bb8b1262dbcf273c26",
     "include_adamson": true,
     "include_norman": true,
-    "llm_key_source": {
-      "cross_project": true,
-      "env": "dev",
-      "home_project": "biofm",
-      "project_slug": "syntropyhealth-app",
-      "store": "infisical"
-    },
     "max_cells_per_pert": 200,
     "max_tasks_override": null,
     "n_top_hvg": 2000,
