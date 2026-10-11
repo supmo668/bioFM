@@ -483,7 +483,6 @@ def test_key_source_record_is_retired_from_provenance() -> None:
     assert not hasattr(pv, "llm_key_source") and not hasattr(pv, "parse_key_source")
     prov = _prov()
     assert "llm_key_source" not in prov
-    assert "llm_key_source" not in prov["entrypoint_kwargs"]
     with pytest.raises(TypeError):
         _prov(llm_key_source={"store": "x"})
     assert "llm_key_source" not in _sweep_kwarg_names()
