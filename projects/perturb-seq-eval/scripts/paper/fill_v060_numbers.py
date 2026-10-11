@@ -353,14 +353,25 @@ def build(
     m["ManifestSha"] = _sha16(manifest)
     # Dated run-record amendment RR-1 (principal ruling 2026-10-08): the superseded manifest hash is
     # kept and printed, never quietly replaced.
-    rr = json.loads((PROJECT_ROOT / "paper" / "data" / "run_record_amendments.json").read_text())
-    rr1 = next(a for a in rr["amendments"] if a["id"] == "RR-1")
-    rel = str(manifest.resolve().relative_to(PROJECT_ROOT))
-    row = next(f for f in rr1["files"] if f["path"] == rel)
-    if row["sha256_after"][:16] != m["ManifestSha"]:
-        raise ValueError("run manifest does not match the RR-1 amendment record")
+    rr = json.loads((PROJECT_ROOT / "paper" / "data" / "run_record_amendments.json").read_text())[
+        "amendments"
+    ]
+    rr1 = next((a for a in rr if a["id"] == "RR-1"), None)
+    if rr1 is None:
+        raise ValueError("run_record_amendments.json has no RR-1 entry")
+    try:
+        rel = str(manifest.resolve().relative_to(PROJECT_ROOT))
+    except ValueError as exc:
+        raise ValueError(f"run manifest {manifest} is outside the project") from exc
+    rows = [f for a in rr for f in a["files"] if f["path"] == rel]  # amendments in order
+    if not rows:
+        raise ValueError(f"run manifest {rel} is not in any run-record amendment")
+    if rows[-1]["sha256_after"][:16] != m["ManifestSha"]:
+        raise ValueError(
+            "run manifest does not match the latest run-record amendment (RR-1 amendment record)"
+        )
     m["RROneDate"] = rr1["date"]
-    m["ManifestShaSuperseded"] = row["sha256_before"][:16]
+    m["ManifestShaSuperseded"] = rows[0]["sha256_before"][:16]
     m["RROneFileCount"] = str(len(rr1["files"]))
     for i, a in enumerate(archives):
         m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = _sha16(a)
