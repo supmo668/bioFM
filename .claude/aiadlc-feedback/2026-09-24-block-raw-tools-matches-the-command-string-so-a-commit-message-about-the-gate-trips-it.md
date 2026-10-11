@@ -51,3 +51,5 @@ to name the operation explicitly.
 ## Status
 
 open. Worked around by rewording; the commit landed as `5561fb2`.
+
+**Status:** resolved in airdlc v0.85.0 (2026-10-11) — quote and heredoc state carry across lines; the hook fails closed. Status line ADDED at reconcile time by the CTO: this entry was filed without one, so the maintainer's close could not be recorded against it.

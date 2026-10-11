@@ -56,3 +56,5 @@ adjacent to the thing it describes** — here, the repo's name standing in for t
 
 open. Worked around per above; `receipt-verify`'s hash-based parent resolution is what keeps the
 chain honest in the meantime.
+
+**Status:** resolved in airdlc v0.85.0 (2026-10-11) — `--boundary` also accepts a chain signed under the workstream. Status line ADDED at reconcile time by the CTO: this entry was filed without one, so the maintainer's close could not be recorded against it.

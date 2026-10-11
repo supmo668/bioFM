@@ -75,3 +75,5 @@ re-run before it is ever published.
 open. Locally mitigated by convention: mutation runs under `python -B` going forward,
 and the affected historical counts are to be recorded as unverified rather than
 restated.
+
+**Status:** resolved in airdlc v0.85.0 (2026-10-11) — a no-cached-bytecode rule in the SEALED-TDD mutation contract. Status line ADDED at reconcile time by the CTO: this entry was filed without one, so the maintainer's close could not be recorded against it.

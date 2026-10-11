@@ -92,3 +92,4 @@ holder. Worth considering whether the log belongs somewhere that does not depend
 or whether `/feedback` should check for an existing filing by matching the target + symptom
 before creating a new file.
 
+**Status:** resolved in airdlc v0.85.0 (2026-10-11) — git-safe-commit staging (a pre-built index is now committed as-is; `--all` sweeps). Status line ADDED at reconcile time by the CTO: this entry was filed without one, so the maintainer's close could not be recorded against it.

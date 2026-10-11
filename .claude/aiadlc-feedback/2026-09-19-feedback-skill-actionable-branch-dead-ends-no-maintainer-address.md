@@ -57,3 +57,5 @@ action that has no recipient.
 Filed alongside, same session: the `/expert` request (domain-calibrated research pass), and the
 "nothing tracks a precondition the coordinator owes the human" defect. All three are logged here for
 processing via `/aiadlc:feedback` once a route exists.
+
+**Status:** resolved in airdlc v0.85.0 (2026-10-11) — new `plugin.maintainer_address`. Status line ADDED at reconcile time by the CTO: this entry was filed without one, so the maintainer's close could not be recorded against it.

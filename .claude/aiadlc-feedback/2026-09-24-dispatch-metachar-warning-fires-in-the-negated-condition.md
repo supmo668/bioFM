@@ -123,3 +123,5 @@ open. Locally mitigated by convention only: bodies go through a single-quoted
 heredoc and `--body-file`, never a double-quoted `--body`. The receiving agent has
 added the same rule to its `shell-gate-must-test-the-property-not-the-exit-code`
 instinct.
+
+**Status:** resolved in airdlc v0.85.0 (2026-10-11) — `--body-file` in the usage line; the stored body's bytes and sha are echoed; the inline-body notice is honest. Status line ADDED at reconcile time by the CTO: this entry was filed without one, so the maintainer's close could not be recorded against it.
