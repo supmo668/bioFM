@@ -3,7 +3,8 @@
 % supersede it. Register ids: R*/A* = workstreams/perturb-seq-eval/qa/_adhoc/
 % 2026-09-23-publication-rigor-review.md (review + Addendum); DF-* =
 % workstreams/perturb-seq-eval/deferred-findings.md; #227 = CTO ruling on HVG
-% selection over all cells.
+% selection over all cells. RR-* = run-record amendments to v0.6.0 (subsection
+% at the end; paper/data/run_record_amendments.json).
 
 \section{Corrections relative to v0.5.0}\label{app:corrections}
 
@@ -86,3 +87,19 @@ Byte-equivalent re-run from ``the same code revision'' & R9 & re-run at the
 rows that supersede it.}
 \label{tab:corrections}
 \end{table}
+
+\subsection*{Amendments to the v0.6.0 run record}\label{app:rr}
+\begin{sloppypar}
+Register id RR-* = \path{paper/data/run_record_amendments.json}, logged in
+\path{workstreams/perturb-seq-eval/plan/plan-approval-log.md}. \textbf{RR-1}
+(\resRROneDate, principal ruling): the record of where the LLM key was stored --- the
+secret-store name, an organisation project, an environment, a home project and a
+cross-project flag; no secret value --- was removed from \resRROneFileCount{} run files
+(the run record and the three run manifests) because it supports no claim. The run
+manifest's SHA-256 prefix \resManifestShaSuperseded{}, as first published, is superseded by
+\resManifestSha. No result changes. The code at the run's revision records the field; the
+code was changed so that it no longer does, and a re-run as now documented
+does not record it. \textbf{RR-2} (\resRRTwoDate, text only; no file or hash changes):
+three of RR-1's notes in the register said the code still recorded the field and was out of
+scope; RR-2 replaces them with the corrected text, and RR-1 itself is left unchanged.
+\end{sloppypar}

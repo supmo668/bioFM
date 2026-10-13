@@ -13,6 +13,11 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 - **The pre-registered run** `20260929T035447Z-ce5f237` (git `ce5f237`, `prereg_version` v0.6.0-a4) under `artifacts/v0.6.0/` with its manifest in `configs/runs/`: 0 fallbacks, 0 cache hits, 0 served-model mismatches, 0 refusals; spend $8.93. Gates H1–H4 PASS, H5 FAIL (as pre-registered).
 - **Manuscript filled from the artifacts**: `scripts/paper/fill_v060_numbers.py` writes `paper/sections/generated_numbers.tex` (every result value a `\res...` macro; `--check` is a test); results, methods, abstract, discussion, limitations, conclusion and the corrections appendix rewritten on the macros. LaTeX build products are no longer tracked.
 
+### Removed (run-record amendment RR-1, 2026-10-08/10)
+
+- `llm_key_source` (where the LLM key was stored: store, organisation project, environment, home project, cross-project flag; never the key) removed from the six v0.6.0 run files (RR-1, hashes in `paper/data/run_record_amendments.json`) and retired from the code: `provenance.llm_key_source`/`parse_key_source`, the `build_provenance` field, the preflight check C-KEY-SOURCE (removed, with a dated note, not left passing), and the `LLM_KEY_SOURCE` plumbing in `scripts/modal/app_v05.py`. A re-run no longer records it. Ruling: principal 2026-10-08 ("Remove it everywhere, amend the hash"), CTO #585.
+- **RR-2** (2026-10-13, CTO #593/#598): a text-only entry in `paper/data/run_record_amendments.json` correcting three RR-1 text fields (`rerun_note`, `also_replaced_in_docs`, `out_of_scope`) made false by the code retirement. No file or hash rows; RR-1 is byte-identical.
+
 ### Fixed (post-run, non-measurand — paths the run never exercised; disclosed in the PR)
 
 - `anthropic_client.py`: a served-model mismatch now raises `ServedModelMismatch` (no failover), as A4-1 requires; previously the base error was raised and the call failed over to the other roster model. The run recorded 0 mismatches and 0 failovers in 1846 calls.
@@ -87,14 +92,14 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
 ### Fixed
 
-- `paper/paper.tex` `\author{}` block carried `Anonymous Authors / Syntropy Health / {anonymous}@syntropyhealth.bio` from the template. Replaced with `Mangyin Mo / Carnegie Mellon University / mangyinm@alumni.cmu.edu / ORCID 0009-0009-5233-3142`. Recompiled `paper.pdf` (md5 `e8eec5ba0a65531842fa14168b41b6b8`).
+- `paper/paper.tex` `\author{}` block carried `Anonymous Authors / Syntropy Health / {anonymous}@syntropyhealth.bio` from the template. Replaced with (name later ruled "Mang-yin Mo", 2026-10-02) `Mangyin Mo / Carnegie Mellon University / mangyinm@alumni.cmu.edu / ORCID 0009-0009-5233-3142`. Recompiled `paper.pdf` (md5 `e8eec5ba0a65531842fa14168b41b6b8`).
 - Zenodo: created v2 record. Concept DOI `10.5281/zenodo.19716140` (canonical) now resolves to v2 `10.5281/zenodo.19721470`. v1 `10.5281/zenodo.19716141` retained for provenance.
 - Figshare (DOI `10.6084/m9.figshare.32086920`, unchanged): replaced paper.pdf in place; still 3 files total.
 - OSF (project `wmeuy`): replaced paper.pdf on the project's OSFStorage.
 
 ### Added
 
-- Infisical secret `AUTHOR_EMAIL = mangyinm@alumni.cmu.edu` under `/research/perturb-seq-eval` in the SyntropyHealth GTM project (dev env).
+- Infisical secret `AUTHOR_EMAIL = mangyinm@alumni.cmu.edu` in the secret store (store location removed 2026-10-10, RR-1).
 - `research/PUBLICATION_EVIDENCE.md` → "Authorship patch" section with the root-cause + remediation + new grep for the pre-flight checklist.
 
 ### Root-cause note
