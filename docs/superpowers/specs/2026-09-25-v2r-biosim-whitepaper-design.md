@@ -30,7 +30,7 @@
 The on-disk `.v2r/` state is **not drain 1.** `dashboard/seed_demo_run.py` wrote a seeded 23-unit, 3-drain fixture into the live `.v2r/` directory, overwriting the real (untracked) drain-1 record and register. Its tells: a placeholder `register_sha` ending `…1eef`, pins `d4e5f6a1b2c3` / `9a8b7c6d5e4f`, and record-1 listing U-014/15/17 as both closed and parked. `register verify-record` reports all three records **UNVERIFIED**. The seeded data depicts pass-to-pass improvement, which is the exact claim D5 forbids. The public dashboard artifact already discloses the fixture, so nothing published overclaims.
 
 **Consequences:**
-- Drain-1 evidence is git history: the skeleton commit + the close commits `28af3c4` (U-001) … `2e00aa3` (U-006), `docs/drain-1-notes.md`, the six instinct files, and any recoverable Weave traces (project `3m-m/Aviary-BioSim`).
+- Drain-1 evidence is git history: the skeleton commit + the close commits `28af3c4` (U-001) … `2e00aa3` (U-006), `docs/drain-1-notes.md`, the six instinct files, and any recoverable Weave traces (project `<your-wandb-entity>/Aviary-BioSim`).
 - The paper reports drain 1 as **"reconstructed from version control; the register-written run record was lost"**, not as a verified record.
 - **Also:** the cache read path for sequences had no integrity check when the published numbers were computed (F31, private row). The paper states this under reproducibility.
 - **Fix (build item B1):** the seeder must refuse to write into a live `.v2r/` (use a separate fixture dir, or refuse when a real register exists). This is itself a taxonomy entry: the paper's own evidence nearly failed the paper's own thesis.
