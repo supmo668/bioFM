@@ -359,7 +359,8 @@ def test_run_record_amendment_rr1_is_complete_and_true():
     rr = json.loads((ROOT / "paper" / "data" / "run_record_amendments.json").read_text())[
         "amendments"
     ]
-    assert [a["id"] for a in rr] == ["RR-1"] and rr[0]["date"] == "2026-10-08"
+    # Exact allowlist (CTO #598 cond. 1): widen by one id, deliberately, per amendment.
+    assert [a["id"] for a in rr] == ["RR-1", "RR-2"] and rr[0]["date"] == "2026-10-08"
     paths = {f["path"] for f in rr[0]["files"]}
     run_files = {
         f"artifacts/v0.6.0/{n}"
@@ -498,3 +499,60 @@ def test_rr1_appendix_says_a_rerun_no_longer_records_the_field():
     for stale in ("re-creates", "re-create", "recreates", "still records"):
         assert stale not in rr, stale
     assert "no longer does" in rr and "does not record it" in rr
+
+
+# RR-1's three text fields made false by the code retirement (CTO #585), corrected by RR-2.
+RR1_STALE = {
+    "RR-1.rerun_note": "re-run as documented re-creates the field",
+    "RR-1.also_replaced_in_docs": "now shows LLM_KEY_SOURCE=<store>:<project>:<env>",
+    "RR-1.out_of_scope": "is a separate decision raised with the CTO",
+}
+
+
+def test_rr2_corrects_rr1_text_only_and_leaves_rr1_byte_identical():
+    """CTO #593 (a), #598: RR-2 is an appended text-only entry; RR-1 is unchanged byte for byte."""
+    import subprocess
+
+    path = ROOT / "paper" / "data" / "run_record_amendments.json"
+    raw = path.read_text()
+    rr = json.loads(raw)["amendments"]
+    old_raw = subprocess.run(
+        ["git", "show", "ded9cfc:projects/perturb-seq-eval/paper/data/run_record_amendments.json"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    old_rr1 = json.loads(old_raw)["amendments"]
+    assert len(old_rr1) == 1 and rr[0] == old_rr1[0]
+    # RR-1's serialized text is unchanged too: the file up to RR-1's closing brace is the old file's.
+    head = old_raw[: old_raw.rindex("}", 0, old_raw.rindex("]"))]
+    assert raw.startswith(head)
+    rr2 = rr[1]
+    assert rr2["id"] == "RR-2" and rr2["kind"] == "text-only" and rr2["files"] == []
+    assert set(rr2["supersedes"]) == set(RR1_STALE)
+    for field, stale in RR1_STALE.items():
+        # the superseded RR-1 field really says the stale thing (else RR-2 corrects nothing)...
+        assert stale in rr[0][field.split(".", 1)[1]], field
+        # ...and RR-2 gives a real correction that does not repeat it
+        new = rr2["supersedes"][field]
+        assert isinstance(new, str) and len(new.split()) >= 12, field
+        assert stale not in new, field
+    assert "does not record the field" in rr2["supersedes"]["RR-1.rerun_note"]
+    assert "LLM_KEY_SOURCE=" not in rr2["supersedes"]["RR-1.also_replaced_in_docs"]
+    assert "CTO #585" in rr2["supersedes"]["RR-1.out_of_scope"]
+
+
+def test_rr1_stale_wording_is_not_presented_as_current():
+    """CTO #598 cond. 2: no paper source or doc repeats a superseded RR-1 statement as current."""
+    import re
+
+    docs = [
+        *sorted((ROOT / "paper").rglob("*.tex")),
+        ROOT / "README.md",
+        ROOT / "paper" / "README.md",
+    ]
+    for doc in docs:
+        text = " ".join(re.sub(r"(?<!\\\\)%.*", "", doc.read_text()).split())
+        for stale in (*RR1_STALE.values(), "re-creates the field", "re-creates it"):
+            assert stale not in text, (doc.relative_to(ROOT), stale)
