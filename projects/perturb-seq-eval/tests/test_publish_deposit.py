@@ -389,7 +389,7 @@ def test_run_record_amendment_rr1_is_complete_and_true():
     import re
 
     for rel in ("paper.tex", "sections/results.tex", "sections/corrections.tex"):
-        text = re.sub(r"(?<!\\\\)%.*", "", (ROOT / "paper" / rel).read_text())
+        text = re.sub(r"(?<!\\)%.*", "", (ROOT / "paper" / rel).read_text())
         for mac in ("\\resManifestShaSuperseded", "\\resRROneDate", "\\resManifestSha"):
             assert mac in text, (rel, mac)
         assert "323af965" not in text and "70be925d" not in text, rel  # never hand-typed
@@ -491,7 +491,7 @@ def test_rr1_appendix_says_a_rerun_no_longer_records_the_field():
     import re
 
     text = re.sub(
-        r"(?<!\\\\)%.*", "", (ROOT / "paper" / "sections" / "corrections.tex").read_text()
+        r"(?<!\\)%.*", "", (ROOT / "paper" / "sections" / "corrections.tex").read_text()
     )
     start = text.index("\\label{app:rr}")
     nxt = text.find("\\subsection", start)
@@ -511,6 +511,7 @@ RR1_STALE = {
 
 def test_rr2_corrects_rr1_text_only_and_leaves_rr1_byte_identical():
     """CTO #593 (a), #598: RR-2 is an appended text-only entry; RR-1 is unchanged byte for byte."""
+    import hashlib
     import subprocess
 
     path = ROOT / "paper" / "data" / "run_record_amendments.json"
@@ -538,21 +539,103 @@ def test_rr2_corrects_rr1_text_only_and_leaves_rr1_byte_identical():
         new = rr2["supersedes"][field]
         assert isinstance(new, str) and len(new.split()) >= 12, field
         assert stale not in new, field
-    assert "does not record the field" in rr2["supersedes"]["RR-1.rerun_note"]
-    assert "LLM_KEY_SOURCE=" not in rr2["supersedes"]["RR-1.also_replaced_in_docs"]
-    assert "CTO #585" in rr2["supersedes"]["RR-1.out_of_scope"]
+    assert set(json.loads(raw)) == {"amendments"}
+    assert set(rr2) == {"id", "date", "source", "kind", "files", "supersedes", "rationale"}
+    assert rr2["date"] == "2026-10-13" and "#598" in rr2["source"]
+    # The entry is pinned (cond. 2, "corrections missing or trivial"): any edit to RR-2 is an RR-3.
+    digest = hashlib.sha256(json.dumps(rr2, sort_keys=True, ensure_ascii=False).encode())
+    assert digest.hexdigest() == "9fd352d98d470212511148eaf836145ca5c258a36aee5c71e7e4617ba17f2005"
+    # Each correction states what is true now, and the code and docs agree with it.
+    sup = {k: " ".join(v.split()).lower() for k, v in rr2["supersedes"].items()}
+    assert "no longer does" in sup["RR-1.rerun_note"]
+    assert "does not record the field" in sup["RR-1.rerun_note"]
+    assert "c-key-source" in sup["RR-1.rerun_note"]
+    assert "no longer sets llm_key_source" in sup["RR-1.also_replaced_in_docs"]
+    for doc in ("README.md", "paper/README.md", "scripts/modal/app_v05.py"):
+        assert doc.lower() in sup["RR-1.also_replaced_in_docs"], doc
+        assert "LLM_KEY_SOURCE=" not in (ROOT / doc).read_text(), doc
+    for named in (
+        "not in the run files and not deposited",
+        "unit-test fixtures",
+        "pyproject.toml",
+        "changelog",
+        "cto #585",
+    ):
+        assert named in sup["RR-1.out_of_scope"], named
+    assert "email" not in (ROOT / "pyproject.toml").read_text()
+    pv_src = (ROOT / "src" / "perturb_eval" / "experiments" / "provenance.py").read_text()
+    assert '"llm_key_source":' not in pv_src and "def parse_key_source" not in pv_src
+    for v in sup.values():
+        for bad in (
+            "still records",
+            "still writes",
+            "separate decision",
+            "open question",
+            "re-creates",
+        ):
+            assert bad not in v, (bad, v)
+
+
+_STALE_PATTERNS = (
+    r"re-?creates?\s+(the\s+(llm_key_source\s+)?field|it\b)",
+    r"llm_key_source\s*=\s*<store>",
+    r"separate decision raised",
+    r"still records the field",
+)
+_SCAN_SKIP = (".venv", "tests", "build", "artifacts", "paper/data", ".pytest_cache")
+
+
+def _normalised(path):
+    import re
+
+    text = path.read_text(errors="ignore")
+    if path.suffix == ".tex":  # LaTeX comments only; a '%' in Markdown is text
+        text = re.sub(r"(?<!\\)%.*", "", text)
+    text = text.replace("\\_", "_").replace("~", " ")
+    text = re.sub(r"\\texttt\{([^}]*)\}", r"\1", text)
+    text = re.sub(r"-\s+", "-", text)  # a hyphen broken across a line
+    return " ".join(text.split()).lower()
+
+
+def _scanned_docs():
+    exts = ("*.md", "*.tex", "*.py", "*.cff", "*.yml")
+    for path in sorted(p for e in exts for p in ROOT.rglob(e)):
+        rel = path.relative_to(ROOT).as_posix()
+        if not any(rel == s or rel.startswith(s + "/") for s in _SCAN_SKIP):
+            yield rel, path
 
 
 def test_rr1_stale_wording_is_not_presented_as_current():
-    """CTO #598 cond. 2: no paper source or doc repeats a superseded RR-1 statement as current."""
+    """CTO #598 cond. 2: no doc, paper source, script or metadata file repeats a superseded RR-1
+    statement as current (normalised for case, LaTeX escapes, ~ and line-broken hyphens)."""
     import re
 
-    docs = [
-        *sorted((ROOT / "paper").rglob("*.tex")),
-        ROOT / "README.md",
-        ROOT / "paper" / "README.md",
-    ]
-    for doc in docs:
-        text = " ".join(re.sub(r"(?<!\\\\)%.*", "", doc.read_text()).split())
-        for stale in (*RR1_STALE.values(), "re-creates the field", "re-creates it"):
-            assert stale not in text, (doc.relative_to(ROOT), stale)
+    scanned = dict(_scanned_docs())
+    for must in (
+        "README.md",
+        "paper/README.md",
+        "CHANGELOG.md",
+        "CITATION.cff",
+        "scripts/modal/app_v05.py",
+        "paper/sections/corrections.tex",
+    ):
+        assert must in scanned, must  # the scan really covers the files RR-1 names
+    for rel, path in scanned.items():
+        text = _normalised(path)
+        for pat in _STALE_PATTERNS:
+            assert not re.search(pat, text), (rel, pat)
+
+
+def test_stale_scan_normaliser_sees_through_formatting(tmp_path):
+    import re
+
+    cases = {
+        "a.tex": "\\texttt{LLM\\_KEY\\_SOURCE=<store>:x:y} and Re-\ncreates~the field",
+        "b.md": "Coverage 100% re-run as documented re-creates the field",
+    }
+    for name, body in cases.items():
+        (tmp_path / name).write_text(body)
+        text = _normalised(tmp_path / name)
+        assert any(re.search(p, text) for p in _STALE_PATTERNS), name
+    (tmp_path / "c.tex").write_text("% a re-run re-creates the field\nclean")
+    assert not any(re.search(p, _normalised(tmp_path / "c.tex")) for p in _STALE_PATTERNS)
