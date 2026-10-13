@@ -373,6 +373,11 @@ def build(
     m["RROneDate"] = rr1["date"]
     m["ManifestShaSuperseded"] = rows[0]["sha256_before"][:16]
     m["RROneFileCount"] = str(len(rr1["files"]))
+    # RR-2 (CTO #593 a, #598): text-only correction of RR-1's notes; dated in the appendix.
+    rr2 = next((a for a in rr if a["id"] == "RR-2"), None)
+    if rr2 is None or rr2.get("files") != []:
+        raise ValueError("run_record_amendments.json needs a text-only RR-2 entry (files: [])")
+    m["RRTwoDate"] = rr2["date"]
     for i, a in enumerate(archives):
         m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = _sha16(a)
     return m

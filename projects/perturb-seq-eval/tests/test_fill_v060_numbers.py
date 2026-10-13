@@ -274,6 +274,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
             sum(len(mdl["roles"]) for mdl in p["llm_roster_liveness"].values())
         ),
         "resRROneDate": "2026-10-08",
+        "resRRTwoDate": "2026-10-13",
         "resManifestShaSuperseded": "323af965b631ce83",
         "resRROneFileCount": "6",
         "resLandSha": land["land_git_sha"],

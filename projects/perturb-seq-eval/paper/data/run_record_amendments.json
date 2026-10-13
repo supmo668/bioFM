@@ -74,9 +74,9 @@
       "supersedes": {
         "RR-1.rerun_note": "the code at the run's revision records llm_key_source; the code has since been changed so that it no longer does (the provenance field, the preflight check C-KEY-SOURCE and the LLM_KEY_SOURCE plumbing were retired, CTO #585), so a re-run as now documented does not record the field; the published record was edited after the run, as RR-1 states",
         "RR-1.also_replaced_in_docs": "the documented launch command in README.md, paper/README.md and scripts/modal/app_v05.py no longer sets LLM_KEY_SOURCE at all; it keeps the --projectId <INFISICAL_PROJECT_ID> and --env <ENV> placeholders",
-        "RR-1.out_of_scope": "the code that wrote and required the field, its unit-test fixtures, the pyproject.toml author email and the CHANGELOG's store location were all retired or removed on the CTO's application of the same ruling (CTO #585); committed coordination dispatch payloads are left as they are (CTO #593 (b), standing order #384)"
+        "RR-1.out_of_scope": "not in the run files and not deposited: the code that wrote and required the field, its unit-test fixtures, the pyproject.toml author email and the CHANGELOG's store location were all retired or removed on the CTO's application of the same ruling (CTO #585); committed coordination dispatch payloads are left as they are (CTO #593 (b), standing order #384)"
       },
-      "rationale": "RR-1's three text fields described the state before the code retirement and became false when it landed on the branch; correcting them in place would edit a gated evidential record after the fact, so the correction is a new entry and RR-1 is unchanged"
+      "rationale": "RR-1's three text fields described the state before the code retirement and became false when it landed on the branch; correcting them in place would edit a gated evidential record after the fact, so the correction is a new entry and RR-1 is unchanged; each supersedes value replaces the named RR-1 field in full"
     }
   ]
 }
