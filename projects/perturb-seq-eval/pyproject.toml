@@ -2,7 +2,7 @@
 name = "perturb-eval"
 version = "0.2.0"
 description = "Agentic evaluation + contextual Bayesian vs evolutionary hyperparameter tuning on perturb-seq MSD (see docs/SUPPLEMENT_DESIGN.md)."
-authors = [{ name = "bioFM workspace", email = "mm.bconscious@syntropyhealth.bio" }]
+authors = [{ name = "bioFM workspace" }]
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10,<3.13"

@@ -2,54 +2,65 @@
 #
 # Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
 # script never writes to this file — DOIs and deposition IDs go into
-# `publish.state.json` (gitignored) so this stays clean.
+# `publish.state.json` (tracked: it is the deposit-lineage record) so this stays clean.
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
+
+# Version of the deposited work (sent to Zenodo as the record's version).
+version: "0.6.0"
 
 title: >-
   Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
   Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
   Response Prediction
 
-# One-paragraph description used as the abstract across all venues.
-# Last aligned 2026-09-24 to paper/paper.tex and paper/PREREGISTRATION.md
-# (v0.6.0 regeneration pending: hypotheses, not findings; no result values).
+# GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 description: |
   Multi-agent group-generation systems spend test-time compute uniformly
   across tasks. We ask whether the agents' own confidence-and-critique trace
-  predicts task difficulty. On a five-agent orchestrator for Perturb-seq
-  response prediction we define four compute-free trace metrics (Agent
-  Confidence Entropy, Critique Severity Dispersion, a convergence signal and
-  a Winner Flip Rate) and their composite Task Difficulty Index (TDI), and
-  pre-register five hypotheses with gates: attainable (oracle, best-of-54)
-  error on Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR
-  activation), the Architect agent's backbone-choice entropy over
-  LLM-sourced steps, the rank correlation of each TDI component with
-  held-out error, and cross-dataset transfer of a calibrated TDI. The design
-  is 41 held-out K562 tasks (21 Adamson; 15 Norman singletons and 5
-  doublets) drawn deterministically, a 54-configuration trainer sweep and
-  three agentic lifecycle runs per task in one process. The LLM condition is
-  a rotating pool of OpenRouter models whose serving model is recorded per
-  step; a run with any rule-based fallback step is invalid. Every run
-  records its git revision, resolved configuration, library versions,
-  dataset SHA-256 digests, task plan and label contract. Gate outcomes are
-  pending the v0.6.0 sweep. All values reported in the v0.5.0 release are
-  superseded; the manuscript lists the defect behind each.
+  predicts how hard a task is, which would let the compute be allocated
+  adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
+  response prediction inspired by CellForge and operated via MassGen, we
+  define four compute-free trace metrics — Agent Confidence Entropy (ACE),
+  Critique Severity Dispersion (CSD), a convergence signal (ΔC), and a Winner
+  Flip Rate (WFR) — and their composite, the Task Difficulty Index (TDI). We
+  pre-register five hypotheses with gates: attainable error on Adamson 2016
+  (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
+  agent's backbone-choice entropy, the rank correlation of each TDI component
+  with held-out error, and cross-dataset transfer of a calibrated TDI. The
+  design is 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman
+  doublets) drawn deterministically, a trainer sweep of 27 records per task
+  and three fixed-length agentic lifecycle runs per task, all in one process.
+  The LLM condition is a pinned roster of Anthropic Claude models (Haiku 4.5
+  for the four proposer roles, Sonnet 5.5 for the Validator) whose served
+  model is recorded and asserted per call; a run with any rule-based fallback
+  step is invalid. Every run records its git revision, resolved configuration,
+  library versions, dataset SHA-256 digests, task plan and label contract.
+  Gate outcomes: 4 of 5 gates pass; H5 fails (0 unevaluated) — the trainer
+  sweep attains the pre-registered error on both screens (H1, H2), the
+  Architect exercises its backbone choice (H3), and the confidence-drop
+  component and the composite rank tasks by held-out error within both screens
+  (H4); the Adamson-calibrated composite does not transfer to Norman at the
+  pre-registered level (H5, ρ = 0.286 against > 0.4). The confidence-entropy
+  point estimates run against the pre-registered direction in both screens
+  (exploratory; no claim is made). The values reported in the v0.5.0 release
+  of this work are superseded in full; the defects behind each are listed in
+  the appendix.
 
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
 creators:
-  - name: "Mo, Mangyin"
+  - name: "Mo, Mang-yin"
     affiliation: "Carnegie Mellon University"
     orcid: "0009-0009-5233-3142"
 
 keywords:
   - perturb-seq
-  - Bayesian optimization
-  - contextual bandit
-  - multi-agent LLM
+  - task difficulty
+  - single-cell
+  - multi-agent
   - test-time compute
-  - biological foundation model
+  - CRISPR interference
   - pre-registration
   - provenance
 
@@ -57,26 +68,39 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Files to upload. Paths are relative to the project root (`projects/perturb-seq-eval/`).
-# Directories are auto-zipped by scripts/publish/submit_to_venues.py.
-#
-# Bundle rationale (see research/PUBLISHING_RUNBOOK.md §2.5):
-#   * paper.pdf           — the peer-review-style manuscript.
-#   * supplement.zip      — the Adamson + revision-pass journal docs (all `docs/`
-#                           Markdown + cross-referenced README). The SUPPLEMENT.md
-#                           here is the reviewer-facing reproduction + results artifact.
-#   * modal_run_artifacts — JSON/JSONL inputs and regenerated PDF/PNG/HTML figures.
-#                           The `revision/` subdirectory has bootstrap CIs + γ_T.
+# Deposit-time sequence (both venues already hold PUBLISHED v0.5.x records; the submitters
+# refuse to upload into a published record, see PublishedRecordError):
+#   1. python scripts/publish/build_deposit.py   (clean tree; builds paper.pdf + log, stages the run)
+#   2. Zenodo: POST /deposit/depositions/20060974/actions/newversion (v4 = latest under the
+#      concept DOI 10.5281/zenodo.19716140); record the draft id + links.bucket in
+#      publish.state.json with zenodo.published=false; delete the files the draft inherits.
+#   3. Figshare: update article 32086920's metadata (title, description, authors) and DELETE the
+#      v0.5 files; set figshare.published=false in publish.state.json; run
+#      `submit_to_venues.py figshare --dry-run` and verify the uploaded file list; then publish
+#      -> the next version of the article (check its current version number first).
+#   4. Set CITATION.cff date-released and add the new DOIs; principal approves the publish.
+#   Commands (after steps 2-3 and the principal's go): verify with
+#     python scripts/publish/submit_to_venues.py zenodo --dry-run   (draft uploaded, NOT published)
+#     python scripts/publish/submit_to_venues.py figshare --dry-run
+#   then publish each with the same command without --dry-run.
 files:
+  # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
+  # gitignored, so the build is part of the deposit, not a precondition).
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "Peer-review-style manuscript: pre-registered hypotheses and gates; results pending the v0.6.0 regeneration."
+    description: "Manuscript with the v0.6.0 pre-registered results, built with tectonic from the landed sources; the build log is paper_build.log."
+  - path: build/deposit/paper_build.log
+    name: paper_build.log
+    description: "tectonic build log of paper.pdf (overfull/undefined-reference counts are in the log)."
+  - path: build/deposit/v060_run_artifacts
+    name: v060_run_artifacts.zip
+    description: "The pre-registered v0.6.0 run 20260929T035447Z-ce5f237 (git ce5f237, prereg_version v0.6.0-a4): trainer_runs.jsonl, lifecycle_runs.jsonl, provenance.json, summary.json, the run manifest and SHA256SUMS. Every result in paper.pdf is generated from these files."
   - path: docs
     name: supplement.zip
-    description: "Supplement documentation (SUPPLEMENT.md, SUPPLEMENT_DESIGN.md, REVIEWER_CRITIQUE.md, THESIS.md, DESIGN.md, MODAL.md, PUBLICATION_CHECKLIST.md, INTERNAL_FOLLOWUP.md)."
+    description: "SUPERSEDED: v0.5-era design and supplement documentation (docs/), kept for the record. It describes the earlier OpenRouter condition and the best-of-54 grid; it is not the source of any v0.6.0 result -- paper.pdf and v060_run_artifacts.zip are."
   - path: artifacts/v0.5.0
     name: v050_run_artifacts.zip
-    description: "Superseded v0.5.0 sweep artifacts, kept as the record the manuscript's 'Corrections relative to v0.5.0' appendix refers to; not the source of any reported result."
+    description: "SUPERSEDED: the v0.5.0 sweep artifacts, superseded in full by the v0.6.0 run. Kept only as the record the manuscript's 'Corrections relative to v0.5.0' appendix cites; not the source of any reported result."
 
 # Per-venue configuration. Set enabled:false to skip.
 venues:
@@ -91,11 +115,16 @@ venues:
     # Related identifiers. Real URLs only — any "REPO/PATH"-style placeholder
     # makes it into the published Zenodo metadata if left unreplaced.
     related_identifiers:
-      - identifier: "https://github.com/supmo668/bioFM"
-        relation: "isSupplementTo"
+      # The code that produced the run (pinned to the run's git sha ce5f237).
+      - identifier: "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
+        relation: "isSupplementedBy"
         scheme: "url"
-      - identifier: "10.6084/m9.figshare.32086920"
-        relation: "isIdenticalTo"
+      # v0.6.0 is a NEW VERSION of the v0.5.x work, not identical to it.
+      - identifier: "10.5281/zenodo.20060974"
+        relation: "isNewVersionOf"
+        scheme: "doi"
+      - identifier: "10.6084/m9.figshare.32086920.v5"
+        relation: "isNewVersionOf"
         scheme: "doi"
 
   figshare:

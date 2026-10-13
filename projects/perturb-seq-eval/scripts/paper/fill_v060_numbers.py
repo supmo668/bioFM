@@ -42,7 +42,7 @@ SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /_]*")  # `_` is escaped at emissi
 ENSUREMATH_NEG = re.compile(
     r"\\ensuremath\{-\d+(\.\d+)?\}|\d{1,3}(\\,\d{3})+"
 )  # negatives; thin-space thousands
-VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}"}
+VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}", r"\textemdash"}
 
 
 def f(x, d: int = 3) -> str:
@@ -317,7 +317,7 @@ def build(
         for c in a["lock_commits"]:
             if not re.fullmatch(r"[0-9a-f]{7,40}", c):
                 raise ValueError(f"amendment {a['id']}: lock commit {c!r} is not a git sha")
-        m[f"Amend{word}Version"] = a["prereg_version"] or "(none)"
+        m[f"Amend{word}Version"] = a["prereg_version"] or r"\textemdash"  # A1 predates the tag
         m[f"Amend{word}Date"] = a["lock_date_utc"]
         m[f"Amend{word}Commit"] = ", ".join(a["lock_commits"])
         m[f"Amend{word}Note"] = a["lock_note"]
@@ -351,6 +351,33 @@ def build(
     m["EvalGeneTasks"] = str(len(s["eval_genes_per_task"]))
     m["EvalGeneMismatch"] = str(len(s["eval_gene_mismatch_tasks"]))
     m["ManifestSha"] = _sha16(manifest)
+    # Dated run-record amendment RR-1 (principal ruling 2026-10-08): the superseded manifest hash is
+    # kept and printed, never quietly replaced.
+    rr = json.loads((PROJECT_ROOT / "paper" / "data" / "run_record_amendments.json").read_text())[
+        "amendments"
+    ]
+    rr1 = next((a for a in rr if a["id"] == "RR-1"), None)
+    if rr1 is None:
+        raise ValueError("run_record_amendments.json has no RR-1 entry")
+    try:
+        rel = str(manifest.resolve().relative_to(PROJECT_ROOT))
+    except ValueError as exc:
+        raise ValueError(f"run manifest {manifest} is outside the project") from exc
+    rows = [f for a in rr for f in a["files"] if f["path"] == rel]  # amendments in order
+    if not rows:
+        raise ValueError(f"run manifest {rel} is not in any run-record amendment")
+    if rows[-1]["sha256_after"][:16] != m["ManifestSha"]:
+        raise ValueError(
+            "run manifest does not match the latest run-record amendment (RR-1 amendment record)"
+        )
+    m["RROneDate"] = rr1["date"]
+    m["ManifestShaSuperseded"] = rows[0]["sha256_before"][:16]
+    m["RROneFileCount"] = str(len(rr1["files"]))
+    # RR-2 (CTO #593 a, #598): text-only correction of RR-1's notes; dated in the appendix.
+    rr2 = next((a for a in rr if a["id"] == "RR-2"), None)
+    if rr2 is None or rr2.get("files") != []:
+        raise ValueError("run_record_amendments.json needs a text-only RR-2 entry (files: [])")
+    m["RRTwoDate"] = rr2["date"]
     for i, a in enumerate(archives):
         m[f"ArchiveSha{'Cache' if i == 0 else 'Outputs'}"] = _sha16(a)
     return m

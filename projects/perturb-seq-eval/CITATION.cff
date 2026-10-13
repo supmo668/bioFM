@@ -6,24 +6,45 @@ title: >-
   Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
   Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
   Response Prediction
+# GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 abstract: >-
-  Code and pre-registration for a test of whether multi-agent confidence and
-  critique traces predict task difficulty in Perturb-seq response
-  prediction. Five pre-registered hypotheses with gates (oracle best-of-54
-  error on Adamson 2016 and Norman 2019, Architect backbone-choice entropy
-  over LLM-sourced steps, TDI-component rank correlation with held-out
-  error, cross-dataset TDI transfer) on 41 deterministically drawn held-out
-  K562 tasks, with a provenance record per run (git revision, resolved
-  configuration, library versions, dataset SHA-256 digests, task plan,
-  label contract, per-step serving model). Gate outcomes are pending the
-  v0.6.0 sweep; all v0.5.0 values are superseded.
+  Multi-agent group-generation systems spend test-time compute uniformly
+  across tasks. We ask whether the agents' own confidence-and-critique trace
+  predicts how hard a task is, which would let the compute be allocated
+  adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
+  response prediction inspired by CellForge and operated via MassGen, we
+  define four compute-free trace metrics — Agent Confidence Entropy (ACE),
+  Critique Severity Dispersion (CSD), a convergence signal (ΔC), and a Winner
+  Flip Rate (WFR) — and their composite, the Task Difficulty Index (TDI). We
+  pre-register five hypotheses with gates: attainable error on Adamson 2016
+  (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
+  agent's backbone-choice entropy, the rank correlation of each TDI component
+  with held-out error, and cross-dataset transfer of a calibrated TDI. The
+  design is 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman
+  doublets) drawn deterministically, a trainer sweep of 27 records per task
+  and three fixed-length agentic lifecycle runs per task, all in one process.
+  The LLM condition is a pinned roster of Anthropic Claude models (Haiku 4.5
+  for the four proposer roles, Sonnet 5.5 for the Validator) whose served
+  model is recorded and asserted per call; a run with any rule-based fallback
+  step is invalid. Every run records its git revision, resolved configuration,
+  library versions, dataset SHA-256 digests, task plan and label contract.
+  Gate outcomes: 4 of 5 gates pass; H5 fails (0 unevaluated) — the trainer
+  sweep attains the pre-registered error on both screens (H1, H2), the
+  Architect exercises its backbone choice (H3), and the confidence-drop
+  component and the composite rank tasks by held-out error within both screens
+  (H4); the Adamson-calibrated composite does not transfer to Norman at the
+  pre-registered level (H5, ρ = 0.286 against > 0.4). The confidence-entropy
+  point estimates run against the pre-registered direction in both screens
+  (exploratory; no claim is made). The values reported in the v0.5.0 release
+  of this work are superseded in full; the defects behind each are listed in
+  the appendix.
 authors:
   - family-names: "Mo"
-    given-names: "Mangyin"
+    given-names: "Mang-yin"
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
-version: "0.5.1"
+version: "0.6.0"  # date-released and the new DOIs are set at deposit time (publish.yml sequence)
 date-released: "2026-04-24"
 license: "Apache-2.0"
 # Concept DOI — always resolves to the latest Zenodo version. Lineage:
@@ -38,7 +59,7 @@ doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.19716140"
-    description: "Zenodo concept DOI (resolves to latest version — v4 in v0.5.1)"
+    description: "Zenodo concept DOI (resolves to the latest version)"
   - type: doi
     value: "10.5281/zenodo.20060974"
     description: "Zenodo v4 (v0.5.1 — synthetic claims fully retracted, CI guardrail added)"
@@ -53,16 +74,16 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare (mirror for supplement + artefacts; paper.pdf updated in-place to v0.5.1)"
+    description: "Figshare article (versioned; v5 = v0.5.1)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:
   - perturb-seq
-  - Bayesian optimization
-  - contextual bandit
-  - multi-agent LLM
+  - task difficulty
+  - single-cell
+  - multi-agent
   - test-time compute
-  - biological foundation model
+  - CRISPR interference
   - pre-registration
   - Adamson 2016
   - CellForge
@@ -111,7 +132,7 @@ references:
     year: 2008
     journal: "Journal of Machine Learning Research"
     volume: 9
-    notes: "greedy max-information-gain used for γ_T estimation"
+    notes: "background for the repository optimizer code (v0.4-era); not used in the v0.6.0 study"
   - type: article
     authors:
       - family-names: "Hansen"
@@ -133,7 +154,7 @@ references:
     title: "Transfer learning enables predictions in network biology"
     year: 2023
     journal: "Nature"
-    notes: "Geneformer; used as the Validator BioFM tool"
+    notes: "Geneformer; cited as related work -- no pretrained foundation model is evaluated in v0.6.0"
   - type: article
     authors:
       - family-names: "Luo"
@@ -141,7 +162,7 @@ references:
     title: "BioGPT: generative pre-trained transformer for biomedical text generation and mining"
     year: 2022
     journal: "Briefings in Bioinformatics"
-    notes: "BioGPT; used as the Literature BioFM tool"
+    notes: "BioGPT; used only in the superseded v0.5 condition"
   - type: article
     authors:
       - family-names: "Lotfollahi"

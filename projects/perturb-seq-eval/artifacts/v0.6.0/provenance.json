@@ -49,13 +49,6 @@
     "git_sha": "ce5f2379bac485930ff57c4b9e96a486676413a8",
     "git_dirty": false,
     "run_id": "20260929T035447Z-ce5f237",
-    "llm_key_source": {
-      "store": "infisical",
-      "project_slug": "syntropyhealth-app",
-      "env": "dev",
-      "home_project": "biofm",
-      "cross_project": true
-    },
     "preregistration": {
       "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
       "sha256": "6f8498eea879bb1e843511b03b821a567293402dff123487228c5f0c1330f270",
@@ -1959,13 +1952,6 @@
     "claude-haiku-4-5-20251001",
     "claude-sonnet-5-5"
   ],
-  "llm_key_source": {
-    "store": "infisical",
-    "project_slug": "syntropyhealth-app",
-    "env": "dev",
-    "home_project": "biofm",
-    "cross_project": true
-  },
   "preregistration": {
     "path": "projects/perturb-seq-eval/paper/PREREGISTRATION.md",
     "sha256": "6f8498eea879bb1e843511b03b821a567293402dff123487228c5f0c1330f270",

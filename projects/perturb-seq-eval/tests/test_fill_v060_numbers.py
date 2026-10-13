@@ -273,6 +273,10 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resLivenessTotalPairs": str(
             sum(len(mdl["roles"]) for mdl in p["llm_roster_liveness"].values())
         ),
+        "resRROneDate": "2026-10-08",
+        "resRRTwoDate": "2026-10-13",
+        "resManifestShaSuperseded": "323af965b631ce83",
+        "resRROneFileCount": "6",
         "resLandSha": land["land_git_sha"],
         "resLandPR": str(land["pr_number"]),
         "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
@@ -359,7 +363,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     for a in am:
         word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
-        expect[f"resAmend{word}Version"] = a["prereg_version"] or "(none)"
+        expect[f"resAmend{word}Version"] = a["prereg_version"] or r"\textemdash"
         expect[f"resAmend{word}Date"] = a["lock_date_utc"]
         expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
         expect[f"resAmend{word}Note"] = a["lock_note"]
@@ -620,7 +624,7 @@ def test_corrections_integers_are_macros_or_quoted_design_facts():
         r"\\(path|texttt|ref|label|cite[pt]?)\{[^}]*\}", "", text
     )  # paths, code, references
     text = re.sub(
-        r"\\#\d+|DF-\d+|[\d.]+(em|pt|ex)\b|\d\.\d+", "", text
+        r"\\#\d+|DF-\d+|RR-\d+|SHA-256|[\d.]+(em|pt|ex)\b|\d\.\d+", "", text
     )  # register ids, lengths, decimals
     ints = set(re.findall(r"(?<![\w.\\])\d+(?![\w.])", text))
     allowed = {
@@ -856,12 +860,30 @@ def test_post_run_paths_are_exactly_the_git_diff(land):
         ).split()
     )
     assert changed == sorted(land["post_run_changed_paths"]), changed
-    assert (
+    # After the land, only the recorded RR-1 paths may differ (CTO #585), and never the analyser.
+    after_land = sorted(
         _git(
             "diff",
             "--name-only",
             "--relative",
             land["land_git_sha"],
+            "HEAD",
+            "--",
+            "src",
+            "scripts/modal",
+        ).split()
+    )
+    assert after_land == sorted(land["post_land_changed_paths"]), after_land
+    assert "src/perturb_eval/experiments/e_v05_real_traces.py" not in after_land
+    # ...and nothing under src/ or scripts/modal/ has changed since the RR-1 commit itself,
+    # so a later edit to those three files still forces this record to be revisited.
+    _git("merge-base", "--is-ancestor", land["post_land_rr1_commit"], "HEAD")
+    assert (
+        _git(
+            "diff",
+            "--name-only",
+            "--relative",
+            land["post_land_rr1_commit"],
             "HEAD",
             "--",
             "src",

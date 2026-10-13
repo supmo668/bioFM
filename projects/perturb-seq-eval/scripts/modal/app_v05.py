@@ -21,11 +21,11 @@ Design:
     run that fails either is flagged ``replay``.
 
 Run (from ``projects/perturb-seq-eval``; the key is injected by Infisical at
-run time and never written to disk; ``LLM_KEY_SOURCE`` records where it
-came from, and preflight refuses the run without it)::
+run time and never written to disk, and the run records nothing about where
+it is stored: ``LLM_KEY_SOURCE`` was retired 2026-10-10, RR-1)::
 
-    LLM_KEY_SOURCE=infisical:syntropyhealth-app:dev infisical run \\
-        --projectId <INFISICAL_PROJECT_ID> --env dev -- \\
+    infisical run \\
+        --projectId <INFISICAL_PROJECT_ID> --env <ENV> -- \\
         modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \\
         --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3
 
@@ -114,13 +114,10 @@ _DEFAULT_BACKBONES: tuple[str, ...] = ("linear", "mlp", "scgpt_small")
 
 # The pre-registration the sweep runs under, relative to the git toplevel (CTO #265).
 _PREREGISTRATION_REL = "projects/perturb-seq-eval/paper/PREREGISTRATION.md"
-_HOME_PROJECT = "biofm"
 
 
 def _env_secrets() -> dict[str, str]:
-    # LLM_KEY_SOURCE is NOT a secret ("<store>:<project_slug>:<env>");
-    # it is forwarded so the container sees the same source the host recorded.
-    keys = ("ANTHROPIC_API_KEY", "LLM_KEY_SOURCE")
+    keys = ("ANTHROPIC_API_KEY",)
     return {k: os.environ.get(k, "") for k in keys}
 
 
@@ -156,7 +153,6 @@ def run_v05_sweep(
     git_sha: str = "",
     git_dirty: bool = False,
     run_id: str = "",
-    llm_key_source: dict | None = None,
     preregistration: dict | None = None,
     preregistration_error: str | None = None,
 ) -> dict:
@@ -165,10 +161,8 @@ def run_v05_sweep(
     ``git_sha`` / ``git_dirty`` / ``run_id`` are computed on the host by the
     local entrypoint (the container has no ``.git``); a direct ``.remote()``
     call without them fails closed in ``build_provenance``. Likewise
-    ``llm_key_source`` (parsed from ``LLM_KEY_SOURCE``) and
-    ``preregistration`` (or ``preregistration_error``) are host-computed; the
-    preflight refuses the run when either is missing (principal directive
-    2026-09-24, CTO #265).
+    ``preregistration`` (or ``preregistration_error``) is host-computed; the
+    preflight refuses the run when it is missing (CTO #265).
 
     Spend (CTO #283): both sweep loops stop as soon as :func:`spend_guard`
     trips — ``spend_stop_usd`` (default $12, stop and report) or the $28 hard
@@ -451,7 +445,6 @@ def run_v05_sweep(
         hourly_usd=_A100_HOURLY_USD,
         budget_cap_usd=_BUDGET_HARD_KILL_USD,
         started_at=_iso(started_at),
-        llm_key_source=llm_key_source,
         preregistration=preregistration,
         device=training_device(),  # QG C9: the device every scgpt_small fit uses
         llm_cache_dir=_LLM_CACHE_DIR,  # QG C6
@@ -739,7 +732,6 @@ def entrypoint(
     from perturb_eval.experiments.provenance import (
         git_state,
         make_run_id,
-        parse_key_source,
         preregistration_record,
         write_run_config,
     )
@@ -747,9 +739,6 @@ def entrypoint(
     # Host side: the Modal container has no .git (T13).
     git_sha, git_dirty = git_state(PROJECT_DIR_HOST)
     run_id = make_run_id(git_sha)
-    # Principal directive (2026-09-24): record WHERE the key came from, never the
-    # key. Missing/malformed -> None, which the preflight refuses (C-KEY-SOURCE).
-    llm_key_source = parse_key_source(os.environ.get("LLM_KEY_SOURCE"), home_project=_HOME_PROJECT)
     # CTO #265: pin the committed, clean pre-registration (C-PREREG otherwise).
     toplevel = subprocess.run(
         ["git", "-C", str(PROJECT_DIR_HOST), "rev-parse", "--show-toplevel"],
@@ -787,7 +776,6 @@ def entrypoint(
         "git_sha": git_sha,
         "git_dirty": git_dirty,
         "run_id": run_id,
-        "llm_key_source": llm_key_source,
         "preregistration": preregistration,
         "preregistration_error": preregistration_error,
     }

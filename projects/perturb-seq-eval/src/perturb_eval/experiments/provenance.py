@@ -158,58 +158,11 @@ def resolve_lib_versions() -> dict[str, str | None]:
     return out
 
 
-_SOURCE_PART = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
-
-
-def llm_key_source(store: str, project_slug: str, env: str, *, home_project: str) -> dict[str, Any]:
-    """Describe WHERE the LLM credential came from — never the credential itself.
-
-    Principal directive (2026-09-24) + CTO #265: the key is injected at run time
-    (``infisical run ... -- modal run``) and provenance records only its source.
-    ``cross_project`` is explicit because a store outside the home project reads,
-    out of context, like a typo for the home one. Each part must look like a slug:
-    anything shaped like a secret (``sk-...``, over-long, empty) is refused, so the
-    value cannot leak into provenance through this field.
-    """
-    for name, part in (
-        ("store", store),
-        ("project_slug", project_slug),
-        ("env", env),
-        ("home_project", home_project),
-    ):
-        if (
-            not isinstance(part, str)
-            or not _SOURCE_PART.match(part)
-            or part.lower().startswith("sk-")
-        ):
-            raise ValueError(
-                f"llm_key_source.{name} must be a short slug, not a credential-shaped value"
-            )
-    return {
-        "store": store,
-        "project_slug": project_slug,
-        "env": env,
-        "home_project": home_project,
-        "cross_project": project_slug != home_project,
-    }
-
-
-def parse_key_source(spec: str | None, *, home_project: str) -> dict[str, Any] | None:
-    """Parse ``LLM_KEY_SOURCE`` (formerly ``OPENROUTER_KEY_SOURCE``) (``"<store>:<project_slug>:<env>"``).
-
-    Returns the :func:`llm_key_source` dict, or ``None`` when ``spec`` is
-    missing, malformed, or any part is credential-shaped; the preflight then
-    refuses the run (C-KEY-SOURCE). The value is never echoed.
-    """
-    if not isinstance(spec, str) or any(c.isspace() for c in spec):
-        return None
-    parts = spec.split(":")
-    if len(parts) != 3:
-        return None
-    try:
-        return llm_key_source(*parts, home_project=home_project)
-    except ValueError:
-        return None
+# 2026-10-10 (run-record amendment RR-1, CTO #585): ``llm_key_source`` and
+# ``parse_key_source`` were RETIRED. Provenance used to record where the LLM key
+# was stored (store, organisation project, environment, home project and a
+# cross-project flag; never the key). It supports no claim, and the principal
+# ruled it removed everywhere (2026-10-08), so the record no longer has the field.
 
 
 def preregistration_record(repo_dir: str | Path, rel_path: str) -> dict[str, str]:
@@ -358,7 +311,6 @@ def build_provenance(
     lib_versions: Mapping[str, str | None] | None = None,
     started_at: str | None = None,
     known_limitations: Iterable[str] = (),
-    llm_key_source: Mapping[str, Any] | None = None,
     preregistration: Mapping[str, str] | None = None,
     device: str | None = None,
     llm_cache_dir: str | None = None,
@@ -440,10 +392,8 @@ def build_provenance(
         "hvg_selection": {"mode": "train_only"},
         "trainer_grid": grid,
         "llm_pool": pool,
-        # Principal directive + CTO #265: credential SOURCE only (never the value),
-        # and the commit that fixed the hypotheses. Always present; the preflight
-        # requires both to be non-null for a real sweep.
-        "llm_key_source": dict(llm_key_source) if llm_key_source is not None else None,
+        # CTO #265: the commit that fixed the hypotheses. Always present; the
+        # preflight requires it to be non-null for a real sweep.
         "preregistration": dict(preregistration) if preregistration is not None else None,
         "device": device,
         "llm_cache_dir": llm_cache_dir,
