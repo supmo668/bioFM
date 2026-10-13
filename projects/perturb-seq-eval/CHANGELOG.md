@@ -16,6 +16,7 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 ### Removed (run-record amendment RR-1, 2026-10-08/10)
 
 - `llm_key_source` (where the LLM key was stored: store, organisation project, environment, home project, cross-project flag; never the key) removed from the six v0.6.0 run files (RR-1, hashes in `paper/data/run_record_amendments.json`) and retired from the code: `provenance.llm_key_source`/`parse_key_source`, the `build_provenance` field, the preflight check C-KEY-SOURCE (removed, with a dated note, not left passing), and the `LLM_KEY_SOURCE` plumbing in `scripts/modal/app_v05.py`. A re-run no longer records it. Ruling: principal 2026-10-08 ("Remove it everywhere, amend the hash"), CTO #585.
+- **RR-2** (2026-10-13, CTO #593/#598): a text-only entry in `paper/data/run_record_amendments.json` correcting three RR-1 text fields (`rerun_note`, `also_replaced_in_docs`, `out_of_scope`) made false by the code retirement. No file or hash rows; RR-1 is byte-identical.
 
 ### Fixed (post-run, non-measurand — paths the run never exercised; disclosed in the PR)
 

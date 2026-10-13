@@ -64,6 +64,19 @@
       "also_replaced_in_docs": "the documented launch command in README.md, paper/README.md and scripts/modal/app_v05.py now shows LLM_KEY_SOURCE=<store>:<project>:<env> and --env <ENV> placeholders",
       "out_of_scope": "not in the run files and not deposited: the code that writes and requires the field (src/perturb_eval/experiments/provenance.py, v05_preflight.py C-KEY-SOURCE, scripts/modal/app_v05.py) and its unit-test fixtures, pyproject.toml author email, CHANGELOG history; retiring the field from the code is a separate decision raised with the CTO",
       "rerun_note": "the code at the run's revision still records llm_key_source, so a re-run as documented re-creates the field; the published record was edited after the run, as this amendment states"
+    },
+    {
+      "id": "RR-2",
+      "date": "2026-10-13",
+      "source": "CTO #593 (a) and #598: a text-only correction of RR-1, appended so that RR-1 stays byte-identical",
+      "kind": "text-only",
+      "files": [],
+      "supersedes": {
+        "RR-1.rerun_note": "the code at the run's revision records llm_key_source; the code has since been changed so that it no longer does (the provenance field, the preflight check C-KEY-SOURCE and the LLM_KEY_SOURCE plumbing were retired, CTO #585), so a re-run as now documented does not record the field; the published record was edited after the run, as RR-1 states",
+        "RR-1.also_replaced_in_docs": "the documented launch command in README.md, paper/README.md and scripts/modal/app_v05.py no longer sets LLM_KEY_SOURCE at all; it keeps the --projectId <INFISICAL_PROJECT_ID> and --env <ENV> placeholders",
+        "RR-1.out_of_scope": "the code that wrote and required the field, its unit-test fixtures, the pyproject.toml author email and the CHANGELOG's store location were all retired or removed on the CTO's application of the same ruling (CTO #585); committed coordination dispatch payloads are left as they are (CTO #593 (b), standing order #384)"
+      },
+      "rationale": "RR-1's three text fields described the state before the code retirement and became false when it landed on the branch; correcting them in place would edit a gated evidential record after the fact, so the correction is a new entry and RR-1 is unchanged"
     }
   ]
 }
