@@ -1,0 +1,23 @@
+# Transport-core MAP prior — SCAFFOLD for build-plan T28 (S14). HUMAN-OWNED.
+#
+# Copy this to configs/transport_prior.yaml and fill it. Both entries are
+# log-normal: write `mean_log` and `sigma_log` with the `citation` that supports
+# them, or state an explicitly uninformative prior and leave `assumed: true`.
+#
+# Read Finding E before treating this as a formality: at three reference
+# compounds the reported (alpha, k_sink) is substantially prior-determined, so
+# these numbers do real work on the M1 result. No agent filled them in.
+
+alpha_prior:
+  # prior on alpha, the transport scaling term
+  mean_log:
+  sigma_log:
+  citation:
+  assumed: true
+
+k_sink_prior:
+  # prior on k_sink, the sink rate constant
+  mean_log:
+  sigma_log:
+  citation:
+  assumed: true

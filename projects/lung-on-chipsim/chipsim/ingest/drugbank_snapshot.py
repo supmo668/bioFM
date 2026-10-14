@@ -191,7 +191,15 @@ def verify_snapshot(dest: Path) -> dict[str, str]:
 #: What may legitimately be git-tracked under data/raw/: DVC pointers, directory
 #: anchors, the integrity manifest, and T1/T2's human provenance artifacts.
 VENDORING_ALLOWED_SUFFIXES = (".dvc",)
-VENDORING_ALLOWED_NAMES = frozenset({".gitkeep", MANIFEST_NAME, "provenance.yaml", "PROVENANCE.md"})
+#: `sources.yaml` is the release-provenance record for the non-git sources (UniProt,
+#: ChEMBL and the rest), approved by the principal 2026-09-12 and transcribed by the
+#: CTO. It names endpoints and licences and carries no payload; it was added on main
+#: without being added here, so T11's vendoring check reported it as redistributed
+#: DrugBank for three weeks. The allow-list is the single definition of the rule, so
+#: this is the one place to say so.
+VENDORING_ALLOWED_NAMES = frozenset(
+    {".gitkeep", MANIFEST_NAME, "provenance.yaml", "PROVENANCE.md", "sources.yaml"}
+)
 
 
 def vendored_offenders(tracked_paths) -> list[str]:

@@ -1,0 +1,298 @@
+# ============================================================================
+# M1 input sourcing worksheet — T20 (theta), T28 (transport prior), T21 (reference
+# compounds).
+#
+# 2026-10-14: PARTIALLY FILLED from full texts read through the Undermind MCP
+# server, which retrieves open-access PDFs and so bypasses the container egress
+# block recorded on 2026-10-08 (that block is unchanged: pmc.ncbi.nlm.nih.gov,
+# pubchem.ncbi.nlm.nih.gov, doi.org, www.nature.com, pubs.rsc.org,
+# www.science.org, www.ebi.ac.uk and en.wikipedia.org all still answer 403 to
+# CONNECT). Every filled row below carries the verbatim sentence or table cell
+# the value was read out of, and a DOI resolved from a scholarly index rather
+# than a search summary.
+#
+# The rule, enforced by chipsim.transport.sourcing.load_sourcing_worksheet:
+#   a row may be EMPTY; a row may NOT carry a value without the quote behind it.
+#
+# STILL EMPTY, honestly: the k_sink prior (the primary source says a single
+# first-order constant is the wrong model — see its row) and every compound
+# IDENTITY row (an InChIKey is the project's join key and PubChem is blocked; it
+# is never written from memory).
+# ============================================================================
+
+schema_version: 1
+recorded_on: "2026-10-14"
+recorded_by: "agent draft from full texts under the principal's 2026-10-08 amendment; awaiting ratification"
+device: "Huh 2010 alveolar PDMS chip. Every theta row must come from that device or its
+  fabrication protocol. The Benam 2016 airway chip has a RIGID polyester membrane and no cyclic
+  stretch; commercial-era specs come from non-peer-reviewed sources. A merged theta would
+  describe no real chip."
+egress_blocked:
+  - pmc.ncbi.nlm.nih.gov
+  - pubchem.ncbi.nlm.nih.gov
+  - doi.org
+  - www.nature.com
+  - pubs.rsc.org
+  - www.science.org
+  - www.ebi.ac.uk
+  - en.wikipedia.org
+egress_workaround: "Undermind MCP full-text PDF reading. It does not lift the block; it is a
+  different retrieval path that happens to reach open-access copies. PubChem has no such path,
+  so compound identity remains unobtainable."
+
+worksheet:
+
+  # -- T20: the six theta fields the M1 fit reads ----------------------------
+  theta:
+    - field: flow_ul_min
+      needs: medium flow rate in the perfused channel
+      unit: uL/min
+      value: 1.8
+      provenance: assumed
+      assumed_width: "0.33 to 3.33 uL/min (a factor of ~10, spanning 20-200 uL/h)"
+      source: "NOT the reference device. Huh 2010 does not state a flow rate or velocity."
+      note: "Huh 2010 states no flow rate: the only flow-related number it gives is 15 dyne/cm2,
+        and that is endothelial PRE-CONDITIONING shear, not channel wall shear during the
+        experiment. The width above is the flow range reported for a comparable two-channel
+        microfluidic barrier device (Frost 2019, 20-200 uL/h, wall shear 0.0012-0.012 dyne/cm2),
+        used as a plausibility envelope and NOT as a measurement of this device. The midpoint is
+        a placeholder for the fit to start from; it carries no evidential weight. Resolve from
+        Huh 2013 Nature Protocols, which has no open-access route found so far."
+
+    - field: membrane_um
+      needs: porous PDMS membrane thickness
+      unit: um
+      value: 10
+      provenance: cited
+      doi: "10.1126/science.1188302"
+      doi_confirmed: true
+      source: "Huh et al. 2010, Science 328(5986):1662-1668, Device design, p.2; corroborated in the Fig. 1C caption"
+      quote: "This was accomplished by microfabricating a microfluidic system containing two
+        closely apposed microchannels separated by a thin (10 um) porous flexible membrane made
+        of poly(dimethylsiloxane) (PDMS)."
+      note: "Stated twice in the paper, in body text and in the Fig. 1C caption, which is why
+        this is the highest-confidence theta field. It also CONTRADICTS the ~50 um figure
+        circulating from commercial-era vendor material; the primary paper governs."
+
+    - field: porosity
+      needs: membrane porosity as a fraction of open area
+      unit: fraction
+      value: 0.1
+      provenance: assumed
+      assumed_width: "0.03 to 0.30 (a factor of 10 on open-area fraction)"
+      source: "Huh 2010 gives pore GEOMETRY but not pore spacing, so porosity cannot be derived."
+      note: "The formula porosity = pi*(d/2)^2 / pitch^2 needs a pitch, and Huh 2010 states none.
+        What it does state, verbatim, is the pore size: 'a 10 um-thick PDMS membrane containing
+        an array of through-holes with an effective diameter of 10 um' (Fig. 1C caption), and
+        elsewhere '10 um-wide pentagonal pores'. PENTAGONAL, so neither the square nor the
+        hexagonal lattice formula applies as written even once a pitch is known. No pore density
+        is given either. This field is therefore an honest assumption with a wide width, which
+        the scaffold supports as a stated gap the run journal reports rather than an error.
+        Do NOT substitute the 25 um spacing circulating from gut-chip patent embodiments."
+
+    - field: strain_pct
+      needs: cyclic strain amplitude applied to the membrane, with its frequency
+      unit: percent
+      value: 10
+      provenance: cited
+      doi: "10.1126/science.1188302"
+      doi_confirmed: true
+      source: "Huh et al. 2010, Science, Reconstitution of a Functional Alveolar-Capillary Interface, p.4"
+      quote: "Application of physiological cyclic strain (10% at 0.2 Hz) also induced cell
+        alignment in the endothelial cells in the lower compartment (fig. S2 and Movie S4), and
+        hence, mimics physiological responses previously observed in cultured endothelium and in
+        living blood vessels in vivo (26, 27)."
+      note: "The FREQUENCY, 0.2 Hz, is part of the quoted condition but has no slot in the
+        six-field schema; it is carried in the experimental design document instead, because a
+        strain amplitude without its frequency is not a reproducible condition. The paper also
+        states the explored range, verbatim: 'The level of applied strain ranged from 5% to 15%
+        to match normal levels of strain observed in alveoli within whole lung in vivo'. 10% is
+        the reported operating point, not the range."
+
+    - field: area_mm2
+      needs: membrane exchange area between the two channels
+      unit: mm^2
+      value: 15
+      provenance: assumed
+      assumed_width: "5 to 50 mm^2 (an order of magnitude)"
+      source: "Huh 2010 states no channel width, height, length or overlap length."
+      note: "The derivation area = width * overlap_length has neither input. The only dimensional
+        statement in the paper is qualitative, verbatim: 'The entire integrated device is only
+        one to two centimeters in length with the central channels only millimeters in width' —
+        which is the DEVICE length, not the channel overlap, and 'millimeters' is not a number.
+        The width above brackets what a millimetre-wide channel over a centimetre-scale overlap
+        could give. Resolve from Huh 2013 Nature Protocols. Note that the area enters the
+        permeability definition itself (Frost 2019 Eq. 6, P = (C_inf/C_0)(Q/A)), so an order of
+        magnitude here is an order of magnitude on any permeability the model reports."
+
+    - field: coating
+      needs: the ECM coating on the membrane, named as the source names it
+      unit: categorical
+      value: "fibronectin or collagen"
+      provenance: cited
+      doi: "10.1126/science.1188302"
+      doi_confirmed: true
+      source: "Huh et al. 2010, Science, device description, p.2"
+      quote: "The intervening membrane was coated with ECM (fibronectin or collagen), and human
+        alveolar epithelial cells and human pulmonary microvascular endothelial cells were
+        cultured on opposite sides of the membrane (Fig. 1A)."
+      note: "The value is the source's own DISJUNCTION, preserved rather than resolved: the paper
+        offers either, names no collagen type, and gives no concentration. A simulated condition
+        must pick one, and that pick is the principal's — it is a statement about which
+        experiment is being modelled, not a parameter lookup. Concentration figures circulating
+        for gut and kidney chips must not be attached to this."
+
+  # -- T28: the (alpha, k_sink) log-normal prior -----------------------------
+  transport_prior:
+    - field: alpha_prior.mean_log
+      needs: centre of a log-normal prior on the transport scaling term
+      unit: log(cm/s)
+      value: -14.35
+      provenance: derived
+      doi: "10.3389/fphar.2025.1621775"
+      doi_confirmed: true
+      source: "Geiger et al. 2025, Front. Pharmacol., Results p.9 and Table 2 — small airway MPS, apical-to-basolateral"
+      quote: "Using this information, we calculated an apparent permeability (Papp) of 1.02 x
+        10-6 cm/s for albuterol sulfate, 0.0813 x 10-6 cm/s for olodaterol HCl, and 2.44 x 10-6
+        cm/s for formoterol fumarate."
+      derivation: "mean of ln(Papp) over the three quoted on-chip values, in cm/s:
+        ln(8.13e-8) = -16.3251, ln(1.02e-6) = -13.7957, ln(2.44e-6) = -12.9235;
+        mean = -14.3481, i.e. a geometric mean of 5.87e-7 cm/s. n = 3, single platform."
+      note: "Papp is NOT alpha. The experimental design must state the mapping from an apparent
+        permeability to the model's scaling term before this prior is used, or it centres the
+        wrong quantity. Single-platform by design: these three come from one small-airway MPS,
+        so the prior describes that platform and transferring it is a separate, documented step."
+
+    - field: alpha_prior.sigma_log
+      needs: width of that prior
+      unit: log units
+      value: 2.0
+      provenance: derived
+      doi: "10.3389/fphar.2025.1621775"
+      doi_confirmed: true
+      source: "Geiger et al. 2025, as above; widened deliberately"
+      quote: "Using this information, we calculated an apparent permeability (Papp) of 1.02 x
+        10-6 cm/s for albuterol sulfate, 0.0813 x 10-6 cm/s for olodaterol HCl, and 2.44 x 10-6
+        cm/s for formoterol fumarate."
+      derivation: "sample sd of the three ln(Papp) values = 1.7668 (log-range 3.4016; the
+        min-max-as-95%-CI rule would give 3.4016/3.92 = 0.868, which is NARROWER than the
+        observed sd and is therefore rejected as an artefact of n=3). Adopted 2.0: the sd rounded
+        up, because three compounds from one platform understate the population spread."
+      note: "Widening is a modelling choice, stated here rather than hidden in the number. A
+        corroborating range from a different device, Frost 2019: 'The permeability values
+        estimated based on Equations (6) and (7) in the range of 10-6-10-5 cm/s are in close
+        agreement with previously published data' — consistent in magnitude, not pooled, because
+        that device and cell model differ."
+
+    - field: k_sink_prior.mean_log
+      needs: centre of a log-normal prior on the first-order loss rate
+      unit: log(1/h)
+      source: "Grant et al. 2021, Lab Chip 21:3509-3519, doi 10.1039/d1lc00348h — the primary source ARGUES AGAINST this parameterisation"
+      note: "DELIBERATELY EMPTY, and not because the source is unavailable: the source says the
+        model is wrong. Verbatim, Discussion: 'Thus, applying a single constant to describe drug
+        loss in an Organ Chip will not capture these dynamic concentration distributions and may
+        inaccurately describe the dosing window.' It reports loss in two phases, verbatim: 'drug
+        loss occurs in two phases: the first phase is dominated by adsorption to the channel wall
+        and the second is dominated by diffusion through bulk PDMS', with saturation: 'The drug
+        becomes more uniformly distributed across the channel over time because the drug
+        approaches a saturation limit near the PDMS wall.' Filling this row would fit a constant
+        the cited evidence says cannot represent the phenomenon. The decision it forces is
+        recorded in the experimental design: replace the single sink with a two-phase or
+        saturable term, or keep it and report an explicitly window-limited effective rate."
+      value:
+      provenance:
+      quote:
+
+    - field: k_sink_prior.sigma_log
+      needs: width of that prior
+      unit: log units
+      source: "blocked by the same finding as k_sink_prior.mean_log"
+      note: "Empty for the same reason. Usable quantities DO exist in Grant 2021 once the model
+        is chosen: a measured PDMS diffusivity for a fluorescein surrogate, verbatim, 'The
+        diffusion coefficient that we calculate, Dpdms = 3.8 +/- 4.5 x 10-13 m2/s, agrees with
+        previously reported values for rhodamine B (Dpdms = 1.9 +/- 0.5 x 10-13 m2/s) and Cy3
+        (Dpdms = 6.0 +/- 2.8 x 10-13 m2/s)', and a fitted effective partition range for
+        amodiaquine in the lined chip, verbatim, 'The simulated basal outflow values fit the
+        experimental data when P= 20-60 (log P= 1.3-1.8).' Note the stated reason that range is
+        far below the compound's bulk logP of 3.7: 'the channels of the human Lung Airway Chip
+        are coated with extracellular matrix and cells that effectively reduce the
+        hydrophobicity and decrease drug adsorption' — the lining matters, so a bare-PDMS
+        partition coefficient would overstate loss in a cellularised chip."
+      value:
+      provenance:
+      quote:
+
+  # -- T21: 3-8 reference compounds with a published on-chip measurement -----
+  reference_compounds:
+    - field: albuterol_sulfate.published_transport_value
+      needs: published on-chip apparent permeability
+      unit: cm/s
+      value: 1.02e-6
+      provenance: cited
+      doi: "10.3389/fphar.2025.1621775"
+      doi_confirmed: true
+      source: "Geiger et al. 2025, Results p.9 / Table 2 — small airway MPS, apical-to-basolateral"
+      quote: "Using this information, we calculated an apparent permeability (Papp) of 1.02 x
+        10-6 cm/s for albuterol sulfate, 0.0813 x 10-6 cm/s for olodaterol HCl, and 2.44 x 10-6
+        cm/s for formoterol fumarate."
+      note: "Barrier integrity was gated before measurement, verbatim: 'chips with a % transport
+        above this 2% threshold (Figure 2E, dotted line) were excluded from the drug permeability
+        study' — Lucifer yellow. Device binding was checked in cell-free chips and found
+        negligible for this compound."
+
+    - field: formoterol_fumarate.published_transport_value
+      needs: published on-chip apparent permeability
+      unit: cm/s
+      value: 2.44e-6
+      provenance: cited
+      doi: "10.3389/fphar.2025.1621775"
+      doi_confirmed: true
+      source: "Geiger et al. 2025, Results p.9 / Table 2"
+      quote: "Using this information, we calculated an apparent permeability (Papp) of 1.02 x
+        10-6 cm/s for albuterol sulfate, 0.0813 x 10-6 cm/s for olodaterol HCl, and 2.44 x 10-6
+        cm/s for formoterol fumarate."
+
+    - field: olodaterol_hcl.published_transport_value
+      needs: published on-chip apparent permeability
+      unit: cm/s
+      value: 8.13e-8
+      provenance: cited
+      doi: "10.3389/fphar.2025.1621775"
+      doi_confirmed: true
+      source: "Geiger et al. 2025, Results p.9 / Table 2"
+      quote: "Using this information, we calculated an apparent permeability (Papp) of 1.02 x
+        10-6 cm/s for albuterol sulfate, 0.0813 x 10-6 cm/s for olodaterol HCl, and 2.44 x 10-6
+        cm/s for formoterol fumarate."
+      note: "Spans 30-fold against formoterol on the same platform, which is what makes these
+        three usable as an ORDERING yardstick: the claim under test is rank correlation, and a
+        set with no dynamic range cannot falsify it."
+
+    - field: fluticasone_furoate.EXCLUDED
+      needs: a reason for exclusion, not a value
+      unit: none
+      value: "excluded: device binding"
+      provenance: cited
+      doi: "10.3389/fphar.2025.1621775"
+      doi_confirmed: true
+      source: "Geiger et al. 2025, Results p.8"
+      quote: "However, only 6%-44% of fluticasone furoate was recovered at 30 and 120 min
+        respectively suggesting that the drug was significantly absorbed to the MPS."
+      note: "Recorded because the exclusion is evidence, not an absence of it: the authors state
+        'permeability experiments with fluticasone furoate were not performed as the results
+        would not provide an accurate measure of Papp due to the nonspecific binding'. This is
+        the clearest published demonstration that device loss can make a compound unmeasurable
+        on a PDMS chip, and it belongs in the paper's limitations rather than being dropped."
+
+    - field: IDENTITY_ROWS_FOR_ALL_CANDIDATES
+      needs: canonical InChIKey and PubChem CID for each compound above
+      unit: identifier
+      source: "pubchem.ncbi.nlm.nih.gov — BLOCKED (403 to CONNECT), and no alternative path found"
+      note: "DELIBERATELY EMPTY. The canonical InChIKey is this project's join key and the key
+        the sealed allocation is built on; it is a 27-character opaque string that is high-risk
+        to misremember and effectively impossible for a reader to spot-check. It is never written
+        from memory. Until PubChem is reachable the compounds above are identified by NAME only,
+        which is sufficient for the design document and insufficient for configs/: the T21 loader
+        requires a canonical_inchikey per entry and will refuse the file without one."
+      value:
+      provenance:
+      quote:

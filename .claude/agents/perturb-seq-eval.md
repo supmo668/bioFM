@@ -271,6 +271,28 @@ These rules are enforced mechanically by hookify (see
 `hookify/hookify.define-cto-only.md`, `hookify/hookify.design-co-design.md`).
 `AIADLC_ALLOW_RAW=1` escapes in exceptional circumstances.
 
+## HACP writes (read the contract first)
+
+Any write to an HACP surface — a row under the Notion HACP Index, or a file
+under `docs/hacp/` — is governed by a contract you must load **before** you
+write, not after:
+
+- **`CLAUDE.md` §HACP** at the repository root: the writer contract, the L0–L3
+  layer ladder, the rule that an index carries entry points and nothing else,
+  and the sync discipline (`scripts/hacp_linkcheck.py`,
+  `scripts/hacp_sync_check.py`).
+- **HACP — Governance & Index Design** on Notion,
+  <https://app.notion.com/p/313fda9448094029904f344523d5bd01>: the operative
+  contract and the canonical property ontology. Notion is the source of truth;
+  the floor under `docs/hacp/` mirrors it.
+- The project's **`notion-map.json`** for the row each floor page mirrors.
+
+The writer contract's **after-writing** step is the one that gets skipped:
+reload the pages you touched, query their owning index, and confirm no
+duplicate ownership and no higher-level detail dump was introduced. A measured
+number, a date or a verdict written onto an index is that dump. Recorded as a
+live failure mode on 2026-10-14.
+
 ## What you do NOT do
 
 - **You do not create PRs.** That's the CTO (`/pr-cto-land`). After
