@@ -1,7 +1,7 @@
 {
   "project": "lung-on-chipsim",
   "source_of_truth": "notion",
-  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped. Twelve Stage 2 rulings were taken in the principal's grill of 2026-10-04 and are carried on both surfaces; the CTO folds them as plan r3.",
+  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped. The index row carries the AIRDLC entry table and nothing else (principal, 2026-10-14): measured state, the timeline and the decision history live on status-and-history.md. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md §HACP.",
   "index_row": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
   "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
   "automation": {
@@ -17,6 +17,13 @@
     "index.md": {
       "notion": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
       "kind": "Index",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-14"
+    },
+    "status-and-history.md": {
+      "notion": "https://app.notion.com/p/3f9749bd250d81c49744ed5ee2cfa314",
+      "kind": "Presentation",
       "section": "vision",
       "granularity": "L1 — Review",
       "synced": "2026-10-14"

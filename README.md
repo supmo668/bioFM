@@ -27,9 +27,15 @@ bioFM/
 │   └── aviary-biosim/                            (submodule: supmo668/Aviary-BioSim — the v2r loop
 │                                                  as a lab method, public repo)
 ├── workstreams/                                  per-project PVR · A&D · sealed build plans · receipts
-└── docs/
-    └── hacp/                                     HACP review surfaces — §vision … §decision per project
+├── docs/
+│   └── hacp/                                     HACP review surfaces — §vision … §decision per project
+└── CLAUDE.md                                     agent operating instructions — HACP writer contract,
+                                                  standing scientific constraints, housekeeping loop
 ```
+
+> **Working on this repo with an agent?** [`CLAUDE.md`](CLAUDE.md) is the entry point. It carries the
+> HACP writer contract that governs every edit to `docs/hacp/` or a Notion HACP row, the standing
+> constraints on who may write a biological number, and the `uv` / `ruff` / `ty` / `pytest` loop.
 
 After cloning this repo, run:
 
