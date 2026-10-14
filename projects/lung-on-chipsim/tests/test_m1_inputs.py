@@ -325,28 +325,72 @@ def _write(tmp_path, doc):
     return path
 
 
-def test_sourcing_accepts_an_empty_row():
+def test_sourcing_accepts_an_empty_row(tmp_path):
     """An unfinished worksheet is the honest state of work whose sources are unreachable.
 
-    Failing on it would push whoever holds it to fill the rows from whatever is to hand,
-    which is the outcome the whole rule exists to prevent.
+    Failing on it would push whoever holds it to fill the rows from whatever is to hand, which
+    is the outcome the whole rule exists to prevent. Asserted on a fixture rather than on the
+    live worksheet, so that filling the live one in does not break this property.
     """
     from chipsim.transport.sourcing import load_sourcing_worksheet
 
-    path = (
+    doc = {"worksheet": {"theta": [{"field": "flow_ul_min", "needs": "x", "unit": "uL/min"}]}}
+    w = load_sourcing_worksheet(_write(tmp_path, doc))
+    assert w["theta"][0].get("value") is None
+
+
+def _live_worksheet():
+    from chipsim.transport.sourcing import load_sourcing_worksheet
+
+    return load_sourcing_worksheet(
         PROJECT_ROOT.parent.parent
         / "workstreams/lung-on-chipsim/experiment-setup/sourcing-worksheet.yaml"
     )
-    w = load_sourcing_worksheet(path)
-    assert [r["field"] for r in w["theta"]] == list(FIELD_NAMES[:0]) + [
-        "flow_ul_min",
-        "membrane_um",
-        "porosity",
-        "strain_pct",
-        "area_mm2",
-        "coating",
-    ]
-    assert all(r.get("value") in (None, "") for rows in w.values() for r in rows)
+
+
+def test_the_live_worksheet_validates_and_covers_every_theta_field():
+    """The live worksheet is checked as a worksheet, not frozen as a snapshot.
+
+    It is expected to gain values over time, so this asserts what must hold at every stage: it
+    still passes the backing rule, and it still carries a row per theta field the fit reads. A
+    test asserting the values were empty would fail the moment the sourcing work succeeded,
+    which is a test measuring the wrong thing.
+    """
+    from chipsim.transport.sourcing import completion_report
+
+    w = _live_worksheet()
+    assert [r["field"] for r in w["theta"]] == list(FIELD_NAMES)
+    theta = completion_report(w)["theta"]
+    assert theta["rows"] == len(FIELD_NAMES)
+    assert theta["cited"] + theta["derived"] + theta["assumed"] + theta["empty"] == theta["rows"]
+
+
+def test_the_live_worksheet_leaves_the_k_sink_prior_empty_on_evidential_grounds():
+    """The cited source says a single first-order loss constant cannot represent device loss.
+
+    Those rows must therefore stay EMPTY rather than carry a fitted constant, and the reason
+    must travel with the row. This test exists because the tempting failure is to fill them
+    later for completeness and lose the reason.
+    """
+    k_sink = [r for r in _live_worksheet()["transport_prior"] if r["field"].startswith("k_sink")]
+    assert k_sink, "the k_sink rows must exist, so that their emptiness is visible"
+    for row in k_sink:
+        assert row.get("value") is None, (
+            "a k_sink value appeared. The source that measured device loss states a single "
+            "constant will not capture it; filling this needs a model decision first."
+        )
+        # Every empty row must say WHY, in its note or its source. An empty row with no stated
+        # reason is indistinguishable from unfinished work, and these rows are a decision.
+        assert (row.get("note") or "").strip() or (row.get("source") or "").strip(), (
+            f"{row['field']} is empty with no stated reason"
+        )
+    # And the evidential reason itself must appear somewhere in the group, in the source's own
+    # terms, so that a later reader cannot mistake the gap for a sourcing failure.
+    stated = " ".join((r.get("note") or "") + (r.get("source") or "") for r in k_sink)
+    assert "single constant" in stated, (
+        "the k_sink rows are empty because a cited source says a single constant cannot "
+        "represent device loss; that reason must be recorded with the rows"
+    )
 
 
 def test_sourcing_refuses_a_value_with_no_quote(tmp_path):

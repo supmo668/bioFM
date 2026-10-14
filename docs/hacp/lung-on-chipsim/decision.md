@@ -20,6 +20,17 @@ asks an agent to write a biological number.
 |---|---|---|
 | **T18 compound roster approved as final: 26 entries, each with an evidence DOI** | principal, via Claude session 2026-10-03 (*"Assume admin approval on compound roster"*; [session](https://claude.ai/code/session_0181c6Cgx1w4D61dgPg73r7f)); to be carried into the approval log as a signed row by the CTO | T13 may emit the adjudication worksheet over the final roster; the audit's series-structure and power check may run on the realised roster; M0b record curation may start against a fixed compound set |
 
+## Vision recorded 2026-10-14: a published method plus a sandbox others can run
+
+| Decision | Route | What it changes |
+|---|---|---|
+| **The deliverable becomes a journal publication AND a working sandbox endpoint**, built by attacking the dimensionality problem through transfer from open pretrained representations rather than through more wet data, wired as an aviary `Environment`, with the validation barrier as the stated scientific bottleneck. | principal, verbatim 2026-10-14 ([session](https://claude.ai/code/session_0181c6Cgx1w4D61dgPg73r7f)); the full input is recorded on [the vision page](vision-2026-10-14.md) | Adds five deliverables (modular code, the aviary environment, figures and application analysis, an endpoint whose response carries interpretability metadata, and a name-and-email access portal documented in Notion). Supersedes the framing on `index.md` and `vision.md` where they describe the deliverable as a registered report alone. **Unchanged:** the one claim under test, the no-agent-numbers rule with its 10-08 amendment, the sealed allocation, and the signed-evaluator gate. |
+
+The load-bearing instruction is that the endpoint *"must also carry metadata & context on
+interpretability, not just a simulation result"*. A number with no interpretation is what the
+validation barrier is made of, so the metadata is part of the response contract rather than a
+verbose mode.
+
 ## Rule amendment recorded 2026-10-08: the M1 inputs are agent-drafted from cited sources, principal-ratified
 
 | Decision | Route | What it changes |

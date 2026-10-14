@@ -44,10 +44,21 @@ dev = [
     # fit; `ty` is what catches a caller that tries to mutate one, which a test can
     # only catch where somebody thought to write the test.
     "ty",
+    # The sandbox's aviary Environment is async (aviary's contract is two async methods),
+    # so its tests are coroutines and need a runner.
+    "pytest-asyncio",
 ]
+
+[project.optional-dependencies]
+# The aviary Environment is a DELIVERY surface, not a modelling layer, so `fhaviary` is an
+# extra rather than a runtime dependency: `import chipsim` and the whole data spine must keep
+# working on a machine that has never heard of aviary. chipsim.sandbox.readiness and
+# .interpretability are importable without it; only .env needs it, and its tests skip.
+sandbox = ["fhaviary"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 markers = [
     "network: hits a live remote endpoint (T19 UniProt verification); deselect with -m 'not network'",
     "integration: requires a human-gated artifact or the fetched snapshot on disk; deselect with -m 'not integration'",

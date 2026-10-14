@@ -21,6 +21,27 @@
       "granularity": "L1 — Review",
       "synced": "2026-10-08"
     },
+    "vision-2026-10-14.md": {
+      "notion": "PENDING",
+      "kind": "Decision",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-14"
+    },
+    "methodology-2026-10-14.md": {
+      "notion": "PENDING",
+      "kind": "Decision",
+      "section": "design",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-14"
+    },
+    "publication-and-sandbox.md": {
+      "notion": "PENDING",
+      "kind": "Decision",
+      "section": "release",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-14"
+    },
     "vision.md": {
       "notion": "https://app.notion.com/p/8cd749bd250d82c99f1a01b3109740d9",
       "kind": "Section",

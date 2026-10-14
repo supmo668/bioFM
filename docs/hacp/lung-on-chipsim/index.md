@@ -16,6 +16,7 @@
 |---|---|
 | **Project** | `lung-on-chipsim` — a proof-of-concept in-silico lung-on-a-chip: predict on-chip drug exposure and barrier response, with every scientific input human-entered and cited |
 | **This page** | The L1 review index for the project. One screen. **For review and communication this Notion page is the source of truth (principal, 2026-10-03)**; the floor copy under `docs/hacp/lung-on-chipsim/` mirrors it and is regenerated from it. |
+| **Scope** | Set by the principal's vision input of **2026-10-14**: publish the method **and** ship a sandbox others can request access to. The dimensionality problem is attacked by transfer from open pretrained representations, the environment is wired to the aviary contract, and the endpoint returns interpretation alongside any number. Full input and what it changes: [Vision 2026-10-14](vision-2026-10-14.md). |
 | **Phase** | **Stage 2 build phase: the science, governance cleared.** Stage 1 closed 2026-10-01. On 2026-10-04 the principal ruled every open governance question (see [§decision](decision.md)): the successor branch is taken by content, the archive push is due 10-06, the withheld files stay withheld, the closure is published as a methods note, C1–C3 are closed. What remains is **only** human-written scientific input and one signature. |
 | **Verdict** | **The rig is built. The experiment has not run — and nothing in the way of it is a decision any more.** No fit, no coverage, no frozen evaluator, 0 of 80–100 curated chip records. The roster is approved as final (26 entries, 2026-10-03) and the twelve governance rulings of 2026-10-04 leave four human inputs, one signature and the CTO's branch cut. |
 | **Measured from** | `main` @ `38bf64e` (2026-10-03) and the archived branch on `origin` @ `c04e701` (2026-09-20). The archived tip (435 commits further, holding the M1 transport code) is on no remote; it is cited from the CTO's records, never as verified. |
@@ -31,7 +32,8 @@
 | [`§build`](build.md) | Stage 1 archived; Stage 2 successor branch **ruled 2026-10-04**; roster approved; worksheet next | 29 agent tasks built · 0 results · 3 code locations |
 | [`§eval`](eval.md) | 0 biological results by design; last clean suite 1,013 passed on `c04e701` (2026-09-28); Stage 1 final gate FAIL (2026-10-01) | 1 measured run · 10 recorded gates · 0 results |
 | [`§risk`](risk.md) | 11 gaps on 2026-09-28; two transformed by the closure, one added (the science code is on no remote) | 12 |
-| [`§experiment`](experiment.md) | **new 2026-10-04**: the M1 input contracts built — 2 scaffolds, 3 validators, 5 CLI commands, 45 tests | 3 of 3 agent-side inputs |
+| [Vision 2026-10-14](vision-2026-10-14.md) | **current scope**: a published method plus a sandbox endpoint; dimensionality attacked by transfer; wired as an aviary environment | 5 deliverables |
+| [`§experiment`](experiment.md) | the M1 input contracts built 10-04; the sourcing rule mechanized 10-08; the inputs still unsourced | 3 of 3 agent-side inputs |
 | [`§decision`](decision.md) | **the build-phase unblock ledger**: 8 critical-path items, 7 owed, 20 resolved — every governance question ruled 2026-10-04 | 8 + 7 |
 | [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order, week 0 → week 7 | 3 ticked of 36 |
 
@@ -146,7 +148,8 @@ State summary only. The **ChipSim index** database at the bottom of the Notion p
 | [`§build`](build.md) | phases, where the code is, the human-owned ledger, what is in flight | renewed | 2026-10-04 |
 | [`§eval`](eval.md) | the measured suite, ten recorded gates, the pre-registered commitments, the power simulations | 2026-10-03 update callout | 2026-10-03 |
 | [`§risk`](risk.md) | twelve gaps and the recurring defect family | 2026-10-03 update callout | 2026-10-03 |
-| [`§experiment`](experiment.md) | what was built, what each validator refuses, what is still a human's to write | new | 2026-10-04 |
+| [Vision 2026-10-14](vision-2026-10-14.md) | the principal's vision input, the objective it sets, the five deliverables | **new** | 2026-10-14 |
+| [`§experiment`](experiment.md) | what was built, what each validator refuses, what is still a human's to write | updated | 2026-10-08 |
 | [`§decision`](decision.md) | the build-phase unblock ledger, with the twelve rulings of 2026-10-04 | renewed | 2026-10-04 |
 | [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order | 3 of 36 ticked | 2026-10-04 |
 
