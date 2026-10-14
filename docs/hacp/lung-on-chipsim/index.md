@@ -33,6 +33,8 @@
 | [`§eval`](eval.md) | 0 biological results by design; last clean suite 1,013 passed on `c04e701` (2026-09-28); Stage 1 final gate FAIL (2026-10-01) | 1 measured run · 10 recorded gates · 0 results |
 | [`§risk`](risk.md) | 11 gaps on 2026-09-28; two transformed by the closure, one added (the science code is on no remote) | 12 |
 | [Vision 2026-10-14](vision-2026-10-14.md) | **current scope**: a published method plus a sandbox endpoint; dimensionality attacked by transfer; wired as an aviary environment | 5 deliverables |
+| [Methodology 2026-10-14](methodology-2026-10-14.md) | the evidence, and the two design changes it forces: the device-loss term is refuted, and only ratios transfer | 154 papers · 4 full texts |
+| [Publication & sandbox](publication-and-sandbox.md) | what is claimed, the five deliverables with done-conditions, the portal contract | D1 + D2 met |
 | [`§experiment`](experiment.md) | the M1 input contracts built 10-04; the sourcing rule mechanized 10-08; the inputs still unsourced | 3 of 3 agent-side inputs |
 | [`§decision`](decision.md) | **the build-phase unblock ledger**: 8 critical-path items, 7 owed, 20 resolved — every governance question ruled 2026-10-04 | 8 + 7 |
 | [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order, week 0 → week 7 | 3 ticked of 36 |
@@ -94,7 +96,9 @@ replaced by the measured rate in week 2.
 | Simulation, evaluation or fit runs | 0 | recorded; nothing to measure |
 | Biological numbers written by an agent | 0 | the standing constraint, enforced by validators |
 | Code locations the successor must reconcile | 3 — `main`, `origin/lung-on-chipsim` @ `c04e701`, the archived tip on one disk | measured 2026-10-03 |
-| M1 input contracts built (S13, S14, T21, T24, T28) | 2 scaffolds, 3 validators, 5 CLI commands, 45 new tests, all passing | **measured 2026-10-04** — [§experiment](experiment.md) |
+| M1 input contracts built (S13, S14, T21, T24, T28) | 2 scaffolds, 3 validators, 6 CLI commands, 473 tests passing / 0 failing | **measured 2026-10-14** |
+| θ fields now backed by a source | **6 of 6** — 3 cited verbatim from the primary device paper, 3 assumed with stated widths | **measured 2026-10-14** — [methodology](methodology-2026-10-14.md) |
+| Sandbox, wired as an aviary environment | `LungMembraneEnv` runs; its first behaviour is a structured refusal naming every blocking artifact | **measured 2026-10-14** |
 | Milestones with no plan done-conditions | 2 — M0b and M0c, both deferred by the build plan to "its own plan"; a [plan draft](../../../workstreams/lung-on-chipsim/plan/m0b-m0c-plan-draft-2026-10-04.md) awaits signature | measured 2026-10-04 |
 
 ## Decisions taken
@@ -149,6 +153,8 @@ State summary only. The **ChipSim index** database at the bottom of the Notion p
 | [`§eval`](eval.md) | the measured suite, ten recorded gates, the pre-registered commitments, the power simulations | 2026-10-03 update callout | 2026-10-03 |
 | [`§risk`](risk.md) | twelve gaps and the recurring defect family | 2026-10-03 update callout | 2026-10-03 |
 | [Vision 2026-10-14](vision-2026-10-14.md) | the principal's vision input, the objective it sets, the five deliverables | **new** | 2026-10-14 |
+| [Methodology 2026-10-14](methodology-2026-10-14.md) | the research analysis, the refuted k_sink term, the transportability finding, the data audit | **new** | 2026-10-14 |
+| [Publication & sandbox](publication-and-sandbox.md) | the publication objective, deliverables D1–D5, the access-portal contract | **new** | 2026-10-14 |
 | [`§experiment`](experiment.md) | what was built, what each validator refuses, what is still a human's to write | updated | 2026-10-08 |
 | [`§decision`](decision.md) | the build-phase unblock ledger, with the twelve rulings of 2026-10-04 | renewed | 2026-10-04 |
 | [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | pre-conditions in satisfiable order | 3 of 36 ticked | 2026-10-04 |
