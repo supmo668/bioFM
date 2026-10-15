@@ -999,7 +999,13 @@ downstream claim.
 > that would give (4) technical force, and it is now **decided: minisign, at the M1
 > re-ratification** *(r2.15 item 5)* — when the three provisional faces (TFRC, FCGRT, SLCO2B1) are
 > re-checked, so the panel is signed **once, settled**, rather than signed now and re-signed weeks
-> later against a changed panel. Until that happens the quality gate checks this rule, reviewers
+> later against a changed panel. *[AMENDED r3 (C1), ruling 2026-10-04: **SLC15A1 is KEPT** under the
+> T8 deletion criterion — contested in the literature is not positive evidence of absence, and the
+> T8 rule is that deletion needs positive evidence. It is re-checked **together with** the three
+> provisional faces at this same M1 re-ratification, **with a citation**, before the panel is
+> cryptographically signed. **The ratified `barrier_panel.yaml` does not change before Stage 2
+> entry** — so this re-ratification is the only sanctioned point at which any panel entry moves.
+> Declined: revisiting it now with a citation; dropping it from the panel]* Until that happens the quality gate checks this rule, reviewers
 > treat an agent-run seal as a gate failure, and the limitation is stated wherever the ratification
 > is claimed — the plan, the run journal's provenance block (T17) and any model card — **carrying
 > this sentence verbatim: "digest-sealed, human-ratified, not cryptographically signed."**
@@ -1686,7 +1692,13 @@ own allocation rule it is human-owned. An auto-filter of `drugbank-slim.tsv` is 
 > **`drugbank_id` is carried alongside for traceability, never as the key** — this source mislabels
 > at least 11 of its stereoisomers, so the key is identity and the name is annotation.
 > **Milestone, counted from the day the guarded candidate list is handed over:** the roster (T18) by
-> **working day 2**, the P-gp adjudication (T14) by **working day 3**. The plan carries the hand-off
+> **working day 2**, ~~the P-gp adjudication (T14) by **working day 3**~~ *[SUPERSEDED r3 (B1),
+> confirmation 2026-10-04: for T14 ONLY, the relative window is replaced by the FIXED DATE
+> **2026-10-14** — a verdict for EVERY ROW of the approved roster, each with an evidence DOI
+> (the count is the roster's, derived, never typed here). The week-1 exit
+> condition for this item is therefore dated, not relative. The relative window stands for every
+> other item it governs; T18's roster was approved final 2026-10-03, which closes its
+> leg of this milestone independently]*. The plan carries the hand-off
 > date and both due dates; **a slip is reported in the dev-log and never back-filled by an agent
 > draft.** The candidate list must also carry the tri-state `label_disagrees_with_key` column, so the
 > principal sees where the source's own name contradicts the structure he is selecting on.
@@ -2248,6 +2260,16 @@ iterative-ruling treatment M0 and M1 got, when its data dependency clears.
 | **M3** Occupancy engine | Affinity data (ingestors plan) + M1's theta plumbing | CA: Kd lookup + Boltz-2 fallback + Hill transform; H: panel composition (already T8-adjacent) |
 | **M4** Readout head | M3's occupancy vector; L1000 (ingestors plan, S6) | CA: one channel (barrier_integrity) + FiLM conditioning + adversary; H: channel selection, adversary-result read |
 | **M5** Uncertainty stack | M0b's curated records (AM-6 arithmetic re-check, §7) | CA: L0–L3 per A&D §2D; H: pre-registers the two P-gp groups **before** any coverage is computed |
+
+> **M0b curation shape** *[AMENDED r3 (B6), ruling 2026-10-04]*. The **principal curates alone**; no
+> second curator is named. **Ordering, which is the load-bearing part:** the record schema, its
+> validator and the sealed-allocation tool are written **and gated** *before the first record is
+> curated*, and the three-way allocation is **sealed before any record is read** (ADR-0002) — an
+> allocation chosen after the records are visible is not a sealed allocation, whatever it is called.
+> The **3–4 week figure stays a PLANNING ASSUMPTION**, never a commitment: it is replaced by the
+> **measured minutes-per-record** after the first ten, which is a dated observation and may move the
+> estimate in either direction. Declined: a named second curator; deferring M0b behind the M1 smoke
+> run.
 | **M6** Acquisition (retrospective replay only) | M5 complete | CA: BALD/BatchBALD over the sealed paper-lab pool; H: releases sealed records on schedule |
 
 ---
@@ -2306,6 +2328,14 @@ target now exists) · AM-5 ✓ (T5b is §1.2 *identity*, inside the boundary) ·
 > depends on the group-size threshold — while **M5 pre-registration remains gated on the re-check**.
 > Defect 24's fix means T15/T17 *measure* the `yes`/`no` populations, so the check runs against real
 > counts rather than estimates.
+>
+> *[AMENDED r3 (C2), ruling 2026-10-04 — **the AM-6 RESIDUAL is STRUCK as superseded by ADR-0002**.
+> What was carried here as an open residual is not one: ADR-0002 decided it. The module README's
+> recommendation to evaluate the two-group veto **only at ≥30 points per group** moves into the **C4
+> regeneration** rather than living as a plan residual, and the count check happens **against real
+> M0b records**, exactly as r2.15 item 8 already states above. Declined: pre-registering the
+> contingency; leaving it open until counts exist. The pointer text above is kept, not deleted, so a
+> reader can see what was struck and why — nothing hash-covered is rewritten in place]*
 
 ## 7a · Amendment r2 → r2.1 — CTO rulings E-1…E-5 (dispatch #11, 2026-08-31)
 
@@ -2324,6 +2354,69 @@ wording corrections and one config path. Each is recorded inline at the section 
 verbatim by the principal in-session on 2026-08-31 with the instruction to apply them and continue.
 They were not authored by the agent. `plan-approval.md` is re-signed to `r2.1` on that basis; the
 hash moves `737a8d9 → <r2.1>`.
+
+---
+
+## 7b · Amendment r2.50c → r3 — Stage 2 unblock (principal grill 2026-10-04)
+
+> **CTO notes at the r3 signature (2026-10-14).** Three readings this fold had to make, recorded so a
+> reviewer sees the judgement rather than inferring it. **(1) B1** is labelled *confirmation* but also
+> states that the r2.15 item-7 window is superseded; it is folded as an in-place supersession **scoped to
+> T14 only**, because recording it as a pure confirmation would leave the plan carrying a relative deadline
+> the principal had replaced. **(2) No count is typed.** The rulings say "26 verdicts"; the plan's own
+> clause (f) requires counts to be regenerated by the harness and never typed, so the requirement is
+> written as a verdict for every row of the approved roster, with the count derived at S11a validation.
+> **(3) A stale pointer in the source.** The rulings document cites "the convention of approval-log row 70",
+> but the highest row before this fold was 61 and the route convention actually lives in an undated
+> 2026-09-29 row. Rows 62–73 are created *by this fold*, so that reference would now resolve to C1 —
+> an unrelated ruling. The real convention was followed; the "row 70" reference is not reproduced.
+
+Twelve rulings from a structured 1B1 grill, approved by the principal 2026-10-04 (*"approve all"*)
+and folded here by the lane-owning CTO session. **No scope change and no task added or removed** —
+the rulings change what the plan *requires*, not what it *does*. **No biological number is written
+by this amendment.** Items marked **ruling** change plan requirements; items marked
+**confirmation** accept a date or an existing ruling without changing plan text, and are recorded
+here as confirmations rather than folded as new requirements.
+
+**Route.** The grill ran as a structured 1B1 in Claude session
+`session_0181c6Cgx1w4D61dgPg73r7f` and closed with the 1B1 lock, verbatim: **"Over and out"**. Each
+row records the option chosen *and the alternatives declined*, so a third party can resolve the
+route without that session. Per the 2026-09-29 route convention, a row claiming a direct principal
+decision carries a quote or a resolvable session reference; this amendment carries both.
+
+| Item | Kind | Section | Change |
+|---|---|---|---|
+| **A1** Successor code base | ruling | governance (no task text) | Stage 2 builds on a **successor branch cut from `main`**, with the science-bearing files taken **by content** from `origin/lung-on-chipsim` (`c04e701`) and the archived tip: the roster, the three DVC pointers and `SHA256SUMS.json`, the parquet sidecar, `label_structure_reference.yaml`, `unparseable_compounds.yaml`, `harmonize/{label_reference,merge_report}.py`, `audit/`, the T13 worksheet CLI and its tests, the S13/S14 templates, and `transport/` once A2 makes it reachable. **Excluded:** `guards/`, `record_content.py`, `tests/shape_scan.py` and the E-21…E-23 evidence tooling — that work item closed with 36 registered findings and the successor guidance is *do not open by repairing the register* (row 61). Declined: landing the whole archived branch (it would carry the failed-gate machinery and the five withheld files onto a **public** trunk); restarting from `main` alone (it loses 29 gated tasks). **The CTO cuts the branch on the r3 signature, after the read-only `scan-artifacts.py` pass.** |
+| **A2** Archived tip pushed | ruling | governance | The principal pushes the archived Stage 1 tip to `archive/lung-on-chipsim-stage1` on `origin` by **2026-10-06**. It holds the only copy of `transport/{ode,fit,prior,theta}.py`. **Until the ref resolves, A1 takes everything except `transport/`, and the M1 smoke run cannot be scheduled** — so this is a sequencing dependency, not a housekeeping item. Declined: cutting A1 first and adding `transport/` later (it moves the M1 fit by the delay); leaving the tip on one disk (the Stage 1 code becomes unrecoverable). **[AMENDED r3 (CTO, 2026-10-14) — SATISFIED BY A DIFFERENT MECHANISM.]** The 2026-10-06 push did not happen and the date passed. On 2026-10-13 the principal chose a **verified, restore-tested bundle** instead, because `origin` is **public** and the archived tip still carries the five files **A3** withholds — so the ruled push would have performed what A3 forbids. The two rulings collide on a public remote, and this is how the collision was resolved. Bundle: `~/bioFM-archives/lung-on-chipsim-stage1-f66fbf7-20261013.bundle`, sha256 `f6748010ecff8538e2ea9fbcddeb3e7cda600403a64ca5c238c0cb48d927a87d`, complete standalone history at `f66fbf7`; restored into a scratch clone to prove it (1303 commits, `transport/{ode,fit,prior,theta}.py` present at 920 lines). Recorded in `workstreams/lung-on-chipsim/ARCHIVE.md`. **Consequence for A1: `transport/` IS reachable**, so A1 is no longer partial and the M1 smoke run is schedulable. Still owed by the principal: a copy of the bundle off this machine — one file on one disk is not an archive. |
+| **A3** The five withheld record files | ruling | governance | They **stay on the archived branch**; the gap stays recorded in `qgr/2026-10-01-cto-disposition.md`. **Nothing is redacted and nothing is published.** The 78-of-83 record on `main` is the record. Declined: redact-then-publish (it spends the principal's time on hash-covered evidence for no reviewer benefit); deferring past A2. |
+| **A4** Stage 1 closure published | ruling | governance | Published as a **standalone short methods note**: the mechanism (*a fix is verified against the thing that was changed, not against the property the claim names*), its nine dated instances with **six introduced by repair**, and the pinning rule that an artifact measuring the process which approves it must pin to a revision and re-derive at approval. The CTO drafts from `qgr/stage1-closure.md`; the **principal is the author of record** and ratifies under the T8 pattern. **Draft by 2026-10-17**; venue chosen on the draft. Declined: folding it into the Stage 2 paper (it would wait on a result that has nothing to do with it); not publishing (it is the only publishable thing the branch produced). |
+| **B1** T14 adjudication date | confirmation | §6 T14 hand-off window (amended in place) | **2026-10-14** accepted: a verdict for every row of the approved roster, each with an evidence DOI. The r2.15 item-7 relative window is **superseded for this item only** by the fixed date, so the week-1 exit condition is dated rather than relative. Marked at the window itself. |
+| **B2 / B3 / B4** Remaining human entries | confirmation | §6a T20 / T28 / T21 (no task text changed) | **2026-10-14** accepted for all three: the six θ fields with citations (four citable now, two as `assumed: true` with stated widths), the `(α, k_sink)` transport prior with its source, and the M1 reference compounds with published on-chip ordering. **Sequencing confirmed:** the agent emits the typed templates and their validators in week 1, *immediately after A1*; the principal fills them. The tasks and their validators are unchanged — S13/S14 already scaffold the templates and S11a-style validators already reject an unsourced entry. Declined: a later date for T21 alone; setting each date at template hand-off. |
+| **B6** M0b curation shape | ruling | §6b (amended in place) | **Principal curates alone**; no second curator. Schema, validator and sealed-allocation tool written **and gated before the first record is curated**; the three-way allocation **sealed before any record is read** (ADR-0002). The 3–4 week figure stays a **planning assumption**, replaced by the measured minutes-per-record after the first ten. Declined: a named second curator; deferring M0b behind the M1 smoke run. |
+| **B8** Evaluator freeze | unchanged | Global Constraints | **No change.** The signature comes before any fit on real records. Recorded so the absence of a change is on the record rather than inferred from silence. |
+| **C1** SLC15A1 | ruling | §1 M1 re-ratification (amended in place) | **Kept** under the T8 deletion criterion — contested in the literature is not positive evidence of absence. Re-checked **with the three provisional faces at the M1 re-ratification**, with a citation, before the panel is cryptographically signed (minisign at M1, r2.15 item 5). **The ratified `barrier_panel.yaml` does not change before Stage 2 entry.** Declined: revisiting now with a citation; dropping it from the panel. |
+| **C2** The AM-6 residual | ruling | §7 AM-6 pointer (amended in place) | **Struck as superseded by ADR-0002.** The module README's ≥30-points-per-group recommendation for the two-group veto moves into the **C4 regeneration**; the count check happens against **real M0b records**, as r2.15 item 8 already states. Declined: pre-registering the contingency; leaving it open until counts exist. |
+| **C3** Retroactive scope of the identifier constraint (item H) | ruling | governance | **Row 59 closes item H.** No other pre-existing site needs a ruling: the CTO's read-only `scan-artifacts.py` pass at the archived tip reported `shapes_on_audit_surface: 0`, and row 59 already ruled that **PubChem citation of canonical chemistry is the sanctioned form**. Declined: a further per-site pass over `main`. |
+| **Floor placement** | ruling | governance | The HACP floor under `docs/hacp/lung-on-chipsim/` is **merged to `main` by the CTO**; **no pull request is opened from an agent session**. Every `Local path` on the ChipSim Notion rows resolves once it lands. Until then the floor lives on `claude/inspiring-archimedes-h0we1b` and the weekly sync routine falls back to that branch. |
+
+**Recorded for completeness, not re-ruled** (carried from the grill's tail so these do not survive
+only in a draft file):
+
+- The **T18 roster approval of 2026-10-03** (final) **still owes its signed approval-log
+  row** — recorded 2026-10-03 as a standing assumption from the principal's session instruction.
+  The entry count is the roster file's, derived at validation (S11a), never typed here.
+- The CTO's **clean suite re-measurement is owed at A1 cut time**: 453 s clean against 900 s killed
+  under 23 concurrent pytest processes. **The two samples are not comparable**, so the killed run is
+  not a ceiling and must not be quoted as one — a timing ceiling measured under load is not a
+  ceiling (`qgr/2026-10-01-cto-disposition.md`).
+- **`PROVENANCE.md` stays human-authored**, r2.15 item 1 having been declined by the principal.
+
+**Approval provenance:** the twelve rulings are the principal's, taken in the 2026-10-04 grill and
+approved for folding in the same session (*"approve all"*); the wording of this amendment is the
+CTO's fold of them. They were not authored by the agent, and the draft amendment file
+(`grill-2026-10-04-stage2-unblock.md`) is superseded by this section. `plan-approval.md` is
+re-signed to `r3` on that basis; the twelve rulings are carried into `plan/plan-approval-log.md` as
+numbered rows, and the sign row carrying the r3 hash is appended at the sign.
 
 ---
 
