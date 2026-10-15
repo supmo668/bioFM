@@ -335,6 +335,36 @@ def validate_pinned_run_params(version: str, *, temperature: float, prior_spend_
         )
 
 
+def recorded_launch_client(provenance_path: Path) -> str:
+    """The Modal client version the recorded run launched with: ``lib_versions.modal`` in its
+    ``provenance.json``. The record is the authority, not ``poetry.lock`` (CTO #633, D8)."""
+    import json
+
+    try:
+        recorded = json.loads(Path(provenance_path).read_text())["lib_versions"]["modal"]
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            f"cannot read the recorded Modal client version from {provenance_path}: {exc!r}"
+        ) from exc
+    if not isinstance(recorded, str) or not recorded:
+        raise ValueError(f"{provenance_path}: lib_versions.modal is not a version string")
+    return recorded
+
+
+def validate_launch_client(version: str, client_version: str, *, provenance_path: Path) -> None:
+    """Refuse to re-run the pre-registered version with a Modal client other than the one its
+    recorded run used (D8): the container's modal comes from the launching client, so a different
+    host client silently gives a different run environment."""
+    if version != PREREGISTERED_VERSION:
+        return
+    recorded = recorded_launch_client(provenance_path)
+    if client_version != recorded:
+        raise ValueError(
+            f"{version} was run with Modal client {recorded} (provenance lib_versions.modal); "
+            f"this host has {client_version}. Install modal=={recorded} to re-run it."
+        )
+
+
 def validate_version(version: str) -> str:
     """Return ``version`` if it is a release tag (``v<maj>.<min>.<patch>[suffix]``,
     suffix ``[A-Za-z0-9._-]``); raise ``ValueError`` otherwise."""

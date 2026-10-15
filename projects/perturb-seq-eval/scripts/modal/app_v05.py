@@ -723,12 +723,23 @@ def entrypoint(
     src = PROJECT_DIR_HOST / "src"
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
-    from perturb_eval.experiments.v05_sweep import validate_pinned_run_params, validate_version
+    from perturb_eval.experiments.v05_sweep import (
+        validate_launch_client,
+        validate_pinned_run_params,
+        validate_version,
+    )
 
     validate_version(version)  # QG C22: fail on the host, before any Modal work
     validate_pinned_run_params(
         version, temperature=temperature, prior_spend_usd=prior_spend_usd
     )  # A4-1/A4-2
+    # D8 (CTO #633): the container's modal is the launching client's; a re-run of the recorded
+    # version must launch with the client its provenance records, read from the record.
+    validate_launch_client(
+        version,
+        modal.__version__,
+        provenance_path=PROJECT_DIR_HOST / "artifacts" / version / "provenance.json",
+    )
     from perturb_eval.experiments.provenance import (
         git_state,
         make_run_id,
