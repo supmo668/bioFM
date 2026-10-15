@@ -44,6 +44,10 @@ infisical run \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548
 
+# Modal client: the recorded run launched with modal 1.5.5, the client in its provenance
+# (artifacts/v0.6.0/provenance.json lib_versions.modal); for v0.6.0 the entrypoint refuses any
+# other client. poetry.lock (modal 1.4.2, last regenerated at v0.3.0) has drifted and is not
+# the authority for this release; a fresh resolve gives a newer modal.
 # 2. Analyse the downloaded run files -> artifacts/v0.6.0/summary.json
 # Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
 # backbone entropy (five summary.json keys) differs by one ulp; the run itself ran on 3.11.0.

@@ -6,6 +6,9 @@ lives in :mod:`perturb_eval.experiments.v05_sweep` where it can be tested.
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -187,3 +190,82 @@ class TestDeriveStatusReplay:
             )
             == "partial"
         )
+
+
+# ---- D8 (CTO #633): the launching Modal client must match the recorded run's ----
+_PROJ = Path(__file__).resolve().parents[1]
+_RECORD = _PROJ / "artifacts" / "v0.6.0" / "provenance.json"
+
+
+def test_recorded_launch_client_is_read_from_the_run_record():
+    import json
+
+    from perturb_eval.experiments.v05_sweep import recorded_launch_client
+
+    assert (
+        recorded_launch_client(_RECORD) == json.loads(_RECORD.read_text())["lib_versions"]["modal"]
+    )
+
+
+def test_validate_launch_client_refuses_any_other_client(tmp_path):
+    import json
+
+    import pytest
+
+    from perturb_eval.experiments.v05_sweep import recorded_launch_client, validate_launch_client
+
+    rec = recorded_launch_client(_RECORD)
+    validate_launch_client("v0.6.0", rec, provenance_path=_RECORD)  # the recorded client passes
+    with pytest.raises(ValueError, match=f"run with Modal client {re.escape(rec)}"):
+        validate_launch_client("v0.6.0", "0.0.1", provenance_path=_RECORD)
+    validate_launch_client("v0.7.0", "0.0.1", provenance_path=_RECORD)  # not the recorded version
+    with pytest.raises(ValueError, match="cannot read"):
+        validate_launch_client("v0.6.0", rec, provenance_path=tmp_path / "missing.json")
+    bad = tmp_path / "p.json"
+    bad.write_text(json.dumps({"lib_versions": {"modal": None}}))
+    with pytest.raises(ValueError, match="not a version string"):
+        validate_launch_client("v0.6.0", rec, provenance_path=bad)
+
+
+def test_entrypoint_checks_the_launch_client_against_the_record():
+    import ast
+
+    app = _PROJ / "scripts" / "modal" / "app_v05.py"
+    fn = next(
+        n
+        for n in ast.parse(app.read_text()).body
+        if isinstance(n, ast.FunctionDef) and n.name == "entrypoint"
+    )
+    calls = [
+        c
+        for c in ast.walk(fn)
+        if isinstance(c, ast.Call)
+        and isinstance(c.func, ast.Name)
+        and c.func.id == "validate_launch_client"
+    ]
+    assert len(calls) == 1
+    call = calls[0]
+    assert ast.unparse(call.args[1]) == "modal.__version__"
+    path = ast.unparse(next(k.value for k in call.keywords if k.arg == "provenance_path"))
+    assert path == "PROJECT_DIR_HOST / 'artifacts' / version / 'provenance.json'", path
+
+
+def test_recorded_client_version_is_not_typed_into_code_and_is_disclosed():
+    """A version typed in a second place is a second thing to drift: code reads the record;
+    the docs state it, and must agree with the record."""
+    import subprocess
+
+    from perturb_eval.experiments.v05_sweep import recorded_launch_client
+
+    rec = recorded_launch_client(_RECORD)
+    hits = subprocess.run(
+        ["git", "grep", "-n", "-F", rec, "--", "src", "scripts"],
+        cwd=_PROJ,
+        capture_output=True,
+        text=True,
+    ).stdout
+    assert hits == "", hits
+    for doc in ("README.md", "paper/README.md"):
+        text = (_PROJ / doc).read_text()
+        assert f"launched with modal {rec}, the client in its provenance" in text, doc
+        assert "is not\n# the authority for this release" in text, doc
