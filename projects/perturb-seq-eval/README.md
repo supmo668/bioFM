@@ -116,6 +116,11 @@ infisical run \
 # (artifacts/v0.6.0/provenance.json lib_versions.modal); for v0.6.0 the entrypoint refuses any
 # other client. poetry.lock (modal 1.4.2, last regenerated at v0.3.0) has drifted and is not
 # the authority for this release; a fresh resolve gives a newer modal.
+# If the check refuses your client (a fresh venv resolves a newer modal), install exactly the
+# recorded client named above (pip install "modal==<that version>") before re-running.
+# Known gap (declared, fixed after the deposit): the pre-registered version is held twice,
+# v05_sweep.PREREGISTERED_VERSION and v05_preflight.PREREGISTERED_VERSIONS; they agree as of
+# this commit, and neither is authoritative over the other.
 # Analyse the downloaded run files (refuses mismatched (dataset, task) sets,
 # fallback steps, unfinished or unpinned runs); defaults to artifacts/v0.6.0
 # Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
