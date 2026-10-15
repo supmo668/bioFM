@@ -9,6 +9,12 @@
 # Version of the deposited work (sent to Zenodo as the record's version).
 version: "0.6.0"
 
+# State file for THIS release. v0.6.0 is a NEW STANDALONE record on both venues (principal
+# ruling 2026-10-15, CTO #620): it starts with no deposit_id / article_id, so the submitters
+# create fresh records. publish.state.json stays the v0.5.x lineage record and is never
+# written for this release.
+state_file: publish.state.v060.json
+
 title: >-
   Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
   Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
@@ -68,21 +74,22 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Deposit-time sequence (both venues already hold PUBLISHED v0.5.x records; the submitters
-# refuse to upload into a published record, see PublishedRecordError):
+# Deposit-time sequence. v0.6.0 is a NEW STANDALONE record on both venues (principal ruling
+# 2026-10-15, CTO #620). The published v0.5.x records (Zenodo 20060974, Figshare 32086920) are
+# NEVER mutated: no newversion, no metadata edit, no file deletion. Lineage is carried by the
+# isNewVersionOf relations, the Zenodo notes and the Figshare references below. The submitters
+# still refuse a published record (PublishedRecordError) as the guard against the in-place path.
 #   1. python scripts/publish/build_deposit.py   (clean tree; builds paper.pdf + log, stages the run)
-#   2. Zenodo: POST /deposit/depositions/20060974/actions/newversion (v4 = latest under the
-#      concept DOI 10.5281/zenodo.19716140); record the draft id + links.bucket in
-#      publish.state.json with zenodo.published=false; delete the files the draft inherits.
-#   3. Figshare: update article 32086920's metadata (title, description, authors) and DELETE the
-#      v0.5 files; set figshare.published=false in publish.state.json; run
-#      `submit_to_venues.py figshare --dry-run` and verify the uploaded file list; then publish
-#      -> the next version of the article (check its current version number first).
-#   4. Set CITATION.cff date-released and add the new DOIs; principal approves the publish.
-#   Commands (after steps 2-3 and the principal's go): verify with
-#     python scripts/publish/submit_to_venues.py zenodo --dry-run   (draft uploaded, NOT published)
-#     python scripts/publish/submit_to_venues.py figshare --dry-run
-#   then publish each with the same command without --dry-run.
+#   2. Read-only GETs of the two superseded records: published state, current version, files;
+#      confirm the relation targets below (no POST/PUT/PATCH/DELETE).
+#   3. Principal's go for the FIRST WRITE, with the validate payload in front of them:
+#        python scripts/publish/submit_to_venues.py zenodo --dry-run
+#        python scripts/publish/submit_to_venues.py figshare --dry-run
+#      Each CREATES a new draft record, uploads the files and sets the metadata, and does NOT
+#      publish. The new ids are recorded in publish.state.v060.json (state_file).
+#   4. Principal's SEPARATE go to publish: the same commands without --dry-run (they resume the
+#      recorded drafts and publish them).
+#   5. Set CITATION.cff date-released and add the new DOIs.
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
   # gitignored, so the build is part of the deposit, not a precondition).
@@ -126,6 +133,13 @@ venues:
       - identifier: "10.6084/m9.figshare.32086920.v5"
         relation: "isNewVersionOf"
         scheme: "doi"
+    # A standalone record has its own concept DOI, so it sits outside the v0.5.x version chain;
+    # say so instead of leaving a reader to infer why the chain breaks.
+    notes: >-
+      v0.6.0 is deposited as a new standalone record rather than a new version of the v0.5.x
+      record, so it has its own concept DOI. It supersedes Zenodo 10.5281/zenodo.20060974 and
+      Figshare 10.6084/m9.figshare.32086920 (see the isNewVersionOf relations); those records
+      are left unchanged.
 
   figshare:
     enabled: true
@@ -139,6 +153,10 @@ venues:
       - 24193   # Genomics and transcriptomics
       - 29173   # Machine learning (not elsewhere classified)
     group_id: null            # set to a group ID for institutional-account uploads
+    # Lineage of the new standalone article: the superseded records it replaces.
+    references:
+      - "https://doi.org/10.6084/m9.figshare.32086920"
+      - "https://doi.org/10.5281/zenodo.20060974"
 
   osf:
     # Temporarily disabled 2026-04-23: OSF's preprint subjects PATCH

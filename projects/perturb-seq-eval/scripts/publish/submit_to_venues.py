@@ -115,6 +115,7 @@ class PublishConfig:
     venues: dict
     root: Path
     version: str = ""
+    state_file: str = ""
 
     @classmethod
     def load(cls, path: Path) -> "PublishConfig":
@@ -131,7 +132,13 @@ class PublishConfig:
             venues=raw.get("venues", {}),
             root=root,
             version=str(raw.get("version", "")),
+            state_file=str(raw.get("state_file", "")),
         )
+
+
+def resolve_state_path(cli_state: Path | None, cfg: "PublishConfig") -> Path:
+    """--state if given, else the release's own state file from publish.yml, else the legacy one."""
+    return cli_state or Path(cfg.state_file or "publish.state.json")
 
 
 class PublishedRecordError(RuntimeError):
@@ -243,11 +250,11 @@ class ZenodoSubmitter:
             # (POST .../actions/newversion) under the same concept DOI. Fail closed rather
             # than PUT into a locked bucket or overwrite the published record's metadata.
             raise PublishedRecordError(
-                f"zenodo deposit {dep_id} is already published. A new release is a NEW VERSION: "
-                "POST actions/newversion on the LATEST published version (see publish.yml, "
-                "'Deposit-time sequence'), then record the new draft's id AND links.bucket in "
-                "publish.state.json and set zenodo.published to false; delete the files the draft "
-                "inherits before uploading."
+                f"zenodo deposit {dep_id} is already published and is never mutated. A new "
+                "release is a NEW STANDALONE record (principal ruling 2026-10-15): run with the "
+                "release's own state file (publish.yml state_file), which starts with no "
+                "deposit_id, so a fresh deposition is created (see publish.yml, "
+                "'Deposit-time sequence')."
             )
         if dep_id is None:
             r = requests.post(
@@ -297,6 +304,9 @@ class ZenodoSubmitter:
                 "access_right": "open",
                 "related_identifiers": self.vcfg.get("related_identifiers", []),
                 **({"version": self.cfg.version} if self.cfg.version else {}),
+                # Lineage of a standalone record (it has its own concept DOI, so it is not in
+                # the superseded record's version chain): stated here, not left to inference.
+                **({"notes": self.vcfg["notes"].strip()} if self.vcfg.get("notes") else {}),
                 "communities": [{"identifier": c} for c in self.vcfg.get("communities", [])],
             }
         }
@@ -357,9 +367,10 @@ class FigshareSubmitter:
             # authors -- the new release would carry the previous version's metadata. Fail
             # closed until the deposit-time sequence (publish.yml) is followed.
             raise PublishedRecordError(
-                f"figshare article {art_id} is already published. Follow the deposit-time sequence "
-                "in publish.yml (update metadata, DELETE the old files, then publish a new "
-                "version) instead of uploading into it."
+                f"figshare article {art_id} is already published and is never mutated. A new "
+                "release is a NEW STANDALONE article (principal ruling 2026-10-15): run with the "
+                "release's own state file (publish.yml state_file), which starts with no "
+                "article_id (see publish.yml, 'Deposit-time sequence')."
             )
         if art_id is None:
             payload = {
@@ -373,6 +384,12 @@ class FigshareSubmitter:
                 # that belong to any other account (HTTP 422), and the
                 # token-holder's ORCID is inferred from their profile.
                 "authors": [{"name": c["name"]} for c in self.cfg.creators],
+                # Lineage of a standalone article: links to the superseded records.
+                **(
+                    {"references": list(self.vcfg["references"])}
+                    if self.vcfg.get("references")
+                    else {}
+                ),
             }
             r = requests.post(
                 f"{self.base}/account/articles",
@@ -764,7 +781,12 @@ def main() -> int:
     p.add_argument("subcommand", choices=["validate", "zenodo", "figshare", "osf", "all"])
     p.add_argument("--config", type=Path, default=Path("publish.yml"))
     p.add_argument("--dry-run", action="store_true", help="skip the final publish step")
-    p.add_argument("--state", type=Path, default=Path("publish.state.json"))
+    p.add_argument(
+        "--state",
+        type=Path,
+        default=None,
+        help="state file (default: publish.yml state_file, else publish.state.json)",
+    )
     p.add_argument(
         "--env",
         type=Path,
@@ -792,7 +814,7 @@ def main() -> int:
         print(f"config not found: {args.config}", file=sys.stderr)
         return 2
     cfg = PublishConfig.load(args.config)
-    state = State(args.state)
+    state = State(resolve_state_path(args.state, cfg))
 
     workdir = Path(".publish_work")
     files = prepare_files(cfg, workdir)
