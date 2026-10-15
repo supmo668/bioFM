@@ -240,6 +240,8 @@ mismatch now aborts without failover, ``replay'' is a finalisable status, a reco
 withdraws the analyser's licence, and docstrings and one recorded-reason string --- with
 \resServedMismatch{} mismatches, \resNFailover{} failovers and replay \resReplay{} recorded; the
 analyser at the landed revision, re-run on the committed run files,
-reproduces every committed value of \texttt{summary.json}; the landed analyser adds one key,
+reproduces every committed value of \texttt{summary.json} on Python 3.12 or later. Python 3.12 made the built-in \texttt{sum()} over floats compensated,
+so on Python 3.11 one quantity, the backbone entropy (the H3 statistic, five keys of
+\texttt{summary.json}), differs in its last bit; no reported figure or gate outcome changes; the landed analyser adds one key,
 \path{served_mismatch_count}, equal to \resServedMismatch.
 \end{sloppypar}
