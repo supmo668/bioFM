@@ -589,9 +589,12 @@ with SHA-256 manifests (prefixes \resArchiveShaCache{} and
 \resArchiveShaOutputs), never deleted. The revision at which v0.6.0 landed on main
 (\resLandSha) differs from the run's \resGitSha{} in \resPostRunPathCount{} source files, in
 code paths the run did not reach (\S\ref{subsec:runrecord}); the landed analyser, re-run on
-the committed run files, reproduces every committed value of \texttt{summary.json} on Python 3.12 or later. Python 3.12 made the built-in \texttt{sum()} over floats compensated,
-so on Python 3.11 one quantity, the backbone entropy (the H3 statistic, five keys of
-\texttt{summary.json}), differs in its last bit; no reported figure or gate outcome changes.
+the committed run files, reproduces every committed value of \texttt{summary.json}.
+This holds on Python 3.12: Python 3.12 made the built-in \texttt{sum()} over floats
+compensated, and before Python 3.12 the backbone entropy (stated and executed, which coincide
+here; five keys of \texttt{summary.json}) comes out one unit in the last place higher. The
+run itself ran on Python \resRunPython, and \texttt{provenance.json} records that higher
+value. No reported figure or gate outcome changes.
 \end{sloppypar}
 
 \paragraph{Pipeline.}
