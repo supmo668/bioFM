@@ -124,6 +124,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resGitSha": p["git_sha"][:7],
         "resPreregVersion": p["prereg_version"],
         "resGitDirty": str(p["git_dirty"]).lower(),
+        "resRunPython": str(p["python"]),
         "resHThreeEntropy": f(pr["H3"]["value"]),
         "resHThreeCeiling": f(pr["H3"]["ceiling_nats"]),
         "resHThreePickLinear": str(pr["H3"]["pick_counts"]["linear"]),
@@ -604,9 +605,8 @@ def test_no_hand_typed_result_numbers(rel):
         r"\\setlength\{[^}]*\}\{[^}]*\}", "", text
     )  # preamble lengths (e.g. emergencystretch)
     text = re.sub(r"[\d.]+(em|pt|ex)\b", "", text)  # layout lengths (e.g. leftmargin=1.2em)
-    text = re.sub(
-        r"(Haiku|Sonnet|Opus|Apache-|Python)\s*\d\.\d+", "", text
-    )  # tool versions / licence
+    text = re.sub(r"(Haiku|Sonnet|Opus|Apache-)\s*\d\.\d", "", text)  # model versions / licence
+    text = re.sub(r"\bPython\s+3\.1[0-9]\b", "", text)  # interpreter versions only
     literals = set(re.findall(r"(?<![\w.])\d*\.\d+(?!\.\d)", text))
     name = Path(rel).name
     allowed = ALLOWED_LITERALS[name] | DESIGN_LITERALS[name]
@@ -954,36 +954,60 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
     committed = art[0]
     if sys.version_info < (3, 12):
         # The disclosed exception (paper, Reproducibility): before 3.12, float sum() is not
-        # compensated, and exactly the backbone entropy (five keys) moves by one ulp.
+        # compensated, and exactly the backbone entropy (five keys) comes out one ulp HIGHER.
         import math
 
-        paths = (
-            ("architect_backbone_entropy_nats",),
-            ("architect_backbone_executed_entropy_nats",),
-            ("preregistered", "H3", "by_model_id", "claude-haiku-4-5-20251001", "entropy_nats"),
-            ("preregistered", "H3", "entropy_executed_nats"),
-            ("preregistered", "H3", "value"),
-        )
-        for path in paths:
+        moved = []
+        for path in PY312_ENTROPY_PATHS:
             a, b = new, committed
             for k in path[:-1]:
                 a, b = a[k], b[k]
-            assert abs(a[path[-1]] - b[path[-1]]) <= math.ulp(b[path[-1]]), path
+            assert a[path[-1]] == math.nextafter(b[path[-1]], math.inf), path  # +1 ulp, exactly
+            moved.append(a[path[-1]])
             a[path[-1]] = b[path[-1]]
+        assert len(set(moved)) == 1  # one quantity, the same value in every key
     assert new == committed, sorted(
         k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
     )
 
 
+# The one quantity that differs before Python 3.12 (paper: "five keys of summary.json").
+PY312_ENTROPY_PATHS = (
+    ("architect_backbone_entropy_nats",),
+    ("architect_backbone_executed_entropy_nats",),
+    ("preregistered", "H3", "by_model_id", "claude-haiku-4-5-20251001", "entropy_nats"),
+    ("preregistered", "H3", "entropy_executed_nats"),
+    ("preregistered", "H3", "value"),
+)
+PY312_DISCLOSURE = (
+    "This holds on Python 3.12: Python 3.12 made the built-in \\texttt{sum()} over floats "
+    "compensated, and before Python 3.12 the backbone entropy (stated and executed, which "
+    "coincide here; five keys of \\texttt{summary.json}) comes out one unit in the last place "
+    "higher. The run itself ran on Python \\resRunPython, and \\texttt{provenance.json} records "
+    "that higher value. No reported figure or gate outcome changes."
+)
+
+
 def test_reproduction_claim_states_its_python_requirement_and_cause():
-    """CTO #629: wherever the paper claims the analyser reproduces summary.json, it names the
-    Python requirement AND its cause, so the next editor does not drop it as superstition."""
-    for rel in ("paper.tex", "sections/results.tex"):
+    """CTO #629: wherever the paper claims the analyser reproduces summary.json, the claim is
+    followed by the exact disclosure (requirement, cause, the run's own value), so an inverted,
+    negated or relocated rewording fails, and the next editor cannot drop it as superstition."""
+    assert len(PY312_ENTROPY_PATHS) == 5  # "five keys"
+    for rel, claim_end in (
+        ("paper.tex", "reproduces every committed value of \\texttt{summary.json}. "),
+        (
+            "sections/results.tex",
+            "the landed analyser adds one key, \\path{served_mismatch_count}, equal to "
+            "\\resServedMismatch. ",
+        ),
+    ):
         text = " ".join(_strip((PAPER / rel).read_text()).split())
-        assert "reproduces every committed value" in text, rel
-        assert "on Python 3.12 or later" in text, rel
-        assert "\\texttt{sum()} over floats compensated" in text, rel
-        assert "no reported figure or gate outcome changes" in text, rel
+        assert text.count("reproduces every committed value") == 1, rel
+        assert claim_end + PY312_DISCLOSURE in text, rel
+    # Outside the paper, the same claim must carry the requirement too.
+    changelog = " ".join((ROOT / "CHANGELOG.md").read_text().split())
+    for m in re.finditer(r"reproduces the committed `summary\.json`", changelog):
+        assert "Python 3.12" in changelog[m.start() : m.start() + 400], m.start()
 
 
 # --------------------------------------------------------------------------- amendments / v0.5.0 record vs git and the register
@@ -1098,3 +1122,15 @@ def test_render_number_allow_list(fv):
     for bad in ("1\\,94", "1\\,944x", "a%b", "a{b"):
         with pytest.raises(ValueError):
             fv.render({"X": bad})
+
+
+def test_hand_typed_scan_still_flags_a_number_after_the_word_python(monkeypatch, tmp_path):
+    """The Python-version exemption covers interpreter versions only, not a result number."""
+    real = (PAPER / "sections/results.tex").read_text()
+    for injected in ("(Python 0.86 of runs)", "Python\n0.86"):
+        fake = tmp_path / "paper"
+        (fake / "sections").mkdir(parents=True, exist_ok=True)
+        (fake / "sections" / "results.tex").write_text(real + injected)
+        monkeypatch.setattr(sys.modules[__name__], "PAPER", fake)
+        with pytest.raises(AssertionError, match="0.86"):
+            test_no_hand_typed_result_numbers("sections/results.tex")
