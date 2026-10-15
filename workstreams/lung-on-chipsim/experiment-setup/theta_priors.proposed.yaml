@@ -1,0 +1,75 @@
+# θ priors — PROPOSED for T20. Agent-drafted from cited full texts 2026-10-14,
+# under the principal's amendment of 2026-10-08. NOT YET RATIFIED.
+#
+# Ratify by copying this file to configs/theta_priors.yaml yourself. That copy is
+# the ratification; no agent step performs it. Read experimental-design.md first:
+# it carries the citation and the provenance class for every value below, and the
+# verbatim quote each cited value was read out of.
+#
+# THREE of six fields are cited from the primary device paper (Huh et al. 2010,
+# Science, doi:10.1126/science.1188302, read in full text). THREE are honest
+# assumptions, because that paper does not state them:
+#   - flow_ul_min : no flow rate or velocity is stated anywhere in the paper.
+#   - porosity    : pore diameter is stated (10 um, PENTAGONAL) but no pitch,
+#                   no pore density and no lattice, so no formula applies.
+#   - area_mm2    : no channel width, length or overlap is stated numerically.
+# Each carries assumed: true, which is what makes it a stated gap the run journal
+# reports rather than a quiet default. Their widths are in the sourcing worksheet.
+#
+# The frequency that belongs with strain_pct (0.2 Hz) has no slot in this schema
+# and is recorded in the design document. A strain amplitude without its
+# frequency is not a reproducible condition.
+
+theta:
+  flow_ul_min:
+    # Assumed: Huh 2010 states no flow rate. Width 0.33-3.33 uL/min, bracketed from
+    # a comparable device (Frost 2019). Resolve from Huh 2013 Nature Protocols.
+    value: 1.8
+    unit: uL/min
+    citation:
+    assumed: true
+
+  membrane_um:
+    # Cited twice in Huh 2010 (body text p.2 and the Fig. 1C caption). This value
+    # contradicts the ~50 um figure circulating from vendor material; the paper governs.
+    value: 10
+    unit: um
+    citation: "10.1126/science.1188302"
+    assumed: false
+
+  porosity:
+    # Assumed: pore diameter is published, pore PITCH is not, and the pores are
+    # pentagonal so neither the square nor the hexagonal formula applies as written.
+    # Width 0.03-0.30. Do not substitute spacing from other organ-chip patents.
+    value: 0.1
+    unit: fraction
+    citation:
+    assumed: true
+
+  strain_pct:
+    # Cited: "Application of physiological cyclic strain (10% at 0.2 Hz)...". The
+    # paper's explored range was 5-15%; 10% is the reported operating point.
+    value: 10
+    unit: percent
+    citation: "10.1126/science.1188302"
+    assumed: false
+
+  area_mm2:
+    # Assumed: the paper gives only "one to two centimeters in length with the
+    # central channels only millimeters in width" — the DEVICE length, not the
+    # channel overlap. Width 5-50 mm^2. This area enters the permeability
+    # definition itself, so its uncertainty propagates directly to any Papp reported.
+    value: 15
+    unit: mm^2
+    citation:
+    assumed: true
+
+  coating:
+    # Cited, and deliberately left as the source's own disjunction: the paper says
+    # "coated with ECM (fibronectin or collagen)", names no collagen type and gives
+    # no concentration. Picking one is a statement about which experiment is being
+    # modelled, and is the principal's to make.
+    value: "fibronectin or collagen"
+    unit: categorical
+    citation: "10.1126/science.1188302"
+    assumed: false

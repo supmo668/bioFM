@@ -1,0 +1,12 @@
+# ============================================================================
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# Exists only so agent-owned done-conditions can fail honestly while the
+# human-gated tasks (T20/T21/T28) are outstanding. Build-plan S5 / defect 33.
+# Every number below is a SENTINEL chosen for arithmetic convenience, carries no
+# physical meaning, and is not a measurement of anything. No pipeline path may
+# read this file.
+# ============================================================================
+# HAPPY PATH: one cited prior, one explicit uninformative prior.
+
+alpha_prior:  {mean_log: 0.0, sigma_log: 1.0, citation: "10.0000/chipsim.fixture.prior.001", assumed: false}
+k_sink_prior: {mean_log: 0.0, sigma_log: 2.0, citation: null, assumed: true}

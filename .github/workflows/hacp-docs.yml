@@ -1,0 +1,44 @@
+name: hacp-docs
+
+# The HACP floor pages under docs/hacp/ are the local source that the Notion Index rows mirror.
+# A relative link that does not resolve is a claim that looks true and is not, so every push
+# or pull request that touches the floor (or the checker) verifies that all links resolve and
+# that the checker itself is lint-clean.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/hacp/**"
+      - "scripts/hacp_linkcheck.py"
+      - ".github/workflows/hacp-docs.yml"
+  pull_request:
+    paths:
+      - "docs/hacp/**"
+      - "scripts/hacp_linkcheck.py"
+      - ".github/workflows/hacp-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linkcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Lint the checkers
+        run: uv run --with ruff ruff check scripts/hacp_linkcheck.py scripts/hacp_sync_check.py && uv run --with ruff ruff format --check scripts/hacp_linkcheck.py scripts/hacp_sync_check.py
+
+      - name: Every relative link in docs/hacp resolves
+        run: uv run python scripts/hacp_linkcheck.py docs/hacp
+
+      # The Notion HACP rows are the source of truth for review; a floor page edited after the
+      # sync date recorded in its project's notion-map.json has drifted from its row.
+      - name: Every ChipSim floor page matches its recorded Notion sync
+        run: uv run python scripts/hacp_sync_check.py docs/hacp/lung-on-chipsim
