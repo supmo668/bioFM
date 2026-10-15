@@ -45,6 +45,8 @@ infisical run \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548
 
 # 2. Analyse the downloaded run files -> artifacts/v0.6.0/summary.json
+# Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
+# backbone entropy (five summary.json keys) differs by one ulp; the run itself ran on 3.11.0.
 python -m perturb_eval.experiments.e_v05_real_traces artifacts/v0.6.0
 ```
 

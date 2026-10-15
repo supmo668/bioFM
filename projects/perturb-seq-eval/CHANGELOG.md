@@ -22,7 +22,7 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
 - `anthropic_client.py`: a served-model mismatch now raises `ServedModelMismatch` (no failover), as A4-1 requires; previously the base error was raised and the call failed over to the other roster model. The run recorded 0 mismatches and 0 failovers in 1846 calls.
 - `provenance.py`: `"replay"` added to `STATUSES`, so a replay run finalises its provenance instead of raising at the end. The run's `replay` is false.
-- Analyser (`e_v05_real_traces.py`): a provenance served-model mismatch count above 0 now withdraws the licence (`SERVED_MODEL_MISMATCH_DIAGNOSTIC_ONLY`); `summary.json` gains `served_mismatch_count`. Re-running the analyser on the committed run files reproduces the committed `summary.json` values (the new field is 0).
+- Analyser (`e_v05_real_traces.py`): a provenance served-model mismatch count above 0 now withdraws the licence (`SERVED_MODEL_MISMATCH_DIAGNOSTIC_ONLY`); `summary.json` gains `served_mismatch_count`. Re-running the analyser on the committed run files on Python 3.12 reproduces the committed `summary.json` values (before Python 3.12, float `sum()` is not compensated and the backbone entropy, five keys, is one ulp higher; the run itself ran on Python 3.11.0) (the new field is 0).
 - Docstrings/strings: `app_v05.py` no longer describes an OpenRouter free-tier condition; `architect_dispatch.NOT_APPLIED_FIELDS` cites A3-1 instead of "ruling pending" (the committed artifact carries the old string in `not_applied_reason`; erratum).
 
 ## [Superseded] — v0.6.0 regeneration (manuscript aligned before the sweep)

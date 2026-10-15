@@ -114,6 +114,8 @@ infisical run \
 
 # Analyse the downloaded run files (refuses mismatched (dataset, task) sets,
 # fallback steps, unfinished or unpinned runs); defaults to artifacts/v0.6.0
+# Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
+# backbone entropy (five summary.json keys) differs by one ulp; the run itself ran on 3.11.0.
 python -m perturb_eval.experiments.e_v05_real_traces artifacts/v0.6.0
 ```
 
