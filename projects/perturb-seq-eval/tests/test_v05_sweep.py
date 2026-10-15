@@ -222,9 +222,18 @@ def test_validate_launch_client_refuses_any_other_client(tmp_path):
     with pytest.raises(ValueError, match="cannot read"):
         validate_launch_client("v0.6.0", rec, provenance_path=tmp_path / "missing.json")
     bad = tmp_path / "p.json"
-    bad.write_text(json.dumps({"lib_versions": {"modal": None}}))
-    with pytest.raises(ValueError, match="not a version string"):
-        validate_launch_client("v0.6.0", rec, provenance_path=bad)
+    for body, msg in (
+        ("{", "cannot read"),
+        ("{}", "cannot read"),
+        ('{"lib_versions": {}}', "cannot read"),
+        ("[]", "cannot read"),
+        ('{"lib_versions": {"modal": null}}', "not a version string"),
+        ('{"lib_versions": {"modal": ""}}', "not a version string"),
+        ('{"lib_versions": {"modal": 1}}', "not a version string"),
+    ):
+        bad.write_text(body)
+        with pytest.raises(ValueError, match=msg):
+            validate_launch_client("v0.6.0", rec, provenance_path=bad)
 
 
 def test_entrypoint_checks_the_launch_client_against_the_record():
@@ -245,7 +254,22 @@ def test_entrypoint_checks_the_launch_client_against_the_record():
     ]
     assert len(calls) == 1
     call = calls[0]
+    # A direct statement of the entrypoint body (not under a branch), checking the real version...
+    direct = [s for s in fn.body if isinstance(s, ast.Expr) and isinstance(s.value, ast.Call)]
+    assert any(s.value is call for s in direct), "validate_launch_client must not be nested"
+    assert ast.unparse(call.args[0]) == "version"
     assert ast.unparse(call.args[1]) == "modal.__version__"
+    # ...and before any run work: the run config write and the .remote() launch.
+    later = [
+        c.lineno
+        for c in ast.walk(fn)
+        if isinstance(c, ast.Call)
+        and (
+            (isinstance(c.func, ast.Attribute) and c.func.attr == "remote")
+            or (isinstance(c.func, ast.Name) and c.func.id in ("write_run_config", "git_state"))
+        )
+    ]
+    assert later and call.lineno < min(later), (call.lineno, later)
     path = ast.unparse(next(k.value for k in call.keywords if k.arg == "provenance_path"))
     assert path == "PROJECT_DIR_HOST / 'artifacts' / version / 'provenance.json'", path
 
@@ -258,14 +282,20 @@ def test_recorded_client_version_is_not_typed_into_code_and_is_disclosed():
     from perturb_eval.experiments.v05_sweep import recorded_launch_client
 
     rec = recorded_launch_client(_RECORD)
-    hits = subprocess.run(
+    res = subprocess.run(
         ["git", "grep", "-n", "-F", rec, "--", "src", "scripts"],
         cwd=_PROJ,
         capture_output=True,
         text=True,
-    ).stdout
-    assert hits == "", hits
+    )
+    assert res.returncode == 1, (res.returncode, res.stdout, res.stderr)  # 1 = searched, no match
+    # git grep sees tracked files only; scan the working tree too (untracked new files).
+    for path in (*(_PROJ / "src").rglob("*.py"), *(_PROJ / "scripts").rglob("*.py")):
+        assert rec not in path.read_text(), path
     for doc in ("README.md", "paper/README.md"):
         text = (_PROJ / doc).read_text()
         assert f"launched with modal {rec}, the client in its provenance" in text, doc
         assert "is not\n# the authority for this release" in text, doc
+        lock = (_PROJ / "poetry.lock").read_text()
+        locked = re.search(r'name = "modal"\nversion = "([^"]+)"', lock).group(1)
+        assert f"poetry.lock (modal {locked}," in text, (doc, locked)
