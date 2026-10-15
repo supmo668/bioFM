@@ -604,7 +604,9 @@ def test_no_hand_typed_result_numbers(rel):
         r"\\setlength\{[^}]*\}\{[^}]*\}", "", text
     )  # preamble lengths (e.g. emergencystretch)
     text = re.sub(r"[\d.]+(em|pt|ex)\b", "", text)  # layout lengths (e.g. leftmargin=1.2em)
-    text = re.sub(r"(Haiku|Sonnet|Opus|Apache-)\s*\d\.\d", "", text)  # model versions / licence
+    text = re.sub(
+        r"(Haiku|Sonnet|Opus|Apache-|Python)\s*\d\.\d+", "", text
+    )  # tool versions / licence
     literals = set(re.findall(r"(?<![\w.])\d*\.\d+(?!\.\d)", text))
     name = Path(rel).name
     allowed = ALLOWED_LITERALS[name] | DESIGN_LITERALS[name]
@@ -950,9 +952,38 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
     new = json.loads((tmp_path / "summary.json").read_text())
     assert new.pop("served_mismatch_count") == 0
     committed = art[0]
+    if sys.version_info < (3, 12):
+        # The disclosed exception (paper, Reproducibility): before 3.12, float sum() is not
+        # compensated, and exactly the backbone entropy (five keys) moves by one ulp.
+        import math
+
+        paths = (
+            ("architect_backbone_entropy_nats",),
+            ("architect_backbone_executed_entropy_nats",),
+            ("preregistered", "H3", "by_model_id", "claude-haiku-4-5-20251001", "entropy_nats"),
+            ("preregistered", "H3", "entropy_executed_nats"),
+            ("preregistered", "H3", "value"),
+        )
+        for path in paths:
+            a, b = new, committed
+            for k in path[:-1]:
+                a, b = a[k], b[k]
+            assert abs(a[path[-1]] - b[path[-1]]) <= math.ulp(b[path[-1]]), path
+            a[path[-1]] = b[path[-1]]
     assert new == committed, sorted(
         k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
     )
+
+
+def test_reproduction_claim_states_its_python_requirement_and_cause():
+    """CTO #629: wherever the paper claims the analyser reproduces summary.json, it names the
+    Python requirement AND its cause, so the next editor does not drop it as superstition."""
+    for rel in ("paper.tex", "sections/results.tex"):
+        text = " ".join(_strip((PAPER / rel).read_text()).split())
+        assert "reproduces every committed value" in text, rel
+        assert "on Python 3.12 or later" in text, rel
+        assert "\\texttt{sum()} over floats compensated" in text, rel
+        assert "no reported figure or gate outcome changes" in text, rel
 
 
 # --------------------------------------------------------------------------- amendments / v0.5.0 record vs git and the register
