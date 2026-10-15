@@ -61,3 +61,5 @@ dispatch is a blocked person"), reached *through* the mechanism meant to prevent
 The skill already cites three dates where a *filtered* inbox hid mail (2026-06-29, 2026-07-07,
 2026-08-17). This is a fourth instance with a different mechanism — the filter was fine, the
 state was wrong.
+
+**Status:** resolved in airdlc v0.86.0 (maintainer, #612) — WITH A CORRECTION TO THIS ENTRY. The stated cause (read state imported by a git merge) cannot happen: read state lives in the out-of-tree ISCP DB. The real gap was mail marked read by ANOTHER IDENTITY; catchup now flags that instead of reporting 'clear'. Recorded by the CTO 2026-10-15, triaged as a report of its date (2026-08-30) rather than a verified current symptom.

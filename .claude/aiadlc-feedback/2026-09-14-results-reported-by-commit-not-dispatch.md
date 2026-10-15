@@ -64,3 +64,5 @@ worktree-agent class but has no mechanical support.
   dispatch; the follow-up dispatch was only sent after the CTO asked.
 - `hooks/coord-commit-check.sh` — enforces the committed-payload direction.
 - `hooks/monitor-health.sh` — enforces listening, not reporting.
+
+**Status:** open (filed against airdlc 0.82.0) — reviewed by the maintainer 2026-10-15 (#612) and kept open: it needs a design pass on an advisory 'directive read, commits since, no reply' check. Triaged as a report of its date (2026-09-14).
