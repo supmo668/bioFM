@@ -1,8 +1,9 @@
 # publish.yml — one source of truth for preprint venue submissions.
 #
 # Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
-# script never writes to this file — DOIs and deposition IDs go into
-# `publish.state.json` (tracked: it is the deposit-lineage record) so this stays clean.
+# script never writes to this file. DOIs and deposition IDs go into the release's
+# state file (`state_file` below; tracked, it is the deposit-lineage record).
+# `publish.state.json` is the v0.5.x record and is not written for v0.6.0.
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
 
@@ -86,9 +87,12 @@ license: cc-by-4.0
 #        python scripts/publish/submit_to_venues.py zenodo --dry-run
 #        python scripts/publish/submit_to_venues.py figshare --dry-run
 #      Each CREATES a new draft record, uploads the files and sets the metadata, and does NOT
-#      publish. The new ids are recorded in publish.state.v060.json (state_file).
-#   4. Principal's SEPARATE go to publish: the same commands without --dry-run (they resume the
-#      recorded drafts and publish them).
+#      publish. The new ids are recorded in publish.state.v060.json (state_file, next to this
+#      file); commit it before step 4.
+#   4. Principal's SEPARATE go to publish: the same commands without --dry-run. They only
+#      publish the recorded drafts (no draft recorded -> DraftRequiredError, nothing created),
+#      resend the current metadata, and refuse if a file's content changed since step 3
+#      (DraftMismatchError). Do not rebuild between steps 3 and 4.
 #   5. Set CITATION.cff date-released and add the new DOIs.
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
@@ -162,9 +166,9 @@ venues:
     # Temporarily disabled 2026-04-23: OSF's preprint subjects PATCH
     # endpoint is returning 502 Bad Gateway, and their files
     # primary_file relationship endpoint is 404ing on waterbutler-path
-    # GUIDs. State file retains project/preprint IDs so the run resumes
-    # cleanly once OSF recovers:
-    #   python scripts/publish/submit_to_venues.py osf
+    # GUIDs. The v0.5.x project/preprint ids (publish.state.json) are superseded and never
+    # resumed (SUPERSEDED_RECORDS); re-enabling OSF for v0.6.0 creates a new project/preprint
+    # in this release's state_file.
     enabled: false
     # server = one of the preprint providers listed at https://osf.io/preprints/
     # biohackrxiv is the explicit hackathon fit; metaarxiv is general meta-science.

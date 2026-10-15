@@ -2,8 +2,16 @@
 """Submit paper + supplement to preprint venues via their HTTP APIs.
 
 Reads metadata from ``publish.yml`` and dispatches to Zenodo / Figshare /
-OSF. Writes DOIs and deposition IDs back into ``publish.state.json`` so
-partial failures are resumable.
+OSF. Writes DOIs and deposition IDs into the release's state file
+(``publish.yml`` ``state_file``, anchored to publish.yml's directory) so a
+run can be resumed. Records of superseded releases (SUPERSEDED_RECORDS) and
+published records are never written to (PublishedRecordError).
+
+Two-step deposit: ``--dry-run`` CREATES a new draft record, uploads the files
+and sets the metadata, without publishing. A later run without ``--dry-run``
+only publishes a draft recorded in the state file (DraftRequiredError
+otherwise), and refuses if a recorded file's content changed
+(DraftMismatchError).
 
 Secrets are loaded from a ``.env`` file found by walking upwards from the
 current working directory. A missing ``.env`` is a hard error; a missing
@@ -21,7 +29,7 @@ Flags
 -----
     --dry-run  — create depositions but do not publish them (leaves drafts).
     --config   — path to publish.yml (default: ./publish.yml).
-    --state    — path to the resumable state file (default: ./publish.state.json).
+    --state    — path to the resumable state file (default: publish.yml state_file).
     --env      — path to .env (default: walk upward from cwd to find one).
 
 Environment variables consumed from .env
@@ -131,18 +139,59 @@ class PublishConfig:
             files=raw.get("files", []),
             venues=raw.get("venues", {}),
             root=root,
-            version=str(raw.get("version", "")),
-            state_file=str(raw.get("state_file", "")),
+            version=str(raw.get("version") or ""),
+            state_file=str(raw.get("state_file") or ""),
         )
 
 
 def resolve_state_path(cli_state: Path | None, cfg: "PublishConfig") -> Path:
-    """--state if given, else the release's own state file from publish.yml, else the legacy one."""
-    return cli_state or Path(cfg.state_file or "publish.state.json")
+    """--state if given, else the release's own state file from publish.yml, else the legacy one.
+
+    A path from publish.yml is anchored to publish.yml's directory, not the current working
+    directory, so the two principal gos (create, then publish) always share one state file
+    whichever directory they are run from. It must stay inside that directory and must not be
+    a symlink.
+    """
+    if cli_state is not None:
+        return cli_state
+    path = Path(cfg.state_file or "publish.state.json")
+    if not path.is_absolute():
+        path = cfg.root / path
+    root = cfg.root.resolve()
+    if path.is_symlink() or root not in path.resolve().parents:
+        raise ValueError(f"state_file must be a regular file inside {root}: {cfg.state_file!r}")
+    return path
+
+
+# Published records of earlier releases. They are never written to, whatever a state file says:
+# v0.6.0 is a new standalone record on every venue (principal ruling 2026-10-15).
+SUPERSEDED_RECORDS: dict[str, frozenset] = {
+    "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974}),
+    "figshare": frozenset({32086920}),
+    "osf": frozenset({"wmeuy", "dhu4z_v1"}),
+}
 
 
 class PublishedRecordError(RuntimeError):
-    """A venue's record is already published; a new release must be a new version."""
+    """A venue's record is already published (or superseded) and is never mutated."""
+
+
+class DraftRequiredError(RuntimeError):
+    """A publish run found no recorded draft: create and review it with --dry-run first."""
+
+
+class DraftMismatchError(RuntimeError):
+    """The recorded draft already holds a same-name file with different content."""
+
+
+def _refuse_superseded(venue: str, *ids: Any) -> None:
+    for i in ids:
+        if i is not None and i in SUPERSEDED_RECORDS[venue]:
+            raise PublishedRecordError(
+                f"{venue} record {i} is already published (a superseded release) and is never "
+                "mutated; "
+                "v0.6.0 is a new standalone record (publish.yml state_file)."
+            )
 
 
 class State:
@@ -205,10 +254,17 @@ def prepare_files(cfg: PublishConfig, workdir: Path) -> list[dict]:
 
 
 def _zip_directory(src: Path, dst: Path) -> None:
+    """Byte-reproducible zip: sorted entries, fixed timestamps and permissions.
+
+    The create run and the later publish run re-zip the same directories; identical bytes give
+    identical md5s, so the publish run recognises the files it already uploaded.
+    """
     with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as z:
-        for p in src.rglob("*"):
-            if p.is_file():
-                z.write(p, arcname=p.relative_to(src.parent))
+        for p in sorted(q for q in src.rglob("*") if q.is_file()):
+            info = zipfile.ZipInfo(p.relative_to(src.parent).as_posix(), (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, p.read_bytes())
 
 
 def _md5(path: Path) -> str:
@@ -244,6 +300,7 @@ class ZenodoSubmitter:
 
     def submit(self, files: list[dict]) -> str:
         dep_id = self.state.get("zenodo", "deposit_id")
+        _refuse_superseded("zenodo", dep_id)
         if dep_id is not None and self.state.get("zenodo", "published"):
             # A published Zenodo deposit is locked: uploading into its bucket fails, and a
             # new release must be a NEW VERSION created from the latest version
@@ -256,7 +313,15 @@ class ZenodoSubmitter:
                 "deposit_id, so a fresh deposition is created (see publish.yml, "
                 "'Deposit-time sequence')."
             )
+        existing: dict[str, str] = {}
         if dep_id is None:
+            if not self.dry_run:
+                # Creating and publishing are two separate principal gos: a publish run only
+                # publishes a draft that a --dry-run created and that was reviewed.
+                raise DraftRequiredError(
+                    "zenodo: no recorded draft in the state file; create it with --dry-run "
+                    "first and review it before publishing."
+                )
             r = requests.post(
                 f"{self.base}/deposit/depositions",
                 headers={**self.headers, "Content-Type": "application/json"},
@@ -271,8 +336,23 @@ class ZenodoSubmitter:
             self.state.set("zenodo", "bucket", bucket)
         else:
             bucket = self.state.get("zenodo", "bucket")
+            r = requests.get(
+                f"{self.base}/deposit/depositions/{dep_id}/files",
+                headers=self.headers,
+                timeout=30,
+            )
+            _raise_on(r)
+            existing = {e["filename"]: e.get("checksum", "") for e in r.json() or []}
 
         for f in files:
+            if f["name"] in existing:
+                if existing[f["name"]] == f["md5"]:
+                    print(f"[zenodo] skip existing file {f['name']} (md5 match)")
+                    continue
+                raise DraftMismatchError(
+                    f"zenodo draft {dep_id} already holds {f['name']} with different content; "
+                    "the files changed since the draft was created and reviewed."
+                )
             r = requests.put(
                 f"{bucket}/{f['name']}",
                 headers=self.headers,
@@ -361,6 +441,7 @@ class FigshareSubmitter:
 
     def submit(self, files: list[dict]) -> str:
         art_id = self.state.get("figshare", "article_id")
+        _refuse_superseded("figshare", art_id)
         if art_id is not None and self.state.get("figshare", "published"):
             # Uploading into a published article adds the new files BESIDE the old ones and
             # republishes the article in place without updating its title, description or
@@ -372,25 +453,38 @@ class FigshareSubmitter:
                 "release's own state file (publish.yml state_file), which starts with no "
                 "article_id (see publish.yml, 'Deposit-time sequence')."
             )
-        if art_id is None:
-            payload = {
-                "title": self.cfg.title,
-                "description": self.cfg.description,
-                "tags": self.cfg.keywords,
-                "categories": self.vcfg.get("categories", []),
-                "defined_type": self.vcfg.get("defined_type", "preprint"),
-                "license": _figshare_license(self.cfg.license),
-                # Intentionally omit ORCID — Figshare's API rejects ORCIDs
-                # that belong to any other account (HTTP 422), and the
-                # token-holder's ORCID is inferred from their profile.
-                "authors": [{"name": c["name"]} for c in self.cfg.creators],
-                # Lineage of a standalone article: links to the superseded records.
-                **(
-                    {"references": list(self.vcfg["references"])}
-                    if self.vcfg.get("references")
-                    else {}
-                ),
-            }
+        payload = {
+            "title": self.cfg.title,
+            "description": self.cfg.description,
+            "tags": self.cfg.keywords,
+            "categories": self.vcfg.get("categories", []),
+            "defined_type": self.vcfg.get("defined_type", "preprint"),
+            "license": _figshare_license(self.cfg.license),
+            # Intentionally omit ORCID — Figshare's API rejects ORCIDs
+            # that belong to any other account (HTTP 422), and the
+            # token-holder's ORCID is inferred from their profile.
+            "authors": [{"name": c["name"]} for c in self.cfg.creators],
+            # Lineage of a standalone article: links to the superseded records.
+            **(
+                {"references": list(self.vcfg["references"])} if self.vcfg.get("references") else {}
+            ),
+        }
+        if art_id is not None:
+            # Resuming the recorded (unpublished) draft: send the current publish.yml metadata
+            # again, so a fix made after the review is what gets published.
+            r = requests.put(
+                f"{self.base}/account/articles/{art_id}",
+                headers={**self.headers, "Content-Type": "application/json"},
+                json=payload,
+                timeout=30,
+            )
+            _raise_on(r)
+        else:
+            if not self.dry_run:
+                raise DraftRequiredError(
+                    "figshare: no recorded draft in the state file; create it with --dry-run "
+                    "first and review it before publishing."
+                )
             r = requests.post(
                 f"{self.base}/account/articles",
                 headers={**self.headers, "Content-Type": "application/json"},
@@ -418,20 +512,28 @@ class FigshareSubmitter:
             if name:
                 existing_by_name[name] = md5 or ""
         for f in files:
-            existing_md5 = existing_by_name.get(f["name"])
-            if existing_md5 and existing_md5 == f["md5"]:
-                print(f"[figshare] skip existing file {f['name']} (md5 match)")
-                continue
+            if f["name"] in existing_by_name:
+                if existing_by_name[f["name"]] == f["md5"]:
+                    print(f"[figshare] skip existing file {f['name']} (md5 match)")
+                    continue
+                # Figshare would accept a second same-name file; a published record could not
+                # be cleaned up afterwards, so refuse instead.
+                raise DraftMismatchError(
+                    f"figshare draft {art_id} already holds {f['name']} with different content; "
+                    "the files changed since the draft was created and reviewed."
+                )
             self._upload_file(art_id, f)
 
-        r = requests.post(
-            f"{self.base}/account/articles/{art_id}/reserve_doi",
-            headers=self.headers,
-            timeout=30,
-        )
-        _raise_on(r)
-        reserved_doi = r.json().get("doi")
-        self.state.set("figshare", "doi", reserved_doi)
+        reserved_doi = self.state.get("figshare", "doi")
+        if not reserved_doi:
+            r = requests.post(
+                f"{self.base}/account/articles/{art_id}/reserve_doi",
+                headers=self.headers,
+                timeout=30,
+            )
+            _raise_on(r)
+            reserved_doi = r.json().get("doi")
+            self.state.set("figshare", "doi", reserved_doi)
 
         if self.dry_run:
             print(f"[figshare] DRY-RUN — article {art_id} left in draft")
@@ -516,6 +618,7 @@ class OSFSubmitter:
 
     def submit(self, files: list[dict]) -> str:
         proj_id = self.state.get("osf", "project_id")
+        _refuse_superseded("osf", proj_id, self.state.get("osf", "preprint_id"))
         if proj_id is None:
             payload = {
                 "data": {
@@ -814,7 +917,9 @@ def main() -> int:
         print(f"config not found: {args.config}", file=sys.stderr)
         return 2
     cfg = PublishConfig.load(args.config)
-    state = State(resolve_state_path(args.state, cfg))
+    state_path = resolve_state_path(args.state, cfg)
+    print(f"state file : {state_path}")
+    state = State(state_path)
 
     workdir = Path(".publish_work")
     files = prepare_files(cfg, workdir)
@@ -850,7 +955,12 @@ def main() -> int:
         submitter = submitters[venue](cfg, state, dry_run=args.dry_run)
         try:
             submitter.submit(files)
-        except (requests.HTTPError, PublishedRecordError) as exc:
+        except (
+            requests.HTTPError,
+            PublishedRecordError,
+            DraftRequiredError,
+            DraftMismatchError,
+        ) as exc:
             print(f"[{venue}] FAILED: {exc}", file=sys.stderr)
             errors += 1
 
