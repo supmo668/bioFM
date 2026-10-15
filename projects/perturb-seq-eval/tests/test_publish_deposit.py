@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -152,7 +153,7 @@ class _Resp:
         return None
 
 
-def _submitter(monkeypatch, tmp_path, venue, state):
+def _submitter(monkeypatch, tmp_path, venue, state, dry_run=True):
     sv = _load("scripts/publish/submit_to_venues.py", "sv_test")
     calls = []
 
@@ -176,7 +177,7 @@ def _submitter(monkeypatch, tmp_path, venue, state):
     state_path.write_text(json.dumps(state))
     cfg = sv.PublishConfig.load(ROOT / "publish.yml")
     cls = {"zenodo": sv.ZenodoSubmitter, "figshare": sv.FigshareSubmitter}[venue]
-    return sv, cls(cfg, sv.State(state_path), dry_run=True), calls, state_path, cfg
+    return sv, cls(cfg, sv.State(state_path), dry_run=dry_run), calls, state_path, cfg
 
 
 def test_zenodo_submitter_refuses_a_published_deposit_without_any_request(tmp_path, monkeypatch):
@@ -232,10 +233,101 @@ def test_zenodo_draft_resume_uploads_into_the_recorded_bucket(tmp_path, monkeypa
     assert any(c[0] == "put" and c[1] == "https://bucket/B/x.txt" for c in calls)
 
 
-def test_main_reports_a_published_record_and_continues(tmp_path, monkeypatch):
-    sv = _load("scripts/publish/submit_to_venues.py", "sv_main")
-    src = (ROOT / "scripts" / "publish" / "submit_to_venues.py").read_text()
-    assert "except (requests.HTTPError, PublishedRecordError)" in src
+def _run_main(monkeypatch, tmp_path, argv, state=None, routes=None):
+    """Run the real main() with the network stubbed: publish.yml copied to a config dir that is NOT
+    the working directory, so the state file must be anchored to the config, not to cwd."""
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_main_run")
+    cfgdir, cwd = tmp_path / "proj", tmp_path / "elsewhere"
+    cfgdir.mkdir()
+    cwd.mkdir()
+    (cfgdir / "publish.yml").write_text((ROOT / "publish.yml").read_text())
+    if state is not None:
+        (cfgdir / "publish.state.v060.json").write_text(json.dumps(state))
+    legacy = '{"zenodo": {"deposit_id": 19748260, "published": true}}'
+    (cfgdir / "publish.state.json").write_text(legacy)
+    env = tmp_path / ".env"
+    env.write_text("")
+    calls = []
+
+    def route(method):
+        def f(url, **kw):
+            calls.append((method, url, kw))
+            for (m, suffix), body in (routes or {}).items():
+                if m == method and url.endswith(suffix):
+                    return _Resp(body)
+            if method == "post" and url.endswith("/deposit/depositions"):
+                return _Resp({"id": 1, "links": {"bucket": "https://bucket/B"}})
+            if method == "post" and url.endswith("/account/articles"):
+                return _Resp({"location": "https://api.figshare.com/v2/account/articles/777"})
+            if method == "post" and url.endswith("/reserve_doi"):
+                return _Resp({"doi": "10.6084/m9.figshare.777"})
+            if method == "post" and url.endswith("/actions/publish"):
+                return _Resp({"doi": "10.5281/zenodo.1"})
+            return _Resp({})
+
+        return f
+
+    for m in ("post", "put", "get", "delete"):
+        monkeypatch.setattr(sv.requests, m, route(m))
+    monkeypatch.setattr(sv, "_raise_on", lambda r: None)
+    monkeypatch.setattr(sv, "prepare_files", lambda cfg, workdir: [])
+    for tok in ("ZENODO_TOKEN", "FIGSHARE_TOKEN"):
+        monkeypatch.setenv(tok, "test-token-not-a-placeholder")
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(
+        sys, "argv", ["sv", *argv, "--config", str(cfgdir / "publish.yml"), "--env", str(env)]
+    )
+    rc = sv.main()
+    return rc, calls, cfgdir, cwd, legacy
+
+
+def test_main_dry_run_creates_drafts_in_the_config_anchored_v060_state(tmp_path, monkeypatch):
+    """T1/T2: main() resolves the release's state file next to publish.yml (not cwd), passes
+    --dry-run through (nothing published), and never writes the v0.5 state."""
+    rc, calls, cfgdir, cwd, legacy = _run_main(monkeypatch, tmp_path, ["all", "--dry-run"])
+    assert rc == 0
+    st = json.loads((cfgdir / "publish.state.v060.json").read_text())
+    assert st["zenodo"]["deposit_id"] == 1 and st["figshare"]["article_id"] == 777
+    assert "published" not in st["zenodo"] and "published" not in st["figshare"]
+    assert not (cwd / "publish.state.v060.json").exists()
+    assert (cfgdir / "publish.state.json").read_text() == legacy
+    posts = [c[1] for c in calls if c[0] == "post"]
+    assert not any(u.endswith("/actions/publish") or u.endswith("/publish") for u in posts), posts
+
+
+def test_main_publish_without_a_recorded_draft_creates_nothing(tmp_path, monkeypatch):
+    """Creating and publishing are two gos: a publish run with no recorded draft is refused
+    before any write, so it can never create and publish an unreviewed record in one run."""
+    rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"])
+    assert rc == 1
+    assert not [c for c in calls if c[0] in ("post", "put", "delete")], calls
+    assert not (cfgdir / "publish.state.v060.json").exists()
+
+
+def test_main_publishes_only_the_recorded_drafts(tmp_path, monkeypatch):
+    draft = {
+        "zenodo": {"deposit_id": 1, "bucket": "https://bucket/B"},
+        "figshare": {"article_id": 777, "doi": "10.6084/m9.figshare.777"},
+    }
+    rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"], state=draft)
+    assert rc == 0
+    posts = [c[1] for c in calls if c[0] == "post"]
+    assert not any(
+        u.endswith("/deposit/depositions") or u.endswith("/account/articles") for u in posts
+    )
+    assert any(u.endswith("/deposit/depositions/1/actions/publish") for u in posts)
+    assert any(u.endswith("/account/articles/777/publish") for u in posts)
+    assert not any(u.endswith("/reserve_doi") for u in posts)  # DOI already reserved at step 3
+    st = json.loads((cfgdir / "publish.state.v060.json").read_text())
+    assert st["zenodo"]["published"] is True and st["figshare"]["published"] is True
+
+
+def test_main_reports_a_superseded_record_and_continues(tmp_path, monkeypatch):
+    seeded = {"figshare": {"article_id": 32086920}}  # hand-seeded, no published flag
+    rc, calls, _, _, _ = _run_main(monkeypatch, tmp_path, ["all", "--dry-run"], state=seeded)
+    assert rc == 1  # figshare refused ...
+    assert not any("32086920" in c[1] for c in calls), calls
+    assert any(c[1].endswith("/deposit/depositions") for c in calls)  # ... zenodo still ran
 
 
 def test_files_paths_follow_the_build_step(tmp_path, monkeypatch):
@@ -640,23 +732,66 @@ def test_stale_scan_normaliser_sees_through_formatting(tmp_path):
 
 
 # ---- v0.6.0 is a NEW STANDALONE record on both venues (principal 2026-10-15, CTO #620) ----
-SUPERSEDED = ("20060974", "19748260", "19716140", "32086920")
+SUPERSEDED = ("20060974", "19748260", "19716140", "19716141", "19721470", "32086920")
 
 
-def test_v060_release_has_its_own_state_and_never_reuses_the_v050_one():
+def _sequence_steps(text):
+    seq = text[text.index("# Deposit-time sequence") : text.index("\nfiles:")]
+    lines = seq.splitlines()
+    first = next(i for i, ln in enumerate(lines) if re.match(r"#\s+1\.", ln))
+    steps, cur = {}, None
+    for ln in lines[first:]:
+        m = re.match(r"#\s+(\d+)\.", ln)
+        if m:
+            cur = int(m.group(1))
+        steps.setdefault(cur, []).append(ln)
+    return seq, {k: " ".join(v) for k, v in steps.items()}
+
+
+def test_v060_release_has_its_own_state_and_never_reuses_the_v050_one(tmp_path):
     sv = _load("scripts/publish/submit_to_venues.py", "sv_state")
     cfg = sv.PublishConfig.load(ROOT / "publish.yml")
     assert cfg.state_file == "publish.state.v060.json"
-    assert sv.resolve_state_path(None, cfg) == Path("publish.state.v060.json")
+    assert sv.resolve_state_path(None, cfg) == ROOT / "publish.state.v060.json"  # anchored to cfg
     assert sv.resolve_state_path(Path("x.json"), cfg) == Path("x.json")  # --state still wins
-    # The v0.5.x lineage record is untouched and still says its records are published.
     old = json.loads((ROOT / "publish.state.json").read_text())
     assert old["zenodo"]["deposit_id"] == 19748260 and old["zenodo"]["published"] is True
     assert old["figshare"]["article_id"] == 32086920 and old["figshare"]["published"] is True
-    new = ROOT / cfg.state_file
+    new = sv.resolve_state_path(None, cfg)
     if new.exists():  # once created, it must name new records, never a superseded one
-        text = new.read_text()
-        assert not any(s in text for s in SUPERSEDED), text
+        assert not any(s in new.read_text() for s in SUPERSEDED)
+    # Containment: a state_file outside publish.yml's directory, or a symlink, is refused.
+    import dataclasses
+
+    import pytest
+
+    for bad in ("../elsewhere.json", "/tmp/abs.json"):
+        with pytest.raises(ValueError, match="inside"):
+            sv.resolve_state_path(None, dataclasses.replace(cfg, state_file=bad))
+    (tmp_path / "real.json").write_text("{}")
+    (tmp_path / "link.json").symlink_to(tmp_path / "real.json")
+    with pytest.raises(ValueError, match="inside"):
+        sv.resolve_state_path(None, dataclasses.replace(cfg, root=tmp_path, state_file="link.json"))
+    # A null `state_file:` is "unset", not a file literally named "None".
+    (tmp_path / "publish.yml").write_text(
+        (ROOT / "publish.yml")
+        .read_text()
+        .replace("state_file: publish.state.v060.json", "state_file:")
+    )
+    assert sv.PublishConfig.load(tmp_path / "publish.yml").state_file == ""
+
+
+def test_superseded_records_are_refused_even_without_a_published_flag(tmp_path, monkeypatch):
+    for venue, state in (
+        ("zenodo", {"zenodo": {"deposit_id": 20060974, "bucket": "https://bucket/old"}}),
+        ("figshare", {"figshare": {"article_id": 32086920}}),
+    ):
+        sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, venue, state)
+        import pytest
+
+        with pytest.raises(sv.PublishedRecordError, match="already published"):
+            sub.submit([])
+        assert calls == [], venue
 
 
 def test_zenodo_standalone_create_never_touches_a_superseded_record(tmp_path, monkeypatch):
@@ -664,14 +799,21 @@ def test_zenodo_standalone_create_never_touches_a_superseded_record(tmp_path, mo
     sub.submit([])
     urls = [c[1] for c in calls]
     assert not any(s in u for u in urls for s in SUPERSEDED), urls
-    assert not any("newversion" in u for u in urls)
-    assert [c[1] for c in calls if c[0] == "post"] == [f"{sub.base}/deposit/depositions"]
+    assert not any("newversion" in u.lower() for u in urls)
+    create = [c for c in calls if c[0] == "post"]
+    assert [c[1] for c in create] == [f"{sub.base}/deposit/depositions"]
+    assert create[0][2]["json"] == {}  # the create body references nothing
     meta = next(c for c in calls if c[0] == "put")[2]["json"]["metadata"]
-    assert "new standalone record" in meta["notes"] and "10.5281/zenodo.20060974" in meta["notes"]
+    assert "new standalone record" in meta["notes"]
+    assert "10.5281/zenodo.20060974" in meta["notes"]
+    assert "10.6084/m9.figshare.32086920" in meta["notes"]
     rel = {(r["identifier"], r["relation"]) for r in meta["related_identifiers"]}
     assert ("10.5281/zenodo.20060974", "isNewVersionOf") in rel
     assert ("10.6084/m9.figshare.32086920.v5", "isNewVersionOf") in rel
-    assert json.loads(state_path.read_text())["zenodo"]["deposit_id"] == 1  # the new draft
+    for key, value in meta.items():  # superseded ids only where lineage belongs
+        if key not in ("notes", "related_identifiers"):
+            assert not any(s in json.dumps(value) for s in SUPERSEDED), key
+    assert json.loads(state_path.read_text())["zenodo"]["deposit_id"] == 1
 
 
 def test_figshare_standalone_create_never_touches_a_superseded_article(tmp_path, monkeypatch):
@@ -693,20 +835,95 @@ def test_figshare_standalone_create_never_touches_a_superseded_article(tmp_path,
     assert not any(s in u for u in urls for s in SUPERSEDED), urls
     create = next(c for c in calls if c[0] == "post" and c[1] == f"{base}/account/articles")
     payload = create[2]["json"]
+    assert set(payload) == {
+        "title",
+        "description",
+        "tags",
+        "categories",
+        "defined_type",
+        "license",
+        "authors",
+        "references",
+    }
     assert payload["description"] == cfg.description
     assert payload["references"] == [
         "https://doi.org/10.6084/m9.figshare.32086920",
         "https://doi.org/10.5281/zenodo.20060974",
     ]
+    for key, value in payload.items():
+        if key != "references":
+            assert not any(s in json.dumps(value) for s in SUPERSEDED), key
     assert not any(c[0] == "post" and c[1].endswith("/publish") for c in calls)  # dry-run
     st = json.loads(state_path.read_text())["figshare"]
     assert st["article_id"] == 777 and "published" not in st
 
 
+def test_resume_refuses_changed_files_and_refreshes_figshare_metadata(tmp_path, monkeypatch):
+    import pytest
+
+    f = tmp_path / "paper.pdf"
+    f.write_bytes(b"v060")
+    entry = {"name": "paper.pdf", "path": f, "md5": "new", "size": 4}
+    # Zenodo: the draft already holds paper.pdf with other content -> refuse, upload nothing.
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", {"zenodo": {"deposit_id": 5, "bucket": "https://b/B"}}
+    )
+    monkeypatch.setattr(
+        sv.requests, "get", lambda url, **kw: _Resp([{"filename": "paper.pdf", "checksum": "old"}])
+    )
+    with pytest.raises(sv.DraftMismatchError):
+        sub.submit([entry])
+    assert not any(c[0] == "put" and c[1].startswith("https://b/B") for c in calls)
+    # ...and a matching file is skipped, not uploaded twice.
+    monkeypatch.setattr(
+        sv.requests, "get", lambda url, **kw: _Resp([{"filename": "paper.pdf", "checksum": "new"}])
+    )
+    calls.clear()
+    sub.submit([entry])
+    assert not any(c[0] == "put" and c[1] == "https://b/B/paper.pdf" for c in calls)
+    # Figshare: the resume resends publish.yml's metadata, refuses a changed same-name file.
+    sv, sub, calls, _, cfg = _submitter(
+        monkeypatch, tmp_path, "figshare", {"figshare": {"article_id": 777, "doi": "10.6084/x"}}
+    )
+    monkeypatch.setattr(
+        sv.requests,
+        "get",
+        lambda url, **kw: _Resp({"files": [{"name": "paper.pdf", "supplied_md5": "old"}]}),
+    )
+    with pytest.raises(sv.DraftMismatchError):
+        sub.submit([entry])
+    refresh = [c for c in calls if c[0] == "put" and c[1].endswith("/account/articles/777")]
+    assert refresh and refresh[0][2]["json"]["description"] == cfg.description
+
+
+def test_directory_zips_are_byte_reproducible(tmp_path):
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_zip")
+    src = tmp_path / "d"
+    (src / "sub").mkdir(parents=True)
+    (src / "b.txt").write_text("b")
+    (src / "sub" / "a.txt").write_text("a")
+    sv._zip_directory(src, tmp_path / "one.zip")
+    import os
+    import time
+
+    os.utime(src / "b.txt", (time.time() + 3600, time.time() + 3600))  # a later mtime
+    sv._zip_directory(src, tmp_path / "two.zip")
+    assert sv._md5(tmp_path / "one.zip") == sv._md5(tmp_path / "two.zip")
+
+
 def test_deposit_sequence_never_mutates_the_published_records():
     text = (ROOT / "publish.yml").read_text()
-    seq = text[text.index("# Deposit-time sequence") : text.index("\nfiles:")]
-    assert "NEW STANDALONE" in seq and "NEVER mutated" in seq and "PublishedRecordError" in seq
-    for forbidden in ("actions/newversion", "DELETE the v0.5", "update article 32086920"):
-        assert forbidden not in seq, forbidden
-    assert "SEPARATE go to publish" in seq  # creating and publishing are two gos
+    seq, steps = _sequence_steps(text)
+    header = seq.split("#   1.")[0]
+    assert "NEW STANDALONE" in header and "NEVER mutated" in header
+    assert "PublishedRecordError" in seq and "DraftRequiredError" in seq
+    norm = re.sub(r"[\s_\-]", "", seq.lower())
+    # "newversion" may appear only as "no newversion" or inside the "isNewVersionOf" relation.
+    assert "newversion" not in re.sub(r"nonewversion|isnewversionof", "", norm)
+    verbs = re.compile(r"\b(post|put|patch|delete|update|edit|replace|republish)\b", re.I)
+    for n, step in steps.items():
+        if any(s in step for s in SUPERSEDED):
+            allowed = "no POST/PUT/PATCH/DELETE" in step
+            assert allowed or not verbs.search(step), (n, step)
+    assert "no POST/PUT/PATCH/DELETE" in steps[2]
+    assert "SEPARATE go to publish" in steps[4] and "commit it before step 4" in steps[3]
