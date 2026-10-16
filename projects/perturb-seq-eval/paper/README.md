@@ -60,8 +60,9 @@ infisical run \
 # What changed inside the PDF is not recorded.
 # Declared (2026-10-16): on Figshare the author comes from the depositing account's profile
 # (Figshare adds the owner automatically; the script sends no authors), so this repository cannot
-# assert it and no test can. The venues show different name forms ON PURPOSE: Zenodo
-# "Mo, Mang-yin" (Family, Given, from publish.yml) and Figshare "Mang-yin Mo" (the profile name).
+# set it; a publish run checks it against publish.yml expected_author and refuses otherwise. The
+# venues show different name forms ON PURPOSE: Zenodo "Mo, Mang-yin" (Family, Given, from
+# publish.yml) and Figshare "Mang-yin Mo" (the profile name, once the profile is renamed).
 # Do not "fix" one to match the other, and do not re-add authors to the Figshare payload: that
 # lists the author twice.
 # 2. Analyse the downloaded run files -> artifacts/v0.6.0/summary.json

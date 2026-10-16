@@ -158,6 +158,10 @@ venues:
       - 24193   # Genomics and transcriptomics
       - 29173   # Machine learning (not elsewhere classified)
     group_id: null            # set to a group ID for institutional-account uploads
+    # Figshare names the author from the depositing account's profile (no authors are sent).
+    # A publish run refuses unless the draft has exactly this one author (principal 2026-10-16:
+    # profile renamed to the ruled spelling; differs in form from Zenodo's "Family, Given").
+    expected_author: "Mang-yin Mo"
     # Lineage of the new standalone article: the superseded records it replaces.
     references:
       - "https://doi.org/10.6084/m9.figshare.32086920"

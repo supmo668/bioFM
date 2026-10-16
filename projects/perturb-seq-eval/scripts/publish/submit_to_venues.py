@@ -463,8 +463,9 @@ class FigshareSubmitter:
             "license": _figshare_license(self.cfg.license),
             # No "authors": Figshare adds the token holder (the account owner, named by their
             # profile) as an author automatically, so sending the creator by name listed the
-            # same person twice on the v0.6.0 draft (2026-10-16). The owner's profile name is
-            # the author name; keep it equal to publish.yml's creator.
+            # same person twice on the v0.6.0 draft (2026-10-16). The author is the profile
+            # name; it differs ON PURPOSE in form from publish.yml's "Family, Given" creator,
+            # and a publish run checks it against venues.figshare.expected_author.
             # Lineage of a standalone article: links to the superseded records.
             **(
                 {"references": list(self.vcfg["references"])} if self.vcfg.get("references") else {}
@@ -506,6 +507,18 @@ class FigshareSubmitter:
             timeout=30,
         )
         _raise_on(existing_resp)
+        if not self.dry_run:
+            # The author comes from the account profile, which the repository cannot set; a
+            # minted DOI cannot be corrected, so the publish run checks it and stops if wrong
+            # (fix the profile, never the payload).
+            expected = self.vcfg.get("expected_author")
+            names = [a.get("full_name") for a in existing_resp.json().get("authors", [])]
+            if not expected or names != [expected]:
+                raise DraftMismatchError(
+                    f"figshare draft {art_id} authors are {names}; publishing needs exactly "
+                    f"[{expected!r}] (publish.yml venues.figshare.expected_author). Fix the "
+                    "account profile name; do not add authors to the payload."
+                )
         existing_by_name: dict[str, str] = {}
         for existing in existing_resp.json().get("files", []):
             name = existing.get("name")
