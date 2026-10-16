@@ -55,8 +55,9 @@ infisical run \
 # this commit, and neither is authoritative over the other.
 # Known gap (declared): two published releases are not documented here. The CHANGELOG stops at
 # 0.5.0 while Zenodo v0.5.1 (10.5281/zenodo.20060974) and v0.5.2 (10.5281/zenodo.20074427) are
-# public. The only description of v0.5.2 is its own record: only paper.pdf differs from v0.5.1
-# (byte-identical to Figshare 32086920 v5's); what changed inside the PDF is not recorded.
+# public (see CHANGELOG). v0.5.2's record has empty notes and repeats the v0.5.0 abstract; by
+# md5 comparison only its paper.pdf differs from v0.5.1 (identical to Figshare 32086920 v5's).
+# What changed inside the PDF is not recorded.
 # 2. Analyse the downloaded run files -> artifacts/v0.6.0/summary.json
 # Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
 # backbone entropy (five summary.json keys) differs by one ulp; the run itself ran on 3.11.0.

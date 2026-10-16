@@ -6,6 +6,10 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
 ## [Unreleased] — v0.6.0 (pre-registered sweep run; manuscript filled)
 
+### Known gap: 0.5.1 and 0.5.2 are not documented here
+
+Zenodo v0.5.1 (10.5281/zenodo.20060974, 2026-05-06) and v0.5.2 (10.5281/zenodo.20074427, 2026-05-07) are published, but this CHANGELOG has no entries for them. v0.5.2's record has empty notes and repeats the v0.5.0 abstract; by md5 comparison of the file lists only its `paper.pdf` differs from v0.5.1, and that file is identical to Figshare 32086920 v5's. No release note is reconstructed here (CTO #639). v0.6.0 is a new standalone record superseding Zenodo v0.5.2 and Figshare 32086920 v5.
+
 ### Added (amendments 3–4, the sweep, the filled manuscript)
 
 - **Amendments 3 and 4** to `paper/PREREGISTRATION.md`, locked before any v0.6.0 data: A3-1 mito threshold recorded-only, A3-2 Trainer precedence tier, A3-3 Validator threshold required, A3-4 stated grid count = 7 distinct configurations; A4-1 Anthropic roster (Haiku 4.5 for four roles, Sonnet 5.5 Validator; structured outputs; ceilings; one `max_tokens` retry; refusal/served-model rules), A4-2 spend lines $12/$28/$30 on the total including $1.3548 carried in, A4-3 caveats.

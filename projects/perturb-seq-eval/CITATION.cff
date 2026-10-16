@@ -55,11 +55,11 @@ license: "Apache-2.0"
 #                carried legacy synthetic-DGP claims);
 # v4 (20060974): v0.5.1 — every synthetic-data claim retracted from the
 #                paper body; CI guardrail forbids synthetic-cell generators.
-# v5 (20074427): v0.5.2, 2026-05-07 — per its own record, only paper.pdf differs from v0.5.1
-#                (supplement.zip and v050_run_artifacts.zip are byte-identical by md5) and that
-#                paper.pdf is byte-identical to Figshare 32086920 v5's; the record does not
-#                describe what changed inside the PDF. v0.6.0 is a new standalone record that
-#                supersedes v5 (isNewVersionOf 10.5281/zenodo.20074427).
+# v5 (20074427): v0.5.2, 2026-05-07. Its record's notes are empty and its description repeats
+#                the v0.5.0 abstract. By md5 comparison of the file lists, only paper.pdf differs
+#                from v0.5.1, and that paper.pdf is identical to Figshare 32086920 v5's; what
+#                changed inside the PDF is not recorded anywhere. v0.6.0 is a new standalone
+#                record superseding Zenodo v5 (10.5281/zenodo.20074427) and Figshare 32086920 v5.
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
@@ -82,7 +82,7 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare article (versioned; v5 = v0.5.1)"
+    description: "Figshare article version 5 (paper.pdf md5-identical to Zenodo v0.5.2's; a parent of v0.6.0)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:

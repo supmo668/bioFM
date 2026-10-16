@@ -109,6 +109,12 @@ def test_related_identifiers_assert_a_new_version_not_identity():
     assert [r["identifier"] for r in zen] == ["10.5281/zenodo.20074427"]
     cit = (ROOT / "CITATION.cff").read_text()
     assert "10.5281/zenodo.20074427" in cit  # the version the new deposit supersedes is on record
+    assert "v5 = v0.5.1" not in cit  # Figshare v5 matches Zenodo v0.5.2 by checksum, not v0.5.1
+    changelog = (ROOT / "CHANGELOG.md").read_text()
+    assert "Known gap: 0.5.1 and 0.5.2 are not documented here" in changelog
+    assert (
+        "10.5281/zenodo.20074427" in changelog and "No release note is reconstructed" in changelog
+    )
 
 
 def test_files_block_ships_the_v060_run_and_marks_v050_superseded():
@@ -807,9 +813,11 @@ def test_zenodo_standalone_create_never_touches_a_superseded_record(tmp_path, mo
     meta = next(c for c in calls if c[0] == "put")[2]["json"]["metadata"]
     assert "new standalone record" in meta["notes"]
     assert "10.5281/zenodo.20074427" in meta["notes"] and "10.5281/zenodo.19716140" in meta["notes"]
+    assert "20060974" not in meta["notes"]  # v0.5.1 is not a parent; the concept DOI carries it
     assert "10.6084/m9.figshare.32086920" in meta["notes"]
     rel = {(r["identifier"], r["relation"]) for r in meta["related_identifiers"]}
-    assert ("10.5281/zenodo.20074427", "isNewVersionOf") in rel
+    zen_parents = [i for i, r in rel if r == "isNewVersionOf" and "zenodo" in i]
+    assert zen_parents == ["10.5281/zenodo.20074427"], zen_parents
     assert ("10.6084/m9.figshare.32086920.v5", "isNewVersionOf") in rel
     for key, value in meta.items():  # superseded ids only where lineage belongs
         if key not in ("notes", "related_identifiers"):
