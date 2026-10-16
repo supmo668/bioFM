@@ -103,12 +103,12 @@ def test_related_identifiers_assert_a_new_version_not_identity():
     relations = {(r["identifier"], r["relation"]) for r in rel}
     assert not any(r["relation"] == "isIdenticalTo" for r in rel)
     assert ("10.6084/m9.figshare.32086920.v5", "isNewVersionOf") in relations
-    assert (
-        "10.5281/zenodo.20060974",
-        "isNewVersionOf",
-    ) in relations  # latest v0.5.1 Zenodo version
+    # Single Zenodo parent: the newest published v0.5.x version (v0.5.2), confirmed by the
+    # read-only GETs; the concept DOI in the notes carries the rest of the chain (CTO #639).
+    zen = [r for r in rel if r["relation"] == "isNewVersionOf" and "zenodo" in r["identifier"]]
+    assert [r["identifier"] for r in zen] == ["10.5281/zenodo.20074427"]
     cit = (ROOT / "CITATION.cff").read_text()
-    assert "10.5281/zenodo.20060974" in cit  # the version the new deposit supersedes is on record
+    assert "10.5281/zenodo.20074427" in cit  # the version the new deposit supersedes is on record
 
 
 def test_files_block_ships_the_v060_run_and_marks_v050_superseded():
@@ -806,10 +806,10 @@ def test_zenodo_standalone_create_never_touches_a_superseded_record(tmp_path, mo
     assert create[0][2]["json"] == {}  # the create body references nothing
     meta = next(c for c in calls if c[0] == "put")[2]["json"]["metadata"]
     assert "new standalone record" in meta["notes"]
-    assert "10.5281/zenodo.20060974" in meta["notes"]
+    assert "10.5281/zenodo.20074427" in meta["notes"] and "10.5281/zenodo.19716140" in meta["notes"]
     assert "10.6084/m9.figshare.32086920" in meta["notes"]
     rel = {(r["identifier"], r["relation"]) for r in meta["related_identifiers"]}
-    assert ("10.5281/zenodo.20060974", "isNewVersionOf") in rel
+    assert ("10.5281/zenodo.20074427", "isNewVersionOf") in rel
     assert ("10.6084/m9.figshare.32086920.v5", "isNewVersionOf") in rel
     for key, value in meta.items():  # superseded ids only where lineage belongs
         if key not in ("notes", "related_identifiers"):
@@ -849,7 +849,7 @@ def test_figshare_standalone_create_never_touches_a_superseded_article(tmp_path,
     assert payload["description"] == cfg.description
     assert payload["references"] == [
         "https://doi.org/10.6084/m9.figshare.32086920",
-        "https://doi.org/10.5281/zenodo.20060974",
+        "https://doi.org/10.5281/zenodo.20074427",
     ]
     for key, value in payload.items():
         if key != "references":

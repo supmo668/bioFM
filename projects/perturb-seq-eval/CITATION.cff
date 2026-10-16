@@ -55,11 +55,19 @@ license: "Apache-2.0"
 #                carried legacy synthetic-DGP claims);
 # v4 (20060974): v0.5.1 — every synthetic-data claim retracted from the
 #                paper body; CI guardrail forbids synthetic-cell generators.
+# v5 (20074427): v0.5.2, 2026-05-07 — per its own record, only paper.pdf differs from v0.5.1
+#                (supplement.zip and v050_run_artifacts.zip are byte-identical by md5) and that
+#                paper.pdf is byte-identical to Figshare 32086920 v5's; the record does not
+#                describe what changed inside the PDF. v0.6.0 is a new standalone record that
+#                supersedes v5 (isNewVersionOf 10.5281/zenodo.20074427).
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.19716140"
     description: "Zenodo concept DOI (resolves to the latest version)"
+  - type: doi
+    value: "10.5281/zenodo.20074427"
+    description: "Zenodo v5 (v0.5.2; only paper.pdf differs from v0.5.1; the latest v0.5.x version)"
   - type: doi
     value: "10.5281/zenodo.20060974"
     description: "Zenodo v4 (v0.5.1 — synthetic claims fully retracted, CI guardrail added)"
