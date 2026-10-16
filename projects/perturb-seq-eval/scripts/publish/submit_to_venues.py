@@ -166,7 +166,8 @@ def resolve_state_path(cli_state: Path | None, cfg: "PublishConfig") -> Path:
 # Published records of earlier releases. They are never written to, whatever a state file says:
 # v0.6.0 is a new standalone record on every venue (principal ruling 2026-10-15).
 SUPERSEDED_RECORDS: dict[str, frozenset] = {
-    "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974}),
+    # 20074427 = v0.5.2, the newest published v0.5.x record (found by the read-only GETs).
+    "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974, 20074427}),
     "figshare": frozenset({32086920}),
     "osf": frozenset({"wmeuy", "dhu4z_v1"}),
 }

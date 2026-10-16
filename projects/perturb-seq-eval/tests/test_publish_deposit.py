@@ -732,7 +732,7 @@ def test_stale_scan_normaliser_sees_through_formatting(tmp_path):
 
 
 # ---- v0.6.0 is a NEW STANDALONE record on both venues (principal 2026-10-15, CTO #620) ----
-SUPERSEDED = ("20060974", "19748260", "19716140", "19716141", "19721470", "32086920")
+SUPERSEDED = ("20074427", "20060974", "19748260", "19716140", "19716141", "19721470", "32086920")
 
 
 def _sequence_steps(text):
@@ -784,6 +784,7 @@ def test_v060_release_has_its_own_state_and_never_reuses_the_v050_one(tmp_path):
 def test_superseded_records_are_refused_even_without_a_published_flag(tmp_path, monkeypatch):
     for venue, state in (
         ("zenodo", {"zenodo": {"deposit_id": 20060974, "bucket": "https://bucket/old"}}),
+        ("zenodo", {"zenodo": {"deposit_id": 20074427, "bucket": "https://bucket/old"}}),
         ("figshare", {"figshare": {"article_id": 32086920}}),
     ):
         sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, venue, state)
