@@ -851,7 +851,6 @@ def test_figshare_standalone_create_never_touches_a_superseded_article(tmp_path,
         "categories",
         "defined_type",
         "license",
-        "authors",
         "references",
     }
     assert payload["description"] == cfg.description
@@ -903,6 +902,8 @@ def test_resume_refuses_changed_files_and_refreshes_figshare_metadata(tmp_path, 
         sub.submit([entry])
     refresh = [c for c in calls if c[0] == "put" and c[1].endswith("/account/articles/777")]
     assert refresh and refresh[0][2]["json"]["description"] == cfg.description
+    # Figshare adds the account owner as the author; sending authors would list them twice.
+    assert "authors" not in refresh[0][2]["json"]
 
 
 def test_directory_zips_are_byte_reproducible(tmp_path):

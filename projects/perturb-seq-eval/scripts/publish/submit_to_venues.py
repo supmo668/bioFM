@@ -461,10 +461,10 @@ class FigshareSubmitter:
             "categories": self.vcfg.get("categories", []),
             "defined_type": self.vcfg.get("defined_type", "preprint"),
             "license": _figshare_license(self.cfg.license),
-            # Intentionally omit ORCID — Figshare's API rejects ORCIDs
-            # that belong to any other account (HTTP 422), and the
-            # token-holder's ORCID is inferred from their profile.
-            "authors": [{"name": c["name"]} for c in self.cfg.creators],
+            # No "authors": Figshare adds the token holder (the account owner, named by their
+            # profile) as an author automatically, so sending the creator by name listed the
+            # same person twice on the v0.6.0 draft (2026-10-16). The owner's profile name is
+            # the author name; keep it equal to publish.yml's creator.
             # Lineage of a standalone article: links to the superseded records.
             **(
                 {"references": list(self.vcfg["references"])} if self.vcfg.get("references") else {}
