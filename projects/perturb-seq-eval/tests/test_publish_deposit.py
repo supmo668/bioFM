@@ -159,31 +159,79 @@ class _Resp:
         return None
 
 
-# Fake venue for the submitter tests: (method, url-suffix) -> body (or callable(url, kw) -> body).
+# Fake venues for the submitter tests. A small stateful "world" tracks the files each draft holds
+# (inherited ones until deleted, uploads once made), so the exact-file-set checks are exercised.
 ZEN_BASE = "https://zenodo.org/api"
 FIG_BASE = "https://api.figshare.com/v2"
-NEW_ZEN = 555  # the new-version draft id Zenodo would return
+NEW_ZEN = 23500555  # the new-version draft id Zenodo would return (newer than 20074427)
+ZBUCKET = f"{ZEN_BASE}/files/new-draft-bucket"
 
 
-def _revision_routes(public_versions=(5, 5)):
-    seq = list(public_versions)
+def _world():
+    return {
+        "zen_inherited": {"f1": "paper.pdf", "f2": "supplement.zip"},
+        "zen": {},
+        "fig_inherited": {11: "paper.pdf", 12: "supplement.zip"},
+        "fig": {},
+        "fig_authors": [{"full_name": "Mang-yin Mo"}],
+    }
+
+
+def _revision_routes(public_versions=(5,), world=None, draft=None):
+    w = world if world is not None else _world()
+    pub = list(public_versions)
 
     def public(url, kw):
-        v = seq.pop(0) if len(seq) > 1 else seq[0]
+        v = pub.pop(0) if len(pub) > 1 else pub[0]
         return {"version": v, "files": [{"name": "paper.pdf", "supplied_md5": "old"}]}
+
+    def zen_draft(url, kw):
+        d = {
+            "id": NEW_ZEN,
+            "conceptrecid": "19716140",
+            "state": "unsubmitted",
+            "submitted": False,
+            "links": {"bucket": ZBUCKET},
+            "files": [{"id": i} for i in w["zen_inherited"]],
+        }
+        d.update(draft or {})
+        return d
+
+    def zen_files(url, kw):
+        held = [{"id": i, "filename": n, "checksum": "old"} for i, n in w["zen_inherited"].items()]
+        return held + [{"id": n, "filename": n, "checksum": m} for n, m in w["zen"].items()]
+
+    def zen_delete(url, kw):
+        w["zen_inherited"].pop(url.rsplit("/", 1)[-1], None)
+        return {}
+
+    def zen_upload(url, kw):
+        import hashlib
+
+        w["zen"][url.rsplit("/", 1)[-1]] = hashlib.md5(kw.get("data", b"")).hexdigest()
+        return {}
+
+    def fig_files(url, kw):
+        return [{"id": i} for i in w["fig_inherited"]]
+
+    def fig_delete(url, kw):
+        w["fig_inherited"].pop(int(url.rsplit("/", 1)[-1]), None)
+        return {}
+
+    def fig_article(url, kw):
+        held = [{"name": n, "supplied_md5": "old"} for n in w["fig_inherited"].values()]
+        held += [{"name": n, "supplied_md5": m} for n, m in w["fig"].items()]
+        return {"files": held, "authors": w["fig_authors"]}
 
     return {
         ("post", "/deposit/depositions/20074427/actions/newversion"): {
             "links": {"latest_draft": f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}"}
         },
-        ("get", f"/deposit/depositions/{NEW_ZEN}"): {
-            "id": NEW_ZEN,
-            "state": "unsubmitted",
-            "submitted": False,
-            "links": {"bucket": "https://bucket/N"},
-            "files": [{"id": "f1"}, {"id": "f2"}],
-        },
-        ("get", f"/deposit/depositions/{NEW_ZEN}/files"): [],
+        ("get", f"/deposit/depositions/{NEW_ZEN}"): zen_draft,
+        ("get", f"/deposit/depositions/{NEW_ZEN}/files"): zen_files,
+        ("delete", f"/deposit/depositions/{NEW_ZEN}/files/f1"): zen_delete,
+        ("delete", f"/deposit/depositions/{NEW_ZEN}/files/f2"): zen_delete,
+        ("put", "/files/new-draft-bucket/paper.pdf"): zen_upload,
         ("put", f"/deposit/depositions/{NEW_ZEN}"): {
             "metadata": {"prereserve_doi": {"doi": f"10.5281/zenodo.{NEW_ZEN}"}}
         },
@@ -191,11 +239,11 @@ def _revision_routes(public_versions=(5, 5)):
             "doi": f"10.5281/zenodo.{NEW_ZEN}"
         },
         ("get", f"{FIG_BASE}/articles/32086920"): public,
-        ("get", "/account/articles/32086920/files"): [{"id": 11}, {"id": 12}],
-        ("get", "/account/articles/32086920"): {
-            "files": [],
-            "authors": [{"full_name": "Mang-yin Mo"}],
-        },
+        ("get", "/account/articles/32086920/files"): fig_files,
+        ("delete", "/account/articles/32086920/files/11"): fig_delete,
+        ("delete", "/account/articles/32086920/files/12"): fig_delete,
+        ("get", "/account/articles/32086920"): fig_article,
+        "_world": w,
     }
 
 
@@ -204,12 +252,18 @@ def _fake(calls, routes):
         def f(url, **kw):
             calls.append((method, url, kw))
             # longest matching suffix wins, so ".../555/files" beats ".../555"
-            hits = [(s, b) for (m, s), b in routes.items() if m == method and url.endswith(s)]
+            hits = [
+                (s, b)
+                for key, b in routes.items()
+                if key != "_world"
+                for (m, s) in [key]
+                if m == method and url.endswith(s)
+            ]
             if hits:
                 body = max(hits, key=lambda h: len(h[0]))[1]
                 return _Resp(body(url, kw) if callable(body) else body)
             if method == "post" and url.endswith("/deposit/depositions"):
-                return _Resp({"id": 1, "links": {"bucket": "https://bucket/B"}})
+                return _Resp({"id": 1, "links": {"bucket": f"{ZEN_BASE}/files/plain"}})
             if method == "put" and "/deposit/depositions/" in url:
                 return _Resp({"metadata": {"prereserve_doi": {"doi": "10.5072/zenodo.1"}}})
             if method == "post" and url.endswith("/account/articles"):
@@ -230,11 +284,12 @@ def _submitter(monkeypatch, tmp_path, venue, state, dry_run=True, vcfg_patch=Non
     (None removes the key, e.g. revision_of, to exercise the plain create path)."""
     sv = _load("scripts/publish/submit_to_venues.py", "sv_test")
     calls = []
-    record = _fake(calls, routes or {})
+    routes = routes if routes is not None else _revision_routes()
+    record = _fake(calls, routes)
     for m in ("post", "put", "get", "delete"):
         monkeypatch.setattr(sv.requests, m, record(m))
     monkeypatch.setattr(sv, "_raise_on", lambda r: None)
-    for env in ("ZENODO_TOKEN", "FIGSHARE_TOKEN"):
+    for env in ("ZENODO_TOKEN", "FIGSHARE_TOKEN", "OSF_TOKEN"):
         monkeypatch.setenv(env, "test-token-not-a-placeholder")
     state_path = tmp_path / "state.json"
     state_path.write_text(json.dumps(state))
@@ -244,16 +299,48 @@ def _submitter(monkeypatch, tmp_path, venue, state, dry_run=True, vcfg_patch=Non
             cfg.venues[venue].pop(k, None)
         else:
             cfg.venues[venue][k] = v
-    cls = {"zenodo": sv.ZenodoSubmitter, "figshare": sv.FigshareSubmitter}[venue]
+    cls = {"zenodo": sv.ZenodoSubmitter, "figshare": sv.FigshareSubmitter, "osf": sv.OSFSubmitter}[
+        venue
+    ]
     sub = cls(cfg, sv.State(state_path), dry_run=dry_run)
     if venue == "figshare":
-        monkeypatch.setattr(
-            sub, "_upload_file", lambda art_id, f: calls.append(("upload", art_id, f))
-        )
+        world = routes.get("_world") or {"fig": {}}
+
+        def upload(art_id, f):
+            calls.append(("upload", art_id, f))
+            world["fig"][f["name"]] = f["md5"]
+
+        monkeypatch.setattr(sub, "_upload_file", upload)
     return sv, sub, calls, state_path, cfg
 
 
 PLAIN = {"revision_of": None}  # the generic create path (no revision configured)
+# A revision that a completed dry run prepared (the state the publish go starts from).
+ZSTATE = {
+    "zenodo": {
+        "deposit_id": NEW_ZEN,
+        "bucket": ZBUCKET,
+        "revision_of": 20074427,
+        "inherited_files_removed": True,
+        "prepared": True,
+    }
+}
+FSTATE = {
+    "figshare": {
+        "article_id": 32086920,
+        "revision_of": 32086920,
+        "doi": "10.6084/m9.figshare.32086920",
+        "public_baseline": [5, [["paper.pdf", "old"]]],
+        "inherited_files_removed": True,
+        "prepared": True,
+    }
+}
+
+
+def _prepared_world():
+    w = _world()
+    w["zen_inherited"], w["fig_inherited"] = {}, {}
+    return w
 
 
 # ---- guards: published/superseded records refused, except EXACTLY the two named revisions ----
@@ -262,10 +349,13 @@ PLAIN = {"revision_of": None}  # the generic create path (no revision configured
 def test_only_two_named_revisions_are_permitted():
     sv = _load("scripts/publish/submit_to_venues.py", "sv_allowed")
     assert sv.ALLOWED_REVISIONS == {"zenodo": 20074427, "figshare": 32086920}
+    assert sv.ZENODO_CONCEPT == 19716140 and sv.FIGSHARE_BASE_VERSION == 5
     cfg = yaml.safe_load((ROOT / "publish.yml").read_text())["venues"]
     assert cfg["zenodo"]["revision_of"] == 20074427
     assert cfg["figshare"]["revision_of"] == 32086920
     assert "revision_of" not in cfg["osf"]
+    rel = {r["identifier"] for r in cfg["zenodo"]["related_identifiers"]}
+    assert f"10.6084/m9.figshare.32086920.v{sv.FIGSHARE_BASE_VERSION}" in rel
 
 
 def test_published_or_superseded_records_are_refused_before_any_request(tmp_path, monkeypatch):
@@ -274,18 +364,22 @@ def test_published_or_superseded_records_are_refused_before_any_request(tmp_path
     cases = (
         ("zenodo", {"zenodo": {"deposit_id": 19748260, "published": True}}, None),
         ("zenodo", {"zenodo": {"deposit_id": 20074427}}, None),  # the target itself, as a draft
+        ("zenodo", {"zenodo": {"deposit_id": "20074427", "revision_of": 20074427}}, None),  # str
         ("zenodo", {"zenodo": {"deposit_id": 20060974}}, PLAIN),
-        ("zenodo", {"zenodo": {"deposit_id": 23411021, "bucket": "https://b/S"}}, None),  # mixing
+        ("zenodo", {"zenodo": {"deposit_id": 23411021, "bucket": "x"}}, None),  # mixing
         ("zenodo", {}, {"revision_of": 20060974}),  # any other revision target
+        ("zenodo", {}, {"revision_of": 20074427.0}),  # not an int
         ("figshare", {"figshare": {"article_id": 32086920, "published": True}}, None),
         ("figshare", {"figshare": {"article_id": 32086920}}, None),  # hand-seeded, no revision_of
         ("figshare", {"figshare": {"article_id": 32086920}}, PLAIN),  # no revision configured
+        ("figshare", {"figshare": {"article_id": "32086920"}}, PLAIN),  # str id, no revision
         ("figshare", {"figshare": {"article_id": 34562538}}, None),  # standalone draft: mixing
         ("figshare", {}, {"revision_of": 99}),
+        ("figshare", {}, {"revision_of": 32086920.0}),
     )
     for venue, state, patch in cases:
         sv, sub, calls, state_path, _ = _submitter(
-            monkeypatch, tmp_path, venue, state, vcfg_patch=patch, routes=_revision_routes()
+            monkeypatch, tmp_path, venue, state, vcfg_patch=patch
         )
         with pytest.raises(sv.PublishedRecordError):
             sub.submit([])
@@ -294,11 +388,10 @@ def test_published_or_superseded_records_are_refused_before_any_request(tmp_path
 
 
 def test_zenodo_revision_dry_run_touches_20074427_only_via_newversion(tmp_path, monkeypatch):
-    sv, sub, calls, state_path, cfg = _submitter(
-        monkeypatch, tmp_path, "zenodo", {}, routes=_revision_routes()
-    )
+    routes = _revision_routes()
+    sv, sub, calls, state_path, cfg = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
     f = tmp_path / "paper.pdf"
-    f.write_text("x")
+    f.write_bytes(b"v060")
     sub.submit([{"name": "paper.pdf", "path": f, "md5": "m"}])
     on_target = [(m, u) for m, u, _ in calls if "20074427" in u]
     assert on_target == [("post", f"{ZEN_BASE}/deposit/depositions/20074427/actions/newversion")]
@@ -307,15 +400,12 @@ def test_zenodo_revision_dry_run_touches_20074427_only_via_newversion(tmp_path, 
         f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}/files/f1",
         f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}/files/f2",
     ]
-    assert ("put", "https://bucket/N/paper.pdf") in [(m, u) for m, u, _ in calls]
+    assert ("put", f"{ZBUCKET}/paper.pdf") in [(m, u) for m, u, _ in calls]
     meta = next(kw for m, u, kw in calls if m == "put" and u.endswith(f"/{NEW_ZEN}"))["json"][
         "metadata"
     ]
     assert meta["version"] == "0.6.0" and "standalone" not in meta["notes"]
-    assert (
-        "next version of this record" in meta["notes"]
-        and "10.5281/zenodo.19716140" in meta["notes"]
-    )
+    assert "next version of this record" in meta["notes"]
     zen_parents = [
         r["identifier"]
         for r in meta["related_identifiers"]
@@ -326,35 +416,48 @@ def test_zenodo_revision_dry_run_touches_20074427_only_via_newversion(tmp_path, 
     st = json.loads(state_path.read_text())["zenodo"]
     assert st == {
         "deposit_id": NEW_ZEN,
-        "bucket": "https://bucket/N",
+        "bucket": ZBUCKET,
         "revision_of": 20074427,
+        "inherited_files_removed": True,
         "doi": f"10.5281/zenodo.{NEW_ZEN}",
+        "prepared": True,
     }
 
 
-def test_zenodo_newversion_refuses_a_draft_that_is_not_open(tmp_path, monkeypatch):
+def test_zenodo_newversion_response_is_validated_before_any_delete(tmp_path, monkeypatch):
     import pytest
 
+    bad_drafts = (
+        {"state": "done", "submitted": True},  # not an open draft
+        {"conceptrecid": "999"},  # another concept
+        {"id": 23500556},  # id differs from the latest_draft URL
+        {"links": {"bucket": "https://evil.example/files/x"}},  # bucket off the API host
+        {"id": 20060974},  # a superseded id
+    )
+    for bad in bad_drafts:
+        routes = _revision_routes(draft=bad)
+        if bad.get("id"):
+            routes[("get", f"/deposit/depositions/{bad['id']}")] = routes[
+                ("get", f"/deposit/depositions/{NEW_ZEN}")
+            ]
+        sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
+        with pytest.raises(sv.PublishedRecordError):
+            sub.submit([])
+        assert not any(m in ("delete", "put") for m, _, _ in calls), bad
     routes = _revision_routes()
-    routes[("get", f"/deposit/depositions/{NEW_ZEN}")] = {
-        "id": NEW_ZEN,
-        "state": "done",
-        "submitted": True,
-        "links": {"bucket": "https://bucket/N"},
-        "files": [{"id": "f1"}],
+    routes[("post", "/deposit/depositions/20074427/actions/newversion")] = {
+        "links": {"latest_draft": "https://evil.example/api/deposit/depositions/555"}
     }
     sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
-    with pytest.raises(sv.PublishedRecordError, match="not an open draft"):
+    with pytest.raises(sv.PublishedRecordError, match="unexpected draft URL"):
         sub.submit([])
-    assert not any(m == "delete" for m, _, _ in calls)
+    assert not any("evil.example" in u for _, u, _ in calls)  # the token never goes there
 
 
-def test_zenodo_revision_publish_publishes_only_the_new_version(tmp_path, monkeypatch):
-    state = {
-        "zenodo": {"deposit_id": NEW_ZEN, "bucket": "https://bucket/N", "revision_of": 20074427}
-    }
+def test_zenodo_revision_publish_publishes_only_the_prepared_new_version(tmp_path, monkeypatch):
+    routes = _revision_routes(world=_prepared_world())
     sv, sub, calls, state_path, _ = _submitter(
-        monkeypatch, tmp_path, "zenodo", state, dry_run=False, routes=_revision_routes()
+        monkeypatch, tmp_path, "zenodo", ZSTATE, dry_run=False, routes=routes
     )
     sub.submit([])
     assert not any("20074427" in u for _, u, _ in calls)
@@ -362,13 +465,105 @@ def test_zenodo_revision_publish_publishes_only_the_new_version(tmp_path, monkey
     assert json.loads(state_path.read_text())["zenodo"]["published"] is True
 
 
+def test_publish_needs_a_completed_dry_run_and_the_removal_done(tmp_path, monkeypatch):
+    import pytest
+
+    for venue, state in (("zenodo", ZSTATE), ("figshare", FSTATE)):
+        for drop in ("prepared", "inherited_files_removed"):
+            st = json.loads(json.dumps(state))
+            st[venue].pop(drop)
+            routes = _revision_routes(world=_prepared_world())
+            sv, sub, calls, _, _ = _submitter(
+                monkeypatch, tmp_path, venue, st, dry_run=False, routes=routes
+            )
+            with pytest.raises(sv.DraftRequiredError):
+                sub.submit([])
+            assert not any(m == "post" and u.endswith("publish") for m, u, _ in calls), (
+                venue,
+                drop,
+            )
+
+
+def test_interrupted_removal_is_finished_by_the_next_dry_run(tmp_path, monkeypatch):
+    world = _world()  # inherited files still present
+    st = {
+        "zenodo": {
+            k: v
+            for k, v in ZSTATE["zenodo"].items()
+            if k not in ("prepared", "inherited_files_removed")
+        }
+    }
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", st, routes=_revision_routes(world=world)
+    )
+    sub.submit([])
+    assert world["zen_inherited"] == {}
+    assert json.loads(state_path.read_text())["zenodo"]["inherited_files_removed"] is True
+    fst = {
+        "figshare": {
+            k: v
+            for k, v in FSTATE["figshare"].items()
+            if k not in ("prepared", "inherited_files_removed")
+        }
+    }
+    world = _world()
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", fst, routes=_revision_routes(world=world)
+    )
+    sub.submit([])
+    assert world["fig_inherited"] == {}
+
+
+def test_leftover_or_missing_files_block_the_publish(tmp_path, monkeypatch):
+    import pytest
+
+    f = tmp_path / "paper.pdf"
+    f.write_bytes(b"v060")
+    entry = {"name": "paper.pdf", "path": f, "md5": "m"}
+    world = _prepared_world()
+    world["zen"] = {"paper.pdf": "m", "leftover.zip": "x"}
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", ZSTATE, dry_run=False, routes=_revision_routes(world=world)
+    )
+    with pytest.raises(sv.DraftMismatchError, match="not the release's files"):
+        sub.submit([entry])
+    assert not any(m == "post" and u.endswith("/actions/publish") for m, u, _ in calls)
+    world = _prepared_world()
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch,
+        tmp_path,
+        "figshare",
+        FSTATE,
+        dry_run=False,
+        routes=_revision_routes(world=world),
+    )
+    monkeypatch.setattr(sub, "_upload_file", lambda a, f: None)  # an upload that silently failed
+    with pytest.raises(sv.DraftMismatchError, match="not the release's files"):
+        sub.submit([entry])
+    assert not any(m == "post" and u.endswith("/publish") for m, u, _ in calls)
+
+
+def test_zenodo_resume_rereads_the_bucket_and_refuses_a_changed_one(tmp_path, monkeypatch):
+    import pytest
+
+    st = json.loads(json.dumps(ZSTATE))
+    st["zenodo"]["bucket"] = "https://evil.example/files/x"
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", st, routes=_revision_routes(world=_prepared_world())
+    )
+    with pytest.raises(sv.DraftMismatchError, match="bucket"):
+        sub.submit([])
+    assert not any("evil.example" in u for _, u, _ in calls)
+
+
 def test_figshare_revision_dry_run_prepares_the_next_version_unpublished(tmp_path, monkeypatch):
+    routes = _revision_routes()
     sv, sub, calls, state_path, cfg = _submitter(
-        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes()
+        monkeypatch, tmp_path, "figshare", {}, routes=routes
     )
     f = tmp_path / "paper.pdf"
-    f.write_text("x")
-    sub.submit([{"name": "paper.pdf", "path": f, "md5": "m", "size": 1}])
+    f.write_bytes(b"v060")
+    sub.submit([{"name": "paper.pdf", "path": f, "md5": "m", "size": 4}])
     writes = [(m, u) for m, u, _ in calls if m in ("put", "delete", "post")]
     assert writes == [
         ("put", f"{FIG_BASE}/account/articles/32086920"),
@@ -380,24 +575,50 @@ def test_figshare_revision_dry_run_prepares_the_next_version_unpublished(tmp_pat
     assert "authors" not in payload and payload["description"] == cfg.description
     assert payload["references"] == cfg.venues["figshare"]["references"]
     public = [u for m, u, _ in calls if m == "get" and u == f"{FIG_BASE}/articles/32086920"]
-    assert len(public) == 2  # checked before and after
+    assert len(public) >= 4  # baseline, after the metadata PUT, after the removal, at the end
+    first_delete = next(i for i, c in enumerate(calls) if c[0] == "delete")
+    assert any(c[1] == f"{FIG_BASE}/articles/32086920" for c in calls[1:first_delete])
     st = json.loads(state_path.read_text())["figshare"]
     assert st == {
         "article_id": 32086920,
         "revision_of": 32086920,
         "doi": "10.6084/m9.figshare.32086920",
+        "public_baseline": [5, [["paper.pdf", "old"]]],
+        "inherited_files_removed": True,
+        "prepared": True,
     }
 
 
-def test_figshare_revision_dry_run_stops_if_the_public_version_changed(tmp_path, monkeypatch):
+def test_figshare_revision_refuses_a_base_other_than_v5_and_stops_on_public_change(
+    tmp_path, monkeypatch
+):
     import pytest
 
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(6,))
+    )
+    with pytest.raises(sv.PublishedRecordError, match="starts only from v5"):
+        sub.submit([])
+    assert calls and all(m == "get" for m, _, _ in calls)
+    # The public view changes after the metadata PUT: stop BEFORE deleting any file.
     sv, sub, calls, _, _ = _submitter(
         monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(5, 6))
     )
     with pytest.raises(sv.PublishedRecordError, match="PUBLIC version changed"):
         sub.submit([])
-    assert not any(m == "post" and u.endswith("/publish") for m, u, _ in calls)
+    assert not any(m == "delete" for m, _, _ in calls)
+    # On a publish run, the public view is re-checked against the recorded baseline first.
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch,
+        tmp_path,
+        "figshare",
+        FSTATE,
+        dry_run=False,
+        routes=_revision_routes(public_versions=(6,), world=_prepared_world()),
+    )
+    with pytest.raises(sv.PublishedRecordError, match="PUBLIC version changed"):
+        sub.submit([])
+    assert not any(m in ("put", "post", "delete") for m, _, _ in calls)
 
 
 def test_figshare_publish_run_refuses_any_author_but_the_expected_one(tmp_path, monkeypatch):
@@ -409,23 +630,21 @@ def test_figshare_publish_run_refuses_any_author_but_the_expected_one(tmp_path, 
         "expected_author"
     ]
     assert expected == "Mang-yin Mo"
-    state = {
-        "figshare": {
-            "article_id": 32086920,
-            "revision_of": 32086920,
-            "doi": "10.6084/m9.figshare.32086920",
-        }
-    }
     for authors, ok in (
         ([{"full_name": expected}], True),
         ([{"full_name": "Mangyin Mo"}], False),  # profile not renamed
         ([{"full_name": expected}, {"full_name": "Mo, Mang-yin"}], False),  # duplicate
         ([], False),
     ):
-        routes = _revision_routes()
-        routes[("get", "/account/articles/32086920")] = {"files": [], "authors": authors}
+        world = _prepared_world()
+        world["fig_authors"] = authors
         sv, sub, calls, state_path, _ = _submitter(
-            monkeypatch, tmp_path, "figshare", state, dry_run=False, routes=routes
+            monkeypatch,
+            tmp_path,
+            "figshare",
+            FSTATE,
+            dry_run=False,
+            routes=_revision_routes(world=world),
         )
         if ok:
             sub.submit([])
@@ -436,13 +655,11 @@ def test_figshare_publish_run_refuses_any_author_but_the_expected_one(tmp_path, 
                 sub.submit([])
             assert not any(m == "post" and u.endswith("/publish") for m, u, _ in calls)
         assert not any(isinstance(c[1], str) and c[1].endswith("/authors") for c in calls)
-        assert not any(m == "delete" for m, _, _ in calls if m != "upload")
+        assert not any(c[0] == "delete" for c in calls)
 
 
 def test_plain_create_path_still_creates_when_no_revision_is_configured(tmp_path, monkeypatch):
-    sv, sub, calls, state_path, _ = _submitter(
-        monkeypatch, tmp_path, "zenodo", {}, vcfg_patch=PLAIN
-    )
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", {}, vcfg_patch=PLAIN)
     sub.submit([])
     assert [u for m, u, _ in calls if m == "post"] == [f"{ZEN_BASE}/deposit/depositions"]
     sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "figshare", {}, vcfg_patch=PLAIN)
@@ -454,9 +671,7 @@ def test_publish_run_without_a_recorded_draft_writes_nothing(tmp_path, monkeypat
     import pytest
 
     for venue in ("zenodo", "figshare"):
-        sv, sub, calls, _, _ = _submitter(
-            monkeypatch, tmp_path, venue, {}, dry_run=False, routes=_revision_routes()
-        )
+        sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, venue, {}, dry_run=False)
         with pytest.raises(sv.DraftRequiredError):
             sub.submit([])
         assert not [c for c in calls if c[0] in ("post", "put", "delete")], venue
@@ -468,36 +683,26 @@ def test_resume_refuses_changed_files_and_refreshes_figshare_metadata(tmp_path, 
     f = tmp_path / "paper.pdf"
     f.write_bytes(b"v060")
     entry = {"name": "paper.pdf", "path": f, "md5": "new", "size": 4}
-    zstate = {
-        "zenodo": {"deposit_id": NEW_ZEN, "bucket": "https://bucket/N", "revision_of": 20074427}
-    }
-    routes = _revision_routes()
-    routes[("get", f"/deposit/depositions/{NEW_ZEN}/files")] = [
-        {"filename": "paper.pdf", "checksum": "old"}
-    ]
-    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", zstate, routes=routes)
+    world = _prepared_world()
+    world["zen"] = {"paper.pdf": "old"}
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", ZSTATE, routes=_revision_routes(world=world)
+    )
     with pytest.raises(sv.DraftMismatchError):
         sub.submit([entry])
-    assert not any(m == "put" and u.startswith("https://bucket/N") for m, u, _ in calls)
-    routes[("get", f"/deposit/depositions/{NEW_ZEN}/files")] = [
-        {"filename": "paper.pdf", "checksum": "new"}
-    ]
-    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", zstate, routes=routes)
+    assert not any(m == "put" and u.startswith(ZBUCKET) for m, u, _ in calls)
+    world = _prepared_world()
+    world["zen"] = {"paper.pdf": "new"}
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", ZSTATE, routes=_revision_routes(world=world)
+    )
     sub.submit([entry])
-    assert not any(m == "put" and u == "https://bucket/N/paper.pdf" for m, u, _ in calls)
-    fstate = {
-        "figshare": {
-            "article_id": 32086920,
-            "revision_of": 32086920,
-            "doi": "10.6084/m9.figshare.32086920",
-        }
-    }
-    routes = _revision_routes()
-    routes[("get", "/account/articles/32086920")] = {
-        "files": [{"name": "paper.pdf", "supplied_md5": "old"}],
-        "authors": [{"full_name": "Mang-yin Mo"}],
-    }
-    sv, sub, calls, _, cfg = _submitter(monkeypatch, tmp_path, "figshare", fstate, routes=routes)
+    assert not any(m == "put" and u == f"{ZBUCKET}/paper.pdf" for m, u, _ in calls)
+    world = _prepared_world()
+    world["fig"] = {"paper.pdf": "old"}
+    sv, sub, calls, _, cfg = _submitter(
+        monkeypatch, tmp_path, "figshare", FSTATE, routes=_revision_routes(world=world)
+    )
     with pytest.raises(sv.DraftMismatchError):
         sub.submit([entry])
     refresh = [kw for m, u, kw in calls if m == "put" and u.endswith("/account/articles/32086920")]
@@ -521,12 +726,13 @@ def _run_main(monkeypatch, tmp_path, argv, state=None, routes=None):
     env = tmp_path / ".env"
     env.write_text("")
     calls = []
-    record = _fake(calls, routes if routes is not None else _revision_routes())
+    routes = routes if routes is not None else _revision_routes()
+    record = _fake(calls, routes)
     for m in ("post", "put", "get", "delete"):
         monkeypatch.setattr(sv.requests, m, record(m))
     monkeypatch.setattr(sv, "_raise_on", lambda r: None)
     monkeypatch.setattr(sv, "prepare_files", lambda cfg, workdir: [])
-    for tok in ("ZENODO_TOKEN", "FIGSHARE_TOKEN"):
+    for tok in ("ZENODO_TOKEN", "FIGSHARE_TOKEN", "OSF_TOKEN"):
         monkeypatch.setenv(tok, "test-token-not-a-placeholder")
     monkeypatch.chdir(cwd)
     monkeypatch.setattr(
@@ -543,12 +749,9 @@ def test_main_dry_run_prepares_both_revisions_in_the_config_anchored_state(tmp_p
     assert rc == 0
     st = json.loads((cfgdir / "publish.state.v060.json").read_text())
     assert st["zenodo"]["deposit_id"] == NEW_ZEN and st["zenodo"]["revision_of"] == 20074427
-    assert st["figshare"] == {
-        "article_id": 32086920,
-        "revision_of": 32086920,
-        "doi": "10.6084/m9.figshare.32086920",
-    }
-    assert "published" not in st["zenodo"]
+    assert st["zenodo"]["prepared"] is True and st["figshare"]["prepared"] is True
+    assert st["figshare"]["article_id"] == 32086920 and st["figshare"]["revision_of"] == 32086920
+    assert "published" not in st["zenodo"] and "published" not in st["figshare"]
     assert not (cwd / "publish.state.v060.json").exists()
     assert (cfgdir / "publish.state.json").read_text() == legacy
     posts = [u for m, u, _ in calls if m == "post"]
@@ -566,15 +769,9 @@ def test_main_publish_without_a_recorded_draft_creates_nothing(tmp_path, monkeyp
 
 
 def test_main_publishes_only_the_recorded_revisions(tmp_path, monkeypatch):
-    state = {
-        "zenodo": {"deposit_id": NEW_ZEN, "bucket": "https://bucket/N", "revision_of": 20074427},
-        "figshare": {
-            "article_id": 32086920,
-            "revision_of": 32086920,
-            "doi": "10.6084/m9.figshare.32086920",
-        },
-    }
-    rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"], state=state)
+    state = {**ZSTATE, **FSTATE}
+    routes = _revision_routes(world=_prepared_world())
+    rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"], state=state, routes=routes)
     assert rc == 0
     posts = [u for m, u, _ in calls if m == "post"]
     assert not any("newversion" in u for u in posts)
@@ -1120,3 +1317,197 @@ def test_each_guard_layer_refuses_on_its_own(tmp_path, monkeypatch):
     with pytest.raises(sv_.PublishedRecordError, match="not the new version"):
         zsub.submit([])
     assert zcalls == []
+
+
+# ---- gaps found by the test review's mutations (T1-T18) ----
+def _assert_no_authors(calls):
+    for m, u, kw in calls:
+        if isinstance(u, str):
+            assert "/authors" not in u, u
+        body = kw.get("json") if isinstance(kw, dict) else None
+        if isinstance(body, dict):
+            assert "authors" not in body, (m, u)
+
+
+def test_already_published_revisions_are_never_touched_again(tmp_path, monkeypatch):
+    import pytest
+
+    for venue, state in (("zenodo", ZSTATE), ("figshare", FSTATE)):
+        st = json.loads(json.dumps(state))
+        st[venue]["published"] = True
+        for dry in (True, False):
+            sv, sub, calls, state_path, _ = _submitter(
+                monkeypatch,
+                tmp_path,
+                venue,
+                st,
+                dry_run=dry,
+                routes=_revision_routes(world=_prepared_world()),
+            )
+            with pytest.raises(sv.PublishedRecordError, match="already published"):
+                sub.submit([])
+            assert calls == [], (venue, dry)
+            assert json.loads(state_path.read_text()) == st
+
+
+def test_resumed_dry_runs_never_write_to_the_published_record_or_publish(tmp_path, monkeypatch):
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "zenodo", ZSTATE, routes=_revision_routes(world=_prepared_world())
+    )
+    sub.submit([])
+    assert not any("20074427" in u for _, u, _ in calls)
+    puts = [u for m, u, _ in calls if m == "put"]
+    assert puts == [f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}"]
+    assert not any(m == "delete" for m, _, _ in calls)  # flag set: no re-removal
+    assert not any(m == "post" and u.endswith("publish") for m, u, _ in calls)
+    assert "published" not in json.loads(state_path.read_text())["zenodo"]
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", FSTATE, routes=_revision_routes(world=_prepared_world())
+    )
+    sub.submit([])
+    assert not any(m == "post" and u.endswith("publish") for m, u, _ in calls)
+    assert not any(u.endswith("/reserve_doi") for _, u, _ in calls)
+    assert not any(m == "delete" for m, _, _ in calls)
+    _assert_no_authors(calls)
+    assert "published" not in json.loads(state_path.read_text())["figshare"]
+
+
+def test_public_snapshot_compares_files_too_and_is_unauthenticated(tmp_path, monkeypatch):
+    import pytest
+
+    routes = _revision_routes()
+    seq = ["old", "new"]
+
+    def public(url, kw):
+        return {
+            "version": 5,
+            "files": [
+                {"name": "paper.pdf", "supplied_md5": seq.pop(0) if len(seq) > 1 else seq[0]}
+            ],
+        }
+
+    routes[("get", f"{FIG_BASE}/articles/32086920")] = public
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "figshare", {}, routes=routes)
+    with pytest.raises(sv.PublishedRecordError, match="PUBLIC version changed"):
+        sub.submit([])
+    assert not any(m == "delete" for m, _, _ in calls)
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "figshare", {})
+    sub.submit([])
+    pub = [kw for m, u, kw in calls if m == "get" and u == f"{FIG_BASE}/articles/32086920"]
+    assert pub and all("headers" not in kw for kw in pub)  # the PUBLIC view, never with the token
+    first_write = next(i for i, c in enumerate(calls) if c[0] in ("put", "delete"))
+    assert any(c[1] == f"{FIG_BASE}/articles/32086920" for c in calls[:first_write])
+    last_write = max(i for i, c in enumerate(calls) if c[0] in ("put", "delete", "upload"))
+    assert any(c[1] == f"{FIG_BASE}/articles/32086920" for c in calls[last_write + 1 :])
+
+
+def test_plain_figshare_resume_puts_only_to_its_own_article(tmp_path, monkeypatch):
+    st = {"figshare": {"article_id": 777, "doi": "10.6084/m9.figshare.777", "prepared": True}}
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "figshare", st, vcfg_patch=PLAIN)
+    sub.submit([])
+    assert [u for m, u, _ in calls if m == "put"] == [f"{FIG_BASE}/account/articles/777"]
+    assert not any("32086920" in u for _, u, _ in calls if isinstance(u, str))
+
+
+def test_publish_run_keeps_the_doi_and_never_reserves_one_on_32086920(tmp_path, monkeypatch):
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch,
+        tmp_path,
+        "figshare",
+        FSTATE,
+        dry_run=False,
+        routes=_revision_routes(world=_prepared_world()),
+    )
+    sub.submit([])
+    assert not any(u.endswith("/reserve_doi") for _, u, _ in calls)
+    assert json.loads(state_path.read_text())["figshare"]["doi"] == "10.6084/m9.figshare.32086920"
+    _assert_no_authors(calls)
+
+
+def test_open_draft_check_needs_both_conditions(tmp_path, monkeypatch):
+    import pytest
+
+    for bad in (
+        {"submitted": True, "state": "unsubmitted"},
+        {"submitted": False, "state": "inprogress"},
+    ):
+        sv, sub, calls, _, _ = _submitter(
+            monkeypatch, tmp_path, "zenodo", {}, routes=_revision_routes(draft=bad)
+        )
+        with pytest.raises(sv.PublishedRecordError, match="not an open draft"):
+            sub.submit([])
+        assert not any(m == "delete" for m, _, _ in calls)
+
+
+def test_figshare_state_naming_another_article_under_the_revision_is_refused(tmp_path, monkeypatch):
+    import pytest
+
+    st = {"figshare": {"article_id": 34562538, "revision_of": 32086920}}
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "figshare", st)
+    with pytest.raises(sv.PublishedRecordError, match="not the revision of"):
+        sub.submit([])
+    assert calls == []
+
+
+def test_osf_superseded_records_and_any_revision_are_refused(tmp_path, monkeypatch):
+    import pytest
+
+    for state, patch in (
+        ({"osf": {"project_id": "wmeuy"}}, None),
+        ({"osf": {"project_id": "abcde", "preprint_id": "dhu4z_v1"}}, None),
+        ({}, {"revision_of": 1}),
+    ):
+        sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "osf", state, vcfg_patch=patch)
+        with pytest.raises(sv.PublishedRecordError):
+            sub.submit([])
+        assert calls == [], state
+
+
+def test_single_venue_dry_runs_never_publish_through_main(tmp_path, monkeypatch):
+    for venue, state in (("zenodo", ZSTATE), ("figshare", FSTATE)):
+        (tmp_path / venue).mkdir()
+        rc, calls, cfgdir, _, _ = _run_main(
+            monkeypatch,
+            tmp_path / venue,
+            [venue, "--dry-run"],
+            state=state,
+            routes=_revision_routes(world=_prepared_world()),
+        )
+        assert rc == 0, venue
+        assert not any(m == "post" and u.endswith("publish") for m, u, _ in calls), venue
+        assert (
+            "published" not in json.loads((cfgdir / "publish.state.v060.json").read_text())[venue]
+        )
+
+
+def test_main_reports_a_file_mismatch_and_the_next_venue_still_runs(tmp_path, monkeypatch):
+    world = _prepared_world()
+    world["zen"] = {"leftover.zip": "x"}  # the zenodo draft holds a file the release does not
+    rc, calls, _, _, _ = _run_main(
+        monkeypatch,
+        tmp_path,
+        ["all", "--dry-run"],
+        state={**ZSTATE, **FSTATE},
+        routes=_revision_routes(world=world),
+    )
+    assert rc == 1
+    assert any("/account/articles/32086920" in u for _, u, _ in calls)  # figshare still ran
+
+
+def test_a_disabled_venue_named_directly_makes_no_request(tmp_path, monkeypatch, capsys):
+    rc, calls, _, _, _ = _run_main(monkeypatch, tmp_path, ["osf"])
+    assert calls == [] and "disabled" in capsys.readouterr().out
+
+
+def test_superseded_ids_are_refused_whatever_their_type():
+    """Each layer on its own: _refuse_superseded compares as strings; _state_id rejects non-ints."""
+    import pytest
+
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_types")
+    for venue, i in (("figshare", "32086920"), ("zenodo", "20074427"), ("zenodo", 19716140)):
+        with pytest.raises(sv.PublishedRecordError):
+            sv._refuse_superseded(venue, i)
+    for bad in ("23500555", 23500555.0, True):
+        with pytest.raises(sv.PublishedRecordError, match="not an integer"):
+            sv._state_id("zenodo", "deposit_id", bad)
+    assert sv._state_id("zenodo", "deposit_id", None) is None
