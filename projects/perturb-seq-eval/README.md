@@ -121,6 +121,10 @@ infisical run \
 # Known gap (declared, fixed after the deposit): the pre-registered version is held twice,
 # v05_sweep.PREREGISTERED_VERSION and v05_preflight.PREREGISTERED_VERSIONS; they agree as of
 # this commit, and neither is authoritative over the other.
+# Known gap (declared): two published releases are not documented here. The CHANGELOG stops at
+# 0.5.0 while Zenodo v0.5.1 (10.5281/zenodo.20060974) and v0.5.2 (10.5281/zenodo.20074427) are
+# public. The only description of v0.5.2 is its own record: only paper.pdf differs from v0.5.1
+# (byte-identical to Figshare 32086920 v5's); what changed inside the PDF is not recorded.
 # Analyse the downloaded run files (refuses mismatched (dataset, task) sets,
 # fallback steps, unfinished or unpinned runs); defaults to artifacts/v0.6.0
 # Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
