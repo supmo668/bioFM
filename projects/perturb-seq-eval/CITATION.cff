@@ -44,8 +44,8 @@ authors:
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
-version: "0.6.0"  # date-released and the new DOIs are set at deposit time (publish.yml sequence)
-date-released: "2026-04-24"
+version: "0.6.0"
+date-released: "2026-10-16"
 license: "Apache-2.0"
 # Concept DOI — always resolves to the latest Zenodo version. Lineage:
 # v1 (19716141): anonymous-authors placeholder (superseded);
@@ -61,11 +61,19 @@ license: "Apache-2.0"
 #                changed inside the PDF is not recorded anywhere. v0.6.0 is the NEXT VERSION
 #                under this concept DOI (new version from v5, 10.5281/zenodo.20074427) and the
 #                next version of Figshare 32086920 (principal D-1 = B, 2026-10-16).
+# v6 (23422745): v0.6.0, published 2026-10-16 — the pre-registered study; supersedes v0.5.x in full.
+#                Same release published as Figshare 32086920 version 6.
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.19716140"
     description: "Zenodo concept DOI (resolves to the latest version)"
+  - type: doi
+    value: "10.5281/zenodo.23422745"
+    description: "Zenodo v6 (v0.6.0, published 2026-10-16; this release)"
+  - type: doi
+    value: "10.6084/m9.figshare.32086920.v6"
+    description: "Figshare article version 6 (v0.6.0, published 2026-10-16; same files as Zenodo v6)"
   - type: doi
     value: "10.5281/zenodo.20074427"
     description: "Zenodo v5 (v0.5.2; only paper.pdf differs from v0.5.1; the latest v0.5.x version)"
@@ -83,7 +91,7 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare article version 5 (paper.pdf md5-identical to Zenodo v0.5.2's; a parent of v0.6.0)"
+    description: "Figshare article concept DOI (latest version; v5 = v0.5.2, paper.pdf md5-identical to Zenodo v0.5.2's)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:

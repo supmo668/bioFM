@@ -5,7 +5,8 @@
     "revision_of": 20074427,
     "inherited_files_removed": true,
     "doi": "10.5281/zenodo.23422745",
-    "prepared": true
+    "prepared": true,
+    "published": true
   },
   "figshare": {
     "article_id": 32086920,
@@ -29,6 +30,7 @@
       ]
     ],
     "inherited_files_removed": true,
-    "prepared": true
+    "prepared": true,
+    "published": true
   }
 }

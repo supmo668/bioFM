@@ -8,7 +8,7 @@
 
 | Row | |
 |---|---|
-| **Citation** | Mang-yin Mo · preprint · 2026 · Zenodo concept DOI [10.5281/zenodo.19716140](https://doi.org/10.5281/zenodo.19716140) (v0.6.0 version DOI `10.5281/zenodo.23422745` — **reserved, mints on publish**) · Figshare [10.6084/m9.figshare.32086920](https://doi.org/10.6084/m9.figshare.32086920) (v0.6.0 = version 6, on publish) · code: [repository at the run's commit `ce5f237`](https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval) |
+| **Citation** | Mang-yin Mo · preprint · 2026 · Zenodo concept DOI [10.5281/zenodo.19716140](https://doi.org/10.5281/zenodo.19716140) (v0.6.0: [10.5281/zenodo.23422745](https://doi.org/10.5281/zenodo.23422745), published 2026-10-16) · Figshare [10.6084/m9.figshare.32086920](https://doi.org/10.6084/m9.figshare.32086920) (v0.6.0 = version 6: [10.6084/m9.figshare.32086920.v6](https://doi.org/10.6084/m9.figshare.32086920.v6)) · code: [repository at the run's commit `ce5f237`](https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval) |
 | **Read level** | **FULL** — the pre-registration is the contribution; the negative result is the payload |
 | **Modality** | cell — pooled CRISPR screens in K562 |
 | **Wet-lab dependency** | **none** — two published Perturb-seq screens, re-used as measured |
@@ -121,8 +121,8 @@ Builds on CellForge (orchestrator shape) and MassGen (operation); Adamson 2016 a
 | | |
 |---|---|
 | **Form** | v0.6.0 is the **next version** of the existing records (no duplicate record; principal D-1 = B): Zenodo concept `19716140`, Figshare `32086920`. v0.5.x stays reachable as earlier versions, superseded in full (corrections appendix) |
-| **Status** | principal approved D-2 (publish). **Held by one pre-publish gate:** a Figshare file still processing (`ic_success`); the publish run refuses until every file reads `available`. Author, records and payload checks pass |
-| **On publish** | Zenodo version DOI `10.5281/zenodo.23422745` registers; Figshare becomes version 6 (`10.6084/m9.figshare.32086920.v6`); `CITATION.cff` gets the date and DOIs |
+| **Status** | **published 2026-10-16** on both venues; verified by public read-back — same 5 files, same md5s on both, one author |
+| **Links** | Zenodo [record 23422745](https://zenodo.org/records/23422745) · concept [10.5281/zenodo.19716140](https://doi.org/10.5281/zenodo.19716140) · Figshare [v6](https://doi.org/10.6084/m9.figshare.32086920.v6) |
 
 ## Pen notes
 
