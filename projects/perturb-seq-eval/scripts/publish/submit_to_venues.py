@@ -791,6 +791,19 @@ class FigshareSubmitter:
             raise DraftMismatchError(
                 f"figshare article {art_id} holds {held}, not the release's files"
             )
+        if not self.dry_run:
+            # Every file must have finished processing: a published DOI cannot be fixed by
+            # replacing a file, so publishing waits until all read "available" (CTO #651).
+            pending = sorted(
+                (f.get("name"), f.get("status"))
+                for f in r.json().get("files", [])
+                if f.get("status") != "available"
+            )
+            if pending:
+                raise DraftMismatchError(
+                    f"figshare article {art_id}: files still processing {pending}; publish waits "
+                    "until every file reads 'available'."
+                )
         if rev is not None:
             self._check_public(rev)  # still the base version, right before the publish go
         if self.dry_run:
