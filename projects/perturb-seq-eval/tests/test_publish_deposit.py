@@ -223,10 +223,15 @@ def _revision_routes(public_versions=(5,), world=None, draft=None):
             {"name": n, "supplied_md5": "old", "status": "available"}
             for n in w["fig_inherited"].values()
         ]
-        held += [
-            {"name": n, "supplied_md5": m, "status": w.get("fig_status", {}).get(n, "available")}
-            for n, m in w["fig"].items()
-        ]
+        for n, m in w["fig"].items():
+            entry = {
+                "name": n,
+                "supplied_md5": m,
+                "status": w.get("fig_status", {}).get(n, "available"),
+            }
+            if entry["status"] == "__missing__":
+                del entry["status"]  # the API left the key out
+            held.append(entry)
         return {"files": held, "authors": w["fig_authors"]}
 
     return {
@@ -1553,3 +1558,84 @@ def test_figshare_publish_waits_until_every_file_is_available(tmp_path, monkeypa
         monkeypatch, tmp_path, "figshare", FSTATE, routes=_revision_routes(world=world)
     )
     sub.submit([entry])  # the dry run is not blocked by processing
+
+
+def _files(tmp_path, *names):
+    out = []
+    for n in names:
+        p = tmp_path / n
+        p.write_bytes(n.encode())
+        out.append({"name": n, "path": p, "md5": f"md5-{n}", "size": 1})
+    return out
+
+
+def test_availability_reads_the_listing_after_this_runs_uploads(tmp_path, monkeypatch):
+    """A1: a file uploaded in this same publish run must be seen still processing (the check
+    reads the GET made after the uploads, not the listing taken before them)."""
+    import pytest
+
+    entries = _files(tmp_path, "v060_run_artifacts.zip")
+    world = _prepared_world()  # nothing on the article yet: the run uploads it
+    world["fig_status"] = {"v060_run_artifacts.zip": "ic_success"}
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch,
+        tmp_path,
+        "figshare",
+        FSTATE,
+        dry_run=False,
+        routes=_revision_routes(world=world),
+    )
+    with pytest.raises(sv.DraftMismatchError, match="still processing"):
+        sub.submit(entries)
+    assert any(c[0] == "upload" for c in calls)  # uploaded in this run ...
+    assert not any(m == "post" and u.endswith("/publish") for m, u, _ in calls)  # ... not published
+
+
+def test_availability_refuses_a_missing_status_and_checks_every_file(tmp_path, monkeypatch):
+    """A2/A3: an absent status is not 'available'; and every file is checked, not only one."""
+    import pytest
+
+    names = ("paper.pdf", "v060_run_artifacts.zip", "supplement.zip")
+    for statuses, pending in (
+        ({"v060_run_artifacts.zip": "__missing__"}, "('v060_run_artifacts.zip', None)"),
+        ({"v060_run_artifacts.zip": "ic_success"}, "('v060_run_artifacts.zip', 'ic_success')"),
+    ):
+        entries = _files(tmp_path, *names)
+        world = _prepared_world()
+        world["fig"] = {e["name"]: e["md5"] for e in entries}
+        world["fig_status"] = statuses
+        sv, sub, calls, _, _ = _submitter(
+            monkeypatch,
+            tmp_path,
+            "figshare",
+            FSTATE,
+            dry_run=False,
+            routes=_revision_routes(world=world),
+        )
+        with pytest.raises(sv.DraftMismatchError, match="still processing") as err:
+            sub.submit(entries)
+        assert pending in str(err.value)
+        assert "paper.pdf" not in str(err.value) and "supplement.zip" not in str(err.value)
+        assert not any(m == "post" and u.endswith("/publish") for m, u, _ in calls)
+
+
+def test_availability_also_guards_the_plain_path(tmp_path, monkeypatch):
+    """A4: the check is shared code, not part of the revision-only branch."""
+    import pytest
+
+    entries = _files(tmp_path, "paper.pdf")
+    routes = {
+        ("get", "/account/articles/777"): {
+            "files": [
+                {"name": "paper.pdf", "supplied_md5": "md5-paper.pdf", "status": "ic_success"}
+            ],
+            "authors": [{"full_name": "Mang-yin Mo"}],
+        }
+    }
+    st = {"figshare": {"article_id": 777, "doi": "10.6084/m9.figshare.777", "prepared": True}}
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", st, dry_run=False, vcfg_patch=PLAIN, routes=routes
+    )
+    with pytest.raises(sv.DraftMismatchError, match="still processing"):
+        sub.submit(entries)
+    assert not any(m == "post" and u.endswith("/777/publish") for m, u, _ in calls)
