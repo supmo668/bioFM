@@ -219,8 +219,14 @@ def _revision_routes(public_versions=(5,), world=None, draft=None):
         return {}
 
     def fig_article(url, kw):
-        held = [{"name": n, "supplied_md5": "old"} for n in w["fig_inherited"].values()]
-        held += [{"name": n, "supplied_md5": m} for n, m in w["fig"].items()]
+        held = [
+            {"name": n, "supplied_md5": "old", "status": "available"}
+            for n in w["fig_inherited"].values()
+        ]
+        held += [
+            {"name": n, "supplied_md5": m, "status": w.get("fig_status", {}).get(n, "available")}
+            for n, m in w["fig"].items()
+        ]
         return {"files": held, "authors": w["fig_authors"]}
 
     return {
@@ -1511,3 +1517,39 @@ def test_superseded_ids_are_refused_whatever_their_type():
         with pytest.raises(sv.PublishedRecordError, match="not an integer"):
             sv._state_id("zenodo", "deposit_id", bad)
     assert sv._state_id("zenodo", "deposit_id", None) is None
+
+
+def test_figshare_publish_waits_until_every_file_is_available(tmp_path, monkeypatch):
+    """CTO #651: a published DOI cannot be fixed by replacing a file, so the publish run refuses
+    while any file is still processing; the dry run does not wait."""
+    import pytest
+
+    f = tmp_path / "v060_run_artifacts.zip"
+    f.write_bytes(b"z")
+    entry = {"name": "v060_run_artifacts.zip", "path": f, "md5": "m", "size": 1}
+    for status, ok in (("ic_success", False), ("available", True)):
+        world = _prepared_world()
+        world["fig"] = {"v060_run_artifacts.zip": "m"}
+        world["fig_status"] = {"v060_run_artifacts.zip": status}
+        sv, sub, calls, state_path, _ = _submitter(
+            monkeypatch,
+            tmp_path,
+            "figshare",
+            FSTATE,
+            dry_run=False,
+            routes=_revision_routes(world=world),
+        )
+        if ok:
+            sub.submit([entry])
+            assert any(m == "post" and u.endswith("/32086920/publish") for m, u, _ in calls)
+        else:
+            with pytest.raises(sv.DraftMismatchError, match="still processing"):
+                sub.submit([entry])
+            assert not any(m == "post" and u.endswith("/publish") for m, u, _ in calls)
+    world = _prepared_world()
+    world["fig"] = {"v060_run_artifacts.zip": "m"}
+    world["fig_status"] = {"v060_run_artifacts.zip": "ic_success"}
+    sv, sub, calls, _, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", FSTATE, routes=_revision_routes(world=world)
+    )
+    sub.submit([entry])  # the dry run is not blocked by processing
