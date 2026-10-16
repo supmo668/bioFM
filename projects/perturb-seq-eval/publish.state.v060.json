@@ -1,0 +1,11 @@
+{
+  "zenodo": {
+    "deposit_id": 23411021,
+    "bucket": "https://zenodo.org/api/files/a201175a-a32f-4714-bbd4-acce35031c13",
+    "doi": "10.5281/zenodo.23411021"
+  },
+  "figshare": {
+    "article_id": 34562538,
+    "doi": "10.6084/m9.figshare.34562538"
+  }
+}
