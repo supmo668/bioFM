@@ -58,6 +58,12 @@ infisical run \
 # public (see CHANGELOG). v0.5.2's record has empty notes and repeats the v0.5.0 abstract; by
 # md5 comparison only its paper.pdf differs from v0.5.1 (identical to Figshare 32086920 v5's).
 # What changed inside the PDF is not recorded.
+# Declared (2026-10-16): on Figshare the author comes from the depositing account's profile
+# (Figshare adds the owner automatically; the script sends no authors), so this repository cannot
+# assert it and no test can. The venues show different name forms ON PURPOSE: Zenodo
+# "Mo, Mang-yin" (Family, Given, from publish.yml) and Figshare "Mang-yin Mo" (the profile name).
+# Do not "fix" one to match the other, and do not re-add authors to the Figshare payload: that
+# lists the author twice.
 # 2. Analyse the downloaded run files -> artifacts/v0.6.0/summary.json
 # Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
 # backbone entropy (five summary.json keys) differs by one ulp; the run itself ran on 3.11.0.

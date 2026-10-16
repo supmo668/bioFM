@@ -937,3 +937,13 @@ def test_deposit_sequence_never_mutates_the_published_records():
             assert allowed or not verbs.search(step), (n, step)
     assert "no POST/PUT/PATCH/DELETE" in steps[2]
     assert "SEPARATE go to publish" in steps[4] and "commit it before step 4" in steps[3]
+
+
+def test_figshare_author_provenance_is_declared():
+    """CTO #643: the Figshare author comes from the account profile, which the repo cannot assert;
+    the deliberate Zenodo/Figshare name-form difference is written down where re-runs are documented."""
+    for doc in ("README.md", "paper/README.md"):
+        text = " ".join((ROOT / doc).read_text().replace("#", " ").split())
+        assert "on Figshare the author comes from the depositing account's profile" in text, doc
+        assert 'Zenodo "Mo, Mang-yin"' in text and 'Figshare "Mang-yin Mo"' in text, doc
+        assert "do not re-add authors to the Figshare payload" in text, doc
