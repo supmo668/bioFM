@@ -9,6 +9,7 @@
 | 1 | Type `/airdlc:pr-cto-land aviary-biosim --no-release` (CTO-only skill; the model cannot invoke it) | 2026-09-26 | F08 lands; `master-updated` reaches the agent; the white paper branch merges main |
 | 2 | Relaunch `aviary-biosim`, then `perturb-seq-eval`, under airdlc 0.71.0 | 2026-09-28 | Task 13 boundary; the perturb sweep |
 | 3 | perturb-seq-eval v0.6.0 deposit without duplicate research: **A** delete the v0.5.x records (support requests; tombstones remain) or **B** revise them as a new version and discard the two unpublished drafts — recommended **B**; see [deposit review](perturb-seq-eval/deposit-review.md) | 2026-10-16 | the revision code path, gated; then the first write |
+| 4 | perturb-seq-eval v0.6.0: **publish** both prepared revisions (Zenodo new version 23422745, Figshare 32086920 v6) once the last Figshare file reads `available`, or hold — recommended **publish**; profile clean-up steps included; see [publish review](perturb-seq-eval/publish-review.md) | 2026-10-16 | the principal's publish go |
 
 ## Resolved (kept, dated)
 
