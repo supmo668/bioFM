@@ -315,7 +315,10 @@ def test_main_publishes_only_the_recorded_drafts(tmp_path, monkeypatch):
         "zenodo": {"deposit_id": 1, "bucket": "https://bucket/B"},
         "figshare": {"article_id": 777, "doi": "10.6084/m9.figshare.777"},
     }
-    rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"], state=draft)
+    routes = {
+        ("get", "/account/articles/777"): {"files": [], "authors": [{"full_name": "Mang-yin Mo"}]}
+    }
+    rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"], state=draft, routes=routes)
     assert rc == 0
     posts = [c[1] for c in calls if c[0] == "post"]
     assert not any(
@@ -945,5 +948,45 @@ def test_figshare_author_provenance_is_declared():
     for doc in ("README.md", "paper/README.md"):
         text = " ".join((ROOT / doc).read_text().replace("#", " ").split())
         assert "on Figshare the author comes from the depositing account's profile" in text, doc
+        assert "a publish run checks it against publish.yml expected_author" in text, doc
         assert 'Zenodo "Mo, Mang-yin"' in text and 'Figshare "Mang-yin Mo"' in text, doc
         assert "do not re-add authors to the Figshare payload" in text, doc
+
+
+def test_figshare_publish_run_refuses_any_author_but_the_expected_one(tmp_path, monkeypatch):
+    """CTO #643 gate 2, enforced: a minted DOI cannot be corrected, so the publish run (not the
+    dry run) refuses unless the draft has exactly publish.yml's expected Figshare author, and it
+    never adds authors itself."""
+    import pytest
+
+    cfg_author = yaml.safe_load((ROOT / "publish.yml").read_text())["venues"]["figshare"][
+        "expected_author"
+    ]
+    assert cfg_author == "Mang-yin Mo"
+    draft = {"figshare": {"article_id": 777, "doi": "10.6084/x"}}
+    for authors, ok in (
+        ([{"full_name": cfg_author}], True),
+        ([{"full_name": "Mangyin Mo"}], False),  # profile not renamed
+        ([{"full_name": cfg_author}, {"full_name": "Mo, Mang-yin"}], False),  # duplicate
+        ([], False),
+    ):
+        sv, sub, calls, state_path, _ = _submitter(
+            monkeypatch, tmp_path, "figshare", draft, dry_run=False
+        )
+        monkeypatch.setattr(
+            sv.requests, "get", lambda url, **kw: _Resp({"files": [], "authors": authors})
+        )
+        if ok:
+            sub.submit([])
+            assert any(c[0] == "post" and c[1].endswith("/777/publish") for c in calls)
+        else:
+            with pytest.raises(sv.DraftMismatchError, match="expected_author"):
+                sub.submit([])
+            assert not any(c[0] == "post" and c[1].endswith("/publish") for c in calls)
+        assert not any(isinstance(c[1], str) and c[1].endswith("/authors") for c in calls)
+    # The dry run does not check the author (the draft may still be under review).
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "figshare", draft, dry_run=True)
+    monkeypatch.setattr(
+        sv.requests, "get", lambda url, **kw: _Resp({"files": [], "authors": [{"full_name": "x"}]})
+    )
+    sub.submit([])
