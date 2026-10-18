@@ -4,10 +4,17 @@
 
 **Author of record:** the principal (ratifies under the T8 pattern).
 **Drafted by:** biofm/matthew-mo/cto, from `workstreams/lung-on-chipsim/qgr/stage1-closure.md`.
-**Status:** DRAFT 1 — **not ratified. One figure is unresolved (§3.1) and needs the author's ruling.**
+**Status:** DRAFT 2 — **content APPROVED by the principal 2026-10-18. NOT YET RATIFIED:** §4's own rule
+requires every figure re-derived and the pin updated at the moment of ratification. Venue (§7) still open.
+
+**Provenance of the approvals, disclosed because it cannot be verified from here.** The rulings arrived
+**through the lung-on-chipsim agent's session** (dispatch #675), not through this one. The CTO cannot
+independently confirm them, so they are applied as a **work instruction** and every change below is
+reversible — the same treatment the agent gave a principal ruling it received through the CTO
+(approval-log row 29). If any selection below is not what was chosen, say so and it is reverted.
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
-**Pinned to:** `3a7f186` (bioFM `main`) for this note's own text; the measured claims below are pinned
+**Pinned to:** `f2bb28c` (bioFM `main`) — **STALE AT RATIFICATION BY CONSTRUCTION**; re-pin then for this note's own text; the measured claims below are pinned
 to the revisions named beside each one. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
 
@@ -17,8 +24,10 @@ moment of ratification, and the pin updated**, or the note commits the defect it
 
 > **A fix is verified against the thing that was changed, not against the property the claim names.**
 
-Nine instances were recorded, dated, with named authorship, over four quality-gate rounds on one
-branch between 2026-09-29 and 2026-10-02. The interesting property is not the count. It is that
+**At least ten** instances were recorded, dated, with named authorship — nine over four quality-gate
+rounds on one branch between 2026-09-29 and 2026-10-02, and a tenth dated 2026-10-08 (§3.2). The
+enumeration is a **floor, not a count** (§3.3): discovery here is reader-dependent, so the honest claim
+is *at least* this many. The interesting property is not the count. It is that
 **repair is one of the mechanism's vectors**: fixing an instance is itself an occasion for the next
 one, because the fix is naturally verified against the thing the fixer just touched.
 
@@ -37,7 +46,7 @@ Three properties distinguish them.
 reviewers, and by the coordinator who wrote the rule against it. Two instances were authored *while
 their author was describing the mechanism in the same document*.
 
-**Instruments barely catch it.** Of the nine, **one** was first caught by an instrument, and that one
+**Instruments barely catch it.** Of the ten, **one** was first caught by an instrument, and that one
 only during the final gate, when `claims-vs-records.py` refused two numbers the author had just
 written that no record emits. Every other instance was found by a **reader** — a reviewer, or the
 author re-reading their own work. A 1,257-test suite was green across nineteen independent findings.
@@ -58,83 +67,107 @@ mechanism.
 | 7 | gate 9 | the repair H-10, for this exact error | that the figure was "recomputed from the log" | that it is recomputed *per run*, not once | re-broke itself |
 | 8 | gate 9 | the repair C-3 | that a bare `assert` can no longer impersonate the divergence | that **nothing** can — a subclass or alias still can | class open (S-09) |
 | 9 | gate 9 | — | `exit=0` after a pipe to `tail` | the exit status of the *suite*, which had been killed at 82% | reproduced one message later |
+| **10** | **2026-10-08** | the repair commit `d271d80` itself | that the three named failures were fixed, and that the invocation no longer names two files | that the suite is run **whole**, and green | admitted 2026-10-18 (§3.2) |
 
 Instances 1–6 are quoted from `paper/stage1-limitations.md` (pinned `ae894db`, measured 2026-09-29);
 7–9 from `qgr/stage1-closure.md` (pinned `af17cd2`).
 
-### 3.1 UNRESOLVED — the repair-attribution count needs the author's ruling
+### 3.1 RULED 2026-10-18 — publish both predicates, each naming its subject
 
-Row 65 ruled that this note publishes "nine dated instances with **six** introduced by repair." I
-re-derived that figure from the per-instance attributions rather than copying it, and **it does not
-reconcile.** Three counts exist for the same attribution:
+Row 65's "six introduced by repair" is **retired: it matches neither predicate.** The ruling is to
+**publish both, distinguished**, because the two readings are different questions and collapsing them
+is what produced three irreconcilable figures across the source records.
 
-| source | figure | strict reading of the rows |
+| predicate | count | rows |
 |---|---|---|
-| ruling A4 / row 65 | **six** of nine "introduced by repair" | — |
-| `qgr/stage1-closure.md` | **six** of nine "introduced by **the repair of a previous instance**" | only **2** of instances 1–6 are repairs of a previous *instance* (5 and 6) |
-| `paper/stage1-limitations.md:220` | **four** of the six "introduced by those very repairs" | **5** of instances 1–6 are introduced by *a* repair (all but 1) |
+| introduced by **a** repair | **7 of 9** | 2, 3, 4, 5, 6, 7, 8 |
+| introduced by the repair of a **previously-enumerated instance** | **3 of 9** | 5, 6 (→ instance 4); 8 (→ instance 2, via C-3) |
 
-The divergence is a **definitional** one, not arithmetic: "introduced by a repair" (5 of the first six)
-and "introduced by the repair of a previous *instance*" (2 of the first six) are different predicates,
-and the records use them interchangeably. Instance 1 is attributed to a *creation*, not a repair, under
-either reading.
+Excluded, and why: **row 1** is a *creation*, not a repair. **Row 9** carries no repair attribution.
+**Row 7** is excluded from the strict count only — its repair, **H-10**, is a *registered finding*, not
+one of the nine: `qgr/deferred-findings-register.md:77` records it as "the one sentence stating the
+citation scheme misresolved a row," and line 110 records this instance's chain, *"repaired under H-10
+for this exact error, then re-broken by rows `#60`/`#61`; nothing recomputes it."* Traced to source,
+not inferred.
 
-**I am not choosing the number.** Publishing an unreconciled count in this note would commit the
-mechanism in the artifact documenting the mechanism — and `stage1-limitations.md` already records that
-"the paragraph in this section *about* counts that drift carried three mutually inconsistent counts of
-its own." The author of record rules the predicate; the figure is then **derived from the table in §3**,
-not asserted, and re-derived at ratification per §4.
+**So §1 keeps "repair is one of its vectors" on 7, and §2 keeps "it survives its own repair" on 3** —
+each sentence now carries the count that actually supports it.
 
-### 3.2 UNRESOLVED — a candidate TENTH instance, found 2026-10-18
+An earlier draft of this section said "only 2 of instances 1–6 are strict." That was right for 1–6 and
+wrong as a nine-wide figure: row 8 adds a third.
 
-Raised by the lung-on-chipsim agent and **accepted by the CTO as qualifying**, but the disposition is
-the author of record's, so it is **not** in the table above.
+### 3.2 RULED 2026-10-18 — the tenth instance is ADMITTED
 
-**Dated 2026-10-08** (the commit date, not the discovery date). **The claim:** commit `d271d80`'s
-*"The CI job now **runs it whole** instead of a scoped subset."*
+Dated **2026-10-08**, the commit date, not the discovery date. **The claim:** commit `d271d80`'s *"The
+CI job now **runs it whole** instead of a scoped subset."*
 
-| | |
-|---|---|
-| Property the claim names | the suite is run *whole*, and green |
-| What was verified | that the three named failures were fixed, and that the invocation no longer names two files |
-| What is actually true | scoping was **re-expressed**, not removed — filename-scoping became marker-scoping. `-m "not network and not integration"` deselects 30 tests. The commit's own numbers say so: **436 passed / 0 failed / 5 skipped / 30 deselected** |
+Scoping was **re-expressed**, not removed — filename-scoping became marker-scoping, and
+`-m "not network and not integration"` deselects 30 tests. The commit's own numbers say so: **436
+passed / 0 failed / 5 skipped / 30 deselected.** The `integration` marker on the T4 test *predates* the
+commit (`7275c8c`, an ancestor); `d271d80` added the **selector that excludes it**, then called the
+remainder whole. Sharpest form: the comment the commit **deleted** stated the reason for scoping —
+*"two need the DVC payload on disk"* — one of those two was fixed at its cause, the other was not and
+fell inside the new selector. **It removed the sentence that named the problem and kept the problem.**
 
-The `@pytest.mark.integration` marker on the T4 test **predates** that commit (it arrives via `7275c8c`,
-an ancestor). `d271d80` did not add the marker — it added the **selector that excludes it**, and then
-called the remainder whole. Sharpest form: the comment the commit **deleted** stated the exact reason
-for scoping — *"two need the DVC payload on disk."* One of those two was fixed at its cause. The other
-is T4, and it fell inside the new selector. **The commit removed the sentence that named the problem and
-kept the problem.** It is repair-introduced, so it hits the mechanism's distinguishing vector.
+**Scope precedent, since instances 1–8 are paper claims and this is a commit message:** instance 9 is
+the gate's timing command — instrumentation, not a published claim — so instrumentation is already in
+scope. This one's dependent is larger: it is the standing statement of what CI gates, which every later
+"the suite is green" inherits.
 
-**Scope objection, and why it fails.** Instances 1–8 are claims in the paper or the record; this is a
-commit message and a CI comment. But **instance 9 is the gate's timing command** — instrumentation, not
-a published claim — so instrumentation-shaped claims are already in scope. This one's dependent is
-larger than instance 9's: it is the standing statement of what CI gates, which every later "the suite is
-green" inherits.
+**A correction that is part of the evidence.** The finder's first formulation — *"the commit resolved
+three others; this one it deselected"* — implied the T4 test was a fourth member of the set the commit
+claimed to fix. **It was not**, and the finder corrected itself unprompted; those three are genuinely
+fixed at their causes. Had it stood, a tenth instance would have entered this note resting on a false
+claim, inside the note about claims resting on false verification.
 
-**A correction that is part of the evidence.** The agent's first formulation was *"the commit resolved
-three others; this one it deselected"* — implying T4 was a fourth member of the set the commit claimed
-to resolve. **It was not**, and the agent corrected itself unprompted. The three named failures are
-genuinely fixed at their causes. Had that stood, a tenth instance would have entered this note resting
-on a false claim — inside the note about claims resting on false verification.
+### 3.3 RULED 2026-10-18 — the enumeration is a FLOOR, not a count
 
-### 3.3 UNRESOLVED — is nine a count, or a floor?
-
-This bears on what §1 and §5 may assert, so it is a decision, not a remark.
-
-The tenth instance was surfaced by a **CTO question whose premise was wrong**: the CTO asked whether a
+The tenth instance was surfaced by a question whose **premise was wrong**: the asker asked whether a
 green test was *environmental*; it was *deselected*. An instance found by a mistaken question is still
-an instance — but it is evidence that the nine were found by the **same kind of luck**, not by a method.
-§2 already records that only one of nine was first caught by an instrument and the rest by readers.
+an instance — but it is evidence that the others were found by the **same kind of luck**, not by a
+method. §2 records that only one of ten was first caught by an instrument.
 
-If discovery is luck-shaped, then **nine is a floor, not a count**, and this note should say so rather
-than publish nine as if the enumeration were complete. The alternative is to publish nine as the number
-observed under the stated method and let the reader infer the rest.
+So this note claims **"at least ten"**, and says plainly that discovery is reader-dependent. It does
+not publish a number as though the enumeration were complete.
 
-**The ask.** Does the note claim (a) "nine dated instances" as an observed count, or (b) "at least nine,
-and the discovery process is reader-dependent, so treat it as a floor"? **(b) is the CTO's
-recommendation** — it is the claim the evidence supports, and it is consistent with §4's own rule about
-not asserting more than the pin can carry.
+### 3.4 The 2026-10-18 layer evidence — seven layers, two authors, one evening
+
+Recorded per the ruling of 2026-10-18. All seven are the mechanism, none reached a published record,
+and **none was caught by an instrument** — each was caught by the next reader, or by its own author
+re-reading.
+
+| # | author | the claim, and the subject it was actually verified against |
+|---|---|---|
+| 1 | agent | the DVC pointer "was never committed" — verified against the **path the assertion names**, concluded about **reproducibility** |
+| 2 | CTO | accepted (1) — with the three real pointers **already present in the CTO's own earlier output** |
+| 3 | CTO | "reproducible from the committed repository" — verified on the **ref in hand**, not the ref the claim was about |
+| 4 | agent | the replacement recommendation — read a historical note about **S7's probes** as a description of **this test** |
+| 5 | CTO | "the test is correct, no flat-path reference" — read the **plural r2.11 test** on one branch, concluded about the **singular test that failed** on another |
+| 6 | CTO | "40 behind the trunk" — measured against a local ref **named** `main` that is 61 commits *ahead* of the published trunk |
+| 7 | agent | caught pre-send: an `audit/` probe used `lung-on-chipsim/audit/` against the real path `chipsim/audit/`, yielding a false zero |
+
+**An open predicate the author of record should rule, flagged rather than resolved.** Layer 7 is a
+**pre-send self-catch**, and it is numbered. Two further pre-send catches by the same author were
+**not** numbered. Those cannot both be right: either pre-send catches count — in which case the list is
+longer than seven — or they do not, in which case layer 7 does not belong. §2's "the author re-reading
+their own work" suggests they count. **This note does not choose**, because choosing it silently would
+be §3.1's defect repeated on the layer count.
+
+### 3.5 The one check that would have caught all of them
+
+Approved into this note on 2026-10-18.
+
+Every instance above, and every layer in §3.4, is a **correct reading of real evidence attributed to the
+wrong subject**: the path an assertion names rather than the property it claims; the ref in hand rather
+than the ref the claim is about; a historical note about one probe read as a description of another; two
+refs sharing a name. **None was a misreading.** That is why no instrument caught any of them — an
+instrument that checks *does the code say what you claim* passes every one.
+
+> **The check:** every claim about a ref, a path or a probe must **name its subject explicitly**, so a
+> reader can ask *"about what?"* of the claim itself rather than of its author.
+
+§3.1's ruling is that check applied to this note's own headline figure — two predicates, each named,
+each with its own count. It is the first use of the instrument **before** publication rather than after.
 
 ## 4. The contribution: an artifact that measures its own approval process must pin and re-derive
 
@@ -171,7 +204,8 @@ closure. §3.1 of this note is the same hazard, caught before publication rather
   implementer, reviewers and coordinator alike.
 
 What it **is** evidence of: *the family is open, it survives repair, and repair is one of its vectors* —
-supported by nine dated instances with named authorship, obtained at the cost of not shipping.
+supported by **at least ten** dated instances with named authorship — a floor, not a count — obtained
+at the cost of not shipping.
 
 ## 6. Inheritance
 
@@ -182,11 +216,20 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
 
 ## 7. Open items for the author of record
 
-1. **§3.1 — rule the repair-attribution predicate.** Then the count is derived from §3, not asserted.
-2. **Venue.** Row 65 ruled the venue is chosen *on the draft*; this is the draft.
-3. **Ratification** under T8, which makes the note publishable and closes A4 — the last open Stage 1
-   deliverable.
+1. **RULED 2026-10-18** — §3.1 predicate: publish both, 7 of 9 (any repair) and 3 of 9 (repair of a
+   previously-enumerated instance); "six" retired.
+2. **RULED 2026-10-18** — §3.2 tenth instance admitted; §3.3 enumeration published as a **floor**;
+   §3.4 layer evidence recorded; §3.5 instrument adopted.
+3. **OPEN — venue.** Row 65 reserved the venue choice for the draft. The approvals of 2026-10-18 did
+   not touch it, and no grounded candidate list has been offered, so it remains genuinely open.
+4. **OPEN — the §3.4 pre-send predicate.** Does a defect its own author catches before sending count as
+   a layer? Layer 7 is numbered and two further pre-send catches are not; those cannot both be right.
+5. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
+   every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
+   re-derived 61/65/47 at `af17cd2` — both of which are now themselves stale), §3's counts, and the
+   instance table. The pin on this draft is `f2bb28c` and will be stale the moment anything lands.
 
 **Sources (all committed):** `qgr/stage1-closure.md`; `paper/stage1-limitations.md`;
 `paper/stage1-methods.md`; `paper/stage1-claims-list.md` (41 rows / 35 supported / 6 CUT);
-`paper/stage1-short-form.md`; `plan/plan-approval-log.md` rows 58, 59, 61, 65.
+`paper/stage1-short-form.md`; `qgr/deferred-findings-register.md` (H-10 at :77, instance 7 at :110);
+`plan/plan-approval-log.md` rows 58, 59, 61, 65; approvals rows 6-15; dispatch #675.
