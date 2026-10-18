@@ -103,6 +103,15 @@ not inferred.
 **So §1 keeps "repair is one of its vectors" on 7, and §2 keeps "it survives its own repair" on 3** —
 each sentence now carries the count that actually supports it.
 
+**Whose claim each part of this is — stated because "it was in the text they selected" is not the same
+as "it is their number."** The **predicate decision** — publish both, distinguished, and retire "six" —
+is the **author of record's ruling**: it was the question put, and other options were available. The
+**counts and the row assignments are the agent's derivation**, written into the option that was then
+selected; the author did not independently re-derive them and had no occasion to. **If the derivation is
+wrong, the ruling carries that error.** The CTO independently verified one part of it — row 7's
+exclusion, by tracing H-10 to `deferred-findings-register.md:77` and `:110` — and not the rest. Per §4
+the whole derivation is re-done at ratification, which is the check that would catch it.
+
 An earlier draft of this section said "only 2 of instances 1–6 are strict." That was right for 1–6 and
 wrong as a nine-wide figure: row 8 adds a third.
 
@@ -139,6 +148,14 @@ method. §2 records that only one of ten was first caught by an instrument.
 
 So this note claims **"at least ten"**, and says plainly that discovery is reader-dependent. It does
 not publish a number as though the enumeration were complete.
+
+**The sharper form of the same observation, and the reason the floor keeps rising.** On 2026-10-18,
+**five separate times**, a *false* premise is what made the next reader look — and each time the look
+found a real defect that the false premise had not predicted. A mistaken question about an
+"environmental" green found a deselected assertion; a mistaken claim about a stale pin found a mangled
+sentence beside it. That is not a method anyone can run on purpose. It is **luck with good manners** —
+participants who state premises explicitly enough to be checked, and who check them. A process whose
+discovery rate depends on that cannot report its enumeration as complete.
 
 ### 3.4 The 2026-10-18 layer evidence — seven layers, two authors, one evening
 
@@ -242,6 +259,13 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
    materially higher than seven and the §3.3 floor claim strengthens; if they do not, layer 7 must be
    unnumbered.** Note that all five are the same predicate as everything else here — a correct search,
    correctly executed, under-specified in its subject.
+   **A sixth is not pre-send and needs no predicate ruling at all:** on 2026-10-18 the agent asserted
+   in a sent dispatch that this note was "still pinned `3a7f186`" when line 17 read `f2bb28c`. It had
+   printed only lines 1–14 — the provenance disclosure had pushed the pin past its window — so it
+   verified on DRAFT 1 and asserted of DRAFT 2. That was **sent, received, and corrected by the next
+   reader**, which makes it a layer on *any* predicate. **§3.4's table therefore needs an eighth row,
+   or an explicit statement of why it does not.** Not added here: the layer list was ruled at seven,
+   and adding to a ruled enumeration without the author is the defect this note documents.
 5. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
    every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
    re-derived 61/65/47 at `af17cd2` — both of which are now themselves stale), §3's counts, and the
