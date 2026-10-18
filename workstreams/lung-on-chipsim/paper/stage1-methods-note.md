@@ -15,7 +15,7 @@ reversible — the same treatment the agent gave a principal ruling it received 
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
 **Pinned to:** `f2bb28c` (bioFM `main`) for this note's own text; each measured claim below is pinned to
-the revision named beside it. **This pin is stale by construction** — see §7 item 5: ratification
+the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
 re-derives every figure and updates it. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
 
@@ -247,9 +247,20 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
    previously-enumerated instance); "six" retired.
 2. **RULED 2026-10-18** — §3.2 tenth instance admitted; §3.3 enumeration published as a **floor**;
    §3.4 layer evidence recorded; §3.5 instrument adopted.
-3. **OPEN — venue.** Row 65 reserved the venue choice for the draft. The approvals of 2026-10-18 did
+3. **OPEN — the §3.1 denominators are stale against the enumeration, found by CTO self-audit
+   2026-10-18.** The ruled counts read **"7 of 9"** and **"3 of 9"**, but §3's table now has **ten**
+   rows, and row 10's own "introduced by" cell reads *"the repair commit `d271d80` itself"* — so under
+   the **broad** predicate row 10 **qualifies**, making it **8 of 10**. Under the **strict** predicate
+   it does not (that commit's three named failures are not among the enumerated instances), so strict
+   stays at 3, i.e. **3 of 10**. **Not corrected here:** the counts are the author's ruling applied to
+   the agent's derivation, and silently changing a denominator in a ruled figure is precisely the
+   defect this note documents. Needs the author.
+   *This is the same shape as the provenance sentence that did not move when row 10 was added (§3's
+   row-10 paragraph exists because of that catch) — a correct count left attached to the wrong extent,
+   committed by the CTO one line above the ruling about naming a count's subject.*
+4. **OPEN — venue.** Row 65 reserved the venue choice for the draft. The approvals of 2026-10-18 did
    not touch it, and no grounded candidate list has been offered, so it remains genuinely open.
-4. **OPEN — the §3.4 pre-send predicate, and its consequence has grown.** Does a defect its own author
+5. **OPEN — the §3.4 pre-send predicate, and its consequence has grown.** Does a defect its own author
    catches before sending count as a layer? Layer 7 is numbered and further pre-send catches are not;
    those cannot both be right. **As of 2026-10-18 the agent has disclosed five pre-send self-catches,
    not one** — the `audit/` path probe, two under-specified greps that produced confident false
@@ -266,7 +277,7 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
    reader**, which makes it a layer on *any* predicate. **§3.4's table therefore needs an eighth row,
    or an explicit statement of why it does not.** Not added here: the layer list was ruled at seven,
    and adding to a ruled enumeration without the author is the defect this note documents.
-5. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
+6. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
    every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
    re-derived 61/65/47 at `af17cd2` — both of which are now themselves stale), §3's counts, and the
    instance table. The pin on this draft is `f2bb28c` and will be stale the moment anything lands.
