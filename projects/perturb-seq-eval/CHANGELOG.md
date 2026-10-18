@@ -4,11 +4,17 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
-## [Unreleased] — v0.6.0 (pre-registered sweep run; manuscript filled)
+## [0.6.0] — 2026-10-16 (pre-registered sweep run; manuscript filled; published)
+
+Published as the next version of the existing records: Zenodo 10.5281/zenodo.23422745 (concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v6 — the same five files with identical md5s on both venues.
 
 ### Known gap: 0.5.1 and 0.5.2 are not documented here
 
 Zenodo v0.5.1 (10.5281/zenodo.20060974, 2026-05-06) and v0.5.2 (10.5281/zenodo.20074427, 2026-05-07) are published, but this CHANGELOG has no entries for them. v0.5.2's record has empty notes and repeats the v0.5.0 abstract; by md5 comparison of the file lists only its `paper.pdf` differs from v0.5.1, and that file is identical to Figshare 32086920 v5's. No release note is reconstructed here (CTO #639). v0.6.0 is the next version of both records: a new Zenodo version from v0.5.2 under concept DOI 10.5281/zenodo.19716140, and the next version of Figshare 32086920 (principal D-1 = B, 2026-10-16; the earlier "new standalone record" ruling #620 was reversed so that no duplicate record exists).
+
+### Known gap: the pre-registered version is defined twice (C3)
+
+`experiments/v05_sweep.py` `PREREGISTERED_VERSION` and `experiments/v05_preflight.py` `PREREGISTERED_VERSIONS` both hold `"v0.6.0"`; they agree, so nothing the run or the record says is affected. Unifying them edits `v05_sweep.py`, which `paper/data/land_v060.json` pins as a post-land path (`post_land_last_code_commit` `ad09b14`), so it would need a land-record amendment. Left as a declared gap at the conclusion (principal, 2026-10-18); a future version should keep one constant.
 
 ### Added (amendments 3–4, the sweep, the filled manuscript)
 
