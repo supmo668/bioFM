@@ -85,6 +85,57 @@ mechanism in the artifact documenting the mechanism — and `stage1-limitations.
 its own." The author of record rules the predicate; the figure is then **derived from the table in §3**,
 not asserted, and re-derived at ratification per §4.
 
+### 3.2 UNRESOLVED — a candidate TENTH instance, found 2026-10-18
+
+Raised by the lung-on-chipsim agent and **accepted by the CTO as qualifying**, but the disposition is
+the author of record's, so it is **not** in the table above.
+
+**Dated 2026-10-08** (the commit date, not the discovery date). **The claim:** commit `d271d80`'s
+*"The CI job now **runs it whole** instead of a scoped subset."*
+
+| | |
+|---|---|
+| Property the claim names | the suite is run *whole*, and green |
+| What was verified | that the three named failures were fixed, and that the invocation no longer names two files |
+| What is actually true | scoping was **re-expressed**, not removed — filename-scoping became marker-scoping. `-m "not network and not integration"` deselects 30 tests. The commit's own numbers say so: **436 passed / 0 failed / 5 skipped / 30 deselected** |
+
+The `@pytest.mark.integration` marker on the T4 test **predates** that commit (it arrives via `7275c8c`,
+an ancestor). `d271d80` did not add the marker — it added the **selector that excludes it**, and then
+called the remainder whole. Sharpest form: the comment the commit **deleted** stated the exact reason
+for scoping — *"two need the DVC payload on disk."* One of those two was fixed at its cause. The other
+is T4, and it fell inside the new selector. **The commit removed the sentence that named the problem and
+kept the problem.** It is repair-introduced, so it hits the mechanism's distinguishing vector.
+
+**Scope objection, and why it fails.** Instances 1–8 are claims in the paper or the record; this is a
+commit message and a CI comment. But **instance 9 is the gate's timing command** — instrumentation, not
+a published claim — so instrumentation-shaped claims are already in scope. This one's dependent is
+larger than instance 9's: it is the standing statement of what CI gates, which every later "the suite is
+green" inherits.
+
+**A correction that is part of the evidence.** The agent's first formulation was *"the commit resolved
+three others; this one it deselected"* — implying T4 was a fourth member of the set the commit claimed
+to resolve. **It was not**, and the agent corrected itself unprompted. The three named failures are
+genuinely fixed at their causes. Had that stood, a tenth instance would have entered this note resting
+on a false claim — inside the note about claims resting on false verification.
+
+### 3.3 UNRESOLVED — is nine a count, or a floor?
+
+This bears on what §1 and §5 may assert, so it is a decision, not a remark.
+
+The tenth instance was surfaced by a **CTO question whose premise was wrong**: the CTO asked whether a
+green test was *environmental*; it was *deselected*. An instance found by a mistaken question is still
+an instance — but it is evidence that the nine were found by the **same kind of luck**, not by a method.
+§2 already records that only one of nine was first caught by an instrument and the rest by readers.
+
+If discovery is luck-shaped, then **nine is a floor, not a count**, and this note should say so rather
+than publish nine as if the enumeration were complete. The alternative is to publish nine as the number
+observed under the stated method and let the reader infer the rest.
+
+**The ask.** Does the note claim (a) "nine dated instances" as an observed count, or (b) "at least nine,
+and the discovery process is reader-dependent, so treat it as a floor"? **(b) is the CTO's
+recommendation** — it is the claim the evidence supports, and it is consistent with §4's own rule about
+not asserting more than the pin can carry.
+
 ## 4. The contribution: an artifact that measures its own approval process must pin and re-derive
 
 Stage 1's declared novel contribution was a measurement **of its own approval log** — the route
