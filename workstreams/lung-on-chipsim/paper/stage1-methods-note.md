@@ -14,8 +14,9 @@ reversible — the same treatment the agent gave a principal ruling it received 
 (approval-log row 29). If any selection below is not what was chosen, say so and it is reverted.
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
-**Pinned to:** `f2bb28c` (bioFM `main`) — **STALE AT RATIFICATION BY CONSTRUCTION**; re-pin then for this note's own text; the measured claims below are pinned
-to the revisions named beside each one. Per §4, **every figure in this note must be re-derived at the
+**Pinned to:** `f2bb28c` (bioFM `main`) for this note's own text; each measured claim below is pinned to
+the revision named beside it. **This pin is stale by construction** — see §7 item 5: ratification
+re-derives every figure and updates it. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
 
 ---
@@ -71,6 +72,15 @@ mechanism.
 
 Instances 1–6 are quoted from `paper/stage1-limitations.md` (pinned `ae894db`, measured 2026-09-29);
 7–9 from `qgr/stage1-closure.md` (pinned `af17cd2`).
+
+**Row 10's provenance, stated explicitly because it has no prior write-up to pin to.** Unlike rows
+1–9 it was found after both source records closed, so its evidence is the primary artifact plus a
+reproducible measurement: commit **`d271d80`** — its message, and its workflow diff
+(`git show d271d80 -- .github/workflows`, which shows filename-scoping replaced by
+`-m "not network and not integration"`) — together with that commit's own reported
+**436 passed / 0 failed / 5 skipped / 30 deselected**. The excluding marker's origin is
+**`7275c8c`**, an ancestor. Raised in lung-on-chipsim dispatches #662 and #664; admitted 2026-10-18.
+The measurement is reproducible from the repository without either closed record.
 
 ### 3.1 RULED 2026-10-18 — publish both predicates, each naming its subject
 
@@ -222,8 +232,16 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
    §3.4 layer evidence recorded; §3.5 instrument adopted.
 3. **OPEN — venue.** Row 65 reserved the venue choice for the draft. The approvals of 2026-10-18 did
    not touch it, and no grounded candidate list has been offered, so it remains genuinely open.
-4. **OPEN — the §3.4 pre-send predicate.** Does a defect its own author catches before sending count as
-   a layer? Layer 7 is numbered and two further pre-send catches are not; those cannot both be right.
+4. **OPEN — the §3.4 pre-send predicate, and its consequence has grown.** Does a defect its own author
+   catches before sending count as a layer? Layer 7 is numbered and further pre-send catches are not;
+   those cannot both be right. **As of 2026-10-18 the agent has disclosed five pre-send self-catches,
+   not one** — the `audit/` path probe, two under-specified greps that produced confident false
+   negatives about work that had in fact been done (`'^| 10 '` missing the bolded `| **10** |` row, and
+   a search for the author's own phrasing rather than for the section), and the two already listed in
+   #675. So the ruling is no longer cosmetic: **if pre-send catches count, the real layer count is
+   materially higher than seven and the §3.3 floor claim strengthens; if they do not, layer 7 must be
+   unnumbered.** Note that all five are the same predicate as everything else here — a correct search,
+   correctly executed, under-specified in its subject.
 5. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
    every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
    re-derived 61/65/47 at `af17cd2` — both of which are now themselves stale), §3's counts, and the
