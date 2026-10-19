@@ -152,12 +152,22 @@ flowchart LR
     T13["T13 · worksheet"]:::blocked
     T15["T15 · load labels"]:::blocked
 
+    T20["<b>T20</b> θ priors · 6 fields<br/><i>20–30 min</i>"]:::human
+    T28["<b>T28</b> (α, k_sink) prior<br/><i>15–20 min</i>"]:::human
+    T21["<b>T21</b> 3–8 reference compounds<br/><i>20–30 min</i>"]:::human
+
+    T23["T23 · M1 fit"]:::blocked
+    T27["T27 · M1 gate"]:::blocked
+
     T2 -->|gates| T4a
     T2 -->|"records hash"| T1
     T1 -->|gates| T11
     T8 -->|gates| T9
     T18 -->|gates| T13
     T14 -->|gates| T15
+    T20 -->|gates| T23
+    T28 -->|gates| T23
+    T21 -->|gates| T27
 
     classDef human fill:#f6e7db,stroke:#a6541f,stroke-width:2px,color:#16201c
     classDef blocked fill:#f7f9f8,stroke:#9aa8a2,stroke-dasharray:4 3,color:#5b6b64
@@ -173,10 +183,78 @@ phase, gating `T4a` and `T1` directly and `T11` transitively.
 | `T8` | Seven UniProt accessions **and** seven `face` assignments checked by hand, then `ratified: true`; an entry may be deleted only on positive evidence of absence, never on silence in a database | A wrong accession or face *empties* a join — a failure that looks like success |
 | `T18` | 20–40 inhaled/lung-relevant compounds with published exposure | Curation judgement; a roster is a claim about relevance |
 | `T14` | Per-compound P-gp verdict with an evidence DOI | A fabricated DOI corrupts the M5 coverage claim invisibly |
+| `T20` | Six device and physiology θ fields, each with a citation or an explicit `assumed: true` | A default is an agent-written biological number wearing the costume of a software convenience |
+| `T28` | The `(α, k_sink)` transport prior, cited or explicitly uninformative | At three reference compounds the reported value is substantially prior-determined (Finding E), so this does real work on the result |
+| `T21` | 3–8 compounds with an **independently published** on-chip transport measurement | It is the yardstick the M1 gate checks the model against; drawing it from the roster would make the test a subset of what is being tested |
 
 **No agent may set `ratified: true`, write a biological number, or invent a DOI.** Genuinely
 uncertain compounds stay `unknown` and are excluded from both calibration groups rather than
 guessed into one.
+
+---
+
+## Filling the M1 inputs
+
+Three of the five remaining human artifacts are the M1 fit's inputs, and each has a scaffold
+an agent wrote and a validator that refuses what an agent must not supply. The scaffolds carry
+no values; the validators are the only path into the fit.
+
+```mermaid
+flowchart TB
+    S13["<b>S13</b> · agent<br/>configs/templates/theta_priors.scaffold.yaml<br/><i>6 fields · every value empty</i>"]:::agent
+    S14["<b>S14</b> · agent<br/>configs/templates/transport_prior.scaffold.yaml<br/><i>2 entries · no numbers</i>"]:::agent
+
+    T20["<b>T20</b> · human<br/>configs/theta_priors.yaml<br/><i>value + citation, or assumed with a width</i>"]:::human
+    T28["<b>T28</b> · human<br/>configs/transport_prior.yaml"]:::human
+    T21["<b>T21</b> · human<br/>configs/m1_reference_compounds.yaml"]:::human
+
+    V1["<b>ThetaConfig.load</b><br/><i>refuses: empty value · wrong unit ·<br/>neither cited nor assumed · misspelled key</i>"]:::guard
+    V2["<b>TransportPrior.load</b><br/><i>refuses: zero width ·<br/>uncited and unflagged</i>"]:::guard
+    V3["<b>load_reference_compounds</b><br/><i>refuses: outside 3–8 ·<br/>duplicate key · uncited</i>"]:::guard
+
+    FIT["M1 fit · T23"]:::blocked
+    GATE["M1 gate · T27"]:::blocked
+
+    S13 -->|"you copy and fill"| T20 --> V1 --> FIT
+    S14 -->|"you copy and fill"| T28 --> V2 --> FIT
+    T21 --> V3 --> GATE
+    FIT --> GATE
+
+    classDef agent fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef human fill:#f6e7db,stroke:#a6541f,stroke-width:2px,color:#16201c
+    classDef guard fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a
+    classDef blocked fill:#f7f9f8,stroke:#9aa8a2,stroke-dasharray:4 3,color:#5b6b64
+```
+
+```bash
+# 1. Emit the scaffolds (idempotent while nothing is filled; refuses to blank your work)
+uv run python -m chipsim.pipeline theta-scaffold
+uv run python -m chipsim.pipeline transport-prior-scaffold
+
+# 2. Copy them into configs/ YOURSELF and fill them. No agent step creates these paths.
+cp configs/templates/theta_priors.scaffold.yaml    configs/theta_priors.yaml
+cp configs/templates/transport_prior.scaffold.yaml configs/transport_prior.yaml
+
+# 3. Check your own work the way the fit will, before the fit runs
+uv run python -m chipsim.pipeline theta-check --theta configs/theta_priors.yaml
+uv run python -m chipsim.pipeline transport-prior-check --prior configs/transport_prior.yaml
+uv run python -m chipsim.pipeline reference-compounds-check --reference configs/m1_reference_compounds.yaml
+```
+
+`theta-check` exits non-zero on refusal and prints the cited/assumed split either way. **Two of
+six fields entering as assumptions is a stated limitation, not a failure** — the run journal
+reports the split and the paper carries it. What the validator refuses is silence: a value with
+no citation and no `assumed: true` flag, where the reader cannot tell which one the result rests
+on.
+
+Three distinctions the validators enforce, each of which was a silent failure elsewhere in this
+project before it was named:
+
+| Distinction | What the loader does | Why |
+|---|---|---|
+| Absent is not unknown | an empty `value` raises; nothing is substituted | a substituted default is indistinguishable from a measurement once it is in the fit |
+| Assumed is not cited | a value may enter uncited only with `assumed: true` | that flag is what makes it a stated gap the journal counts, rather than a quiet default |
+| Typed is not checked | every `unit` must equal the schema's | a unit declared and never compared is decoration, and a value in the wrong unit would rescale the fit |
 
 ---
 
@@ -225,17 +303,23 @@ projects/lung-on-chipsim/
 ├── chipsim/              # the package (3 of 10 subpackages populated)
 ├── configs/
 │   ├── barrier_panel.yaml    # 7 accessions, ratified: false
-│   └── env.yaml              # paths + source coordinates, NON-BIOLOGICAL only
+│   ├── env.yaml              # paths + source coordinates, NON-BIOLOGICAL only
+│   └── templates/            # S13/S14 scaffolds — EMPTY value slots, outside configs/ proper
+│       ├── theta_priors.scaffold.yaml
+│       └── transport_prior.scaffold.yaml
 ├── data/                 # raw/ interim/ processed/ — bulk payload DVC-tracked + gitignored;
 │                         # provenance files, .dvc pointers and .sha256 digests stay git-tracked
 ├── orchestration/n8n/    # etl_drugbank.json workflow export
-├── tests/                # 14 modules + 19 fixtures
+├── tests/                # 15 modules + 32 fixtures
 ├── CONTEXT.md            # domain glossary — read this before the code
 └── pyproject.toml
 ```
 
 `configs/theta_priors.yaml` and `configs/assumptions.yaml` are **deliberately absent**. Every
 value in them is a human-entered biological number with a citation; no agent may create them.
+Their absence is not a convention but the enforcement mechanism (ruling r2.37(c)), so
+`chipsim theta-scaffold` refuses both paths by name and the scaffolds live one directory down in
+`configs/templates/`, where no absence guard applies and nothing carries a value.
 
 DVC remote resolves to an absolute path **outside every git worktree**, so that removing a
 worktree cannot destroy the only copy of the snapshot.

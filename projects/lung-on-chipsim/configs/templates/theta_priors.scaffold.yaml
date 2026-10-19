@@ -1,0 +1,55 @@
+# θ priors — SCAFFOLD for build-plan T20 (S13). No values: HUMAN-OWNED.
+#
+# Copy this to configs/theta_priors.yaml yourself and fill it. No agent step
+# creates that path: its absence is how Global Constraint #1 is enforced
+# (build-plan S6, ruling r2.37(c)).
+#
+# Per field: write `value` in the `unit` declared, and the `citation` that
+# supports it. Where no published value exists, leave `assumed: true` and no
+# citation — that is a stated gap the run journal reports, not an error.
+# chipsim.transport.theta.ThetaConfig.load refuses this file while any value is
+# empty, any unit differs from the schema, or any field is neither cited nor
+# flagged assumed. Nothing below was filled in by an agent.
+
+theta:
+  flow_ul_min:
+    # channel flow rate
+    value:
+    unit: uL/min
+    citation:
+    assumed: true
+
+  membrane_um:
+    # membrane thickness
+    value:
+    unit: um
+    citation:
+    assumed: true
+
+  porosity:
+    # membrane porosity
+    value:
+    unit: fraction
+    citation:
+    assumed: true
+
+  strain_pct:
+    # cyclic strain amplitude
+    value:
+    unit: percent
+    citation:
+    assumed: true
+
+  area_mm2:
+    # exchange area
+    value:
+    unit: mm^2
+    citation:
+    assumed: true
+
+  coating:
+    # membrane coating, named as the source names it; not a measurement
+    value:
+    unit: categorical
+    citation:
+    assumed: true
