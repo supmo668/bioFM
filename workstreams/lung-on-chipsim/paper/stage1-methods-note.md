@@ -291,12 +291,28 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
 4. **RULED 2026-10-18** — pre-send catches **count, in a separate labelled class**: Class A RECORDED
    (independently checkable, seven entries) and Class B DISCLOSED PRE-SEND (five, author-only). This
    also admitted the shipped pin error into Class A, closing the eighth-row question.
-5. **OPEN — venue, and it is now the LAST item.** Row 65 reserved the venue choice for the draft.
-   Neither the CTO nor the agent has offered candidates, deliberately: an unresearched venue list would
-   be a recommendation verified against nothing — the defect this note documents. Closing it properly is
-   a real piece of work (scope and length limits per venue, and whether a short methods or
-   negative-result note on an engineering-epistemics failure mode is in scope at each), not a prompt.
-   Say the word and it gets researched and grilled against a comparison page.
+5. **RULED 2026-10-18/20 — VENUE: *Journal of Trial and Error*.** Chosen on scope, not convenience:
+   its stated scope names this note's genre directly — negative or null results, **"studies where
+   notable methodological errors occurred"**, reflections on failed research, meta-research, any
+   discipline. **No word limit**, so §3's table and both §3.4 classes survive uncompressed. **Rolling
+   submission**, so ratification is not rushed. **Fallback:** JORS *Issues in Research Software*
+   (3,000–4,000 words, experience reports named in its formats, **£891 APC** waivable only via the
+   submission cover letter).
+   **Three structural additions JOTE requires, and nothing is cut:** a structured abstract of 150–250
+   words; a purpose section capped at 250 words; a take-home message of at most three sentences / 50
+   words. Preprints are accepted at CC BY 4.0 or more permissive, which this public repo already allows.
+   **ICSE 2027 NIER and MSR 2027 were declined knowingly.** NIER closed 23 Oct 2026 AoE at **4 pages
+   inclusive**, **double-anonymous**, with a mandatory *Future Plans* section, and its scope does not
+   name negative results. Accepting it would have required **stripping the named authorship that is
+   this note's evidence base**, and ratifying inside roughly 96 hours — on a note arguing that figures
+   go stale when the measured thing moves and nobody re-derives. The cascade was put in the option text
+   so the choice was made against it rather than into it.
+   **ONE GAP NAMED AND NOT CLOSED — JOTE's fees are UNVERIFIED AT SOURCE.** DOAJ reports no APCs and
+   CC BY, but that is a **search summary**: the journal's for-authors page, its FAQ and the DOAJ record
+   all return **HTTP 403**, and the record is roughly 13 months old. It was deliberately **not** filled
+   from recollection. **Open the fee page in a browser before submitting.** Comparison page, carrying a
+   per-row verification ledger (read-at-source vs search-only vs blocked):
+   https://claude.ai/artifact/BQqQQCqcrfpysujpLxhLez
 6. **OPEN — one unclassified sub-case (§3.4).** An error that was **sent and then corrected by its own
    author** before any reader acted on it fits neither Class A nor Class B. Third class, or into A?
 7. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
