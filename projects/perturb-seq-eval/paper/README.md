@@ -44,7 +44,30 @@ infisical run \
     modal run scripts/modal/app_v05.py::entrypoint --version v0.6.0 \
     --norman-n-singletons 15 --norman-n-doublets 5 --seeds 3 --prior-spend-usd 1.3548
 
+# Modal client: the recorded run launched with modal 1.5.5, the client in its provenance
+# (artifacts/v0.6.0/provenance.json lib_versions.modal); for v0.6.0 the entrypoint refuses any
+# other client. poetry.lock (modal 1.4.2, last regenerated at v0.3.0) has drifted and is not
+# the authority for this release; a fresh resolve gives a newer modal.
+# If the check refuses your client (a fresh venv resolves a newer modal), install exactly the
+# recorded client named above (pip install "modal==<that version>") before re-running.
+# Known gap (declared, fixed after the deposit): the pre-registered version is held twice,
+# v05_sweep.PREREGISTERED_VERSION and v05_preflight.PREREGISTERED_VERSIONS; they agree as of
+# this commit, and neither is authoritative over the other.
+# Known gap (declared): two published releases are not documented here. The CHANGELOG stops at
+# 0.5.0 while Zenodo v0.5.1 (10.5281/zenodo.20060974) and v0.5.2 (10.5281/zenodo.20074427) are
+# public (see CHANGELOG). v0.5.2's record has empty notes and repeats the v0.5.0 abstract; by
+# md5 comparison only its paper.pdf differs from v0.5.1 (identical to Figshare 32086920 v5's).
+# What changed inside the PDF is not recorded.
+# Declared (2026-10-16): on Figshare the author comes from the depositing account's profile
+# (Figshare adds the owner automatically; the script sends no authors), so this repository cannot
+# set it; a publish run checks it against publish.yml expected_author and refuses otherwise. The
+# venues show different name forms ON PURPOSE: Zenodo "Mo, Mang-yin" (Family, Given, from
+# publish.yml) and Figshare "Mang-yin Mo" (the profile name, once the profile is renamed).
+# Do not "fix" one to match the other, and do not re-add authors to the Figshare payload: that
+# lists the author twice.
 # 2. Analyse the downloaded run files -> artifacts/v0.6.0/summary.json
+# Bit-exact on Python 3.12: float sum() is compensated from 3.12, so on 3.10/3.11 the
+# backbone entropy (five summary.json keys) differs by one ulp; the run itself ran on 3.11.0.
 python -m perturb_eval.experiments.e_v05_real_traces artifacts/v0.6.0
 ```
 

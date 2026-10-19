@@ -13,6 +13,8 @@
 
 | Decision | Ruling | Date |
 |---|---|---|
+| perturb-seq-eval v0.6.0 deposit (D-1) | **B** — next version of the existing records; the two standalone drafts discarded; see [deposit review](perturb-seq-eval/deposit-review.md) | 2026-10-16 |
+| perturb-seq-eval v0.6.0 publish (D-2) | **published** — Zenodo 10.5281/zenodo.23422745 (concept 19716140), Figshare 10.6084/m9.figshare.32086920.v6; see [completion review](perturb-seq-eval/publish-complete.md) | 2026-10-16 |
 | perturb-seq-eval P0–P5 rulings + A2-10/A2-11 | adopted; amendment 2 locked `3bf2a9a` | 2026-09-26 |
 | F33 input identifier | open publication, scoped to `paper/evidence/` + methods | 2026-09-28 |
 | Author block | Mang-yin Mo · mangyinm@alumni.cmu.edu · independent researcher · ORCID on file | 2026-09-28 |
