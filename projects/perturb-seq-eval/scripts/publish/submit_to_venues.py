@@ -2,8 +2,20 @@
 """Submit paper + supplement to preprint venues via their HTTP APIs.
 
 Reads metadata from ``publish.yml`` and dispatches to Zenodo / Figshare /
-OSF. Writes DOIs and deposition IDs back into ``publish.state.json`` so
-partial failures are resumable.
+OSF. Writes DOIs and deposition IDs into the release's state file
+(``publish.yml`` ``state_file``, anchored to publish.yml's directory) so a
+run can be resumed. Records of superseded releases (SUPERSEDED_RECORDS) and
+published records are never written to (PublishedRecordError), with exactly
+two named exceptions (ALLOWED_REVISIONS): a Zenodo new version from 20074427
+and the next version of Figshare article 32086920, selected by
+``venues.<venue>.revision_of`` in publish.yml.
+
+Two-step deposit: ``--dry-run`` CREATES a new draft (or prepares the revision,
+unpublished), uploads the files and sets the metadata, without publishing. A
+later run without ``--dry-run``
+only publishes a draft recorded in the state file (DraftRequiredError
+otherwise), and refuses if a recorded file's content changed
+(DraftMismatchError).
 
 Secrets are loaded from a ``.env`` file found by walking upwards from the
 current working directory. A missing ``.env`` is a hard error; a missing
@@ -21,7 +33,7 @@ Flags
 -----
     --dry-run  — create depositions but do not publish them (leaves drafts).
     --config   — path to publish.yml (default: ./publish.yml).
-    --state    — path to the resumable state file (default: ./publish.state.json).
+    --state    — path to the resumable state file (default: publish.yml state_file).
     --env      — path to .env (default: walk upward from cwd to find one).
 
 Environment variables consumed from .env
@@ -115,6 +127,7 @@ class PublishConfig:
     venues: dict
     root: Path
     version: str = ""
+    state_file: str = ""
 
     @classmethod
     def load(cls, path: Path) -> "PublishConfig":
@@ -130,12 +143,101 @@ class PublishConfig:
             files=raw.get("files", []),
             venues=raw.get("venues", {}),
             root=root,
-            version=str(raw.get("version", "")),
+            version=str(raw.get("version") or ""),
+            state_file=str(raw.get("state_file") or ""),
         )
 
 
+def resolve_state_path(cli_state: Path | None, cfg: "PublishConfig") -> Path:
+    """--state if given, else the release's own state file from publish.yml, else the legacy one.
+
+    A path from publish.yml is anchored to publish.yml's directory, not the current working
+    directory, so the two principal gos (create, then publish) always share one state file
+    whichever directory they are run from. It must stay inside that directory and must not be
+    a symlink.
+    """
+    if cli_state is not None:
+        return cli_state
+    path = Path(cfg.state_file or "publish.state.json")
+    if not path.is_absolute():
+        path = cfg.root / path
+    root = cfg.root.resolve()
+    if path.is_symlink() or root not in path.resolve().parents:
+        raise ValueError(f"state_file must be a regular file inside {root}: {cfg.state_file!r}")
+    return path
+
+
+# Published records of earlier releases. They are never written to, whatever a state file says,
+# with EXACTLY the two exceptions in ALLOWED_REVISIONS.
+SUPERSEDED_RECORDS: dict[str, frozenset] = {
+    # 20074427 = v0.5.2, the newest published v0.5.x record (found by the read-only GETs).
+    "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974, 20074427}),
+    "figshare": frozenset({32086920}),
+    "osf": frozenset({"wmeuy", "dhu4z_v1"}),
+}
+
+# The only two operations permitted on a published record (principal D-1 = B, CTO #647): v0.6.0
+# supersedes the v0.5.x record as a NEW VERSION, so no duplicate record exists.
+#   zenodo:   POST actions/newversion on 20074427 (latest under concept 19716140) -- nothing else
+#             is ever sent to 20074427; files are replaced on the NEW draft only.
+#   figshare: metadata update + file replacement on article 32086920, published as its next
+#             version; the public version must not change during a dry run.
+# Any other id, venue or verb on a superseded record still raises PublishedRecordError.
+ALLOWED_REVISIONS: dict[str, int] = {"zenodo": 20074427, "figshare": 32086920}
+# The Zenodo concept record the permitted new version must belong to.
+ZENODO_CONCEPT = 19716140
+# The Figshare public version the permitted revision starts from (the .v5 relation in publish.yml).
+FIGSHARE_BASE_VERSION = 5
+
+
+def _revision_target(venue: str, vcfg: dict) -> int | None:
+    """publish.yml venues.<venue>.revision_of, which must name exactly the allowed record."""
+    rev = vcfg.get("revision_of")
+    if rev is None:
+        return None
+    if venue not in ALLOWED_REVISIONS or type(rev) is not int or rev != ALLOWED_REVISIONS[venue]:
+        raise PublishedRecordError(
+            f"{venue}: revision_of {rev!r} is not the one permitted revision "
+            f"({ALLOWED_REVISIONS.get(venue)!r}); published records are never mutated otherwise."
+        )
+    return rev
+
+
 class PublishedRecordError(RuntimeError):
-    """A venue's record is already published; a new release must be a new version."""
+    """A venue's record is already published (or superseded) and is never mutated."""
+
+
+class DraftRequiredError(RuntimeError):
+    """A publish run found no recorded draft: create and review it with --dry-run first."""
+
+
+class DraftMismatchError(RuntimeError):
+    """The recorded draft already holds a same-name file with different content."""
+
+
+def _refuse_superseded(venue: str, *ids: Any, allow: int | None = None) -> None:
+    """Refuse any superseded record id, except ``allow`` when it is the venue's permitted
+    revision target (ALLOWED_REVISIONS) -- never a wider exception."""
+    if allow is not None and allow != ALLOWED_REVISIONS.get(venue):
+        raise PublishedRecordError(f"{venue}: {allow!r} is not a permitted revision target")
+    superseded = {str(x) for x in SUPERSEDED_RECORDS[venue]}
+    for i in ids:
+        # Compared as strings, so a hand-edited "32086920" (str) is refused like 32086920 (int).
+        if i is not None and str(i) in superseded and str(i) != str(allow):
+            raise PublishedRecordError(
+                f"{venue} record {i} is already published (a superseded release) and is never "
+                "mutated; the only permitted change is the named revision in ALLOWED_REVISIONS."
+            )
+
+
+def _state_id(venue: str, key: str, value: Any) -> int | None:
+    """Record ids in a state file must be real integers (not str/float/bool), so no comparison
+    against SUPERSEDED_RECORDS or ALLOWED_REVISIONS can be dodged by a type change."""
+    if value is None:
+        return None
+    if type(value) is not int:
+        raise PublishedRecordError(f"{venue}: state {key} {value!r} is not an integer id")
+    return value
 
 
 class State:
@@ -198,10 +300,17 @@ def prepare_files(cfg: PublishConfig, workdir: Path) -> list[dict]:
 
 
 def _zip_directory(src: Path, dst: Path) -> None:
+    """Byte-reproducible zip: sorted entries, fixed timestamps and permissions.
+
+    The create run and the later publish run re-zip the same directories; identical bytes give
+    identical md5s, so the publish run recognises the files it already uploaded.
+    """
     with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as z:
-        for p in src.rglob("*"):
-            if p.is_file():
-                z.write(p, arcname=p.relative_to(src.parent))
+        for p in sorted(q for q in src.rglob("*") if q.is_file()):
+            info = zipfile.ZipInfo(p.relative_to(src.parent).as_posix(), (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, p.read_bytes())
 
 
 def _md5(path: Path) -> str:
@@ -235,37 +344,149 @@ class ZenodoSubmitter:
         self.headers = {"Authorization": f"Bearer {os.environ['ZENODO_TOKEN']}"}
         self.vcfg = vcfg
 
+    def _new_version_of(self, rev: int) -> tuple[int, str]:
+        """The one permitted Zenodo operation on a published record: POST actions/newversion on
+        ``rev``. Everything after that acts on the NEW draft (its own id), never on ``rev``."""
+        if rev != ALLOWED_REVISIONS["zenodo"]:
+            raise PublishedRecordError(f"zenodo: newversion on {rev} is not permitted")
+        r = requests.post(
+            f"{self.base}/deposit/depositions/{rev}/actions/newversion",
+            headers=self.headers,
+            timeout=60,
+        )
+        _raise_on(r)
+        draft_url = r.json()["links"]["latest_draft"]
+        prefix = f"{self.base}/deposit/depositions/"
+        if not isinstance(draft_url, str) or not draft_url.startswith(prefix):
+            raise PublishedRecordError(
+                f"zenodo: newversion returned an unexpected draft URL {draft_url!r}"
+            )
+        r = requests.get(draft_url, headers=self.headers, timeout=30)
+        _raise_on(r)
+        draft = r.json()
+        new_id = _state_id("zenodo", "draft id", draft.get("id"))
+        _refuse_superseded("zenodo", new_id)  # the new version is never a superseded record
+        bucket = draft.get("links", {}).get("bucket")
+        if (
+            new_id is None
+            or draft_url != f"{prefix}{new_id}"
+            or new_id <= rev
+            or str(draft.get("conceptrecid")) != str(ZENODO_CONCEPT)
+            or not isinstance(bucket, str)
+            or not bucket.startswith(f"{self.base}/files/")
+        ):
+            raise PublishedRecordError(
+                f"zenodo: the new-version draft does not belong to concept "
+                f"{ZENODO_CONCEPT} as expected (id {new_id}, url {draft_url})"
+            )
+        if draft.get("submitted") or draft.get("state") != "unsubmitted":
+            raise PublishedRecordError(f"zenodo: new-version draft {new_id} is not an open draft")
+        self.state.set("zenodo", "deposit_id", new_id)
+        self.state.set("zenodo", "bucket", bucket)
+        self.state.set("zenodo", "revision_of", rev)
+        self._remove_draft_files(new_id, [f["id"] for f in draft.get("files", [])])
+        return new_id, bucket
+
+    def _remove_draft_files(self, dep_id: int, file_ids: list) -> None:
+        """Delete files on the (unpublished) new-version draft only, then record that the
+        inherited files are gone; a run interrupted before that resumes the removal."""
+        _refuse_superseded("zenodo", dep_id)
+        for fid in file_ids:
+            r = requests.delete(
+                f"{self.base}/deposit/depositions/{dep_id}/files/{fid}",
+                headers=self.headers,
+                timeout=30,
+            )
+            _raise_on(r)
+        self.state.set("zenodo", "inherited_files_removed", True)
+
+    def _draft_files(self, dep_id: int) -> list:
+        r = requests.get(
+            f"{self.base}/deposit/depositions/{dep_id}/files", headers=self.headers, timeout=30
+        )
+        _raise_on(r)
+        return r.json() or []
+
     def submit(self, files: list[dict]) -> str:
-        dep_id = self.state.get("zenodo", "deposit_id")
+        dep_id = _state_id("zenodo", "deposit_id", self.state.get("zenodo", "deposit_id"))
+        rev = _revision_target("zenodo", self.vcfg)
+        _refuse_superseded("zenodo", dep_id)
+        if (
+            rev is not None
+            and dep_id is not None
+            and self.state.get("zenodo", "revision_of") != rev
+        ):
+            raise PublishedRecordError(
+                f"zenodo: the state file records draft {dep_id}, which is not the new version of "
+                f"{rev}; discard that draft and clear the state before preparing the revision."
+            )
         if dep_id is not None and self.state.get("zenodo", "published"):
             # A published Zenodo deposit is locked: uploading into its bucket fails, and a
             # new release must be a NEW VERSION created from the latest version
             # (POST .../actions/newversion) under the same concept DOI. Fail closed rather
             # than PUT into a locked bucket or overwrite the published record's metadata.
             raise PublishedRecordError(
-                f"zenodo deposit {dep_id} is already published. A new release is a NEW VERSION: "
-                "POST actions/newversion on the LATEST published version (see publish.yml, "
-                "'Deposit-time sequence'), then record the new draft's id AND links.bucket in "
-                "publish.state.json and set zenodo.published to false; delete the files the draft "
-                "inherits before uploading."
+                f"zenodo deposit {dep_id} is already published and is never mutated. A new "
+                "release is a new version from the permitted revision target (publish.yml "
+                "venues.zenodo.revision_of; see 'Deposit-time sequence')."
             )
+        existing: dict[str, str] = {}
         if dep_id is None:
-            r = requests.post(
-                f"{self.base}/deposit/depositions",
-                headers={**self.headers, "Content-Type": "application/json"},
-                json={},
-                timeout=30,
+            if not self.dry_run:
+                # Creating and publishing are two separate principal gos: a publish run only
+                # publishes a draft that a --dry-run created and that was reviewed.
+                raise DraftRequiredError(
+                    "zenodo: no recorded draft in the state file; create it with --dry-run "
+                    "first and review it before publishing."
+                )
+            if rev is not None:
+                dep_id, bucket = self._new_version_of(rev)
+            else:
+                r = requests.post(
+                    f"{self.base}/deposit/depositions",
+                    headers={**self.headers, "Content-Type": "application/json"},
+                    json={},
+                    timeout=30,
+                )
+                _raise_on(r)
+                body = r.json()
+                dep_id = body["id"]
+                bucket = body["links"]["bucket"]
+                self.state.set("zenodo", "deposit_id", dep_id)
+                self.state.set("zenodo", "bucket", bucket)
+        else:
+            if not self.dry_run and not self.state.get("zenodo", "prepared"):
+                raise DraftRequiredError(
+                    f"zenodo: draft {dep_id} was not fully prepared by a completed --dry-run; "
+                    "run --dry-run again and review it before publishing."
+                )
+            # The bucket is re-read from the venue, never trusted from the state file alone.
+            r = requests.get(
+                f"{self.base}/deposit/depositions/{dep_id}", headers=self.headers, timeout=30
             )
             _raise_on(r)
-            body = r.json()
-            dep_id = body["id"]
-            bucket = body["links"]["bucket"]
-            self.state.set("zenodo", "deposit_id", dep_id)
-            self.state.set("zenodo", "bucket", bucket)
-        else:
-            bucket = self.state.get("zenodo", "bucket")
+            bucket = (r.json().get("links") or {}).get("bucket")
+            if bucket != self.state.get("zenodo", "bucket"):
+                raise DraftMismatchError(
+                    f"zenodo: draft {dep_id}'s bucket differs from the state file's; stop."
+                )
+            if rev is not None and not self.state.get("zenodo", "inherited_files_removed"):
+                if not self.dry_run:
+                    raise DraftRequiredError(
+                        "zenodo: inherited files were not removed; dry-run again"
+                    )
+                self._remove_draft_files(dep_id, [f["id"] for f in self._draft_files(dep_id)])
+            existing = {e["filename"]: e.get("checksum", "") for e in self._draft_files(dep_id)}
 
         for f in files:
+            if f["name"] in existing:
+                if existing[f["name"]] == f["md5"]:
+                    print(f"[zenodo] skip existing file {f['name']} (md5 match)")
+                    continue
+                raise DraftMismatchError(
+                    f"zenodo draft {dep_id} already holds {f['name']} with different content; "
+                    "the files changed since the draft was created and reviewed."
+                )
             r = requests.put(
                 f"{bucket}/{f['name']}",
                 headers=self.headers,
@@ -297,6 +518,8 @@ class ZenodoSubmitter:
                 "access_right": "open",
                 "related_identifiers": self.vcfg.get("related_identifiers", []),
                 **({"version": self.cfg.version} if self.cfg.version else {}),
+                # Version note (publish.yml venues.zenodo.notes): the record's place in the chain.
+                **({"notes": self.vcfg["notes"].strip()} if self.vcfg.get("notes") else {}),
                 "communities": [{"identifier": c} for c in self.vcfg.get("communities", [])],
             }
         }
@@ -311,7 +534,14 @@ class ZenodoSubmitter:
         if reserved_doi:
             self.state.set("zenodo", "doi", reserved_doi)
 
+        # The draft must hold exactly the release's files (no inherited leftovers, none missing).
+        names = sorted(e.get("filename") for e in self._draft_files(dep_id))
+        if names != sorted(f["name"] for f in files):
+            raise DraftMismatchError(
+                f"zenodo draft {dep_id} holds {names}, not the release's files"
+            )
         if self.dry_run:
+            self.state.set("zenodo", "prepared", True)
             print(f"[zenodo] DRY-RUN — deposit {dep_id} left in draft state")
             return reserved_doi or ""
 
@@ -349,31 +579,148 @@ class FigshareSubmitter:
         self.vcfg = cfg.venues.get("figshare", {})
         self.base = "https://api.figshare.com/v2"
 
+    def _public_snapshot(self, art_id: int) -> tuple:
+        """The PUBLIC view of an article (no auth): its version and file md5s."""
+        r = requests.get(f"{self.base}/articles/{art_id}", timeout=30)
+        _raise_on(r)
+        b = r.json()
+        files = sorted(
+            (f.get("name"), f.get("computed_md5") or f.get("supplied_md5"))
+            for f in b.get("files", [])
+        )
+        return b.get("version"), files
+
+    def _remove_inherited_files(self, art_id: int) -> None:
+        """Remove the published version's files from the article's draft state, so the next
+        version carries only the new files. Only for the permitted revision target."""
+        if art_id != ALLOWED_REVISIONS["figshare"]:
+            raise PublishedRecordError(f"figshare: file replacement on {art_id} is not permitted")
+        r = requests.get(
+            f"{self.base}/account/articles/{art_id}/files", headers=self.headers, timeout=30
+        )
+        _raise_on(r)
+        for f in r.json() or []:
+            r = requests.delete(
+                f"{self.base}/account/articles/{art_id}/files/{f['id']}",
+                headers=self.headers,
+                timeout=30,
+            )
+            _raise_on(r)
+        self.state.set("figshare", "inherited_files_removed", True)
+
+    def _check_public(self, art_id: int) -> None:
+        """The PUBLIC view must still equal the baseline recorded when the revision started (the
+        base version and its files) on every run that touches the article, up to the publish."""
+        base = self.state.get("figshare", "public_baseline")
+        if not base:
+            raise PublishedRecordError(
+                f"figshare article {art_id}: no recorded public baseline; prepare with --dry-run"
+            )
+        version, files = self._public_snapshot(art_id)
+        if [version, [list(x) for x in files]] != base:
+            raise PublishedRecordError(
+                f"figshare article {art_id}: its PUBLIC version changed (now v{version}); stop "
+                "and inspect before anything else (the revision must stay unpublished)."
+            )
+
     def submit(self, files: list[dict]) -> str:
-        art_id = self.state.get("figshare", "article_id")
+        art_id = _state_id("figshare", "article_id", self.state.get("figshare", "article_id"))
+        rev = _revision_target("figshare", self.vcfg)
+        _refuse_superseded("figshare", art_id, allow=rev)
+        if (
+            rev is not None
+            and art_id is not None
+            and (art_id != rev or self.state.get("figshare", "revision_of") != rev)
+        ):
+            raise PublishedRecordError(
+                f"figshare: the state file records article {art_id}, which is not the revision of "
+                f"{rev}; discard that draft and clear the state before preparing the revision."
+            )
         if art_id is not None and self.state.get("figshare", "published"):
             # Uploading into a published article adds the new files BESIDE the old ones and
             # republishes the article in place without updating its title, description or
             # authors -- the new release would carry the previous version's metadata. Fail
             # closed until the deposit-time sequence (publish.yml) is followed.
             raise PublishedRecordError(
-                f"figshare article {art_id} is already published. Follow the deposit-time sequence "
-                "in publish.yml (update metadata, DELETE the old files, then publish a new "
-                "version) instead of uploading into it."
+                f"figshare article {art_id} was already published by this release and is never "
+                "mutated again (see publish.yml, 'Deposit-time sequence')."
             )
-        if art_id is None:
-            payload = {
-                "title": self.cfg.title,
-                "description": self.cfg.description,
-                "tags": self.cfg.keywords,
-                "categories": self.vcfg.get("categories", []),
-                "defined_type": self.vcfg.get("defined_type", "preprint"),
-                "license": _figshare_license(self.cfg.license),
-                # Intentionally omit ORCID — Figshare's API rejects ORCIDs
-                # that belong to any other account (HTTP 422), and the
-                # token-holder's ORCID is inferred from their profile.
-                "authors": [{"name": c["name"]} for c in self.cfg.creators],
-            }
+        payload = {
+            "title": self.cfg.title,
+            "description": self.cfg.description,
+            "tags": self.cfg.keywords,
+            "categories": self.vcfg.get("categories", []),
+            "defined_type": self.vcfg.get("defined_type", "preprint"),
+            "license": _figshare_license(self.cfg.license),
+            # No "authors": Figshare adds the token holder (the account owner, named by their
+            # profile) as an author automatically, so sending the creator by name listed the
+            # same person twice on the v0.6.0 draft (2026-10-16). The author is the profile
+            # name; it differs ON PURPOSE in form from publish.yml's "Family, Given" creator,
+            # and a publish run checks it against venues.figshare.expected_author.
+            # Lineage links (publish.yml venues.figshare.references).
+            **(
+                {"references": list(self.vcfg["references"])} if self.vcfg.get("references") else {}
+            ),
+        }
+        if art_id is None and rev is not None:
+            # Start the one permitted revision: the published article's next version. Its
+            # public version must not change until the separate publish go.
+            if not self.dry_run:
+                raise DraftRequiredError(
+                    "figshare: no recorded revision in the state file; prepare it with "
+                    "--dry-run first and review it before publishing."
+                )
+            version, pub_files = self._public_snapshot(rev)
+            if version != FIGSHARE_BASE_VERSION or not pub_files:
+                raise PublishedRecordError(
+                    f"figshare article {rev}: public version is v{version} with "
+                    f"{len(pub_files)} files; the revision starts only from "
+                    f"v{FIGSHARE_BASE_VERSION} (publish.yml relations assume it)."
+                )
+            art_id = rev
+            self.state.set("figshare", "article_id", rev)
+            self.state.set("figshare", "revision_of", rev)
+            self.state.set("figshare", "doi", f"10.6084/m9.figshare.{rev}")
+            self.state.set("figshare", "public_baseline", [version, [list(x) for x in pub_files]])
+            r = requests.put(
+                f"{self.base}/account/articles/{rev}",
+                headers={**self.headers, "Content-Type": "application/json"},
+                json=payload,
+                timeout=30,
+            )
+            _raise_on(r)
+            self._check_public(rev)  # a metadata edit must not reach the public version
+            self._remove_inherited_files(rev)
+            self._check_public(rev)
+        elif art_id is not None:
+            if not self.dry_run and not self.state.get("figshare", "prepared"):
+                raise DraftRequiredError(
+                    f"figshare: article {art_id} was not fully prepared by a completed --dry-run; "
+                    "run --dry-run again and review it before publishing."
+                )
+            if rev is not None:
+                self._check_public(rev)  # before any write on a resumed revision
+            # Resuming the recorded (unpublished) draft: send the current publish.yml metadata
+            # again, so a fix made after the review is what gets published.
+            r = requests.put(
+                f"{self.base}/account/articles/{art_id}",
+                headers={**self.headers, "Content-Type": "application/json"},
+                json=payload,
+                timeout=30,
+            )
+            _raise_on(r)
+            if rev is not None and not self.state.get("figshare", "inherited_files_removed"):
+                if not self.dry_run:
+                    raise DraftRequiredError(
+                        "figshare: inherited files were not removed; dry-run again"
+                    )
+                self._remove_inherited_files(rev)
+        else:
+            if not self.dry_run:
+                raise DraftRequiredError(
+                    "figshare: no recorded draft in the state file; create it with --dry-run "
+                    "first and review it before publishing."
+                )
             r = requests.post(
                 f"{self.base}/account/articles",
                 headers={**self.headers, "Content-Type": "application/json"},
@@ -394,6 +741,18 @@ class FigshareSubmitter:
             timeout=30,
         )
         _raise_on(existing_resp)
+        if not self.dry_run:
+            # The author comes from the account profile, which the repository cannot set; a
+            # minted DOI cannot be corrected, so the publish run checks it and stops if wrong
+            # (fix the profile, never the payload).
+            expected = self.vcfg.get("expected_author")
+            names = [a.get("full_name") for a in existing_resp.json().get("authors", [])]
+            if not expected or names != [expected]:
+                raise DraftMismatchError(
+                    f"figshare draft {art_id} authors are {names}; publishing needs exactly "
+                    f"[{expected!r}] (publish.yml venues.figshare.expected_author). Fix the "
+                    "account profile name; do not add authors to the payload."
+                )
         existing_by_name: dict[str, str] = {}
         for existing in existing_resp.json().get("files", []):
             name = existing.get("name")
@@ -401,22 +760,54 @@ class FigshareSubmitter:
             if name:
                 existing_by_name[name] = md5 or ""
         for f in files:
-            existing_md5 = existing_by_name.get(f["name"])
-            if existing_md5 and existing_md5 == f["md5"]:
-                print(f"[figshare] skip existing file {f['name']} (md5 match)")
-                continue
+            if f["name"] in existing_by_name:
+                if existing_by_name[f["name"]] == f["md5"]:
+                    print(f"[figshare] skip existing file {f['name']} (md5 match)")
+                    continue
+                # Figshare would accept a second same-name file; a published record could not
+                # be cleaned up afterwards, so refuse instead.
+                raise DraftMismatchError(
+                    f"figshare draft {art_id} already holds {f['name']} with different content; "
+                    "the files changed since the draft was created and reviewed."
+                )
             self._upload_file(art_id, f)
 
-        r = requests.post(
-            f"{self.base}/account/articles/{art_id}/reserve_doi",
-            headers=self.headers,
-            timeout=30,
-        )
-        _raise_on(r)
-        reserved_doi = r.json().get("doi")
-        self.state.set("figshare", "doi", reserved_doi)
+        reserved_doi = self.state.get("figshare", "doi")
+        if not reserved_doi:
+            r = requests.post(
+                f"{self.base}/account/articles/{art_id}/reserve_doi",
+                headers=self.headers,
+                timeout=30,
+            )
+            _raise_on(r)
+            reserved_doi = r.json().get("doi")
+            self.state.set("figshare", "doi", reserved_doi)
 
+        # The article must hold exactly the release's files (no inherited leftovers, none missing).
+        r = requests.get(f"{self.base}/account/articles/{art_id}", headers=self.headers, timeout=30)
+        _raise_on(r)
+        held = sorted(f.get("name") for f in r.json().get("files", []))
+        if held != sorted(f["name"] for f in files):
+            raise DraftMismatchError(
+                f"figshare article {art_id} holds {held}, not the release's files"
+            )
+        if not self.dry_run:
+            # Every file must have finished processing: a published DOI cannot be fixed by
+            # replacing a file, so publishing waits until all read "available" (CTO #651).
+            pending = sorted(
+                (f.get("name"), f.get("status"))
+                for f in r.json().get("files", [])
+                if f.get("status") != "available"
+            )
+            if pending:
+                raise DraftMismatchError(
+                    f"figshare article {art_id}: files still processing {pending}; publish waits "
+                    "until every file reads 'available'."
+                )
+        if rev is not None:
+            self._check_public(rev)  # still the base version, right before the publish go
         if self.dry_run:
+            self.state.set("figshare", "prepared", True)
             print(f"[figshare] DRY-RUN — article {art_id} left in draft")
             return reserved_doi or ""
 
@@ -499,6 +890,8 @@ class OSFSubmitter:
 
     def submit(self, files: list[dict]) -> str:
         proj_id = self.state.get("osf", "project_id")
+        _revision_target("osf", self.vcfg)  # OSF has no permitted revision: any revision_of raises
+        _refuse_superseded("osf", proj_id, self.state.get("osf", "preprint_id"))
         if proj_id is None:
             payload = {
                 "data": {
@@ -764,7 +1157,12 @@ def main() -> int:
     p.add_argument("subcommand", choices=["validate", "zenodo", "figshare", "osf", "all"])
     p.add_argument("--config", type=Path, default=Path("publish.yml"))
     p.add_argument("--dry-run", action="store_true", help="skip the final publish step")
-    p.add_argument("--state", type=Path, default=Path("publish.state.json"))
+    p.add_argument(
+        "--state",
+        type=Path,
+        default=None,
+        help="state file (default: publish.yml state_file, else publish.state.json)",
+    )
     p.add_argument(
         "--env",
         type=Path,
@@ -792,7 +1190,9 @@ def main() -> int:
         print(f"config not found: {args.config}", file=sys.stderr)
         return 2
     cfg = PublishConfig.load(args.config)
-    state = State(args.state)
+    state_path = resolve_state_path(args.state, cfg)
+    print(f"state file : {state_path}")
+    state = State(state_path)
 
     workdir = Path(".publish_work")
     files = prepare_files(cfg, workdir)
@@ -828,7 +1228,12 @@ def main() -> int:
         submitter = submitters[venue](cfg, state, dry_run=args.dry_run)
         try:
             submitter.submit(files)
-        except (requests.HTTPError, PublishedRecordError) as exc:
+        except (
+            requests.HTTPError,
+            PublishedRecordError,
+            DraftRequiredError,
+            DraftMismatchError,
+        ) as exc:
             print(f"[{venue}] FAILED: {exc}", file=sys.stderr)
             errors += 1
 
