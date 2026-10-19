@@ -88,12 +88,23 @@ Row 65's "six introduced by repair" is **retired: it matches neither predicate.*
 **publish both, distinguished**, because the two readings are different questions and collapsing them
 is what produced three irreconcilable figures across the source records.
 
-| predicate | count | rows |
-|---|---|---|
-| introduced by **a** repair | **7 of 9** | 2, 3, 4, 5, 6, 7, 8 |
-| introduced by the repair of a **previously-enumerated instance** | **3 of 9** | 5, 6 (→ instance 4); 8 (→ instance 2, via C-3) |
+**RULED 2026-10-18: §3.1 publishes the predicate and its row list. The count is READ OFF §3's table —
+this note asserts no standalone numeral.**
+
+| predicate | rows |
+|---|---|
+| broad — introduced by **a** repair | 2, 3, 4, 5, 6, 7, 8, 10 |
+| strict — introduced by the repair of a **previously-enumerated instance** | 5, 6 (→ instance 4); 8 (→ instance 2, via C-3) |
+
+**Why the presentation changed rather than the number.** This figure went stale **twice** — first as
+"six", then as "7 of 9", the latter within the same sitting that admitted row 10. The ruling removes the
+**recurrence class** instead of correcting the instance: §3.1 already required the figure to be *derived
+from the table, not asserted*, and this makes that literal. **A count read off the table cannot go stale
+when row 11 lands.**
 
 Excluded, and why: **row 1** is a *creation*, not a repair. **Row 9** carries no repair attribution.
+**Row 10** is excluded from the **strict** list only — the three failures `d271d80` named (manifest-skip,
+vendoring allow-list, s6 panel) are not among the enumerated instances.
 **Row 7** is excluded from the strict count only — its repair, **H-10**, is a *registered finding*, not
 one of the nine: `qgr/deferred-findings-register.md:77` records it as "the one sentence stating the
 citation scheme misresolved a row," and line 110 records this instance's chain, *"repaired under H-10
@@ -108,9 +119,15 @@ as "it is their number."** The **predicate decision** — publish both, distingu
 is the **author of record's ruling**: it was the question put, and other options were available. The
 **counts and the row assignments are the agent's derivation**, written into the option that was then
 selected; the author did not independently re-derive them and had no occasion to. **If the derivation is
-wrong, the ruling carries that error.** The CTO independently verified one part of it — row 7's
-exclusion, by tracing H-10 to `deferred-findings-register.md:77` and `:110` — and not the rest. Per §4
-the whole derivation is re-done at ratification, which is the check that would catch it.
+wrong, the ruling carries that error.** The CTO independently verified two parts of it — row 7's
+exclusion, by tracing H-10 to `deferred-findings-register.md:77` and `:110`, and the row-10 split above —
+and not the remaining row assignments. Per §4 the whole derivation is re-done at ratification, which is
+the check that would catch it.
+
+**This split has already paid for itself.** When the counts went stale on row 10's admission, fixing them
+was a **re-derivation** — the agent's working, correctable — rather than a **re-ruling** of a figure
+attributed to the author. Had the counts been recorded as the author's claim, correcting a denominator
+would have meant reopening a ruled decision.
 
 An earlier draft of this section said "only 2 of instances 1–6 are strict." That was right for 1–6 and
 wrong as a nine-wide figure: row 8 adds a third.
@@ -157,11 +174,21 @@ sentence beside it. That is not a method anyone can run on purpose. It is **luck
 participants who state premises explicitly enough to be checked, and who check them. A process whose
 discovery rate depends on that cannot report its enumeration as complete.
 
-### 3.4 The 2026-10-18 layer evidence — seven layers, two authors, one evening
+### 3.4 The 2026-10-18 layer evidence — two labelled classes
 
-Recorded per the ruling of 2026-10-18. All seven are the mechanism, none reached a published record,
-and **none was caught by an instrument** — each was caught by the next reader, or by its own author
-re-reading.
+**RULED 2026-10-18: pre-send catches COUNT, in a separate labelled class**, so the evidence is **graded
+by what a reader can check** rather than merged into one inflated figure. The **canonical nine are
+untouched** by this ruling, and so is §2's "of the ten".
+
+**Why "don't count" was not the conservative option.** Canonical **instance 6** of the ruled nine is
+*itself* a pre-send catch — `paper/stage1-limitations.md:211` records it as *"same day, **caught before
+commit**"*, and §2 repeats it. Excluding pre-send catches would therefore have contradicted the canonical
+nine's own composition, and cascaded: instance 6 sits in **both** §3.1 lists, so striking it would have
+moved broad to rows 2–5,7,8,10 and strict to rows 5,8, and turned §2's "of the ten" into "of the nine".
+§2 already names "the author re-reading their own work" as a discovery route. The ruling keeps the note
+self-consistent.
+
+#### Class A — RECORDED (independently checkable from the dispatch record)
 
 | # | author | the claim, and the subject it was actually verified against |
 |---|---|---|
@@ -171,14 +198,26 @@ re-reading.
 | 4 | agent | the replacement recommendation — read a historical note about **S7's probes** as a description of **this test** |
 | 5 | CTO | "the test is correct, no flat-path reference" — read the **plural r2.11 test** on one branch, concluded about the **singular test that failed** on another |
 | 6 | CTO | "40 behind the trunk" — measured against a local ref **named** `main` that is 61 commits *ahead* of the published trunk |
-| 7 | agent | caught pre-send: an `audit/` probe used `lung-on-chipsim/audit/` against the real path `chipsim/audit/`, yielding a false zero |
+| 7 | agent | **shipped**: asserted this note was "still pinned `3a7f186`" having printed only lines 1–14; verified on DRAFT 1, asserted of DRAFT 2 |
 
-**An open predicate the author of record should rule, flagged rather than resolved.** Layer 7 is a
-**pre-send self-catch**, and it is numbered. Two further pre-send catches by the same author were
-**not** numbered. Those cannot both be right: either pre-send catches count — in which case the list is
-longer than seven — or they do not, in which case layer 7 does not belong. §2's "the author re-reading
-their own work" suggests they count. **This note does not choose**, because choosing it silently would
-be §3.1's defect repeated on the layer count.
+#### Class B — DISCLOSED PRE-SEND (author-only; rests on the author's disclosure)
+
+**Five**, all the agent's, all the same predicate — a correct search, correctly executed,
+**under-specified in its subject**, producing a confident false negative about work that had been done:
+the `audit/` path probe (`lung-on-chipsim/audit/` against the real `chipsim/audit/`); `'^| 10 '` missing
+the bolded `| **10** |` row; a search for the author's own phrasing rather than for the section heading;
+and the two disclosed earlier.
+
+**Presentation note (a CTO call, not a ruling):** the former layer 7 — the `audit/` probe — moves out of
+the sequential list into Class B, and the shipped pin error takes the seventh recorded slot. The recorded
+class is renumbered 1–7 rather than keeping a gap.
+
+**An unclassified sub-case, flagged not decided.** The agent shipped a **second** error: in the dispatch
+conveying this very ruling it wrote "§3.1's 7-of-9 and 3-of-9 unchanged", which was structurally true of
+§3.4's independence from §3 but read as endorsing figures that row 10 had already staled. It was **sent,
+then corrected by its own author** before any reader acted on it — neither Class A (caught by the next
+reader) nor Class B (never sent). **The author of record decides whether that is a third class or belongs
+in A.** Not assigned here.
 
 ### 3.5 The one check that would have caught all of them
 
@@ -243,46 +282,32 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
 
 ## 7. Open items for the author of record
 
-1. **RULED 2026-10-18** — §3.1 predicate: publish both, 7 of 9 (any repair) and 3 of 9 (repair of a
-   previously-enumerated instance); "six" retired.
+1. **RULED 2026-10-18** — §3.1 predicate: publish both, broad and strict, each named; "six" retired.
 2. **RULED 2026-10-18** — §3.2 tenth instance admitted; §3.3 enumeration published as a **floor**;
-   §3.4 layer evidence recorded; §3.5 instrument adopted.
-3. **OPEN — the §3.1 denominators are stale against the enumeration, found by CTO self-audit
-   2026-10-18.** The ruled counts read **"7 of 9"** and **"3 of 9"**, but §3's table now has **ten**
-   rows, and row 10's own "introduced by" cell reads *"the repair commit `d271d80` itself"* — so under
-   the **broad** predicate row 10 **qualifies**, making it **8 of 10**. Under the **strict** predicate
-   it does not (that commit's three named failures are not among the enumerated instances), so strict
-   stays at 3, i.e. **3 of 10**. **Not corrected here:** the counts are the author's ruling applied to
-   the agent's derivation, and silently changing a denominator in a ruled figure is precisely the
-   defect this note documents. Needs the author.
-   *This is the same shape as the provenance sentence that did not move when row 10 was added (§3's
-   row-10 paragraph exists because of that catch) — a correct count left attached to the wrong extent,
-   committed by the CTO one line above the ruling about naming a count's subject.*
-4. **OPEN — venue.** Row 65 reserved the venue choice for the draft. The approvals of 2026-10-18 did
-   not touch it, and no grounded candidate list has been offered, so it remains genuinely open.
-5. **OPEN — the §3.4 pre-send predicate, and its consequence has grown.** Does a defect its own author
-   catches before sending count as a layer? Layer 7 is numbered and further pre-send catches are not;
-   those cannot both be right. **As of 2026-10-18 the agent has disclosed five pre-send self-catches,
-   not one** — the `audit/` path probe, two under-specified greps that produced confident false
-   negatives about work that had in fact been done (`'^| 10 '` missing the bolded `| **10** |` row, and
-   a search for the author's own phrasing rather than for the section), and the two already listed in
-   #675. So the ruling is no longer cosmetic: **if pre-send catches count, the real layer count is
-   materially higher than seven and the §3.3 floor claim strengthens; if they do not, layer 7 must be
-   unnumbered.** Note that all five are the same predicate as everything else here — a correct search,
-   correctly executed, under-specified in its subject.
-   **A sixth is not pre-send and needs no predicate ruling at all:** on 2026-10-18 the agent asserted
-   in a sent dispatch that this note was "still pinned `3a7f186`" when line 17 read `f2bb28c`. It had
-   printed only lines 1–14 — the provenance disclosure had pushed the pin past its window — so it
-   verified on DRAFT 1 and asserted of DRAFT 2. That was **sent, received, and corrected by the next
-   reader**, which makes it a layer on *any* predicate. **§3.4's table therefore needs an eighth row,
-   or an explicit statement of why it does not.** Not added here: the layer list was ruled at seven,
-   and adding to a ruled enumeration without the author is the defect this note documents.
-6. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
+   §3.5 instrument adopted.
+3. **RULED 2026-10-18** — §3.1 now publishes the **predicate and its row list** and asserts **no
+   standalone numeral**; the count is read off §3's table, so row 11 cannot stale it. The predicate
+   ruling itself is untouched.
+4. **RULED 2026-10-18** — pre-send catches **count, in a separate labelled class**: Class A RECORDED
+   (independently checkable, seven entries) and Class B DISCLOSED PRE-SEND (five, author-only). This
+   also admitted the shipped pin error into Class A, closing the eighth-row question.
+5. **OPEN — venue, and it is now the LAST item.** Row 65 reserved the venue choice for the draft.
+   Neither the CTO nor the agent has offered candidates, deliberately: an unresearched venue list would
+   be a recommendation verified against nothing — the defect this note documents. Closing it properly is
+   a real piece of work (scope and length limits per venue, and whether a short methods or
+   negative-result note on an engineering-epistemics failure mode is in scope at each), not a prompt.
+   Say the word and it gets researched and grilled against a comparison page.
+6. **OPEN — one unclassified sub-case (§3.4).** An error that was **sent and then corrected by its own
+   author** before any reader acted on it fits neither Class A nor Class B. Third class, or into A?
+7. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
    every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
-   re-derived 61/65/47 at `af17cd2` — both of which are now themselves stale), §3's counts, and the
-   instance table. The pin on this draft is `f2bb28c` and will be stale the moment anything lands.
+   re-derived 61/65/47 at `af17cd2` — both now stale themselves) and §3's row lists. The pin on this
+   draft is `f2bb28c` and is stale already. **Note what ratification is actually covering:** of the
+   agent's §3.1 derivation, the CTO has independently verified row 7's exclusion and the row-10 split;
+   the remaining row assignments have been verified by nobody but their author.
 
-**Sources (all committed):** `qgr/stage1-closure.md`; `paper/stage1-limitations.md`;
-`paper/stage1-methods.md`; `paper/stage1-claims-list.md` (41 rows / 35 supported / 6 CUT);
-`paper/stage1-short-form.md`; `qgr/deferred-findings-register.md` (H-10 at :77, instance 7 at :110);
-`plan/plan-approval-log.md` rows 58, 59, 61, 65; approvals rows 6-15; dispatch #675.
+**Sources (all committed):** `qgr/stage1-closure.md`; `paper/stage1-limitations.md` (instance 6's
+pre-commit catch at :211); `paper/stage1-methods.md`; `paper/stage1-claims-list.md` (41 rows / 35
+supported / 6 CUT); `paper/stage1-short-form.md`; `qgr/deferred-findings-register.md` (H-10 at :77,
+instance 7 at :110); `plan/plan-approval-log.md` rows 58, 59, 61, 65; approvals rows 6-18;
+lung-on-chipsim dispatches #662, #664, #675, #680, #682, #683.
