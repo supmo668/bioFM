@@ -189,7 +189,7 @@ moved broad to rows 2–5,7,8,10 and strict to rows 5,8, and turned §2's "of th
 §2 already names "the author re-reading their own work" as a discovery route. The ruling keeps the note
 self-consistent.
 
-#### Class A — RECORDED (independently checkable from the dispatch record)
+#### Class A — RECORDED (independently checkable from the dispatch record) — eight
 
 | # | author | the claim, and the subject it was actually verified against |
 |---|---|---|
@@ -210,15 +210,30 @@ the bolded `| **10** |` row; a search for the author's own phrasing rather than 
 and the two disclosed earlier.
 
 **Presentation note (a CTO call, not a ruling):** the former layer 7 — the `audit/` probe — moves out of
-the sequential list into Class B, and the shipped pin error takes the seventh recorded slot. The recorded
-class is renumbered 1–7 rather than keeping a gap.
+the sequential list into Class B, and the shipped pin error takes the seventh recorded slot.
 
-**An unclassified sub-case, flagged not decided.** The agent shipped a **second** error: in the dispatch
-conveying this very ruling it wrote "§3.1's 7-of-9 and 3-of-9 unchanged", which was structurally true of
-§3.4's independence from §3 but read as endorsing figures that row 10 had already staled. It was **sent,
-then corrected by its own author** before any reader acted on it — neither Class A (caught by the next
-reader) nor Class B (never sent). **The author of record decides whether that is a third class or belongs
-in A.** Not assigned here.
+#### How the two classes are told apart — and a defect in this section, now fixed
+
+**RULED 2026-10-20.** The classes are defined by **verifiability**, not by discovery: Class A is what a
+reader can check **from the record**, Class B is what rests on **the author's disclosure alone**.
+*"Caught by the next reader"* was only ever a description of how Class A's members happened to be found.
+
+**This section previously used two criteria for one taxonomy** — the class headings test verifiability
+while an earlier paragraph reasoned from discovery, declaring one case homeless because it was *"neither
+Class A (caught by the next reader) nor Class B (never sent)."* Under the stated membership test that
+case was never homeless: a claim made in one dispatch and corrected in the next **rests on the record**,
+so it is **Class A**. The third class dissolves, **Class A becomes eight**, and *who caught it* is
+preserved as a **per-row attribute** rather than a class boundary:
+
+| class member | caught by |
+|---|---|
+| A1–A6 (the original layers) | the next reader |
+| A7 — the shipped pin error | the next reader |
+| **A8 — a stale figure passed forward in a dispatch, corrected in the following one** | **its own author** |
+
+That drift is worth recording rather than quietly repairing: a taxonomy whose headings state one test
+while its prose applies another is the same defect this note documents, committed in the act of
+classifying the note's own evidence.
 
 ### 3.5 The one check that would have caught all of them
 
@@ -339,8 +354,12 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
    from recollection. **Open the fee page in a browser before submitting.** Comparison page, carrying a
    per-row verification ledger (read-at-source vs search-only vs blocked):
    https://claude.ai/artifact/BQqQQCqcrfpysujpLxhLez
-6. **OPEN — one unclassified sub-case (§3.4).** An error that was **sent and then corrected by its own
-   author** before any reader acted on it fits neither Class A nor Class B. Third class, or into A?
+6. **RULED 2026-10-20 — the sub-case is Class A, and the taxonomy's drift is fixed.** It was never
+   homeless: the classes test **verifiability**, and a claim made in one dispatch and corrected in the
+   next rests on **the record**. The third class dissolves, Class A becomes **eight**, and *who caught
+   it* is preserved as a per-row **attribute** rather than a class boundary. §3.4 previously stated one
+   test in its headings and applied another in its prose — that drift is recorded in §3.4 rather than
+   quietly repaired.
 7. **RATIFIED 2026-10-20, and §4's procedure was EXECUTED, not asserted.** The re-derivation was run
    on `main` and **failed**: 74 numbered / 78 rows / 47 standing-delegation / **12 unclassified**
    against the published 61 / 65 / 47 / 0. §4 now carries the corrected table, the 12 published as a
