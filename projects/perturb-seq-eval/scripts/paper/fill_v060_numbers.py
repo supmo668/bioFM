@@ -88,6 +88,7 @@ def build(
     m["GitSha"] = p["git_sha"][:7]
     m["PreregVersion"] = p["prereg_version"]
     m["GitDirty"] = str(p["git_dirty"]).lower()
+    m["RunPython"] = str(p["python"])  # the run's interpreter (CTO #629: reproduction note)
     # ---- H1 / H2
     for g, name in (("H1", "HOne"), ("H2", "HTwo")):
         r = pr[g]

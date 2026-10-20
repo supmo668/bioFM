@@ -6,6 +6,9 @@ lives in :mod:`perturb_eval.experiments.v05_sweep` where it can be tested.
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -187,3 +190,112 @@ class TestDeriveStatusReplay:
             )
             == "partial"
         )
+
+
+# ---- D8 (CTO #633): the launching Modal client must match the recorded run's ----
+_PROJ = Path(__file__).resolve().parents[1]
+_RECORD = _PROJ / "artifacts" / "v0.6.0" / "provenance.json"
+
+
+def test_recorded_launch_client_is_read_from_the_run_record():
+    import json
+
+    from perturb_eval.experiments.v05_sweep import recorded_launch_client
+
+    assert (
+        recorded_launch_client(_RECORD) == json.loads(_RECORD.read_text())["lib_versions"]["modal"]
+    )
+
+
+def test_validate_launch_client_refuses_any_other_client(tmp_path):
+    import json
+
+    import pytest
+
+    from perturb_eval.experiments.v05_sweep import recorded_launch_client, validate_launch_client
+
+    rec = recorded_launch_client(_RECORD)
+    validate_launch_client("v0.6.0", rec, provenance_path=_RECORD)  # the recorded client passes
+    with pytest.raises(ValueError, match=f"run with Modal client {re.escape(rec)}"):
+        validate_launch_client("v0.6.0", "0.0.1", provenance_path=_RECORD)
+    validate_launch_client("v0.7.0", "0.0.1", provenance_path=_RECORD)  # not the recorded version
+    with pytest.raises(ValueError, match="cannot read"):
+        validate_launch_client("v0.6.0", rec, provenance_path=tmp_path / "missing.json")
+    bad = tmp_path / "p.json"
+    for body, msg in (
+        ("{", "cannot read"),
+        ("{}", "cannot read"),
+        ('{"lib_versions": {}}', "cannot read"),
+        ("[]", "cannot read"),
+        ('{"lib_versions": {"modal": null}}', "not a version string"),
+        ('{"lib_versions": {"modal": ""}}', "not a version string"),
+        ('{"lib_versions": {"modal": 1}}', "not a version string"),
+    ):
+        bad.write_text(body)
+        with pytest.raises(ValueError, match=msg):
+            validate_launch_client("v0.6.0", rec, provenance_path=bad)
+
+
+def test_entrypoint_checks_the_launch_client_against_the_record():
+    import ast
+
+    app = _PROJ / "scripts" / "modal" / "app_v05.py"
+    fn = next(
+        n
+        for n in ast.parse(app.read_text()).body
+        if isinstance(n, ast.FunctionDef) and n.name == "entrypoint"
+    )
+    calls = [
+        c
+        for c in ast.walk(fn)
+        if isinstance(c, ast.Call)
+        and isinstance(c.func, ast.Name)
+        and c.func.id == "validate_launch_client"
+    ]
+    assert len(calls) == 1
+    call = calls[0]
+    # A direct statement of the entrypoint body (not under a branch), checking the real version...
+    direct = [s for s in fn.body if isinstance(s, ast.Expr) and isinstance(s.value, ast.Call)]
+    assert any(s.value is call for s in direct), "validate_launch_client must not be nested"
+    assert ast.unparse(call.args[0]) == "version"
+    assert ast.unparse(call.args[1]) == "modal.__version__"
+    # ...and before any run work: the run config write and the .remote() launch.
+    later = [
+        c.lineno
+        for c in ast.walk(fn)
+        if isinstance(c, ast.Call)
+        and (
+            (isinstance(c.func, ast.Attribute) and c.func.attr == "remote")
+            or (isinstance(c.func, ast.Name) and c.func.id in ("write_run_config", "git_state"))
+        )
+    ]
+    assert later and call.lineno < min(later), (call.lineno, later)
+    path = ast.unparse(next(k.value for k in call.keywords if k.arg == "provenance_path"))
+    assert path == "PROJECT_DIR_HOST / 'artifacts' / version / 'provenance.json'", path
+
+
+def test_recorded_client_version_is_not_typed_into_code_and_is_disclosed():
+    """A version typed in a second place is a second thing to drift: code reads the record;
+    the docs state it, and must agree with the record."""
+    import subprocess
+
+    from perturb_eval.experiments.v05_sweep import recorded_launch_client
+
+    rec = recorded_launch_client(_RECORD)
+    res = subprocess.run(
+        ["git", "grep", "-n", "-F", rec, "--", "src", "scripts"],
+        cwd=_PROJ,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 1, (res.returncode, res.stdout, res.stderr)  # 1 = searched, no match
+    # git grep sees tracked files only; scan the working tree too (untracked new files).
+    for path in (*(_PROJ / "src").rglob("*.py"), *(_PROJ / "scripts").rglob("*.py")):
+        assert rec not in path.read_text(), path
+    for doc in ("README.md", "paper/README.md"):
+        text = (_PROJ / doc).read_text()
+        assert f"launched with modal {rec}, the client in its provenance" in text, doc
+        assert "is not\n# the authority for this release" in text, doc
+        lock = (_PROJ / "poetry.lock").read_text()
+        locked = re.search(r'name = "modal"\nversion = "([^"]+)"', lock).group(1)
+        assert f"poetry.lock (modal {locked}," in text, (doc, locked)

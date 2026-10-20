@@ -1,13 +1,19 @@
 # publish.yml — one source of truth for preprint venue submissions.
 #
 # Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
-# script never writes to this file — DOIs and deposition IDs go into
-# `publish.state.json` (tracked: it is the deposit-lineage record) so this stays clean.
+# script never writes to this file. DOIs and deposition IDs go into the release's
+# state file (`state_file` below; tracked, it is the deposit-lineage record).
+# `publish.state.json` is the v0.5.x record and is not written for v0.6.0.
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
 
 # Version of the deposited work (sent to Zenodo as the record's version).
 version: "0.6.0"
+
+# State file for THIS release (the new-version ids). v0.6.0 is the NEXT VERSION of the existing
+# records on both venues (principal D-1 = B, 2026-10-16, CTO #647; #620 "standalone" reversed):
+# no duplicate record. publish.state.json stays the v0.5.x lineage record and is never written.
+state_file: publish.state.v060.json
 
 title: >-
   Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
@@ -68,21 +74,26 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Deposit-time sequence (both venues already hold PUBLISHED v0.5.x records; the submitters
-# refuse to upload into a published record, see PublishedRecordError):
+# Deposit-time sequence. v0.6.0 supersedes v0.5.x as a NEW VERSION of the existing records
+# (principal D-1 = B, CTO #647), so no duplicate record exists. The submitter performs exactly the
+# two operations in ALLOWED_REVISIONS (venues.<venue>.revision_of below) and refuses any other
+# write to a published or superseded record (PublishedRecordError). This sequence names the
+# steps; the gated submitter is the only implementation (no raw API recipes here).
 #   1. python scripts/publish/build_deposit.py   (clean tree; builds paper.pdf + log, stages the run)
-#   2. Zenodo: POST /deposit/depositions/20060974/actions/newversion (v4 = latest under the
-#      concept DOI 10.5281/zenodo.19716140); record the draft id + links.bucket in
-#      publish.state.json with zenodo.published=false; delete the files the draft inherits.
-#   3. Figshare: update article 32086920's metadata (title, description, authors) and DELETE the
-#      v0.5 files; set figshare.published=false in publish.state.json; run
-#      `submit_to_venues.py figshare --dry-run` and verify the uploaded file list; then publish
-#      -> the next version of the article (check its current version number first).
-#   4. Set CITATION.cff date-released and add the new DOIs; principal approves the publish.
-#   Commands (after steps 2-3 and the principal's go): verify with
-#     python scripts/publish/submit_to_venues.py zenodo --dry-run   (draft uploaded, NOT published)
-#     python scripts/publish/submit_to_venues.py figshare --dry-run
-#   then publish each with the same command without --dry-run.
+#   2. Read-only GETs of the records being revised (state, version, files), immediately before
+#      steps 3 and 4 (no POST/PUT/PATCH/DELETE).
+#   3. Principal's go for the FIRST WRITE:
+#        python scripts/publish/submit_to_venues.py zenodo --dry-run
+#        python scripts/publish/submit_to_venues.py figshare --dry-run
+#      Zenodo: a new-version DRAFT of 20074427 under concept 10.5281/zenodo.19716140, with the
+#      inherited files replaced by the v0.6.0 set. Figshare: article 32086920's next version
+#      prepared UNPUBLISHED (the public version must not change; the run checks). Nothing is
+#      published. The ids are recorded in publish.state.v060.json; commit it before step 4.
+#   4. Principal's SEPARATE go to publish: the same commands without --dry-run. They only
+#      publish the recorded revision (DraftRequiredError otherwise), resend the metadata, refuse
+#      a changed file (DraftMismatchError) and any Figshare author but expected_author. Do not
+#      rebuild between steps 3 and 4.
+#   5. Set CITATION.cff date-released and add the new version DOIs.
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
   # gitignored, so the build is part of the deposit, not a precondition).
@@ -119,13 +130,18 @@ venues:
       - identifier: "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
         relation: "isSupplementedBy"
         scheme: "url"
-      # v0.6.0 is a NEW VERSION of the v0.5.x work, not identical to it.
-      - identifier: "10.5281/zenodo.20060974"
+      # v0.6.0 is the next version of the v0.5.x work under the same concept DOI, not identical.
+      - identifier: "10.5281/zenodo.20074427"
         relation: "isNewVersionOf"
         scheme: "doi"
       - identifier: "10.6084/m9.figshare.32086920.v5"
         relation: "isNewVersionOf"
         scheme: "doi"
+    # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from v0.5.2.
+    revision_of: 20074427
+    notes: >-
+      v0.6.0 is the next version of this record (concept DOI 10.5281/zenodo.19716140): the
+      pre-registered v0.6.0 study supersedes v0.5.x, whose versions remain available.
 
   figshare:
     enabled: true
@@ -139,14 +155,24 @@ venues:
       - 24193   # Genomics and transcriptomics
       - 29173   # Machine learning (not elsewhere classified)
     group_id: null            # set to a group ID for institutional-account uploads
+    # Figshare names the author from the depositing account's profile (no authors are sent).
+    # A publish run refuses unless the draft has exactly this one author (principal 2026-10-16:
+    # profile renamed to the ruled spelling; differs in form from Zenodo's "Family, Given").
+    expected_author: "Mang-yin Mo"
+    # The one permitted Figshare revision (ALLOWED_REVISIONS): article 32086920's next version.
+    revision_of: 32086920
+    # References carried by the revised article (replace the v0.5-era list).
+    references:
+      - "https://doi.org/10.5281/zenodo.19716140"
+      - "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
 
   osf:
     # Temporarily disabled 2026-04-23: OSF's preprint subjects PATCH
     # endpoint is returning 502 Bad Gateway, and their files
     # primary_file relationship endpoint is 404ing on waterbutler-path
-    # GUIDs. State file retains project/preprint IDs so the run resumes
-    # cleanly once OSF recovers:
-    #   python scripts/publish/submit_to_venues.py osf
+    # GUIDs. The v0.5.x project/preprint ids (publish.state.json) are superseded and never
+    # resumed (SUPERSEDED_RECORDS; OSF has no permitted revision); re-enabling OSF creates a new project/preprint
+    # in this release's state_file.
     enabled: false
     # server = one of the preprint providers listed at https://osf.io/preprints/
     # biohackrxiv is the explicit hackathon fit; metaarxiv is general meta-science.
