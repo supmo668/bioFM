@@ -4,7 +4,8 @@
 
 **Author of record:** the principal (ratifies under the T8 pattern).
 **Drafted by:** biofm/matthew-mo/cto, from `workstreams/lung-on-chipsim/qgr/stage1-closure.md`.
-**Status:** DRAFT 2 — **content APPROVED by the principal 2026-10-18. NOT YET RATIFIED:** §4's own rule
+**Status:** **RATIFIED 2026-10-20** (principal, verbatim: "approved"), after §4's re-derivation was run and its failure corrected in §4 below. Earlier: content approved 2026-10-18.
+**Superseded status line:** §4's own rule
 requires every figure re-derived and the pin updated at the moment of ratification. Venue (§7) still open.
 
 **Provenance of the approvals, disclosed because it cannot be verified from here.** The rulings arrived
@@ -14,7 +15,7 @@ reversible — the same treatment the agent gave a principal ruling it received 
 (approval-log row 29). If any selection below is not what was chosen, say so and it is reverted.
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
-**Pinned to:** `f2bb28c` (bioFM `main`) for this note's own text; each measured claim below is pinned to
+**Pinned to:** `d578274` (bioFM `main`) for this note's own text; each measured claim below is pinned to
 the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
 re-derives every figure and updates it. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
@@ -239,8 +240,33 @@ each with its own count. It is the first use of the instrument **before** public
 
 Stage 1's declared novel contribution was a measurement **of its own approval log** — the route
 distribution over a contemporaneous, append-only, hash-locked revision table. It published 59
-revisions / 63 rows / 46 standing-delegation. Re-derived with its own instrument at `af17cd2`:
-**61 / 65 / 47**.
+revisions / 63 rows / 46 standing-delegation, and a re-derivation at `af17cd2` gave **61 / 65 / 47**.
+
+**Re-derived again at ratification, on `main` at `d578274`, as §4 requires — and it did not reproduce:**
+
+| | published | at `af17cd2` | **at ratification (`d578274`)** |
+|---|---|---|---|
+| numbered revisions | 59 | 61 | **74** |
+| total data rows | 63 | 65 | **78** |
+| standing-delegation | 46 | 47 | **47** |
+| **unclassified** | — | 0 | **12** |
+
+**The standing-delegation count is unchanged at 47, so the proportion claim moves in its denominator
+without its numerator moving at all** — the clearest possible demonstration of why this note's rule
+exists.
+
+**The 12 unclassified rows are published as a datum, and the stated rule is left untouched.** They are
+rows 63–74: eleven read `principal (same grill; "Over and out") folded by the CTO`, and one reads
+`CTO signature (principal approval 2026-10-04 "approve all")`. **All twelve carry principal authority** —
+the twelfth is CTO-signed *under* a principal approval, not CTO-originated — so a reader must not read
+"unclassified" as "not human-routed."
+
+Retrofitting the pattern list to absorb them was available and was **declined**: extending a stated rule
+so an inconvenient residue disappears is a repair verified against *the thing changed* (the patterns)
+rather than *the property claimed* (that the distribution describes its log) — this note's own
+documented vector, at the moment of its own ratification. **The residue is the more honest datum:** it
+shows a stated classification rule drifting from the corpus it classifies. Evidence artifact:
+`qgr/evidence/route-distribution-d578274.json`.
 
 The two extra rows were written **by the adjudication of the report itself**: the scope ruling the
 final gate requested, and the ruling *"Stop; the mechanism is the result."* Deciding whether to accept
@@ -315,8 +341,15 @@ a clean record), and **S-20** (R-10's deferral was taken at a smaller extent tha
    https://claude.ai/artifact/BQqQQCqcrfpysujpLxhLez
 6. **OPEN — one unclassified sub-case (§3.4).** An error that was **sent and then corrected by its own
    author** before any reader acted on it fits neither Class A nor Class B. Third class, or into A?
-7. **RATIFICATION IS NOT CONTENT APPROVAL.** §4's rule binds this note: at ratification, **re-derive
-   every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
+7. **RATIFIED 2026-10-20, and §4's procedure was EXECUTED, not asserted.** The re-derivation was run
+   on `main` and **failed**: 74 numbered / 78 rows / 47 standing-delegation / **12 unclassified**
+   against the published 61 / 65 / 47 / 0. §4 now carries the corrected table, the 12 published as a
+   datum with their contents named, and the pin moved to `d578274`. **The rule caught a stale headline
+   figure in the note whose subject is stale headline figures — one step before publication.** The
+   residual honesty, unchanged: of the §3.1 derivation only row 7's exclusion and the row-10 split were
+   independently checked; the rest were verified by their author alone.
+8. **Superseded note on what ratification required:** §4's rule binds this note — at ratification,
+   **re-derive every figure and update the pin.** That includes the route-distribution figures (published 59/63/46,
    re-derived 61/65/47 at `af17cd2` — both now stale themselves) and §3's row lists. The pin on this
    draft is `f2bb28c` and is stale already. **Note what ratification is actually covering:** of the
    agent's §3.1 derivation, the CTO has independently verified row 7's exclusion and the row-10 split;
