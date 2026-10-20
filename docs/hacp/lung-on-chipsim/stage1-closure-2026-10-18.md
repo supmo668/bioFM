@@ -1,4 +1,4 @@
-# Stage 1 closure — ratification is the only decision left
+# Stage 1 CLOSED — A4 ratified 2026-10-20; A1's transfer released
 
 <!-- HACP L1 · Kind = Decision · Section = decision · Indexed by "ChipSim (bioFM) — Index".
      SOURCE OF TRUTH: the Notion row https://app.notion.com/p/3fd749bd250d813eb8a0ec7daa09e8f2
@@ -8,17 +8,30 @@
 
 **Kind:** Decision · **Layer:** L1 · **Holds:** every Stage 1 closure decision and its outcome · **Refreshed 2026-10-20**
 
-## TL;DR — one decision is left, and it is ratification
+## TL;DR — STAGE 1 IS CLOSED. A4 ratified; A1's transfer released.
 
-Every other decision here is now **ruled**. No receipt to sign, no branch to land (approval-log rows 58,
-61; row 59 closed the last security referral). The single open deliverable is **ruling A4** — the
-standalone short methods note — drafted, venue-selected, waiting on **T8 ratification**.
+**A4 was ratified 2026-10-20** (principal, verbatim: "approved") — but **only after §4's re-derivation
+was run and FAILED**, which is the rule working as designed. Re-derived on `main` at `d578274`:
+**74 numbered / 78 rows / 47 standing-delegation / 12 unclassified**, against the published
+**61 / 65 / 47 / 0**. Standing-delegation is **unchanged at 47**, so the proportion claim moved in its
+*denominator* with a static numerator. §4 carries the corrected table; note re-pinned `d578274`;
+committed `11b2fa0`.
+
+**The 12 unmatched rows are published as a datum; the stated route rule is untouched.** Rows 63–74:
+eleven `principal (… "Over and out") folded by the CTO`, one `CTO signature (principal approval …)`.
+**All twelve carry principal authority** — so "unclassified" must not be read as "not human-routed".
+Retrofitting the patterns to absorb them was declined: it would be a repair verified against *the thing
+changed* rather than *the property claimed*, this note's own vector, at its own ratification.
+
+**Consequence:** Stage 1 is closed and **A1's transfer is released** — the `lung-on-chipsim-stage2`
+branch moves into the `lung-on-chipsim` worktree, and the transfer runs as one scoped unit against its
+named manifest, stopping at `transport/` for the principal's per-file calls.
 
 | # | Decision | Status | Who |
 |---|---|---|---|
 | D1 | Repair-attribution **predicate** | **RULED** — publish **both** predicates, distinguished; "six" retired; refined to publish the **row list** and assert **no bare numeral** | principal |
 | D2 | **Venue** | **RULED** — *Journal of Trial and Error*; fallback JORS | principal |
-| **D3** | **T8 ratification** of the draft | **OPEN — THE ONLY DECISION LEFT** | author of record |
+| D3 | **T8 ratification** of the draft | **RATIFIED 2026-10-20** — after §4's re-derivation failed and was corrected | principal |
 | D4 | Humans drive lung work only at the `lung-on-chipsim` worktree; `-stage2` kept, not human-driven | RULED 2026-10-18 | principal |
 | D5 | Stage 1 worktree retirement deferred until Stage 1 closes | RULED 2026-10-18 | principal |
 | D6 | Protection for the adjudication worksheet | **OPEN** — not a Stage 1 blocker, but a **Stage 2 precondition**; the cheap window closes on the first verdict typed | principal |
