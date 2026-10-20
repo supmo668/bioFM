@@ -1,100 +1,102 @@
-# Stage 1 closure decision 2026-10-18 — one figure, one venue, one ratification
+# Stage 1 closure — ratification is the only decision left
 
 <!-- HACP L1 · Kind = Decision · Section = decision · Indexed by "ChipSim (bioFM) — Index".
-     SOURCE OF TRUTH: the Notion row. This file mirrors it; see notion-map.json.
-     Carries the three asks that close ruling A4 (approval-log row 65), plus two
-     principal rulings recorded on 2026-10-18 (worktree drive point; retirement deferred).
+     SOURCE OF TRUTH: the Notion row https://app.notion.com/p/3fd749bd250d813eb8a0ec7daa09e8f2
+     This file mirrors it; see notion-map.json. REFRESHED 2026-10-20 — the previous revision was
+     stale by four rulings and showed D1/D2 as OPEN with options that were no longer on offer.
      No identifier, biological number or chemical key appears on this page by design. -->
 
-**Kind:** Decision · **Layer:** L1 · **Holds:** the three decisions that close Stage 1, and the two already ruled · **Reaches:** [the A4 draft](../../../workstreams/lung-on-chipsim/paper/stage1-methods-note.md), [the closure record](../../../workstreams/lung-on-chipsim/qgr/stage1-closure.md), [the retirement record](../../../workstreams/lung-on-chipsim/reports/2026-10-18-stage1-worktree-retirement.md)
+**Kind:** Decision · **Layer:** L1 · **Holds:** every Stage 1 closure decision and its outcome · **Refreshed 2026-10-20**
 
-## TL;DR — Stage 1 is one deliverable from closed, and it needs three answers
+## TL;DR — one decision is left, and it is ratification
 
-There is **no receipt to sign and no branch to land** — rows 58 and 61 ruled that. Row 59 closed the
-last security referral. Exactly one deliverable is open: **ruling A4 (row 65)**, the standalone short
-methods note. It is drafted. Three answers publish it.
+Every other decision here is now **ruled**. No receipt to sign, no branch to land (approval-log rows 58,
+61; row 59 closed the last security referral). The single open deliverable is **ruling A4** — the
+standalone short methods note — drafted, venue-selected, waiting on **T8 ratification**.
 
 | # | Decision | Status | Who |
 |---|---|---|---|
-| **D1** | The repair-attribution **predicate** — three sources give three counts for the same thing | **OPEN — blocks publication** | author of record |
-| **D2** | **Venue** for the methods note (row 65: chosen *on the draft*) | **OPEN** | author of record |
-| **D3** | **T8 ratification** of the draft | **OPEN** | author of record |
-| D4 | Human drives lung work **only at `worktrees/lung-on-chipsim`**; `-stage2` kept, not human-driven | RULED 2026-10-18 | principal |
-| D5 | Stage 1 worktree retirement **deferred until Stage 1 closes** | RULED 2026-10-18 | principal |
-| D6 | Protection for the adjudication worksheet | OPEN, **re-dated — not urgent** | principal |
+| D1 | Repair-attribution **predicate** | **RULED** — publish **both** predicates, distinguished; "six" retired; refined to publish the **row list** and assert **no bare numeral** | principal |
+| D2 | **Venue** | **RULED** — *Journal of Trial and Error*; fallback JORS | principal |
+| **D3** | **T8 ratification** of the draft | **OPEN — THE ONLY DECISION LEFT** | author of record |
+| D4 | Humans drive lung work only at the `lung-on-chipsim` worktree; `-stage2` kept, not human-driven | RULED 2026-10-18 | principal |
+| D5 | Stage 1 worktree retirement deferred until Stage 1 closes | RULED 2026-10-18 | principal |
+| D6 | Protection for the adjudication worksheet | **OPEN** — not a Stage 1 blocker, but a **Stage 2 precondition**; the cheap window closes on the first verdict typed | principal |
+| D7 | One unclassified evidence sub-case | OPEN — presentation, not a blocker | author of record |
 
-## D1 — the count does not reconcile, and this note must not publish it unreconciled
+> **Why this page was rewritten.** Until 2026-10-20 it showed D1 as *"OPEN — blocks publication"* with
+> three options, **none of which was the answer chosen**, and D2 as OPEN. A human opening it to ratify
+> would have seen two already-decided questions framed with options that no longer existed — the note's
+> own defect, **a status left attached to the wrong extent**, on the surface where the decision is taken.
+> Caught by the lung-on-chipsim agent, which cannot write Notion; the refresh is the CTO's.
 
-Row 65 ruled the note publishes "nine dated instances with **six** introduced by repair." Re-deriving
-that from the per-instance attributions rather than copying it, **it does not reconcile:**
+## D1 — ruled, then improved
 
-| Source | Figure it states | Strict reading of the instance rows |
-|---|---|---|
-| Ruling A4 / row 65 | **six** of nine "introduced by repair" | — |
-| `qgr/stage1-closure.md` | **six** of nine "introduced by **the repair of a previous instance**" | only **2** of instances 1–6 qualify (5 and 6) |
-| `paper/stage1-limitations.md:220` | **four** of the six "introduced by those very repairs" | **5** of instances 1–6 qualify (all but 1) |
+The ruling took **none** of the three offered counts: publish **both predicates, each naming its
+subject**. A later ruling went further — publish the **predicate and its row list**, assert **no
+standalone numeral**, because the figure had gone stale twice ("six", then "7 of 9").
 
-The divergence is **definitional, not arithmetic.** Two different predicates are used
-interchangeably, and instance 1 is attributed to a *creation*, not a repair, under either one.
+| predicate | rows |
+|---|---|
+| broad — introduced by **a** repair | 2, 3, 4, 5, 6, 7, 8, 10 |
+| strict — repair of a **previously-enumerated** instance | 5, 6, 8 |
 
-**Why this is on a decision surface instead of fixed quietly.** The note's own contribution is the
-rule that *an artifact measuring the process which approves it must pin its measurements to a revision
-and re-derive them at approval.* Publishing an unreconciled count would commit the documented defect
-inside the document — and `stage1-limitations.md` already records that the paragraph *about* drifting
-counts "carried three mutually inconsistent counts of its own." So the draft leaves the figure
-**derived from the instance table, not asserted.**
+Excluded and stated: row 1 (a *creation*), row 9 (no attribution), row 7 (its repair H-10 is a
+registered finding, not an instance), row 10 (strict only).
 
-**The ask.** Rule the predicate:
+**Whose claim is whose:** the **predicate** is the author of record's ruling; the **counts and row
+assignments are the agent's derivation**, adopted by it. Only two parts were independently checked by
+the CTO (row 7's exclusion, the row-10 split); the rest have been verified by nobody but their author.
 
-- **(a) "introduced by *a* repair"** → 5 of instances 1–6. Widest, matches what the rows literally say.
-- **(b) "introduced by the repair of a *previous instance*"** → 2 of instances 1–6. Narrowest, matches
-  the closure record's wording but not its figure.
-- **(c) Keep "six of nine"** and amend the two source records to agree — heavier, and it edits
-  committed Stage 1 records.
+## D2 — ruled: Journal of Trial and Error
 
-Under (a) or (b), instances 7–9 are then classified under the chosen predicate **at ratification**, and
-the published figure is whatever the table sums to. No figure is carried forward by memory.
+Chosen on **scope** — it names negative and null results, *"studies where notable methodological errors
+occurred"*, and meta-research. **No word limit**, so the instance table and both evidence classes
+survive uncompressed; **rolling submission**, so ratification is not rushed. Three additions required,
+nothing cut: structured abstract (150–250 words), purpose (≤250 words), take-home (≤3 sentences).
 
-## D2 — venue
+**Fallback:** JORS *Issues in Research Software* — 3,000–4,000 words, **£891 APC** waivable only in the
+submission cover letter.
 
-Row 65 reserved the venue choice for the draft. The draft exists. The note is ~2 pages, methods-only,
-with no biological result and no identifier content — so it is publishable as a standalone methods or
-process note. Row 65 already **declined** folding it into the Stage 2 paper (it would wait on a result
-that has nothing to do with it) and **declined** not publishing (it is the only publishable thing the
-branch produced).
+**ICSE 2027 NIER and MSR 2027 declined knowingly:** 4 pages inclusive, **double-anonymous**, mandatory
+Future Plans, scope silent on negative results. Anonymising would have **stripped the named authorship
+that is this note's evidence base**, with ratification forced inside ~96 hours.
 
-## D3 — ratification
+**⚠ Gap named, not closed — JOTE's fees are unverified at source.** DOAJ reports no APCs and CC BY, but
+only as a **search summary**: the for-authors page, the FAQ and the DOAJ record all return **403**, and
+the record is ~13 months old. Deliberately **not** filled from recollection. **Open the fee page in a
+browser before submitting.** JORS is already recorded, so this redirects ratification, not stalls it.
 
-The principal is **author of record** and ratifies under the T8 pattern. Ratification closes A4 and
-with it Stage 1.
+## What the note now carries that this page previously omitted
 
-## D4 / D5 — ruled 2026-10-18
+- A **tenth instance** (2026-10-08) with its own pinned provenance.
+- The enumeration as a **floor, not a count** — "at least ten" — discovery being reader-dependent.
+- **Two labelled evidence classes:** Class A RECORDED (seven, checkable from the dispatch record),
+  Class B DISCLOSED PRE-SEND (five, author-only). Pre-send catches **count**, in their own class.
+- The **instrument**: every instance is a *correct reading of real evidence attributed to the wrong
+  subject*, which is why no automated check caught any. **Every claim about a ref, a path or a probe
+  must name its subject explicitly.**
+- **D7:** an error *sent* and then corrected *by its own author* fits neither class. Third class, or A?
 
-**D4 — the drive point.** Human-driven lung work happens **only in `worktrees/lung-on-chipsim`**. The
-`lung-on-chipsim-stage2` worktree may be kept, but it is not a human drive point. Consequence worth
-stating: dispatches #608 and #622 are Stage 2 directives sitting unread, and the Stage 2 agent is
-**not** being woken while Stage 1 is open — they stay parked deliberately, not by neglect.
+## D6 — re-measured 2026-10-20
 
-**D5 — retirement deferred.** The Stage 1 worktree stays until Stage 1 closes. The reason is
-substantive: A4 is drafted *from* the Stage 1 record, so retiring the tree holding that record before
-the deliverable is ratified puts source and draft on opposite sides of a destructive step. The
-retirement record's §4 is marked deferred, and its measurements must be re-verified before it runs.
+Still **26 data rows, 0 verdicts, not git-tracked, no DVC pointer** — a regenerable blank scaffold whose
+loss today costs a regeneration, not human work. But the ruled data route has the principal **entering
+26 verdicts by hand**, and it becomes irreplaceable at the first one, with no tracked export and no
+automatic recovery. **A Stage 2 precondition whose cheap window closes the moment a verdict is typed.**
 
-## D6 — the adjudication worksheet, re-dated
+## D3 — ratification is the only thing left
 
-Measured 2026-10-18: the worksheet is a **blank 26-row scaffold** — 0 of 26 rows carry a verdict, an
-evidence DOI, or an adjudicator. It is regenerable, so **today its loss costs a regeneration, not human
-work.** I had previously described it as "the only critical-path human input"; that overstated it.
+The principal is **author of record** and ratifies under T8. Ratification closes A4 and with it Stage 1;
+closure then releases A1's transfer.
 
-It becomes irreplaceable the moment a verdict is entered, and at that point it still has no git
-tracking, no DVC entry (unlike the raw sources, which have one each), and no tracked export. The
-project's own code anticipates exactly this: *"the tracked file … IS the surviving copy of that work:
-keep it. There is no automatic recovery."* **Decide before entering verdicts, not after.**
+**Ratification is a procedure, not content approval.** §4 of the note binds it: **re-derive every figure
+and update the pin** — the route figures (59/63/46 published, 61/65/47 at `af17cd2`, both now stale),
+§3's row lists, and the instance table.
 
 ---
 
-**Provenance.** Rulings D4/D5 from the principal, 2026-10-18, verbatim: *"I will pick-up lung chip
-worktree work only on lung-on-chipsim (not '-stage2', although it can be kept but human drives only at
-the main worktree session)"* and *"can we approve stage1 first so worktree stays at lung-on-chipsim."*
-D1 derived by the CTO from the committed records named above. Pinned to bioFM `main` `ef3a8ae`;
-per the note's own rule, every figure is re-derived at ratification.
+**Provenance.** D1/D2/D4/D5 ruled by the principal 2026-10-18 and 2026-10-20, relayed through the
+lung-on-chipsim agent's session and applied as reversible work instructions. D1's row assignments are
+the agent's derivation. This page's staleness was caught by that agent; refreshed by the CTO, who holds
+the only Notion write. Pinned to bioFM `main` at `cf44776` — stale by construction, which is the point.
