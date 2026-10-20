@@ -1,0 +1,9 @@
+{
+  "fetched_utc": "2026-09-13T05:47:25+00:00",
+  "files": {
+    "drugbank-slim.tsv": "cfb847f197862f6642484d6bb4ed96473d23235873a0ee4d4a9ebd8dc63d3613",
+    "drugbank.tsv": "ec040c30759847c601e6c5566d437fd5e25f5bdff198bd8f48f011a77f2da01e",
+    "proteins.tsv": "8f78ad48e0dc9414074b00bf28e47048a1eafe9d5810a415547b8df69972c4e8"
+  },
+  "source_commit": "3e87872db5fca5ac427ce27464ab945c0ceb4ec6"
+}
