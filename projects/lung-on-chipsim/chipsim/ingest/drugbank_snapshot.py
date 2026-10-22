@@ -29,6 +29,13 @@ import requests
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
 SNAPSHOT_FILES = ("drugbank.tsv", "drugbank-slim.tsv", "proteins.tsv")
 
+#: The DVC pointers that stand in for the snapshot tables. A single directory pointer over
+#: data/raw/drugbank/ is unsatisfiable while provenance.yaml, PROVENANCE.md and SHA256SUMS.json
+#: are git-tracked inside it (dvc/output.py:670).
+#: DERIVED, not restated: the three test tables that guard the pointers import this,
+#: so a fourth snapshot file cannot silently escape them (QG-10).
+DVC_POINTERS = tuple(f"data/raw/drugbank/{name}.dvc" for name in SNAPSHOT_FILES)
+
 #: Upstream repo layout puts these under `data/`. They are written FLAT into
 #: `dest`, with no nested `data/` level — T5/T6 expect them at the top level of
 #: `raw_dir` (defect 7).
