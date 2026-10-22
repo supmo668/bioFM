@@ -16,6 +16,7 @@ renamed or removed fails the test rather than failing at 3am in n8n.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -775,14 +776,71 @@ def _journalled_call(command: str, root, argv, work, describe):
     return result, run_dir
 
 
-# NOT TRANSFERRED — `run_transport_fit` and `run_transport_ode` were part of the Stage 1
-# pipeline and are deliberately LEFT OUT of the union-minus-E-23 reconciliation (2026-10-22).
-# They lazily import `chipsim.transport.ode` and `chipsim.transport.fit`, and this branch's
-# `chipsim/transport/` holds only __init__, prior, sourcing and theta. A2 is correct on exactly
-# these two files: the archived tip holds their only copy. Splicing the functions in produced two
-# unresolved-import diagnostics that pytest could NOT see, because the imports are lazy and
-# nothing calls them — `ty` found them, the suite could not. They land when A2's transport
-# transfer does, not before, and `_journalled_call` above is already in place for them.
+# LIFTED 2026-10-22 — these were withheld from the union-minus-E-23 reconciliation only because
+# `chipsim.transport.{ode,fit}` were absent on this branch. A2's transport PORT landed them at
+# 1f1a123 (ported to HEAD's accessor-based ThetaConfig and TransportPrior, not copied), verified
+# independently by the CTO: ruff clean, ty 25 diagnostics (exactly baseline — the port adds none),
+# 814 passed / 0 failed / 0 collection errors under the CI selector. Signature compatibility was
+# re-checked at the ported refs before restoring: transport_ode(theta, drug_params, schedule, t,
+# alpha=), fit_transport_params(reference_compounds, theta, prior=, drug_params_by_key=, schedule=,
+# t=), and FitResult carries alpha/k_sink/objective/n_reference/converged.
+def run_transport_fit(
+    reference_compounds, theta, *, prior, drug_params_by_key, schedule, t, root=None
+):
+    """T25: `fit_transport_params` under a journalled run. Returns `(FitResult, run_dir)`.
+
+    A&D §4.4a-ii words the replay property as "same config + same seed reproduces the same scores
+    exactly". THERE IS NO SEED HERE, and this signature deliberately does not invent one: the fit
+    has no stochastic component — T22's integrator is fixed-step and T23's simplex start is fixed,
+    both for exactly this reason. A `seed` parameter that fed nothing would be a knob implying a
+    guarantee it does not provide. The replay property holds by construction instead.
+    """
+    from chipsim.transport.fit import fit_transport_params
+
+    root = Path(root) if root is not None else project_root()
+    return _journalled_call(
+        "fit-transport-params",
+        root,
+        [__name__, "fit-transport-params"],
+        lambda: fit_transport_params(
+            reference_compounds,
+            theta,
+            prior=prior,
+            drug_params_by_key=drug_params_by_key,
+            schedule=schedule,
+            t=t,
+        ),
+        lambda r: {
+            "alpha": r.alpha,
+            "k_sink": r.k_sink,
+            "objective": r.objective,
+            "n_reference": r.n_reference,
+            "converged": r.converged,
+        },
+    )
+
+
+def run_transport_ode(theta, drug_params, schedule, t, *, alpha=1.0, root=None):
+    """T25: `transport_ode` under a journalled run. Returns `(C_free array, run_dir)`.
+
+    The recorded score is a DIGEST of the returned curve, not the curve itself: a run record is an
+    audit trail, and pasting a 600-point array into `detail` would bury the thing a reader is
+    checking. Two runs agreeing on the digest is the same claim as agreeing on the array, stated
+    in one line.
+    """
+    from chipsim.transport.ode import transport_ode
+
+    root = Path(root) if root is not None else project_root()
+    return _journalled_call(
+        "transport-ode",
+        root,
+        [__name__, "transport-ode"],
+        lambda: transport_ode(theta, drug_params, schedule, t, alpha=alpha),
+        lambda curve: {
+            "c_free_sha256": hashlib.sha256(curve.tobytes()).hexdigest(),
+            "n_points": int(curve.size),
+        },
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
