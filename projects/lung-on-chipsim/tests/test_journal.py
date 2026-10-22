@@ -396,7 +396,7 @@ def test_etl_stage_opens_a_run_and_writes_the_outcome_last(
     monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(fake_project))
     monkeypatch.setitem(pipeline._HANDLERS, "hash-verify", lambda ns: 0)
 
-    assert pipeline.main(["hash-verify", "--dest", str(fake_project)]) == 0
+    assert pipeline.main(["hash-verify", "--dest", str(fake_project), "--yes"]) == 0
 
     runs = [d for d in (fake_project / "journal").iterdir() if d.name != "invocations"]
     assert len(runs) == 1
@@ -419,7 +419,7 @@ def test_a_crashing_stage_is_recorded_and_never_reads_as_success(
     monkeypatch.setitem(pipeline._HANDLERS, "hash-verify", _boom)
 
     with pytest.raises(RuntimeError, match="boom"):
-        pipeline.main(["hash-verify", "--dest", str(fake_project)])
+        pipeline.main(["hash-verify", "--dest", str(fake_project), "--yes"])
 
     runs = [d for d in (fake_project / "journal").iterdir() if d.name != "invocations"]
     outcome = json.loads((runs[0] / "outcome.json").read_text())
@@ -612,7 +612,7 @@ def test_an_unrecordable_etl_run_leaves_a_durable_marker(
         pipeline, "start_run", lambda *a, **k: (_ for _ in ()).throw(OSError("nope"))
     )
 
-    assert pipeline.main(["hash-verify", "--dest", str(fake_project)]) == 0
+    assert pipeline.main(["hash-verify", "--dest", str(fake_project), "--yes"]) == 0
     markers = list((fake_project / "journal").glob("UNRECORDED-*.json"))
     assert len(markers) == 1
     assert "nope" in json.loads(markers[0].read_text())["error"]
@@ -633,7 +633,7 @@ def test_a_handler_exiting_zero_is_not_recorded_as_a_crash(
     monkeypatch.setitem(pipeline._HANDLERS, "hash-verify", _exit_ok)
 
     with pytest.raises(SystemExit):
-        pipeline.main(["hash-verify", "--dest", str(fake_project)])
+        pipeline.main(["hash-verify", "--dest", str(fake_project), "--yes"])
 
     runs = [d for d in (fake_project / "journal").iterdir() if d.name != "invocations"]
     assert read_outcome(runs[0])["status"] == "ok"
@@ -649,7 +649,7 @@ def test_a_handler_returning_none_is_recorded_as_success(
     monkeypatch.setenv("CHIPSIM_PROJECT_ROOT", str(fake_project))
     monkeypatch.setitem(pipeline._HANDLERS, "hash-verify", lambda ns: None)
 
-    assert pipeline.main(["hash-verify", "--dest", str(fake_project)]) == 0
+    assert pipeline.main(["hash-verify", "--dest", str(fake_project), "--yes"]) == 0
     runs = [d for d in (fake_project / "journal").iterdir() if d.name != "invocations"]
     assert read_outcome(runs[0])["status"] == "ok"
 

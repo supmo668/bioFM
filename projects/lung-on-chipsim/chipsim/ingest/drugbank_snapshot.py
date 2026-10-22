@@ -320,6 +320,17 @@ def load_compounds(raw_dir: Path, min_rows: int = MIN_COMPOUND_ROWS) -> pd.DataF
 EDGE_CATEGORIES = frozenset({"target", "enzyme", "transporter", "carrier"})
 
 #: Only human edges are in scope.
+#: The organism labels that count as human. BOTH are accepted rather than one being
+#: swapped for the other: the pinned snapshot labels human proteins `Human` (16,299 rows;
+#: `Homo sapiens` appears 0 times), while build-plan.md:450 and every fixture say
+#: `Homo sapiens`. Silently preferring either vocabulary would leave the next reader
+#: unable to tell which the code trusts. Restored from the Stage 1 branch, where this
+#: defect was already diagnosed and fixed; the single-label filter below it dropped all
+#: 16,299 human edges and the floor guard was the only thing that made that visible.
+HUMAN_ORGANISM_LABELS = frozenset({"Homo sapiens", "Human"})
+
+#: The canonical label, retained for messages and for callers that assert on one
+#: spelling. NOT the filter — see above.
 HUMAN_ORGANISM = "Homo sapiens"
 
 EDGE_COLUMNS = ("drugbank_id", "uniprot_id", "category", "organism")
@@ -363,7 +374,7 @@ def load_protein_edges(
             f"expected a subset of {sorted(EDGE_CATEGORIES)}"
         )
 
-    frame = frame[frame["organism"] == HUMAN_ORGANISM].reset_index(drop=True)
+    frame = frame[frame["organism"].isin(HUMAN_ORGANISM_LABELS)].reset_index(drop=True)
 
     # The floor mirrors load_compounds. Without it an organism-label drift
     # ("Human" vs "Homo sapiens") silently yields ZERO edges, every compound then
@@ -372,7 +383,8 @@ def load_protein_edges(
     if len(frame) < min_rows:
         raise ValueError(
             f"parsed only {len(frame)} human protein edges from {path}, below the floor "
-            f"of {min_rows}. Check the organism filter: values must read exactly "
+            f"of {min_rows}. The filter accepts {sorted(HUMAN_ORGANISM_LABELS)!r}; the "
+            f"snapshot's own organism values are what to check next, not "
             f"{HUMAN_ORGANISM!r}."
         )
 
