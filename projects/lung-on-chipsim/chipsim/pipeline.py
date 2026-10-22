@@ -82,17 +82,13 @@ NON_NODE_REASONS = {
         "Writes an EMPTY S13 template a human then fills. A scheduled re-emit is defect 22's "
         "failure mode exactly."
     ),
-    "transport-prior-scaffold": (
-        "The S14 counterpart, for the same reason."
-    ),
+    "transport-prior-scaffold": ("The S14 counterpart, for the same reason."),
     "theta-check": (
         "A read-only validator over a human-owned file, for a human checking their own work "
         "before the fit runs. There is nothing an automated stage can do with the verdict that a "
         "human has not finished writing their inputs."
     ),
-    "transport-prior-check": (
-        "The S14 counterpart of the same read-only validator."
-    ),
+    "transport-prior-check": ("The S14 counterpart of the same read-only validator."),
     "reference-compounds-check": (
         "A read-only validator over the human-curated reference set, for the same reason."
     ),
@@ -535,7 +531,6 @@ def _cmd_adjudication_worksheet(ns: argparse.Namespace) -> int:
     return 0
 
 
-
 def _cmd_adjudication_export(ns) -> int:
     """T14's publish step (r2.19, G-18), on the `chipsim panel-seal` precedent (C4).
 
@@ -572,7 +567,6 @@ def _cmd_adjudication_export(ns) -> int:
         return 0
     print(f"wrote {rows} row(s) to {ns.out} ({filled} carrying a verdict)")
     return 0
-
 
 
 _HANDLERS = {
@@ -781,64 +775,14 @@ def _journalled_call(command: str, root, argv, work, describe):
     return result, run_dir
 
 
-def run_transport_fit(
-    reference_compounds, theta, *, prior, drug_params_by_key, schedule, t, root=None
-):
-    """T25: `fit_transport_params` under a journalled run. Returns `(FitResult, run_dir)`.
-
-    A&D §4.4a-ii words the replay property as "same config + same seed reproduces the same scores
-    exactly". THERE IS NO SEED HERE, and this signature deliberately does not invent one: the fit
-    has no stochastic component — T22's integrator is fixed-step and T23's simplex start is fixed,
-    both for exactly this reason. A `seed` parameter that fed nothing would be a knob implying a
-    guarantee it does not provide. The replay property holds by construction instead.
-    """
-    from chipsim.transport.fit import fit_transport_params
-
-    root = Path(root) if root is not None else project_root()
-    return _journalled_call(
-        "fit-transport-params",
-        root,
-        [__name__, "fit-transport-params"],
-        lambda: fit_transport_params(
-            reference_compounds,
-            theta,
-            prior=prior,
-            drug_params_by_key=drug_params_by_key,
-            schedule=schedule,
-            t=t,
-        ),
-        lambda r: {
-            "alpha": r.alpha,
-            "k_sink": r.k_sink,
-            "objective": r.objective,
-            "n_reference": r.n_reference,
-            "converged": r.converged,
-        },
-    )
-
-
-def run_transport_ode(theta, drug_params, schedule, t, *, alpha=1.0, root=None):
-    """T25: `transport_ode` under a journalled run. Returns `(C_free array, run_dir)`.
-
-    The recorded score is a DIGEST of the returned curve, not the curve itself: a run record is an
-    audit trail, and pasting a 600-point array into `detail` would bury the thing a reader is
-    checking. Two runs agreeing on the digest is the same claim as agreeing on the array, stated
-    in one line.
-    """
-    from chipsim.transport.ode import transport_ode
-
-    root = Path(root) if root is not None else project_root()
-    return _journalled_call(
-        "transport-ode",
-        root,
-        [__name__, "transport-ode"],
-        lambda: transport_ode(theta, drug_params, schedule, t, alpha=alpha),
-        lambda curve: {
-            "c_free_sha256": hashlib.sha256(curve.tobytes()).hexdigest(),
-            "n_points": int(curve.size),
-        },
-    )
-
+# NOT TRANSFERRED — `run_transport_fit` and `run_transport_ode` were part of the Stage 1
+# pipeline and are deliberately LEFT OUT of the union-minus-E-23 reconciliation (2026-10-22).
+# They lazily import `chipsim.transport.ode` and `chipsim.transport.fit`, and this branch's
+# `chipsim/transport/` holds only __init__, prior, sourcing and theta. A2 is correct on exactly
+# these two files: the archived tip holds their only copy. Splicing the functions in produced two
+# unresolved-import diagnostics that pytest could NOT see, because the imports are lazy and
+# nothing calls them — `ty` found them, the suite could not. They land when A2's transport
+# transfer does, not before, and `_journalled_call` above is already in place for them.
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -850,13 +794,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dest", required=True, type=Path)
     p.add_argument("--commit", required=True)
 
-    p = sub.add_parser("hash-verify", help="recompute sha256s against the manifest", parents=[approval])
+    p = sub.add_parser(
+        "hash-verify", help="recompute sha256s against the manifest", parents=[approval]
+    )
     p.add_argument("--dest", required=True, type=Path)
 
     p = sub.add_parser("parse", help="parse compounds + protein edges", parents=[approval])
     p.add_argument("--raw-dir", required=True, type=Path, dest="raw_dir")
 
-    p = sub.add_parser("provenance-tests", help="run the provenance contract suite", parents=[approval])
+    p = sub.add_parser(
+        "provenance-tests", help="run the provenance contract suite", parents=[approval]
+    )
     p.add_argument("--tests", default=Path("tests/test_provenance.py"), type=Path)
 
     p = sub.add_parser("write", help="persist the compound frame", parents=[approval])

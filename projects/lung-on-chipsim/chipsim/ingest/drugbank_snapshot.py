@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+import yaml
 
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
@@ -209,7 +210,69 @@ VENDORING_ALLOWED_NAMES = frozenset(
 )
 
 
-def vendored_offenders(tracked_paths) -> list[str]:
+#: A real DVC pointer is a few lines of YAML. Anything larger under a `.dvc` name is
+#: payload wearing the allowed suffix — a suffix allow-list on its own would let a
+#: renamed `drugbank.tsv` through (QG-9).
+POINTER_MAX_BYTES = 4096
+
+_MD5_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+def pointer_defects(doc, *, expected_path: str, file: Path | None = None) -> list[str]:
+    """Why a parsed `.dvc` document does NOT describe `expected_path` — `[]` when it does.
+
+    The single definition of "is a pointer" (QG-13). T4's integration test and
+    T11's unit tests both call it, and its falsification rows live beside them;
+    an inline `doc["outs"][0]["md5"]` check had no negative case and failed a
+    malformed pointer with a bare IndexError/KeyError instead of a diagnosis.
+
+    Structural checks always run: `outs[0]` exists, `md5` is a 32-hex digest,
+    `size` is a positive integer, `path` names the expected file. With `file`,
+    the pointer is BOUND to that file: its size and md5 must match what is on disk
+    (QG-4) — three copies of one pointer satisfy every structural check.
+    """
+    outs = doc.get("outs") if isinstance(doc, dict) else None
+    if not isinstance(outs, list) or not outs or not isinstance(outs[0], dict):
+        return ["outs: missing or empty — not a DVC pointer"]
+    out = outs[0]
+    defects: list[str] = []
+
+    md5 = out.get("md5")
+    if not isinstance(md5, str) or not _MD5_RE.fullmatch(md5):
+        defects.append(f"md5: {md5!r} is not a 32-hex digest")
+    size = out.get("size")
+    if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+        defects.append(f"size: {size!r} is not a positive integer")
+    path = out.get("path")
+    if path != expected_path:
+        defects.append(f"path: {path!r} does not name the expected file {expected_path!r}")
+
+    if file is not None:
+        if not file.is_file():
+            defects.append(f"file: {file} is absent")
+        else:
+            actual_size = file.stat().st_size
+            if isinstance(size, int) and not isinstance(size, bool) and size != actual_size:
+                defects.append(f"size: pointer says {size}, file on disk is {actual_size}")
+            actual_md5 = hashlib.md5(file.read_bytes()).hexdigest()
+            if md5 != actual_md5:
+                defects.append(f"md5: pointer says {md5}, file on disk is {actual_md5}")
+    return defects
+
+
+def _is_pointer_shaped(path: Path) -> bool:
+    """A `.dvc` file that is small, parses as YAML, and passes `pointer_defects`
+    for the file its name implies. Nothing else earns the allowed suffix."""
+    if not path.is_file() or path.stat().st_size > POINTER_MAX_BYTES:
+        return False
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (yaml.YAMLError, UnicodeDecodeError):
+        return False
+    return pointer_defects(doc, expected_path=path.name.removesuffix(".dvc")) == []
+
+
+def vendored_offenders(tracked_paths, *, root: Path | None = None) -> list[str]:
     """Paths under data/raw/ that constitute REDISTRIBUTED payload.
 
     ChipSim never redistributes DrugBank. This is the single definition of that
@@ -220,11 +283,19 @@ def vendored_offenders(tracked_paths) -> list[str]:
 
     Deliberately NOT a `*.tsv` glob: per CTO ruling E-5 the DVC store holds the
     snapshot as EXTENSIONLESS md5 blobs, which a suffix glob would never catch.
+
+    With `root`, a `.dvc` path is allowed only if the file there is pointer-shaped
+    (`_is_pointer_shaped`) — the suffix alone no longer admits it (QG-9). Without
+    `root` the rule is name-only, for callers that have paths but no tree.
     """
     offenders = []
     for path in tracked_paths:
         name = Path(path).name
-        if path.endswith(VENDORING_ALLOWED_SUFFIXES) or name in VENDORING_ALLOWED_NAMES:
+        if name in VENDORING_ALLOWED_NAMES:
+            continue
+        if path.endswith(VENDORING_ALLOWED_SUFFIXES) and (
+            root is None or _is_pointer_shaped(Path(root) / path)
+        ):
             continue
         offenders.append(path)
     return offenders
@@ -409,9 +480,15 @@ def load_protein_edges(
 # --------------------------------------------------------------------------- #
 
 #: Persisted column order. `canonical_inchikey` (T5b) leads because the frame is
-#: sorted on it and every downstream task indexes on it.
+#: sorted on it and every downstream task indexes on it. `stereo_is_relative`
+#: (CTO #122 §0) follows it: `write_compounds` persists ONLY these columns, so a flag
+#: absent from this tuple would be silently dropped here and never reach the
+#: T10/T13/T15 joins or the T18 roster that must honour it. Restored 2026-10-22 —
+#: harmonize/ids.py computes the flag and ids.py:655 RAISES on a frame lacking it,
+#: so omitting it here discarded a value the pipeline downstream requires.
 PERSISTED_COMPOUND_COLUMNS = (
     "canonical_inchikey",
+    "stereo_is_relative",
     "drugbank_id",
     "name",
     "type",

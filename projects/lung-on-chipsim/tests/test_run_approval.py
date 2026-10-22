@@ -119,35 +119,12 @@ def test_a_wrong_answer_at_the_prompt_DECLINES(snapshot_project, monkeypatch):
     )
 
 
-@pytest.mark.parametrize("command", ["record-content-report", "record-content-gate"])
-def test_the_READ_ONLY_reports_are_NOT_gated(command, snapshot_project, monkeypatch):
-    """A gate in front of the quality-gate commands is how a control gets switched off.
-
-    These read and report; they write no artifact. If approving them were required, every gated
-    boundary in this project would need a terminal — so the first person in a hurry would remove
-    the gate entirely, and that is a worse outcome than not gating a read.
-    """
-    monkeypatch.setattr(pipeline, "_stdin_is_interactive", lambda: False)
-    monkeypatch.setattr(pipeline, "_HANDLERS", dict(pipeline._HANDLERS))
-    ran = {}
-    pipeline._HANDLERS[command] = lambda ns: ran.setdefault("yes", True) and 0
-
-    pipeline.main([command])
-
-    assert ran.get("yes"), f"{command} must not require approval"
-
-
-# --------------------------------------------------------------------------- #
-# T29 (r2.40) — WHO supplied the approval, when it was not the operator.
-#
-# The gap these close, found by T13's first real run under r2.38's delegation:
-# `mode="flag"` with `stdin_was_a_tty=false` is BYTE-FOR-BYTE what an unsupervised
-# agent run produces, so the record could not tell "approved by an authority that
-# delegated the flag" from "nobody was ever asked". Everything below is ADDITIVE —
-# no assertion above was modified, which is T29's own done-condition (3).
-# --------------------------------------------------------------------------- #
-
-
+# RETIRED 2026-10-22 (principal ruling): `test_the_READ_ONLY_reports_are_NOT_gated` asserted that
+# `record-content-report` and `record-content-gate` run ungated. Both are E-21..E-23 commands and
+# the union-minus-E-23 reconciliation deliberately did not bring them across (row 61: "do not open
+# by repairing the register"). Every parameter of the test named an excluded command, so the test
+# retires whole rather than being narrowed. The gating rule it protected is still covered for the
+# commands that DO exist by the NON_ETL_SUBCOMMANDS cases above.
 def test_t29_approved_by_is_recorded_VERBATIM(snapshot_project, monkeypatch):
     """Done-when 1. Stored exactly as given — never normalised into a known set, because the
     moment the field only accepts recognised values it starts to look like authentication."""

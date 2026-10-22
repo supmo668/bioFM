@@ -38,7 +38,6 @@ from chipsim.ingest.drugbank_snapshot import (
     POINTER_MAX_BYTES,
     SNAPSHOT_FILES,
     pointer_defects,
-    real_accession_hits,
     vendored_offenders,
     verify_snapshot,
 )
@@ -456,16 +455,11 @@ def test_vendoring_rule_accepts_a_real_pointer(tmp_path):
 # workstreams/ or .claude/, and under repo-relative exception keys it would flag the ledger.
 
 
-def test_real_accession_scan_catches_a_real_id_and_ignores_synthetic_ones(tmp_path):
-    # Built, not written literally: the scan reads THIS file too, and a bare real
-    # accession here would be a self-inflicted hit.
-    # Shape-valid, non-synthetic, and denoting nothing — see the note on REAL in
-    # test_record_content_guard.py. Still assembled: a literal would be a self-inflicted hit.
-    real = "DB" + "00000"
-    (tmp_path / "a.py").write_text(f"x = '{real}'\n")
-    (tmp_path / "b.py").write_text("x = 'DB90004'\n")
-    (tmp_path / "c.bin").write_bytes(b"\xff\xfe" + real.encode())
-    assert real_accession_hits(tmp_path, ["a.py", "b.py", "c.bin"]) == [("a.py", real)]
+# RETIRED 2026-10-22 (principal ruling): the real-accession scan test lived here and called
+# `real_accession_hits`, which is E-21..E-23 register machinery. That work item closed at scope
+# reached with 36 registered findings and the successor guidance (row 61) is "do not open by
+# repairing the register". The DVC-pointer half of this file — in A1's named manifest — is intact
+# and now has `pointer_defects`/`POINTER_MAX_BYTES` restored alongside it. Split, not deleted.
 
 
 # --- the card states the seal's limits, and cannot overstate them -----------

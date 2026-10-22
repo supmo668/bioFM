@@ -43,6 +43,18 @@ FIXTURE_ONLY_NAMES = {
     "pgp_adjudication_all_unknown.csv",
     "pgp_adjudication_no_missing_doi.csv",
     "pgp_adjudication_single_group.csv",
+    # T14's TRACKED projection (the five-column, name-stripped form `adjudication-export`
+    # writes). Arrived with the A1 transfer / tier-1+2 reconciliation; registered 2026-10-22,
+    # because an unregistered fixture silently opts out of every guarantee this module provides.
+    "pgp_adjudication_tracked_filled.csv",
+    "pgp_adjudication_tracked_blank.csv",
+    "pgp_adjudication_tracked_partial.csv",
+    "pgp_adjudication_tracked_all_unknown.csv",
+    "pgp_adjudication_tracked_no_missing_doi.csv",
+    "pgp_adjudication_tracked_single_group.csv",
+    # A deliberately UNSOURCED theta file: the negative case for the sourcing guard. Its name
+    # says what it is so no reader mistakes it for a usable prior.
+    "theta_SYNTHETIC_not_literature_sourced.yaml",
     "poc_compounds_too_few.yaml",
     "poc_compounds_too_many.yaml",
     "poc_compounds_missing_doi.yaml",
@@ -86,6 +98,11 @@ SHARED_NAMES = {
 FIXTURE_SUBDIRS = {
     "snapshot": {
         "README.md",
+        # Per-structure citations for the fixture structures. Exists because the TSVs follow the
+        # upstream schema and cannot carry an inline citation (CTO ruling 2026-09-16), so the
+        # citation surface has to live beside them. Arrived with the A1 transfer (97fe634);
+        # registered 2026-10-22.
+        "SOURCES.md",
         "drugbank.tsv",
         "drugbank-slim.tsv",
         "proteins.tsv",
