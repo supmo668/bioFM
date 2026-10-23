@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import csv
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -83,125 +84,228 @@ def test_the_sidecar_cites_nothing_that_is_not_in_the_fixtures():
     assert not stale, f"{SOURCES.name} cites structures no fixture carries: {stale}"
 
 
-# --- configs/ · the same invariant, widened (principal ruling 2026-10-23) -----------
+# --- configs/ · the invariant's CLASS, not one instance (principal rulings, rows 36 + 39) ------
 #
 # #120 §1 permits a bare canonical structure identifier in a tracked file — it is a public
-# identifier, not DrugBank record content — ON ONE CONDITION: each structure cites a public
-# source. The snapshot gate above enforces that for `tests/fixtures/snapshot/*.tsv`. It was
-# NARROWER THAN THE INVARIANT IT ENFORCES: the identifiers under `configs/` satisfied the
-# condition by curation and were checked by nothing.
+# identifier, not DrugBank record content — ON ONE CONDITION: its provenance is CHECKABLE.
 #
-# Two deliberate choices, both of them rulings rather than taste:
+# This gate has now been narrower than that invariant TWICE, and both times along a different
+# axis than the fix before it:
+#   * it globbed one DIRECTORY (`tests/fixtures/snapshot/`), so `configs/` went unchecked;
+#   * widened, it globbed one EXTENSION (`*.yaml`), so the first `.csv` to land went unchecked —
+#     and the anti-vacuity count globbed `*.yaml` too, making the check that exists to prove the
+#     gate is not vacuous blind to exactly what the gate was blind to.
 #
-# 1. NO SCOPE REGISTRY. A declared list of in-scope files is the shape E-23 closed on, so this
-#    globs and asserts per structure instead. A file added to `configs/` is covered the moment
-#    it lands; nobody has to remember to register it.
+# So the rule below is written as a PROPERTY and FAILS CLOSED, rather than as a list of places:
 #
-# 2. PARSE, NEVER GREP BY LINE. `poc_compounds.yaml` is inline flow style —
-#    `- {canonical_inchikey: ..., name: ..., evidence_doi: ...}` — so EVERY key sits mid-line
-#    and a line-anchored pattern matches nothing and reports zero, silently. Two agents
-#    independently produced opposite wrong verdicts on this exact file that way: a false
-#    violation and a false absence. `yaml.safe_load` is the fix, and this comment is the reason
-#    it must stay.
+#   DISCOVERY     every TRACKED file under this project's configs/, asked of git rather than the
+#                 filesystem, scanned as text for structure-shaped tokens.
+#   FAIL CLOSED   a file that contains such a token and that the gate cannot STRUCTURALLY parse
+#                 FAILS, naming the file and the missing parser. Unknown format is not compliant.
+#                 Unparseable is not compliant. A missing reading is never an absence of
+#                 structures (r2.34 two-predicate rule: the safe direction is INCLUDE).
+#   ANTI-VACUITY  per file and DERIVED: wherever the text scan found tokens, the parser must find
+#                 at least as many distinct identifiers IN THAT SAME FILE. No bare floor — a
+#                 constant goes stale, and it cannot localise which parser went blind.
+#   SATISFACTION  cite-by-reference, scoped: a structure is satisfied by a citation in its OWN
+#                 mapping, or by the SAME identifier (exact equality) in another tracked file
+#                 under THIS configs/ tree whose own mapping cites. Not repo-wide — repo-wide
+#                 would let a test fixture vouch for production config.
 #
-# The two files cite differently on purpose — `evidence_doi` beside the key, or `*_pubchem_cid`
-# paired to `*_inchikey` by prefix — so the gate accepts any of the mechanisms rather than
-# assuming one vocabulary. It checks the public-source condition ONLY: pairing a name with a
-# structure is permitted (principal-curated input, approvals row 33) and is not this gate's
-# business.
+# THE TEXT SCAN IS AN ALARM; THE PARSER IS THE INSTRUMENT. The scan says "look here" and never
+# says "this is fine". Conflating them would re-create the defect one level up, so they are kept
+# in separate functions deliberately and this comment is why.
+#
+# PARSE, NEVER GREP BY LINE. `poc_compounds.yaml` is inline flow style, so every key sits
+# mid-line and a line-anchored pattern matches nothing and reports zero, silently. Two agents
+# independently produced OPPOSITE wrong verdicts on that exact file that way — a false violation
+# and a false absence.
 
-_INCHIKEY = re.compile(r"^[A-Z]{14}-[A-Z]{10}-[A-Z]$")
-#: Any one of these, in the mapping that carries the identifier, satisfies the condition.
+_INCHIKEY = re.compile(r"[A-Z]{14}-[A-Z]{10}-[A-Z]")
 _CITATION_KEYS = ("evidence_doi", "pubchem_cid", "citation", "source", "doi")
-
-
-def _is_identifier(value: Any) -> bool:
-    return isinstance(value, str) and bool(_INCHIKEY.match(value.strip()))
-
-
-def _cites(mapping: dict, key: str) -> bool:
-    """True when `key`'s structure has a public-source pointer in its own mapping.
-
-    Prefix-aware first, so `l_inchikey` is satisfied by `l_pubchem_cid` and NOT by `d_pubchem_cid`
-    — a citation keyed to the other enantiomer would vouch for the wrong molecule, which is the
-    same trap the snapshot gate avoids by matching on the exact InChI rather than a key column.
-    """
-    stem = key[: -len("inchikey")] if key.endswith("inchikey") else ""
-    if stem:
-        for c in _CITATION_KEYS:
-            if not _blankish(mapping.get(f"{stem}{c}")):
-                return True
-    return any(not _blankish(mapping.get(c)) for c in _CITATION_KEYS)
+CONFIGS = PROJECT_ROOT / "configs"
 
 
 def _blankish(value: Any) -> bool:
     return value is None or (isinstance(value, str) and not value.strip())
 
 
-def _uncited_structures() -> list[str]:
-    """Every identifier under `configs/` whose own mapping carries no public-source pointer."""
-    offenders: list[str] = []
+def _tracked_config_files() -> list[Path]:
+    """Every tracked file under this project's `configs/`. Asked of git, not of the filesystem.
 
-    def walk(node: Any, where: str) -> None:
-        if isinstance(node, dict):
-            for key, value in node.items():
-                if _is_identifier(value) and not _cites(node, key):
-                    offenders.append(f"{where}:{key}")
-                walk(value, f"{where}.{key}")
-        elif isinstance(node, list):
-            for i, item in enumerate(node):
-                walk(item, f"{where}[{i}]")
+    An untracked file publishes nothing, and a glob would also miss a tracked file whose name
+    nobody predicted — which is how this gate was wrong twice.
 
-    for path in sorted(CONFIGS.rglob("*.yaml")):
-        try:
-            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-        except yaml.YAMLError:  # a malformed config is another test's business
-            continue
-        walk(doc, path.relative_to(PROJECT_ROOT).as_posix())
-    return offenders
+    `git ls-files` is run WITH `cwd=PROJECT_ROOT`, so its output is relative to PROJECT_ROOT and
+    is joined to it. Joining to the repo root instead silently produced paths that do not exist,
+    and combined with a swallowed read error that made every file scan as EMPTY — the gate passed
+    while asserting nothing. Hence `--full-name` is deliberately NOT used: one anchor, named here.
+    """
+    out = subprocess.run(
+        ["git", "ls-files", "-z", "--", "configs"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    paths = [PROJECT_ROOT / rel for rel in out.split("\0") if rel]
+    assert paths, "git ls-files found no tracked files under configs/ — discovery is broken"
+    return paths
 
 
-def _config_structure_count() -> int:
-    total = 0
+def _scanned_tokens(path: Path) -> set[str]:
+    """DISCOVERY ONLY. Structure-shaped tokens in the raw bytes. Never evidence of compliance.
+
+    RAISES rather than returning an empty set when the file cannot be read. An unreadable file is
+    an unknown, and this gate's whole correction is that an unknown is NOT an absence: swallowing
+    the error here is what made a wrong path look like a clean file and passed the suite while the
+    gate asserted nothing at all.
+    """
+    return set(_INCHIKEY.findall(path.read_text(encoding="utf-8", errors="replace")))
+
+
+def _parse_yaml(path: Path) -> list[tuple[str, dict, str]]:
+    found: list[tuple[str, dict, str]] = []
 
     def walk(node: Any) -> None:
-        nonlocal total
         if isinstance(node, dict):
-            for value in node.values():
-                if _is_identifier(value):
-                    total += 1
+            for key, value in node.items():
+                if isinstance(value, str) and _INCHIKEY.fullmatch(value.strip()):
+                    found.append((value.strip(), node, key))
                 walk(value)
         elif isinstance(node, list):
             for item in node:
                 walk(item)
 
-    for path in sorted(CONFIGS.rglob("*.yaml")):
-        try:
-            walk(yaml.safe_load(path.read_text(encoding="utf-8")))
-        except yaml.YAMLError:
-            continue
-    return total
+    walk(yaml.safe_load(path.read_text(encoding="utf-8")))
+    return found
 
 
-def test_configs_actually_contain_structures():
-    """Anti-vacuity, and it is the test that would have caught both agents' error.
+def _parse_csv(path: Path) -> list[tuple[str, dict, str]]:
+    found: list[tuple[str, dict, str]] = []
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            for key, value in row.items():
+                if isinstance(value, str) and _INCHIKEY.fullmatch(value.strip()):
+                    found.append((value.strip(), dict(row), key))
+    return found
 
-    A line-anchored implementation of this gate returns zero here and every assertion below
-    passes trivially. The count is asserted against the measured population so that a parser
-    that sees nothing FAILS instead of reporting compliance.
+
+#: Structural parsers by suffix. A suffix absent here FAILS CLOSED when tokens are present.
+_PARSERS = {".yaml": _parse_yaml, ".yml": _parse_yaml, ".csv": _parse_csv}
+
+
+def _cited_in_own_mapping(mapping: dict, key: str) -> bool:
+    """Prefix-aware first: `l_inchikey` is satisfied by `l_pubchem_cid`, NEVER by `d_pubchem_cid`.
+
+    A citation keyed to the other enantiomer would vouch for the wrong molecule — the same trap
+    the snapshot gate avoids by matching the exact InChI rather than a key column.
     """
-    assert _config_structure_count() >= 100, (
-        "fewer structures found under configs/ than are known to be there (26 in the PoC roster, "
-        "88 in the label-structure reference). A parser that cannot see inline flow style reports "
-        "zero and makes this gate vacuous."
+    stem = key[: -len("inchikey")] if key.endswith("inchikey") else ""
+    if stem and any(not _blankish(mapping.get(f"{stem}{c}")) for c in _CITATION_KEYS):
+        return True
+    return any(not _blankish(mapping.get(c)) for c in _CITATION_KEYS)
+
+
+def _survey() -> tuple[dict[Path, set[str]], dict[Path, list[tuple[str, dict, str]]], list[str]]:
+    """(scanned tokens per file, parsed structures per file, fail-closed complaints)."""
+    scanned: dict[Path, set[str]] = {}
+    parsed: dict[Path, list[tuple[str, dict, str]]] = {}
+    closed: list[str] = []
+    for path in sorted(_tracked_config_files()):
+        tokens = _scanned_tokens(path)
+        if not tokens:
+            continue
+        scanned[path] = tokens
+        parser = _PARSERS.get(path.suffix.lower())
+        if parser is None:
+            closed.append(f"{path.name}: no structural parser for '{path.suffix}'")
+            continue
+        try:
+            parsed[path] = parser(path)
+        # BLE001 is exempted deliberately: breadth IS the requirement. Whatever a parser
+        # raises, the file must FAIL and be NAMED — this records and fails, it never
+        # swallows. A narrower clause would let an unanticipated error type escape as
+        # something other than 'this file is unchecked', which is the defect being fixed.
+        except Exception as exc:  # noqa: BLE001 — unparseable is NOT compliant
+            closed.append(f"{path.name}: {type(exc).__name__} while parsing — {exc}"[:200])
+    return scanned, parsed, closed
+
+
+def test_every_structure_bearing_config_can_actually_be_parsed():
+    """FAIL CLOSED. Unknown format is not compliant; unparseable is not compliant.
+
+    Without this, the next format nobody listed is skipped silently and reported as compliance —
+    which is exactly how a `.csv` carrying 26 identifiers landed under a gate that globbed
+    `*.yaml` and still passed.
+    """
+    _, _, closed = _survey()
+    assert not closed, (
+        "structure-bearing config(s) the gate cannot read: "
+        + "; ".join(closed)
+        + ". Add a structural parser, or the gate is asserting nothing about them."
     )
 
 
-def test_every_config_structure_cites_a_public_source():
-    uncited = _uncited_structures()
+def test_the_parser_sees_every_structure_the_text_scan_found():
+    """Anti-vacuity, DERIVED per file — the test that localises a blind parser.
+
+    A bare floor (`>= 100`) goes stale when a file lands and hides per-file blindness in
+    aggregate: one file's 88 identifiers would satisfy it while another contributed nothing.
+    Comparing each file against its own scan is self-calibrating and names the culprit.
+    """
+    scanned, parsed, _ = _survey()
+    blind = {
+        path.name: (len(tokens), len({s for s, _, _ in parsed.get(path, [])}))
+        for path, tokens in scanned.items()
+        if len({s for s, _, _ in parsed.get(path, [])}) < len(tokens)
+    }
+    assert not blind, (
+        f"parser(s) saw fewer distinct structures than the raw text scan did: {blind} "
+        "(file: scanned, parsed). A parser that cannot see its own file's shape reports zero and "
+        "makes this gate vacuous — inline flow style is the known case."
+    )
+
+
+def test_every_config_structure_has_checkable_provenance():
+    """#120 §1: provenance must be CHECKABLE, not adjacent.
+
+    Cite-by-reference, scoped to THIS `configs/` tree by exact identifier equality. Repo-wide
+    resolution is refused on purpose: a test fixture must not vouch for production config.
+    """
+    _, parsed, _ = _survey()
+    citing: set[str] = {
+        structure
+        for structures in parsed.values()
+        for structure, mapping, key in structures
+        if _cited_in_own_mapping(mapping, key)
+    }
+    uncited = sorted(
+        f"{path.name}:{key}"
+        for path, structures in parsed.items()
+        for structure, mapping, key in structures
+        if not _cited_in_own_mapping(mapping, key) and structure not in citing
+    )
     assert not uncited, (
-        f"{len(uncited)} structure(s) under configs/ carry no public-source pointer in their own "
-        f"mapping: {uncited[:10]}. #120 §1 permits a bare canonical identifier in a tracked file "
-        "only when its provenance is checkable — add evidence_doi, or a prefix-matched "
-        "*_pubchem_cid, beside the structure."
+        f"{len(uncited)} structure(s) under configs/ have no checkable provenance — neither a "
+        f"citation in their own mapping nor the same identifier cited in another tracked file "
+        f"under configs/: {uncited[:10]}."
     )
+
+
+def test_cite_by_reference_terminates_in_an_adjacent_citation():
+    """The chain must not be circular: every vouching file is itself subject to this gate.
+
+    Asserted rather than assumed, because 'A is fine because B says so' is only worth anything
+    if B's claim is itself checked. Every citing structure is cited in its OWN mapping, so the
+    chain is one hop and terminates.
+    """
+    _, parsed, _ = _survey()
+    tracked = {p.resolve() for p in _tracked_config_files()}
+    for path, structures in parsed.items():
+        assert path.resolve() in tracked, f"{path} vouches but is not tracked under configs/"
+        for structure, mapping, key in structures:
+            if _cited_in_own_mapping(mapping, key):
+                assert any(not _blankish(mapping.get(c)) for c in _CITATION_KEYS) or key.endswith(
+                    "inchikey"
+                ), f"{path.name}:{key} cites nothing concrete"
