@@ -5,6 +5,7 @@
 **Author of record:** the principal (ratifies under the T8 pattern).
 **Drafted by:** biofm/matthew-mo/cto, from `workstreams/lung-on-chipsim/qgr/stage1-closure.md`.
 **Status:** **RATIFIED 2026-10-20** (principal, verbatim: "approved"), after §4's re-derivation was run and its failure corrected in §4 below. Earlier: content approved 2026-10-18.
+**AMENDMENT RATIFIED 2026-10-23** (principal, verbatim: "Ratify instance 11 only, hold 12 and 13"), covering the §3.6 admission of instance 11 and the §3.5 narrowing. **Scope ruled to ONE instance:** two further instances were measured and offered the same day and were **deliberately NOT admitted** — approvals rows 42 and 43 hold them. §3.3 publishes a floor, so the enumeration below understates the measured population by two **by ruling, not by omission**, on the same scope discipline row 37 applied.
 **Superseded status line:** §4's own rule
 requires every figure re-derived and the pin updated at the moment of ratification. Venue (§7) still open.
 
@@ -15,8 +16,9 @@ reversible — the same treatment the agent gave a principal ruling it received 
 (approval-log row 29). If any selection below is not what was chosen, say so and it is reverted.
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
-**Pinned to:** `d578274` (bioFM `main`) for this note's own text; each measured claim below is pinned to
-the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
+**Pinned to:** `59a5210` (bioFM `main`) for this note's own text, **RE-PINNED 2026-10-23 AT THE AMENDMENT'S
+RATIFICATION**, as §4 requires; the previous pins were ~~`d578274`~~ (set at the original ratification) and
+~~`bb5d699`~~ (set at the amendment). Each measured claim below is pinned to the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
 re-derives every figure and updates it. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
 
@@ -26,8 +28,8 @@ moment of ratification, and the pin updated**, or the note commits the defect it
 
 > **A fix is verified against the thing that was changed, not against the property the claim names.**
 
-**At least ten** instances were recorded, dated, with named authorship — nine over four quality-gate
-rounds on one branch between 2026-09-29 and 2026-10-02, and a tenth dated 2026-10-08 (§3.2). The
+**At least eleven** instances were recorded, dated, with named authorship — nine over four quality-gate
+rounds on one branch between 2026-09-29 and 2026-10-02, a tenth dated 2026-10-08 (§3.2) and an eleventh dated 2026-10-23 (§3.6). The
 enumeration is a **floor, not a count** (§3.3): discovery here is reader-dependent, so the honest claim
 is *at least* this many. The interesting property is not the count. It is that
 **repair is one of the mechanism's vectors**: fixing an instance is itself an occasion for the next
@@ -70,6 +72,7 @@ mechanism.
 | 8 | gate 9 | the repair C-3 | that a bare `assert` can no longer impersonate the divergence | that **nothing** can — a subclass or alias still can | class open (S-09) |
 | 9 | gate 9 | — | `exit=0` after a pipe to `tail` | the exit status of the *suite*, which had been killed at 82% | reproduced one message later |
 | **10** | **2026-10-08** | the repair commit `d271d80` itself | that the three named failures were fixed, and that the invocation no longer names two files | that the suite is run **whole**, and green | admitted 2026-10-18 (§3.2) |
+| **11** | **2026-10-23** | the **instrument**, not a repair — a line-anchored key regex over an inline flow-style YAML file | *that the pattern found nothing* (both parties, independently) | that the property the pattern stands for is absent — a **public-source citation** in one reading, a **name–structure pairing** in the other | admitted 2026-10-23 (§3.6) |
 
 Instances 1–6 are quoted from `paper/stage1-limitations.md` (pinned `ae894db`, measured 2026-09-29);
 7–9 from `qgr/stage1-closure.md` (pinned `af17cd2`).
@@ -251,6 +254,45 @@ instrument that checks *does the code say what you claim* passes every one.
 §3.1's ruling is that check applied to this note's own headline figure — two predicates, each named,
 each with its own count. It is the first use of the instrument **before** publication rather than after.
 
+**AMENDED 2026-10-23 — this section's heading overclaims, and instance 11 is why.** "The one check that
+would have caught all of them" was true of instances 1–10 and is **false of instance 11**. In that case
+both parties named their subject correctly and stated it explicitly; the defect was that the *reading
+itself was manufactured by the wrong instrument*, so a check on how a claim is phrased cannot reach it.
+The scope is therefore narrowed, not the check withdrawn: **it catches subject-attribution errors, which
+is what instances 1–10 are, and it does not catch instrument errors.** §3.6 adds the second check,
+which is addressed at the tool rather than at the sentence.
+
+### 3.6 ADMITTED 2026-10-23 — the eleventh instance, and the first where the INSTRUMENT produced the reading
+
+**Two authors, one file, one hour, opposite confident verdicts, one cause.** On `configs/poc_compounds.yaml`
+the CTO ran a line-anchored regex over citation field names, found zero, and reported *"the public-source
+condition DOES NOT HOLD"* — a **false violation**, one step from escalation. The lung-on-chipsim agent
+independently ran a line-anchored `^\s*name:`, found zero, and reported that the identifier was **not**
+paired with a name — a **false absence**. The two conclusions are opposites and both are wrong.
+
+**Root cause, measured on the published blob:** the file uses inline flow-style mappings,
+`- {canonical_inchikey: …, name: …, evidence_doi: …}`, one entry per line — **26 of 26 entries flow-style,
+0 block-style, and zero line-anchored keys in the whole file.** A line-anchored pattern can see nothing
+inside any entry. Only structural parsing settled it: 26/26 on every key.
+
+**Why this instance is different in kind from 1–10, and why it earns its own sub-section.** Those ten are
+each a *correct reading of real evidence attributed to the wrong subject* — the reading was sound and its
+subject was wrong. Here the reading was **never sound**: an instrument that encodes an assumption about
+formatting returned a result about a file it could not read, and **it failed silently by returning zero
+rather than erroring.** A zero from a pattern is indistinguishable from a zero in the data.
+
+> **The second check, addressed at the tool rather than the sentence:** for a structured file, parse the
+> structure. A pattern-match over a serialisation encodes an assumption the file is free to violate, and
+> its failure mode is a confident empty result. Before trusting a count of zero, establish that the
+> instrument can see a non-zero.
+
+**Disposition and provenance.** Neither error reached a published claim or a ruling; each was caught by
+the other party within the hour, and both are disclosed in the approval log (row 34) with the structural
+re-measurement. Reproducible without either disclosure: parse the file at
+`origin/lung-on-chipsim:projects/lung-on-chipsim/configs/poc_compounds.yaml` and count flow-style entries
+against line-anchored keys. **This is the first instance in this note with two independent authors**, and
+the first where the floor rose because an instrument — not a reader — was wrong.
+
 ## 4. The contribution: an artifact that measures its own approval process must pin and re-derive
 
 Stage 1's declared novel contribution was a measurement **of its own approval log** — the route
@@ -269,6 +311,58 @@ revisions / 63 rows / 46 standing-delegation, and a re-derivation at `af17cd2` g
 **The standing-delegation count is unchanged at 47, so the proportion claim moves in its denominator
 without its numerator moving at all** — the clearest possible demonstration of why this note's rule
 exists.
+
+**RE-DERIVED AGAIN at the 2026-10-23 amendment, as §4 requires — and THIS TIME IT REPRODUCED.**
+Numbered revisions **74**, total data rows **78**, measured structurally at the amendment ref and
+matching `route-distribution-d578274.json` exactly. The amendment that added instance 11 edited only
+the *decision text* of two rows in the revision table and **no route cell**, so the category counts
+cannot have moved. **That a re-derivation reproduces is a result, not a formality** — it is what the
+rule is for, and the previous run failing is what makes this run worth stating.
+
+**RE-DERIVED A THIRD TIME AT THE AMENDMENT'S RATIFICATION (2026-10-23, `59a5210`), as §4 requires — and
+THREE OF THE FOUR FIGURES REPRODUCE, INCLUDING ONE THIS NOTE HAD RECORDED AS IRREPRODUCIBLE.** Measured
+by structural parse of the revision table — a pipe row whose first cell is a bare integer — not by a
+line-anchored pattern, for the reason §3.6 gives:
+
+| | published | **at ratification (`59a5210`)** | result |
+|---|---|---|---|
+| numbered revisions | 74 | **74** | reproduces |
+| total data rows | 78 | **78** | reproduces |
+| unclassified | 12 | **12** | **reproduces, and derived directly** |
+| standing-delegation | 47 | **not recoverable from the log** | bounded, see below |
+
+**This run is a stronger test than the last one, because the corpus moved underneath it.** The approval
+log *was* edited between the amendment and this ratification — `e574e79` amended A1 and A2 in place
+across two rows of this very table — and the counts held anyway. They held for a checkable reason: that
+edit rewrote *decision text* and **no route cell and no row boundary**, so neither a count of rows nor a
+distribution over routes could have moved. A re-derivation that survives an intervening edit, for a
+stated reason, is worth more than one over a frozen corpus.
+
+**The 12 unclassified reproduce by DIRECT derivation, which closes half the gap recorded below.** A raw
+count of the route column gives exactly **eleven** rows reading `principal (same grill; "Over and out")
+folded by the CTO` and exactly **one** reading `CTO signature (principal approval 2026-10-04 "approve
+all")` — 11 + 1 = **12**, matching the published figure without needing the classification instrument at
+all.
+
+**The standing-delegation figure of 47 is now BOUNDED rather than merely unverifiable, and it still does
+not reproduce.** A direct count of the route column gives **45** cells reading exactly
+`standing-delegation`, and **51** cells that mention `standing` or `delegat` at all — the difference
+being six compound cells such as `principal + standing-delegation` and `CTO correction, agent-raised
+(#502); standing-delegation`. **47 lies strictly between 45 and 51.** So the published figure is an
+output of the ordered first-match-wins instrument that absorbs *some* compound cells and not others, and
+**which two it absorbs cannot be determined from the corpus.** Reconstructing them by guesswork was
+available and is **declined on this note's own grounds**: inferring an instrument's behaviour from the
+answer it produced is verification against the thing changed rather than the property claimed. The datum
+published here is the bound and the reason, not a recovered 47.
+
+**One limit on that re-derivation, stated rather than glossed.** The structural figures (74 / 78) were
+re-measured directly. The category figures (**47** standing-delegation, **12** unclassified) were
+**not independently re-derived**, because the evidence artifact states its rule — *ordered
+`CATEGORY_PATTERNS`, first match wins, order is part of the rule* — **without embedding the patterns
+themselves.** So the classification is reproducible only by whoever still holds the instrument. That is
+the same defect family as instance 11 one level up: **an evidence artifact that names its method and
+omits its instrument.** Recorded here as a gap in this note's own evidence, not repaired in this
+amendment.
 
 **The 12 unclassified rows are published as a datum, and the stated rule is left untouched.** They are
 rows 63–74: eleven read `principal (same grill; "Over and out") folded by the CTO`, and one reads
