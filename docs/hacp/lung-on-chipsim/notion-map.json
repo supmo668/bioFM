@@ -118,6 +118,16 @@
       "section": "decision",
       "granularity": "L1 — Review",
       "synced": "2026-10-20"
+    },
+    "unblock-direction-2026-10-23.md": {
+      "notion": "https://app.notion.com/p/402749bd250d81c4a6d7d27d44adad85",
+      "kind": "Decision",
+      "granularity": "L1 — Review",
+      "section": "decision",
+      "indexed_by": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
+      "surface_skill": "hacp-decision-surface",
+      "synced": "2026-10-23",
+      "pinned": "bioFM main 868cadc / lung fdd585d"
     }
   }
 }
