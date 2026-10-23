@@ -25,7 +25,7 @@ authority and it has a stated reversal cost.**
 flowchart TD
   Q["Reconciliation DONE. Protection SPENT as intended.<br/>What is actually left for a human?"]:::q
   Q --> W["① PROTECT then TYPE<br/>EXECUTED — baseline committed"]:::done
-  Q --> P["② PUSH main<br/>2 commits"]:::rec
+  Q --> P["② PUSH main<br/>count is DERIVED, not drawn"]:::rec
   Q --> C["③ Widen the identifier gate<br/>RULED + BUILT"]:::done
   Q --> A["④ Add the instrument finding to A4<br/>RULED + BUILT"]:::done
   Q --> N["⑤ NEW: the gate now asserts<br/>CITE-BY-REFERENCE.<br/>Ratify, or require adjacency?"]:::dec
@@ -54,10 +54,10 @@ against `92fdc2e`. It was not used. **No figure on this page comes from it.**
 | 2 | It is committed on the **lung branch, not on main** — and the file that supplies its citations exists on the lung branch and **not** on main | `git ls-tree` on both refs | **decisive** |
 | 3 | Every structure in the baseline resolves to a citation **elsewhere under the same `configs/` tree**; none is unresolvable, none resolvable-but-uncited | structural parse of both files at the lung ref | **decisive** |
 | 4 | The gate figure is **817 passed / 4 skipped / 31 deselected** under the CI selector (`-m "not network and not integration"`), `ruff` clean, `ty` 25 against a 28 baseline | measured at `01f453f`; since then only one dispatch record and the baseline file changed — **no source or test file** | **decisive** |
-| 5 | **2** commits on `main` are unpushed | `git rev-list --count origin/main..main` | **decisive** |
+| 5 | `main` carries unpushed commits — **read the count off the command, never off this page**: it was 4 when this page was first written, 2 at the amendment, and 4 again within the half-hour because the amendment itself committed. **No bare numeral survives here** | `git rev-list --count origin/main..main` | **decisive** |
 | 6 | The widened gate globs one **format**, and the first new file under the widened **directory** was a different format — so its structures are unread by the gate **and** by the gate's own anti-vacuity count | the test's own glob, both call sites | **decisive** |
 | 7 | An unparseable file is skipped by that gate **as compliant**, and its anti-vacuity floor is a **hard-coded constant** | the test's exception handler and its assertion | **decisive** |
-| 8 | The lung branch is **688** commits ahead of its own remote | `git rev-list --count` | contextual |
+| 8 | The lung branch is far ahead of its own remote — **688 when measured at the pin**, and like row 5 it moves on its own; re-derive rather than quote | `git rev-list --count origin/lung-on-chipsim..lung-on-chipsim` | contextual |
 
 ### What rows 1–3 mean together
 
@@ -110,14 +110,16 @@ preference.**
   instance admitted, a section added, **one existing claim narrowed because it would not have caught
   this instance**, the re-derivation recorded as reproducing, and the pin updated. **It awaits your
   ratification as author of record — that is authorship, not a ruling.**
-- **② PUSH — still open, and smaller than it was: 2 commits, not 4.** Reversible and cheap, and the
-  cost of not doing it was paid once already in this workstream.
+- **② PUSH — still open.** Reversible and cheap, and the cost of not doing it was paid once already
+  in this workstream. **The count is deliberately not stated here** — see row 5. Publishing it is what
+  made this page wrong twice in one day, which is the HACP rule *no bare numerals in a published
+  figure* earned the hard way, by the author of the rule.
 
 ## Gaps, stated rather than filled
 
 - **Both copies of the withheld-file tip are LOCAL** — the bundle and the archive branch, which is on
   no remote. The same durability family as the unpushed-ledger cost, and still not paid for.
-- **The lung branch is 688 ahead of its own remote** (row 8). Separate from ②, required by nothing above.
+- **The lung branch is far ahead of its own remote** (row 8, 688 at the pin). Separate from ②, required by nothing above.
 - **`configs/*.csv` is outside the identifier gate** until row 39 is built. Zero new exposure measured,
   but the next file of an unlisted format is unguarded — which is the whole point of ruling on the class.
 - **One pre-existing public exposure is carried, not fixed** — a committed audit record quotes a
