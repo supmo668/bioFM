@@ -37,7 +37,7 @@ def _last_commit_date(path: pathlib.Path) -> dt.date | None:
     ).stdout.strip()
     if not out:
         return None
-    return dt.datetime.fromisoformat(out).astimezone(dt.timezone.utc).date()
+    return dt.datetime.fromisoformat(out).astimezone(dt.UTC).date()
 
 
 def check_project(project_dir: pathlib.Path) -> list[str]:
