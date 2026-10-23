@@ -286,9 +286,18 @@ def test_live_fetch_against_the_pinned_commit(tmp_path):
 @_blocked_on_t2
 def test_t4_dvc_pointer_tracks_the_snapshot():
     """T4's four done-conditions (defects 5, 10):
-    (a) git status lists no .tsv; (b) drugbank.dvc exists, is git-tracked, and
-    parses as YAML with a non-empty outs[0].md5; (c) dvc status is up-to-date;
-    (d) SHA256SUMS.json is git-tracked.
+    (a) git status lists no .tsv; (b) EVERY snapshot TSV has a git-tracked DVC
+    pointer that parses as YAML with a non-empty outs[0].md5; (c) dvc status is
+    up-to-date for all of them; (d) SHA256SUMS.json is git-tracked.
+
+    (b) and (c) previously named a SINGLE pointer, `data/raw/drugbank.dvc`, which
+    this repository has never produced: the snapshot is tracked as one pointer
+    PER FILE under `data/raw/drugbank/`. The assertion was a correct check
+    pointed at the wrong subject, and it failed for the whole life of the
+    three-pointer layout while saying "T4 has not run". The population is now
+    DISCOVERED from git rather than named, and the expected set is DERIVED from
+    ds.SNAPSHOT_FILES, so adding a fourth snapshot file cannot leave it unchecked
+    and an empty discovery fails closed instead of passing vacuously.
     """
     import subprocess
 
@@ -304,24 +313,32 @@ def test_t4_dvc_pointer_tracks_the_snapshot():
     ).stdout
     assert not [line for line in porcelain.splitlines() if line.endswith(".tsv")]
 
-    # (b)
-    pointer = PROJECT_ROOT / "data" / "raw" / "drugbank.dvc"
-    assert pointer.is_file(), "T4 has not run: data/raw/drugbank.dvc is absent"
-    doc = yaml.safe_load(pointer.read_text())
-    assert doc["outs"][0]["md5"]
-    assert (
-        subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "data/raw/drugbank.dvc"],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            check=False,
-        ).returncode
-        == 0
+    # (b) — discover the tracked pointers; do NOT name one.
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--", "data/raw/drugbank"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    pointers = sorted(rel for rel in listed.split("\0") if rel.endswith(".dvc"))
+    assert pointers, (
+        "T4 has not run: git tracks no *.dvc pointer under data/raw/drugbank/ "
+        "— discovery found nothing, which is a FAILURE, not an empty population"
     )
+
+    # Derived, not constant: every snapshot file must have its own pointer.
+    assert {Path(rel).name for rel in pointers} == {
+        f"{name}.dvc" for name in ds.SNAPSHOT_FILES
+    }, f"tracked pointers {pointers} do not cover ds.SNAPSHOT_FILES {ds.SNAPSHOT_FILES}"
+
+    for rel in pointers:
+        doc = yaml.safe_load((PROJECT_ROOT / rel).read_text())
+        assert doc["outs"][0]["md5"], f"{rel} carries no outs[0].md5"
 
     # (c)
     status = subprocess.run(
-        ["dvc", "status", "data/raw/drugbank.dvc"],
+        ["dvc", "status", *pointers],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
