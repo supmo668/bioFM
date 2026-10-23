@@ -5,6 +5,7 @@
 **Author of record:** the principal (ratifies under the T8 pattern).
 **Drafted by:** biofm/matthew-mo/cto, from `workstreams/lung-on-chipsim/qgr/stage1-closure.md`.
 **Status:** **RATIFIED 2026-10-20** (principal, verbatim: "approved"), after §4's re-derivation was run and its failure corrected in §4 below. Earlier: content approved 2026-10-18.
+**AMENDMENT RATIFIED 2026-10-23** (principal, verbatim: "Ratify instance 11 only, hold 12 and 13"), covering the §3.6 admission of instance 11 and the §3.5 narrowing. **Scope ruled to ONE instance:** two further instances were measured and offered the same day and were **deliberately NOT admitted** — approvals rows 42 and 43 hold them. §3.3 publishes a floor, so the enumeration below understates the measured population by two **by ruling, not by omission**, on the same scope discipline row 37 applied.
 **Superseded status line:** §4's own rule
 requires every figure re-derived and the pin updated at the moment of ratification. Venue (§7) still open.
 
@@ -15,9 +16,9 @@ reversible — the same treatment the agent gave a principal ruling it received 
 (approval-log row 29). If any selection below is not what was chosen, say so and it is reverted.
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
-**Pinned to:** `bb5d699` (bioFM `main`) for this note's own text, **RE-PINNED 2026-10-23** at the
-amendment that admitted instance 11 (§3.6) and narrowed §3.5's claim; the previous pin was ~~`d578274`~~,
-set at ratification. Each measured claim below is pinned to the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
+**Pinned to:** `59a5210` (bioFM `main`) for this note's own text, **RE-PINNED 2026-10-23 AT THE AMENDMENT'S
+RATIFICATION**, as §4 requires; the previous pins were ~~`d578274`~~ (set at the original ratification) and
+~~`bb5d699`~~ (set at the amendment). Each measured claim below is pinned to the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
 re-derives every figure and updates it. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
 
@@ -317,6 +318,42 @@ matching `route-distribution-d578274.json` exactly. The amendment that added ins
 the *decision text* of two rows in the revision table and **no route cell**, so the category counts
 cannot have moved. **That a re-derivation reproduces is a result, not a formality** — it is what the
 rule is for, and the previous run failing is what makes this run worth stating.
+
+**RE-DERIVED A THIRD TIME AT THE AMENDMENT'S RATIFICATION (2026-10-23, `59a5210`), as §4 requires — and
+THREE OF THE FOUR FIGURES REPRODUCE, INCLUDING ONE THIS NOTE HAD RECORDED AS IRREPRODUCIBLE.** Measured
+by structural parse of the revision table — a pipe row whose first cell is a bare integer — not by a
+line-anchored pattern, for the reason §3.6 gives:
+
+| | published | **at ratification (`59a5210`)** | result |
+|---|---|---|---|
+| numbered revisions | 74 | **74** | reproduces |
+| total data rows | 78 | **78** | reproduces |
+| unclassified | 12 | **12** | **reproduces, and derived directly** |
+| standing-delegation | 47 | **not recoverable from the log** | bounded, see below |
+
+**This run is a stronger test than the last one, because the corpus moved underneath it.** The approval
+log *was* edited between the amendment and this ratification — `e574e79` amended A1 and A2 in place
+across two rows of this very table — and the counts held anyway. They held for a checkable reason: that
+edit rewrote *decision text* and **no route cell and no row boundary**, so neither a count of rows nor a
+distribution over routes could have moved. A re-derivation that survives an intervening edit, for a
+stated reason, is worth more than one over a frozen corpus.
+
+**The 12 unclassified reproduce by DIRECT derivation, which closes half the gap recorded below.** A raw
+count of the route column gives exactly **eleven** rows reading `principal (same grill; "Over and out")
+folded by the CTO` and exactly **one** reading `CTO signature (principal approval 2026-10-04 "approve
+all")` — 11 + 1 = **12**, matching the published figure without needing the classification instrument at
+all.
+
+**The standing-delegation figure of 47 is now BOUNDED rather than merely unverifiable, and it still does
+not reproduce.** A direct count of the route column gives **45** cells reading exactly
+`standing-delegation`, and **51** cells that mention `standing` or `delegat` at all — the difference
+being six compound cells such as `principal + standing-delegation` and `CTO correction, agent-raised
+(#502); standing-delegation`. **47 lies strictly between 45 and 51.** So the published figure is an
+output of the ordered first-match-wins instrument that absorbs *some* compound cells and not others, and
+**which two it absorbs cannot be determined from the corpus.** Reconstructing them by guesswork was
+available and is **declined on this note's own grounds**: inferring an instrument's behaviour from the
+answer it produced is verification against the thing changed rather than the property claimed. The datum
+published here is the bound and the reason, not a recovered 47.
 
 **One limit on that re-derivation, stated rather than glossed.** The structural figures (74 / 78) were
 re-measured directly. The category figures (**47** standing-delegation, **12** unclassified) were
