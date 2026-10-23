@@ -104,6 +104,20 @@
       "section": "build",
       "granularity": "L1 — Review",
       "synced": "2026-10-14"
+    },
+    "stage1-closure-2026-10-18.md": {
+      "notion": "https://app.notion.com/p/3fd749bd250d813eb8a0ec7daa09e8f2",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-20"
+    },
+    "reconciliation-decision-2026-10-20.md": {
+      "notion": "https://app.notion.com/p/3ff749bd250d818b8efffdff038613b6",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-20"
     }
   }
 }

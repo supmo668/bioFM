@@ -23,7 +23,7 @@
 3. **A failure-mode taxonomy from auditing our own trust core.** Every defect found (7 in `tools/referee`, plus the 0.57–0.60 audit findings) shares one shape: *a mechanism reports success while the property it exists to guarantee is absent.* Each entry gives the symptom, why it passed review, and the regression test that now pins it, plus a named comp-bio analogue (benchmark leakage, silent QC skip, unlogged model identity; cf. the perturb-seq-eval review).
 4. **Worked experiment (BioSim):** `BioSimEnv` as an aviary Environment; ESM-2 650M over UniProt proinsulin; 2,090 substitutions; disulfide cysteines at −13.02 vs −5.85 elsewhere; an agent that took 66 measurements and ran C-peptide controls unprompted. Claimed **as reported by that run**, reproduced where the artifacts allow (§4), and labelled where they do not.
 
-**May NOT claim:** measured self-improvement; CoreWeave compute; end-to-end budget enforcement (never run, per `SUBMISSION.md:75`); any biology beyond what `science/out/` and the run trace support; anything from `.v2r/run-record-*.yaml` (see §3).
+**May NOT claim:** measured self-improvement; CoreWeave compute; end-to-end budget enforcement (never run, per `SUBMISSION.md:75`); any biology beyond what `science/out/` and the run trace support; anything from the **live** `.v2r/run-record-*.yaml` (see §3). **[AMENDED 2026-10-15 — A7-7 / routed finding D9, principal ruling *"Amend the spec to admit the recovered-record class"*, applied by the CTO.]** The blanket prohibition is narrowed: a **recovered record** — a worktree COPY, not the live directory — **may** be claimed from, under the conditions in §3a.
 
 ## 3. Evidence-integrity finding (must appear in the paper's limitations)
 
@@ -31,9 +31,41 @@ The on-disk `.v2r/` state is **not drain 1.** `dashboard/seed_demo_run.py` wrote
 
 **Consequences:**
 - Drain-1 evidence is git history: the skeleton commit + the close commits `28af3c4` (U-001) … `2e00aa3` (U-006), `docs/drain-1-notes.md`, the six instinct files, and any recoverable Weave traces (project `<your-wandb-entity>/Aviary-BioSim`).
-- The paper reports drain 1 as **"reconstructed from version control; the register-written run record was lost"**, not as a verified record.
+- The paper reports drain 1 as **"reconstructed from version control"**, not as a verified record. **[AMENDED 2026-10-15 — A7-7 / D9.]** The clause "the register-written run record was lost" is **superseded**: a copy was subsequently recovered from a separate worktree. The original text is kept here rather than deleted, because it was true when written and the paper's own thesis is about claims that outlive their evidence.
 - **Also:** the cache read path for sequences had no integrity check when the published numbers were computed (F31, private row). The paper states this under reproducibility.
 - **Fix (build item B1):** the seeder must refuse to write into a live `.v2r/` (use a separate fixture dir, or refuse when a real register exists). This is itself a taxonomy entry: the paper's own evidence nearly failed the paper's own thesis.
+
+## 3a. The recovered-record class (amendment, 2026-10-15 — A7-7 / routed finding D9)
+
+**Why this exists.** §2 forbade claiming anything from `.v2r/run-record-*.yaml` and §3 stated the
+register-written record "was lost". Both were written when that was the known state. A copy of a
+drain-1 record was later recovered from a separate worktree, and the paper claimed from it under a
+carefully qualified label. The A7 rigour review found the paper and the spec in disagreement **and
+judged the paper the more honest of the two**. The principal ruled, 2026-10-15, that *the spec gives
+way, not the paper*: the evidence changed, so the pre-registration changes, in writing and in the
+open, rather than the claim being quietly dropped or quietly kept.
+
+**The admitted class.** A **recovered record** may be claimed from when ALL of the following hold,
+each stated in the paper beside the claim:
+
+1. It is a **copy from a separate worktree**, never the live `.v2r/` directory the loop and the
+   seeder both write to. The live directory stays forbidden — that prohibition is unchanged.
+2. Its **pre-claim chain is verified against history**: every recorded pre-claim commit is exactly
+   the parent of that task's close commit.
+3. Its **recorded register digest matches** the register file beside it.
+4. **Write-time provenance is NOT established, and the paper says so.** A later reconstruction
+   writing both files would satisfy 2 and 3 equally; the tool's own provenance check predates the
+   record's format and reports it unverified; and the tool is itself the artifact under study.
+
+**The mandatory label.** Claims from this class carry, verbatim: *recovered record; pre-claim chain
+verified; write-time provenance not established* — and the pass itself is labelled *reconstructed
+from version control*. The label is not optional and may not be softened; it is the reason the class
+is admissible at all.
+
+**What this does NOT license.** It does not admit the seeded fixture, anything from the live
+directory, or any pass-to-pass improvement claim — D5's prohibition on measured self-improvement is
+untouched. It admits exactly one thing: counts whose chain checks out, labelled as unprovenanced in
+time.
 
 ## 4. Build + analysis work (aviary-biosim agent)
 

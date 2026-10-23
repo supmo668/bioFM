@@ -34,3 +34,5 @@ the ref is not merged into the trunk.
 
 **Effect.** `/pr-cto-land` Step 11.1 becomes performable by the role the skill assigns it to, and
 the merged-branch list stops growing by one per land.
+
+**Status:** resolved in airdlc v0.86.0 (maintainer, #612) — fixed, but NOT as this entry proposed. **This entry's premise was wrong:** it claimed lines 388-392 already guarded by refspec. They matched only the literal `main`/`origin/main`, so `feat:main`, `HEAD:main`, `refs/heads/main`, `--all` and `--mirror` all reached the trunk from any branch, and deleting line 393 alone would also have allowed `push origin HEAD` from the trunk. The guard now runs git's own `push --dry-run --porcelain` and refuses any destination of `refs/heads/<trunk>`; a deletion is allowed only for a branch proved merged on the remote, failing closed when that cannot be checked. `push origin --delete <merged>` now works from the trunk. Nine bypasses of the maintainer's first parser are pinned in tests.

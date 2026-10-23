@@ -449,120 +449,44 @@ this **before** running the bundle upload:
 
 Commit the updated `paper.tex` + `paper.pdf` before continuing to §5.
 
-### 6.5 Updating an already-published paper 🔧🤖
+### 6.5 Updating an already-published paper — **RETIRED 2026-10-15, DO NOT USE** 🚫
 
-Once a paper is live on any venue you may discover defects (see 2026-04-23
-`paper.pdf` authorship patch; v0.4.0 → v0.4.1). The class of change
-determines what's cheap to push and what forces a new DOI.
+**The recipes that used to live here are forbidden.** They scripted a Zenodo
+`newversion` against `publish.state.json`'s deposit id, a Figshare file
+delete-and-replace inside article `32086920`, and an OSF delete-and-re-upload
+through Waterbutler. **The principal ruled on 2026-10-15, verbatim: *"New
+standalone records on both venues"*** — a published record is **never** mutated.
+No `newversion`, no metadata edit on a published article, no file deletion, no
+re-upload.
 
-| Change class | Example | API-driven? | Creates a new DOI? |
-|---|---|---|---|
-| Text (body, references, figures inside PDF) | authorship fix, typo, new result | Zenodo ❌ / Figshare ✅ / OSF ✅ | **Zenodo yes** (concept DOI stable); Figshare no (internal versions); OSF no (file replace) |
-| Bib-file hygiene (orphan removal only) | no visible change in compiled PDF | All ❌ — do not re-upload | — |
-| Metadata (related-ID, subject, keyword) | add a cross-reference | All ✅ | No |
+The executable recipes were **removed from this page rather than annotated**,
+deliberately. A runbook is skimmed and pasted, so a warning above a working
+command is not a guard — the command is the hazard. They remain in git history
+(`git log -p -- research/PUBLISHING_RUNBOOK.md`) if anyone needs to see what was
+once prescribed; nothing is lost.
 
-**Zenodo — create a new version** (the only flow that mints a new DOI):
+**What to do instead.** Deposit the new version as a **new standalone record** on
+each venue, carrying `isNewVersionOf` to the superseded DOI, and say in the record's
+notes why the version chain breaks. The implementation is
+`projects/perturb-seq-eval/scripts/publish/submit_to_venues.py`, which now enforces
+this in code rather than by instruction:
 
-```bash
-set -a; source .env; set +a
-python3 <<'PY'
-import os, requests, datetime, json
-t = os.environ['ZENODO_TOKEN']
-h = {'Authorization': f'Bearer {t}'}
-current_id = json.load(open('projects/perturb-seq-eval/publish.state.json'))['zenodo']['deposit_id']
-base = f'https://zenodo.org/api/deposit/depositions/{current_id}'
+| Guard | What it refuses |
+|---|---|
+| `PublishedRecordError` | touching a published record at all |
+| superseded-id deny-list | the known old ids on Zenodo, Figshare and OSF, even if a state file is hand-seeded |
+| `DraftRequiredError` | publishing in the same run that created the draft — the two-gos rule, enforced mechanically |
+| `DraftMismatchError` | a same-name file whose content changed since the draft was created |
 
-# 1. Fork the current version → new draft with the metadata copied in.
-r = requests.post(f'{base}/actions/newversion', headers=h, timeout=60); r.raise_for_status()
-draft_url = r.json()['links']['latest_draft']
-new_id = draft_url.rsplit('/',1)[-1]
+Each release gets **its own state file** (`state_file:` in `publish.yml`;
+`publish.state.v060.json` for v0.6.0). `publish.state.json` is the v0.5.x record
+and is **never written again** — so the references to it elsewhere on this page
+(§5, §6.3, §8, §9) describe the v0.5.x history, not a file to update.
 
-# 2. Delete the stale file from the new draft's bucket, upload the replacement.
-d = requests.get(draft_url, headers=h).json()
-bucket = d['links']['bucket']
-for f in d['files']:
-    if f['filename'] == 'paper.pdf':
-        requests.delete(f"{draft_url}/files/{f['id']}", headers=h)
-with open('projects/perturb-seq-eval/paper/paper.pdf','rb') as fh:
-    requests.put(f'{bucket}/paper.pdf', headers=h, data=fh.read())
+**Known defect on this page, left for whoever edits it next:** the heading `6.5`
+is used twice — once for Research Square above, once here. Renumber when this
+section is next rewritten.
 
-# 3. publication_date is a required field on new versions.
-meta = requests.get(draft_url, headers=h).json()['metadata']
-meta['publication_date'] = datetime.date.today().isoformat()
-requests.put(draft_url, headers={**h,'Content-Type':'application/json'},
-             json={'metadata': meta})
-
-# 4. Publish. Concept DOI 10.5281/zenodo.19716140 auto-redirects to the new
-#    record; update publish.state.json.zenodo.deposit_id / doi.
-out = requests.post(f'{draft_url}/actions/publish', headers=h).json()
-print('new record DOI:', out['doi'], 'concept DOI:', out.get('conceptdoi'))
-PY
-```
-
-**Figshare — replace file in place** (DOI unchanged):
-
-```bash
-python3 <<'PY'
-import os, requests, hashlib
-t = os.environ['FIGSHARE_TOKEN']
-h = {'Authorization': f'token {t}'}
-art = 'https://api.figshare.com/v2/account/articles/32086920'
-pdf = open('projects/perturb-seq-eval/paper/paper.pdf','rb').read()
-md5 = hashlib.md5(pdf).hexdigest(); size = len(pdf)
-
-# 1. Find + delete the old paper.pdf.
-cur = next(f for f in requests.get(art, headers=h).json()['files']
-            if f['name']=='paper.pdf')
-requests.delete(f"{art}/files/{cur['id']}", headers=h)
-
-# 2. Upload replacement via register → chunked PUT → complete.
-reg = requests.post(f'{art}/files',
-                    headers={**h,'Content-Type':'application/json'},
-                    json={'name':'paper.pdf','size':size,'md5':md5}).json()
-fid = int(reg['location'].rsplit('/',1)[-1])
-info = requests.get(f'{art}/files/{fid}', headers=h).json()
-parts = requests.get(info['upload_url'], headers=h).json()['parts']
-for p in parts:
-    requests.put(f"{info['upload_url']}/{p['partNo']}",
-                 data=pdf[p['startOffset']:p['endOffset']+1], headers=h)
-requests.post(f'{art}/files/{fid}', headers=h)  # complete
-PY
-```
-
-**OSF — delete + re-upload via Waterbutler**:
-
-```bash
-python3 <<'PY'
-import os, requests
-t = os.environ['OSF_TOKEN']; h = {'Authorization': f'Bearer {t}'}
-proj = 'wmeuy'
-files_api = 'https://files.osf.io/v1'
-for f in requests.get(f'{files_api}/resources/{proj}/providers/osfstorage/', headers=h).json()['data']:
-    if f['attributes']['name'] == 'paper.pdf':
-        path = f['attributes']['path']
-        requests.delete(f"{files_api}/resources/{proj}/providers/osfstorage{path}", headers=h)
-requests.put(f'{files_api}/resources/{proj}/providers/osfstorage/?kind=file&name=paper.pdf',
-             headers=h, data=open('projects/perturb-seq-eval/paper/paper.pdf','rb').read())
-PY
-```
-
-#### Manual-only venue updates 👤
-
-For every web-form venue there is **no replace-file API** — updates are
-full resubmits. Use this matrix:
-
-| Venue | Portal | How to update | Turnaround |
-|---|---|---|---|
-| **bioRxiv** | <https://submit.biorxiv.org> | Log in → find manuscript → **Submit revised manuscript** button → upload new PDF + source → new version attached to same DOI | 24–48 h re-screening |
-| **arXiv** | <https://arxiv.org/submit> (via [your account](https://arxiv.org/user/)) | Manuscript page → **Replace** → upload new tarball → new version (v2, v3…) keeps arXiv ID, appends version | usually < 12 h |
-| **Preprints.org** | <https://www.preprints.org/user> | Manuscript dashboard → **Submit revision** → upload + brief revision note → new version | ≤ 24 h |
-| **Research Square** (via SN In Review) | <https://www.researchsquare.com> | Manuscript page → **Update preprint** → upload new PDF | 48 h |
-| **SSRN** | <https://hq.ssrn.com/> | My Papers → select paper → **Edit My Paper** → **Replace Full Text** → upload | 2–5 d |
-| **HAL** | <https://hal.science> | User dashboard → deposit → **Add a new version** | 1–3 d |
-
-Rule of thumb: any body-text change propagates to every venue. A
-metadata-only change (e.g. new related-ID, author correction) can
-usually be made inline without a new version — check per-venue.
 
 ## 7. Post-publication 🤖
 
