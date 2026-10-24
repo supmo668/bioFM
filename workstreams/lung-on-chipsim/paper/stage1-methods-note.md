@@ -6,6 +6,12 @@
 **Drafted by:** biofm/matthew-mo/cto, from `workstreams/lung-on-chipsim/qgr/stage1-closure.md`.
 **Status:** **RATIFIED 2026-10-20** (principal, verbatim: "approved"), after §4's re-derivation was run and its failure corrected in §4 below. Earlier: content approved 2026-10-18.
 **AMENDMENT RATIFIED 2026-10-23** (principal, verbatim: "Ratify instance 11 only, hold 12 and 13"), covering the §3.6 admission of instance 11 and the §3.5 narrowing. **Scope ruled to ONE instance:** two further instances were measured and offered the same day and were **deliberately NOT admitted** — approvals rows 42 and 43 hold them. §3.3 publishes a floor, so the enumeration below understates the measured population by two **by ruling, not by omission**, on the same scope discipline row 37 applied.
+**SECOND AMENDMENT RATIFIED 2026-10-24** (principal, 1B1 grill, four recorded rounds): three instances
+admitted at **§3.7** completing the instrument-failure taxonomy; one further occurrence recorded at
+**§3.6** as a *recurrence* and deliberately **not numbered**; a **third check** added; and §4's single
+pin **split in two**. Scope was expanded from the one-instance discipline of rows 37 and 45 **on an
+explicit ground**: these three are not three tally marks but one coherent set, and published together
+they argue something that drip-feeding them could not.
 **Superseded status line:** §4's own rule
 requires every figure re-derived and the pin updated at the moment of ratification. Venue (§7) still open.
 
@@ -16,9 +22,15 @@ reversible — the same treatment the agent gave a principal ruling it received 
 (approval-log row 29). If any selection below is not what was chosen, say so and it is reverted.
 **Draft due:** 2026-10-17 (row 65). **This draft: 2026-10-18 — one day late.**
 
-**Pinned to:** `59a5210` (bioFM `main`) for this note's own text, **RE-PINNED 2026-10-23 AT THE AMENDMENT'S
-RATIFICATION**, as §4 requires; the previous pins were ~~`d578274`~~ (set at the original ratification) and
-~~`bb5d699`~~ (set at the amendment). Each measured claim below is pinned to the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
+**TWO PINS, split 2026-10-24 — because one line was doing two jobs.** §4's own rule is to *"pin its
+measurements to a revision **of that process**"*, and this note previously carried a single pin covering
+both its prose and figures measured over a different artifact. They move independently:
+
+- **This note's own text:** `a38f161` (bioFM `main`), re-pinned at this amendment. Previous pins
+  ~~`d578274`~~ → ~~`bb5d699`~~ → ~~`59a5210`~~.
+- **§4's figures:** the approval log at **`e574e79`**, its last content-changing revision. **Unchanged by
+  this amendment**, which is the point of separating them — a prose-only edit must not move a pin that
+  implies the figures were re-measured. Each measured claim below is pinned to the revision named beside it. **This pin is stale by construction** — see §7 item 6: ratification
 re-derives every figure and updates it. Per §4, **every figure in this note must be re-derived at the
 moment of ratification, and the pin updated**, or the note commits the defect it documents.
 
@@ -28,8 +40,8 @@ moment of ratification, and the pin updated**, or the note commits the defect it
 
 > **A fix is verified against the thing that was changed, not against the property the claim names.**
 
-**At least eleven** instances were recorded, dated, with named authorship — nine over four quality-gate
-rounds on one branch between 2026-09-29 and 2026-10-02, a tenth dated 2026-10-08 (§3.2) and an eleventh dated 2026-10-23 (§3.6). The
+**At least fourteen** instances were recorded, dated, with named authorship — nine over four quality-gate
+rounds on one branch between 2026-09-29 and 2026-10-02, a tenth dated 2026-10-08 (§3.2), an eleventh dated 2026-10-23 (§3.6), and **three more dated 2026-10-23/24 (§3.7)** which together complete a taxonomy of how an instrument can be wrong. A **fifteenth occurrence is recorded but deliberately NOT numbered** — it is a *recurrence* of §3.6's own published check rather than a new mechanism, and §3.7 explains why that distinction is the finding. The
 enumeration is a **floor, not a count** (§3.3): discovery here is reader-dependent, so the honest claim
 is *at least* this many. The interesting property is not the count. It is that
 **repair is one of the mechanism's vectors**: fixing an instance is itself an occasion for the next
@@ -73,6 +85,9 @@ mechanism.
 | 9 | gate 9 | — | `exit=0` after a pipe to `tail` | the exit status of the *suite*, which had been killed at 82% | reproduced one message later |
 | **10** | **2026-10-08** | the repair commit `d271d80` itself | that the three named failures were fixed, and that the invocation no longer names two files | that the suite is run **whole**, and green | admitted 2026-10-18 (§3.2) |
 | **11** | **2026-10-23** | the **instrument**, not a repair — a line-anchored key regex over an inline flow-style YAML file | *that the pattern found nothing* (both parties, independently) | that the property the pattern stands for is absent — a **public-source citation** in one reading, a **name–structure pairing** in the other | admitted 2026-10-23 (§3.6) |
+| **12** | **2026-10-23** | the **instrument** — a CSV row filter keyed on a column name present in neither file | *that no row carried a verdict* | that the verdict column is empty — and **the printed answer was CORRECT**, from a measurement of nothing | admitted 2026-10-24 (§3.7) |
+| **13** | **2026-10-23** | a **done-condition assertion** naming a single `.dvc` pointer path the three-pointer layout has never produced | *that the named path was absent* | that the task had not run — **blaming the wrong party, loudly**, while part (d) of the same function used the correct path | admitted 2026-10-24 (§3.7) |
+| **14** | **2026-10-23** | the **instrument** — a blob comparison run against ONE commit for all thirteen files instead of each file's own | *that eight files differed* | that eight pages had drifted — a figure that **matched a stale expectation already in hand**, so agreement supplied the confidence | admitted 2026-10-24 (§3.7) |
 
 Instances 1–6 are quoted from `paper/stage1-limitations.md` (pinned `ae894db`, measured 2026-09-29);
 7–9 from `qgr/stage1-closure.md` (pinned `af17cd2`).
@@ -293,6 +308,81 @@ re-measurement. Reproducible without either disclosure: parse the file at
 against line-anchored keys. **This is the first instance in this note with two independent authors**, and
 the first where the floor rose because an instrument — not a reader — was wrong.
 
+**AMENDED 2026-10-24 — THIS CHECK WAS PUBLISHED AND THEN DID NOT FIRE, and the author is who it did not
+fire for.** Within hours of this section being written, its own author ran an over-specified literature
+query, received **zero**, and read that zero as absence — the precise failure this check's last sentence
+forbids. The minimal form of the same query returned **thirteen**. The occurrence is **deliberately not
+numbered** among the instances above, because it is not a new mechanism: it is a *recurrence* of the
+mechanism already described here, and what is new is that **a correct, published, specific check made no
+difference to the person who wrote it.** That observation is general rather than local — it applies to
+§3.5 equally — so it is argued in **§3.7** rather than here, and this paragraph exists so a reader of
+§3.6 learns that the check below has a known miss rate of at least one, by its own author, on the day it
+was published.
+
+### 3.7 ADMITTED 2026-10-24 — three instances that complete the taxonomy, and the check that neither §3.5 nor §3.6 could be
+
+**What the first two checks have in common, and why it is a limit rather than a feature.** §3.5 is
+addressed at a *sentence*: name your subject so a reader can ask *"about what?"*. §3.6 is addressed at a
+*tool*: for a structured file, parse the structure. **Both require that something prompt a look.** §3.5
+needs a reader to interrogate the claim; §3.6 needs an author to doubt an empty result. Each is sound
+where that prompt exists. The three instances below are the cases where **nothing prompted anything.**
+
+**Instance 12 — the instrument measured nothing and returned the right answer.** Verifying the P-gp
+adjudication state, the lung-on-chipsim agent filtered rows on a column name present in **neither** the
+five-column tracked file nor the nine-column working copy. `csv.DictReader.get` returned `None` for all
+twenty-six rows, every row filtered out, and the instrument printed *"verdicts typed: 0"*. **That answer
+was true.** Re-derived with the key asserted present before counting: twenty-six rows, zero non-blank
+verdicts, on both files. The conclusion survives; the measurement that produced it did not exist.
+**Instances 1–11 all leave a discrepancy a careful reader can hit. This one leaves none** — the output
+is indistinguishable from a real measurement, so no downstream reader, review or test can ever catch it.
+Only the instrument's own precondition assertion can.
+
+**Instance 13 — the instrument failed loudly and blamed the wrong party.** A done-condition asserted a
+single `data/raw/drugbank.dvc` pointer. The layout tracks **three** per-file pointers under
+`data/raw/drugbank/`, and the glob matches nothing, so the named path has never existed in this layout.
+The assertion therefore failed for the layout's entire life while printing *"T4 has not run: …
+is absent"* — **wrong subject and wrong party**, and part (d) of the same function already used the
+correct directory, so the two halves of one test disagreed with each other. It is the only instance in
+this note that is **not silent**, which is why it needed admitting: a loud failure whose message
+misdirects is not caught by being loud. It stayed invisible for a second reason that belongs to the
+measurer rather than the test — the selector in routine use **deselected it**, and §3.5's check cannot
+help, because the assertion *did* name its subject explicitly. It named one that was not there.
+**Standing lesson: a test excluded by the measurer is in the same epistemic state as a test that passes
+vacuously.**
+
+**Instance 14 — the instrument was wrong and agreed with me.** Measuring whether thirteen mirrored pages
+had drifted, the CTO compared every page against **one** commit — the last to touch the first file —
+rather than against each page's own pre-sync commit, and obtained *"five identical, eight differ"*. The
+figure **eight matched a stale count already in hand**, so the wrong instrument *confirmed an
+expectation* and felt like verification. Re-run per file against each page's own pre-sync commit:
+**thirteen identical, zero differ** — the entire drift report was false positives. This is the most
+dangerous member of the family and the reason is not subtlety: **a result that contradicts you invites a
+second look, and a result that agrees with you removes the only prompt the first two checks depend on.**
+
+> **The third check, addressed at the measurement rather than the sentence or the tool.** *Assert the
+> instrument's preconditions, and distrust agreement.* Before believing an output, establish that the
+> thing measured **exists** — the key, the path, the population — because a measurement of an absent
+> subject still returns a value, and that value can be correct by coincidence. And give a result that
+> **confirms** your expectation no less scrutiny than one that contradicts it: re-derive it by an
+> independent route. The first two checks fire when something looks wrong. This one has to fire when
+> nothing does.
+
+**And the claim this section exists to make, which is about enforcement rather than method.** §3.6's
+check is correct, specific, and was published hours before its own author committed the defect it names
+(§3.6, amended 2026-10-24). §3.5's check could not reach instance 13 although it was written for exactly
+that shape. **A check that lives in prose does not run.** The operative form, first stated by the
+lung-on-chipsim agent and adopted here: *naming a defect class does not inoculate the next instrument;
+only an assertion that fires does.* Every instance in this note was caught by a probe, an assertion, or
+the next reader — **not one was caught by a passing suite, and not one was prevented by a published
+rule.** That is a finding about this note's own utility, and publishing it is the only honest response to
+having written three checks in two days and then needed all three.
+
+**Disposition and provenance.** All three instances are disclosed in the approval log — 12 at row 42, 13
+at row 43, 14 at row 40 — with their re-derivations. Each is reproducible from its row without this
+section. Two are the CTO's (13's selector cause and 14 entirely) and one is the lung-on-chipsim agent's
+(12), self-disclosed within the hour. The unnumbered recurrence is the CTO's and is recorded at §3.6 and
+in row 49.
+
 ## 4. The contribution: an artifact that measures its own approval process must pin and re-derive
 
 Stage 1's declared novel contribution was a measurement **of its own approval log** — the route
@@ -354,6 +444,16 @@ output of the ordered first-match-wins instrument that absorbs *some* compound c
 available and is **declined on this note's own grounds**: inferring an instrument's behaviour from the
 answer it produced is verification against the thing changed rather than the property claimed. The datum
 published here is the bound and the reason, not a recovered 47.
+
+**RE-DERIVED A FOURTH TIME AT THE 2026-10-24 AMENDMENT, and it reproduced — but this run is WEAKER
+EVIDENCE than the last one and the difference is worth naming.** Measured structurally at `a38f161`:
+numbered revisions **74**, total data rows **78**, unclassified **12** (eleven *same-grill* cells plus
+one *CTO-signature* cell, derived directly), and the standing-delegation figure bounded at **45** exact /
+**51** mentioning as before. **The approval log did not change between the previous pin and this one.**
+So unlike the 2026-10-23 run — which held *despite* `e574e79` editing two rows of this very table, for a
+checkable reason — this run is over a frozen corpus and is therefore **a formality rather than a test**.
+A re-derivation reported without saying whether its corpus moved is a number without its conditions,
+which is what §4 exists to prevent; so the condition is stated instead of the reassurance.
 
 **One limit on that re-derivation, stated rather than glossed.** The structural figures (74 / 78) were
 re-measured directly. The category figures (**47** standing-delegation, **12** unclassified) were
