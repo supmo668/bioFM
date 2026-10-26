@@ -153,6 +153,71 @@ Also note the guard's own weakness: `> 0` would certify "usable" on **groups of 
 ADR-0002's ~20 points/group and the ≥30-point veto. That is a bare floor in the flag that certifies
 your work, and it is recorded (approvals row 48 discussion) rather than silently relied on.
 
+## RATIFICATION SHEET — all 26 in worksheet row order, for accept-or-override
+
+**This is a recommendation column, not a verdict column.** Nothing here has been written to any file.
+The tracked projection remains blank in all four human-owned columns, verified at the time of writing.
+Accept a row, override it, or ask for the full text behind it.
+
+| # | compound | CTO recommendation | basis, in one line |
+|---|---|---|---|
+| 1 | Aclidinium | `unknown` | searched; no substrate determination found |
+| 2 | Formoterol | `unknown` | named as an **OCT1** substrate, not P-gp |
+| 3 | Procaterol | `unknown` | effectively no literature |
+| 4 | Bitolterol | `unknown` | effectively no literature |
+| 5 | Triamcinolone | `unknown` | **not** among the corticosteroids Crowe 2012 assayed |
+| 6 | Salmeterol | `unknown` | OCT1, not P-gp |
+| 7 | Isoetarine | `unknown` | no literature |
+| **8** | **Beclomethasone** | **`yes`** — RULED 2026-10-26 | Caco-2 ER **3.3**, highest inhaled steroid measured. Admitted by the AMENDED criterion: Crowe 2012 is a **60-citation** single source. Assay is on the **dipropionate** |
+| 9 | Dyphylline | `unknown` | no determination found |
+| 10 | Tiotropium | `unknown` | **0 hits** at minimal query |
+| 11 | Roflumilast | `unknown` | 3 hits, no concurrence |
+| 12 | Salbutamol | `unknown` | OCT1, not P-gp |
+| 13 | Ipratropium bromide | `unknown` | efflux ratio >4 measured, attributed to an apical **OCT** |
+| 14 | Indacaterol | `unknown` | effectively no literature |
+| 15 | Nedocromil | `unknown` | 33 hits, none a substrate determination |
+| 16 | Amlexanox | `unknown` | **0 hits** at minimal query |
+| 17 | Clenbuterol | `unknown` | 2 hits |
+| 18 | Montelukast | `unknown` | it is the **CYP2C8** probe in a validated cocktail; digoxin is the P-gp probe |
+| 19 | Epinephrine | `unknown` | endogenous catecholamine; OCT/NET/VMAT literature |
+| **20** | **Budesonide** | **`yes`** — RULED 2026-10-26 | two concurring sources, **both off-tissue** (Caco-2 intestine; mouse placenta). Accepted on the platform-agnostic criterion, tissue limitation recorded |
+| 21 | Pirbuterol | `unknown` | effectively no literature |
+| **22** | **Fluticasone propionate** | **`unknown`** — RULED 2026-10-26, **as an OVERRIDE of the amended rule** | The amended rule points to `yes` (Crowe outcites Zaidi 20:1; ER 2.3 above threshold). Held `unknown` because the in-vivo result **contradicts** it — fetus/plasma 0.87, not restricted, significantly higher than budesonide's 0.38 in the same experiment |
+| **23** | **Flunisolide** | **`yes`** — RULED 2026-10-26 | ONE paper, accepted because its **internal replication** satisfies the bar: transfected +ve control in the canonical direction, untransfected −ve control, three specific inhibitors, two localisation methods, mass spec |
+| 24 | Terbutaline | `unknown` | classed among **paracellularly** transported compounds in an intestinal model |
+| 25 | Theophylline | `unknown` | large literature, dominated by CYP1A2 metabolism |
+| 26 | Ibudilast | `unknown` | **0 hits** at minimal query |
+
+### ADJUDICATED 2026-10-26 — final distribution: `yes` = 3, `no` = 0, `unknown` = 23
+
+**THE CRITERION WAS AMENDED MID-ADJUDICATION**, in the principal's words: *"in general, resolve to the
+more well-cited source. adjust criteria such that 1 source that's well-cited can be accepted as well."*
+This supersedes the 2026-10-23 multi-source bar in two respects — a conflict resolves to the
+better-cited source, and a single **well-cited** source can carry a verdict. Citation counts were then
+**measured**, because "well-cited" had become load-bearing: **Crowe 2012 = 60 citations (4.1/yr);
+Zaidi 2019 = 3 (0.4/yr)** — a 20:1 ratio.
+
+**The amendment flipped a row nobody had asked about, and it was put back to the principal rather than
+applied silently.** Row 8 was `unknown` *solely* because Crowe was a single source; a 60-citation single
+source is precisely what the amendment admits. Ruled `yes`, on the stated ground that applying a
+criterion where it is inconvenient as well as where it is convenient is what keeps it a criterion.
+
+**And the amendment pointed the opposite way on row 22 from the principal's own instruction.** Crowe
+outcites Zaidi 20:1 and gives fluticasone ER 2.3, above threshold — the mechanical rule says `yes`. The
+principal had said `unknown`. The tension was surfaced rather than resolved quietly, and `unknown`
+stands **as an override of the amended rule, not an application of it.** Both now sit side by side in
+the record, which is the only way a later reader can tell which did the work.
+
+**WHAT THE AMENDMENT DOES NOT FIX.** `pgp_groups_usable` needs `yes > 0 AND no > 0`. Loosening the
+`yes` bar took `yes` from 2 to 3 and left **`no` at zero**. Crowe's only sub-threshold compounds
+(hydrocortisone, aldosterone) are not on this roster, and its conclusion about inhaled corticosteroids
+is **comparative**, not a per-compound `no`. **The flag returns false and T15 raises on an empty
+group** — the measured outcome of this literature, consistent with the aptness finding, and **not** a
+reason to invent a `no`.
+
+**Nothing on this page has been written to any file.** The tracked projection remains blank in all four
+human-owned columns. T14's rule holds: the determinations are the principal's, and so is the entry.
+
 ## Options
 
 | option | does | rules out | then what |
