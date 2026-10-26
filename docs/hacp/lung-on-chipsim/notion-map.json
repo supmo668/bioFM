@@ -1,7 +1,7 @@
 {
  "project": "lung-on-chipsim",
  "source_of_truth": "notion",
- "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped. The index row carries the AIRDLC entry table and nothing else (principal, 2026-10-14): measured state, the timeline and the decision history live on status-and-history.md. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md §HACP.",
+ "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped. The index row is NAVIGATION ONLY, carrying the inline membership database and NO hand-maintained entry table (principal, 2026-10-26, superseding the 2026-10-14 wording which mandated the table and forbade it in the same sentence): measured state, the timeline and the decision history live on status-and-history.md. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md §HACP.",
  "index_row": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
  "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
  "automation": {
@@ -19,7 +19,7 @@
    "kind": "Index",
    "section": "vision",
    "granularity": "L1 — Review",
-   "synced": "2026-10-15",
+   "synced": "2026-10-26",
    "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
   },
   "status-and-history.md": {
@@ -144,7 +144,7 @@
   },
   "pgp-verdicts-2026-10-24.md": {
    "notion": "https://app.notion.com/p/403749bd250d81b298eef63cdeb36eaa",
-   "synced": "2026-10-24"
+   "synced": "2026-10-26"
   }
  },
  "notes": {
