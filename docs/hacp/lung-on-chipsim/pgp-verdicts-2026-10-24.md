@@ -44,10 +44,21 @@ the decision, and it should not be resolved by quietly loosening a criterion.*
 The repository knowledge graph is dated **2026-09-18** at `81bee6d5`, **five weeks stale** against
 `e264484`. It was not used. **No figure on this page comes from it.**
 
-**THE GROUPING VARIABLE MAY BE BIOLOGICALLY INAPT FOR THIS TISSUE.** Four independent sources concur
-that P-gp is largely absent from human airway epithelium, which is the bar *you* set at
-`build-plan.md:1576` — *"Delete ONLY on positive evidence of absence from airway epithelium. Silence is
-not evidence."* UniProt silence did not meet it. This does:
+## THE CITED LIMITATION — one limitation, four strands, and it is the whole of it
+
+> **Restructured 2026-10-26 by principal ruling (item 2): row 48 stands as written, and row 50's C11
+> is folded INTO this limitation rather than promoted to a headline finding.** It previously sat as a
+> peer heading, which read as a second, independent discovery. It is not one — it is the same
+> limitation seen from the membrane side.
+
+**THE LIMITATION.** *The pre-registered M5 grouping variable — P-gp substrate status — may be
+biologically inapt for airway epithelium, so a coverage result grouped on it characterises the
+**method** and not lung P-gp biology.* Everything below is evidence for that one sentence. The
+limitation is cited, carried, and **does not reopen the axis.**
+
+**Strand 1 — P-gp is largely absent from the tissue.** This is the bar set at `build-plan.md:1576`:
+*"Delete ONLY on positive evidence of absence from airway epithelium. Silence is not evidence."*
+UniProt silence did not meet it. These four, concurring, do:
 
 | fact | source |
 |---|---|
@@ -56,21 +67,30 @@ not evidence."* UniProt silence did not meet it. This does:
 | Even in Calu-3, data *"do not support an exclusive role of MDR1"* in digoxin efflux | Hutter 2014, `10.1016/j.ejpb.2013.06.010` |
 | In-vitro respiratory models possess **"nominal"** functional P-gp activity (title claim) | Mádlová 2009, `10.1211/jpp.61.03.0003` |
 
-**AND WHERE IT IS PRESENT, IT FACES THE WRONG WAY.** In Calu-3 — the *only* airway model with
-functional P-gp — MDR1-Pgp localises to the **basolateral** membrane by Western blot and confocal, so
-it pumps **absorptively** rather than effluxing apically (Florea 2001, `10.1038/sj.bjp.0704390`).
-**Efflux-direction reasoning imported from intestinal or blood-brain-barrier models does not transfer.**
+**Strand 2 — and in the one model that has it, it faces the wrong way** *(row 50's C11, folded in
+here because it is the same limitation and not a separate one)*. In Calu-3 — the only airway model
+with functional P-gp per strand 1 — MDR1-Pgp localises to the **basolateral** membrane by Western blot
+and confocal, so it pumps **absorptively** rather than effluxing apically (Florea 2001,
+`10.1038/sj.bjp.0704390`). Efflux-direction reasoning imported from intestinal or blood-brain-barrier
+models does not transfer. **Strands 1 and 2 are one fact in two parts:** the transporter is nearly
+absent, and where present it is inverted relative to the barrier geometry a lung-on-chip assumes.
 
-**THE TRANSPORTER THAT ACTUALLY GOVERNS THIS CLASS HERE IS OCT1.** β2-agonists are *"specific substrates
-and inhibitors of OCT1 in human respiratory epithelial cells"* (Salomon 2015, `10.1021/mp500854e`);
-ipratropium's measured efflux ratio >4 is attributed to an apical OCT, with absorption *"primarily
-governed by paracellular passive diffusion"* (Panduga 2017, `10.1016/j.ijpharm.2017.08.112`). More than
-half the roster are organic cations.
+**Strand 3 — a different transporter governs this compound class here.** β2-agonists are *"specific
+substrates and inhibitors of OCT1 in human respiratory epithelial cells"* (Salomon 2015,
+`10.1021/mp500854e`); ipratropium's measured efflux ratio >4 is attributed to an apical OCT, with
+absorption *"primarily governed by paracellular passive diffusion"* (Panduga 2017,
+`10.1016/j.ijpharm.2017.08.112`). More than half the roster are organic cations. **This is stated as
+part of the limitation, not as a proposed replacement axis** — switching to OCT1 was declined at row 48.
 
-**THE ONE SOURCE SUPPORTING A P-gp AXIS FOR INHALED DRUGS IS A PREDICTION.** Price 2017
+**Strand 4 — the one source that supports a P-gp axis for inhaled drugs is a prediction.** Price 2017
 (`10.1007/s11095-017-2220-5`): eight marketed inhaled drugs were ***predicted*** to display P-gp
 dependent pulmonary disposition, by QSAR. The sibling workstream's own failure mode **F1** is *"a
 predicted number read as a measured one."*
+
+**What the deliverable must carry when M5 is written:** this limitation as a single cited statement
+with all four strands, in the voice above. Not four findings. Not a headline about membrane
+orientation. And **no full-text re-read is required first** — principal ruling item 3, declined
+explicitly, on the basis that the gap is already published and no re-read can populate a `no` group.
 
 **You already ruled on this** (approvals row 48): keep the pre-registered axis, carry the finding as a
 cited limitation, and accept that **the coverage claim will be about the method, not about lung P-gp
