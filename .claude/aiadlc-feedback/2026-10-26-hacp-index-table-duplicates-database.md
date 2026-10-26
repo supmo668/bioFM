@@ -91,6 +91,45 @@ and it is the kind of check that cannot be satisfied vacuously, because an empty
 
 ---
 
+## 🟠 3. An anchored-edit tool silently cannot reach a whole class of Notion blocks, and the failure looks like a bad anchor
+
+**File:** the Notion connector's `notion-update-page` `update_content` path, as used by every HACP
+write in `skills/` (e.g. `hacp-decision-surface`)
+
+**Symptom.** Four failed edits in one session against Notion **tables** — twice on one page's table,
+once against rendered `<b>` output, once against a mirror reworded relative to its source. Paragraphs,
+headings and callouts on the same pages matched first time. The operator read it as "my anchor was
+slightly wrong" and retried, four times.
+
+**Root cause.** `update_content` matches **text**; a Notion table is **block-structured**, so neither
+its rows nor the table as a whole has a text anchor to match. The anchor cannot exist. The tool
+reports a miss, which is indistinguishable from a typo'd anchor, so the operator retries instead of
+switching strategy.
+
+**Fix.** Two parts, both small. (a) In the HACP surface skills, state that **tables, databases and
+other block-structured content are not reachable by text anchor** — amend by replacing the
+surrounding prose and strike the block, or hand the deletion to a human in the UI. (b) Where the
+connector can tell that the requested anchor lies inside a non-text block, say so — *"anchor falls
+inside a block-structured element; not reachable by text match"* — rather than returning a generic
+no-match.
+
+**Effect.** The next operator spends one attempt, not four, and learns the real constraint instead of
+doubting their own anchor.
+
+**Related, and the reason not to reach for the whole-page route:** `replace_content` is not the
+escape hatch it looks like. `notion://docs/enhanced-markdown-spec` is explicit that
+`<database url="…">` is an **imperative, not a reference** — *"including it here will MOVE that
+database into the current page"* — and that a linked view requires `data-source-url` instead. This
+project's index row reads back with `url=` on both embeds, so re-emitting the body **moves** the
+canonical membership database and dropping the tag **removes** it. `<page>` carries the same hazard
+("removing that `<page>` tag … will REMOVE that child page"). A whole-page rewrite is therefore not a
+safe fallback for an unreachable block, and the skills should say that where an agent will look for a
+workaround.
+
+**Status:** open
+
+---
+
 ## Provenance
 
 Found while a principal ruled *"'AIRDLC index' should not exist in project index .tables should not
