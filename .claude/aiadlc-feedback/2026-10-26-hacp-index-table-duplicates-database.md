@@ -130,6 +130,54 @@ workaround.
 
 ---
 
+## 🔴 4. The Notion connector serves TWO markdown specs that disagree, and following the wrong one writes literal markup onto a human review surface
+
+**File:** the Notion connector's documentation resources, consumed by every HACP write
+(`skills/hacp-decision-surface`, and anything calling `notion-update-page`)
+
+**Symptom.** Two agents each quoted a markdown spec verbatim and accurately, reached different
+conclusions about the same tag, and each found the other's citation unsupported. One could not resolve
+the other's URI at all. Both resources exist:
+
+    notion://docs/enhanced-markdown-spec        → "Enhanced Markdown Specification"
+    notion://docs/notion-flavored-markdown-spec → "Notion-flavored Markdown Specification"
+
+**Root cause.** They are different dialects for the same connector, and nothing says which governs.
+Measured differences on constructs the HACP skills actually emit:
+
+| construct | Enhanced spec | Notion-flavored spec |
+|---|---|---|
+| mention | `<mention-page url=…>`, `<mention-database url=…>` | `<mention url=… />`, `type="database"` |
+| toggle | `<details><summary>…</summary></details>` | `<toggle heading="h1…h4">` |
+| media attribute | `<pdf src=…>`, `<video src=…>` | `<pdf source=…>`, `<video source=…>` |
+| empty line | `<empty-block/>` | `<p />` |
+| `<database>` hazard | re-emitting an existing `url=` **moves** the database | `<page>`'s rules: **omission** deletes when `allow_deleting_content` is true, else errors |
+| other HTML | not addressed | *"Never write other HTML tags (e.g. `<div>`, `<details>` …); they are saved as **literal text**"* |
+
+**The last two rows are the damaging ones.** The Enhanced spec *prescribes* `<details>` for toggles;
+the Notion-flavored spec names `<details>` as a tag saved as **literal text**. An agent following the
+wrong spec gets no error — it gets visible raw markup on a page a human reviews. The
+`hacp-decision-surface` skill already warns that *"raw `<strong>`/`<em>` inside table cells render as
+visible markup"*; that trap is plausibly **this**, diagnosed as a formatting quirk rather than as two
+specs.
+
+**How to tell which governs, since the docs do not say:** read the dialect back off a real page. The
+page in finding 1 emits bare `<mention url="…" />` — the Notion-flavored form, absent from the
+Enhanced spec. **The readback is the authority; the resource listing is not.**
+
+**Fix.** (a) Have the connector serve **one** spec, or state on each which implementation it
+describes and which is current. (b) Until then, the HACP skills should say: *determine the dialect by
+fetching the target page and reading its own markup back, not by fetching a spec.* (c) `docs-plan
+probe` is the natural place to record the detected dialect once per session, next to the connector
+health it already records.
+
+**Effect.** Two agents reading "the spec" converge instead of diverging, and a wrong-dialect write
+fails loudly instead of shipping literal tags to a reviewer.
+
+**Status:** open
+
+---
+
 ## Provenance
 
 Found while a principal ruled *"'AIRDLC index' should not exist in project index .tables should not
