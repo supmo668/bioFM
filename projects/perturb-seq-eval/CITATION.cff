@@ -63,6 +63,14 @@ license: "Apache-2.0"
 #                next version of Figshare 32086920 (principal D-1 = B, 2026-10-16).
 # v6 (23422745): v0.6.0, published 2026-10-16 — the pre-registered study; supersedes v0.5.x in full.
 #                Same release published as Figshare 32086920 version 6.
+#                CROSS-LINKED 2026-10-25: a metadata-only edit added
+#                `isIdenticalTo 10.6084/m9.figshare.32086920.v6` to this Zenodo record, so the two
+#                deposits now reference each other — Figshare v6 already carried the Zenodo concept
+#                DOI. Figshare was deliberately left untouched: republishing it would mint a v7 for a
+#                link that already exists. Applied and read back by the perturb-seq-eval agent
+#                (dispatch #734); DOI, version and the 5 file checksums unchanged, and no new Zenodo
+#                version was created. Not independently verified by the CTO, which holds no venue
+#                tokens.
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
@@ -73,7 +81,7 @@ identifiers:
     description: "Zenodo v6 (v0.6.0, published 2026-10-16; this release)"
   - type: doi
     value: "10.6084/m9.figshare.32086920.v6"
-    description: "Figshare article version 6 (v0.6.0, published 2026-10-16; same files as Zenodo v6)"
+    description: "Figshare article version 6 (v0.6.0, published 2026-10-16; same files as Zenodo v6; Zenodo v6 carries isIdenticalTo to this DOI since 2026-10-25)"
   - type: doi
     value: "10.5281/zenodo.20074427"
     description: "Zenodo v5 (v0.5.2; only paper.pdf differs from v0.5.1; the latest v0.5.x version)"

@@ -15,9 +15,22 @@
 | **Zenodo v2** (current paper.pdf with Mangyin Mo / CMU authorship) | ✅ published | DOI `10.5281/zenodo.19721470` | <https://zenodo.org/records/19721470> | 2026-04-23 |
 | **Zenodo v1** (superseded, anonymous-author placeholder) | ⚠ retained for provenance | DOI `10.5281/zenodo.19716141` | <https://zenodo.org/records/19716141> | 2026-04-23 |
 | **Figshare** | ✅ published | DOI `10.6084/m9.figshare.32086920` | <https://doi.org/10.6084/m9.figshare.32086920> · [figshare article](https://figshare.com/articles/preprint/Agent_Confidence_Entropy_as_an_Empirical_Difficulty_Oracle_for_Multi-Agent_Group_Generation_with_a_Bayesian_Pre-Test_for_Agentic_Hyperparameter_Tuning_on_Perturb-Seq_Experimental_Design/32086920) | 2026-04-23 |
-| **OSF BioHackrXiv** | ⏸ draft on OSF (unpublished) | project `wmeuy` · preprint `dhu4z_v1` | <https://osf.io/wmeuy/> · <https://osf.io/preprints/biohackrxiv/dhu4z_v1/> | 2026-04-23 (created) |
+| **OSF BioHackrXiv** | ❌ **DISMISSED by the principal, 2026-10-26** — never public, so there is nothing to supersede | project `wmeuy` (private) · preprint `dhu4z_v1` (unsubmitted draft: no primary file, no subjects, no DOI, `doi.org` 404) | <https://osf.io/wmeuy/> · <https://osf.io/preprints/biohackrxiv/dhu4z_v1/> | 2026-04-23 created · dismissed 2026-10-26 |
+| **Zenodo v6** (v0.6.0 — the pre-registered study) | ✅ published | DOI `10.5281/zenodo.23422745` | <https://doi.org/10.5281/zenodo.23422745> | 2026-10-16 |
+| **Figshare v6** (same release as Zenodo v6) | ✅ published | DOI `10.6084/m9.figshare.32086920.v6` | <https://doi.org/10.6084/m9.figshare.32086920.v6> | 2026-10-16 |
+| **Zenodo ↔ Figshare cross-link** | ✅ applied | metadata-only: Zenodo v6 gained `isIdenticalTo 10.6084/m9.figshare.32086920.v6`; Figshare v6 already carried the Zenodo concept DOI | — | 2026-10-25 |
 
-Two DOIs live, one OSF draft pending.
+**As of 2026-10-26: four DOIs live across two venues, cross-linked in both directions, and the OSF
+item is closed rather than pending.** The v0.5 rows above are retained for provenance. OSF is
+**dismissed** — the preprint was an unsubmitted BioHackrXiv draft and the project is private, so **no
+public OSF record ever existed** and there is no duplicate to reconcile.
+
+**Provenance of the three 2026-10-25/26 rows, stated because the CTO could not check them.** The
+cross-link was applied and read back by the perturb-seq-eval agent (dispatch #734), which reports the
+DOI, version and all five file checksums unchanged and no new Zenodo version minted; its token came
+via the Infisical CLI and was never printed. The OSF dismissal and the ORCID/Google Scholar
+completions are the **principal's**, reported in session on 2026-10-25/26. The CTO holds **no venue
+tokens** and did not attempt verification — a 403 or egress block is reported, never routed around.
 
 ### Post-publish remediation (2026-04-23 evening)
 
