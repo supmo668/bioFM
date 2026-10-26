@@ -549,20 +549,26 @@ def adjudicate_pgp_labels(
                 "without attribution cannot be audited."
             )
 
-    counts = values.value_counts()
-    for group in ("yes", "no"):
-        if counts.get(group, 0) == 0:
-            raise AdjudicationError(
-                f"{tracked} has an empty '{group}' group "
-                f"(counts: {counts.to_dict()}). The M5 grouping variable is unusable "
-                "with only one populated group (defect 24)."
-            )
-
     series = pd.Series(
         values.to_numpy(), index=frame["canonical_inchikey"], name="adjudicated_label"
     )
     series.index.name = "canonical_inchikey"
 
+    # PERSIST BEFORE THE USABILITY GATE (approvals row 58). This function answers TWO
+    # predicates whose safe directions are opposite: "is this adjudication well-formed and
+    # recorded?" must PERSIST AND REPORT, and "is this grouping usable for calibration?"
+    # must HALT. They used to be collapsed into one raise placed ABOVE this write, so the
+    # halt destroyed its own record: an unusable grouping raised, no parquet was written,
+    # and T17 — which reads this file, not the return value (build-plan.md:1970, defect 25)
+    # — had no source. The flag that exists to report an unusable grouping could therefore
+    # never be rendered in the only case where it would say so.
+    #
+    # Every other validation above still PRECEDES this write, so the parquet only ever
+    # lands on a record that is well-formed, fully adjudicated, in-domain and attributed.
+    # The write is NOT conditional on usability and the gate below still raises — a reader
+    # tells an unusable grouping from the artifact alone, via `pgp_groups_usable: false`
+    # in the rendered block. Do not reorder these two back, and do not make the write
+    # conditional: either change re-creates the suppression this ordering exists to fix.
     if parquet_out is not None:
         parquet_out = Path(parquet_out)
         parquet_out.parent.mkdir(parents=True, exist_ok=True)
@@ -573,6 +579,15 @@ def adjudicate_pgp_labels(
             relative_by_key.reindex(frame["canonical_inchikey"]).astype(bool).to_numpy()
         )
         out_frame.to_parquet(parquet_out, engine="pyarrow", version="2.6", compression=None)
+
+    counts = values.value_counts()
+    for group in ("yes", "no"):
+        if counts.get(group, 0) == 0:
+            raise AdjudicationError(
+                f"{tracked} has an empty '{group}' group "
+                f"(counts: {counts.to_dict()}). The M5 grouping variable is unusable "
+                "with only one populated group (defect 24)."
+            )
 
     return series
 

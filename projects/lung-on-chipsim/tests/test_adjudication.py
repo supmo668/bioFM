@@ -25,6 +25,7 @@ from chipsim.harmonize.adjudication import (
     WRITTEN_COLUMNS,
     AdjudicationError,
     adjudicate_pgp_labels,
+    read_pgp_label_frame,
     read_pgp_labels,
     write_adjudication_worksheet,
 )
@@ -372,6 +373,46 @@ def test_t15_single_populated_group_raises(tmp_path):
     """defect 24 — the M5 grouping variable is unusable with one group."""
     with pytest.raises(AdjudicationError, match="empty 'no' group"):
         adjudicate_pgp_labels(_tracked("single_group"), _compounds_for("single_group"))
+
+
+def test_t15_persists_the_parquet_even_though_the_usability_gate_raises(
+    tmp_path, provenance_fixture_path
+):
+    """approvals row 58 — the halt must not destroy its own record.
+
+    T15 answers two predicates with OPPOSITE safe directions: "is this adjudication
+    well-formed and recorded?" must persist and report, "is this grouping usable?" must
+    halt. They were collapsed into one raise placed ABOVE the parquet write, so an
+    unusable grouping raised and wrote nothing — and T17, which reads the parquet rather
+    than the return value (build-plan.md:1970, defect 25), had no source. The flag that
+    exists to report an unusable grouping could never be rendered in the only case where
+    it would say so.
+
+    This asserts BOTH halves, because either alone passes while the defect is present:
+    the gate still fires, AND the artifact survives it and reports `false`.
+    """
+    out = tmp_path / "pgp_labels.parquet"
+
+    with pytest.raises(AdjudicationError, match="empty 'no' group"):
+        adjudicate_pgp_labels(
+            _tracked("single_group"), _compounds_for("single_group"), parquet_out=out
+        )
+
+    assert out.is_file(), (
+        "the usability gate suppressed its own record — T17 reads this parquet, so a raise "
+        "that writes nothing leaves the unusable grouping unreportable"
+    )
+    frame = read_pgp_label_frame(out)
+    assert "stereo_is_relative" in frame.columns, "the flag T15 writes for T17 was dropped"
+
+    # label_counts is the project's own deriver, so the counts cannot disagree with the rows.
+    counts = label_counts(frame["adjudicated_label"])
+    assert counts["no"] == 0, f"fixture no longer exercises the empty-'no' case: {counts}"
+    assert counts["yes"] > 0, f"fixture must keep one group populated: {counts}"
+    assert pgp_groups_usable(counts) is False
+    assert "pgp_groups_usable: false" in render_data_provenance(
+        provenance_fixture_path, frame["adjudicated_label"], panel=None
+    )
 
 
 def test_t15_verdict_without_a_doi_raises(tmp_path):
