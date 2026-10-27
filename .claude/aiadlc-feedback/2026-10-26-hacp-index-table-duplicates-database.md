@@ -178,6 +178,47 @@ fails loudly instead of shipping literal tags to a reviewer.
 
 ---
 
+## 🟠 5. `tools/module-context` is `eval`-ed into a shell where `module_path` is a RESERVED zsh parameter
+
+**File:** `tools/module-context`, as consumed by `skills/pr-prep` step 2 (and any other skill using
+the same `eval` idiom)
+
+**Symptom.** `skills/pr-prep` documents:
+
+    eval "$(.../tools/module-context)"
+    # is_submodule, module_path, trunk, diff_base now set
+
+Run in this repo (non-submodule), the tool emits **only** `is_submodule=false`. Reading the other
+three afterwards under **zsh** gives:
+
+    module_path=/usr/lib/zsh/5.9     trunk=     diff_base=
+
+`module_path` is zsh's own reserved parameter for module loading — it was already set before the
+`eval` and the tool never touches it. Under `bash` the same call leaves it empty, so the behaviour
+differs by shell. This session's shell is zsh.
+
+**Root cause.** The tool communicates "not applicable" by **omitting** a variable, and the consumer
+reads it unconditionally out of the ambient environment. Omission is indistinguishable from
+"inherited from the shell" — and for this particular name the shell always has a value. A guard of
+the form `if [ -n "$module_path" ]` is therefore **true when it should be false**, and it points at a
+real, existing directory, so a path check downstream would not catch it either.
+
+**Not a live failure here**, stated so it is not over-read: `is_submodule=false` means `pr-prep` uses
+the parent diff and never reads `module_path`. The trap is latent, and it is in the error-free path
+of a tool used by every PR gate.
+
+**Fix.** Any of three, cheapest first: (a) have `module-context` **always** emit every key, with
+explicit empty values (`module_path=`), so omission never means "ask the shell"; (b) rename the
+variable to something unreserved (`aiadlc_module_path`); (c) in the consumer, derive everything from
+`is_submodule` and never read the others when it is false. (a) is one line in the tool and fixes
+every consumer at once.
+
+**Effect.** "Not applicable" stops being spelled the same way as "whatever your shell already had."
+
+**Status:** open
+
+---
+
 ## Provenance
 
 Found while a principal ruled *"'AIRDLC index' should not exist in project index .tables should not
