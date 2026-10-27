@@ -11,7 +11,7 @@
      no timelines, no decision history, no prose summaries of what a child page says. Content
      displaced from this page on 2026-10-14 lives in status-and-history.md. -->
 
-> **This page is navigation only — the AIRDLC table index for `lung-on-chipsim`.**
+> **This page is navigation only — the AIRDLC index for `lung-on-chipsim`.**
 > Every number, date, decision and open ask lives one click away, in the page that owns it.
 > Start at [Status, timeline & decision history](status-and-history.md) for where things stand,
 > or at [`§decision`](decision.md) for what is owed and by whom.
@@ -39,28 +39,20 @@ flowchart LR
   REL --> REL1["Publication & sandbox · L1"]:::l1
 ```
 
-## AIRDLC index
+## Membership
 
-| Phase | Entry | Layer | Holds | State |
-|---|---|---|---|---|
-| **vision** | [Vision 2026-10-14](vision-2026-10-14.md) | L1 | the principal's vision input, the objective it sets, the five deliverables | **current scope** · 2026-10-14 |
-| | [Status, timeline & decision history](status-and-history.md) | L1 | where the project stands, the measured status table, the week 0–7 timeline, 19 decisions taken | **new** · 2026-10-14 |
-| | [`§vision`](vision.md) | L2 | the PRD's one claim, the minimum viable chip, the three controls | current · 2026-09-28 |
-| **design** | [Methodology 2026-10-14](methodology-2026-10-14.md) | L1 | the research analysis, the refuted device-loss term, the transportability finding, the data audit | **new** · 2026-10-14 |
-| | [`§design`](design.md) | L2 | the A&D, the hash-locked decision record, four ADRs, eight divergences | current · 2026-09-28 |
-| **build** | [Stage 2 kickoff checklist](stage2-kickoff-checklist.md) | L1 | the pre-conditions in satisfiable order, week 0 → week 7 | 3 of 36 ticked · 2026-10-04 |
-| | [`§build`](build.md) | L2 | phases, where the code is, the human-owned ledger, what is in flight | renewed · 2026-10-04 |
-| | [`§experiment`](experiment.md) | L2 | the M1 input contracts, what each validator refuses, what is still a human's to write | updated · 2026-10-08 |
-| | [Product cut](../../../workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-walkthrough-product.md) | L1 | the one-pager for the principal: first real artifact, where the work stops, the risk worth naming | current · 2026-09-29 |
-| **eval** | [`§eval`](eval.md) | L2 | the measured suite, ten recorded gates, the pre-registered commitments, the power simulations | 2026-10-03 |
-| | [Paper walkthrough](../../../workstreams/_adhoc/lung-on-chipsim-paper.md) | L1 | the Stage 1 registered report read as a paper: the report that measured its own approval log | current · 2026-10-02 |
-| **risk** | [`§risk`](risk.md) | L2 | twelve gaps and the recurring defect family | 2026-10-03 |
-| **decision** | [`§decision`](decision.md) | L2 | **the build-phase unblock ledger** — what is owed, by whom, with acceptance checks | renewed · 2026-10-04 |
-| **release** | [Publication & sandbox](publication-and-sandbox.md) | L1 | the publication objective, deliverables D1–D5, the access-portal contract | **new** · 2026-10-14 |
+**The ChipSim index database on the Notion row is the ONLY membership surface** (principal ruling
+2026-10-26, relayed: *"'AIRDLC index' should not exist in project index. tables should not be used,
+only database"*). It carries each row's Kind, Section, Granularity, owner and review cadence, and it
+is what a reviewer filters. Superseded rows stay in it with `Status = Superseded`, which is how an
+absence is expressed — there is no hand-maintained list to keep in step with it.
 
-The **ChipSim index** database on the Notion row is the canonical membership surface: it carries
-each row's Kind, Section, Granularity, owner and review cadence, and it is what a reviewer filters.
-This table lists every **live** entry, ordered for reading; superseded rows and L2 detail reached
-only by maintenance stay in the database. One row is deliberately absent here: the Stage 1 draft
-materials (L2, superseded, preserved on `main`). Floor-to-Notion URLs and sync dates:
-[`notion-map.json`](notion-map.json).
+**A hand-maintained entry table used to sit here and was deleted 2026-10-26**, because it had
+silently stopped tracking the thing it duplicated. Measured before deleting: the index row's
+`Entries` relation carried **20** pages, the table listed **14**, one further absence was explained
+in prose, so **five were missing without any signal** — including both current decision surfaces and
+the page the principal was mid-ratification on. The page's `Updated` was nine days behind the
+entries. **A missing row has no date to be stale**, so the table's own freshness convention certified
+the survivors and said nothing about the gap.
+
+Floor-to-Notion URLs and sync dates: [`notion-map.json`](notion-map.json).

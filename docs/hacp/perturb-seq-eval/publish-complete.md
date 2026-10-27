@@ -36,7 +36,22 @@ Earlier versions stay reachable as the history of the same records: Zenodo v0.5.
 - Principal chose the bounded re-upload (CTO-recommended, #657): the one wedged file was deleted **from the private draft only** and re-uploaded once. Public v5 was read before and after — unchanged. The new file reached `available` with md5 `5b41a919…` = the local build.
 - Fresh pre-publish checks then passed; the permission classifier flagged the publish as a production deploy, and the principal allowed it.
 
-## Profile clean-up still owed (yours — I cannot do these)
+## Profile clean-up — RESOLVED 2026-10-26 (all three closed)
+
+> **This section is kept as written and marked resolved rather than deleted**, so a later reader sees
+> what was owed as well as what was done.
+>
+> - **OSF — DISMISSED.** The preprint `dhu4z_v1` is an unsubmitted BioHackrXiv draft (no primary file,
+>   no subjects, no DOI, `doi.org` 404) and project `wmeuy` is private, so **no public OSF record ever
+>   existed** and there was no duplicate to supersede. The recommended "create new version" below was
+>   therefore moot.
+> - **ORCID — DONE** by the principal: DataCite link, combined with Figshare, Zenodo set preferred.
+> - **Google Scholar — DONE** by the principal: manual entry, Journal = Zenodo, 2026/10/16.
+>
+> All three are the **principal's own actions**, reported in session 2026-10-25/26. The CTO holds no
+> venue tokens and verified none of them. Recorded at perturb-seq-eval approvals row 9.
+
+### What was owed (original text, superseded above)
 
 1. **OSF preprint `dhu4z_v1` / project `wmeuy`** — the only separate record of the v0.5 work. Recommended: *Edit → Create new version* with the v0.6.0 `paper.pdf` and a description line "Superseded by v0.6.0: https://doi.org/10.5281/zenodo.19716140". Alternatives: withdraw, or at least point project `wmeuy`'s description at the concept DOI.
 2. **ORCID** — in *Works*, set the v0.6.0 / concept-DOI entry as **preferred** in its group; hide older stand-alone entries.
