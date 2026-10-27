@@ -328,9 +328,9 @@ def test_t4_dvc_pointer_tracks_the_snapshot():
     )
 
     # Derived, not constant: every snapshot file must have its own pointer.
-    assert {Path(rel).name for rel in pointers} == {
-        f"{name}.dvc" for name in ds.SNAPSHOT_FILES
-    }, f"tracked pointers {pointers} do not cover ds.SNAPSHOT_FILES {ds.SNAPSHOT_FILES}"
+    assert {Path(rel).name for rel in pointers} == {f"{name}.dvc" for name in ds.SNAPSHOT_FILES}, (
+        f"tracked pointers {pointers} do not cover ds.SNAPSHOT_FILES {ds.SNAPSHOT_FILES}"
+    )
 
     for rel in pointers:
         doc = yaml.safe_load((PROJECT_ROOT / rel).read_text())
