@@ -11,11 +11,13 @@ on:
     paths:
       - "docs/hacp/**"
       - "scripts/hacp_linkcheck.py"
+      - "scripts/hacp_sync_check.py"
       - ".github/workflows/hacp-docs.yml"
   pull_request:
     paths:
       - "docs/hacp/**"
       - "scripts/hacp_linkcheck.py"
+      - "scripts/hacp_sync_check.py"
       - ".github/workflows/hacp-docs.yml"
   workflow_dispatch:
 
@@ -27,6 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The sync check reads each page's last commit date. A shallow clone holds one
+          # commit, so git log -1 returns THAT date for every file and the check reports
+          # the whole floor as edited today — it cannot pass. Full history or no check.
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v6
         with:
