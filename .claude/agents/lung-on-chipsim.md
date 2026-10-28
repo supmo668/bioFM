@@ -174,9 +174,9 @@ Key rules:
 1. `/design` — produce the A&D and the build plan.
 2. `/grill-me` — 1B1 with the human to plan-validity. The human's **"Over and
    out"** lock IS the **final human plan-review gate**; `/grill-me` records it
-   via `tools/plan-gate sign` and then runs `/coord-commit` + a CTO plan-ready
+   via `tools/plan-gate sign` and then runs `/context-commit` + a CTO plan-ready
    handoff dispatch.
-3. `/coord-commit` + CTO plan-ready handoff — commit the refined plan and
+3. `/context-commit` + CTO plan-ready handoff — commit the refined plan and
    `plan/plan-approval.md`, then dispatch the CTO.
 4. `/build` — executes only after `tools/plan-gate verify` exits 0. **The
    worktree agent NEVER starts `/build` without a human-approved plan.** The
