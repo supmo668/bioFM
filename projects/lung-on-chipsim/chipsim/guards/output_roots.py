@@ -53,6 +53,22 @@ class OutputRootError(RuntimeError):
     """A record-bearing writer was pointed at a destination outside the declared roots."""
 
 
+class NoWorkTreeError(OutputRootError):
+    """No git work tree could be established, so no record-bearing write is permitted.
+
+    REFUSES rather than falling back to the package tree (approvals row 67). The guard's safe
+    direction is refuse-when-unestablished — the same rule row 39 applied when unknown-format and
+    unparseable became NOT compliant — and r2.34 forbids one function answering "where is the work
+    tree" and "may I write here" with opposite safe directions. A non-editable wheel install has no
+    legitimate record-bearing write to perform, so refusing costs nothing real; and E-07's complaint
+    is that the roots ANCHOR to the installed package tree, which refusing satisfies.
+
+    A subclass of `OutputRootError` so every existing caller still catches it, and separately named
+    so "I cannot establish the tracked unit" is distinguishable from "that destination is outside
+    the roots" — two different remedies.
+    """
+
+
 #: Names that ARE tracked inside the otherwise-untracked roots, because `.gitignore` re-includes
 #: them (`!data/**/*.dvc`, `!data/**/.gitkeep`, `!data/processed/*.sha256`). The roots are
 #: "untracked" BY DIRECTORY; the ignore file makes that false BY SUFFIX, and writing the
@@ -61,6 +77,31 @@ class OutputRootError(RuntimeError):
 #: convention.
 _TRACKED_BY_NEGATION = (".dvc", ".sha256")
 _TRACKED_BY_NEGATION_NAMES = (".gitkeep",)
+
+
+def _work_tree_root(start: Path) -> Path | None:
+    """The git work-tree root at or above `start`, by PURE PATH WALK (approvals row 67).
+
+    NO SUBPROCESS, and that is a constraint rather than a style preference. The 2026-09-02 decision
+    rejected shelling out to git at runtime because a planted repository ran arbitrary commands
+    three times in the gate, and `journal.source_root`'s docstring records that git state is no
+    longer captured at all (CTO #44). A git-invoking anchor would reinstall that
+    arbitrary-execution sink INSIDE the security guard that exists to stop record leakage.
+
+    `.git` is accepted as a DIRECTORY or a FILE: it is a file in a linked worktree and in a
+    submodule, and this project is developed in worktrees, so treating only the directory case as
+    valid would make the guard refuse every write in the layout it is actually used in.
+
+    Returns None when no work tree can be established; the caller refuses rather than guessing.
+    """
+    for candidate in (start, *start.parents):
+        try:
+            marker = candidate / ".git"
+            if marker.is_dir() or marker.is_file():
+                return candidate
+        except OSError:
+            continue
+    return None
 
 
 def declared_output_roots() -> tuple[Path, ...]:
@@ -78,6 +119,15 @@ def declared_output_roots() -> tuple[Path, ...]:
     root, which is precisely the TMPDIR=<project> attack.
     """
     project = Path(source_root()).resolve()
+    work_tree = _work_tree_root(project)
+    if work_tree is None:
+        raise NoWorkTreeError(
+            f"no git work tree found at or above {project} — refusing every record-bearing write "
+            "rather than falling back to the installed package tree (approvals row 67). The "
+            "tracked unit IS the work tree; without it this guard cannot tell a tracked "
+            "destination from an untracked one, and an unestablished answer is not permission."
+        )
+
     roots = [(project / rel).resolve() for rel in DECLARED_OUTPUT_ROOTS]
 
     if os.environ.get("PYTEST_CURRENT_TEST"):
@@ -85,8 +135,14 @@ def declared_output_roots() -> tuple[Path, ...]:
             tmp = Path(tempfile.gettempdir()).resolve()
         except OSError:
             return tuple(roots)
-        overlaps = tmp == project or tmp in project.parents or project in tmp.parents
-        if not overlaps:
+        # OVERLAP IS TESTED AGAINST THE WORK TREE, NOT THE PROJECT DIRECTORY (approvals row 67).
+        # It used to compare against `project` (= the chipsim package's parent), so a temp root
+        # pointed at a TRACKED SIBLING of the project — `workstreams/`, `docs/` — was neither an
+        # ancestor nor a descendant of it and passed. Measured: PYTEST_CURRENT_TEST set plus
+        # TMPDIR at a tracked sibling and the guard ACCEPTED a write there. The invariant is
+        # "never a TRACKED path", and the tracked unit is the work tree.
+        inside_work_tree = tmp == work_tree or work_tree in tmp.parents or tmp in work_tree.parents
+        if not inside_work_tree:
             roots.append(tmp)
     return tuple(roots)
 

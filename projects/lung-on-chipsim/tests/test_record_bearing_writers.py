@@ -35,7 +35,9 @@ import pytest
 from chipsim.guards.output_roots import (
     DECLARED_OUTPUT_ROOTS,
     RECORD_BEARING_WRITERS,
+    NoWorkTreeError,
     OutputRootError,
+    _work_tree_root,
     declared_output_roots,
     refuse_unless_declared_output_root,
 )
@@ -119,10 +121,24 @@ def _call_writer(name: str, out: Path) -> None:
     )
 
 
-def test_the_registry_is_not_empty():
-    """Anti-vacuity. Every assertion below iterates the registry; an empty one asserts nothing."""
-    assert RECORD_BEARING_WRITERS, "RECORD_BEARING_WRITERS is empty — every test here is vacuous"
+def test_every_registry_entry_is_actually_exercised_by_this_file():
+    """Anti-vacuity, in a form that CAN fail.
+
+    This started as `assert RECORD_BEARING_WRITERS` and `ty` was right to reject it: the registry
+    is a two-element tuple LITERAL, so its truthiness is decided statically and the assertion could
+    never fail at runtime. A tautology written while removing tautologies — the fourth of the day,
+    and the type checker found this one.
+
+    The falsifiable property is that every entry is one `_call_writer` knows how to invoke: add a
+    writer to the registry without teaching this file to call it and the parametrized tests above
+    would otherwise report a pass for a writer nobody exercised.
+    """
     assert len(set(RECORD_BEARING_WRITERS)) == len(RECORD_BEARING_WRITERS), "duplicate entry"
+    for writer in RECORD_BEARING_WRITERS:
+        with pytest.raises((OutputRootError, TypeError, ValueError, KeyError)):
+            # A tracked destination, so a KNOWN writer refuses; an UNKNOWN one hits
+            # `_call_writer`'s own AssertionError, which is not in this tuple and so fails here.
+            _call_writer(writer, PROJECT_ROOT / "configs" / "FIXTURE_unexercised.parquet")
 
 
 @pytest.mark.parametrize("writer", RECORD_BEARING_WRITERS)
@@ -206,7 +222,9 @@ def test_the_exempt_list_is_itself_accounted_for():
 
 def test_the_declared_roots_are_relative_and_untracked_by_name():
     """The roots are the guard's whole allow-list; a tracked path among them voids everything."""
-    assert DECLARED_OUTPUT_ROOTS, "no declared output roots — the guard would refuse everything"
+    # `assert DECLARED_OUTPUT_ROOTS` was here and `ty` proved it always-true (a tuple literal).
+    # The per-root properties below are the ones that can fail, so the dead assertion is gone
+    # rather than silenced.
     for rel in DECLARED_OUTPUT_ROOTS:
         assert not Path(rel).is_absolute(), f"{rel} is absolute; roots are project-relative"
         assert not str(rel).startswith(".."), f"{rel} escapes the project"
@@ -246,6 +264,69 @@ def test_a_symlinked_destination_and_a_symlinked_ancestor_are_both_refused(tmp_p
     linked_dir.symlink_to(real_dir, target_is_directory=True)
     with pytest.raises(OutputRootError):
         refuse_unless_declared_output_root(linked_dir / "probe.csv")
+
+
+def test_the_temp_grant_is_withdrawn_when_tmpdir_is_a_TRACKED_SIBLING(monkeypatch):
+    """The measured bypass A1 closes (approvals row 67).
+
+    The overlap check used to compare against the chipsim package's parent, so a temp root at a
+    tracked SIBLING of the project — `workstreams/`, `docs/` — was neither its ancestor nor its
+    descendant and the grant stood. Proven at the time: `PYTEST_CURRENT_TEST` set plus `TMPDIR`
+    pointed at a tracked sibling, and the guard ACCEPTED a write there. The tracked unit is the
+    WORK TREE, which is what the check now uses.
+    """
+    monkeypatch.setenv("PYTEST_CURRENT_TEST", "registry-test")
+    work_tree = _work_tree_root(PROJECT_ROOT)
+    assert work_tree is not None, "no work tree — this test cannot establish its precondition"
+    sibling = work_tree / "workstreams"
+    assert sibling.is_dir(), f"{sibling} is not a directory — probe precondition failed"
+    # The hole only exists if the sibling is genuinely NOT inside the project directory, which is
+    # what made it invisible to the old project-anchored check. Asserted, because if the layout
+    # ever changes this test would otherwise still pass while exercising nothing.
+    assert PROJECT_ROOT not in sibling.parents and sibling != PROJECT_ROOT, (
+        f"{sibling} is inside {PROJECT_ROOT}, so it would have been caught by the OLD check too — "
+        "this test would no longer exercise the sibling hole"
+    )
+
+    monkeypatch.setenv("TMPDIR", str(sibling))
+    import tempfile as _tempfile
+
+    _tempfile.tempdir = None
+    try:
+        roots = declared_output_roots()
+        assert sibling.resolve() not in roots, (
+            f"{sibling} is a TRACKED sibling and became a declared output root via TMPDIR — this "
+            "is the hole A1 exists to close"
+        )
+        with pytest.raises(OutputRootError):
+            refuse_unless_declared_output_root(sibling / "FIXTURE_probe.csv")
+    finally:
+        _tempfile.tempdir = None
+        os.environ.pop("TMPDIR", None)
+
+
+def test_no_work_tree_REFUSES_rather_than_falling_back_to_the_package_tree(monkeypatch, tmp_path):
+    """The second A1 binding: an unestablished work tree is a refusal, not a fallback.
+
+    Simulated by pointing `source_root` at a directory with no `.git` at or above it, which is the
+    non-editable wheel layout. The old code would have anchored the roots at the package tree and
+    accepted writes relative to it.
+    """
+    import chipsim.guards.output_roots as mod
+
+    island = tmp_path / "no_git_here" / "site-packages" / "chipsim_parent"
+    island.mkdir(parents=True)
+    assert _work_tree_root(island) is None or tmp_path.parts[:2] == ("/", "private"), (
+        "precondition: the simulated island must have no work tree above it"
+    )
+    monkeypatch.setattr(mod, "source_root", lambda: island)
+    if _work_tree_root(island) is not None:
+        pytest.skip(
+            "the scratch directory itself sits inside a git work tree, so the no-work-tree case "
+            "cannot be simulated here — reported rather than passed vacuously"
+        )
+    with pytest.raises(NoWorkTreeError):
+        mod.declared_output_roots()
 
 
 def test_the_pytest_temp_grant_is_withdrawn_when_tmpdir_overlaps_the_project(monkeypatch):
