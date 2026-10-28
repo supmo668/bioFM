@@ -26,6 +26,8 @@ import pandas as pd
 import requests
 import yaml
 
+from chipsim.guards.output_roots import refuse_unless_declared_output_root
+
 #: The three files slice 1 consumes. `mapping.tsv.gz` and `pubchem-mapping.tsv`
 #: are consumed by no task here and arrive with the ChEMBL plan (minor note D).
 SNAPSHOT_FILES = ("drugbank.tsv", "drugbank-slim.tsv", "proteins.tsv")
@@ -507,7 +509,19 @@ def write_compounds(df: pd.DataFrame, out: Path) -> None:
     """Declared column order and dtypes, sorted by canonical_inchikey.
 
     pyarrow, version='2.6', compression=None.
+
+    REFUSES a destination outside the declared untracked roots, before creating any
+    directory (plan T5a; approvals row 65). `guards.output_roots` lists this function in
+    `RECORD_BEARING_WRITERS` as one that MUST route its destination through the helper, and
+    it did not: the registry named a guarded writer that was never guarded, so
+    `chipsim write --out configs/x.parquet` wrote accession + name + InChI + InChIKey on one
+    row into the tracked tree, plus a `.sha256` sidecar whose own suffix the guard refuses.
+    `_cmd_write` passes `ns.out` straight through and does NOT get a second check of its own —
+    the CLI inherits the refusal from here, so this is the only place it can live.
     """
+    out = Path(out)
+    refuse_unless_declared_output_root(out)
+
     missing = [c for c in PERSISTED_COMPOUND_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(
@@ -515,7 +529,6 @@ def write_compounds(df: pd.DataFrame, out: Path) -> None:
             "Run add_canonical_identity() (T5b) before write_compounds() (T5a)."
         )
 
-    out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
     frame = (
