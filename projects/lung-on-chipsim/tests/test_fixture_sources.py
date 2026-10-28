@@ -25,7 +25,10 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
+
+from chipsim.harmonize.roster import load_poc_roster
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_FIXTURES = PROJECT_ROOT / "tests" / "fixtures" / "snapshot"
@@ -213,14 +216,47 @@ def _survey() -> tuple[dict[Path, set[str]], dict[Path, list[tuple[str, dict, st
     parsed: dict[Path, list[tuple[str, dict, str]]] = {}
     closed: list[str] = []
     for path in sorted(_tracked_config_files()):
-        tokens = _scanned_tokens(path)
-        if not tokens:
+        # FORMAT AND READABILITY ARE CHECKED BEFORE THE SCAN, AND THE SCAN GATES NOTHING
+        # (approvals row 65). This loop used to open with `tokens = _scanned_tokens(path)` and
+        # `if not tokens: continue`, so the parser only ever ran where the regex had already
+        # fired — making the alarm the gate, in a file whose own header says "THE TEXT SCAN IS AN
+        # ALARM; THE PARSER IS THE INSTRUMENT. The scan ... never says 'this is fine'." In practice
+        # it said exactly that, by silence. Two measured escapes: a YAML line-continuation folded
+        # an identifier past the line-anchored regex, and a tracked `.csv.gz` carrying every
+        # identifier produced no token at all. Both reported 8 passed.
+        # EXEMPT BY MEASURED EMPTINESS, never by name. A zero-byte file PROVABLY carries no
+        # identifier, so this cannot become a hole: the moment anything is written into
+        # `configs/.gitkeep` it stops being empty and falls through to the checks below. A name
+        # allow-list would have exempted the file forever regardless of its contents, which is the
+        # shape of exemption this gate has already been bitten by twice.
+        try:
+            if path.stat().st_size == 0:
+                continue
+        except OSError as exc:
+            closed.append(f"{path.name}: cannot stat ({type(exc).__name__}) — NOT compliant")
             continue
-        scanned[path] = tokens
+
         parser = _PARSERS.get(path.suffix.lower())
         if parser is None:
-            closed.append(f"{path.name}: no structural parser for '{path.suffix}'")
+            closed.append(
+                f"{path.name}: no structural parser for '{path.suffix}' — an unreadable format is "
+                "NOT compliance, whether or not the text scan found anything in it"
+            )
             continue
+        try:
+            # STRICT utf-8, no errors="replace": "cannot read this as text" must not decay into
+            # "no structures here". That substitution is what let a gzip of the adjudication file
+            # pass as clean.
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError) as exc:
+            closed.append(
+                f"{path.name}: not readable as UTF-8 text ({type(exc).__name__}) — cannot be "
+                "checked, therefore NOT compliant"
+            )
+            continue
+        # Recorded for EVERY parseable file, including an empty set, so the per-file anti-vacuity
+        # comparison below covers files the scan is blind to rather than skipping them.
+        scanned[path] = set(_INCHIKEY.findall(text))
         try:
             parsed[path] = parser(path)
         # BLE001 is exempted deliberately: breadth IS the requirement. Whatever a parser
@@ -244,6 +280,36 @@ def test_every_structure_bearing_config_can_actually_be_parsed():
         "structure-bearing config(s) the gate cannot read: "
         + "; ".join(closed)
         + ". Add a structural parser, or the gate is asserting nothing about them."
+    )
+
+
+def test_the_configs_gate_actually_covers_the_roster_it_governs():
+    """ABSOLUTE anti-vacuity for the configs half (approvals row 65).
+
+    The per-file check below is genuinely derived, but it degenerates silently to ZERO FILES:
+    `scanned` empty => nothing compared => green. Measured: `git rm` the four structure-bearing
+    configs and all eight tests passed. `_tracked_config_files`' own `assert paths` only proves
+    *some* tracked file exists under `configs/`, not that any bears a structure.
+
+    The floor is DERIVED from the roster rather than written as a constant, so it cannot go stale
+    the way a bare `>= 100` would: every canonical key the PoC roster declares must be a structure
+    this gate actually parsed. A renamed column, a moved roster or a format change now fails here
+    instead of reporting compliance.
+    """
+    _, parsed, _ = _survey()
+    seen = {structure for structures in parsed.values() for structure, _, _ in structures}
+    frame = load_poc_roster(CONFIGS / "poc_compounds.yaml")
+    assert "canonical_inchikey" in frame.columns, (
+        "the roster loader returned no canonical_inchikey column — this floor would compare "
+        "against an empty set and assert nothing, which is the defect it exists to close"
+    )
+    roster = {str(k).strip() for k in frame["canonical_inchikey"]}
+    assert roster, "the PoC roster declares no keys — the floor itself would be vacuous"
+    missing = roster - seen
+    assert not missing, (
+        f"{len(missing)} of the roster's {len(roster)} canonical keys are not covered by the "
+        "configs identifier gate. The gate is asserting less than the project's own roster "
+        "declares, which is the state 'all eight tests pass over zero files' produced."
     )
 
 
@@ -293,19 +359,62 @@ def test_every_config_structure_has_checkable_provenance():
     )
 
 
-def test_cite_by_reference_terminates_in_an_adjacent_citation():
-    """The chain must not be circular: every vouching file is itself subject to this gate.
+def test_cite_by_reference_terminates_in_a_concrete_citation():
+    """The chain must not be circular: a structure satisfied BY REFERENCE ends at a real citation.
 
-    Asserted rather than assumed, because 'A is fine because B says so' is only worth anything
-    if B's claim is itself checked. Every citing structure is cited in its OWN mapping, so the
-    chain is one hop and terminates.
+    REWRITTEN (approvals row 65). The previous version could not fail. Both of its assertions were
+    tautologies: it compared `parsed`'s keys against a set built from `_tracked_config_files()` —
+    the same function `_survey` takes them from — and its inner assertion was implied by its own
+    guard, because `_cited_in_own_mapping` returns True only via a branch that makes one of the
+    disjuncts true. Blanking all 26 `evidence_doi` values in `poc_compounds.yaml` left it GREEN
+    with zero citations anywhere under `configs/`, while the provenance test correctly failed.
+
+    This asserts the property the docstring claimed instead: for every structure that is NOT cited
+    in its own mapping, the file that vouches for it must be one this gate actually surveyed, and
+    the vouching mapping must carry a concrete non-blank citation. The `key.endswith("inchikey")`
+    escape hatch is gone — it was what made the old assertion unfalsifiable.
     """
-    _, parsed, _ = _survey()
-    tracked = {p.resolve() for p in _tracked_config_files()}
+    scanned, parsed, _ = _survey()
+
+    #: structure -> the files whose own mapping cites it
+    vouchers: dict[str, list[Path]] = {}
     for path, structures in parsed.items():
-        assert path.resolve() in tracked, f"{path} vouches but is not tracked under configs/"
         for structure, mapping, key in structures:
             if _cited_in_own_mapping(mapping, key):
-                assert any(not _blankish(mapping.get(c)) for c in _CITATION_KEYS) or key.endswith(
-                    "inchikey"
-                ), f"{path.name}:{key} cites nothing concrete"
+                vouchers.setdefault(structure, []).append(path)
+
+    by_reference = [
+        (path, structure, key)
+        for path, structures in parsed.items()
+        for structure, mapping, key in structures
+        if not _cited_in_own_mapping(mapping, key) and structure in vouchers
+    ]
+
+    for path, structure, key in by_reference:
+        for voucher in vouchers[structure]:
+            assert voucher in scanned, (
+                f"{path.name}:{key} is satisfied by {voucher.name}, which this gate never "
+                "surveyed — a voucher outside the gate is an unchecked claim"
+            )
+            concrete = [
+                (mapping, vkey)
+                for vstructure, mapping, vkey in parsed[voucher]
+                if vstructure == structure and _cited_in_own_mapping(mapping, vkey)
+            ]
+            assert concrete, f"{voucher.name} was recorded as vouching for {key} but carries no row"
+            for mapping, vkey in concrete:
+                stem = vkey[: -len("inchikey")] if vkey.endswith("inchikey") else ""
+                keys = [f"{stem}{c}" for c in _CITATION_KEYS] + list(_CITATION_KEYS)
+                assert any(not _blankish(mapping.get(c)) for c in keys), (
+                    f"{voucher.name}:{vkey} vouches for {path.name}:{key} but cites nothing "
+                    "concrete — the chain does not terminate"
+                )
+
+    # Anti-vacuity: if nothing is satisfied by reference the loop above asserted nothing, and this
+    # test would pass on an empty tree exactly as its predecessor did.
+    if not by_reference:
+        pytest.skip(
+            "no structure under configs/ is currently satisfied BY REFERENCE (every one is cited "
+            "in its own mapping), so the chain property has nothing to check — reported as a skip "
+            "rather than passed, because a silent pass is what the rewritten test exists to stop"
+        )
