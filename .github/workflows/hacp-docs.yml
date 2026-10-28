@@ -12,12 +12,14 @@ on:
       - "docs/hacp/**"
       - "scripts/hacp_linkcheck.py"
       - "scripts/hacp_sync_check.py"
+      - "workstreams/**/approvals.md"
       - ".github/workflows/hacp-docs.yml"
   pull_request:
     paths:
       - "docs/hacp/**"
       - "scripts/hacp_linkcheck.py"
       - "scripts/hacp_sync_check.py"
+      - "workstreams/**/approvals.md"
       - ".github/workflows/hacp-docs.yml"
   workflow_dispatch:
 
@@ -49,3 +51,34 @@ jobs:
       # sync date recorded in its project's notion-map.json has drifted from its row.
       - name: Every ChipSim floor page matches its recorded Notion sync
         run: uv run python scripts/hacp_sync_check.py docs/hacp/lung-on-chipsim
+
+      # An approvals-only PR triggers this workflow (so a ruling PR carries a check), but the two
+      # checks above are repo-wide and would pass whatever the approvals diff said. A trigger whose
+      # check cannot fail on the thing being changed is a manufactured green light, so this step
+      # asserts the one property an approvals edit can actually break: row numbers are UNIQUE.
+      # DUPLICATES ONLY - a GAP is legitimate, because a row number is reserved when a worktree
+      # branch has already claimed it and its PR has not landed yet (lung 66, 2026-10-28).
+      - name: Approvals row numbers are unique within each workstream
+        run: |
+          uv run python - <<'PY'
+          import glob, pathlib, re, sys
+          bad = []
+          checked = 0
+          for f in sorted(glob.glob("workstreams/*/approvals.md")):
+              nums = re.findall(r"^\| (\d+) \|", pathlib.Path(f).read_text(encoding="utf-8"), re.M)
+              checked += len(nums)
+              seen, dupes = set(), []
+              for n in nums:
+                  if n in seen and n not in dupes:
+                      dupes.append(n)
+                  seen.add(n)
+              if dupes:
+                  bad.append(f"{f}: duplicate row number(s) {', '.join(dupes)}")
+          if not checked:
+              sys.exit("approvals-rows: parsed ZERO rows across all workstreams - the row pattern no "
+                       "longer matches the table, so this check proves nothing. Fix the pattern.")
+          if bad:
+              sys.exit("approvals-rows: " + "; ".join(bad))
+          print(f"approvals-rows: {checked} rows across "
+                f"{len(glob.glob('workstreams/*/approvals.md'))} workstream(s), no duplicates")
+          PY
