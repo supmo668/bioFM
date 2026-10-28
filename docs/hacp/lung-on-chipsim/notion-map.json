@@ -1,153 +1,153 @@
 {
- "project": "lung-on-chipsim",
- "source_of_truth": "notion",
- "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped. The index row is NAVIGATION ONLY, carrying the inline membership database and NO hand-maintained entry table (principal, 2026-10-26, superseding the 2026-10-14 wording which mandated the table and forbade it in the same sentence): measured state, the timeline and the decision history live on status-and-history.md. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md §HACP.",
- "index_row": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
- "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
- "automation": {
-  "kind": "Claude Code Routine (claude.ai → Routines)",
-  "name": "HACP sync — ChipSim review surface (Notion SoT ↔ bioFM floor)",
-  "routine_id": "trig_01XxSYo848sEf2iqWYjPkzee",
-  "cadence": "weekly, Monday 08:47 America/Los_Angeles (CRON_TZ=America/Los_Angeles 47 8 * * 1)",
-  "enabled": "2026-10-04 by the principal (\"keep review surface synced to notion HACP\"; \"enable without permission\")",
-  "behaviour": "per page: Notion wins / floor wins / conflict (report only) by comparing the Notion Updated time and the page's last commit date against `synced`; never writes a biological number or an identifier pairing; runs hacp_linkcheck.py and hacp_sync_check.py before pushing",
-  "ci_guard": ".github/workflows/hacp-docs.yml runs scripts/hacp_sync_check.py on every push and pull request that touches docs/hacp/"
- },
- "pages": {
-  "index.md": {
-   "notion": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
-   "kind": "Index",
-   "section": "vision",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-26",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+  "project": "lung-on-chipsim",
+  "source_of_truth": "notion",
+  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03). Each floor page below mirrors its row; a page edited after its `synced` date fails scripts/hacp_sync_check.py until it is re-mirrored and `synced` is bumped. The index row is NAVIGATION ONLY, carrying the inline membership database and NO hand-maintained entry table (principal, 2026-10-26, superseding the 2026-10-14 wording which mandated the table and forbade it in the same sentence): measured state, the timeline and the decision history live on status-and-history.md. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md §HACP.",
+  "index_row": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
+  "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
+  "automation": {
+    "kind": "Claude Code Routine (claude.ai → Routines)",
+    "name": "HACP sync — ChipSim review surface (Notion SoT ↔ bioFM floor)",
+    "routine_id": "trig_01XxSYo848sEf2iqWYjPkzee",
+    "cadence": "weekly, Monday 08:47 America/Los_Angeles (CRON_TZ=America/Los_Angeles 47 8 * * 1)",
+    "enabled": "2026-10-04 by the principal (\"keep review surface synced to notion HACP\"; \"enable without permission\")",
+    "behaviour": "per page: Notion wins / floor wins / conflict (report only) by comparing the Notion Updated time and the page's last commit date against `synced`; never writes a biological number or an identifier pairing; runs hacp_linkcheck.py and hacp_sync_check.py before pushing",
+    "ci_guard": ".github/workflows/hacp-docs.yml runs scripts/hacp_sync_check.py on every push and pull request that touches docs/hacp/"
   },
-  "status-and-history.md": {
-   "notion": "https://app.notion.com/p/3f9749bd250d81c49744ed5ee2cfa314",
-   "kind": "Presentation",
-   "section": "vision",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+  "pages": {
+    "index.md": {
+      "notion": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
+      "kind": "Index",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-27",
+      "synced_basis": "Re-mirrored 2026-10-27: the Notion paragraph still read \"is being removed\" in the present progressive after the table was already gone. Fetched the row with an instrument first CONFIRMED to render table blocks (a control page returned three <table> blocks), found no table block on this row, corrected the tense on Notion and recorded the re-verification here. Read back after writing: no table block, both inline databases and every mention intact."
+    },
+    "status-and-history.md": {
+      "notion": "https://app.notion.com/p/3f9749bd250d81c49744ed5ee2cfa314",
+      "kind": "Presentation",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "vision-2026-10-14.md": {
+      "notion": "https://app.notion.com/p/3f9749bd250d810098c8c09a3873ed7d",
+      "kind": "Decision",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "methodology-2026-10-14.md": {
+      "notion": "https://app.notion.com/p/3f9749bd250d81f58a43eeb671b69f9a",
+      "kind": "Decision",
+      "section": "design",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "publication-and-sandbox.md": {
+      "notion": "https://app.notion.com/p/3f9749bd250d815cbba3e85ae797bbb1",
+      "kind": "Decision",
+      "section": "release",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "vision.md": {
+      "notion": "https://app.notion.com/p/8cd749bd250d82c99f1a01b3109740d9",
+      "kind": "Section",
+      "section": "vision",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "design.md": {
+      "notion": "https://app.notion.com/p/993749bd250d8342b87b01a0770ed527",
+      "kind": "Section",
+      "section": "design",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "build.md": {
+      "notion": "https://app.notion.com/p/3ef749bd250d814a85f7e874c707dcac",
+      "kind": "Section",
+      "section": "build",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "experiment.md": {
+      "notion": "https://app.notion.com/p/3ef749bd250d81a78efffdbadd500d29",
+      "kind": "Section",
+      "section": "build",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "eval.md": {
+      "notion": "https://app.notion.com/p/285749bd250d82a1be65013e05dce48c",
+      "kind": "Section",
+      "section": "eval",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "risk.md": {
+      "notion": "https://app.notion.com/p/724749bd250d82f9980881f5c06a1a87",
+      "kind": "Section",
+      "section": "risk",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "decision.md": {
+      "notion": "https://app.notion.com/p/b51749bd250d83e19016816d349af66f",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L2 — Detail",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "stage2-kickoff-checklist.md": {
+      "notion": "https://app.notion.com/p/3ef749bd250d814883f1ebac81c884ee",
+      "kind": "Checklist",
+      "section": "build",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-15",
+      "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
+    },
+    "stage1-closure-2026-10-18.md": {
+      "notion": "https://app.notion.com/p/3fd749bd250d813eb8a0ec7daa09e8f2",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-20"
+    },
+    "reconciliation-decision-2026-10-20.md": {
+      "notion": "https://app.notion.com/p/3ff749bd250d818b8efffdff038613b6",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-20"
+    },
+    "unblock-direction-2026-10-23.md": {
+      "notion": "https://app.notion.com/p/402749bd250d81c4a6d7d27d44adad85",
+      "kind": "Decision",
+      "granularity": "L1 — Review",
+      "section": "decision",
+      "indexed_by": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
+      "surface_skill": "hacp-decision-surface",
+      "synced": "2026-10-23",
+      "pinned": "bioFM main 868cadc / lung fdd585d"
+    },
+    "pgp-verdicts-2026-10-24.md": {
+      "notion": "https://app.notion.com/p/403749bd250d81b298eef63cdeb36eaa",
+      "synced": "2026-10-26"
+    }
   },
-  "vision-2026-10-14.md": {
-   "notion": "https://app.notion.com/p/3f9749bd250d810098c8c09a3873ed7d",
-   "kind": "Decision",
-   "section": "vision",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "methodology-2026-10-14.md": {
-   "notion": "https://app.notion.com/p/3f9749bd250d81f58a43eeb671b69f9a",
-   "kind": "Decision",
-   "section": "design",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "publication-and-sandbox.md": {
-   "notion": "https://app.notion.com/p/3f9749bd250d815cbba3e85ae797bbb1",
-   "kind": "Decision",
-   "section": "release",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "vision.md": {
-   "notion": "https://app.notion.com/p/8cd749bd250d82c99f1a01b3109740d9",
-   "kind": "Section",
-   "section": "vision",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "design.md": {
-   "notion": "https://app.notion.com/p/993749bd250d8342b87b01a0770ed527",
-   "kind": "Section",
-   "section": "design",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "build.md": {
-   "notion": "https://app.notion.com/p/3ef749bd250d814a85f7e874c707dcac",
-   "kind": "Section",
-   "section": "build",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "experiment.md": {
-   "notion": "https://app.notion.com/p/3ef749bd250d81a78efffdbadd500d29",
-   "kind": "Section",
-   "section": "build",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "eval.md": {
-   "notion": "https://app.notion.com/p/285749bd250d82a1be65013e05dce48c",
-   "kind": "Section",
-   "section": "eval",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "risk.md": {
-   "notion": "https://app.notion.com/p/724749bd250d82f9980881f5c06a1a87",
-   "kind": "Section",
-   "section": "risk",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "decision.md": {
-   "notion": "https://app.notion.com/p/b51749bd250d83e19016816d349af66f",
-   "kind": "Decision",
-   "section": "decision",
-   "granularity": "L2 — Detail",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "stage2-kickoff-checklist.md": {
-   "notion": "https://app.notion.com/p/3ef749bd250d814883f1ebac81c884ee",
-   "kind": "Checklist",
-   "section": "build",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-15",
-   "synced_basis": "Date bumped to the LANDING commit 462e86b, not re-mirrored, because the content never changed: the blob on main is BYTE-IDENTICAL to the blob on origin/claude/inspiring-archimedes-h0we1b at this page's own last commit at or before its previous synced date. 13 of 13 pages verified this way. 462e86b landed the floor 'taken by content', so the last-commit date on main postdates the sync while the content does not - see notes.sync_check_defect."
-  },
-  "stage1-closure-2026-10-18.md": {
-   "notion": "https://app.notion.com/p/3fd749bd250d813eb8a0ec7daa09e8f2",
-   "kind": "Decision",
-   "section": "decision",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-20"
-  },
-  "reconciliation-decision-2026-10-20.md": {
-   "notion": "https://app.notion.com/p/3ff749bd250d818b8efffdff038613b6",
-   "kind": "Decision",
-   "section": "decision",
-   "granularity": "L1 — Review",
-   "synced": "2026-10-20"
-  },
-  "unblock-direction-2026-10-23.md": {
-   "notion": "https://app.notion.com/p/402749bd250d81c4a6d7d27d44adad85",
-   "kind": "Decision",
-   "granularity": "L1 — Review",
-   "section": "decision",
-   "indexed_by": "https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49",
-   "surface_skill": "hacp-decision-surface",
-   "synced": "2026-10-23",
-   "pinned": "bioFM main 868cadc / lung fdd585d"
-  },
-  "pgp-verdicts-2026-10-24.md": {
-   "notion": "https://app.notion.com/p/403749bd250d81b298eef63cdeb36eaa",
-   "synced": "2026-10-26"
+  "notes": {
+    "sync_check_defect": "scripts/hacp_sync_check.py infers 'edited' from the file's last commit date on the CURRENT branch (git log -1 --format=%aI). That is a correct reading of the commit date attributed to the wrong subject: content freshness. A page landed on main BY CONTENT from another branch is reported as drifted although its bytes are exactly what was mirrored, and it stays reported until someone bumps a date the content does not justify - which invites falsifying a sync record to silence a check. Measured 2026-10-23: 13 of 13 'drifted' ChipSim pages were byte-identical to their pre-sync blobs, so the report was 13 false positives and 0 real drift. PROPER FIX, not applied in the same commit that relies on this checker to declare the floor green: record a content hash per page here and compare hashes instead of dates. Deliberately left as a recorded defect rather than silenced."
   }
- },
- "notes": {
-  "sync_check_defect": "scripts/hacp_sync_check.py infers 'edited' from the file's last commit date on the CURRENT branch (git log -1 --format=%aI). That is a correct reading of the commit date attributed to the wrong subject: content freshness. A page landed on main BY CONTENT from another branch is reported as drifted although its bytes are exactly what was mirrored, and it stays reported until someone bumps a date the content does not justify - which invites falsifying a sync record to silence a check. Measured 2026-10-23: 13 of 13 'drifted' ChipSim pages were byte-identical to their pre-sync blobs, so the report was 13 false positives and 0 real drift. PROPER FIX, not applied in the same commit that relies on this checker to declare the floor green: record a content hash per page here and compare hashes instead of dates. Deliberately left as a recorded defect rather than silenced."
- }
 }

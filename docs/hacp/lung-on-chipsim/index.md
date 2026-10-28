@@ -48,7 +48,10 @@ is what a reviewer filters. Superseded rows stay in it with `Status = Superseded
 absence is expressed — there is no hand-maintained list to keep in step with it.
 
 **A hand-maintained entry table used to sit here and was deleted 2026-10-26**, because it had
-silently stopped tracking the thing it duplicated. Measured before deleting: the index row's
+silently stopped tracking the thing it duplicated. **Re-verified complete 2026-10-27** by
+re-reading the Notion row with an instrument first confirmed to render table blocks; the CTO's
+own record had carried the deletion as an outstanding manual action for a day, and that claim is
+withdrawn (approvals row 63). Measured before deleting: the index row's
 `Entries` relation carried **20** pages, the table listed **14**, one further absence was explained
 in prose, so **five were missing without any signal** — including both current decision surfaces and
 the page the principal was mid-ratification on. The page's `Updated` was nine days behind the
