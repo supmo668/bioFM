@@ -145,6 +145,13 @@
     "pgp-verdicts-2026-10-24.md": {
       "notion": "https://app.notion.com/p/403749bd250d81b298eef63cdeb36eaa",
       "synced": "2026-10-26"
+    },
+    "stage2-divergence-2026-10-20.md": {
+      "notion": "https://app.notion.com/p/3ff749bd250d811fad8dcbd65c1ce8ac",
+      "kind": "Decision",
+      "section": "decision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-20"
     }
   },
   "notes": {

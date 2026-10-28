@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -188,13 +189,79 @@ def test_provenance_rejects_whitespace_only_rationale(fixture_dir, tmp_path):
 
 
 @_requires_live_provenance
+def test_the_snapshot_manifest_and_pointers_are_consistent_WITHOUT_the_bytes():
+    """The part of snapshot integrity that is checkable with NO snapshot on disk.
+
+    Exists because `test_snapshot_hashes_match_manifest` below is NOT REPRODUCIBLE IN CI
+    (approvals row 72): the tracked files under `data/raw/drugbank/` are DVC pointers, the bytes are
+    not committed, and the DVC remote is `local /Users/mo/.aiadlc/biofm/dvc-storage` — a
+    machine-local filesystem path, so there is no remote for CI to pull from and no credential that
+    would change that. The first time this workstream's own CI ever ran, that test failed.
+
+    A bare skip was refused: a test that silently skips in CI is worse than one that fails there,
+    because the first is indistinguishable from coverage. So this test runs EVERYWHERE and asserts
+    what the pointers and the manifest can prove about each other offline — every snapshot file has
+    a tracked pointer carrying a real md5, the manifest names exactly the declared snapshot files,
+    and each digest is well-formed. What it cannot prove is that the BYTES match those digests;
+    that remains the job of the test below, and its absence from CI is a STATED gap in the receipt.
+    """
+    manifest_path = RAW_DIR / MANIFEST_NAME
+    assert manifest_path.is_file(), f"{MANIFEST_NAME} missing beside the snapshot"
+    recorded = json.loads(manifest_path.read_text())
+    assert "files" in recorded, f"{MANIFEST_NAME} carries no `files` mapping"
+
+    # The manifest describes exactly the declared snapshot, no more and no less.
+    assert set(recorded["files"]) == set(SNAPSHOT_FILES), (
+        f"{MANIFEST_NAME} names {sorted(recorded['files'])}, declared is "
+        f"{sorted(SNAPSHOT_FILES)} — a manifest over a different file set cannot vouch for this "
+        "snapshot"
+    )
+    for name, digest in recorded["files"].items():
+        assert re.fullmatch(r"[0-9a-f]{64}", digest), (
+            f"{name}'s recorded digest is not a lowercase sha256: {digest[:12]}…"
+        )
+
+    # Every snapshot file has a tracked DVC pointer carrying a non-empty md5. Discovered from git
+    # rather than named, the same way the T4 done-condition is checked, so a renamed or removed
+    # pointer fails here instead of being read as "nothing to check".
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--", "data/raw/drugbank"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    pointers = sorted(rel for rel in listed.split("\0") if rel.endswith(".dvc"))
+    assert {Path(rel).name for rel in pointers} == {f"{n}.dvc" for n in SNAPSHOT_FILES}, (
+        f"tracked pointers {pointers} do not cover {sorted(SNAPSHOT_FILES)}"
+    )
+    for rel in pointers:
+        doc = yaml.safe_load((PROJECT_ROOT / rel).read_text())
+        assert doc["outs"][0]["md5"], f"{rel} carries no outs[0].md5"
+
+
 def test_snapshot_hashes_match_manifest():
     """Recomputed sha256 of each fetched file equals SHA256SUMS.json (defect 2).
     Fails if any fetched file is mutated after fetch.
 
-    Skips while T2/T4a are outstanding — there is no snapshot on disk to hash,
-    and hashing a fabricated one would assert nothing.
+    SKIPS WITH A STATED REASON when the snapshot bytes are absent, which is the normal state in CI
+    (approvals row 72) — the tracked files are DVC pointers and the remote is machine-local, so no
+    runner can obtain the bytes. Hashing a fabricated snapshot would assert nothing.
+
+    The skip is NOT a silent one and it is not the whole story: the offline half of this property —
+    pointer coverage, manifest file set, digest well-formedness — is asserted unconditionally by
+    `test_the_snapshot_manifest_and_pointers_are_consistent_WITHOUT_the_bytes` above, which runs in
+    CI. The gap that remains, byte-level integrity being unverified on any machine without the
+    snapshot, is recorded in the QGR receipt rather than only here.
     """
+    missing = [name for name in SNAPSHOT_FILES if not (RAW_DIR / name).is_file()]
+    if missing:
+        pytest.skip(
+            f"snapshot bytes absent ({', '.join(missing)}) — tracked as DVC pointers with a "
+            "machine-local remote, so CI cannot obtain them. Byte-level integrity is UNVERIFIED "
+            "here and stated as a gap in the receipt; the offline consistency test above still ran."
+        )
+
     manifest_path = RAW_DIR / MANIFEST_NAME
     assert manifest_path.is_file(), f"{MANIFEST_NAME} missing beside the snapshot"
     recorded = json.loads(manifest_path.read_text())
