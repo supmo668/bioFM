@@ -43,9 +43,37 @@ FIXTURE_ONLY_NAMES = {
     "pgp_adjudication_all_unknown.csv",
     "pgp_adjudication_no_missing_doi.csv",
     "pgp_adjudication_single_group.csv",
+    # T14's TRACKED projection (the five-column, name-stripped form `adjudication-export`
+    # writes). Arrived with the A1 transfer / tier-1+2 reconciliation; registered 2026-10-22,
+    # because an unregistered fixture silently opts out of every guarantee this module provides.
+    "pgp_adjudication_tracked_filled.csv",
+    "pgp_adjudication_tracked_blank.csv",
+    "pgp_adjudication_tracked_partial.csv",
+    "pgp_adjudication_tracked_all_unknown.csv",
+    "pgp_adjudication_tracked_no_missing_doi.csv",
+    "pgp_adjudication_tracked_single_group.csv",
+    # A deliberately UNSOURCED theta file: the negative case for the sourcing guard. Its name
+    # says what it is so no reader mistakes it for a usable prior.
+    "theta_SYNTHETIC_not_literature_sourced.yaml",
     "poc_compounds_too_few.yaml",
     "poc_compounds_too_many.yaml",
     "poc_compounds_missing_doi.yaml",
+    # M1 human-input contracts: T20 (θ), T28 (transport prior), T21 (reference
+    # compounds) are all human-owned and absent, so S13/S14/T24/T28's validators are
+    # exercised against sentinels. Every number in these is chosen for arithmetic
+    # convenience and measures nothing.
+    "theta_priors_complete.yaml",
+    "theta_priors_unsourced.yaml",
+    "theta_priors_wrong_unit.yaml",
+    "theta_priors_empty_value.yaml",
+    "theta_priors_missing_field.yaml",
+    "theta_priors_misspelled_key.yaml",
+    "transport_prior_complete.yaml",
+    "transport_prior_unsourced.yaml",
+    "transport_prior_zero_width.yaml",
+    "m1_reference_compounds_too_few.yaml",
+    "m1_reference_compounds_duplicate_key.yaml",
+    "m1_reference_compounds_missing_doi.yaml",
     "provenance_unjustified_swap.yaml",
     "provenance_justified_swap.yaml",
 }
@@ -58,6 +86,10 @@ FIXTURE_ONLY_NAMES = {
 SHARED_NAMES = {
     "provenance.yaml",
     "poc_compounds.yaml",
+    # T21's real artifact is configs/m1_reference_compounds.yaml; the fixture shares
+    # its basename for the same reason poc_compounds.yaml does, so shipped source may
+    # name it and only a reference reaching into tests/fixtures/ is a leak.
+    "m1_reference_compounds.yaml",
 }
 
 #: Fixture SUBDIRECTORIES. tests/fixtures/snapshot/ mimics the dhimmel/drugbank
@@ -66,6 +98,11 @@ SHARED_NAMES = {
 FIXTURE_SUBDIRS = {
     "snapshot": {
         "README.md",
+        # Per-structure citations for the fixture structures. Exists because the TSVs follow the
+        # upstream schema and cannot carry an inline citation (CTO ruling 2026-09-16), so the
+        # citation surface has to live beside them. Arrived with the A1 transfer (97fe634);
+        # registered 2026-10-22.
+        "SOURCES.md",
         "drugbank.tsv",
         "drugbank-slim.tsv",
         "proteins.tsv",

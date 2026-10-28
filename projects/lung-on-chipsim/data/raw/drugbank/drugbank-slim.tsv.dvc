@@ -1,0 +1,5 @@
+outs:
+- md5: 6f54d8c67d133c968612e0e03727f051
+  size: 441087
+  hash: md5
+  path: drugbank-slim.tsv

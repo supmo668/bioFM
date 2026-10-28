@@ -1,0 +1,5 @@
+outs:
+- md5: 042eae67769ccbc47cd3620f624e59b7
+  size: 1865480
+  hash: md5
+  path: drugbank.tsv

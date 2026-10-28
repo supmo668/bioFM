@@ -1,0 +1,49 @@
+# FIXTURE — SYNTHETIC. NOT A HUMAN ARTIFACT.
+# SYNTHETIC. NOT LITERATURE-SOURCED. NOT A SUBSTITUTE FOR T20.
+#
+# Permitted by build-plan Finding B (r2.39), under its three binding conditions: this file lives
+# under `tests/fixtures/` and never `configs/`; it is loaded through the REAL `ThetaConfig` and
+# driven through the REAL `transport_ode`, never a mock of either; and its filename and this
+# comment both say plainly that it is synthetic.
+#
+# WHAT THESE NUMBERS ARE AND ARE NOT. They are dimensionally plausible and nothing more. Their
+# only job is to exercise the SIGN of three relationships (A&D §2 objective T7) — dose up raises
+# exposure, flow up lowers flux, a thicker membrane lowers flux. T26's assertions are about
+# DIRECTION and never about magnitude, so no result here depends on these values being right, and
+# nobody may cite them as physics.
+#
+# Every entry is `assumed: true` with no citation, which is the honest state: these were chosen to
+# make a well-conditioned test system, not read off a paper. The real device parameters are
+# human-owned and arrive via T20 in `configs/theta_priors.yaml`, a file no agent writes.
+
+theta:
+  flow_ul_min:
+    value: 1.0
+    unit: uL/min
+    citation: null
+    assumed: true
+  membrane_um:
+    value: 10.0
+    unit: um
+    citation: null
+    assumed: true
+  porosity:
+    value: 0.5
+    unit: fraction
+    citation: null
+    assumed: true
+  strain_pct:
+    value: 5.0
+    unit: "%"
+    citation: null
+    assumed: true
+  area_mm2:
+    value: 1.0
+    unit: mm^2
+    citation: null
+    assumed: true
+  coating:
+    value: synthetic-placeholder-coating
+    unit: category
+    citation: null
+    assumed: true

@@ -153,10 +153,53 @@ def test_t5b_canonical_key_is_non_null_on_every_row(canonical):
 
 def test_t5b_reports_a_disagreement_count(canonical):
     """A nonzero count is the HEALTHY case — it is the salts collapsing. Zero on a
-    real snapshot would mean canonicalization is a no-op."""
+    real snapshot would mean canonicalization is a no-op.
+
+    This count stays 2 because the FIXTURE stores bare InChIKeys. The real snapshot
+    stores them prefixed, and that difference hid a defect for the life of the
+    project — see the prefix test below.
+    """
     disagreements = canonicalization_disagreements(canonical)
     assert len(disagreements) == 2
     assert set(disagreements["drugbank_id"]) == {"DB90005", "DB90008"}
+
+
+def test_t5b_disagreement_ignores_the_inchikey_prefix():
+    """A row differing ONLY by the `InChIKey=` prefix is NOT a disagreement.
+
+    The real DrugBank snapshot writes `InChIKey=ABC…`; RDKit returns `ABC…`. A
+    naive `!=` therefore reported 6,802 of 6,802 real compounds as disagreeing,
+    when the substantive count is 2,251 — a metric that was 100% by construction
+    and so carried no information, while T5b's done-condition asked for it to be
+    reported.
+
+    It survived because the fixture uses bare keys, so the fixture-based test above
+    reads a correct 2 and can never fail on this. Pinned here with a PREFIXED row,
+    which is the shape the real data actually has.
+    """
+    import pandas as pd
+
+    frame = pd.DataFrame(
+        [
+            # identical apart from the prefix -> NOT a disagreement
+            {
+                "drugbank_id": "DB1",
+                "inchikey": "InChIKey=AAAAAAAAAAAAAA-BBBBBBBBBB-N",
+                "canonical_inchikey": "AAAAAAAAAAAAAA-BBBBBBBBBB-N",
+            },
+            # genuinely different second block -> IS a disagreement
+            {
+                "drugbank_id": "DB2",
+                "inchikey": "InChIKey=CCCCCCCCCCCCCC-DDDDDDDDDD-N",
+                "canonical_inchikey": "CCCCCCCCCCCCCC-UHFFFAOYSA-N",
+            },
+        ]
+    )
+    out = canonicalization_disagreements(frame)
+    assert list(out["drugbank_id"]) == ["DB2"], (
+        "a prefix-only difference must not count as a disagreement, and a real "
+        "stereo-block difference must"
+    )
 
 
 def test_t5b_unparseable_inchi_raises(compounds):
@@ -218,6 +261,194 @@ def test_t5b_salt_strips_to_the_free_base_key():
         .replace("32-6/h", "32-6;/h")
     )
     assert canonical_inchikey(hcl) == canonical_inchikey(free_base)
+
+
+# --------------------------------------------------------------------------- #
+# T5b · stereo guard — principal ruling 2026-09-15 (CTO #106): compare {/t, /m, /s} ONLY
+# --------------------------------------------------------------------------- #
+#
+# Real snapshot InChIs, NOT hand-written SMILES: the first stage-by-stage probe of
+# rolipram used a stand-in structure and concluded the R/S pair survived every
+# stage. It was not rolipram, and the conclusion was worthless (#97). Every
+# structure below is copied verbatim from data/raw/drugbank/drugbank.tsv and is
+# named by compound name only — no accession numbers in tracked test code.
+#
+# Ruling: reject any canonicalisation step that alters stereo. If the tautomer
+# step changes or erases a /t, /m or /s layer of the pre-tautomer InChI, return the
+# PRE-tautomer InChIKey. **/b (double-bond geometry) is NOT compared** — a /b change
+# alone must not trigger the fallback (#106 supersedes #98's four-layer wording;
+# 56186's per-layer table showed /b split true tautomers). Compare InChI stereo
+# LAYERS, not InChIKey blocks — the tautomer step legitimately moves the H-layer,
+# which lives in the first key block, so key-block comparison cannot isolate stereo.
+
+#: (snapshot InChI, InChIKey of the pre-tautomer structure) — the key the guard
+#: must return. Pinned literals (rdkit 2026.3.5), same rule as
+#: GOLDEN_CANONICAL_KEYS: if one moves, the rdkit pin moved.
+STEREO_PAIRS = {
+    "threonine": (
+        # L-Threonine — a NON-standard `InChI=1/` at source, `/s2`
+        (
+            "InChI=1/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3+/s2",
+            # Stereo-free since the relative-stereo re-key (principal ruling 2026-09-15,
+            # CTO #122 §0): this string is `/s2` (RELATIVE), so it is keyed without sp3
+            # stereo — PubChem CID 205's key. It USED to pin AYFVYJQAPQTCCC-STHAYSLISA-N,
+            # which is PubChem D-threonine (CID 69435): RDKit read /s2 as absolute /m0.
+            # Test and label wording are HELD unchanged until the re-key lands (#122 §6).
+            "AYFVYJQAPQTCCC-UHFFFAOYSA-N",
+        ),
+        # D-Threonine
+        (
+            "InChI=1S/C4H9NO3/c1-2(6)3(5)4(7)8/h2-3,6H,5H2,1H3,(H,7,8)/t2-,3-/m1/s1",
+            "AYFVYJQAPQTCCC-PWNYCUMCSA-N",
+        ),
+    ),
+    "isoleucine": (
+        # L-Isoleucine
+        (
+            "InChI=1S/C6H13NO2/c1-3-4(2)5(7)6(8)9/h4-5H,3,7H2,1-2H3,(H,8,9)/t4-,5-/m0/s1",
+            "AGPKZVBTJJNPAG-WHFBIAKZSA-N",
+        ),
+        # Allo-Isoleucine
+        (
+            "InChI=1S/C6H13NO2/c1-3-4(2)5(7)6(8)9/h4-5H,3,7H2,1-2H3,(H,8,9)/t4-,5+/m1/s1",
+            "AGPKZVBTJJNPAG-UHNVWZDZSA-N",
+        ),
+    ),
+    "aspartate": (
+        # L-Aspartic Acid — `/m0`; the CTO's confirmed pipeline collapse (#97)
+        (
+            "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m0/s1",
+            "CKLJMWTZIZZHCS-REOHCLBHSA-N",
+        ),
+        # D-Aspartic Acid — `/m1`
+        (
+            "InChI=1S/C4H7NO4/c5-2(4(8)9)1-3(6)7/h2H,1,5H2,(H,6,7)(H,8,9)/t2-/m1/s1",
+            "CKLJMWTZIZZHCS-UWTATZPHSA-N",
+        ),
+    ),
+    "phenylalanine": (
+        # L-Phenylalanine — the alpha-carbon centre the tautomer step drops (#106)
+        (
+            "InChI=1S/C9H11NO2/c10-8(9(11)12)6-7-4-2-1-3-5-7/h1-5,8H,6,10H2,(H,11,12)/t8-/m0/s1",
+            "COLNVLDHVKWLRT-QMMMGPOBSA-N",
+        ),
+        # D-Phenylalanine
+        (
+            "InChI=1S/C9H11NO2/c10-8(9(11)12)6-7-4-2-1-3-5-7/h1-5,8H,6,10H2,(H,11,12)/t8-/m1/s1",
+            "COLNVLDHVKWLRT-MRVPVSSYSA-N",
+        ),
+    ),
+}
+
+
+@pytest.mark.parametrize("pair", sorted(STEREO_PAIRS))
+def test_t5b_stereo_guard_keeps_enantiomers_and_diastereomers_distinct(pair):
+    """L-/D-threonine, L-/allo-isoleucine, L-/D-aspartate and L-/D-phenylalanine
+    are DIFFERENT compounds. Before the guard all three pairs collapsed to one key at the
+    tautomer step (46 of the 48 tautomer-stage merge groups on the real snapshot
+    had stereo before that step)."""
+    (a, _), (b, _) = STEREO_PAIRS[pair]
+    assert canonical_inchikey(a) != canonical_inchikey(b)
+
+
+@pytest.mark.parametrize(
+    "inchi,expected",
+    sorted(v for pair in STEREO_PAIRS.values() for v in pair),
+)
+def test_t5b_stereo_guard_returns_the_pre_tautomer_key(inchi, expected):
+    """When the guard fires it returns the PRE-tautomer InChIKey — the key of the
+    salt-stripped, neutralised structure with its stereo intact — not some third
+    value. Pinned so `!=` above cannot be satisfied by returning garbage."""
+    assert canonical_inchikey(inchi) == expected
+
+
+#: Nitisinone and its enol tautomer — byte-DIFFERENT source InChIs
+#: (`/h4-6,12H` vs `/h4-6,21H`), no stereo layer on either. One of exactly two
+#: stereo-free tautomer-stage merge groups on the real snapshot.
+NITISINONE_KETO = (
+    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
+    "/h4-6,12H,1-3H2"
+)
+NITISINONE_ENOL = (
+    "InChI=1S/C14H10F3NO5/c15-14(16,17)7-4-5-8(9(6-7)18(22)23)13(21)12-10(19)2-1-3-11(12)20"
+    "/h4-6,21H,1-3H2"
+)
+
+
+def test_t5b_stereo_free_tautomer_pair_still_merges():
+    """The guard must not disable tautomer canonicalisation: a pair that differs
+    ONLY in tautomeric form, with no stereo to lose, still collapses to one key."""
+    assert canonical_inchikey(NITISINONE_KETO) == canonical_inchikey(NITISINONE_ENOL)
+
+
+#: 2-(2-hydroxyphenyl)-3H-benzimidazole-5-carboximidamide in three forms: the
+#: protonated 1H tautomer, the protonated 3H tautomer, and the NEUTRAL species.
+#: The 1H form carries `/b14-9-` — a double-bond geometry layer the tautomer step
+#: removes, which is why this trio is the regression test for excluding /b.
+#:
+#: Sources (PubChem, retrieved 2026-09-15): the protonated forms are CID 1505,
+#: `URJKRCBBKTXOHS-UHFFFAOYSA-O`; the neutral form is CID 1506,
+#: `URJKRCBBKTXOHS-UHFFFAOYSA-N`, IUPAC name
+#: `2-(2-hydroxyphenyl)-3H-benzimidazole-5-carboximidamide`.
+#:
+#: The neutral constant was named `CRA_1144` here, after the snapshot's title for it
+#: (CTO #122 §1: DrugBank-coined titles are record content). PubChem's own Title for
+#: CID 1506 is also "Cra_1144" — a depositor code echoed by the database, not a
+#: chemical name — so the IUPAC name is used instead.
+BENZIMIDAZOLE_1H_PROTONATED = (
+    "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
+    "/h1-7,17-18H,(H3,15,16)/p+1/b14-9-"
+)
+BENZIMIDAZOLE_3H_PROTONATED = (
+    "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
+    "/h1-7,19H,(H3,15,16)(H,17,18)/p+1"
+)
+BENZIMIDAZOLE_NEUTRAL = (
+    "InChI=1S/C14H12N4O/c15-13(16)8-5-6-10-11(7-8)18-14(17-10)9-3-1-2-4-12(9)19"
+    "/h1-7,19H,(H3,15,16)(H,17,18)"
+)
+
+
+def test_t5b_benzimidazole_tautomers_still_merge_because_b_is_not_compared():
+    """The regression test for the ruling's scope (#106): the 1H form's only
+    stereo-ish layer is `/b14-9-`, which the tautomer step erases. A guard that
+    compared /b would fire here and split three forms of one compound; the ruled
+    {t,m,s} guard does not, and the trio stays one canonical key."""
+    keys = {
+        canonical_inchikey(BENZIMIDAZOLE_1H_PROTONATED),
+        canonical_inchikey(BENZIMIDAZOLE_3H_PROTONATED),
+        canonical_inchikey(BENZIMIDAZOLE_NEUTRAL),
+    }
+    assert len(keys) == 1, keys
+
+
+#: Two charged malate species from the snapshot: the MONOANION (`/p-1`) and a DIANION
+#: tautomer (`/p-2`) whose hydrogen layer differs at source. Both carry `/t2-/m1/s1`,
+#: which the tautomer step erases.
+#:
+#: Named by charge state and identified by InChIKey, not by the snapshot's titles for
+#: them (CTO #122 §1 — DrugBank-coined titles are record content). Neither exact
+#: structure has a PubChem record (checked by exact-InChI lookup, 2026-09-15), so there
+#: is no public name to cite: the pre-tautomer keys below are the identification.
+MALATE_MONOANION = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h2,5H,1H2,(H,6,7)(H,8,9)/p-1/t2-/m1/s1"
+MALATE_DIANION_TAUTOMER = "InChI=1S/C4H6O5/c5-2(4(8)9)1-3(6)7/h1-2,5-7H,(H,8,9)/p-2/t2-/m1/s1"
+
+
+def test_malate_pair_splits_known_accepted_loss():
+    """DELIBERATE and ACCEPTED (principal ruling 2026-09-15, CTO #106): this pair
+    SPLITS under the guard, and that is a recorded limit, not a bug to fix.
+
+    The monoanion (`/p-1`) and the dianion tautomer (`/p-2`) are two charge states of
+    one compound whose pre-tautomer skeletons already differ (first InChIKey blocks
+    BJEPYKJPYRNKOW vs QFBHYOKSQPPXHZ — the H layer and the protonation differ at
+    source). Both carry `/t2-/m1/s1`; the tautomer step erases it; the guard fires for
+    each and returns two different pre-tautomer keys. The guard cannot keep them
+    together without also re-merging true stereoisomers. A known loss with a test is a
+    recorded limit; a known loss without one is a latent surprise.
+    """
+    assert canonical_inchikey(MALATE_MONOANION) != canonical_inchikey(MALATE_DIANION_TAUTOMER)
+    assert canonical_inchikey(MALATE_MONOANION).startswith("BJEPYKJPYRNKOW-")
+    assert canonical_inchikey(MALATE_DIANION_TAUTOMER).startswith("QFBHYOKSQPPXHZ-")
 
 
 # --------------------------------------------------------------------------- #
@@ -357,3 +588,49 @@ def test_t6_unexpected_category_raises(tmp_path):
     )
     with pytest.raises(ValueError, match="unexpected edge category"):
         load_protein_edges(tmp_path, min_rows=0)
+
+
+@pytest.mark.integration
+def test_t6_done_condition_holds_against_the_REAL_snapshot():
+    """T6's done-condition, evaluated against the PINNED SNAPSHOT rather than the fixture.
+
+    r2.10: the spec said `organism == 'Homo sapiens'`; the pinned snapshot says `Human` and NOTHING
+    says `Homo sapiens`. As written the loader returned an EMPTY FRAME on the only data this study
+    may use — and every fixture said `Homo sapiens`, so no test could have caught it. The loader now
+    accepts both labels. **The verification still ran only against the fixture**, which is the same
+    class of gap one level up: the done-condition r2.10 calls "why we know" was never checked
+    against the vocabulary it was written about.
+
+    Marked `integration` because it needs the fetched snapshot on disk — the marker's documented
+    purpose — and SKIPS rather than fails when it is absent, so a clone without DVC data is not
+    told it has a defect it does not have.
+
+    NO DRUGBANK ACCESSION IS NAMED. The golden ROW needs one; the golden PROPERTY does not, and the
+    property is what catches a species filter that empties the frame. The ABCB1 accession is
+    RESOLVED FROM THE RATIFIED PANEL rather than written here: composition is configuration, not
+    code (defect 4 / AM-2), and that is exactly why `pgp_substrate_label` refuses to hard-code it.
+    """
+    from chipsim.harmonize.pgp_label import resolve_panel_accession
+
+    raw = PROJECT_ROOT / "data" / "raw" / "drugbank"
+    if not (raw / "proteins.tsv").exists():
+        pytest.skip("pinned snapshot not on disk — `chipsim fetch` / `dvc pull` first")
+
+    edges = load_protein_edges(raw)
+
+    assert len(edges) > 0, (
+        "the real snapshot yielded an EMPTY edge frame — the r2.10 failure exactly, and the one "
+        "state every column-shape assertion passes"
+    )
+    assert set(edges["category"]) == set(EDGE_CATEGORIES), (
+        "EQUALITY, not subset (defect 9): a subset check passes on a frame that lost three of the "
+        "four categories to a bad filter"
+    )
+
+    abcb1 = resolve_panel_accession(PROJECT_ROOT / "configs" / "barrier_panel.yaml", "ABCB1")
+    transporter_edges = edges[(edges["uniprot_id"] == abcb1) & (edges["category"] == "transporter")]
+    assert len(transporter_edges) > 0, (
+        "no transporter edge to the panel's ABCB1 accession survived the species filter in the "
+        "REAL snapshot. This is the golden-row property without a golden-row identifier, and it is "
+        "what the P-gp label depends on."
+    )

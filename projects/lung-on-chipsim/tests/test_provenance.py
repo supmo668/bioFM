@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -33,7 +34,11 @@ from chipsim.harmonize.contracts import (
     load_provenance,
 )
 from chipsim.ingest.drugbank_snapshot import (
+    DVC_POINTERS,
     MANIFEST_NAME,
+    POINTER_MAX_BYTES,
+    SNAPSHOT_FILES,
+    pointer_defects,
     vendored_offenders,
     verify_snapshot,
 )
@@ -184,21 +189,96 @@ def test_provenance_rejects_whitespace_only_rationale(fixture_dir, tmp_path):
 
 
 @_requires_live_provenance
-def test_snapshot_hashes_match_manifest():
-    """Recomputed sha256 of each fetched file equals SHA256SUMS.json (defect 2).
-    Fails if any fetched file is mutated after fetch.
+def test_the_snapshot_manifest_and_pointers_are_consistent_WITHOUT_the_bytes():
+    """The part of snapshot integrity that is checkable with NO snapshot on disk.
 
-    Skips while T2/T4a are outstanding — there is no snapshot on disk to hash,
-    and hashing a fabricated one would assert nothing.
+    Exists because `test_snapshot_hashes_match_manifest` below is NOT REPRODUCIBLE IN CI
+    (approvals row 72): the tracked files under `data/raw/drugbank/` are DVC pointers, the bytes are
+    not committed, and the DVC remote is `local /Users/mo/.aiadlc/biofm/dvc-storage` — a
+    machine-local filesystem path, so there is no remote for CI to pull from and no credential that
+    would change that. The first time this workstream's own CI ever ran, that test failed.
+
+    A bare skip was refused: a test that silently skips in CI is worse than one that fails there,
+    because the first is indistinguishable from coverage. So this test runs EVERYWHERE and asserts
+    what the pointers and the manifest can prove about each other offline — every snapshot file has
+    a tracked pointer carrying a real md5, the manifest names exactly the declared snapshot files,
+    and each digest is well-formed. What it cannot prove is that the BYTES match those digests;
+    that remains the job of the test below, and its absence from CI is a STATED gap in the receipt.
     """
     manifest_path = RAW_DIR / MANIFEST_NAME
     assert manifest_path.is_file(), f"{MANIFEST_NAME} missing beside the snapshot"
     recorded = json.loads(manifest_path.read_text())
+    assert "files" in recorded, f"{MANIFEST_NAME} carries no `files` mapping"
 
+    # The manifest describes exactly the declared snapshot, no more and no less.
+    assert set(recorded["files"]) == set(SNAPSHOT_FILES), (
+        f"{MANIFEST_NAME} names {sorted(recorded['files'])}, declared is "
+        f"{sorted(SNAPSHOT_FILES)} — a manifest over a different file set cannot vouch for this "
+        "snapshot"
+    )
+    for name, digest in recorded["files"].items():
+        assert re.fullmatch(r"[0-9a-f]{64}", digest), (
+            f"{name}'s recorded digest is not a lowercase sha256: {digest[:12]}…"
+        )
+
+    # Every snapshot file has a tracked DVC pointer carrying a non-empty md5. Discovered from git
+    # rather than named, the same way the T4 done-condition is checked, so a renamed or removed
+    # pointer fails here instead of being read as "nothing to check".
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--", "data/raw/drugbank"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    pointers = sorted(rel for rel in listed.split("\0") if rel.endswith(".dvc"))
+    assert {Path(rel).name for rel in pointers} == {f"{n}.dvc" for n in SNAPSHOT_FILES}, (
+        f"tracked pointers {pointers} do not cover {sorted(SNAPSHOT_FILES)}"
+    )
+    for rel in pointers:
+        doc = yaml.safe_load((PROJECT_ROOT / rel).read_text())
+        assert doc["outs"][0]["md5"], f"{rel} carries no outs[0].md5"
+
+
+def test_snapshot_hashes_match_manifest():
+    """Recomputed sha256 of each fetched file equals SHA256SUMS.json (defect 2).
+    Fails if any fetched file is mutated after fetch.
+
+    SKIPS WITH A STATED REASON when the snapshot bytes are absent, which is the normal state in CI
+    (approvals row 72) — the tracked files are DVC pointers and the remote is machine-local, so no
+    runner can obtain the bytes. Hashing a fabricated snapshot would assert nothing.
+
+    The skip is NOT a silent one and it is not the whole story: the offline half of this property —
+    pointer coverage, manifest file set, digest well-formedness — is asserted unconditionally by
+    `test_the_snapshot_manifest_and_pointers_are_consistent_WITHOUT_the_bytes` above, which runs in
+    CI. The gap that remains, byte-level integrity being unverified on any machine without the
+    snapshot, is recorded in the QGR receipt rather than only here.
+    """
+    missing = [name for name in SNAPSHOT_FILES if not (RAW_DIR / name).is_file()]
+    if missing:
+        pytest.skip(
+            f"snapshot bytes absent ({', '.join(missing)}) — tracked as DVC pointers with a "
+            "machine-local remote, so CI cannot obtain them. Byte-level integrity is UNVERIFIED "
+            "here and stated as a gap in the receipt; the offline consistency test above still ran."
+        )
+
+    manifest_path = RAW_DIR / MANIFEST_NAME
+    assert manifest_path.is_file(), f"{MANIFEST_NAME} missing beside the snapshot"
+    recorded = json.loads(manifest_path.read_text())
+
+    # `recorded["files"]`, not `recorded`. T3's spec requires the manifest to carry
+    # `source_commit` and `fetched_utc` ALONGSIDE the file hashes, so comparing
+    # against the whole document could never pass on a real manifest — and the
+    # loop below would then try to sha256 a file named "source_commit".
+    #
+    # This test had never been exercised: no fetch had ever run, so it was skipped
+    # or green-by-absence for the life of the project. The first real T4a run is
+    # what surfaced it. Same class as the InChI and organism gaps — written against
+    # an assumption and never executed against reality.
     verified = verify_snapshot(RAW_DIR)
-    assert verified == recorded
+    assert verified == recorded["files"]
 
-    for name, digest in recorded.items():
+    for name, digest in recorded["files"].items():
         actual = hashlib.sha256((RAW_DIR / name).read_bytes()).hexdigest()
         assert actual == digest, f"{name} mutated after fetch"
 
@@ -218,7 +298,7 @@ def test_drugbank_not_vendored():
         check=True,
     ).stdout.split()
 
-    offenders = vendored_offenders(tracked)
+    offenders = vendored_offenders(tracked, root=PROJECT_ROOT)
     assert offenders == [], f"DrugBank payload is vendored into git: {offenders}"
 
 
@@ -247,7 +327,8 @@ def test_drugbank_not_vendored_catches_payload(path):
 @pytest.mark.parametrize(
     "path",
     [
-        "data/raw/drugbank.dvc",
+        "data/raw/drugbank/drugbank.tsv.dvc",
+        "data/raw/drugbank/drugbank-slim.tsv.dvc",
         "data/raw/drugbank/proteins.tsv.dvc",
         "data/raw/.gitkeep",
         "data/raw/drugbank/SHA256SUMS.json",
@@ -261,33 +342,191 @@ def test_vendoring_rule_allows_what_must_stay_tracked(path):
     assert vendored_offenders([path]) == []
 
 
-def test_dvc_pointer_is_tracked():
-    """data/raw/drugbank.dvc IS tracked by git — the blanket ignore must not
-    swallow the one file that makes the snapshot recoverable (defect 10c).
+# --- T11 · the three per-file DVC pointers (r2.11) ----------------------------
+#
+# DVC_POINTERS is DERIVED from SNAPSHOT_FILES in production, not restated here,
+# so a fourth snapshot file cannot silently escape these guards (QG-10).
 
-    T4 has not generated the pointer yet (blocked on T2), so this asserts the
-    reachable half: git must not IGNORE the path. An ignored path could never be
-    tracked once it does exist, which is the failure mode defect 10c describes.
+
+def _git(args: list[str]) -> int:
+    return subprocess.run(
+        ["git", *args], cwd=PROJECT_ROOT, capture_output=True, check=False
+    ).returncode
+
+
+def _ignored_by_rules(rel: str) -> bool:
+    """`git check-ignore --no-index`: git consults the INDEX by default, so a
+    tracked path always reports "not ignored" whatever .gitignore says (QG-3).
+    Only with the index out of the way does the probe test the rules themselves —
+    which is where ruling E-4's failure (no re-include beneath an excluded
+    directory) would show."""
+    return _git(["check-ignore", "-q", "--no-index", rel]) == 0
+
+
+@pytest.mark.parametrize("rel", DVC_POINTERS)
+def test_dvc_pointer_is_not_ignored_by_the_rules(rel):
+    assert not _ignored_by_rules(rel), (
+        f"{rel} is git-ignored by rule — the pointer could never be tracked"
+    )
+
+
+def test_a_future_pointer_would_not_be_ignored():
+    """An UNTRACKED hypothetical pointer is the only probe that genuinely exercises
+    `!data/**/*.dvc`: the real pointers are tracked, so they pass even without it."""
+    assert not _ignored_by_rules("data/raw/drugbank/future.tsv.dvc")
+
+
+@pytest.mark.parametrize("rel", DVC_POINTERS)
+def test_dvc_pointer_is_tracked(rel):
+    """T11 (defect 10c): fails if ANY ONE pointer is absent, unstaged, or
+    uncommitted. Parametrized per pointer so each failure lands on its own row.
+
+    Three states, three assertions, because each hides the next: a deleted file
+    is "untracked" in the most final way and used to pass behind an
+    `if pointer.exists()` guard (QG-5); `git ls-files` reports the INDEX, so a
+    staged-but-never-committed pointer is lost on a clean checkout (QG-14) —
+    `HEAD:<rel>` is what a fresh clone actually recovers.
     """
-    ignored = subprocess.run(
-        ["git", "check-ignore", "-q", "data/raw/drugbank.dvc"],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        check=False,
-    )
-    assert ignored.returncode == 1, (
-        "data/raw/drugbank.dvc is git-ignored — the pointer could never be tracked"
+    pointer = PROJECT_ROOT / rel
+    assert pointer.is_file(), f"{rel} is absent — T4's pointer is gone"
+    assert _git(["ls-files", "--error-unmatch", rel]) == 0, f"{rel} exists but is not in the index"
+    # `HEAD:./<rel>` — the `./` makes the path cwd-relative; bare `HEAD:<path>` resolves
+    # against the REPO root, and this project is a subdirectory of the monorepo.
+    assert _git(["cat-file", "-e", f"HEAD:./{rel}"]) == 0, (
+        f"{rel} is staged but not committed on HEAD"
     )
 
-    pointer = PROJECT_ROOT / "data" / "raw" / "drugbank.dvc"
-    if pointer.exists():
-        tracked = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "data/raw/drugbank.dvc"],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            check=False,
+
+@pytest.mark.parametrize("rel", DVC_POINTERS)
+def test_dvc_pointer_describes_its_own_file(rel):
+    """T4 (b), bound to the file it names: `outs[0].path` is the TSV beside the
+    pointer, and when that TSV is on disk its size and md5 match (QG-4). Three
+    copies of one pointer satisfied the old non-empty-md5 check."""
+    pointer = PROJECT_ROOT / rel
+    tsv = pointer.with_suffix("")  # drugbank.tsv.dvc -> drugbank.tsv
+    doc = yaml.safe_load(pointer.read_text())
+    defects = pointer_defects(doc, expected_path=tsv.name, file=tsv if tsv.is_file() else None)
+    assert defects == [], f"{rel}: " + "; ".join(defects)
+
+
+def test_dvc_pointers_are_distinct_and_cover_the_snapshot():
+    md5s = {
+        yaml.safe_load((PROJECT_ROOT / rel).read_text())["outs"][0]["md5"] for rel in DVC_POINTERS
+    }
+    assert len(md5s) == len(DVC_POINTERS), "two pointers carry the same md5"
+    assert tuple(Path(rel).name.removesuffix(".dvc") for rel in DVC_POINTERS) == SNAPSHOT_FILES
+
+
+def test_manifest_is_tracked_and_committed():
+    """T4 (d), ungated (QG-8): a repo-state check must not skip when the
+    human-gated provenance.yaml is absent."""
+    rel = f"data/raw/drugbank/{MANIFEST_NAME}"
+    assert _git(["ls-files", "--error-unmatch", rel]) == 0, f"{rel} is not in the index"
+    assert _git(["cat-file", "-e", f"HEAD:./{rel}"]) == 0, f"{rel} is not committed on HEAD"
+
+
+# --- the pointer rule itself, and its falsification (QG-13) ---------------------
+#
+# Same lesson as `test_drugbank_not_vendored_catches_payload` above: a check that
+# lives only inline in a test has no negative case and cannot be shown to fail.
+
+_MD5 = "0" * 32
+
+
+def _pointer(**out):
+    base = {"md5": _MD5, "size": 3, "hash": "md5", "path": "x.tsv"}
+    base.update(out)
+    return {"outs": [base]}
+
+
+@pytest.mark.parametrize(
+    "doc,fragment",
+    [
+        ({}, "outs"),
+        ({"outs": []}, "outs"),
+        ({"outs": "x.tsv"}, "outs"),
+        ({"outs": [{"size": 3, "path": "x.tsv"}]}, "md5"),
+        (_pointer(md5=""), "md5"),
+        (_pointer(md5="not-hex"), "md5"),
+        (_pointer(size=0), "size"),
+        (_pointer(size="3"), "size"),
+        (_pointer(path="y.tsv"), "path"),
+    ],
+)
+def test_pointer_defects_flags_each_malformed_pointer(doc, fragment):
+    defects = pointer_defects(doc, expected_path="x.tsv")
+    assert defects, f"malformed pointer accepted: {doc!r}"
+    assert any(fragment in d for d in defects), defects
+
+
+def test_pointer_defects_accepts_a_valid_pointer():
+    assert pointer_defects(_pointer(), expected_path="x.tsv") == []
+
+
+def test_pointer_defects_binds_the_pointer_to_the_file(tmp_path):
+    f = tmp_path / "x.tsv"
+    f.write_bytes(b"abc")
+    good = _pointer(md5=hashlib.md5(b"abc").hexdigest(), size=3)
+    assert pointer_defects(good, expected_path="x.tsv", file=f) == []
+    assert any(
+        "size" in d
+        for d in pointer_defects(
+            _pointer(md5=hashlib.md5(b"abc").hexdigest(), size=4), expected_path="x.tsv", file=f
         )
-        assert tracked.returncode == 0, "pointer exists but is untracked"
+    )
+    assert any("md5" in d for d in pointer_defects(_pointer(size=3), expected_path="x.tsv", file=f))
+    assert any(
+        "file" in d
+        for d in pointer_defects(good, expected_path="x.tsv", file=tmp_path / "missing.tsv")
+    )
+
+
+# --- the vendoring rule must not be satisfiable by a renamed payload (QG-9) -----
+
+
+def _fake_tree(tmp_path: Path, rel: str, content: bytes) -> str:
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content)
+    return rel
+
+
+def test_vendoring_rule_rejects_a_payload_renamed_to_dvc(tmp_path):
+    rel = _fake_tree(tmp_path, "data/raw/drugbank/drugbank.tsv.dvc", b"x" * (POINTER_MAX_BYTES + 1))
+    assert vendored_offenders([rel], root=tmp_path) == [rel]
+
+
+def test_vendoring_rule_rejects_a_dvc_file_that_is_not_a_pointer(tmp_path):
+    rel = _fake_tree(
+        tmp_path, "data/raw/drugbank/drugbank.tsv.dvc", b"drugbank_id\tname\nDB90003\tx\n"
+    )
+    assert vendored_offenders([rel], root=tmp_path) == [rel]
+
+
+def test_vendoring_rule_accepts_a_real_pointer(tmp_path):
+    rel = _fake_tree(
+        tmp_path,
+        "data/raw/drugbank/drugbank.tsv.dvc",
+        # A real hex digest, not "0"*32: YAML reads an all-digit scalar as an INTEGER,
+        # and the rule is right to reject an int where a digest belongs.
+        f"outs:\n- md5: {hashlib.md5(b'drugbank').hexdigest()}\n  size: 3\n  hash: md5\n  path: drugbank.tsv\n".encode(),
+    )
+    assert vendored_offenders([rel], root=tmp_path) == []
+
+
+# --- no real DrugBank accession outside the declared exceptions (QG-9) ---------
+
+
+# The tracked-tree accession scan moved to tests/test_record_content_guard.py and now runs
+# from the REPOSITORY root (CTO #122 §5). The project-rooted version here could never see
+# workstreams/ or .claude/, and under repo-relative exception keys it would flag the ledger.
+
+
+# RETIRED 2026-10-22 (principal ruling): the real-accession scan test lived here and called
+# `real_accession_hits`, which is E-21..E-23 register machinery. That work item closed at scope
+# reached with 36 registered findings and the successor guidance (row 61) is "do not open by
+# repairing the register". The DVC-pointer half of this file — in A1's named manifest — is intact
+# and now has `pointer_defects`/`POINTER_MAX_BYTES` restored alongside it. Split, not deleted.
 
 
 # --- the card states the seal's limits, and cannot overstate them -----------
