@@ -69,6 +69,28 @@
 > `tools/worktree-delete` at the moment of deletion.** That is a stronger argument for making it a
 > precondition than the durability argument that motivated it: a convention an agent self-certifies is
 > not merely unchecked, it is *uncheckable from the agent's side*.
+>
+> #### The predicate in its final form — agent-authored, CTO-verified, 2026-10-29
+>
+> ```
+> every payload blob at HEAD under .claude/usr/<principal>/<agent>/dispatches/
+>   must appear in `git ls-tree -r <ref>` for SOME ref in refs/remotes
+> ```
+>
+> **Key on BLOB HASHES, not paths and not commits.** That makes the check indifferent to which branch
+> the work was pushed to — the exact failure of the `@{u}` version in a fleet that pushes to a
+> differently-named branch — and also indifferent to renames and to rewritten history.
+>
+> **Refuse on any blob with no remote copy, and NAME the files.**
+>
+> **Fail closed if the ref enumeration itself fails**, because *"could not enumerate remotes" is not
+> "everything is safe"*. The agent's own note on this is worth carrying: it had shipped that omission
+> twice in this thread's two proposals, and the error path is the half that makes the other half
+> trustworthy.
+>
+> This is the same command used to verify the two defects above, so unlike the first proposal the
+> **rule and the test are now the same thing** — which is the only reason to believe the rule does
+> what it says.
 > Everything below is preserved as filed. The four-instance evidence and the symlink mechanism are
 > still accurate as far as they go — a payload *is* reachable only by symlink from the recipient's
 > inbox — but that mechanism is what makes an uncommitted payload *fragile*, not what destroys it.
