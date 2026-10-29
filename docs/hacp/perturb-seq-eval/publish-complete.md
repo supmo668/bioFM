@@ -26,7 +26,8 @@ Earlier versions stay reachable as the history of the same records: Zenodo v0.5.
 |---|---|
 | Zenodo 23422745 | `published`, version 0.6.0, published 2026-10-16, creator `Mo, Mang-yin` |
 | Zenodo concept latest | resolves to `23422745` |
-| Zenodo relations | isNewVersionOf `10.5281/zenodo.20074427` · isNewVersionOf `10.6084/m9.figshare.32086920.v5` · isSupplementedBy the repository at `ce5f237` |
+| Zenodo relations | **isIdenticalTo `10.6084/m9.figshare.32086920.v6`** · isNewVersionOf `10.5281/zenodo.20074427` · isNewVersionOf `10.6084/m9.figshare.32086920.v5` · isSupplementedBy the repository at `ce5f237` |
+| | *The `isIdenticalTo` relation was added by a metadata-only edit on 2026-10-25 and is CTO-verified live on the record (2026-10-29). **This row previously omitted it**, and it is the relation that matters most for discovery: it tells DataCite and downstream indexers that the Zenodo and Figshare deposits are ONE work rather than two papers.* |
 | Figshare 32086920 | version 6, DOI `.v6`, published 2026-10-16T19:16:54Z, author `Mang-yin Mo` (one) |
 | Files, both venues | identical set and md5: `paper.pdf` f137dab2… · `paper_build.log` 4019b884… · `v060_run_artifacts.zip` 5b41a919… · `supplement.zip` 52edb3d0… · `v050_run_artifacts.zip` f1c1fccc… |
 
@@ -47,6 +48,22 @@ Earlier versions stay reachable as the history of the same records: Zenodo v0.5.
 >   therefore moot.
 > - **ORCID — DONE** by the principal: DataCite link, combined with Figshare, Zenodo set preferred.
 > - **Google Scholar — DONE** by the principal: manual entry, Journal = Zenodo, 2026/10/16.
+>
+> **Also applied 2026-10-25, and this paragraph was MISSING FROM THIS FILE while present on its own
+> Notion mirror — recorded here 2026-10-29 to restore the declared direction of the mirror.** A
+> metadata-only edit added `isIdenticalTo 10.6084/m9.figshare.32086920.v6` to the Zenodo v6 record,
+> so the two deposits now cross-reference in both directions. Figshare was deliberately left
+> untouched — republishing it would mint a v7 for a link that already exists. Applied and read back
+> by the perturb-seq-eval agent (dispatch #734); DOI, version and all five file checksums unchanged,
+> and no new Zenodo version was created. **The CTO holds no venue tokens and verified none of that
+> edit** — but the resulting relation WAS independently confirmed live on the record by the CTO on
+> 2026-10-29, which is why the Relations row above now names it.
+>
+> *The drift itself is worth keeping: this page's own header says "Edit
+> `docs/hacp/perturb-seq-eval/publish-complete.md`, never this page", and yet the Notion side had
+> carried a dated addendum its source never received. Same class as the ChipSim index finding — a
+> Notion "mirror" can diverge from its source, and here it diverged in the direction that made the
+> declared source the incomplete copy.*
 >
 > All three are the **principal's own actions**, reported in session 2026-10-25/26. The CTO holds no
 > venue tokens and verified none of them. Recorded at perturb-seq-eval approvals row 9.
