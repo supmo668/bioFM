@@ -43,6 +43,32 @@
 > It is the same shape as the output-root registry defect this fleet fixed a day earlier: **the claim
 > existed and nothing checked it.**
 >
+>
+> ### AMENDED AGAIN 2026-10-29 — the proposed command is wrong, and the predicate is NON-STATIONARY
+>
+> Two corrections to the fix recommended above, both measured on the live worktree:
+>
+> **1. `git rev-list @{u}..` is the wrong test.** On the `lung-on-chipsim` worktree, `@{u}` resolves
+> to `origin/lung-on-chipsim`, which is the **archived Stage 1 tip** — the branch the agent is 770
+> commits ahead of and deliberately never pushes to. So the rule as written returns 770 and would
+> **refuse retirement permanently**, while all its payloads are demonstrably safe on
+> `origin/lung-on-chipsim-stage2`. "Unpushed relative to the tracking branch" is not the same question
+> as "do the bytes exist on a remote", and in a fleet that pushes work to a differently-named branch
+> they diverge completely.
+>
+> **The predicate should be: every payload blob at HEAD is reachable from SOME remote ref.** Measured
+> that way on the same worktree: 58 payloads at HEAD, 57 byte-identical on a remote, 1 not.
+>
+> **2. The property is non-stationary, and that is the sharper point.** The one payload not on a
+> remote is *the dispatch reporting that all payloads are on a remote*. The agent measured zero
+> unpushed, sent the report, and the act of reporting made it one. This is not a careless measurement
+> — it is unavoidable: any agent-asserted "all payloads are safe" is falsified by the dispatch that
+> asserts it.
+>
+> **So the check cannot be a thing an agent reports and a human trusts. It must be evaluated inside
+> `tools/worktree-delete` at the moment of deletion.** That is a stronger argument for making it a
+> precondition than the durability argument that motivated it: a convention an agent self-certifies is
+> not merely unchecked, it is *uncheckable from the agent's side*.
 > Everything below is preserved as filed. The four-instance evidence and the symlink mechanism are
 > still accurate as far as they go — a payload *is* reachable only by symlink from the recipient's
 > inbox — but that mechanism is what makes an uncommitted payload *fragile*, not what destroys it.
