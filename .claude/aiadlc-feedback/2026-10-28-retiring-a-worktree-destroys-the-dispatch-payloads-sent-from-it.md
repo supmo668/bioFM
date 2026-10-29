@@ -2,6 +2,100 @@
 
 **Filed by** `biofm/matthew-mo/cto` · **2026-10-28** · plugin `airdlc` **0.82.0**
 
+> ## AMENDED 2026-10-29 — THE DIAGNOSIS BELOW IS MISSING ITS CONTROLLING VARIABLE
+>
+> **The title's claim is too broad and the mechanism it names is not the determinant.** Found by the
+> `lung-on-chipsim` worktree agent, which measured this filing against its *own* worktree because it
+> had a deferred retirement decision riding on it. CTO-verified independently before amending:
+>
+> ```
+> lung-on-chipsim payloads   57 on disk · 57 TRACKED at HEAD · 0 untracked · 54 on origin/main
+> aviary-biosim   payloads   0 on origin/main
+> ```
+>
+> **The four aviary payloads did not die because the worktree was retired. They died because they
+> were NEVER COMMITTED**, and retirement is merely when that became visible. The lung worktree could
+> be retired today and lose nothing but its three most recent, which are committed and awaiting a
+> flush.
+>
+> **Restated, with the variable in it:** *retiring a worktree destroys dispatch payloads **that were
+> never committed** — and the dispatch row survives either way, so a surviving row is
+> indistinguishable from one whose payload is intact.*
+>
+> **That relocates the fix, which is why this amendment matters more than a wording correction.** As
+> originally written, this filing pointed at `post-land` Step 11 and `worktree-delete`, both of which
+> are doing their job. With the variable in it, **the mitigation already exists and is already
+> enforced**: the coord-commit traceability mandate, whose Stop-hook nagging is exactly what made the
+> lung payloads survivable. **The gap is that nothing CHECKS the mandate was honoured before
+> retirement.**
+>
+> **The agent's proposed fix supersedes the four candidates below, and is narrower than any of them:**
+> `tools/worktree-delete` should REFUSE while the worktree holds dispatch payloads that are untracked
+> **or committed-but-unpushed**, and name them. Fail-closed, no new bookkeeping — the information is
+> already in `git ls-files --others` and `git rev-list @{u}..`.
+>
+> Note that candidate (3) below guessed at this and keyed on the **wrong predicate** — "an unresolved
+> dispatch's payload", i.e. mail state — and was dismissed in this filing's own words as "probably too
+> strict on its own". The right predicate is **durability**, not resolution. A payload that is
+> committed and pushed can be retired over freely however unresolved its row is; one that is untracked
+> cannot be, however resolved.
+>
+> It is the same shape as the output-root registry defect this fleet fixed a day earlier: **the claim
+> existed and nothing checked it.**
+>
+>
+> ### AMENDED AGAIN 2026-10-29 — the proposed command is wrong, and the predicate is NON-STATIONARY
+>
+> Two corrections to the fix recommended above, both measured on the live worktree:
+>
+> **1. `git rev-list @{u}..` is the wrong test.** On the `lung-on-chipsim` worktree, `@{u}` resolves
+> to `origin/lung-on-chipsim`, which is the **archived Stage 1 tip** — the branch the agent is 770
+> commits ahead of and deliberately never pushes to. So the rule as written returns 770 and would
+> **refuse retirement permanently**, while all its payloads are demonstrably safe on
+> `origin/lung-on-chipsim-stage2`. "Unpushed relative to the tracking branch" is not the same question
+> as "do the bytes exist on a remote", and in a fleet that pushes work to a differently-named branch
+> they diverge completely.
+>
+> **The predicate should be: every payload blob at HEAD is reachable from SOME remote ref.** Measured
+> that way on the same worktree: 58 payloads at HEAD, 57 byte-identical on a remote, 1 not.
+>
+> **2. The property is non-stationary, and that is the sharper point.** The one payload not on a
+> remote is *the dispatch reporting that all payloads are on a remote*. The agent measured zero
+> unpushed, sent the report, and the act of reporting made it one. This is not a careless measurement
+> — it is unavoidable: any agent-asserted "all payloads are safe" is falsified by the dispatch that
+> asserts it.
+>
+> **So the check cannot be a thing an agent reports and a human trusts. It must be evaluated inside
+> `tools/worktree-delete` at the moment of deletion.** That is a stronger argument for making it a
+> precondition than the durability argument that motivated it: a convention an agent self-certifies is
+> not merely unchecked, it is *uncheckable from the agent's side*.
+>
+> #### The predicate in its final form — agent-authored, CTO-verified, 2026-10-29
+>
+> ```
+> every payload blob at HEAD under .claude/usr/<principal>/<agent>/dispatches/
+>   must appear in `git ls-tree -r <ref>` for SOME ref in refs/remotes
+> ```
+>
+> **Key on BLOB HASHES, not paths and not commits.** That makes the check indifferent to which branch
+> the work was pushed to — the exact failure of the `@{u}` version in a fleet that pushes to a
+> differently-named branch — and also indifferent to renames and to rewritten history.
+>
+> **Refuse on any blob with no remote copy, and NAME the files.**
+>
+> **Fail closed if the ref enumeration itself fails**, because *"could not enumerate remotes" is not
+> "everything is safe"*. The agent's own note on this is worth carrying: it had shipped that omission
+> twice in this thread's two proposals, and the error path is the half that makes the other half
+> trustworthy.
+>
+> This is the same command used to verify the two defects above, so unlike the first proposal the
+> **rule and the test are now the same thing** — which is the only reason to believe the rule does
+> what it says.
+> Everything below is preserved as filed. The four-instance evidence and the symlink mechanism are
+> still accurate as far as they go — a payload *is* reachable only by symlink from the recipient's
+> inbox — but that mechanism is what makes an uncommitted payload *fragile*, not what destroys it.
+
+
 ## What happens
 
 A dispatch's body is stored as a file in the **sender's** `.claude/usr/<principal>/<agent>/dispatches/`

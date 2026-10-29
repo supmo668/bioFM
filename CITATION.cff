@@ -1,0 +1,60 @@
+cff-version: 1.2.0
+# Root citation file. GitHub renders its "Cite this repository" widget ONLY from a
+# CITATION.cff at the repository root, so the detailed per-project file at
+# projects/perturb-seq-eval/CITATION.cff is invisible to that UI. This file exists to
+# surface it: it cites the repository as software and names the published paper as the
+# PREFERRED citation, which is the CFF idiom for "cite the paper, not the code".
+#
+# Deliberate omissions, so a later reader does not read them as oversights:
+#   - no `license:` — the repository is MIXED-licence. README's License section: what the
+#     author wrote in libs/, projects/ and research/MODELS.md is Apache-2.0, while the
+#     cloned sub-repos keep their upstream licences (CC-BY-NC-4.0, MIT, Apache-2.0).
+#     A single SPDX identifier here would be a false claim about the whole tree.
+#   - no `email:` — ORCID identifies the author unambiguously and citation tooling does not
+#     need an address. The per-project file already carries one; this does not add a copy.
+#   - `preferred-citation` has NO `journal:` field. Zenodo is a repository, not a journal,
+#     and the deposit is preprint-class. Naming it as a journal would overstate the venue.
+message: >-
+  If you use this repository, please cite the paper under `preferred-citation`.
+  The DOI there is the Zenodo CONCEPT DOI, which always resolves to the latest
+  published version.
+title: "bioFM — a living workspace for Biological Foundation Models"
+type: software
+authors:
+  - family-names: "Mo"
+    given-names: "Mang-yin"
+    affiliation: "Carnegie Mellon University"
+    orcid: "https://orcid.org/0009-0009-5233-3142"
+repository-code: "https://github.com/supmo668/bioFM"
+url: "https://github.com/supmo668/bioFM"
+keywords:
+  - biological foundation models
+  - single-cell
+  - perturb-seq
+  - multi-agent
+  - pre-registration
+  - reproducibility
+
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Mo"
+      given-names: "Mang-yin"
+      affiliation: "Carnegie Mellon University"
+      orcid: "https://orcid.org/0009-0009-5233-3142"
+  title: >-
+    Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
+    Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
+    Response Prediction
+  year: 2026
+  month: 10
+  doi: "10.5281/zenodo.19716140"
+  url: "https://doi.org/10.5281/zenodo.19716140"
+  license: "CC-BY-4.0"
+  notes: >-
+    Preprint-class deposit archived on Zenodo (concept DOI; resolves to v0.6.0,
+    published 2026-10-16). The same release is deposited on Figshare as
+    10.6084/m9.figshare.32086920.v6, and the two records reference each other —
+    the Zenodo record carries `isIdenticalTo` to the Figshare DOI. Full version
+    lineage v1..v6 and every superseded DOI are documented in
+    projects/perturb-seq-eval/CITATION.cff.

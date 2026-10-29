@@ -6,6 +6,14 @@ thesis [`docs/THESIS.md`](docs/THESIS.md):
 Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
 Response Prediction."**
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
+
+**Published:** Zenodo, concept DOI <https://doi.org/10.5281/zenodo.19716140> — always resolves to the
+latest version (v0.6.0, 2026-10-16). Also on Figshare as
+`10.6084/m9.figshare.32086920.v6` (same files; the records cross-reference each other).
+Citation metadata, including every superseded version DOI, is in
+[`CITATION.cff`](CITATION.cff).
+
 Hypotheses, gates and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
 Results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git `ce5f237`
 (`artifacts/v0.6.0/`; 4 of 5 pre-registered gates pass, H5 fails); every manuscript
