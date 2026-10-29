@@ -1,0 +1,45 @@
+# arXiv packaging manifest for this paper.
+#
+# This file is the ONLY thing that ties the generic pipeline (scripts/arxiv_package.py
+# + .github/workflows/arxiv-package.yml) to this particular paper. A second paper in
+# this repo opts in by dropping its own arxiv.toml beside its root .tex — no code change.
+#
+# See scripts/README-arxiv.md for every key and what the pipeline does with it.
+
+root_tex = "paper.tex"
+bundle_name = "perturb-seq-eval"
+
+# Title, authors and abstract are NOT duplicated here. They are read from the CFF so
+# there is one place a title can be wrong. Overriding `title`, `authors` or `abstract`
+# in this file is possible but means the repo then carries two answers to one question.
+citation_cff = "../CITATION.cff"
+
+
+# arXiv's license menu wording. CC BY 4.0 matches the Zenodo deposit's licence, so the
+# preprint and the archived record do not disagree about reuse terms.
+license = "CC BY 4.0"
+
+# The Comments field is the ONLY place on an arXiv abstract page where a DOI to an
+# external archive can be stated by the author, and it is what makes the arXiv record
+# and the Zenodo record discoverable as one work rather than two.
+comments = """
+Pre-registered study; pre-registration and provenance manifests included. \
+Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). \
+The same release is deposited on Figshare as doi:10.6084/m9.figshare.32086920.v6.
+"""
+
+# Packages used by this paper that are not in the pipeline's vouched TeX Live set.
+# Empty means every \usepackage in the document is one the pipeline already vouches
+# for. Adding a name here is an author's assertion that arXiv's TeX Live provides it.
+acknowledge_packages = []
+
+# NOTE: [categories] is LAST on purpose. A TOML table header captures every key
+# that follows it, so a scalar placed after it silently becomes categories.<key>
+# and reads as absent. Keep every top-level scalar ABOVE this line.
+[categories]
+# cs.LG primary: the contribution is a method claim about hyperparameter allocation
+# under a confidence-entropy statistic. q-bio.QM cross-list: the evaluation substrate
+# is Perturb-seq response prediction, which is where a quantitative-biology reader
+# would look for it.
+primary = "cs.LG"
+cross_list = ["q-bio.QM"]

@@ -1,0 +1,166 @@
+name: arxiv-package
+
+# Builds an arXiv-ready source bundle for ANY paper in this repo that carries an
+# `arxiv.toml`, and emits the paste-ready submission metadata alongside it.
+#
+# WHY THIS RUNS IN CI AND NOT ON A LAPTOP. arXiv does not run BibTeX — a submission
+# using \bibliography must ship the generated `.bbl` or every citation renders as `[?]`
+# in the announced PDF. Generating that `.bbl` needs a TeX toolchain, and this repo's
+# dev machines have none (no pdflatex, latexmk, bibtex or biber). CI is therefore not a
+# convenience here; it is the only place the bundle can be assembled correctly.
+#
+# WHAT IT DOES NOT DO: it does not submit. arXiv has no deposit API for individual
+# authors — submission is a web form behind a registered account, a license grant that
+# is a legal act by a person, possible endorsement, and moderation. The job's output is
+# everything needed to fill that form in one paste.
+#
+# ADDING A PAPER: drop an `arxiv.toml` beside its root `.tex` and add its directory to
+# `paper_dirs` below. No change to this file's logic and none to the script.
+
+on:
+  workflow_dispatch:
+    inputs:
+      paper_dir:
+        description: "Paper directory to package (must contain arxiv.toml)"
+        required: true
+        default: "projects/perturb-seq-eval/paper"
+  pull_request:
+    paths:
+      - "scripts/arxiv_package.py"
+      - "**/arxiv.toml"
+      - "**/paper/**.tex"
+      - "**/paper/**.bib"
+      - ".github/workflows/arxiv-package.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "scripts/arxiv_package.py"
+      - "**/arxiv.toml"
+      - "**/paper/**.tex"
+      - "**/paper/**.bib"
+      - ".github/workflows/arxiv-package.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  # Every paper that has opted in. On workflow_dispatch the matrix collapses to the one
+  # directory the operator named, so a single paper can be rebuilt without touching the
+  # others. Keep this list in step with the arxiv.toml files that exist.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      paper_dirs: ${{ steps.find.outputs.paper_dirs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find papers that have opted in
+        id: find
+        run: |
+          set -euo pipefail
+          if [ -n "${{ github.event.inputs.paper_dir }}" ]; then
+            DIRS='["${{ github.event.inputs.paper_dir }}"]'
+          else
+            # -print0/jq keeps paths with spaces intact rather than word-splitting them.
+            DIRS="$(find . -name arxiv.toml -not -path './.git/*' -print0 \
+              | xargs -0 -n1 dirname \
+              | sed 's|^\./||' | sort \
+              | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          fi
+          echo "paper_dirs=$DIRS" >> "$GITHUB_OUTPUT"
+          echo "will package: $DIRS"
+          # Fail closed: an empty matrix makes GitHub skip the build job, and a skipped
+          # job reads as green. "Nothing was checked" must never look like "all clear".
+          if [ "$DIRS" = "[]" ]; then
+            echo "::error::no arxiv.toml found anywhere — nothing was packaged, and a"
+            echo "::error::skipped matrix would have reported success. Failing instead."
+            exit 1
+          fi
+
+  package:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        paper_dir: ${{ fromJSON(needs.discover.outputs.paper_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        run: python -m pip install --upgrade pip pyyaml
+
+      # Run the checker's own self-test BEFORE trusting a word it says about the paper.
+      # Each case plants one violation and asserts that check fires; a checker that
+      # cannot be made to fail is not evidence, and a preflight PASS from a silently
+      # broken checker is the single most expensive outcome this job can produce.
+      - name: Prove the preflight checks can fail
+        run: python scripts/arxiv_package.py self-test
+
+      # latexmk runs bibtex as part of its dependency loop and leaves the .bbl in the
+      # paper directory, which is the artifact the bundle actually needs. The PDF is a
+      # by-product here — it proves the source compiles, which the preflight explicitly
+      # does NOT check and says so.
+      - name: Compile LaTeX (generates the .bbl)
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: ${{ matrix.paper_dir }}
+          root_file: paper.tex
+          args: "-interaction=nonstopmode -halt-on-error -file-line-error"
+          latexmk_use_xelatex: false
+
+      - name: Assert the .bbl exists and no citation is undefined
+        working-directory: ${{ matrix.paper_dir }}
+        run: |
+          set -euo pipefail
+          # The .bbl is the whole reason this job compiles at all. Assert it directly
+          # rather than inferring it from a successful compile.
+          if [ ! -s paper.bbl ]; then
+            echo "::error::paper.bbl absent or empty after compilation — the bundle"
+            echo "::error::would ship without a bibliography and every citation would"
+            echo "::error::render as [?] on arXiv."
+            exit 1
+          fi
+          echo "paper.bbl: $(wc -c < paper.bbl) bytes, $(grep -c '^\\bibitem' paper.bbl || true) \\bibitem entries"
+          # A compile can succeed while leaving citations unresolved; latex reports that
+          # as a warning, not an error. grep's exit code is inverted deliberately: a
+          # MATCH here is the failure.
+          if grep -E "Citation.*undefined|Reference.*undefined" paper.log; then
+            echo "::error::undefined citations or references remain in paper.log"
+            exit 1
+          fi
+          echo "no undefined citations or references in paper.log"
+
+      - name: Preflight and build the arXiv bundle
+        run: python scripts/arxiv_package.py build "${{ matrix.paper_dir }}" --out dist/arxiv
+
+      - name: Emit the paste-ready submission metadata
+        run: |
+          set -euo pipefail
+          python scripts/arxiv_package.py metadata "${{ matrix.paper_dir }}" \
+            | tee dist/arxiv/arxiv-metadata.txt
+          {
+            echo '## arXiv submission metadata — `${{ matrix.paper_dir }}`'
+            echo
+            echo 'Download the `arxiv-bundle` artifact below, then paste these fields'
+            echo 'into the arXiv submission form. arXiv has no deposit API for'
+            echo 'individual authors, so this last step is a person at a web form.'
+            echo
+            echo '```'
+            cat dist/arxiv/arxiv-metadata.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the bundle, the manifest and the compiled PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: arxiv-bundle-${{ hashFiles(format('{0}/arxiv.toml', matrix.paper_dir)) }}
+          path: |
+            dist/arxiv/
+            ${{ matrix.paper_dir }}/paper.pdf
+          if-no-files-found: error
+          retention-days: 90
