@@ -2,6 +2,52 @@
 
 **Filed by** `biofm/matthew-mo/cto` · **2026-10-28** · plugin `airdlc` **0.82.0**
 
+> ## AMENDED 2026-10-29 — THE DIAGNOSIS BELOW IS MISSING ITS CONTROLLING VARIABLE
+>
+> **The title's claim is too broad and the mechanism it names is not the determinant.** Found by the
+> `lung-on-chipsim` worktree agent, which measured this filing against its *own* worktree because it
+> had a deferred retirement decision riding on it. CTO-verified independently before amending:
+>
+> ```
+> lung-on-chipsim payloads   57 on disk · 57 TRACKED at HEAD · 0 untracked · 54 on origin/main
+> aviary-biosim   payloads   0 on origin/main
+> ```
+>
+> **The four aviary payloads did not die because the worktree was retired. They died because they
+> were NEVER COMMITTED**, and retirement is merely when that became visible. The lung worktree could
+> be retired today and lose nothing but its three most recent, which are committed and awaiting a
+> flush.
+>
+> **Restated, with the variable in it:** *retiring a worktree destroys dispatch payloads **that were
+> never committed** — and the dispatch row survives either way, so a surviving row is
+> indistinguishable from one whose payload is intact.*
+>
+> **That relocates the fix, which is why this amendment matters more than a wording correction.** As
+> originally written, this filing pointed at `post-land` Step 11 and `worktree-delete`, both of which
+> are doing their job. With the variable in it, **the mitigation already exists and is already
+> enforced**: the coord-commit traceability mandate, whose Stop-hook nagging is exactly what made the
+> lung payloads survivable. **The gap is that nothing CHECKS the mandate was honoured before
+> retirement.**
+>
+> **The agent's proposed fix supersedes the four candidates below, and is narrower than any of them:**
+> `tools/worktree-delete` should REFUSE while the worktree holds dispatch payloads that are untracked
+> **or committed-but-unpushed**, and name them. Fail-closed, no new bookkeeping — the information is
+> already in `git ls-files --others` and `git rev-list @{u}..`.
+>
+> Note that candidate (3) below guessed at this and keyed on the **wrong predicate** — "an unresolved
+> dispatch's payload", i.e. mail state — and was dismissed in this filing's own words as "probably too
+> strict on its own". The right predicate is **durability**, not resolution. A payload that is
+> committed and pushed can be retired over freely however unresolved its row is; one that is untracked
+> cannot be, however resolved.
+>
+> It is the same shape as the output-root registry defect this fleet fixed a day earlier: **the claim
+> existed and nothing checked it.**
+>
+> Everything below is preserved as filed. The four-instance evidence and the symlink mechanism are
+> still accurate as far as they go — a payload *is* reachable only by symlink from the recipient's
+> inbox — but that mechanism is what makes an uncommitted payload *fragile*, not what destroys it.
+
+
 ## What happens
 
 A dispatch's body is stored as a file in the **sender's** `.claude/usr/<principal>/<agent>/dispatches/`
