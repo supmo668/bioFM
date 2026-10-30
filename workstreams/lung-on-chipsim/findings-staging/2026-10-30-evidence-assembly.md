@@ -200,3 +200,61 @@ Task 4, stated before anyone finds it.
    act (**cited**, the methods note's own instruction).
 7. **Nothing here is ratified.** This file is staging. If any number above appears on a public
    surface without the principal's ratification, that is the failure this ledger exists to prevent.
+
+---
+
+## 5 · ADDENDUM 2026-10-30 — the CTO's partial search: what it changed, and what it did not
+
+Source: CTO dispatch #786, answering the two research questions this ledger left open. It
+reported **partial** results and disclosed its own instrument failures. Recorded here as a new
+section rather than folded into §1–§4, so that **§4 stands exactly as it was written before
+anyone searched.** Nothing in this section is ratified either.
+
+### 5.1 OCT1 — the axis is not obviously unpopulatable. §4 item 2 STANDS UNCHANGED.
+
+| quantity | value | marker | source |
+|---|---|---|---|
+| PubMed records, `"SLC22A1 lung"` | 20 | **cited** | CTO dispatch #786, PubMed via the CTO's connector |
+| PubMed records, `"OCT1 bronchial epithelial"` | 10 | **cited** | same |
+
+**What this establishes.** An OCT1-in-lung literature **exists**; the axis is not obviously
+unpopulatable. That is a genuine narrowing — beforehand it was unknown in both directions.
+
+**What it does not establish, and why §4 item 2 is not weakened.** A record count is not a
+verdict. Neither query asked, and neither answer reports, whether **defensible per-compound
+negative assignments** exist at a stated evidential bar — and that is the only thing that could
+populate a contrast group. The CTO stated this limit itself and directed that §4 item 2 not be
+weakened on the strength of its dispatch. It is not weakened. Settling it needs a scoped
+adjudication pass over a named roster, which is **not authorized and has not been started**.
+
+### 5.2 Two instrument failures, both disclosed — and both the house defect
+
+- **A nine-term PubMed query returned 0 records** (CTO, self-disclosed). PubMed ANDs every term,
+  so a conjunction that narrow is expected to return nothing. **A 0 from that query is a broken
+  instrument, not an absent literature.** Read as absence it would have been this project's
+  recurring defect exactly: a correct reading of a real measurement attributed to the wrong
+  subject.
+- **The prior-art tool caps at 3 results.** Three results is a sample, not a prior-art search.
+  **§4 item 1 therefore stands in full** — no novelty claim in §3 is substantiated — and the cap
+  is now a *measured* reason rather than an assumed one.
+
+### 5.3 One adjacent lead, recorded with its limits stated
+
+**Rollison et al., *Drug Metabolism and Disposition*, 2024 — an IQ Consortium survey**
+(**cited** as a bibliographic lead from CTO dispatch #786; **I have NOT read it at source**, so
+it is marked as a lead and no number from it is reproduced here). Reported finding: in vitro
+transporter **inhibitors** were largely not followed up clinically, whereas **substrates**
+generally were.
+
+**Why it is recorded rather than omitted.** It is adjacent to §3.2 and any reviewer would find
+it. Quietly omitting a known adjacent result while drafting a novelty-adjacent claim is the
+citation-hygiene failure this ledger exists to prevent.
+
+**Why it does not support §3.2 — stated plainly, because the resemblance is the trap.** It is an
+asymmetry in the **clinical follow-up** of in vitro findings. §3.2 claims an asymmetry in the
+**publication of negative substrate determinations**. Those are different objects: a compound can
+be followed up and still never yield a publishable negative determination, and one never followed
+up may have had a negative determination published. **The lead is context, not evidence for the
+claim, and it must not be cited as if it were.** Whether to frame §3.2 against it at all is the
+principal's call; the CTO declined to rule, correctly, since it is a judgement about my own
+claim's framing.

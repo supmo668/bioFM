@@ -7,6 +7,9 @@ date: 2026-09-28
 surface_local: docs/hacp/lung-on-chipsim/index.md
 surface_notion: https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49
 surface_notion_note: "ChipSim (bioFM) — Index, the HACP L1 subproject row; SOURCE OF TRUTH since 2026-10-03 (principal); the floor mirrors it"
+# DEAD 2026-10-30 -- the URL below returns "artifact not found" (confirmed by read today).
+# Left in place deliberately and NOT re-pointed; see "Surface annotation -- 2026-10-30"
+# at the foot of this file.
 surface_artifact_superseded: https://claude.ai/artifact/VL8WMBZERBehinw1z36yQm
 surface_notion_draft_superseded: https://app.notion.com/p/3e9ac60c018c81618c71c5c6c192cb06
 supersedes_counts_of: lung-on-chipsim-walkthrough-product.md (2026-09-19)
@@ -67,3 +70,31 @@ workspace this session's Notion connection cannot reach; the pages were therefor
 private drafts in the connected workspace for the principal to move, with the floor copies above
 as the local source. Each section page should become a row with `Parent` = the matching bioFM
 `§section`, and the index page a row under `bioFM — Index`, read back after placing.
+
+---
+
+## Surface annotation — 2026-10-30: the superseded artifact is now DEAD
+
+**State, measured today.** A read of `surface_artifact_superseded:`
+(`claude.ai/artifact/VL8WMBZERBehinw1z36yQm`) returned **artifact not found**. The surface is
+**dead**, not merely superseded as the field name says. Confirmed by read, not inferred.
+
+**What survives — and this cut loses nothing material.** Unlike the T18 candidate list, whose
+per-row table existed ONLY on an artifact and died with it, this artifact was a *rendering* of
+material whose source is in the repository. All seven HACP paths this cut links are tracked at
+this commit — `index`, `vision`, `design`, `build`, `eval`, `decision`, `risk` under
+`docs/hacp/lung-on-chipsim/` (verified with `git ls-files`). The narrative is this file. The
+authoritative surface has been Notion since 2026-10-03 (principal), and the floor mirrors it.
+
+**What is gone.** The rendered page itself — its layout, and whatever framing existed only in
+the rendering. No measurement, no decision and no citation of this project rests on it.
+
+**Do not re-point it.** The field is left pointing at a dead URL on purpose: this is a dated
+record, and removing the pointer would erase the evidence that the surface ever existed.
+claude.ai artifact URLs are **account-scoped**, so such a URL is unreadable from any account but
+its author's — dead for every reader of a published paper from the moment of publication, and
+never alive for anyone else. Durable provenance goes in-repo.
+
+**Scope of this check.** Only the artifact URL was read. `surface_notion`,
+`surface_notion_draft_superseded` and the local floor path were **not** re-read today, and
+nothing above is a claim about whether they resolve.
