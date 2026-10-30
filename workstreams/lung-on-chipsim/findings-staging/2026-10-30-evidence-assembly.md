@@ -429,3 +429,99 @@ If that holds, it implies a **scope qualifier**, not a reversal:
 **§4 item 2 remains VERBATIM and unweakened.** This is an additional direction to evaluate, not a
 weakening of a stated gap, and nothing here is ratified. **Do not write the qualifier into §1
 until the principal rules**, because narrowing a published claim's scope is an author's decision.
+
+---
+
+## 8 · CORRECTING §7, WHICH IS AN HOUR OLD — I read Lee 2022 in full and §7 was wrong twice
+
+§7 rested on **one abstract**. I then read the full text (open access). It corrects §7 in **both**
+directions, and §7 is left standing above rather than edited, because a ledger that quietly
+revises itself is not a record.
+
+Source: Lee, Chang, Yoon, Jin & Chae, *Pharmaceutics* 2022, 14, 2078,
+`10.3390/pharmaceutics14102078` — **full text read**, not an abstract.
+
+### 8.1 §3.2's novelty is NOT refuted by this paper. §7.2 overstated the threat.
+
+The full text does **not** make §3.2's claim, on any of the three counts that matter:
+
+- It **does not** state or quantify that the literature supplies no defensible **negative**
+  substrate determinations, and **sets no evidential bar** for one.
+- It **does not** construct a case/control or substrate-vs-nonsubstrate design, and **does not**
+  say such a grouping cannot be populated. Its groupings are by transporter, labeling outcome and
+  follow-up action.
+- It is **mainly a tabulation of labeling outcomes and follow-up actions**, *not* an audit of the
+  evidence behind substrate/inhibitor classifications.
+
+Decisively, on the exact confusion §3.2 turns on: the paper reports how often a substrate study
+was *available* and how often a drug was *identified as a substrate* — and **availability of a
+study and a positive result are distinct categories in its tables.** It does **not** characterise
+every other drug as a tested negative.
+
+**So §7.2's "substantially in doubt" was an overstatement generated from an abstract.** The
+abstract's framing *sounded* like §3.2's claim; the paper's actual object is different. That is
+**the house defect, committed by me, in the section announcing the sweep for it** — a correct
+reading of a real abstract attributed to the wrong *subject*, where the subject is what the paper
+is actually about.
+
+**Where §3.2 now stands:** unrefuted by this paper and still **unestablished** — a probe cannot
+establish novelty. The closest remaining threat is **Cicali et al. 2020** (`10.1002/cpt.1768`),
+a scoping review of *the evidence behind* CYP2D6 inhibitor classifications, which is the
+evidence-audit move §3.2 claims. It is **unread — no PDF available.**
+
+### 8.2 §7.4's labeling lead is substantially WEAKER than I reported — and the paper warns against my exact inference
+
+§7.4 inferred that defensible negative determinations live in regulatory labeling. The full text
+does not support that, and specifically cautions against it:
+
+- The no-label evidence comes from **FDA NDA review documents, approval letters and labels** —
+  per-drug in the regulatory record, potentially citable as a review or label, but the paper
+  **does not establish that any of it was published in the peer-reviewed literature.**
+- The decisive distinction: these are **negative DDI findings, or rationales for not labeling an
+  interaction** — ***not*** necessarily determinations that a compound **is not a substrate**.
+  The rationales include high permeability, low solubility, weak transporter involvement, short
+  treatment duration, or the transporter not being a major elimination route. The reading is
+  explicit that these "should not be recast as a general, evidentially standardized set of 'not a
+  substrate' determinations."
+- **Provenance caveat the paper states about itself:** where FDA acceptance was not stated, the
+  authors' analysis reflected **the sponsor's claim**. So the rationales are not uniformly
+  independent regulatory conclusions.
+
+**A THIRD PREDICATE COLLISION, and it is the same shape as the other two.**
+
+| reading | what it is |
+|---|---|
+| "negative DDI finding" | this drug does not produce a clinically relevant interaction |
+| "negative substrate determination" | this drug is not transported by this transporter |
+
+Different claims. A regulatory record full of the first supplies **none** of the second. §7.4 read
+the first as the second. Compare 6,802-vs-6,610 (rows vs identities) and 13-unselected-vs-13-
+without-a-DOI (selection vs citation): **three collisions, three different numbers, one shape.**
+
+### 8.3 The net effect on §1 — it is STRENGTHENED, not weakened
+
+The correction cuts the other way from how §7.4 read it. If the regulatory record holds
+no-DDI-label rationales rather than standardized not-a-substrate determinations, then **the
+negative group is not quietly available in labeling either**, and §1's finding is *more* robust
+than §7.4 implied, not less.
+
+The honest adjacent support, and it is weaker than §3.2's claim — **cited**, verbatim:
+
+> "Less information was available for hepatic and renal transporter substrates compared to that
+> for transporter inhibition, potentially because drug developers do not necessitate the
+> determination of whether the drugs are substrates for all transporters; however, most drugs
+> should be evaluated for their inhibitory effects on transporters."
+
+That is an asymmetry in **what gets determined at all** — adjacent to §3.2, not the same claim,
+and recorded with the difference stated.
+
+**§1 is NOT amended and §4 item 2 remains VERBATIM.** No scope qualifier is written into §1.4:
+§7.4 proposed one on the strength of an abstract, this section withdraws the ground for it, and
+in any case narrowing a published claim is the author's decision.
+
+### 8.4 What this episode is, as a method note
+
+Inside one hour: an abstract produced a confident conclusion in **two** directions, and the full
+text reversed **both**. Nothing was fabricated and no number was wrong — the readings were
+attributed to the wrong subject. *An abstract states what a paper is about; it does not state
+what the paper establishes.* Treat an abstract as a locator, never as evidence.
