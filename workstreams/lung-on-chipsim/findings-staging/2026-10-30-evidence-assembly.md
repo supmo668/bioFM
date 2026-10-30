@@ -625,3 +625,82 @@ it requires a human with access or an uploaded PDF.
 
 Every DOI above was resolved through the connector. **None was written from memory**, and no value
 anywhere in this ledger comes from a search snippet.
+
+---
+
+## 10 · Cicali 2020 READ IN FULL — the closest threat does NOT occupy §3.2's ground, and §3.2 is still not novel
+
+The principal uploaded the PDF. **Availability measured, not assumed:** the PDF route returned
+`available` for Cicali and still `unavailable` for Rollison, which matches what the principal
+said — one uploaded, the other abstract-only.
+
+Read in full: Cicali et al. 2020, *Clin Pharmacol Ther* 108:116–125, `10.1002/cpt.1768`.
+This discharges the stated limitation §9.3 placed on §3.2 — **by reading it, not by assuming it.**
+
+### 10.1 What the paper does and does not do
+
+| §3.2's ground | Cicali 2020 |
+|---|---|
+| a pre-specified **evidential bar** for accepting/rejecting a determination | **No.** It pre-specifies *numerical AUC cutoffs* for classifying inhibition strength (strong ≥5-fold, moderate ≥2–<5, weak ≥1.25–<2, insignificant <1.25) — a **classification rule, not an evidence-quality standard**. Nothing about study quality, certainty or sufficiency. |
+| audit of the **evidence behind** published classifications | **Yes** — and it finds real discordance. |
+| an **asymmetry** between positive and negative determinations | **No.** It does not investigate whether negatives are missing or rarely published. |
+| a **positive-vs-negative grouping** / contrast design, or a claim one cannot be assembled | **No.** Its contrast is *FDA-listed category vs observed AUC-derived category*. |
+| **transporters** | **No.** CYP2D6 and metabolic enzymes only. |
+
+Its audit result, **cited** (read at source): concordance of observed with FDA-listed
+classification was **55 of 89** inhibitor–substrate pairs (**62%**), and **27 of 48** (**56%**)
+restricted to sensitive substrates; it recommends removing one entry from the FDA table and
+downgrading two others.
+
+**The paper's own bottom line, as the full text supports:** it makes a **different, narrower
+claim** — that FDA-listed moderate/weak CYP2D6 inhibitor classifications do not always match
+classifications derived from observed AUC changes. It does **not** claim the literature supplies
+positives but no defensible negatives, and does **not** claim a contrast design cannot be
+populated.
+
+### 10.2 §3.2 IS STILL NOT NOVEL, and §9.1 is the reason
+
+The temptation here is to write "the closest threat is cleared, so §3.2 looks novel." **That would
+break the method statement adopted one section ago**, so it is not written.
+
+> §9.1: a sampled probe can **refute** a novelty claim but can **never establish** one.
+
+Clearing the closest **identified** threat eliminates one candidate witness. It says nothing about
+the corpus, because **the candidate set itself came from a 12-result sample** (§7.1). The set of
+threats I have checked is exactly the set the probe happened to surface.
+
+So the honest state of §3.2:
+
+- **Unoccupied by every threat so far identified** — Lee 2022 (full text, §8), Cicali 2020 (full
+  text, here). Both read, neither makes the claim.
+- **Still UNESTABLISHED as novel.** §4 item 1 stands: no novelty claim in §3 is substantiated.
+- What changed is **not** the novelty status. What changed is that §9.3's specific stated
+  limitation is **discharged**, and §3.2's remaining limitation is now the general one — our
+  prior-art evidence is a sample — rather than a named unread paper.
+
+### 10.3 A better use for Cicali 2020 than prior art: precedent for the METHOD
+
+Reading it turned up something more useful than a threat. Cicali 2020 establishes that
+**auditing the evidence behind a published classification is an established, publishable move
+that finds real defects** — 38% of the audited classifications did not match the observed data.
+
+That is **precedent for the genre, not pre-emption of the claim.** §3.2 can cite it to show the
+method is legitimate and consequential, while remaining the thing that paper is not: a statement
+about the *availability of negative determinations*, on *transporters*, at a *stated evidential
+bar*.
+
+Precedent for a method strengthens a paper; prior art for a claim sinks it. **Cicali 2020 is the
+first and not the second** — and that distinction is only visible because the full text was read
+rather than inferred from the title, which is what §9.3 forbade and §8 explains.
+
+### 10.4 Read-depth table, updated
+
+| source | DOI | how far I read | status |
+|---|---|---|---|
+| Lee et al. 2022 | `10.3390/pharmaceutics14102078` | **full text** | read; corrected §7 (§8) |
+| **Cicali et al. 2020** | `10.1002/cpt.1768` | **full text** (principal-uploaded PDF) | read; does not occupy §3.2; **method precedent** |
+| Rollison et al. 2024 | `10.1124/dmd.123.001587` | **abstract only** | full text still `unavailable` — measured again today |
+| McFeely et al. 2019 | `10.1111/cts.12623` | **title only** | not characterised; PDF available, unread |
+
+Rollison stays **abstract-only** and nothing in this ledger upgrades it. Every DOI resolved
+through the connector; none written from memory.
