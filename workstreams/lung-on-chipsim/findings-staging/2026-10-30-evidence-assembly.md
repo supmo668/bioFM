@@ -341,3 +341,91 @@ What else would produce this number, and is the distinguishing property asserted
 - Three numerals examined turned into **fifteen**; two are irreducibly external and one is a
   predicate collision. Nothing in §1–§5 was found to be *wrong*. What was missing was the
   **subject**, which is exactly the finding.
+
+---
+
+## 7 · A PRIOR-ART INSTRUMENT BECAME AVAILABLE, and it found evidence AGAINST §3.2
+
+Recorded the same day. **This section weakens one of my own candidate claims.** It is here because
+§5.3 established the rule that a known adjacent result is recorded rather than omitted, and that
+rule cannot apply only when the result is convenient.
+
+### 7.1 The instrument — and the subject distinction, which matters
+
+The **Undermind** MCP connector became reachable in this session and was **probed today**
+(account `mangyinm@alumni.cmu.edu`; one workspace, 11 pre-existing deep searches, none covering
+this question). **derived** — the probe ran and returned results.
+
+**§4 item 1 is NOT refuted, and I am not restating it as false.** Its cited constraint (approvals
+row 49) is that *the `researcher` subagent* provably cannot reach PubMed or Undermind. That is a
+claim about **a different instrument**. What changed is that *another* instrument, reachable
+directly from this session, now exists. Row 49 stands as written about its own subject.
+
+**One semantic query returning 12 results is a PROBE, not a prior-art search**, and the asymmetry
+is the whole point:
+
+> A probe can **refute** novelty — one genuine hit suffices. It can **never establish** novelty,
+> because absence in a sample says nothing about the corpus.
+
+That is the same logic as this study's own `no = 0`, applied to my own claim. So what follows is
+load-bearing in one direction only.
+
+### 7.2 §3.2's novelty is now substantially in doubt
+
+| paper | DOI | status | why it threatens §3.2 |
+|---|---|---|---|
+| Lee et al. 2022, *Pharmaceutics* | `10.3390/pharmaceutics14102078` | **abstract read at source**; PDF available, full text NOT read | a systematic, quantitative audit of in vitro transporter-mediated findings and their follow-up/labeling for FDA approvals 2017–2021, reporting what fraction of substrate findings reach a label |
+| Cicali et al. 2020, *Clin Pharmacol Ther* | `10.1002/cpt.1768` | **title only** — abstract not retrieved | "A Scoping Review of the Evidence Behind CYP2D6 Inhibitor Classifications" — the same methodological move (audit the evidence base behind a classification) already published in a neighbouring domain |
+| McFeely et al. 2019, *Clin Transl Sci* | `10.1111/cts.12623` | **title only** | systematic identification and evaluation of clinical substrates for OATP1B1/1B3 |
+
+**What this establishes.** §3.2's stated ground for novelty — "a quantitative statement about
+publication practice, derived from an auditable adjudication ledger rather than asserted" — is
+**no longer a hypothesis in an empty field**. Published work does the same *kind* of thing, and
+at least one piece does it for transporters specifically.
+
+**What it does not establish.** Whether any of them makes §3.2's *specific* claim — that the
+literature supplies **no defensible negatives at a stated bar**, so a contrast design is
+unpopulatable *in principle* — is **unknown**, because I have read one abstract and two titles.
+
+**The operative consequence:** §3.2 must not be advanced as novel until Lee et al. 2022 is read
+in full. Its PDF is available, so that is a cheap, concrete next step rather than an open-ended
+search.
+
+### 7.3 §5.3 upgraded — the Rollison lead is read at the abstract, and my stated limit is CONFIRMED
+
+Rollison et al. 2024, *Drug Metabolism and Disposition* 52:582–596, `10.1124/dmd.123.001587`
+(**cited** — abstract read at source today; full text NOT read, no PDF available).
+
+Verbatim from the abstract: *"the majority of in vitro inhibitors were not reported to be followed
+up with a clinical study by the submitting company, whereas those compounds identified as
+substrates generally were."*
+
+Two results, both worth stating:
+
+1. **The CTO's relayed characterization was accurate** — now *verified at the source* rather than
+   carried on relay.
+2. **§5.3's limit statement is confirmed, not merely plausible.** It is an asymmetry in clinical
+   **follow-up**, not in the **publication of negative substrate determinations**. §5.3 drew that
+   distinction before the abstract was available; the abstract supports it. It remains **context,
+   not evidence for §3.2.**
+
+### 7.4 A NEW, CHECKABLE DIRECTION on the question the CTO could not answer — and it is not where anyone was looking
+
+From Lee et al. 2022's abstract: drugs *"were not labeled on the drug interactions with claims for
+their low interaction potential, evidenced by clinical studies or scientific rationales."*
+
+**Reading (one abstract — a lead, not a finding):** defensible **negative** determinations about
+transporter interaction evidently *do* get made and documented — in **regulatory submissions and
+labeling**, which are not the PubMed-indexed primary literature the adjudication searched.
+
+If that holds, it implies a **scope qualifier**, not a reversal:
+
+- §1.4 currently says the claim is "about **the literature**". The sharper statement may be "about
+  the **PubMed-indexed primary literature**" — because a negative group might be populatable from
+  **regulatory/labeling sources at a different evidential bar**, which the pre-registration did
+  not contemplate.
+- This is **cheaper to check than an OCT1 adjudication pass** and bears on the same blocker.
+
+**§4 item 2 remains VERBATIM and unweakened.** This is an additional direction to evaluate, not a
+weakening of a stated gap, and nothing here is ratified. **Do not write the qualifier into §1
+until the principal rules**, because narrowing a published claim's scope is an author's decision.
