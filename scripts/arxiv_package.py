@@ -107,6 +107,9 @@ STANDARD_PACKAGES = {
     "xspace",
 }
 
+# arXiv rejects an abstract longer than this outright (info.arxiv.org/help/prep).
+ARXIV_ABSTRACT_MAX = 1920
+
 GRAPHICS_EXTS = (".pdf", ".png", ".jpg", ".jpeg")
 TEX_EXTS = (".tex", "")
 
@@ -491,13 +494,50 @@ def metadata(paper_dir: Path, cfg: dict) -> tuple[str, list[str]]:
         )
         if not val
     ]
+    problems: list[str] = list(missing)
     if missing:
         out += [
             "",
             f"INCOMPLETE — {len(missing)} field(s) unset: {', '.join(missing)}",
             "Set them in arxiv.toml (or in the CITATION.cff this config points at).",
         ]
-    return "\n".join(out), missing
+
+    # arXiv's two HARD metadata constraints (info.arxiv.org/help/prep):
+    #   "Our metadata fields only accept ASCII input."
+    #   "Abstracts over 1920 characters are rejected."
+    # Both are REJECTIONS at the submission form, not warnings, and both stay invisible
+    # until a person has pasted the block and arXiv refuses it. This block exists to be
+    # pasted, so emitting one that cannot be accepted — without complaint — is the worst
+    # thing this subcommand can do. Caught on the first real submission, where the
+    # abstract was 233 characters over and carried 5 non-ASCII characters.
+    for fname, val in (("title", title), ("authors", authors), ("abstract", abstract)):
+        if not val:
+            continue
+        nonascii = sorted({c for c in val if ord(c) > 127})
+        if nonascii:
+            problems.append(f"{fname}: non-ASCII")
+            shown = ", ".join(f"U+{ord(c):04X} {c!r}" for c in nonascii)
+            out += [
+                "",
+                f"ARXIV WILL REJECT — {fname} has {len(nonascii)} non-ASCII character type(s): {shown}",
+                '  arXiv: "Our metadata fields only accept ASCII input."',
+                "  Use TeX for symbols and ASCII punctuation (-- for an em dash).",
+            ]
+    if abstract and len(abstract) > ARXIV_ABSTRACT_MAX:
+        over = len(abstract) - ARXIV_ABSTRACT_MAX
+        problems.append("abstract: too long")
+        out += [
+            "",
+            (
+                f"ARXIV WILL REJECT — abstract is {len(abstract)} characters, "
+                f"limit {ARXIV_ABSTRACT_MAX}, over by {over}."
+            ),
+            '  arXiv: "Abstracts over 1920 characters are rejected."',
+            "  Shortening an abstract changes what the paper claims in public, so this tool",
+            "  will not do it. Set a venue-specific `abstract` in arxiv.toml.",
+        ]
+
+    return "\n".join(out), problems
 
 
 def build(paper_dir: Path, cfg: dict, out_dir: Path) -> Path:
@@ -660,8 +700,53 @@ def self_test() -> int:
             )
             failures += 1
 
+    # The two arXiv metadata constraints, proven live the same way. These go through
+    # metadata() rather than preflight(), because a rejection at the submission form is a
+    # different failure from a bundle that will not build.
+    cff = "cff.yaml"
+    meta_cases = [
+        (
+            "abstract: too long",
+            "A" * (ARXIV_ABSTRACT_MAX + 1),
+            "an abstract one character over the limit",
+        ),
+        (
+            "abstract: non-ASCII",
+            "Uses an em dash \u2014 and rho \u03c1.",
+            "non-ASCII characters in the abstract",
+        ),
+    ]
+    for expect, abstract_text, desc in meta_cases:
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            (d / "paper.tex").write_text(
+                r"\documentclass{article}\begin{document}x\end{document}",
+                encoding="utf-8",
+            )
+            (d / cff).write_text(
+                "title: T\nabstract: >-\n  " + abstract_text.replace("\n", " ") + "\n"
+                "authors:\n  - family-names: S\n    given-names: A\n",
+                encoding="utf-8",
+            )
+            cfg = {
+                "root_tex": "paper.tex",
+                "citation_cff": cff,
+                "license": "CC BY 4.0",
+                "categories": {"primary": "cs.LG"},
+            }
+            try:
+                _, probs = metadata(d, cfg)
+            except SystemExit as exc:  # pyyaml absent — say so, do not report a pass
+                print(f"  SKIP  {expect:22s} metadata() unavailable: {exc}")
+                continue
+            hit = expect in probs
+            print(f"  {'OK  ' if hit else 'DEAD'}  {expect:22s} planted: {desc}")
+            if not hit:
+                print(f"         expected {expect!r}, got {probs or 'NO PROBLEMS'}")
+                failures += 1
+
     print(
-        f"\n  {'ALL CHECKS PROVEN LIVE' if not failures else str(failures) + ' CHECK(S) DEAD — preflight is not evidence'}"
+        f"\n  {'ALL CHECKS PROVEN LIVE' if not failures else str(failures) + ' CHECK(S) DEAD — the checker is not evidence'}"
     )
     return 1 if failures else 0
 
@@ -688,9 +773,9 @@ def main() -> int:
         render_result(r, a.paper_dir)
         return 0 if r.ok else 1
     if a.cmd == "metadata":
-        text, missing = metadata(a.paper_dir, cfg)
+        text, problems = metadata(a.paper_dir, cfg)
         print(text)
-        return 1 if missing else 0
+        return 1 if problems else 0
     build(a.paper_dir, cfg, a.out)
     return 0
 

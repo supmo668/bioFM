@@ -33,6 +33,24 @@ The same release is deposited on Figshare as doi:10.6084/m9.figshare.32086920.v6
 # for. Adding a name here is an author's assertion that arXiv's TeX Live provides it.
 acknowledge_packages = []
 
+# VENUE-SPECIFIC ABSTRACT - deliberately overriding the CITATION.cff one, which is the
+# canonical scholarly abstract and must not be reshaped to suit a submission form.
+#
+# arXiv imposes two hard limits (info.arxiv.org/help/prep): metadata fields accept ASCII
+# ONLY, and "Abstracts over 1920 characters are rejected." The CFF abstract is 2153
+# characters with 5 non-ASCII characters, so arXiv refuses it outright. `metadata` now
+# fails closed on both, with a self-test case proving each check fires.
+#
+# This version is 1906 characters, 0 non-ASCII. Derived by: transliterating characters
+# mechanically (em dash -> --, Delta and rho -> TeX), dropping the one sentence that
+# enumerated provenance fields (the title already asserts "Provenance-Complete"), and
+# compressing four sentences. EVERY number, every gate label H1-H5, the rho = 0.286
+# result and the "0 unevaluated" pre-registration integrity claim are preserved, and the
+# tooling asserts their presence. Author-ratified 2026-10-30.
+#
+# A TOML LITERAL string is required here so the TeX backslashes are not escape-processed.
+abstract = '''Multi-agent group-generation systems spend test-time compute uniformly across tasks. We ask whether the agents' own confidence-and-critique trace predicts task difficulty, which would let compute be allocated adaptively. In a five-agent CellForge-style orchestrator for Perturb-seq prediction via MassGen, we define four compute-free trace metrics -- Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C), and a Winner Flip Rate (WFR) -- and their composite, the Task Difficulty Index (TDI). We pre-register five hypotheses with gates: attainable error on Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect agent's backbone-choice entropy, the rank correlation of each TDI component with error, and cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn deterministically, with a trainer sweep of 27 records and three fixed-length agentic runs per task. The LLM condition is a pinned roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator) whose served model is recorded and asserted per call; a run with any rule-based fallback step is invalid. Gate outcomes: 4 of 5 pass; H5 fails (0 unevaluated) -- the trainer sweep attains the pre-registered error on both screens (H1, H2), the Architect exercises its backbone choice (H3), and the confidence-drop component and the composite rank tasks by held-out error within both screens (H4); the Adamson-calibrated composite does not transfer to Norman at the pre-registered level (H5, $\rho$ = 0.286 against > 0.4). The confidence-entropy point estimates run against the pre-registered direction in both screens (exploratory). The values reported in the v0.5.0 release of this work are superseded in full; the defects are listed in the appendix.'''
+
 # NOTE: [categories] is LAST on purpose. A TOML table header captures every key
 # that follows it, so a scalar placed after it silently becomes categories.<key>
 # and reads as absent. Keep every top-level scalar ABOVE this line.

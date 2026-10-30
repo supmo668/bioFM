@@ -134,6 +134,16 @@ jobs:
             exit 1
           fi
           echo "no undefined citations or references in paper.log"
+          # The PDF is the compile proof. It was requested in the upload but silently
+          # absent on the first real run, because nothing asserted it — the same class of
+          # defect as a scan whose target is never read. Assert it, or it did not happen.
+          if [ ! -s paper.pdf ]; then
+            echo "::error::paper.pdf absent or empty after a successful compile — the"
+            echo "::error::compile proof cannot be uploaded. Not fatal to the bundle (arXiv"
+            echo "::error::compiles from source), but it must not pass unnoticed."
+            exit 1
+          fi
+          echo "paper.pdf: $(wc -c < paper.pdf) bytes"
 
       - name: Preflight and build the arXiv bundle
         run: python scripts/arxiv_package.py build "${{ matrix.paper_dir }}" --out dist/arxiv

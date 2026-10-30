@@ -4,10 +4,21 @@
 **Owner: the principal. None of this is delegable to an agent** — arXiv has no deposit API for
 individual authors, and the license grant is a legal act by a person.
 
-This is the paper-specific instance of the pipeline documented in
-[`scripts/README-arxiv.md`](../../../scripts/README-arxiv.md). The pipeline automates everything up
-to the Submit button; this file is the button, written down so the manual half is reproducible
-rather than remembered.
+This is the paper-specific **instance**. Three documents divide the work:
+
+| Document | Owns |
+|---|---|
+| [`scripts/README-arxiv.md`](../../../scripts/README-arxiv.md) | the **tooling** — how the bundle and metadata are produced |
+| [`docs/preprint/arxiv-submission-process.md`](../../../docs/preprint/arxiv-submission-process.md) | the **venue process** — every arXiv screen and field, reusable for any paper |
+| **this file** | the **instance** — this paper's values, decisions and status |
+
+The pipeline automates everything up to the Submit button; the process document is the button,
+and this file is what to type.
+
+**Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
+`CITATION.cff` one. The CFF abstract is 2153 characters with 5 non-ASCII characters; arXiv rejects
+anything over 1920 and accepts ASCII only. The override is 1906 characters, 0 non-ASCII, with every
+number, gate label and the "0 unevaluated" integrity claim preserved. Use the generated block.
 
 | | |
 |---|---|
@@ -45,7 +56,11 @@ Requires pushing commit `c0ec931`, which is currently held unflushed for your re
    - `perturb-seq-eval-arxiv-<date>.tar.gz` ← **this is what you upload to arXiv**
    - `perturb-seq-eval-arxiv-<date>.manifest.txt` — the file list with sha256 prefixes
    - `arxiv-metadata.txt` — the paste-ready block, identical to Part 2 below
-   - `paper.pdf` — compiled proof; **do not upload this**, arXiv compiles from source
+   - **`paper.pdf` is NOT in the artifact** — the workflow asked for it but the upload
+     reported only 3 files, and the job asserted `paper.bbl` while never asserting the PDF, so
+     its absence passed silently. Measured, not assumed, on run `40985145366`. It costs nothing
+     here: arXiv compiles from source and shows you its *own* PDF to preview, which is the one
+     that matters. Tracked as a pipeline gap.
 4. The job summary carries the same metadata block, so you can read it without downloading.
 
 **The workflow's LaTeX step has never executed.** It is adapted from the working
@@ -185,11 +200,16 @@ category may require endorsement. This block exists so the manual step is
 copy-paste and reproducible from the repository, not so it can be skipped.
 ```
 
-**On the optional `DOI` field:** arXiv's DOI field is intended for the DOI of a *published journal
-version*. The Zenodo deposit is a repository archive, not a journal, so putting it there would make
-the same overstatement this project already refuses in `CITATION.cff` (which deliberately omits a
-`journal:` field for exactly this reason). The DOI belongs in **Comments**, where the generated block
-puts it. Leave `Journal-ref` and `DOI` **empty**. Your call if you disagree, but that is the reason.
+**CORRECTED 2026-10-30 — the `DOI` field.** I previously said to leave it empty, on the grounds
+that it means a *published journal version*. **That was wrong.** arXiv's own wording is broader:
+*"Use only for a DOI that resolves to another version of the article, such as the journal version."*
+"such as" is an example, not a restriction. The Zenodo deposit **is** another version of this
+article, so its DOI belongs there.
+
+- **`DOI`** → `10.5281/zenodo.19716140`. Do **not** add the arXiv-assigned DOI; that is automatic.
+- **`Journal-ref`** → leave **EMPTY**. That field is only for a work that has already appeared in a
+  journal or proceedings, and a repository is neither. My reasoning on this half was right.
+- Keeping the DOI in **Comments** as well is harmless and makes it visible in the abstract listing.
 
 ---
 
