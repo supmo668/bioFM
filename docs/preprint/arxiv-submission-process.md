@@ -109,6 +109,19 @@ These are arXiv's documented steps. Screen labels occasionally change; the seque
 3. **The title and author line** match what you will type in Part C.
 4. **No LaTeX error artifacts** — stray `??`, missing symbols, overfull boxes that break a table.
 
+### B1a. Compile with the engine arXiv will use
+
+arXiv routes **PS/EPS figures through LaTeX** and **JPEG/GIF/PNG/PDF figures through
+PDFLaTeX**. If your CI compiles with a different engine than arXiv will choose, a green CI
+build is weak evidence about the submission.
+
+Concretely: `latexmk` with no `-pdf` runs in **DVI mode** — it calls `latex`, writes a `.dvi`,
+and produces no PDF at all. In `xu-cheng/latex-action`, passing `args` **overrides** the
+default argument list, so omitting `-pdf` silently drops you into DVI mode. This happened
+here and went unnoticed until an assertion on `paper.pdf` was added. Always pass `-pdf`
+(or set the xelatex/lualatex input) and **assert the PDF exists** rather than inferring it
+from a successful compile.
+
 ### B2. arXiv's four named compile failures
 
 - Mixed figure formats (EPS with PDFLaTeX, or PDF/PNG/JPEG with LaTeX).

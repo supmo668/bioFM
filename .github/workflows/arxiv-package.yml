@@ -110,7 +110,18 @@ jobs:
         with:
           working_directory: ${{ matrix.paper_dir }}
           root_file: paper.tex
-          args: "-interaction=nonstopmode -halt-on-error -file-line-error"
+          # -pdf is LOAD-BEARING and was missing. Passing `args` OVERRIDES latex-action's
+          # default argument list, and without -pdf latexmk runs in DVI mode: it invokes
+          # `latex`, writes paper.dvi, and never produces a PDF. Two consequences, found
+          # when the new paper.pdf assertion went red:
+          #   1. No compile proof to upload -- which is how the missing PDF went unnoticed.
+          #   2. Worse: the paper was being validated by a DIFFERENT ENGINE from the one
+          #      arXiv will use. arXiv routes PDF/PNG/JPEG figures through PDFLaTeX, so a
+          #      green DVI compile is weak evidence about the submission. This paper has no
+          #      figures, so the bundle was unaffected -- the .bbl is engine-independent
+          #      here -- but the next paper with a PDF figure would have compiled green in
+          #      CI and failed on arXiv's mixed-figure-format error.
+          args: "-pdf -interaction=nonstopmode -halt-on-error -file-line-error"
           latexmk_use_xelatex: false
 
       - name: Assert the .bbl exists and no citation is undefined
