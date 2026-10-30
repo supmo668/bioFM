@@ -9,9 +9,26 @@
 # Selection: every candidate carrying a resolvable exposure/deposition/
 # pharmacology citation, out of the mechanically-derived ATC R03 candidate
 # pool (39 candidates; evidence assembled via PubMed at the principal's
-# direction, /grill-with-res). Candidate list and full evidence ledger:
-#   workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-t18-candidate-list.md
-#   https://claude.ai/artifact/G6xdAqUj5FeuzT32PJVoM4
+# direction, /grill-with-res).
+#
+# PROVENANCE, stated by what each source ACTUALLY carries (approvals row 79):
+#   DURABLE, in-repo, reproducible:
+#     workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-t18-candidate-list.md
+#       -- the mechanical derivation (every snapshot compound carrying an ATC R03 code
+#          -> 39 candidates), the tri-state results for all 39, the aggregate evidence
+#          summary (26 carry a resolvable DOI; 13 do not, each with its reason; of the
+#          26, 9 rest on measured human lung exposure or deposition), and FINALIZED
+#          2026-09-20.
+#     this file -- every one of the 26 entries carries its own `evidence_doi`.
+#   LOST, and NOT recoverable from the repository:
+#     the full per-row table -- compound, key, ATC, WHAT EACH SOURCE SHOWS, DOI and
+#     CONFIDENCE TIER -- existed only on a claude.ai artifact that no longer resolves.
+#     A dead pointer to it used to sit on this line. It is removed rather than
+#     re-pointed: artifact URLs are ACCOUNT-SCOPED, so such a citation is unreadable
+#     for every account but its author's and dead for every reader of a published
+#     paper from the moment of publication.
+# No substitute source has been invented for the lost table. The 13 rejections'
+# individual reasons and the per-row confidence tiers are gone; the counts survive.
 #
 # Identity and citation only -- no biological numbers.
 # ============================================================================

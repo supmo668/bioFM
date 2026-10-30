@@ -24,8 +24,19 @@ enantiomer base names; none qualify). `stereo_is_relative` false for all 39.
 with its reason recorded. Of the 26, **9 rest on measured human lung exposure or deposition**; the
 rest establish class pharmacology, clinical inhaled use, or in-vitro deposition.
 
-Full table — compound, key, ATC, what each source shows, DOI, confidence tier — is on the surface
-linked above.
+Full table — compound, key, ATC, what each source shows, DOI, confidence tier — **WAS on the surface
+linked in this file's `surface:` frontmatter, and that surface NO LONGER RESOLVES** (confirmed
+2026-10-30 by a live watch signal and an independent CTO read; approvals row 79). The table is
+**not recoverable from this repository**. What survives here is the mechanical derivation, the
+tri-state results and the aggregate counts above; what is gone is the per-row justification — what
+each source showed — and the per-row confidence tiers, together with the 13 rejections' individual
+reasons. The counts survive; the reasoning behind each row does not.
+
+The `surface:` field is left in the frontmatter deliberately rather than deleted: this is a dated
+hand-off record, and removing the pointer would erase the evidence that the table ever existed. It
+is annotated as dead instead. **Do not re-point it at a new artifact** — claude.ai artifact URLs are
+ACCOUNT-SCOPED, so such a citation is unreadable from any account but its author's, and dead for
+every reader of a published paper from the moment of publication. Durable provenance goes in-repo.
 
 ## What was rejected, and why it matters
 
