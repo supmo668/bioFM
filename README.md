@@ -1,5 +1,7 @@
 # bioFM — a living workspace for Biological Foundation Models
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
+
 A monorepo that keeps me up-to-date on the BioFM space (DNA, RNA, protein, single-cell, multimodal) **and** turns that reading list into running code.
 
 ```text
@@ -178,6 +180,26 @@ flowchart LR
 ## Re-running the surveys
 
 The `research/` sub-repos are regular git clones. `cd research/<name> && git pull --ff-only` refreshes them; delete and re-clone if upstream force-pushes. Nothing in this workspace writes back into them, so updates are non-destructive.
+
+## Citation
+
+The published work from this repository is:
+
+> Mo, Mang-yin (2026). *Does Agent Confidence Entropy Predict Task Difficulty? A
+> Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for
+> Perturb-seq Response Prediction.* Zenodo. <https://doi.org/10.5281/zenodo.19716140>
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
+
+**Cite the concept DOI above, not a version DOI** — it always resolves to the latest
+published version (currently v0.6.0, 2026-10-16). The same release is also deposited on
+Figshare as `10.6084/m9.figshare.32086920.v6`; the two records reference each other, so
+they are one work in two archives rather than two papers.
+
+Machine-readable metadata is in [`CITATION.cff`](CITATION.cff) at this root (which is what
+GitHub's *Cite this repository* button reads) and, in full detail including the v1–v6
+version lineage, in
+[`projects/perturb-seq-eval/CITATION.cff`](projects/perturb-seq-eval/CITATION.cff).
 
 ## License
 
