@@ -258,3 +258,86 @@ up may have had a negative determination published. **The lead is context, not e
 claim, and it must not be cited as if it were.** Whether to frame §3.2 against it at all is the
 principal's call; the CTO declined to rule, correctly, since it is a judgement about my own
 claim's framing.
+
+---
+
+## 6 · THE NUMBER-SUBJECT SWEEP, and a draft methods statement it produced
+
+CTO #792 escalated 6,802-vs-6,610 as a **paper item, not housekeeping**, and asked for a sweep:
+for every number here, ask *what else would produce that number*, then assert the distinguishing
+property. Three independent instances had already turned up (`pgp_groups_usable` false two ways;
+42 rows vs 42 identities; 6,802 rows vs 6,610 keys), which is why it is a sweep and not three
+fixes.
+
+### 6.1 Draft methods statement — subject-naming for the snapshot counts
+
+For the principal to ratify as author of record. It belongs with the stereo-identity material,
+and the CTO's judgement is that it is a **better-evidenced version of §3.1's claim than §3.1
+currently makes**. Not written to the methods note, which is hash-covered and untouched.
+
+> **Two counts describe the pinned snapshot, and they are not interchangeable.** The snapshot
+> contains **6,802 rows** and **6,610 distinct canonical identities** (**derived** —
+> `tests/test_published_snapshot_counts.py`, which pins both against the artifact). The
+> difference of **192** is not an error in either figure: canonical keys are assigned
+> **stereo-free**, so rows the source never distinguished stereochemically pool onto one
+> identity. That pooling is the intended consequence of the keying rule adopted for this study,
+> not a defect in the data (**cited** — the relative-stereo ruling, approvals row for 2026-09-15).
+>
+> **We therefore name the subject of every count in the same sentence as the count**, as
+> *rows* or as *distinct canonical identities*, and never write a bare "compounds" where the two
+> diverge. A quantity that is correct on two surfaces and means something different on each is a
+> defect in the writing rather than in the data, and it is the failure mode this study documents:
+> a correct reading of real evidence attributed to the wrong subject.
+>
+> **The same rule governs the relative-stereo count.** The snapshot carries **42** relative-stereo
+> entries, and those 42 rows resolve to **42 distinct identities** — no two share a canonical key
+> (**derived** — same module). The count is therefore a statement about 42 compounds, not 42 rows
+> of unknown overlap. Of the 42, **13** were classified by InChI layers against PubChem as the
+> mirror image of the key they had been given (**cited** — the relative-stereo ruling; this figure
+> rests on an external per-compound comparison and is **not** reproducible from this repository).
+
+### 6.2 The sweep, item by item
+
+What else would produce this number, and is the distinguishing property asserted?
+
+| number | what else would produce it | distinguishing property | asserted |
+|---|---|---|---|
+| roster 26 | 26 rows of anything; 26 rows with blanks | key set equals the roster's; no duplicate key; 26 typed | **yes** — `50c13b1` |
+| `yes` 3 | 3 casing variants projected; 3 without a citation | out-of-domain refusal; every `yes` carries a DOI | **yes** — `50c13b1` |
+| **`no` 0** | nothing adjudicated at all; the label column absent | `yes > 0`, counts sum to 26, column asserted present | **yes** — `50c13b1` |
+| `unknown` 23 | 23 blanks read as `unknown` | nulls refused; `unknown` is a completed verdict, not a blank | **yes** — T15, pre-existing |
+| `pgp_groups_usable` False | **both** groups empty (a different result) | `no == 0` **and** `yes > 0` asserted separately | **yes** — `50c13b1` |
+| 6,802 | the distinct-key count; a different snapshot | pinned beside 6,610 with the relation asserted | **yes** — `156980e` |
+| 6,610 | the row count | as above | **yes** — `156980e` |
+| 9 attributes | nine *different* columns | the **named** column tuple, not the numeral | **yes** — `156980e` |
+| 42 relative-stereo | 42 rows pooling to fewer identities | flagged rows **==** flagged keys | **yes** — `156980e` |
+| 8 unparseable | 8 of anything | exact ID set **plus** RDKit version and source commit | **yes** — pre-existing |
+| 39 candidates | a broken extractor returning any number; 39 rows pooling to fewer | instrument precondition, negative control, identities | **yes** — `1400bf7` |
+| 26 selected | 26 chosen by any other means | every roster key is in the derived pool; **zero** outside | **yes** — `1400bf7` |
+| 13 unselected | **13 lacking a resolvable DOI — a different predicate** | pool size pinned *before* the complement | **partly** — see 6.3 |
+| 13 mirror-image | — | external InChI-layer comparison against PubChem | **no** — not derivable here |
+| 9 on measured exposure | — | external judgement about each source | **no** — not derivable here |
+
+### 6.3 The two numerals that are NOT what they look like
+
+1. **13 unselected ≠ 13 without a resolvable DOI.** Both are 13 and they denote the same *set*,
+   but only because selection was *defined* as "every candidate carrying a resolvable citation".
+   The repository records which candidates were **selected**; it never recorded why each
+   unselected one was rejected, and that per-row record died with the account-scoped surface
+   (§2). So the complement is **derived** and the DOI predicate stays **cited**. A paper sentence
+   that writes "13 lacked a resolvable DOI" is making the stronger claim and must cite the
+   external search, not the pool arithmetic.
+2. **A set difference is insensitive to a member leaving the pool.** Found by falsifying, not by
+   reading: strip the R03 code from one *roster* compound and the pool falls 39 → 38 while
+   `candidates − roster` stays 13, because both sides shrink together. The first draft of that
+   test asserted only the difference and **passed on that broken tree**. It now pins the pool
+   size and the intersection first. *A count asserted without its subject is not a measurement.*
+
+### 6.4 What the sweep changed about §3.1 and §2
+
+- §2's **39** moves from `cited` to `derived`, and its central provenance claim — that the roster
+  was selected *from* the mechanical ATC R03 pool — is now **asserted** rather than narrated.
+- §3.1's **42** moves from `cited` to `derived`; its **13** cannot move and is marked as such.
+- Three numerals examined turned into **fifteen**; two are irreducibly external and one is a
+  predicate collision. Nothing in §1–§5 was found to be *wrong*. What was missing was the
+  **subject**, which is exactly the finding.
