@@ -525,3 +525,103 @@ Inside one hour: an abstract produced a confident conclusion in **two** directio
 text reversed **both**. Nothing was fabricated and no number was wrong — the readings were
 attributed to the wrong subject. *An abstract states what a paper is about; it does not state
 what the paper establishes.* Treat an abstract as a locator, never as evidence.
+
+---
+
+## 9 · METHOD STATEMENT, the exact strengthening of §1, and one paper I cannot read
+
+Written at CTO direction (#796), which asked for three things: the probe-asymmetry rule stated as
+a method statement rather than a footnote; **exactly how** §1 is strengthened, so the principal
+ratifies the strengthened version and not the one they last saw; and Cicali 2020 recorded
+honestly.
+
+### 9.1 METHOD STATEMENT — the evidential asymmetry of a sampled literature probe
+
+> **A sampled probe of the literature can refute a novelty claim but can never establish one.**
+> One genuine prior-art hit is sufficient to refute: existence needs a single witness. No number
+> of misses is sufficient to establish: absence in a sample says nothing about the corpus.
+>
+> This is the same logic as this study's own central result. `no = 0` over 26 compounds is a
+> finding about **the searched literature**, not a demonstration that no compound is a
+> non-substrate (§1.4). Applied to our own claims, it means **every "why it may be novel" in §3
+> is a hypothesis for as long as our prior-art evidence is a sample** — and all of it is a sample.
+
+Stated as a standing rule because it was earned twice in one day, in opposite directions: a
+3-result cap (CTO, §5.2) and a 12-result semantic probe (§7.1) are both samples, and the second
+being four times larger changes nothing about what it can establish.
+
+### 9.2 EXACTLY HOW §1 IS STRENGTHENED — ratify this version, not the earlier one
+
+§1's text does **not** change. What changed is the **evidential standing** of the claim it makes,
+in two specific and separable ways. Both arrived from reading Lee et al. 2022 in full
+(`10.3390/pharmaceutics14102078`).
+
+**(i) A named alternative source for the negative group was checked, and it does not supply one.**
+
+Before today, §1 asserted that the literature yields no negative group, and the obvious objection
+— *you searched the wrong corpus; negative determinations live in regulatory filings* — had never
+been tested. §7.4 raised exactly that objection from an abstract. The full text answers it: the
+regulatory record carries **negative DDI findings and rationales for not labeling an
+interaction**, which are **not** determinations that a compound is not a substrate, and some of
+which are **the sponsor's claim rather than an independent regulatory conclusion** (§8.2).
+
+So §1 now carries a **survived challenge**, which it did not have this morning: the most plausible
+alternative home for a negative group was named, checked, and found not to contain one. *A claim
+that has survived a specific attempt to break it is a different epistemic object from one that
+has merely not been attacked.*
+
+**(ii) §1's asymmetry now has a published mechanism, where before it had only a pattern.**
+
+§1.2 established *that* the literature supports a positive group and not a negative one. It did
+not say *why*. Lee et al. 2022 supplies a reason, **cited** verbatim:
+
+> "Less information was available for hepatic and renal transporter substrates compared to that
+> for transporter inhibition, potentially because drug developers do not necessitate the
+> determination of whether the drugs are substrates for all transporters; however, most drugs
+> should be evaluated for their inhibitory effects on transporters."
+
+Read precisely: **substrate status is not systematically determined**, whereas inhibition
+generally is. That is a mechanism for a shortfall in substrate determinations of all kinds, and it
+makes §1's finding an instance of a documented structural feature rather than a local accident of
+our roster.
+
+**What (ii) does NOT license.** It is an asymmetry in **what gets determined at all**, not in the
+**publication of negative determinations**, and not evidence for §3.2's stronger claim. The
+distinction is the same one §5.3 drew about the Rollison lead, and it holds here too.
+
+### 9.3 Cicali 2020 — unread, and recorded as a stated limitation
+
+Cicali et al. 2020, *Clinical Pharmacology and Therapeutics*, `10.1002/cpt.1768`, "A Scoping
+Review of the Evidence Behind CYP2D6 Inhibitor Classifications."
+
+| property | status |
+|---|---|
+| bibliographic identity | **confirmed** — journal, pages 116–125, DOI resolved via the connector |
+| abstract | **not retrieved** |
+| full text | **UNAVAILABLE** — measured, not assumed: the PDF route returned `unavailable` for this paper |
+| what I have read of it | **the title, and nothing else** |
+
+It is the **closest open threat to §3.2**, because a scoping review of *the evidence behind* a
+classification is precisely the move §3.2 claims as novel — in a neighbouring domain (CYP2D6
+rather than transporters).
+
+**It is not characterised here from its abstract, and must not be.** §8 is the demonstration of
+why: an abstract made Lee 2022 sound like it occupied this ground and the full text showed it did
+not. Inferring this paper's object from its title would repeat that error with less evidence.
+
+**So §3.2 carries this as a stated limitation:** *a scoping review performing the same evidential
+audit in a neighbouring domain exists and has not been read; §3.2's novelty cannot be asserted
+until it is.* No route around the paywall was attempted, per the project's standing rule. Reading
+it requires a human with access or an uploaded PDF.
+
+### 9.4 Status of every external source touched today
+
+| source | DOI | how far I read | status |
+|---|---|---|---|
+| Lee et al. 2022 | `10.3390/pharmaceutics14102078` | **full text** | read; §7 corrected by it (§8) |
+| Rollison et al. 2024 | `10.1124/dmd.123.001587` | **abstract** | abstract read at source; full text unavailable |
+| Cicali et al. 2020 | `10.1002/cpt.1768` | **title only** | full text unavailable; §3.2 limitation |
+| McFeely et al. 2019 | `10.1111/cts.12623` | **title only** | not characterised; PDF available but unread |
+
+Every DOI above was resolved through the connector. **None was written from memory**, and no value
+anywhere in this ledger comes from a search snippet.
