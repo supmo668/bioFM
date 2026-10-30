@@ -7,6 +7,8 @@ framing review). The principal ratifies or rejects each item; only then does any
 with a substance. No result number is typed by hand: every gate claim below is either a macro name from
 `paper/sections/generated_numbers.tex` or a verbatim quote from `paper/sections/results.tex`, with the line cited.
 
+**CTO #809 (2026-10-30 23:50):** items 2+3 accepted as drafts; CATTS and the SPRT governor VERIFIED at the arXiv ref by the CTO; ruling 1: (b)-type soften adopted; ruling 2: no differs-from sentence from abstracts (draft (b) superseded by (b″) below); ruling 3: CATTS is prior art for contributions 1–2 and reports the idea working where ours fails — ESCALATED to the principal; a 'negative replication on a new substrate' reframing is a candidate only and is NOT drafted here. **HOLD.**
+
 Source state: branch `perturb-seq-eval` at `69ae988` (= `origin/main`, PR #35 merged). Line numbers refer to that revision.
 
 ---
@@ -127,7 +129,7 @@ claim beyond those five.
 ```
 (Requires the author to confirm the five were read for this question. Unverified as of this draft.)
 
-**(b) SOFTEN — say what was searched and found. Recommended.**
+**(b) SOFTEN — say what was searched and found.** ~~Recommended~~ **SUPERSEDED by (b″) per CTO #809 ruling 2** (2026-10-30): this draft characterises the three works' methods ("vote-distribution entropy of a single agent's parallel samples", "cross-agent divergence scheduling the agents and rounds", "a judge's consensus score as a sequential stopping rule") and asserts "We differ in the signal … target … design". Those are claims about what the papers DO, made from abstracts only. An abstract suffices to refute a universal sentence; it does not suffice to assert how we differ. Kept here for traceability; do not apply.
 
 ```latex
 Closest to our question are works that gate compute on a group-level
@@ -144,13 +146,34 @@ signal is new.
 
 Reasoning: the asymmetry the dispatch names is real and the probe has already shown it — one found counterexample would have cost the whole paper's credibility, and the probe found three near ones in twenty-nine returned records across two corpora. Draft (b) converts an absence claim into a positioning statement that is true whatever else exists in the corpus. The three `\citep` keys are placeholders; the bib entries must be written from the arXiv/DOI pages (ids above), not from this file.
 
+**(b″) SOFTEN without characterising the prior work — the form CTO #809 ruling 2 permits. Recommended.**
+
+Names the works, cites their own abstracts as the source, and claims nothing about their methods beyond
+that the works exist and gate compute on a confidence- or consensus-type signal in their own words. No
+"we differ in…" sentence; that waits on a full-text read, which has not been done.
+
+```latex
+We do not claim the signal is new. Recent work reports gating test-time
+compute on confidence- or consensus-type signals from an agent's own vote
+distribution or from a group of agents~\citep{lee2026catts,morandi2026sprt,%
+liu2026uaad}; we cite their abstracts and have not reproduced or re-derived
+their methods, and we make no claim here about how our signal relates to
+theirs.
+```
+
+Source for each \citep (abstract only, quoted in the ledger above): CATTS arXiv:2602.12276 (CTO-verified at the
+ref, #809); Wald-SPRT governor arXiv:2605.19193 (CTO-verified at the ref, #809); UAAD DOI
+10.1109/ICCVDM71812.2026.11709092 (NOT verified by the CTO; my corpus-record quote only — drop this key if the
+principal wants only CTO-verified citations).
+
 **(b′) Minimal variant** if the principal wants the smallest edit: replace the sentence with
 
 ```latex
-Works that gate compute on a group-level uncertainty signal exist
-\citep{lee2026catts,liu2026uaad,morandi2026sprt}; we differ in signal, target
-and design, and do not claim the signal is new.
+Works that gate test-time compute on a confidence- or consensus-type signal
+exist~\citep{lee2026catts,morandi2026sprt,liu2026uaad}; we do not claim the
+signal is new.
 ```
+(Amended 2026-10-30 per #809 ruling 2: the earlier form said "we differ in signal, target and design" — a differs-from claim from abstracts — and is withdrawn.)
 
 ---
 
@@ -175,6 +198,7 @@ Decision stays with the principal as author of record (fork (a)/(b)/(c) in #807)
 
 - Not established: whether any of the five works named in the novelty sentence uses such a signal (not read this session).
 - Not established: the full text of the three counterexamples — abstracts only, from corpus records; CATTS metadata checked at the arXiv abstract page.
+- Not established (and now the blocking question per #809 ruling 3): whether CATTS's vote-distribution signal is close enough to ACE for 'does not reproduce' to be the honest word. Full-text read of arXiv:2602.12276 required; not done; principal's call.
 - Not done: any edit to `paper/`, `CITATION.cff`, the bib, Zenodo, Figshare, or any HACP surface.
 - Not done: the figures question (`\includegraphics` count zero; `graphicx` loaded) — not dispatched; principal owns it.
 - Not located: the verbatim text of "Authorization (1)" that #807 cites. I applied it as paraphrased in the dispatch (draft to a staging file, marked unratified, outside `paper/`). If the authorization says more, this file should be checked against it.
