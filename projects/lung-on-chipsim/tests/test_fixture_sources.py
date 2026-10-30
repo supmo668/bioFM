@@ -126,7 +126,6 @@ def test_the_sidecar_cites_nothing_that_is_not_in_the_fixtures():
 
 _INCHIKEY = re.compile(r"[A-Z]{14}-[A-Z]{10}-[A-Z]")
 _CITATION_KEYS = ("evidence_doi", "pubchem_cid", "citation", "source", "doi")
-CONFIGS = PROJECT_ROOT / "configs"
 
 
 def _blankish(value: Any) -> bool:
