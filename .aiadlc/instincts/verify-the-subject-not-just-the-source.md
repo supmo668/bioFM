@@ -2,7 +2,7 @@
 name: verify-the-subject-not-just-the-source
 confidence: 1.000
 created: 2026-10-31T02:49:16Z
-last_reinforced: 2026-10-31T04:13:52Z
+last_reinforced: 2026-10-31T04:42:17Z
 ttl_days: 30
 triggers: [abstract, artifact, citation, attributed, referent, per-row, line number, cites, source]
 tags: []
