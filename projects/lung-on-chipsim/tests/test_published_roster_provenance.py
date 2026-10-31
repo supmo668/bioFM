@@ -53,6 +53,7 @@ message — only counts.
 
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 
@@ -115,13 +116,38 @@ def _atc_codes(value: object) -> list[str]:
     Handles the ndarray case EXPLICITLY. Omitting `np.ndarray` here is what made the first
     derivation of this count return a confident 0.
     """
-    if value is None:
+    # A float NaN is NOT None, so without this it falls through to the string branch and
+    # `str(float("nan")).upper()` yields the code "NAN". Today's snapshot stores missing ATC as an
+    # empty ndarray, so nothing is wrong now — but if a future build stored a NaN scalar instead,
+    # the instrument-health check below would count thousands of "codes" and certify a BLIND
+    # extractor as healthy, which is the exact misattribution that check exists to prevent.
+    if value is None or (isinstance(value, float) and math.isnan(value)):
         return []
     if isinstance(value, (list, tuple, np.ndarray)):
-        return [str(item).strip().upper() for item in value if item is not None]
+        return [
+            str(item).strip().upper()
+            for item in value
+            if item is not None and not (isinstance(item, float) and math.isnan(item))
+        ]
     return [
         part.strip().upper() for part in str(value).replace(";", ",").split(",") if part.strip()
     ]
+
+
+def _assert_instrument_finds_codes(frame: pd.DataFrame) -> None:
+    """The instrument precondition, extracted so the probe does not call a test function.
+
+    Calling one test from another breaks the moment the callee gains a fixture and double-counts
+    it in the report; no other module in this suite does it.
+    """
+    per_row = frame[ATC_COLUMN].apply(lambda cell: len(_atc_codes(cell)))
+    total = int(per_row.sum())
+    rows_with_any = int((per_row > 0).sum())
+    assert total > 0, (
+        "the ATC extractor found NO codes anywhere in the snapshot. Every count below would be a "
+        "confident zero from a broken instrument — fix the extractor before reading any result."
+    )
+    assert rows_with_any > 0
 
 
 def _rows_with_prefix(frame: pd.DataFrame, prefix: str) -> pd.Series:
@@ -134,33 +160,37 @@ def test_the_instrument_finds_atc_codes_at_all_before_any_count_is_trusted():
     The obvious implementation returns 0 for every prefix because the cells are ndarrays. That 0
     is indistinguishable from "this snapshot contains no respiratory drugs", which is false.
     """
-    frame = _load_snapshot_or_skip()
-    per_row = frame[ATC_COLUMN].apply(lambda cell: len(_atc_codes(cell)))
-    assert int(per_row.sum()) > 0, (
-        "the ATC extractor found NO codes anywhere in the snapshot. Every count below would be a "
-        "confident zero from a broken instrument — fix the extractor before reading any result."
-    )
-    assert int((per_row > 0).sum()) > 0
+    _assert_instrument_finds_codes(_load_snapshot_or_skip())
 
 
 def test_a_nonsense_atc_prefix_finds_nothing():
     """The negative control. Without it, an extractor that matched EVERYTHING would also pass."""
-    frame = _load_snapshot_or_skip()
-    assert int(_rows_with_prefix(frame, "ZZZ").sum()) == 0
+    # Bound before the assert: pytest prints every subexpression, and a frame operand would emit
+    # `canonical_inchikey` beside `name` — a PAIRING, which is forbidden on a public surface.
+    n_nonsense = int(_rows_with_prefix(_load_snapshot_or_skip(), "ZZZ").sum())
+    assert n_nonsense == 0
 
 
-def test_the_r03_prefix_is_a_subset_of_the_broader_R_class():
-    """A cheap consistency check on the extractor: R03 rows cannot exceed R rows."""
+def test_the_extractor_finds_the_R03_class_inside_a_populated_R_class():
+    """Only the FIRST half of this is substantive, and the docstring now says so.
+
+    `r03 <= r_any` is true by construction — every code starting with "R03" starts with "R", and
+    both sides call the same extractor — so it tests the prefix operator, not the data. The
+    substantive half is that both are non-zero: an extractor returning nothing would make every
+    count below a confident zero.
+    """
     frame = _load_snapshot_or_skip()
     r03 = int(_rows_with_prefix(frame, R03_PREFIX).sum())
     r_any = int(_rows_with_prefix(frame, "R").sum())
-    assert 0 < r03 <= r_any
+    assert r03 > 0
+    assert r_any > 0
+    assert r03 <= r_any  # structural, not a data check
 
 
 def test_the_published_candidate_count_is_derivable_from_the_snapshot():
     """§2's 39, promoted from `cited` to `derived`."""
-    frame = _load_snapshot_or_skip()
-    assert int(_rows_with_prefix(frame, R03_PREFIX).sum()) == PUBLISHED_R03_CANDIDATES
+    pool = int(_rows_with_prefix(_load_snapshot_or_skip(), R03_PREFIX).sum())
+    assert pool == PUBLISHED_R03_CANDIDATES
 
 
 def test_the_39_candidates_are_39_IDENTITIES_not_39_rows():
@@ -171,12 +201,30 @@ def test_the_39_candidates_are_39_IDENTITIES_not_39_rows():
     """
     frame = _load_snapshot_or_skip()
     rows = _rows_with_prefix(frame, R03_PREFIX)
-    assert int(rows.sum()) == PUBLISHED_R03_CANDIDATES
-    assert int(frame.loc[rows, KEY_COLUMN].nunique()) == PUBLISHED_R03_CANDIDATES
+    n_rows = int(rows.sum())
+    n_identities = int(frame.loc[rows, KEY_COLUMN].nunique())
+    assert n_rows == PUBLISHED_R03_CANDIDATES
+    assert n_identities == PUBLISHED_R03_CANDIDATES
 
 
 def test_the_candidate_pool_sits_inside_the_preregistered_band():
+    """The band checked against the DERIVED pool, not against a literal.
+
+    The previous version asserted `low <= PUBLISHED_R03_CANDIDATES <= high` — two literals
+    declared in this same file — and read nothing from the tree. Review pushed the derived pool to
+    41, OUTSIDE the pre-registered 20-40 band, and this test still passed: the single event it
+    names was the single event it could not detect. Worse, because it never loaded the snapshot it
+    was the only test here that RAN in the byte-less CI environment, so one green beside nine
+    skips read as "the band was checked against the data".
+    """
     low, high = PREREGISTERED_BAND
+    pool = int(_rows_with_prefix(_load_snapshot_or_skip(), R03_PREFIX).sum())
+    assert low <= pool <= high, (
+        f"the derived ATC R03 pool is {pool}, outside the pre-registered band of {low}-{high}; "
+        "the pre-registration no longer describes the cohort"
+    )
+    # Literal-vs-literal, kept deliberately as an EDITOR's guard on the recorded figure, not as a
+    # check against the tree. Labelled so no reader counts it as data coverage.
     assert low <= PUBLISHED_R03_CANDIDATES <= high
 
 
@@ -190,12 +238,20 @@ def test_EVERY_roster_key_is_one_of_the_mechanically_derived_candidates():
     frame = _load_snapshot_or_skip()
     candidates = set(frame.loc[_rows_with_prefix(frame, R03_PREFIX), KEY_COLUMN])
     roster = load_poc_roster(TRACKED_ROSTER)
-    roster_keys = set(roster[KEY_COLUMN]) if KEY_COLUMN in roster.columns else set(roster.index)
+    # FAIL CLOSED. The old form fell back to `set(roster.index)`, which for a 26-row frame is
+    # {0..25} — that SATISFIES the size check below and then fails downstream with "26 roster
+    # key(s) are NOT in the derived pool", blaming the published provenance for a missing column.
+    # An absent column must name itself, not mutate into a different defect.
+    assert KEY_COLUMN in roster.columns, (
+        f"the roster frame has no {KEY_COLUMN!r} column; its columns are {list(roster.columns)}"
+    )
+    roster_keys = set(roster[KEY_COLUMN])
 
-    assert len(roster_keys) == PUBLISHED_ROSTER_SIZE
-    outside = roster_keys - candidates
-    assert not outside, (
-        f"{len(outside)} roster key(s) are NOT in the derived ATC R03 candidate pool, so the "
+    n_roster = len(roster_keys)
+    n_outside = len(roster_keys - candidates)
+    assert n_roster == PUBLISHED_ROSTER_SIZE
+    assert n_outside == 0, (
+        f"{n_outside} roster key(s) are NOT in the derived ATC R03 candidate pool, so the "
         "published provenance chain does not hold (keys deliberately not printed)"
     )
 
@@ -217,17 +273,28 @@ def test_the_unselected_count_is_the_arithmetic_complement_and_NOTHING_MORE():
     frame = _load_snapshot_or_skip()
     candidates = set(frame.loc[_rows_with_prefix(frame, R03_PREFIX), KEY_COLUMN])
     roster = load_poc_roster(TRACKED_ROSTER)
-    roster_keys = set(roster[KEY_COLUMN]) if KEY_COLUMN in roster.columns else set(roster.index)
+    # FAIL CLOSED. The old form fell back to `set(roster.index)`, which for a 26-row frame is
+    # {0..25} — that SATISFIES the size check below and then fails downstream with "26 roster
+    # key(s) are NOT in the derived pool", blaming the published provenance for a missing column.
+    # An absent column must name itself, not mutate into a different defect.
+    assert KEY_COLUMN in roster.columns, (
+        f"the roster frame has no {KEY_COLUMN!r} column; its columns are {list(roster.columns)}"
+    )
+    roster_keys = set(roster[KEY_COLUMN])
 
-    assert len(candidates) == PUBLISHED_R03_CANDIDATES, (
-        f"the derived pool is {len(candidates)}, not {PUBLISHED_R03_CANDIDATES}; the complement "
+    n_candidates = len(candidates)
+    n_roster = len(roster_keys)
+    n_selected = len(roster_keys & candidates)
+    n_unselected = len(candidates - roster_keys)
+    assert n_candidates == PUBLISHED_R03_CANDIDATES, (
+        f"the derived pool is {n_candidates}, not {PUBLISHED_R03_CANDIDATES}; the complement "
         "below would be arithmetic about the wrong pool"
     )
-    assert len(roster_keys) == PUBLISHED_ROSTER_SIZE
-    assert len(roster_keys & candidates) == PUBLISHED_ROSTER_SIZE, (
+    assert n_roster == PUBLISHED_ROSTER_SIZE
+    assert n_selected == PUBLISHED_ROSTER_SIZE, (
         "a roster key left the derived pool; the complement is insensitive to this on its own"
     )
-    assert len(candidates - roster_keys) == PUBLISHED_UNSELECTED
+    assert n_unselected == PUBLISHED_UNSELECTED
     assert PUBLISHED_R03_CANDIDATES - PUBLISHED_ROSTER_SIZE == PUBLISHED_UNSELECTED
 
 
@@ -256,4 +323,4 @@ def test_the_instrument_check_FIRES_when_the_extractor_is_blinded(tmp_path, monk
     monkeypatch.setattr(sys.modules[__name__], "snapshot_parquet_path", lambda: doctored)
 
     with pytest.raises(AssertionError, match="found NO codes anywhere"):
-        test_the_instrument_finds_atc_codes_at_all_before_any_count_is_trusted()
+        _assert_instrument_finds_codes(_load_snapshot_or_skip())

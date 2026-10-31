@@ -112,8 +112,10 @@ def test_the_tracked_adjudication_file_is_tracked_by_git_not_merely_present():
 
 
 def test_the_published_roster_size_matches_the_tracked_file():
-    frame = _read_tracked_frame()
-    assert len(frame) == PUBLISHED_ROSTER_SIZE
+    # Bound before the assert: pytest prints every subexpression, so a frame operand would emit a
+    # repr carrying structure keys. Counts only, in every assertion in this module.
+    rows = len(_read_tracked_frame())
+    assert rows == PUBLISHED_ROSTER_SIZE
 
 
 def test_the_published_counts_are_what_the_projects_own_deriver_returns():
@@ -122,11 +124,24 @@ def test_the_published_counts_are_what_the_projects_own_deriver_returns():
     assert counts == PUBLISHED_COUNTS
 
 
-def test_the_counts_cover_every_label_in_the_domain_including_the_zeros():
-    """An absent key would let a caller branch on presence and lose the empty group."""
+def test_label_counts_returns_the_WHOLE_domain__a_LIBRARY_contract_not_a_data_check():
+    """Labelled for what it is, after review showed it reads as more than it is.
+
+    `label_counts` builds its result as `{label: ... for label in sorted(ADJUDICATED_LABELS)}`, so
+    its key set can never be wrong and **this cannot fail on any tree**. Review measured it: the
+    assertion survived six of seven verdict mutations, firing only on row deletion, where a
+    sibling already covers it.
+
+    It is kept, not deleted, because the published result depends on the zeros being PRESENT — an
+    absent `no` key would let a caller branch on presence and lose the empty group, which is the
+    whole finding. But it is contract coverage, not evidence about the verdicts, and the name and
+    this docstring now say so rather than letting a reader count it as data coverage.
+    """
     counts = label_counts(_labels(_read_tracked_frame()))
-    assert set(counts) == set(ADJUDICATED_LABELS)
-    assert sum(counts.values()) == PUBLISHED_ROSTER_SIZE
+    domain = sorted(ADJUDICATED_LABELS)
+    total = sum(counts.values())
+    assert sorted(counts) == domain
+    assert total == PUBLISHED_ROSTER_SIZE
 
 
 def test_the_grouping_variable_is_unusable_AND_for_the_published_reason():
@@ -172,15 +187,28 @@ def test_the_adjudication_file_and_the_roster_describe_THE_SAME_26_compounds():
     """
     frame = _read_tracked_frame()
     roster = load_poc_roster(TRACKED_ROSTER)
-    roster_keys = set(roster[KEY_COLUMN]) if KEY_COLUMN in roster.columns else set(roster.index)
+    # FAIL CLOSED. The old form fell back to `set(roster.index)`, which for a 26-row frame is
+    # {0..25} — that SATISFIES the size check below and then fails downstream with "26 roster
+    # key(s) are NOT in the derived pool", blaming the published provenance for a missing column.
+    # An absent column must name itself, not mutate into a different defect.
+    assert KEY_COLUMN in roster.columns, (
+        f"the roster frame has no {KEY_COLUMN!r} column; its columns are {list(roster.columns)}"
+    )
+    roster_keys = set(roster[KEY_COLUMN])
     adjudicated_keys = set(frame[KEY_COLUMN])
 
-    assert len(adjudicated_keys) == len(frame), "the adjudication file repeats a key"
-    assert len(roster_keys) == PUBLISHED_ROSTER_SIZE
-    assert adjudicated_keys == roster_keys, (
-        f"{len(adjudicated_keys - roster_keys)} adjudicated key(s) are absent from the "
-        f"roster and {len(roster_keys - adjudicated_keys)} roster key(s) were never "
-        "adjudicated (counts only; keys deliberately not printed)"
+    n_adjudicated, n_rows, n_roster = len(adjudicated_keys), len(frame), len(roster_keys)
+    assert n_adjudicated == n_rows, "the adjudication file repeats a key"
+    assert n_roster == PUBLISHED_ROSTER_SIZE
+    # NOT `assert adjudicated_keys == roster_keys`: a set-vs-set compare makes pytest print BOTH
+    # SETS of structure keys. This was the one operand my first binding pass missed, and an
+    # empirical leak check over a real failing run is what caught it — not reading the code.
+    # Symmetric difference, as two counts.
+    n_adj_only = len(adjudicated_keys - roster_keys)
+    n_roster_only = len(roster_keys - adjudicated_keys)
+    assert (n_adj_only, n_roster_only) == (0, 0), (
+        f"{n_adj_only} adjudicated key(s) are absent from the roster and {n_roster_only} "
+        "roster key(s) were never adjudicated (counts only; keys deliberately not printed)"
     )
 
 

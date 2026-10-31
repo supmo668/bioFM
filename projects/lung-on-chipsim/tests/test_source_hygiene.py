@@ -129,3 +129,105 @@ def test_a_forward_declaration_is_NOT_a_duplicate_but_two_real_bindings_STILL_AR
     assert _shadowed_constants("_PRIOR = _a()\n_PRIOR = _b()\n") == {"_PRIOR": [1, 2]}
     # And a placeholder does not license a later pair.
     assert _shadowed_constants("X_Y = None\nX_Y = _a()\nX_Y = _b()\n") == {"X_Y": [2, 3]}
+
+
+# --- the no-identifier-in-assertion-operand rule ------------------------------------------------
+
+#: Modules that read a frame pairing a structure key with a substance name. An assertion in one of
+#: these must take a pre-bound SCALAR, never the frame or a key set.
+_PAIRING_READERS = (
+    "test_published_pgp_result.py",
+    "test_published_snapshot_counts.py",
+    "test_published_roster_provenance.py",
+)
+
+#: Calls that return a frame or a key collection. Inside an `assert`, pytest's rewriting prints
+#: the result, so none of these may appear there.
+_COLLECTION_PRODUCERS = frozenset(
+    {
+        "_load_snapshot_or_skip",
+        "_read_tracked_frame",
+        "_rows_with_prefix",
+        "relative_stereo_keys",
+        "load_poc_roster",
+        "set",
+    }
+)
+
+
+def _assert_operand_offenders(source: str) -> list[str]:
+    """Names from `_COLLECTION_PRODUCERS` called inside an `assert` in a `test_*` function."""
+    bad: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if not (isinstance(node, ast.FunctionDef) and node.name.startswith("test_")):
+            continue
+        for stmt in ast.walk(node):
+            if not isinstance(stmt, ast.Assert):
+                continue
+            for inner in ast.walk(stmt.test):
+                if (
+                    isinstance(inner, ast.Call)
+                    and isinstance(inner.func, ast.Name)
+                    and inner.func.id in _COLLECTION_PRODUCERS
+                ):
+                    bad.append(f"{node.name}: {inner.func.id}() at line {inner.lineno}")
+    return bad
+
+
+def test_no_assertion_takes_a_frame_or_key_set_as_an_OPERAND():
+    """The published-number modules must assert on scalars, never on a frame or a key set.
+
+    WHY. The snapshot frame carries `canonical_inchikey` beside `name` and `drugbank_id`, so a
+    frame in an assertion operand emits an identifier PAIRED with a substance — which this
+    project forbids on a public surface, and which lands in CI logs. pytest's assertion rewriting
+    prints every subexpression regardless of a custom message, so the fix is the operand, not the
+    message. The author's docstring claim that "no identifier is written into any failure message"
+    was FALSE until this was enforced.
+
+    WHAT THIS IS NOT. A denylist of known collection-producing calls is a **regression guard, not
+    a proof**. It did not find the original defect and could not have: the miss that mattered was
+    `assert adjudicated_keys == roster_keys`, a bare set-vs-set compare with no call in it at all,
+    and it was found by running deliberately failing variants and grepping the FORMATTED pytest
+    report for the identifier shape. Do that whenever these modules' assertions change; this test
+    only stops a known shape from returning.
+    """
+    offenders = []
+    for name in _PAIRING_READERS:
+        path = PROJECT_ROOT / "tests" / name
+        assert path.is_file(), f"{name} is missing; this rule names a module that does not exist"
+        offenders.extend(
+            f"{name}::{hit}" for hit in _assert_operand_offenders(path.read_text(encoding="utf-8"))
+        )
+    assert not offenders, (
+        "assertion operand(s) that pytest would print as a frame or key set:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+def test_the_operand_rule_FIRES_on_a_planted_violation():
+    """THE PROBE, in both directions, on literal source so it never touches the tree."""
+    planted = _assert_operand_offenders(
+        "def test_x():\n    assert len(_load_snapshot_or_skip()) == 1\n"
+    )
+    assert len(planted) == 1 and "_load_snapshot_or_skip" in planted[0], planted
+    # bound to a local first: the shape the rule exists to require
+    assert (
+        _assert_operand_offenders(
+            "def test_x():\n    n = len(_load_snapshot_or_skip())\n    assert n == 1\n"
+        )
+        == []
+    )
+    # a non-test helper may still call it
+    assert (
+        _assert_operand_offenders("def _helper():\n    assert len(_load_snapshot_or_skip()) == 1\n")
+        == []
+    )
+
+
+def test_the_named_collection_producers_all_still_exist_somewhere():
+    """Stale-entry guard: a denylist naming a vanished function is a rule that stopped working."""
+    haystack = "\n".join(
+        (PROJECT_ROOT / "tests" / n).read_text(encoding="utf-8") for n in _PAIRING_READERS
+    )
+    missing = sorted(n for n in _COLLECTION_PRODUCERS if n != "set" and n not in haystack)
+    assert not missing, f"denylisted name(s) no longer present, so the entry is stale: {missing}"
