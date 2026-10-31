@@ -7,7 +7,9 @@ date: 2026-09-28
 surface_local: docs/hacp/lung-on-chipsim/index.md
 surface_notion: https://app.notion.com/p/b7c749bd250d83dab06201f85d61ee49
 surface_notion_note: "ChipSim (bioFM) — Index, the HACP L1 subproject row; SOURCE OF TRUTH since 2026-10-03 (principal); the floor mirrors it"
-# DEAD 2026-10-30 -- the URL below returns "artifact not found" (confirmed by read today).
+# UNREADABLE FROM THIS ACCOUNT 2026-10-30; "DEAD" was overstated -- corrected 2026-10-31.
+# The URL below returned "artifact not found" when read from this session. That is NOT the same
+# as deleted: these URLs are account-scoped. See the correction at the foot of this file.
 # Left in place deliberately and NOT re-pointed; see "Surface annotation -- 2026-10-30"
 # at the foot of this file.
 surface_artifact_superseded: https://claude.ai/artifact/VL8WMBZERBehinw1z36yQm
@@ -73,7 +75,20 @@ as the local source. Each section page should become a row with `Parent` = the m
 
 ---
 
-## Surface annotation — 2026-10-30: the superseded artifact is now DEAD
+## Surface annotation — 2026-10-30, CORRECTED 2026-10-31: unreadable from here, not proven dead
+
+> **CORRECTED 2026-10-31 — "DEAD" OVERSTATED WHAT WAS MEASURED.** This annotation asserted that
+> the artifact below was dead. It is not established. These URLs are **account-scoped**, and the
+> evidence is now symmetrically inverted across an account change: the id this file called DEAD on
+> 2026-10-30 **reads for the CTO on 2026-10-31 at 196 lines**, while an id that resolved on
+> 2026-10-30 returns not-found today. Neither party can conclude "deleted" from a failed read.
+>
+> The house wording, adopted from this finding: **unreadable from this session, by this tool, from
+> this account** — which is strictly weaker than deleted. Everything this annotation DIRECTS stays
+> unchanged and is if anything better supported: do not re-point, do not republish, put durable
+> provenance in the repository. **A citation whose resolvability depends on who is asking is not a
+> citation**, whether or not it happens to resolve for someone today.
+
 
 **State, measured today.** A read of `surface_artifact_superseded:`
 (`claude.ai/artifact/VL8WMBZERBehinw1z36yQm`) returned **artifact not found**. The surface is

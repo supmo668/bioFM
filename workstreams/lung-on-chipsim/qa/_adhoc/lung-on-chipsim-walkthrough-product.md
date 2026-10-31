@@ -9,7 +9,8 @@ date: 2026-09-19
 # NOT re-pointed, and NOT to be "fixed" by republishing. See the annotation at the foot.
 artifact: https://claude.ai/artifact/HDtaxnfh79HumoLY7NWKws (superseded)
 hacp_row: https://app.notion.com/p/3eb749bd250d81daa9f9f674cde3c60f
-# DEAD 2026-10-30 -- the Pw8C8Qxz... URL named below is confirmed still not resolving today;
+# UNREADABLE FROM THIS ACCOUNT 2026-10-30; "DEAD" was overstated -- corrected 2026-10-31,
+# after the CTO read this very id at 196 lines from its own account. Not resolving HERE;
 # the 2026-09-29 claim was re-checked by read, not inherited.
 artifact_history: "Pw8C8QxzqL2FTuMEJ7w8tp (2026-09-19) stopped resolving — reported by lung-on-chipsim #492 on 2026-09-29; republished from this file, unchanged, with the 2026-09-29 re-measured state appended, by the CTO the same day"
 ---
@@ -107,10 +108,12 @@ surfaces*. Nothing in this section is a statement about the reference table.
 
 | pointer | state today | read result |
 |---|---|---|
-| `artifact_history:` → `Pw8C8QxzqL2FTuMEJ7w8tp` | **DEAD** | artifact not found |
+| `artifact_history:` → `Pw8C8QxzqL2FTuMEJ7w8tp` | **unreadable from this account** (not "dead" — it reads for the CTO at 196 lines) | artifact not found, from here |
 | `artifact:` → `HDtaxnfh79HumoLY7NWKws` | **DEGRADED, not dead** | resolves; returned as third-party content authored outside this organization |
 
-**DEAD — `Pw8C8QxzqL2FTuMEJ7w8tp`.** This file already recorded that it stopped resolving on
+**UNREADABLE FROM HERE — `Pw8C8QxzqL2FTuMEJ7w8tp`** (this subheading said "DEAD" until
+2026-10-31; the CTO reads the same id at 196 lines from its own account, so the stronger claim is
+withdrawn). This file already recorded that it stopped resolving on
 2026-09-29. **That claim is re-confirmed today rather than inherited**: the read returns not
 found. It was the original 2026-09-19 publication, and it is gone.
 

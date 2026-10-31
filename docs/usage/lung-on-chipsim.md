@@ -31,6 +31,11 @@ uv run chipsim --help         # the command list, straight from the tool
 - `--approved-by WHO` — who approved, when it was not the operator at the terminal. Recorded
   **verbatim**; omit it and the field is simply absent. It is never defaulted and never inferred.
 
+**With no terminal and no `--yes`, a gated command REFUSES rather than prompting.** That is the
+default posture — a stage that writes artifacts must not run just because nobody said no — and it
+is where this bites in practice: cron, n8n, CI. Pass `--yes` (and `--approved-by` when it was not
+you at the terminal) for any unattended run.
+
 **Not gated** — `adjudication-export`, `panel-seal`, the two `*-scaffold` commands, and the four
 `*-check` commands. The checks are read-only; the scaffolds write only empty templates.
 
@@ -104,8 +109,17 @@ not a label, and the ingest tool will tell you where it reads it from.
 
 - **A mismatch is reported, never routed around.** `hash-verify` and the `*-check` commands are
   built to refuse and explain, not to repair. A refusal is the product.
-- **Fixtures under `tests/fixtures` are read-only**, and `PROVENANCE.md` is human-authored only.
-- **Every run is journalled**, including which approval mode was used.
+- **Fixtures under `tests/fixtures` are read-only.**
+- **`data/raw/drugbank/PROVENANCE.md` is human-authored only — and it does not exist yet.** The
+  path is reserved (`.gitignore` un-ignores it; the provenance suite names it), and the file is a
+  human deliverable that has not landed. Corrected 2026-10-31: this bullet previously said
+  "`PROVENANCE.md`" with no path, which I wrote from recollection in a document whose own second
+  paragraph says every claim was confirmed by running the tool. Review caught it.
+- **Every run leaves a record, and the two kinds of command differ.** For the gated ETL stages
+  journalling is **best-effort**: if the journal write fails the stage still runs, and a durable
+  `UNRECORDED-<stamp>.json` marker is dropped so a recorded run is never indistinguishable from an
+  unrecorded one. The non-ETL commands (`panel-seal`) **fail closed** — they refuse to run at all
+  when they cannot be recorded. The approval mode used is part of the record.
 - Before committing, run the module loop: `uv run ruff format .`, `uv run ruff check --fix .`,
   `uv run ty check chipsim`, `uv run pytest -q`. Note that `pytest -q` is **unselected** and
   includes tests that reach a live remote endpoint; `-m "not network and not integration"`
