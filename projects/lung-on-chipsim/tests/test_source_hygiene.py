@@ -19,10 +19,17 @@ careful" but "an assertion fires".
 
 What it does NOT catch, stated
 ------------------------------
-- Duplicates of the same name in DIFFERENT files. Those are legitimate and deliberate here: each
-  test module owns its own constants, and ``test_published_snapshot_counts`` and
-  ``test_published_roster_provenance`` each define ``SNAPSHOT_PARQUET`` on purpose, documented,
-  rather than coupling two suites' collection order for three lines.
+- Duplicates of the same name in DIFFERENT files. Each test module owning its own constants is
+  normal and this rule does not reach across files.
+
+  **A retracted carve-out.** This list used to name ``test_published_snapshot_counts`` and
+  ``test_published_roster_provenance`` as a legitimate, documented exception — "rather than
+  coupling two suites' collection order for three lines". Review showed that justification was
+  factually wrong (a cross-module import does not affect collection order, and the house already
+  imports shared helpers from ``conftest``), that it was ~35 lines rather than three, and that the
+  two copies had already DRIFTED. So this module was carving out, by name, exactly the shape it
+  exists to abolish: two definitions of one subject, free to diverge. The two modules are now one
+  (``test_published_snapshot_claims``) and the exception is gone rather than reworded.
 - Rebinding inside a function or class body; this looks only at module level.
 - Names that are not SCREAMING_CASE, and annotated assignments (``NAME: T = ...``).
 - Two constants with different names holding the same value — a real drift hazard this does not
@@ -137,8 +144,7 @@ def test_a_forward_declaration_is_NOT_a_duplicate_but_two_real_bindings_STILL_AR
 #: these must take a pre-bound SCALAR, never the frame or a key set.
 _PAIRING_READERS = (
     "test_published_pgp_result.py",
-    "test_published_snapshot_counts.py",
-    "test_published_roster_provenance.py",
+    "test_published_snapshot_claims.py",
 )
 
 #: Calls that return a frame or a key collection. Inside an `assert`, pytest's rewriting prints
