@@ -1,0 +1,71 @@
+{
+  "project": "bioFM",
+  "repo": "https://github.com/supmo668/bioFM",
+  "source_of_truth": "notion",
+  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03); each floor page below mirrors its row. A page whose last commit is later than its `synced` date is drift and scripts/hacp_sync_check.py fails on it. ONLY THE CTO WRITES ROWS, so an agent prepares a fully resolved row and dispatches it. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md section HACP. NOTE: a row's Notion `Updated` timestamp is NOT evidence of a content mirror - it moves on any property edit - so `synced` records a mirror event that actually happened.",
+  "index_row": "https://app.notion.com/p/3e7749bd250d8140a751d01f6a820b7d",
+  "hacp_index_database": "https://app.notion.com/p/3e5749bd250d806899f1d04b1053d1e7",
+  "membership_database": "https://app.notion.com/p/1c3a4161029c43d98672616acbe1fa20",
+  "created": "2026-10-31 by the bioFM CTO. This floor had NO map, so nothing mechanically detected an un-mirrored edit on the project's own top-level pages - the defect that let the aviary index mirror go 103 commits stale unnoticed.",
+  "pages": {
+    "build.md": {
+      "notion": "https://app.notion.com/p/3e7749bd250d81999d45fe8eb47477d2",
+      "kind": "Section",
+      "section": "build",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-09",
+      "synced_basis": "Mirrored in the 2026-10-09 CTO sync (commit 82239ad names index/build/eval/decision/aviary index). Floor last commit 2026-10-09, same day."
+    },
+    "decision.md": {
+      "notion": "https://app.notion.com/p/40a749bd250d81c4a950d834e175c95f",
+      "kind": "Section",
+      "section": "decision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-31",
+      "synced_basis": "Row CREATED 2026-10-31. No Section row had ever existed for this page: the individual dated rulings had rows, the ledger that collects them did not, so the project's open-decision list was reachable only by opening the repository. Floor last commit 2026-10-19 (the D-1/D-2 resolutions), included in the mirror."
+    },
+    "design.md": {
+      "notion": "https://app.notion.com/p/3e7749bd250d81cab32ee1b8fa8bc706",
+      "kind": "Section",
+      "section": "design",
+      "granularity": "L1 — Review",
+      "synced": "2026-09-29",
+      "synced_basis": "Notion row last edited 2026-09-29; floor last commit 2026-09-26, so the row is at or ahead of the floor."
+    },
+    "eval.md": {
+      "notion": "https://app.notion.com/p/3e7749bd250d819f8f94d7272c04e46d",
+      "kind": "Section",
+      "section": "eval",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-09",
+      "synced_basis": "Mirrored in the 2026-10-09 CTO sync. Floor last commit 2026-10-09, same day."
+    },
+    "index.md": {
+      "notion": "https://app.notion.com/p/3e7749bd250d8140a751d01f6a820b7d",
+      "kind": "Index",
+      "section": "vision",
+      "granularity": "L0 — Overview",
+      "synced": "2026-10-09",
+      "synced_basis": "Content mirrored in the 2026-10-09 CTO sync; floor last commit 2026-10-09. The row's Updated shows 2026-10-31 because the CTO repaired its Local path property that night, which is NOT a content sync and is deliberately not recorded as one. SEPARATE OPEN DEFECT: this row still carries a header property table, a count table, a decisions-taken table, a decisions-needed list and a sections table - the recorded ChipSim failure mode. Its floor has not been restructured either, so repairing it is an editorial decision on the top-level project surface and is held for the principal."
+    },
+    "risk.md": {
+      "notion": "https://app.notion.com/p/3e7749bd250d8148b712f5019cd77797",
+      "kind": "Section",
+      "section": "risk",
+      "granularity": "L1 — Review",
+      "synced": "2026-09-30",
+      "synced_basis": "Notion row last edited 2026-09-30; floor last commit 2026-09-30, same day."
+    },
+    "vision.md": {
+      "notion": "https://app.notion.com/p/40a749bd250d81c59f29ee7c743eba31",
+      "kind": "Section",
+      "section": "vision",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-31",
+      "synced_basis": "Row CREATED 2026-10-31. No row had ever existed, so the page stating the project's standing scientific constraint (no coding agent writes a biological number) was the one section a reviewer could not reach from the index. Floor last commit 2026-09-26."
+    }
+  },
+  "notes": {
+    "granularity_mismatch": "FLAGGED, NOT CHANGED. The build/design/eval/risk rows declare Granularity = 'L2 — Detail' while their own page bodies open with 'HACP L1'. The rows contradict the pages they mirror. The two rows created 2026-10-31 (vision, decision) are declared L1, matching their content, rather than copying a probable error. Reconciling the other four is a four-row edit the principal should see first."
+  }
+}

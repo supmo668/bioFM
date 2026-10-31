@@ -1,0 +1,34 @@
+{
+  "project": "bioFM",
+  "repo": "https://github.com/supmo668/bioFM",
+  "source_of_truth": "notion",
+  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03); each floor page below mirrors its row. A page whose last commit is later than its `synced` date is drift and scripts/hacp_sync_check.py fails on it. ONLY THE CTO WRITES ROWS, so an agent prepares a fully resolved row and dispatches it. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md section HACP. NOTE: a row's Notion `Updated` timestamp is NOT evidence of a content mirror - it moves on any property edit - so `synced` records a mirror event that actually happened.",
+  "index_row": "https://app.notion.com/p/3e7749bd250d8140a751d01f6a820b7d",
+  "created": "2026-10-31 by the bioFM CTO. This floor had no map and was outside the CI sync guard.",
+  "pages": {
+    "deposit-review.md": {
+      "notion": "https://app.notion.com/p/3fb749bd250d811f8a98eb08b8f7c32d",
+      "kind": "Decision",
+      "section": "eval",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-16",
+      "synced_basis": "Notion row last edited 2026-10-16; floor last commit 2026-10-16, same day."
+    },
+    "publish-complete.md": {
+      "notion": "https://app.notion.com/p/3fb749bd250d81368aa6c317afbbfeff",
+      "kind": "Presentation",
+      "section": "eval",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-31",
+      "synced_basis": "RECONCILED 2026-10-31. This page is the recorded case of a Notion mirror running AHEAD of its declared source: the row carried a dated 2026-10-25 addendum the floor never received, and the floor caught up on 2026-10-29 (commit 5b0a168). The CTO then measured the remaining difference and found the row's own Relations table still omitted the isIdenticalTo relation the floor now lists, and added it on 2026-10-31. Both surfaces now name it."
+    },
+    "publish-review.md": {
+      "notion": "https://app.notion.com/p/3fb749bd250d81d8a73cc45ecf79f1bb",
+      "kind": "Decision",
+      "section": "eval",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-16",
+      "synced_basis": "Notion row last edited 2026-10-16; floor last commit 2026-10-16, same day."
+    }
+  }
+}
