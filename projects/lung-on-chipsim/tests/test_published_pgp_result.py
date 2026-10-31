@@ -54,6 +54,15 @@ TRACKED_ROSTER = PROJECT_ROOT / "configs" / "poc_compounds.yaml"
 LABEL_COLUMN = "adjudicated_label"
 DOI_COLUMN = "evidence_doi"
 KEY_COLUMN = "canonical_inchikey"
+#: What a cited verdict must carry. DERIVED from the library that owns the rule rather than
+#: restated: `chipsim.harmonize.adjudication` checks BOTH of these for every `yes`/`no` row, and a
+#: hand-copied subset here would be free to drift from its owner.
+CITED_REQUIRES = ("evidence_doi", "adjudicated_by")
+ATTRIBUTION_COLUMNS = ("adjudicated_by", "adjudicated_on")
+#: A DOI's SHAPE. Resolvability cannot be tested offline — that limit is stated, not papered over.
+DOI_PATTERN = r"10\.\d{4,9}/\S+"
+#: An ISO date. The ratifier's identity is NOT pinned: it is one tracked value, principal-owned.
+DATE_PATTERN = r"\d{4}-\d{2}-\d{2}"
 
 # The principal's ratified verdicts, as `label_counts` derives them. See the module docstring:
 # a failure here is a publication decision, never a literal to edit.
@@ -82,8 +91,13 @@ def _read_tracked_frame(path: Path | None = None) -> pd.DataFrame:
     """
     path = Path(path) if path is not None else tracked_adjudication_path()
     assert path.is_file(), f"the tracked adjudication file is absent: {path}"
-    frame = pd.read_csv(path, dtype=str)
-    for column in (KEY_COLUMN, LABEL_COLUMN, DOI_COLUMN):
+    # `keep_default_na=False` matches every other adjudication reader in this suite
+    # (`test_adjudication.py` passes it in four places). Without it pandas turns a LITERAL cell of
+    # "NA"/"null"/"-"/"n/a" into NaN, so a populated junk verdict is reported as "a null is neither
+    # a verdict nor an 'unknown'" — a message that MISIDENTIFIES the subject, because the cell is
+    # populated. With it, `label_counts` raises the out-of-domain error and names the value.
+    frame = pd.read_csv(path, dtype=str, keep_default_na=False)
+    for column in (KEY_COLUMN, LABEL_COLUMN, DOI_COLUMN, *ATTRIBUTION_COLUMNS):
         assert column in frame.columns, (
             f"{path.name} has no {column!r} column; its columns are "
             f"{list(frame.columns)}. Refusing to count a column that does not exist."
@@ -158,6 +172,73 @@ def test_the_grouping_variable_is_unusable_AND_for_the_published_reason():
         "the published result is a populated POSITIVE group against an empty negative one; "
         "an empty positive group would be a different result entirely"
     )
+
+
+def test_every_cited_verdict_carries_EVERY_column_the_LIBRARY_requires():
+    """Derived from the library that owns the rule, not restated narrowly.
+
+    `chipsim.harmonize.adjudication` refuses a `yes`/`no` row with an empty `evidence_doi` OR an
+    empty `adjudicated_by` — "a positive or negative claim without attribution cannot be audited".
+    The earlier version of this module checked only the DOI, which is a narrower restatement free
+    to drift from its owner.
+    """
+    frame = _read_tracked_frame()
+    cited = frame[LABEL_COLUMN].isin(CITED_LABELS)
+    n_cited = int(cited.sum())
+    assert n_cited > 0, "no cited verdict at all; the rule below would be vacuous"
+    for column in CITED_REQUIRES:
+        n_blank = int((frame.loc[cited, column].str.strip() == "").sum())
+        assert n_blank == 0, (
+            f"{n_blank} row(s) with a {sorted(CITED_LABELS)} verdict carry an empty {column!r}; "
+            "the library refuses this, and a claim without attribution cannot be audited"
+        )
+
+
+def test_every_cited_doi_has_the_SHAPE_of_a_doi():
+    """Closes "any non-empty string counts".
+
+    Review mutated the three cited DOIs to `TODO`, `see artifact G6xd…` and a non-existent DOI:
+    all passed. The second is precisely the dead-pointer failure the roster header in this same
+    change repudiates. Shape is checkable offline; RESOLVABILITY is not, and this test does not
+    claim it.
+    """
+    frame = _read_tracked_frame()
+    cited = frame[LABEL_COLUMN].isin(CITED_LABELS)
+    n_bad = int((~frame.loc[cited, DOI_COLUMN].str.fullmatch(DOI_PATTERN)).sum())
+    assert n_bad == 0, (
+        f"{n_bad} cited verdict(s) carry an `evidence_doi` that is not shaped like a DOI "
+        "(counts only). Shape only — resolvability is not tested here."
+    )
+
+
+def test_every_verdict_is_ATTRIBUTED_and_dated():
+    """The published result rests on attribution, and nothing pinned it.
+
+    Review blanked `adjudicated_by` AND `adjudicated_on` on all 26 rows and every test passed,
+    while this module's docstring claims the verdicts "were typed by the principal" and the
+    library holds that "an unattributable ratification is not a ratification". The ratifier's
+    identity string is deliberately NOT pinned — that is one tracked value and it is theirs.
+    """
+    frame = _read_tracked_frame()
+    for column in ATTRIBUTION_COLUMNS:
+        n_blank = int((frame[column].str.strip() == "").sum())
+        assert n_blank == 0, f"{n_blank} row(s) carry an empty {column!r} (counts only)"
+    n_bad_date = int((~frame["adjudicated_on"].str.fullmatch(DATE_PATTERN)).sum())
+    assert n_bad_date == 0, f"{n_bad_date} row(s) carry a non-ISO `adjudicated_on` (counts only)"
+
+
+def test_no_row_carries_a_BLANK_structure_key():
+    """A compound that loses its identity entirely would otherwise be invisible.
+
+    Review replaced one key with the empty string: rows stayed 26, `nunique(dropna=True)` stayed
+    26, nulls stayed 0, and everything passed — with "" counted as a distinct identity. A shape
+    check writes no identifier, so the standing constraint is respected.
+    """
+    frame = _read_tracked_frame()
+    n_blank = int((frame[KEY_COLUMN].str.strip() == "").sum())
+    n_misshaped = int((~frame[KEY_COLUMN].str.fullmatch(r"[A-Z]{14}-[A-Z]{10}-[A-Z]")).sum())
+    assert n_blank == 0, f"{n_blank} row(s) carry a blank {KEY_COLUMN} (counts only)"
+    assert n_misshaped == 0, f"{n_misshaped} row(s) carry a misshaped key (counts only)"
 
 
 def test_every_cited_verdict_carries_a_doi_and_no_uncited_one_does():

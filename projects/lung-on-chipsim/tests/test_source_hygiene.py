@@ -32,6 +32,9 @@ What it does NOT catch, stated
   (``test_published_snapshot_claims``) and the exception is gone rather than reworded.
 - Rebinding inside a function or class body; this looks only at module level.
 - Names that are not SCREAMING_CASE, and annotated assignments (``NAME: T = ...``).
+- (Removed limits, kept here so the history is legible: a two-character cutoff used to exempt
+  ``PI``/``NA`` silently, tuple-unpacking targets were skipped, and module-level assignments
+  nested in ``if``/``try``/``with`` were invisible. All three are now covered and pinned below.)
 - Two constants with different names holding the same value — a real drift hazard this does not
   address.
 - **A forward declaration**, i.e. ``NAME = None`` and then a real assignment later. That is a
@@ -55,18 +58,51 @@ SOURCE_DIRS = ("chipsim", "tests")
 
 
 def _python_files() -> list[pathlib.Path]:
-    files = [f for d in SOURCE_DIRS for f in (PROJECT_ROOT / d).rglob("*.py")]
-    assert files, (
-        f"no Python files found under {SOURCE_DIRS} in {PROJECT_ROOT}. An empty discovery must "
-        "not read as 'nothing to check' — the error path of a discovery is part of the check."
-    )
-    return sorted(files)
+    """Discover per directory, and FAIL CLOSED per directory.
+
+    `rglob` on a MISSING directory yields nothing and raises nothing, and the old form asserted
+    only that the UNION was non-empty — so `tests/` alone satisfied it. Review proved the
+    consequence: renaming the `chipsim` entry (what a package rename or a move to `src/` looks
+    like) left all five tests green with the ENTIRE LIBRARY unscanned, and a real shadowing
+    duplicate planted in `chipsim/harmonize/roster.py` went unreported. A guard whose scope can be
+    silently emptied is the defect family this module exists to catch — found in this module.
+    """
+    files: list[pathlib.Path] = []
+    for directory in SOURCE_DIRS:
+        root = PROJECT_ROOT / directory
+        assert root.is_dir(), (
+            f"{directory!r} is not a directory under {PROJECT_ROOT}. The scan would silently "
+            "cover nothing there, so this fails instead of reporting 'nothing to check'."
+        )
+        found = sorted(root.rglob("*.py"))
+        assert found, f"no Python files under {directory!r}; the scan would be vacuous there"
+        files.extend(found)
+    return files
 
 
 def _shadowed_constants(source: str) -> dict[str, list[int]]:
     """Module-level SCREAMING_CASE names bound more than once, with their line numbers."""
     seen: dict[str, list[int]] = {}
-    for node in ast.parse(source).body:
+
+    def _module_level(body: list[ast.stmt]) -> list[ast.stmt]:
+        """Module-level statements INCLUDING those nested in `if` / `try` / `with`.
+
+        Only `.body` was walked before, so review proved an assignment inside a module-level
+        `if True:` block was invisible. Function and class bodies stay excluded: a local rebind is
+        not a competing module-level definition.
+        """
+        out: list[ast.stmt] = []
+        for stmt in body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            out.append(stmt)
+            for attr in ("body", "orelse", "finalbody"):
+                out.extend(_module_level(getattr(stmt, attr, None) or []))
+            for handler in getattr(stmt, "handlers", None) or []:
+                out.extend(_module_level(handler.body))
+        return out
+
+    for node in _module_level(ast.parse(source).body):
         if not isinstance(node, ast.Assign):
             continue
         # A `NAME = None` placeholder is a forward declaration, not a competing definition:
@@ -74,9 +110,13 @@ def _shadowed_constants(source: str) -> dict[str, list[int]]:
         # would flag a legitimate documented pattern (see this module's docstring).
         if isinstance(node.value, ast.Constant) and node.value.value is None:
             continue
+        # Walk each target so TUPLE/LIST unpacking is covered — review proved `A_B, C_D = 1, 2`
+        # followed by `A_B = 3` went unreported, because only a bare `ast.Name` target was
+        # examined. The floor is now 2 characters, not 3, so `PI`/`NA` are no longer exempt.
         for target in node.targets:
-            if isinstance(target, ast.Name) and target.id.isupper() and len(target.id) > 2:
-                seen.setdefault(target.id, []).append(node.lineno)
+            for name in ast.walk(target):
+                if isinstance(name, ast.Name) and name.id.isupper() and len(name.id) >= 2:
+                    seen.setdefault(name.id, []).append(node.lineno)
     return {name: lines for name, lines in seen.items() if len(lines) > 1}
 
 
@@ -94,18 +134,24 @@ def test_no_module_level_constant_is_defined_twice_in_one_file():
 
 
 def test_the_scan_actually_reaches_the_files_it_claims_to_cover():
-    """Anti-vacuity, DERIVED rather than a hardcoded floor.
+    """Anti-vacuity, now actually DERIVED — the docstring used to outrun the code.
 
-    A scan that discovers nothing passes the invariant above trivially. The floor is derived from
-    the tracked tree rather than asserted as a numeral, so it cannot go stale.
+    It claimed the floor was "derived from the tracked tree rather than asserted as a numeral" and
+    the code read `len(found) > 20`, a literal that `tests/` satisfies on its own (it holds more
+    than 20 files). Both required members were test files too, so a scan missing the whole library
+    passed. Now the floor is the real per-directory total and members from BOTH directories are
+    required.
     """
     found = {p.resolve() for p in _python_files()}
     for required in (
         PROJECT_ROOT / "tests" / "test_fixture_sources.py",
         PROJECT_ROOT / "tests" / "test_source_hygiene.py",
+        PROJECT_ROOT / "chipsim" / "harmonize" / "roster.py",
+        PROJECT_ROOT / "chipsim" / "eval" / "provenance_block.py",
     ):
         assert required.resolve() in found, f"the scan does not reach {required.name}"
-    assert len(found) > 20, f"only {len(found)} files discovered; expected the whole package"
+    expected = sum(len(list((PROJECT_ROOT / d).rglob("*.py"))) for d in SOURCE_DIRS)
+    assert len(found) == expected, f"discovered {len(found)} files, expected {expected}"
 
 
 def test_the_detector_FIRES_on_a_planted_duplicate():
@@ -237,3 +283,15 @@ def test_the_named_collection_producers_all_still_exist_somewhere():
     )
     missing = sorted(n for n in _COLLECTION_PRODUCERS if n != "set" and n not in haystack)
     assert not missing, f"denylisted name(s) no longer present, so the entry is stale: {missing}"
+
+
+def test_the_detector_covers_the_three_shapes_it_used_to_MISS():
+    """Pins what review proved it missed, so the coverage is a property and not a claim."""
+    # tuple unpacking as the FIRST binding
+    assert _shadowed_constants("A_B, C_D = 1, 2\nA_B = 3\n") == {"A_B": [1, 2]}
+    # a module-level assignment nested in a compound statement
+    assert _shadowed_constants("if True:\n    CONFIGS = 1\nCONFIGS = 2\n") == {"CONFIGS": [2, 3]}
+    # two-character names are no longer silently exempt
+    assert _shadowed_constants("AB = 1\nAB = 2\n") == {"AB": [1, 2]}
+    # and a rebind inside a FUNCTION body is still not a module-level duplicate
+    assert _shadowed_constants("def f():\n    AB = 1\n    AB = 2\n") == {}

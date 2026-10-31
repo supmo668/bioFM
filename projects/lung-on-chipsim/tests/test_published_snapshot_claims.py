@@ -292,6 +292,22 @@ def test_the_distinct_key_count_is_published_SEPARATELY_from_the_row_count():
     assert rows - distinct == PUBLISHED_ROWS - PUBLISHED_DISTINCT_KEYS
 
 
+def test_no_row_carries_a_BLANK_or_misshaped_canonical_key():
+    """A null is not the only way to lose an identity, and the other way was invisible.
+
+    Review replaced one key with the empty string: rows stayed 6,802, `nunique(dropna=True)`
+    stayed 6,610, `isna().sum()` stayed 0, and every pin passed — with "" counted as one of the
+    published 6,610 distinct identities. A SHAPE check writes no identifier, so the standing
+    constraint is respected and the failure message carries counts only.
+    """
+    frame = _load_snapshot_or_skip()
+    keys = frame[KEY_COLUMN].fillna("")
+    n_blank = int((keys.str.strip() == "").sum())
+    n_misshaped = int((~keys.str.fullmatch(r"[A-Z]{14}-[A-Z]{10}-[A-Z]")).sum())
+    assert n_blank == 0, f"{n_blank} row(s) carry a blank {KEY_COLUMN} (counts only)"
+    assert n_misshaped == 0, f"{n_misshaped} row(s) carry a misshaped key (counts only)"
+
+
 def test_no_row_carries_a_null_canonical_key():
     """A null key would make `nunique(dropna=True)` quietly understate the cohort."""
     frame = _load_snapshot_or_skip()
