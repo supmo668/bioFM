@@ -1,8 +1,8 @@
 ---
 name: entries-and-indexed-by-are-one-synced-relation
-confidence: 0.800
+confidence: 0.900
 created: 2026-10-31T00:17:51Z
-last_reinforced: 2026-10-31T01:15:29Z
+last_reinforced: 2026-10-31T01:51:31Z
 ttl_days: 30
 triggers: [Entries, Indexed by, HACP Index, notion-update-page, index membership, hacp]
 tags: []
