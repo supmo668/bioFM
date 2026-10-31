@@ -14,7 +14,7 @@
       "section": "build",
       "granularity": "L1 — Review",
       "synced": "2026-10-09",
-      "synced_basis": "Mirrored in the 2026-10-09 CTO sync (commit 82239ad names index/build/eval/decision/aviary index). Floor last commit 2026-10-09, same day."
+      "synced_basis": "Mirrored in the 2026-10-09 CTO sync, which commit 82239ad records by name ('sync bioFM HACP to Notion (index/build/eval/decision/aviary index)'). Floor last commit 2026-10-09, same day. The evidence is a recorded mirror event, which is stronger than date-ordering."
     },
     "decision.md": {
       "notion": "https://app.notion.com/p/40a749bd250d81c4a950d834e175c95f",
@@ -30,7 +30,7 @@
       "section": "design",
       "granularity": "L1 — Review",
       "synced": "2026-09-29",
-      "synced_basis": "Notion row last edited 2026-09-29; floor last commit 2026-09-26, so the row is at or ahead of the floor."
+      "synced_basis": "Notion row last edited 2026-09-29; floor last commit 2026-09-26, so the row is at or ahead of the floor in TIME. No content diff was performed, and this date therefore asserts date-ordering, not verified content equality. If the two are found to differ, treat this entry as unverified rather than as a sync that happened."
     },
     "eval.md": {
       "notion": "https://app.notion.com/p/3e7749bd250d819f8f94d7272c04e46d",
@@ -38,7 +38,7 @@
       "section": "eval",
       "granularity": "L1 — Review",
       "synced": "2026-10-09",
-      "synced_basis": "Mirrored in the 2026-10-09 CTO sync. Floor last commit 2026-10-09, same day."
+      "synced_basis": "Mirrored in the 2026-10-09 CTO sync, named in commit 82239ad. Floor last commit 2026-10-09, same day."
     },
     "index.md": {
       "notion": "https://app.notion.com/p/3e7749bd250d8140a751d01f6a820b7d",
@@ -54,7 +54,7 @@
       "section": "risk",
       "granularity": "L1 — Review",
       "synced": "2026-09-30",
-      "synced_basis": "Notion row last edited 2026-09-30; floor last commit 2026-09-30, same day."
+      "synced_basis": "Notion row last edited 2026-09-30; floor last commit 2026-09-30, the same day. Same caveat as design.md: this is date-ordering evidence, not a verified content diff."
     },
     "vision.md": {
       "notion": "https://app.notion.com/p/40a749bd250d81c59f29ee7c743eba31",
@@ -66,6 +66,8 @@
     }
   },
   "notes": {
-    "granularity_mismatch": "FLAGGED, NOT CHANGED. The build/design/eval/risk rows declare Granularity = 'L2 — Detail' while their own page bodies open with 'HACP L1'. The rows contradict the pages they mirror. The two rows created 2026-10-31 (vision, decision) are declared L1, matching their content, rather than copying a probable error. Reconciling the other four is a four-row edit the principal should see first."
+    "granularity_mismatch": "FLAGGED, NOT CHANGED. The build/design/eval/risk rows declare Granularity = 'L2 — Detail' while their own page bodies open with 'HACP L1'. The rows contradict the pages they mirror. The two rows created 2026-10-31 (vision, decision) are declared L1, matching their content, rather than copying a probable error. Reconciling the other four is a four-row edit the principal should see first.",
+    "evidence_classes": "Each synced date names its evidence, because a sync map that cannot say WHY it believes a page is current is the fabricated provenance record this map exists to avoid. Two classes appear here. A RECORDED MIRROR EVENT (build, eval, index, decision, vision, and publish-complete in the perturb-seq-eval map) is a mirror someone actually performed and wrote down. DATE-ORDERING (design, risk) only establishes that the row was edited no earlier than the floor; it does not prove the two say the same thing. Do not promote a date-ordering entry to a recorded mirror without doing the diff.",
+    "flat_glob_is_by_design": "scripts/hacp_sync_check.py globs '*.md' at ONE directory level, and that is correct rather than a gap, now that CI discovers every directory holding floor pages and passes each one separately. A recursive glob in the script would make a single map responsible for pages in sibling projects, which is the opposite of the per-project ownership the map encodes. The defect was never the glob; it was the invocation naming one directory. (MYB-5 criterion: justified as flat-by-design.)"
   }
 }

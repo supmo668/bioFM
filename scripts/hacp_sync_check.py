@@ -15,6 +15,14 @@ Rules, per project directory holding a notion-map.json:
   A page changed in the same commit that bumps `synced` passes; a later edit without a re-sync fails.
 Files not under git (a fresh, uncommitted page) are reported, not failed: the sync has not had a
 chance to run yet.
+
+The `*.md` glob is ONE directory level, and that is deliberate rather than a gap. A map describes the
+project whose directory holds it, so a recursive glob would make one map responsible for pages owned
+by a sibling project. Full-tree coverage is the CALLER's job: the hacp-docs workflow discovers every
+directory under docs/hacp that holds floor pages and passes each one separately, so a directory with
+no notion-map.json is visited and fails with "no notion-map.json" instead of being skipped. Until
+2026-10-31 the workflow named one directory, and 11 of the 29 floor pages had no drift detection
+behind a green check; the defect was the invocation, never this glob.
 """
 
 from __future__ import annotations
