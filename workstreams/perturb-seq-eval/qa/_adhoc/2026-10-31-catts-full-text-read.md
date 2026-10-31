@@ -2,6 +2,7 @@
 
 **Status: staging note, UNRATIFIED. Report only. Nothing in `paper/` or any public surface is touched.**
 **Amended 2026-10-31 per CTO #814:** correction to my #813 gloss (below, §(i)); verification-status table added.
+**Amended 2026-10-31 per CTO #817:** citation key verified at the ref; Lee-2022/Lee-2026 collision rule; cs.AI vs cs.LG fact recorded. The table is kept permanently (#817 §3).
 Authorized by CTO #812 §2 (reading a primary source is not principal-gated; writing a claim is). Scope limits
 from #812, applied: this note reports only **(i)** what CATTS's signal is computed over, **(ii)** what it is
 compared against, **(iii)** what "working" means there — verbatim quotes with section refs. **It contains no
@@ -13,6 +14,7 @@ quote is recorded and the note stops.
 | Fact | Section | Verified at the ref by |
 |---|---|---|
 | Title; "by up to 11.8% over majority voting" | title page, Abstract | CTO (#812, #814) and me |
+| Citation key `lee2026catts`: first author **Nicholas Lee**; Lee, Erdogan, John, Krishnapillai, Mahoney, Keutzer, Gholami; v1 2026-02-12, v2 2026-08-14; primary **cs.AI**, cross-list cs.CL | title page / arXiv listing | CTO (#817, at the ref) and me |
 | "we assume a fixed base agent, and we focus on how to allocate inference-time compute efficiently at test time." | §2 | CTO (#814, exact) and me |
 | Vote distribution is over $N$ candidate actions sampled from **one base model at each time step** (eq. 1–2) | §3.1 | CTO (#814) and me |
 | Entropy / margin definitions (eq. 6–7); gate (eq. 9–10); threshold sweep | §4.1, §4.2 | **me only** |
@@ -22,6 +24,15 @@ quote is recorded and the note stops.
 
 **Rule (CTO #814 §5):** nothing in the "me only" rows carries a sentence in `paper/` until one of us has it at the ref.
 The pre-registration contrast is the most tempting and the least verified; it is not written anywhere.
+
+**Name-collision hazard (CTO #817 §1, standing rule for this project).** This project already uses "Lee 2022" as the
+name of a *failure* (the lung track's abstract-misread). CATTS is a genuine, load-bearing **Lee 2026** (`lee2026catts`).
+Two different Lees, one a cautionary tale and one a real citation. **Write the year and the key every time; never
+write "the Lee paper".**
+
+**Category fact on the table (CTO #817 §1; a framing question for the principal, not a defect).** CATTS's primary
+class is cs.AI (cross-listed cs.CL). Our `projects/perturb-seq-eval/paper/arxiv.toml` declares: `62:primary = "cs.LG" 63:cross_list = ["q-bio.QM"]`.
+The nearest prior art therefore sits in cs.AI.
 
 ## Source and how it was read
 

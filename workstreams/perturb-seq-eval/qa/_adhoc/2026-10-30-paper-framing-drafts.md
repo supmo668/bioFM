@@ -164,7 +164,7 @@ theirs.
 Source for each \citep (abstract only, quoted in the ledger above): CATTS arXiv:2602.12276 (CTO-verified at the
 ref, #809); Wald-SPRT governor arXiv:2605.19193 (CTO-verified at the ref, #809); UAAD (DOI 10.1109/ICCVDM71812.2026.11709092) is DROPPED from every draft per CTO #812 ruling 4: unverified by the CTO, my evidence was a corpus-record quote, not the source. It stays in the search ledger above as a record of what the probe returned.
 
-**(b″-D) The ONE differentiation sentence authorized by CTO #814 §4 — optional companion to (b″). Provenance: `derived`.**
+**(b″-D) The ONE differentiation sentence authorized by CTO #814 §4 — optional companion to (b″). Provenance: `derived`. ACCEPTED AS DRAFTED by CTO #817 (2026-10-31); still unratified.**
 
 Rests only on two CTO-verified facts of the CATTS source: the stated assumption "we assume a fixed base agent" (their
 §2) and the construction of the vote distribution over $N$ candidate actions sampled from one base model at one time
@@ -183,6 +183,13 @@ five role-specialised agents of one run, within and across rounds
 (\S\ref{sec:tdi-real}).
 ```
 
+*Offer in #815 to strike "within and across rounds" — WITHDRAWN per CTO #817 §2: ACE is computed on the final round
+(within a round) and $\Delta C$ runs first→last (across rounds), so the phrase is the accurate description of both
+together; striking it would make the sentence less precise. Keep it.*
+
+Citation key `lee2026catts` verified at the ref by the CTO (#817): first author Nicholas Lee; primary cs.AI. Collision
+rule: write the year and the key every time, never "the Lee paper" (Lee 2022 is a failure name in this project).
+
 Provenance line for the ledger: `derived` — CATTS §2 (verbatim: "we assume a fixed base agent, and we focus on how
 to allocate inference-time compute efficiently at test time."), CATTS §3.1 (verbatim: "At each time step $t$ , the
 agent observes $o_{t}$ and samples $N$ candidate actions from the base model"), `results.tex:128–133`. Both CATTS
@@ -193,6 +200,10 @@ work uses an internal confidence distribution to steer test-time compute (CATTS 
 (b″) stands. NOT refuted: a *multi-agent group's* confidence/critique distribution as an explicit *item-difficulty*
 signal; CATTS excludes that case in its own words and computes over one model's samples at one step. "Negative
 replication" is withdrawn as a forced reframe; it stays available as a choice.
+
+**CTO recommendation to the principal (#817 §5; a recommendation, not a ruling, and not applied):** of the three framings
+— keep as is / narrow / negative replication — *narrow the contribution explicitly to the multi-agent case*: the smallest
+honest change, already supported by the evidence. The choice remains the principal's as author of record.
 
 **(b′) Minimal variant** if the principal wants the smallest edit: replace the sentence with
 
