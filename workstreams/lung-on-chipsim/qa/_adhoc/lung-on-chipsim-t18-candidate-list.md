@@ -24,8 +24,28 @@ enantiomer base names; none qualify). `stereo_is_relative` false for all 39.
 with its reason recorded. Of the 26, **9 rest on measured human lung exposure or deposition**; the
 rest establish class pharmacology, clinical inhaled use, or in-vitro deposition.
 
-Full table — compound, key, ATC, what each source shows, DOI, confidence tier — is on the surface
-linked above.
+Full table — compound, key, ATC, what each source shows, DOI, confidence tier — **WAS on the surface
+linked in this file's `surface:` frontmatter, and that surface NO LONGER RESOLVES** (confirmed
+2026-10-30 by a live watch signal and an independent CTO read; ruling by CTO dispatch 2026-10-30 —
+NO approvals row covers it, and the "approvals row 79" citation used here until 2026-10-31 was
+wrong). **CORRECTED 2026-10-31:** that surface does not resolve *for this agent*; it is
+**account-scoped** and resolves for its owner. The CTO read it at 02:20 on 2026-10-31 and the full
+per-row table is **INTACT** — all 26 cited candidates with compound, key, ATC, what each source
+shows, DOI and confidence tier, plus the 13 without a usable citation. The earlier wording here
+said the table was "not recoverable", which was false: what was measured was an inability to read,
+and what was written was a non-existence.
+
+The true, narrower claim: **the table is not IN this repository, and its only copy is a surface
+readable only by its owner.** What survives *here* is the mechanical derivation, the tri-state
+results and the aggregate counts above. It is deliberately **not transcribed in** — every row
+pairs a substance name with a structure key, and whether such a pairing may sit on a public surface
+is unresolved with the principal.
+
+The `surface:` field is left in the frontmatter deliberately rather than deleted: this is a dated
+hand-off record, and removing the pointer would erase the evidence that the table ever existed. It
+is annotated as dead instead. **Do not re-point it at a new artifact** — claude.ai artifact URLs are
+ACCOUNT-SCOPED, so such a citation is unreadable from any account but its author's, and dead for
+every reader of a published paper from the moment of publication. Durable provenance goes in-repo.
 
 ## What was rejected, and why it matters
 

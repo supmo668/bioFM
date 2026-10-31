@@ -9,9 +9,44 @@
 # Selection: every candidate carrying a resolvable exposure/deposition/
 # pharmacology citation, out of the mechanically-derived ATC R03 candidate
 # pool (39 candidates; evidence assembled via PubMed at the principal's
-# direction, /grill-with-res). Candidate list and full evidence ledger:
-#   workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-t18-candidate-list.md
-#   https://claude.ai/artifact/G6xdAqUj5FeuzT32PJVoM4
+# direction, /grill-with-res).
+#
+# PROVENANCE, stated by what each source ACTUALLY carries.
+# AUTHORITY, corrected 2026-10-31: the ruling behind this block arrived by CTO DISPATCH on
+#   2026-10-30 and is recorded by the agent. *** NO approvals row covers this decision. ***
+#   This block previously cited "approvals row 79", which is WRONG: row 79 is about the
+#   lung-on-chipsim-stage2 branch and its payload blobs and says nothing about the roster, the
+#   lost per-row table or the dead pointer. A search of approvals.md for the decision returns
+#   zero hits. Row 33 (2026-10-23) approves the roster's FORM and entry count -- not this
+#   provenance statement -- so it is not a substitute citation and is not offered as one.
+#   The error was a correct row number attached to the wrong subject, which is the exact defect
+#   this block was written to remove. Found by review, not by the author.
+#   DURABLE, in-repo, reproducible:
+#     workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-t18-candidate-list.md
+#       -- the mechanical derivation (every snapshot compound carrying an ATC R03 code
+#          -> 39 candidates), the tri-state results for all 39, the aggregate evidence
+#          summary (26 carry a resolvable DOI; 13 do not, each with its reason; of the
+#          26, 9 rest on measured human lung exposure or deposition), and FINALIZED
+#          2026-09-20.
+#     this file -- every one of the 26 entries carries its own `evidence_doi`.
+#   NOT IN THE REPOSITORY, and readable only by the surface's owner:
+#     the full per-row table -- compound, key, ATC, WHAT EACH SOURCE SHOWS, DOI and
+#     CONFIDENCE TIER -- exists ONLY on a claude.ai artifact, which is ACCOUNT-SCOPED:
+#     it resolves for its owner and for nobody else. A dead-for-us pointer to it used
+#     to sit on this line. It is removed rather than re-pointed, because such a
+#     citation is unreadable for every account but its author's and therefore dead for
+#     every reader of a published paper from the moment of publication.
+# CORRECTED 2026-10-31: this block previously said the table was "LOST, and NOT
+#   recoverable". That was FALSE. The CTO read the artifact at 02:20 on 2026-10-31 and
+#   the table is INTACT -- all 26 cited candidates with their confidence tiers, plus
+#   the 13 without a usable citation. What was measured was that *I* could not read it;
+#   what was written was that it did not exist. "I cannot see it" and "it is not there"
+#   are different claims and only the first was ever measured.
+#   The narrower claim is true and still justifies everything done here: the table is
+#   not IN this repository, its only copy is account-scoped, and no substitute source
+#   has been invented. It is deliberately NOT transcribed in: every row pairs a
+#   substance NAME with a structure KEY, and whether that pairing may sit on a public
+#   surface is an unresolved question with the principal (CTO escalation, 2026-10-31).
 #
 # Identity and citation only -- no biological numbers.
 # ============================================================================
