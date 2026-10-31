@@ -128,6 +128,10 @@ each one.
   `workstreams/lung-on-chipsim/paper/`.
 - **`configs/theta_priors.yaml` and `configs/assumptions.yaml` must not exist** in
   `projects/lung-on-chipsim/` — the S6 absence guard asserts it.
+- **Unratified findings never reach the trunk** (principal, 2026-10-31, lung approvals rows 83-86). A
+  findings-staging ledger lives on a dedicated `<agent>-staging` branch that is never a PR head; the CTO
+  mirrors it to a Notion row, where the principal ratifies; accepted content then moves to its real
+  destination through a normal PR and the staging file is deleted. MYB-8 adds the CI guard.
 - **A proxy 403 or egress block is reported, never retried or routed around.** See
   `/root/.ccr/README.md`. Do not write a value out of a search snippet; read the primary source.
 
