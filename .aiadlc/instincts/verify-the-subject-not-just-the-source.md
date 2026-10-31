@@ -1,8 +1,8 @@
 ---
 name: verify-the-subject-not-just-the-source
-confidence: 0.850
+confidence: 0.950
 created: 2026-10-31T02:49:16Z
-last_reinforced: 2026-10-31T02:49:16Z
+last_reinforced: 2026-10-31T03:16:26Z
 ttl_days: 30
 triggers: [abstract, artifact, citation, attributed, referent, per-row, line number, cites, source]
 tags: []
