@@ -91,7 +91,31 @@ PoC can make is therefore about **the method**, not about lung P-gp biology (**c
 
 ---
 
-## 2 · DRAFT REPLACEMENT TEXT for the methods note's dead citation
+## 2 · DRAFT REPLACEMENT TEXT for the methods note's citation — **CORRECTED, then released**
+
+> **CORRECTED 2026-10-31, and the correction is the point.** The text below asserted that the
+> per-row table and its confidence tiers were **unrecoverable**. That was **FALSE**, and I
+> verified the falsity myself rather than on report: the artifact is listed as owned by this
+> account and reads at 143 lines (`owned_by_user: true`, `read: "owner"`).
+>
+> **Why it looked gone.** The artifact is **account-scoped**. It resolves for its owner and for
+> nobody else, and this session's account CHANGED mid-session. Earlier reads were made from a
+> different account. So the measurement was "I cannot read this", and what got written was "this
+> does not exist" — two different claims, and only the first was ever measured. The wording below
+> now makes the narrower, checkable claim.
+>
+> **Released, but not for the reason the CTO gave.** CTO #822 held this section; #823 released it
+> on the ground that §2 targets a venue fee ledger rather than the roster. **That does not match
+> this section's own words** — it opens "Provenance of the compound roster" and speaks of the
+> 26-entry roster and the 13 rejections, so its subject IS the roster table, the one confirmed
+> intact. The section is therefore released because **its wording is now true**, not because it
+> was true all along. Had it been ratified as originally drafted it would have signed a false
+> provenance claim into a hash-covered paper record.
+>
+> **The table is still NOT transcribed, and must not be.** Every row pairs a substance name with a
+> structure key, and whether such a pairing may sit on a public surface is an open question with
+> the principal. Recovering the provenance and ruling on the pairing are one decision, and it is
+> theirs.
 
 Per the CTO's revised ruling (**CTO dispatch, 2026-10-30**, and its correction — **no approvals
 row covers it**; the "approvals row 79" citation used here until 2026-10-31 was wrong, see the
@@ -109,14 +133,13 @@ ratify as author of record — the methods note is hash-covered and I have not t
 > its own `evidence_doi` in the tracked configuration (**derived** — 26 of 26 verified by the
 > project's own roster loader).
 >
-> **A part of this provenance record is unrecoverable, and we state which part.** The full per-row
-> table — per compound: what each source showed, and a per-row confidence tier — together with the
-> 13 rejections' *individual* reasons, was recorded only on an ephemeral, account-scoped surface that
-> no longer resolves. The aggregate counts above survive in the repository; **the reasoning behind
-> each individual row does not.** We have not reconstructed it: a confidence tier recovered from
-> recollection or re-inferred from the sources would be a fabricated provenance record, which is the
-> precise failure this study's integrity model exists to prevent. Restoring per-row tiers would
-> require a new adjudication pass, not a repair.
+> **A part of this provenance record is not in the repository, and we state which part.** The full
+> per-row table — per compound: what each source showed, and a per-row confidence tier — together
+> with the 13 rejections' *individual* reasons, exists only on an account-scoped surface, which
+> resolves for its owner and for no other reader. The aggregate counts above are in the
+> repository; the per-row reasoning is not. We have not reconstructed it from recollection: a
+> confidence tier recovered that way would be a fabricated provenance record, which is the precise
+> failure this study's integrity model exists to prevent.
 >
 > **The general lesson, which we report because it cost us this record.** Links to account-scoped
 > ephemeral surfaces are not citations. Such a URL is unreadable from any account but its author's,

@@ -77,6 +77,24 @@ exists.
 
 ---
 
+## Re-measurement — 2026-10-31: the DEGRADED citation now reads as unreachable, and the reason matters
+
+**What changed, and what did NOT.** A read of `HDtaxnfh79HumoLY7NWKws` on 2026-10-31 returns **not
+found**, where on 2026-10-30 it resolved. **This is NOT recorded as "the artifact is gone", because
+that is not what was measured.** The two reads were made with **different tools and from a
+different account**: the 2026-10-30 read used a tool that explicitly served third-party artifacts
+as an isolated summary, and the 2026-10-31 read used one whose contract is this organization's own
+artifacts. The session's account also changed in between. Any of those alone explains a
+not-found.
+
+So the honest state is: **unreadable from this session, by this tool, from this account** — which
+is strictly weaker than "deleted". The same confusion, in the other direction, is what made the
+roster table look lost when it was merely account-scoped (see `configs/poc_compounds.yaml`).
+
+**For a reader of this file the practical consequence is unchanged:** the citation below could not
+be read, and an account-scoped artifact URL is unreadable for every account but its author's. Do
+not re-point it and do not republish it. Durable provenance goes in-repo.
+
 ## Surface annotation — 2026-10-30: one citation DEAD, one DEGRADED — they are not the same
 
 Both artifact pointers in this file's frontmatter were read today. They are in **different**
