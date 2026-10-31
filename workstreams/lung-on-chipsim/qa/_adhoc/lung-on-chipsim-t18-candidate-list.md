@@ -26,7 +26,9 @@ rest establish class pharmacology, clinical inhaled use, or in-vitro deposition.
 
 Full table — compound, key, ATC, what each source shows, DOI, confidence tier — **WAS on the surface
 linked in this file's `surface:` frontmatter, and that surface NO LONGER RESOLVES** (confirmed
-2026-10-30 by a live watch signal and an independent CTO read; approvals row 79). The table is
+2026-10-30 by a live watch signal and an independent CTO read; ruling by CTO dispatch 2026-10-30 —
+NO approvals row covers it, and the "approvals row 79" citation used here until 2026-10-31 was
+wrong). The table is
 **not recoverable from this repository**. What survives here is the mechanical derivation, the
 tri-state results and the aggregate counts above; what is gone is the per-row justification — what
 each source showed — and the per-row confidence tiers, together with the 13 rejections' individual

@@ -11,7 +11,16 @@
 # pool (39 candidates; evidence assembled via PubMed at the principal's
 # direction, /grill-with-res).
 #
-# PROVENANCE, stated by what each source ACTUALLY carries (approvals row 79):
+# PROVENANCE, stated by what each source ACTUALLY carries.
+# AUTHORITY, corrected 2026-10-31: the ruling behind this block arrived by CTO DISPATCH on
+#   2026-10-30 and is recorded by the agent. *** NO approvals row covers this decision. ***
+#   This block previously cited "approvals row 79", which is WRONG: row 79 is about the
+#   lung-on-chipsim-stage2 branch and its payload blobs and says nothing about the roster, the
+#   lost per-row table or the dead pointer. A search of approvals.md for the decision returns
+#   zero hits. Row 33 (2026-10-23) approves the roster's FORM and entry count -- not this
+#   provenance statement -- so it is not a substitute citation and is not offered as one.
+#   The error was a correct row number attached to the wrong subject, which is the exact defect
+#   this block was written to remove. Found by review, not by the author.
 #   DURABLE, in-repo, reproducible:
 #     workstreams/lung-on-chipsim/qa/_adhoc/lung-on-chipsim-t18-candidate-list.md
 #       -- the mechanical derivation (every snapshot compound carrying an ATC R03 code

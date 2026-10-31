@@ -93,7 +93,9 @@ PoC can make is therefore about **the method**, not about lung P-gp biology (**c
 
 ## 2 · DRAFT REPLACEMENT TEXT for the methods note's dead citation
 
-Per the CTO's revised ruling (approvals row 79 and its correction): inline what survives, state the
+Per the CTO's revised ruling (**CTO dispatch, 2026-10-30**, and its correction — **no approvals
+row covers it**; the "approvals row 79" citation used here until 2026-10-31 was wrong, see the
+AUTHORITY note in `configs/poc_compounds.yaml`): inline what survives, state the
 loss as a finding, **do not reconstruct the per-row tiers**. This is draft text for the principal to
 ratify as author of record — the methods note is hash-covered and I have not touched it.
 
@@ -353,7 +355,8 @@ rule cannot apply only when the result is convenient.
 ### 7.1 The instrument — and the subject distinction, which matters
 
 The **Undermind** MCP connector became reachable in this session and was **probed today**
-(account `mangyinm@alumni.cmu.edu`; one workspace, 11 pre-existing deep searches, none covering
+(the principal's own connected account — identity deliberately not recorded here; one workspace,
+11 pre-existing deep searches, none covering
 this question). **derived** — the probe ran and returned results.
 
 **§4 item 1 is NOT refuted, and I am not restating it as false.** Its cited constraint (approvals
