@@ -1,6 +1,7 @@
 ---
 type: findings-staging
-status: DRAFTED — UNRATIFIED. Every row is `drafted`; the principal ratifies or rejects each.
+status: DRAFTED — UNRATIFIED, EXCEPT the Ipratropium bromide row, which is RULED (approvals row 87).
+  The other 25 rows are `drafted` and the principal ratifies or rejects each.
 authorization: principal ruling 2026-10-31, lung approvals rows 80-82 (route: principal), relayed via CTO #834
 task: row 81 — public provenance for the 26 roster keys
 agent: biofm/matthew-mo/lung-on-chipsim
@@ -52,7 +53,7 @@ that key" is not a well-formed phrase for those rows and the note does not prete
 | Formoterol | `BPZSYCZIITTYBL-UHFFFAOYSA-N` | 3410 | 2026-10-31 | drafted |
 | Ibudilast | `ZJVFLBOZORBYFE-UHFFFAOYSA-N` | 3671 | 2026-10-31 | drafted |
 | Indacaterol | `QZZUEBNBZAPZLX-QFIPXVFZSA-N` | 6918554, 86314533 | 2026-10-31 | drafted |
-| Ipratropium bromide | `OEXHQOGQTVQTAT-JRNQLAHRSA-N` | **NONE** | 2026-10-31 | drafted |
+| Ipratropium bromide | `OEXHQOGQTVQTAT-JRNQLAHRSA-N` | **none for this exact key.** Source of record: **pinned snapshot**; no PubChem record for this exact stereo descriptor, 2026-10-31. Nearest public matches (same skeleton, differing stereo layer): CIDs 657309, 3746, 6604365, 25897919 | 2026-10-31 | **RULED — approvals row 87** |
 | Isoetarine | `HUYWAWARQUIQLE-UHFFFAOYSA-N` | 3762 | 2026-10-31 | drafted |
 | Montelukast | `UCHDWCPVSPXUMX-TZIWLTJVSA-N` | 5281040 | 2026-10-31 | drafted |
 | Nedocromil | `RQTOOFIXOKYGAN-UHFFFAOYSA-N` | 50294 | 2026-10-31 | drafted |
@@ -86,7 +87,20 @@ records are the **cation** (`C20H30NO3+`), not a bromide salt, although the rost
 "bromide". CID 3746 is the stereo-UNSPECIFIED record (`UHFFFAOYSA`); the other three are specific
 stereoisomers whose IUPAC names PubChem gives as (1R,5S), (1S,5R)/(2R) and (1S,5R)/(2S).
 
-### Why I am NOT proposing one of them as the replacement
+### RULED, 2026-10-31 — approvals row 87 (corrects row 81)
+
+**The principal ruled: the key STAYS.** The pinned snapshot is the source of record for this row,
+and the four PubChem CIDs are recorded as *nearest public matches* rather than as replacements.
+The ruling extends #120 §7 to **this one roster row only**.
+
+So the identity-system conflict below is resolved in favour of the snapshot, and the row now reads
+`source of record: pinned snapshot; no PubChem record for this exact stereo descriptor,
+2026-10-31`. Nothing in `configs/poc_compounds.yaml` changes yet: the other 25 rows still await
+ratification, and the config changes **once**, after that, under a quality-gate boundary.
+
+The analysis that produced the ruling is kept below unchanged, because the ruling rests on it.
+
+### Why I did NOT propose one of them as the replacement
 
 Measured against the pinned snapshot:
 
