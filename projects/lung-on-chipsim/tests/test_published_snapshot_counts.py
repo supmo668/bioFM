@@ -66,6 +66,9 @@ SNAPSHOT_PARQUET = PROJECT_ROOT / "data" / "processed" / "drugbank_compounds.par
 
 KEY_COLUMN = "canonical_inchikey"
 FLAG_COLUMN = "stereo_is_relative"
+#: The independent witness for the relative-stereo flag: InChI's `/s2` layer marks RELATIVE sp3
+#: stereo in the structure string itself, so it is not derived from the flag it checks.
+INCHI_COLUMN = "inchi"
 
 # Measured at 50c13b1 against the pinned snapshot. See the module docstring: a failure is a
 # change to what the cohort IS, never a literal to edit.
@@ -128,7 +131,13 @@ def _load_snapshot_or_skip() -> pd.DataFrame:
 
 
 def test_the_snapshot_carries_the_published_row_count():
-    assert len(_load_snapshot_or_skip()) == PUBLISHED_ROWS
+    # The count is bound BEFORE the assert on purpose. pytest's assertion rewriting prints every
+    # subexpression, so `assert len(frame) == N` emits a repr of the frame itself — and this frame
+    # carries `canonical_inchikey` beside `name` and `drugbank_id`, i.e. an identifier PAIRED with
+    # a substance, which this project forbids on a public surface. The message is not the fix; the
+    # operand is. Every assertion in this module takes a scalar.
+    rows = len(_load_snapshot_or_skip())
+    assert rows == PUBLISHED_ROWS
 
 
 def test_the_snapshot_carries_the_published_attribute_set():
@@ -170,7 +179,8 @@ def test_no_row_carries_a_null_canonical_key():
 def test_the_published_relative_stereo_count_comes_from_the_projects_own_deriver():
     """§3.1's 42, re-derived through `relative_stereo_keys` — not re-implemented here."""
     frame = _load_snapshot_or_skip()
-    assert len(relative_stereo_keys(frame)) == PUBLISHED_RELATIVE_STEREO
+    n_keys = len(relative_stereo_keys(frame))
+    assert n_keys == PUBLISHED_RELATIVE_STEREO
 
 
 def test_the_flagged_rows_and_the_flagged_keys_agree_AND_why_that_matters():
@@ -185,21 +195,50 @@ def test_the_flagged_rows_and_the_flagged_keys_agree_AND_why_that_matters():
     flagged_rows = int(frame[FLAG_COLUMN].fillna(False).astype(bool).sum())
     flagged_keys = relative_stereo_keys(frame)
 
+    n_flagged_keys = len(flagged_keys)
     assert flagged_rows == PUBLISHED_RELATIVE_STEREO
-    assert len(flagged_keys) == flagged_rows, (
-        f"{flagged_rows} flagged row(s) pooled into {len(flagged_keys)} key(s); the published "
+    assert n_flagged_keys == flagged_rows, (
+        f"{flagged_rows} flagged row(s) pooled into {n_flagged_keys} key(s); the published "
         "figure would then be a row count, not a count of distinct relative-stereo identities"
     )
 
 
-def test_every_flagged_rows_key_is_in_the_derived_key_set():
-    """Guards the direction the count alone cannot: membership, not just cardinality."""
+def test_the_flagged_set_matches_an_INDEPENDENT_witness_in_the_inchi_layer():
+    """The 42 pinned against the CHEMISTRY, not against the same column twice.
+
+    What this replaces, and why. The previous version compared a mask derived from
+    `stereo_is_relative` against `relative_stereo_keys`, and called itself a membership guard. It
+    was a **tautology**: `relative_stereo_keys` IS "keys whose `stereo_is_relative` is truthy", so
+    the difference is empty by construction. Review proved it — flipping the flag OFF one
+    genuinely relative row and ON one absolute row keeps the cardinality at 42, every count test
+    passes, and the published "42 relative-stereo compounds" then names the WRONG 42.
+    `load_poc_roster(relative_stereo_keys=...)` would have been fed the corrupted set.
+
+    The fix is an outside witness. InChI marks relative sp3 stereo with the `/s2` layer, a
+    property of the structure string rather than of the flag computed from it, so the flag can now
+    be wrong in either direction and this test fails.
+    """
     frame = _load_snapshot_or_skip()
-    flagged = frame[frame[FLAG_COLUMN].fillna(False).astype(bool)]
-    missing = set(flagged[KEY_COLUMN]) - relative_stereo_keys(frame)
-    assert not missing, (
-        f"{len(missing)} flagged key(s) absent from the derived set (keys not printed)"
+    assert INCHI_COLUMN in frame.columns, f"the snapshot has no {INCHI_COLUMN!r} column"
+    n_null_inchi = int(frame[INCHI_COLUMN].isna().sum())
+    assert n_null_inchi == 0, "a null InChI would silently shrink the witness"
+
+    witness = set(frame.loc[frame[INCHI_COLUMN].str.contains("/s2", regex=False), KEY_COLUMN])
+    derived = set(relative_stereo_keys(frame))
+    n_witness, n_derived = len(witness), len(derived)
+    n_flag_not_witness, n_witness_not_flag = len(derived - witness), len(witness - derived)
+
+    assert n_witness == PUBLISHED_RELATIVE_STEREO, (
+        f"the independent /s2 witness finds {n_witness} relative-stereo identities, not "
+        f"{PUBLISHED_RELATIVE_STEREO}; the published figure describes a different snapshot"
     )
+    assert n_flag_not_witness == 0, (
+        f"{n_flag_not_witness} key(s) flagged relative but carrying no /s2 layer (counts only)"
+    )
+    assert n_witness_not_flag == 0, (
+        f"{n_witness_not_flag} key(s) carrying a /s2 layer but not flagged (counts only)"
+    )
+    assert n_derived == n_witness
 
 
 def test_the_loader_refuses_a_snapshot_whose_flag_column_is_absent(tmp_path, monkeypatch):
