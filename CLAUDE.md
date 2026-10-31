@@ -117,8 +117,13 @@ each one.
 - **Unbacked data cannot be used.** Every filled row declares `cited`, `derived` or `assumed`;
   `cited`/`derived` need a verbatim quote and a confirmed DOI, `assumed` needs a stated width and
   must carry no quote. Enforced by `chipsim.transport.sourcing`.
-- **Never write an InChIKey or a DrugBank accession from memory, and never pair an identifier with
-  a substance** on a public surface.
+- **Never write an InChIKey or a DrugBank accession from memory, and never publish DrugBank record
+  content.** Principal ruling #120 (2026-09-15), re-affirmed as governing 2026-10-31 (lung approvals
+  row 80): record content is DrugBank's own fields — names, synonyms, descriptions, targets — **any
+  DB accession**, and the `(accession, name, structure)` tuple. *"A bare canonical structure
+  identifier is NOT record content"*: a structure beside a substance name is permitted **when the
+  pair cites a public source** (PubChem CID + retrieval date). This replaces a broader agent-written
+  line ("never pair an identifier with a substance", 2026-10-14) that no ruling supported.
 - **Never edit hash-covered evidence** under `workstreams/lung-on-chipsim/qgr/` or
   `workstreams/lung-on-chipsim/paper/`.
 - **`configs/theta_priors.yaml` and `configs/assumptions.yaml` must not exist** in
