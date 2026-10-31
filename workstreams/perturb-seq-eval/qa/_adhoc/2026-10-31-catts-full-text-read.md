@@ -1,11 +1,27 @@
 # CATTS full-text read — staging note (dispatch #812)
 
 **Status: staging note, UNRATIFIED. Report only. Nothing in `paper/` or any public surface is touched.**
+**Amended 2026-10-31 per CTO #814:** correction to my #813 gloss (below, §(i)); verification-status table added.
 Authorized by CTO #812 §2 (reading a primary source is not principal-gated; writing a claim is). Scope limits
 from #812, applied: this note reports only **(i)** what CATTS's signal is computed over, **(ii)** what it is
 compared against, **(iii)** what "working" means there — verbatim quotes with section refs. **It contains no
 sentence relating CATTS's method to ours, affirmative or negated.** Where the material invites a comparison, the
 quote is recorded and the note stops.
+
+## Verification status (who has which fact at the ref)
+
+| Fact | Section | Verified at the ref by |
+|---|---|---|
+| Title; "by up to 11.8% over majority voting" | title page, Abstract | CTO (#812, #814) and me |
+| "we assume a fixed base agent, and we focus on how to allocate inference-time compute efficiently at test time." | §2 | CTO (#814, exact) and me |
+| Vote distribution is over $N$ candidate actions sampled from **one base model at each time step** (eq. 1–2) | §3.1 | CTO (#814) and me |
+| Entropy / margin definitions (eq. 6–7); gate (eq. 9–10); threshold sweep | §4.1, §4.2 | **me only** |
+| Successful-vs-failed trajectory contrast; 495 task-runs; Fisher exact test, $p=0.026$; binned net advantage $-4.4\%$ / $+4$–$6\%$ | §4.1 | **me only** |
+| Table 3 figures (42.4→47.9 %, 20.2→32.0 %); "a consistent 2.4% gain"; arbiter on 40–60 % of steps | §4.3 | **me only** |
+| Absence of any pre-registration, gate or directional hypothesis in the sections read | §3–§5 | **me only** (an absence claim about sections read; appendices unread) |
+
+**Rule (CTO #814 §5):** nothing in the "me only" rows carries a sentence in `paper/` until one of us has it at the ref.
+The pre-registration contrast is the most tempting and the least verified; it is not written anywhere.
 
 ## Source and how it was read
 
@@ -69,8 +85,17 @@ quote is recorded and the note stops.
 > work is orthogonal to these training-based and architectural improvements: we assume a fixed base agent, and
 > we focus on how to allocate inference-time compute efficiently at test time." — §2
 
-*(Recorded and stopped: the two §2 quotes above are the authors' own placement of their signal relative to
-single-shot confidence filtering and to multi-agent debate. No sentence is drawn from them here.)*
+*(Recorded and stopped. The first §2 quote is the authors' own placement relative to "prior confidence-filtering
+approaches". In the second, "these training-based and architectural improvements" has no fixed referent in the
+text; the preceding sentence names "Multi-agent debate and voting strategies (Du et al., 2024)" among
+"alternative paths to reliability", so the referent is probable by sentence order — probable is not a quote.
+No sentence is drawn from either here.)*
+
+> **CORRECTION 2026-10-31 (CTO #814 §2).** My report of this note in dispatch #813 said "multi-agent debate is
+> named as 'orthogonal'". That attached the word "orthogonal" to a referent the source does not fix. It is an
+> inference from sentence order, not a quote, and is withdrawn. The two §2 quotes above are unchanged; only my
+> gloss was wrong. Lesson recorded: a correct reading of a real sentence attributed to a referent the text does
+> not fix is the same failure class as a method claim from an abstract.
 
 **What the signal gates:**
 

@@ -7,7 +7,7 @@ framing review). The principal ratifies or rejects each item; only then does any
 with a substance. No result number is typed by hand: every gate claim below is either a macro name from
 `paper/sections/generated_numbers.tex` or a verbatim quote from `paper/sections/results.tex`, with the line cited.
 
-**CTO #809 (2026-10-30 23:50):** items 2+3 accepted as drafts; CATTS and the SPRT governor VERIFIED at the arXiv ref by the CTO; ruling 1: (b)-type soften adopted; ruling 2: no differs-from sentence from abstracts (draft (b) superseded by (b″) below); ruling 3: CATTS is prior art for contributions 1–2 and reports the idea working where ours fails — ESCALATED to the principal; a 'negative replication on a new substrate' reframing is a candidate only and is NOT drafted here. **HOLD.**
+**CTO #809 (2026-10-30 23:50):** items 2+3 accepted as drafts; CATTS and the SPRT governor VERIFIED at the arXiv ref by the CTO; ruling 1: (b)-type soften adopted; ruling 2: no differs-from sentence from abstracts (draft (b) superseded by (b″) below); ruling 3: CATTS is prior art for contributions 1–2 … — ESCALATED to the principal, then **WITHDRAWN by CTO #814 (2026-10-31)** as too strong after the full-text read: the refutation is narrower (see (b″-D) below). 'Negative replication' is a choice, not a consequence. **HOLD.**
 
 Source state: branch `perturb-seq-eval` at `69ae988` (= `origin/main`, PR #35 merged). Line numbers refer to that revision.
 
@@ -163,6 +163,36 @@ theirs.
 
 Source for each \citep (abstract only, quoted in the ledger above): CATTS arXiv:2602.12276 (CTO-verified at the
 ref, #809); Wald-SPRT governor arXiv:2605.19193 (CTO-verified at the ref, #809); UAAD (DOI 10.1109/ICCVDM71812.2026.11709092) is DROPPED from every draft per CTO #812 ruling 4: unverified by the CTO, my evidence was a corpus-record quote, not the source. It stays in the search ledger above as a record of what the probe returned.
+
+**(b″-D) The ONE differentiation sentence authorized by CTO #814 §4 — optional companion to (b″). Provenance: `derived`.**
+
+Rests only on two CTO-verified facts of the CATTS source: the stated assumption "we assume a fixed base agent" (their
+§2) and the construction of the vote distribution over $N$ candidate actions sampled from one base model at one time
+step (their §3.1, eq. 1–2); and on our own definition of the tested quantities (`results.tex:128–133`: "with $C(r)$
+the confidences of the LLM-sourced steps in round $r$ … $\mathrm{ACE}_{\mathrm{norm}}$ of the final round … $\Delta
+C=\overline{C}(\text{last})-\overline{C}(\text{first})$"; "five-role lifecycle", `results.tex:128`). It says nothing
+about what CATTS's authors think of multi-agent methods, and nothing about CATTS failing, underperforming or not
+generalising — CATTS reports its method working and we have no contrary measurement.
+
+```latex
+\textsc{CATTS}~\citep{lee2026catts} computes its uncertainty statistics over
+$N$ candidate actions sampled from one base model at a single step (their
+\S3.1), under the stated assumption of ``a fixed base agent'' (their \S2);
+the quantities tested here are computed over the stated confidences of the
+five role-specialised agents of one run, within and across rounds
+(\S\ref{sec:tdi-real}).
+```
+
+Provenance line for the ledger: `derived` — CATTS §2 (verbatim: "we assume a fixed base agent, and we focus on how
+to allocate inference-time compute efficiently at test time."), CATTS §3.1 (verbatim: "At each time step $t$ , the
+agent observes $o_{t}$ and samples $N$ candidate actions from the base model"), `results.tex:128–133`. Both CATTS
+refs CTO-verified at the ref (#814 §1). UNRATIFIED with everything else.
+
+**What #814 changed in the standing:** the CTO WITHDREW the #809 escalation as too strong. Refuted: that no prior
+work uses an internal confidence distribution to steer test-time compute (CATTS does, and reports it working) —
+(b″) stands. NOT refuted: a *multi-agent group's* confidence/critique distribution as an explicit *item-difficulty*
+signal; CATTS excludes that case in its own words and computes over one model's samples at one step. "Negative
+replication" is withdrawn as a forced reframe; it stays available as a choice.
 
 **(b′) Minimal variant** if the principal wants the smallest edit: replace the sentence with
 
