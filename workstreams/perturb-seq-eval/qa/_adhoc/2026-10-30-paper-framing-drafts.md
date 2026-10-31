@@ -155,22 +155,20 @@ that the works exist and gate compute on a confidence- or consensus-type signal 
 ```latex
 We do not claim the signal is new. Recent work reports gating test-time
 compute on confidence- or consensus-type signals from an agent's own vote
-distribution or from a group of agents~\citep{lee2026catts,morandi2026sprt,%
-liu2026uaad}; we cite their abstracts and have not reproduced or re-derived
+distribution or from a group of agents~\citep{lee2026catts,morandi2026sprt};
+we cite their abstracts and have not reproduced or re-derived
 their methods, and we make no claim here about how our signal relates to
 theirs.
 ```
 
 Source for each \citep (abstract only, quoted in the ledger above): CATTS arXiv:2602.12276 (CTO-verified at the
-ref, #809); Wald-SPRT governor arXiv:2605.19193 (CTO-verified at the ref, #809); UAAD DOI
-10.1109/ICCVDM71812.2026.11709092 (NOT verified by the CTO; my corpus-record quote only — drop this key if the
-principal wants only CTO-verified citations).
+ref, #809); Wald-SPRT governor arXiv:2605.19193 (CTO-verified at the ref, #809); UAAD (DOI 10.1109/ICCVDM71812.2026.11709092) is DROPPED from every draft per CTO #812 ruling 4: unverified by the CTO, my evidence was a corpus-record quote, not the source. It stays in the search ledger above as a record of what the probe returned.
 
 **(b′) Minimal variant** if the principal wants the smallest edit: replace the sentence with
 
 ```latex
 Works that gate test-time compute on a confidence- or consensus-type signal
-exist~\citep{lee2026catts,morandi2026sprt,liu2026uaad}; we do not claim the
+exist~\citep{lee2026catts,morandi2026sprt}; we do not claim the
 signal is new.
 ```
 (Amended 2026-10-30 per #809 ruling 2: the earlier form said "we differ in signal, target and design" — a differs-from claim from abstracts — and is withdrawn.)
@@ -201,5 +199,5 @@ Decision stays with the principal as author of record (fork (a)/(b)/(c) in #807)
 - Not established (and now the blocking question per #809 ruling 3): whether CATTS's vote-distribution signal is close enough to ACE for 'does not reproduce' to be the honest word. Full-text read of arXiv:2602.12276 required; not done; principal's call.
 - Not done: any edit to `paper/`, `CITATION.cff`, the bib, Zenodo, Figshare, or any HACP surface.
 - Not done: the figures question (`\includegraphics` count zero; `graphicx` loaded) — not dispatched; principal owns it.
-- Not located: the verbatim text of "Authorization (1)" that #807 cites. I applied it as paraphrased in the dispatch (draft to a staging file, marked unratified, outside `paper/`). If the authorization says more, this file should be checked against it.
+- Authorization (1), verbatim from the armed cto-loop seed (relayed in CTO #812; the seed itself is not readable from this worktree): "(1) FINDINGS — agents may DRAFT findings and numbers, each marked cited/derived/assumed with its source; nothing reaches a deposit or public surface until the principal ratifies." Checked against this file 2026-10-30: every draft here is marked unratified; every gate value is a macro or a cited quote (= cited); the one inference (R2-c) is marked as such (= derived); no value is assumed; nothing has reached `paper/` or a deposit. Gap closed.
 - Search caveat: Consensus returned 3 per query (unauthenticated cap); Undermind returned the top 20 of a bounded semantic match. Neither is a systematic review.
