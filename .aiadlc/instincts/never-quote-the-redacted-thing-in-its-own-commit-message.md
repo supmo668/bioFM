@@ -1,8 +1,8 @@
 ---
 name: never-quote-the-redacted-thing-in-its-own-commit-message
-confidence: 0.750
+confidence: 1.000
 created: 2026-10-30T18:41:54Z
-last_reinforced: 2026-10-30T18:41:54Z
+last_reinforced: 2026-10-30T23:50:48Z
 ttl_days: 30
 triggers: [git-safe-commit, --amend, redact, commit message, pre-publication scan]
 tags: []
