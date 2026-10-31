@@ -53,6 +53,7 @@ message — only counts.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import sys
 from pathlib import Path
@@ -63,12 +64,25 @@ import pytest
 
 from chipsim.harmonize.roster import load_poc_roster
 
+#: Declared in pyproject.toml as "requires a human-gated artifact OR THE FETCHED SNAPSHOT ON
+#: DISK" — this module's exact situation, with precedent in `test_parse.py`. Without it,
+#: `-m "not integration"` deselected none of these, so a selector that exists to avoid
+#: snapshot-dependent tests silently kept them.
+pytestmark = pytest.mark.integration
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_PARQUET = PROJECT_ROOT / "data" / "processed" / "drugbank_compounds.parquet"
+#: The TRACKED digest of the pinned artifact. Both modules' titles say "pinned against the REAL
+#: parquet"; without this check that was not true — they would pass against any locally rebuilt
+#: parquet, which is a different artifact from the one the published numbers describe.
+SNAPSHOT_DIGEST = PROJECT_ROOT / "data" / "processed" / "drugbank_compounds.sha256"
 TRACKED_ROSTER = PROJECT_ROOT / "configs" / "poc_compounds.yaml"
 
 KEY_COLUMN = "canonical_inchikey"
 ATC_COLUMN = "atc_codes"
+#: Present only so the synthetic probe frame carries the same column names as the real one.
+FLAG_COLUMN = "stereo_is_relative"
+INCHI_COLUMN = "inchi"
 R03_PREFIX = "R03"
 
 # Derived at 156980e from the pinned snapshot. A failure is a change to what the cohort IS.
@@ -76,6 +90,29 @@ PUBLISHED_R03_CANDIDATES = 39
 PUBLISHED_ROSTER_SIZE = 26
 PUBLISHED_UNSELECTED = 13
 PREREGISTERED_BAND = (20, 40)
+
+
+def _synthetic_frame() -> pd.DataFrame:
+    """A 2-row stand-in with the real COLUMN NAMES and no real content.
+
+    The probes used to doctor a copy of the real snapshot, which had two costs. They SKIPPED
+    wherever the bytes are absent — i.e. in CI, the one environment where these guards run
+    unattended and are the only thing left — so the machinery proving the pins are not decorative
+    was itself inert exactly there. And they wrote a 6,802-row frame carrying `name` and
+    `drugbank_id` into pytest's shared temp root, which is retained across runs: a derivative of
+    the gitignored, pairing-bearing artifact, outside `data/`.
+
+    A probe only needs column NAMES to prove a column-absence guard fires. Synthetic keys are
+    shaped like keys but are not identifiers of anything.
+    """
+    return pd.DataFrame(
+        {
+            KEY_COLUMN: ["SYNTHETICKEYAAA-SYNTHETICAA-N", "SYNTHETICKEYBBB-SYNTHETICBB-N"],
+            FLAG_COLUMN: [True, False],
+            INCHI_COLUMN: ["InChI=1S/SYNTH/s2", "InChI=1S/SYNTH"],
+            ATC_COLUMN: [np.array(["R03AA01"], dtype=object), np.array([], dtype=object)],
+        }
+    )
 
 
 def snapshot_parquet_path() -> Path:
@@ -87,6 +124,31 @@ def snapshot_parquet_path() -> Path:
     loader: a cross-test import would couple two suites' collection order for three lines.
     """
     return SNAPSHOT_PARQUET
+
+
+def _assert_snapshot_is_the_pinned_artifact(path: Path) -> None:
+    """Tie the bytes being read to the digest tracked beside them.
+
+    The sidecar `drugbank_compounds.sha256` is tracked in git; the parquet is not. Nothing in the
+    suite compared them, so a locally re-derived parquet — same shape, different artifact — would
+    have satisfied every published-number pin in this file. Skipped, not failed, when the sidecar
+    is absent, since that is a different defect with its own owner (`test_provenance`).
+    """
+    if path != SNAPSHOT_PARQUET:
+        # A redirected path is a probe's deliberately doctored input, which by construction is NOT
+        # the pinned artifact. The pin is a claim about the real path only; applying it to a
+        # synthetic frame would make every column-absence probe fail for the wrong reason.
+        return
+    if not SNAPSHOT_DIGEST.is_file():
+        pytest.skip(f"the tracked digest sidecar is absent at {SNAPSHOT_DIGEST.name}")
+    recorded = SNAPSHOT_DIGEST.read_text(encoding="utf-8").split()[0].strip().lower()
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert actual == recorded, (
+        "the snapshot on disk is NOT the pinned artifact: its sha256 does not match the tracked "
+        f"digest in {SNAPSHOT_DIGEST.name} (recorded ...{recorded[-8:]}, actual ...{actual[-8:]}). "
+        "Every published figure in this module describes the pinned artifact, so none of them is "
+        "verified against these bytes."
+    )
 
 
 def _load_snapshot_or_skip() -> pd.DataFrame:
@@ -107,6 +169,7 @@ def _load_snapshot_or_skip() -> pd.DataFrame:
             f"the snapshot has no {column!r} column; its columns are {list(frame.columns)}. "
             "Refusing to derive a provenance claim from a column that does not exist."
         )
+    _assert_snapshot_is_the_pinned_artifact(path)
     return frame
 
 
@@ -299,10 +362,12 @@ def test_the_unselected_count_is_the_arithmetic_complement_and_NOTHING_MORE():
 
 
 def test_the_loader_refuses_a_snapshot_whose_atc_column_is_absent(tmp_path, monkeypatch):
-    """THE PROBE. An absent ATC column must not read as "no candidates"."""
-    frame = _load_snapshot_or_skip()
+    """THE PROBE. An absent ATC column must not read as "no candidates".
+
+    Synthetic frame, so it runs where the bytes are absent. See `_synthetic_frame`.
+    """
     doctored = tmp_path / "drugbank_compounds.parquet"
-    frame.drop(columns=[ATC_COLUMN]).to_parquet(doctored)
+    _synthetic_frame().drop(columns=[ATC_COLUMN]).to_parquet(doctored)
     monkeypatch.setattr(sys.modules[__name__], "snapshot_parquet_path", lambda: doctored)
 
     with pytest.raises(AssertionError) as excinfo:
@@ -316,10 +381,10 @@ def test_the_instrument_check_FIRES_when_the_extractor_is_blinded(tmp_path, monk
     Blanks every ATC cell, which is what a broken extractor looks like from the inside, and
     requires the precondition to fail rather than the counts to report zeros.
     """
-    frame = _load_snapshot_or_skip().copy()
-    frame[ATC_COLUMN] = [np.array([], dtype=object) for _ in range(len(frame))]
+    blinded = _synthetic_frame()
+    blinded[ATC_COLUMN] = [np.array([], dtype=object) for _ in range(len(blinded))]
     doctored = tmp_path / "blinded.parquet"
-    frame.to_parquet(doctored)
+    blinded.to_parquet(doctored)
     monkeypatch.setattr(sys.modules[__name__], "snapshot_parquet_path", lambda: doctored)
 
     with pytest.raises(AssertionError, match="found NO codes anywhere"):

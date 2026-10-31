@@ -53,22 +53,36 @@ only counts. The frame itself carries `name` and `drugbank_id`, which is why it 
 
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from chipsim.harmonize.ids import relative_stereo_keys
 
+#: Declared in pyproject.toml as "requires a human-gated artifact OR THE FETCHED SNAPSHOT ON
+#: DISK" — this module's exact situation, with precedent in `test_parse.py`. Without it,
+#: `-m "not integration"` deselected none of these, so a selector that exists to avoid
+#: snapshot-dependent tests silently kept them.
+pytestmark = pytest.mark.integration
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_PARQUET = PROJECT_ROOT / "data" / "processed" / "drugbank_compounds.parquet"
+#: The TRACKED digest of the pinned artifact. Both modules' titles say "pinned against the REAL
+#: parquet"; without this check that was not true — they would pass against any locally rebuilt
+#: parquet, which is a different artifact from the one the published numbers describe.
+SNAPSHOT_DIGEST = PROJECT_ROOT / "data" / "processed" / "drugbank_compounds.sha256"
 
 KEY_COLUMN = "canonical_inchikey"
 FLAG_COLUMN = "stereo_is_relative"
 #: The independent witness for the relative-stereo flag: InChI's `/s2` layer marks RELATIVE sp3
 #: stereo in the structure string itself, so it is not derived from the flag it checks.
 INCHI_COLUMN = "inchi"
+#: Present only so the synthetic probe frame carries the same column names as the real one.
+ATC_COLUMN = "atc_codes"
 
 # Measured at 50c13b1 against the pinned snapshot. See the module docstring: a failure is a
 # change to what the cohort IS, never a literal to edit.
@@ -88,6 +102,29 @@ PUBLISHED_COLUMNS = (
 )
 
 
+def _synthetic_frame() -> pd.DataFrame:
+    """A 2-row stand-in with the real COLUMN NAMES and no real content.
+
+    The probes used to doctor a copy of the real snapshot, which had two costs. They SKIPPED
+    wherever the bytes are absent — i.e. in CI, the one environment where these guards run
+    unattended and are the only thing left — so the machinery proving the pins are not decorative
+    was itself inert exactly there. And they wrote a 6,802-row frame carrying `name` and
+    `drugbank_id` into pytest's shared temp root, which is retained across runs: a derivative of
+    the gitignored, pairing-bearing artifact, outside `data/`.
+
+    A probe only needs column NAMES to prove a column-absence guard fires. Synthetic keys are
+    shaped like keys but are not identifiers of anything.
+    """
+    return pd.DataFrame(
+        {
+            KEY_COLUMN: ["SYNTHETICKEYAAA-SYNTHETICAA-N", "SYNTHETICKEYBBB-SYNTHETICBB-N"],
+            FLAG_COLUMN: [True, False],
+            INCHI_COLUMN: ["InChI=1S/SYNTH/s2", "InChI=1S/SYNTH"],
+            ATC_COLUMN: [np.array(["R03AA01"], dtype=object), np.array([], dtype=object)],
+        }
+    )
+
+
 def snapshot_parquet_path() -> Path:
     """Indirection with a purpose: it makes every pin below FALSIFIABLE.
 
@@ -97,6 +134,31 @@ def snapshot_parquet_path() -> Path:
     ``test_published_pgp_result``; this module is built to avoid repeating it.
     """
     return SNAPSHOT_PARQUET
+
+
+def _assert_snapshot_is_the_pinned_artifact(path: Path) -> None:
+    """Tie the bytes being read to the digest tracked beside them.
+
+    The sidecar `drugbank_compounds.sha256` is tracked in git; the parquet is not. Nothing in the
+    suite compared them, so a locally re-derived parquet — same shape, different artifact — would
+    have satisfied every published-number pin in this file. Skipped, not failed, when the sidecar
+    is absent, since that is a different defect with its own owner (`test_provenance`).
+    """
+    if path != SNAPSHOT_PARQUET:
+        # A redirected path is a probe's deliberately doctored input, which by construction is NOT
+        # the pinned artifact. The pin is a claim about the real path only; applying it to a
+        # synthetic frame would make every column-absence probe fail for the wrong reason.
+        return
+    if not SNAPSHOT_DIGEST.is_file():
+        pytest.skip(f"the tracked digest sidecar is absent at {SNAPSHOT_DIGEST.name}")
+    recorded = SNAPSHOT_DIGEST.read_text(encoding="utf-8").split()[0].strip().lower()
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert actual == recorded, (
+        "the snapshot on disk is NOT the pinned artifact: its sha256 does not match the tracked "
+        f"digest in {SNAPSHOT_DIGEST.name} (recorded ...{recorded[-8:]}, actual ...{actual[-8:]}). "
+        "Every published figure in this module describes the pinned artifact, so none of them is "
+        "verified against these bytes."
+    )
 
 
 def _load_snapshot_or_skip() -> pd.DataFrame:
@@ -127,6 +189,7 @@ def _load_snapshot_or_skip() -> pd.DataFrame:
             f"the snapshot has no {column!r} column; its columns are {list(frame.columns)}. "
             "Refusing to count a column that does not exist."
         )
+    _assert_snapshot_is_the_pinned_artifact(path)
     return frame
 
 
@@ -246,10 +309,12 @@ def test_the_loader_refuses_a_snapshot_whose_flag_column_is_absent(tmp_path, mon
 
     A frame built before the re-key must not read as "no relative-stereo compounds" — that is
     exactly how a dropped flag passes every downstream check.
+
+    Built on a SYNTHETIC frame so it runs where the bytes are absent, which is the only
+    environment where it runs unattended. See `_synthetic_frame`.
     """
-    frame = _load_snapshot_or_skip()
     doctored = tmp_path / "drugbank_compounds.parquet"
-    frame.drop(columns=[FLAG_COLUMN]).to_parquet(doctored)
+    _synthetic_frame().drop(columns=[FLAG_COLUMN]).to_parquet(doctored)
     monkeypatch.setattr(sys.modules[__name__], "snapshot_parquet_path", lambda: doctored)
 
     with pytest.raises(AssertionError) as excinfo:
