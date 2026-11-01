@@ -63,9 +63,20 @@ WRITTEN_COLUMNS = (
 )
 
 #: The TRACKED adjudication file (T14, r2.17/r2.18): exactly these five columns, and NO
-#: `name`. A tracked `name` beside a `canonical_inchikey` is the (name, structure) association
-#: the principal's record-content invariant protects; the reviewer's names live in the
-#: generated, UNTRACKED worksheet instead.
+#: `name` — by DELIBERATE CHOICE, stricter than the governing ruling requires.
+#:
+#: Corrected 2026-10-31 (principal ruling, lung approvals rows 80-82). This comment used to say a
+#: tracked `name` beside a `canonical_inchikey` is "the (name, structure) association the
+#: principal's record-content invariant protects". Under #120 that is NOT so: what #120 forbids is
+#: DrugBank RECORD CONTENT — DrugBank's own fields, any DB accession, and the
+#: (accession, name, structure) tuple — while a canonical structure identifier beside a substance
+#: name is PERMITTED when the pair cites a public source. The sentence this replaces was an agent
+#: paraphrase that no ruling supported.
+#:
+#: The five-column shape is kept anyway, and on purpose: the reviewer's names live in the
+#: generated, UNTRACKED worksheet, so the tracked file carries no name it would have to justify.
+#: That is a choice to be stricter than required, not a constraint imposed by #120 — and nothing
+#: about the contract, the tests or the D6 baseline changes with this comment.
 #: The columns T13 must never overwrite once non-empty.
 HUMAN_OWNED_COLUMNS = (
     "adjudicated_label",
