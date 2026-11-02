@@ -64,6 +64,33 @@ belongs on the page that owns it — create or reuse that page and link it.
 > contract before an HACP write, and the after-writing check above was never run. The content was
 > moved to `docs/hacp/lung-on-chipsim/status-and-history.md`; this file is the amendment.
 
+### A review surface is a Notion row. In-app-only artifacts are BANNED
+
+**Principal ruling, 2026-10-31:** *"'artifacts' should now just be notion links organized in HACP
+index, completely ban in-app only artifacts as that's not the designed destination review surface."*
+
+So: **no review surface may exist only as a `claude.ai/artifact/...` page.** Every human review
+surface is a Notion row under the HACP Index, reached from its project index. An artifact may be a
+rendering on the way there; it is never the destination, and it is never what a document cites.
+
+**Why this is a correctness rule, not a preference.** A `claude.ai` artifact URL is
+**account-scoped**, not merely ephemeral. It resolves for its author and for nobody else. So an
+artifact citation is unreadable for every other reader the moment it is written, and dead for every
+reader of a published paper from the moment of publication. The failure is silent: the author sees
+the page and assumes everyone does.
+
+**Recorded instance (2026-10-31).** `projects/lung-on-chipsim/configs/poc_compounds.yaml` cited an
+artifact for its full per-row evidence table. The artifact no longer resolves, and the table is
+**unrecoverable** — the 13 rejection reasons and the per-row confidence tiers are gone; only the
+aggregate counts survived because they had been written into a tracked file. The pointer was removed
+rather than re-pointed, and no substitute source was invented. That loss is what this rule exists to
+prevent.
+
+**On a write:** put the content in the Notion row. If a rendering helps a human read it, publish one
+and link it **from** the row, never the reverse. **Never cite an artifact URL from a tracked file, a
+paper, a config, or any page that outlives the session.** Migrating the artifact-only surfaces that
+predate this ruling is open work, not a licence to create more.
+
 ### Sync discipline
 
 Notion is the source of truth for human review and communication (principal, 2026-10-03). The floor
@@ -90,12 +117,21 @@ each one.
 - **Unbacked data cannot be used.** Every filled row declares `cited`, `derived` or `assumed`;
   `cited`/`derived` need a verbatim quote and a confirmed DOI, `assumed` needs a stated width and
   must carry no quote. Enforced by `chipsim.transport.sourcing`.
-- **Never write an InChIKey or a DrugBank accession from memory, and never pair an identifier with
-  a substance** on a public surface.
+- **Never write an InChIKey or a DrugBank accession from memory, and never publish DrugBank record
+  content.** Principal ruling #120 (2026-09-15), re-affirmed as governing 2026-10-31 (lung approvals
+  row 80): record content is DrugBank's own fields — names, synonyms, descriptions, targets — **any
+  DB accession**, and the `(accession, name, structure)` tuple. *"A bare canonical structure
+  identifier is NOT record content"*: a structure beside a substance name is permitted **when the
+  pair cites a public source** (PubChem CID + retrieval date). This replaces a broader agent-written
+  line ("never pair an identifier with a substance", 2026-10-14) that no ruling supported.
 - **Never edit hash-covered evidence** under `workstreams/lung-on-chipsim/qgr/` or
   `workstreams/lung-on-chipsim/paper/`.
 - **`configs/theta_priors.yaml` and `configs/assumptions.yaml` must not exist** in
   `projects/lung-on-chipsim/` — the S6 absence guard asserts it.
+- **Unratified findings never reach the trunk** (principal, 2026-10-31, lung approvals rows 83-86). A
+  findings-staging ledger lives on a dedicated `<agent>-staging` branch that is never a PR head; the CTO
+  mirrors it to a Notion row, where the principal ratifies; accepted content then moves to its real
+  destination through a normal PR and the staging file is deleted. MYB-8 adds the CI guard.
 - **A proxy 403 or egress block is reported, never retried or routed around.** See
   `/root/.ccr/README.md`. Do not write a value out of a search snippet; read the primary source.
 
