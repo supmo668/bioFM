@@ -154,6 +154,11 @@ def strip_comments(text: str) -> str:
     return RE_COMMENT.sub("", text)
 
 
+# arXiv category identifier: `archive` or `archive.SUBJ` (cs.LG, q-bio.QM, hep-th,
+# physics.bio-ph, cond-mat.mtrl-sci). Shape only — arXiv's own list is the authority.
+_CATEGORY_ID = re.compile(r"^[a-z][a-z-]*(\.[A-Za-z][A-Za-z-]*)?$")
+
+
 def load_config(paper_dir: Path) -> dict:
     cfg_path = paper_dir / "arxiv.toml"
     if not cfg_path.is_file():
@@ -443,6 +448,32 @@ def metadata(paper_dir: Path, cfg: dict) -> tuple[str, list[str]]:
     primary = cats.get("primary", "")
     cross = cats.get("cross_list", [])
 
+    # categories.cross_list must be a list of distinct arXiv category ids (archive.SUBJ,
+    # e.g. q-bio.QM, cs.MA, physics.bio-ph) and must not repeat the primary. A bare string
+    # is iterable, so without this check it renders as "c, s, ., M, A" with exit 0 — the
+    # pasteable-but-wrong shape the INCOMPLETE guard below exists to prevent.
+    cross_problems: list[str] = []
+    if not isinstance(cross, list):
+        cross_problems.append(
+            f'categories.cross_list: not a list (got {type(cross).__name__}; write ["..."])'
+        )
+        cross = []
+    else:
+        for item in cross:
+            if not isinstance(item, str) or not _CATEGORY_ID.fullmatch(item):
+                cross_problems.append(
+                    f"categories.cross_list: not an arXiv category id (archive.SUBJ): {item!r}"
+                )
+        if len(set(map(str, cross))) != len(cross):
+            cross_problems.append("categories.cross_list: duplicate entries")
+        if primary and primary in cross:
+            cross_problems.append(
+                f"categories.cross_list: repeats the primary {primary!r}"
+            )
+        # render whatever was given, as text, so the block names the bad entry instead of
+        # crashing on it; the problem list above is what makes the run exit non-zero.
+        cross = [str(item) for item in cross]
+
     out += [
         "",
         "=== PASTE INTO THE ARXIV SUBMISSION FORM ===",
@@ -501,6 +532,9 @@ def metadata(paper_dir: Path, cfg: dict) -> tuple[str, list[str]]:
             f"INCOMPLETE — {len(missing)} field(s) unset: {', '.join(missing)}",
             "Set them in arxiv.toml (or in the CITATION.cff this config points at).",
         ]
+    if cross_problems:
+        problems += cross_problems
+        out += ["", "INVALID — " + "; ".join(cross_problems)]
 
     # arXiv's two HARD metadata constraints (info.arxiv.org/help/prep):
     #   "Our metadata fields only accept ASCII input."
@@ -743,6 +777,58 @@ def self_test() -> int:
             print(f"  {'OK  ' if hit else 'DEAD'}  {expect:22s} planted: {desc}")
             if not hit:
                 print(f"         expected {expect!r}, got {probs or 'NO PROBLEMS'}")
+                failures += 1
+
+    # categories.cross_list: a bare string here is iterated character by character into
+    # "c, s, ., M, A" with exit 0 — a block whose shape invites pasting. Plant each shape
+    # violation, assert the check fires, and mirror a valid list to prove it stays quiet.
+    cross_cases = [
+        ("not a list", "cs.MA", "a bare string instead of a list"),
+        ("not an arXiv category id", ["cs.MA", 1], "a non-string entry"),
+        (
+            "not an arXiv category id",
+            ["cs MA"],
+            "an entry that is not an archive.SUBJ id",
+        ),
+        ("duplicate entries", ["cs.MA", "cs.MA"], "the same category twice"),
+        ("repeats the primary", ["cs.LG"], "the primary repeated as a cross-list"),
+        (None, ["q-bio.QM", "cs.MA"], "mirror: a valid cross-list must not error"),
+    ]
+    for expect, cross_value, desc in cross_cases:
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            (d / "paper.tex").write_text(
+                r"\documentclass{article}\begin{document}x\end{document}",
+                encoding="utf-8",
+            )
+            (d / cff).write_text(
+                "title: T\nabstract: >-\n  Plain ASCII abstract.\n"
+                "authors:\n  - family-names: S\n    given-names: A\n",
+                encoding="utf-8",
+            )
+            cfg = {
+                "root_tex": "paper.tex",
+                "citation_cff": cff,
+                "license": "CC BY 4.0",
+                "categories": {"primary": "cs.LG", "cross_list": cross_value},
+            }
+            try:
+                _, probs = metadata(d, cfg)
+            except SystemExit as exc:
+                print(f"  SKIP  cross_list             metadata() unavailable: {exc}")
+                continue
+            cross_probs = [x for x in probs if x.startswith("categories.cross_list")]
+            if expect is None:
+                hit = not cross_probs
+                label = "cross_list: valid"
+            else:
+                hit = any(expect in x for x in cross_probs)
+                label = f"cross_list: {expect}"
+            print(f"  {'OK  ' if hit else 'DEAD'}  {label[:22]:22s} planted: {desc}")
+            if not hit:
+                print(
+                    f"         expected {expect!r}, got {cross_probs or 'NO PROBLEMS'}"
+                )
                 failures += 1
 
     print(
