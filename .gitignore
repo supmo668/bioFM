@@ -46,6 +46,12 @@ projects/**/*.png
 .claude/*
 !.claude/agents/
 !.claude/workstreams/
+# Project skills are project CONFIGURATION, not machine-local runtime state: the
+# context-commit contract lists .claude/skills/*/SKILL.md among the coordination files that
+# belong in git. Without this re-include a skill is registered for the session that wrote it
+# and invisible to every other checkout -- found 2026-10-31, when a committed routine landed
+# its script and silently left its skill untracked.
+!.claude/skills/
 # Dispatch payloads are coordination artifacts — the dispatch tool keeps them in git
 # for traceability (the rest of the per-principal sandbox stays local).
 !.claude/usr/
