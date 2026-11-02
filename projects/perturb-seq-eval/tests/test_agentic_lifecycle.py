@@ -89,11 +89,27 @@ def test_architect_dispatch_returns_backbone_and_name() -> None:
 
 @pytest.mark.unit
 def test_architect_dispatch_maps_scgpt_alias_or_falls_back() -> None:
-    from perturb_eval.agentic_lifecycle.architect_dispatch import dispatch_architect
+    """``scGPT`` is an alias of the KNOWN backbone ``scgpt_small``.
 
-    backbone, chosen = dispatch_architect({"backbone": "scGPT"})
-    assert chosen in ("linear", "scgpt_small")
-    assert hasattr(backbone, "fit")
+    With torch importable the alias resolves to that backbone. Without torch the
+    dispatch must RAISE, not degrade to ``linear`` (C-TORCH-2, CTO #241): a known
+    backbone whose dependency is missing would otherwise make the Architect's
+    backbone distribution measure the import, not the agent. The old form of this
+    test accepted ``linear`` and was red in every torch-less environment.
+    """
+    from perturb_eval.agentic_lifecycle.architect_dispatch import (
+        BackboneUnavailableError,
+        dispatch_architect,
+    )
+    from perturb_eval.backbones import available_backbones
+
+    if "scgpt_small" in available_backbones():
+        backbone, chosen = dispatch_architect({"backbone": "scGPT"})
+        assert chosen == "scgpt_small"
+        assert hasattr(backbone, "fit")
+    else:
+        with pytest.raises(BackboneUnavailableError, match="scgpt_small"):
+            dispatch_architect({"backbone": "scGPT"})
 
 
 @pytest.mark.unit
