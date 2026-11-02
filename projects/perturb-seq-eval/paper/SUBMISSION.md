@@ -25,7 +25,7 @@ number, gate label and the "0 unevaluated" integrity claim preserved. Use the ge
 | Work | *Does Agent Confidence Entropy Predict Task Difficulty?* v0.6.0 |
 | Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
-| Proposed venue | arXiv, primary `cs.LG`, cross-list `q-bio.QM` |
+| Proposed venue | arXiv, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA` (approvals row 12) |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
 
 ---
@@ -139,7 +139,7 @@ uv run --with pyyaml python scripts/arxiv_package.py metadata projects/perturb-s
 | Form step | What to do |
 |---|---|
 | **1. Licence** | Select **CC BY 4.0**. This is an irrevocable grant and a legal act — it is why this step is yours. |
-| **2. Archive / category** | Primary **`cs.LG`**; add cross-list **`q-bio.QM`**. |
+| **2. Archive / category** | Primary **`cs.LG`**; add cross-lists **`q-bio.QM`** and **`cs.MA`**. |
 | **3. Upload** | Upload the **`.tar.gz`**. Do *not* upload `paper.pdf` — arXiv compiles from source, and a PDF-only submission discards the LaTeX. |
 | **4. Process** | Let arXiv compile. **Open the generated PDF and check the bibliography renders** — if you see `[?]` anywhere, the `.bbl` is missing and you must stop and rebuild. |
 | **5. Metadata** | Paste from the block below. |
@@ -155,7 +155,7 @@ uv run --with pyyaml python scripts/arxiv_package.py metadata projects/perturb-s
 Title:      Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction
 Authors:    Mang-yin Mo
 Primary:    cs.LG
-Cross-list: q-bio.QM
+Cross-list: q-bio.QM, cs.MA
 License:    CC BY 4.0
 
 Comments:
@@ -221,7 +221,7 @@ Record the assigned identifier. arXiv mints both:
 - arXiv DOI — `10.48550/arXiv.NNNN.NNNNN`
 
 **Check the announced abstract page for:** title and author rendering, the Comments line carrying
-`doi:10.5281/zenodo.19716140`, the licence showing CC BY 4.0, and the cross-list to `q-bio.QM`.
+`doi:10.5281/zenodo.19716140`, the licence showing CC BY 4.0, and the cross-lists to `q-bio.QM` and `cs.MA`.
 
 Then tell me the arXiv ID and I will update `CITATION.cff` (both the root and the project file),
 the two READMEs, and `docs/hacp/perturb-seq-eval/publish-complete.md` so the repository states the
@@ -285,7 +285,7 @@ Two decisions are mine to ask and yours to make:
 
 1. **Flush `c0ec931`?** Without it CI cannot build the bundle, so Path A is unavailable and the whole
    runbook stalls at Part 0. The honest risk in flushing: the workflow's LaTeX step has never run.
-2. **Venue — arXiv or bioRxiv?** arXiv `cs.LG` + `q-bio.QM` is the recommendation (better fit for a
+2. **Venue — arXiv or bioRxiv?** arXiv `cs.LG` + `q-bio.QM` + `cs.MA` is the ruling (approvals row 12; better fit for a
    method claim about compute allocation, and Scholar indexes it well), with the endorsement risk in
    Part 1. bioRxiv avoids endorsement entirely but is a worse topical fit for the contribution.
    **Exactly one.**
