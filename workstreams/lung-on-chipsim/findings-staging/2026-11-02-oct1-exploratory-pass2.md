@@ -75,7 +75,7 @@ Changes from pass 1 are marked **NEW**. Pass 1's single verdict is carried uncha
 | Roflumilast | unknown | searched, pass 2 — no qualifying source found | **searched** |
 | **Salbutamol** | **yes** **NEW** | human OCT1 wild type, direct uptake, 4.6-fold over empty-vector control | **cited** — full text read (§2); see the CONFLICT at §5 |
 | Salmeterol | unknown | searched, pass 2 — no qualifying source found | **searched** |
-| Terbutaline | unknown | searched, pass 2 — present in a source's reagent list; the per-compound result sits in a table not recoverable from the retrieved text (§4) | **searched** |
+| Terbutaline | unknown | searched, pass 2 — **lead pursued and REFUTED**; reagent list only, NOT a tested compound (§4, §4.1) | **searched** |
 | Theophylline | unknown | searched, pass 2 — no qualifying source found | **searched** |
 | Tiotropium | unknown | searched, pass 2 — **candidate negative that does not qualify** (§3) | **searched** |
 | Triamcinolone | unknown | searched, pass 2 — no qualifying source found | **searched** |
@@ -123,6 +123,27 @@ and the negative control is explicit:
 distinguished in the same paper from murine Oct1), and the readout is transport of the compound,
 against an empty-vector control.
 
+**Where these two numbers actually live, stated precisely.** The sentence quoted above is the
+paper's own Results text, and it cites **supplementary Fig. S3** for the wild-type-versus-vector
+comparison. **I have not read Fig. S3** — it is not in the article PDF. The main-text Figure 5A
+shows something different: Y361A activity *normalised to wild-type activity*, not fold-over-vector.
+So these verdicts rest on **the paper's own assertion in its Results**, quoted verbatim with its
+DOI, and not on a figure I have inspected. That is weaker provenance than pass 1's Ipratropium
+verdict, where the measurement was in the text I read, and the difference is recorded rather than
+smoothed over.
+
+**The tested panel is now fully enumerated, which closes a question rather than opening one.**
+Figure 5A labels **six** beta-2 agonists: dobutamine, ractopamine, fenoterol, orciprenaline,
+salbutamol, pirbuterol. Only **salbutamol** and **pirbuterol** are roster members, so this paper
+holds no further verdict for any other roster compound. Checked explicitly and absent as tested
+compounds: salmeterol, formoterol, indacaterol, procaterol, clenbuterol, bitolterol, isoetarine,
+epinephrine. Figure 5A's legend, verbatim:
+
+> "A, influence of ligand structure of beta2 agonists on the role of Y361 in OCT1 transport; uptake
+> of different beta2 agonists was measured in HEK293 cells stably overexpressing the Y361A mutant;
+> active uptake was normalized on wildtype activity; shown are means ± SD of n = 3 to 8 independent
+> experiments."
+
 **One caveat I state rather than leave implied.** The paper's subject is the **YER motif mutants**,
 not a substrate survey. Salbutamol and pirbuterol appear as wild-type reference measurements inside
 a mutagenesis study. The wild-type determination is nonetheless direct and quantified against
@@ -163,13 +184,28 @@ according to PubMed. Verbatim:
 | lead | DOI | what it offers | why it is not a verdict |
 |---|---|---|---|
 | Jensen et al. 2019, *Biochem Pharmacol* | `10.1016/j.bcp.2019.113731` | abstract names OCT1 stereoselective uptake of "(R,R)-formoterol" and "(S)-salbutamol" | **abstract only**, no PMC full text. It would corroborate salbutamol and could carry **formoterol**; the stereo-specific claim also may not map onto the roster's stereo-free key |
-| Römer et al. 2025 (same paper as §2) | `10.1016/j.jbc.2025.108318` | **terbutaline** appears in the reagent list, so it was almost certainly among the tested beta-agonists | the per-compound uptake values are in a figure/table that the retrieved text renders as an empty reference. **Table-level retrieval needed** — this is the single cheapest open lead |
+| ~~Römer et al. 2025 — terbutaline~~ | `10.1016/j.jbc.2025.108318` | **LEAD PURSUED AND REFUTED, 2026-11-02** | terbutaline is in the **Reagents list only** — not labelled in Figure 5A, not named among the tested beta-2 agonists, and the paper reports **no uptake value** for it. It stays `unknown`. The lead was my own inference and it was unsound: see §4.1 |
 | Rönnpagel et al. 2025, *Drug Metab Dispos* | `10.1016/j.dmd.2025.100074` | full text read; see the CONFLICT at §5 | its salbutamol sentence contradicts its own other sections |
 
 Pass 1's leads **Salomon 2015** (`10.1021/mp500854e`) and **Chen 2017** (`10.1515/hsz-2016-0236`)
 were **not pursued**, per the CTO's instruction. Chen 2017's abstract was re-read incidentally and
 names only ipratropium and trospium among roster members — ipratropium already has a verdict, so
 chasing it would not have moved a row. **Recording that the instruction cost nothing.**
+
+### 4.1 · The terbutaline lead was MY OWN instance of this project's defect
+
+I recorded the terbutaline lead as "present in a source's reagent list, so it was almost certainly
+among the tested beta-agonists." **A full-text retrieval refuted it.** A reagents list records what
+was *purchased*, not what was *assayed in the reported panel*; compounds enter it for other
+experiments, as inhibitors, or unused. I read a real fact and attached to it a claim the fact does
+not support — **a correct reading of real evidence attributed to the wrong subject**, which is the
+rule this workstream exists to document, committed by me inside the file that states the rule.
+
+**It cost nothing, because the lead was marked a lead and not a verdict.** Terbutaline never left
+`unknown`. That is the mechanism working as designed: the verdict/lead separation absorbed an
+unsound inference before it reached a row. Recorded because a defect caught by its own guard is
+evidence the guard works, and because the near-miss is worth more to the paper than the row would
+have been.
 
 ## 5 · A CONFLICT in the 2025 literature on salbutamol, recorded not resolved
 
@@ -201,6 +237,11 @@ OCT1 negative.
 vector-controlled measurement, and I am flagging rather than burying the conflicting sentence. **If
 the principal prefers, salbutamol is the one row in this pass that could defensibly be returned to
 `unknown` pending table-level resolution.** It should not become a `no` on §3.4's sentence alone.
+
+**The table-level retrieval has now been attempted and did NOT resolve this.** The figure carrying
+the wild-type fold-over-vector values is supplementary **Fig. S3**, which is not in the article PDF
+(§2). **Retrieving Fig. S3 is the single open step that would settle both this conflict and the
+provenance gap at §2** — it is the only unexhausted lead left in this pass.
 
 ## 6 · An unexpected bearing on ledger §1 — OCT1's airway localisation is disputed, like P-gp's
 
