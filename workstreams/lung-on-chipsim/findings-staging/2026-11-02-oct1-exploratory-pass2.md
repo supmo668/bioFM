@@ -241,7 +241,29 @@ the principal prefers, salbutamol is the one row in this pass that could defensi
 **The table-level retrieval has now been attempted and did NOT resolve this.** The figure carrying
 the wild-type fold-over-vector values is supplementary **Fig. S3**, which is not in the article PDF
 (§2). **Retrieving Fig. S3 is the single open step that would settle both this conflict and the
-provenance gap at §2** — it is the only unexhausted lead left in this pass.
+provenance gap at §2.**
+
+**That retrieval was ATTEMPTED on 2026-11-02 and is BLOCKED at two separate gates. Reported, not
+routed around.**
+
+1. **PMC** hosts the file as `mmc1.pdf` at
+   `pmc.ncbi.nlm.nih.gov/articles/instance/12005293/bin/mmc1.pdf`. A direct request returns
+   **HTTP 200 carrying an HTML anti-bot page, not the PDF** — a client-side **proof-of-work
+   challenge** (`POW_CHALLENGE`, `POW_DIFFICULTY` 4, cookie `cloudpmc-viewer-pow`) that must be
+   computed before the download cookie is issued. Computing it would be defeating an access
+   control, so it was not computed.
+2. **The publisher of record** (JBC, Elsevier) returns **HTTP 403 Forbidden** for
+   `sciencedirect.com/science/article/pii/S0021925825001668`.
+
+Per CLAUDE.md — *"A proxy 403 or egress block is reported, never retried or routed around"* — the
+attempt stops there. **Correcting my own earlier wording:** a previous dispatch said this had "not
+been attempted". It has now, by the two legitimate public routes, and both are gated. The lead is
+therefore **not open-and-unexhausted but open-and-blocked**, which is a different thing and is why
+it is recorded here rather than left as a to-do.
+
+**What would unblock it:** a human-browser download of `mmc1.pdf` (the PoW gate is designed to pass
+for an interactive browser), or an institutional/authenticated route. Either would be the
+principal's or the CTO's to run, not mine to force.
 
 ## 6 · An unexpected bearing on ledger §1 — OCT1's airway localisation is disputed, like P-gp's
 
