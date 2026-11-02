@@ -81,3 +81,44 @@ The transferable lesson is not "add home paths to the list." It is that **a pre-
 enumerate the classes it checked and state the ones it did not**, because `clean` over four classes
 reads exactly like `clean` over all of them — and the reader of that word is usually the person about
 to make something public.
+
+---
+
+## Amendment, 2026-10-30 — the title and the suggested fixes named the wrong component
+
+**Original text above is preserved unchanged.** This amendment corrects it; where they conflict,
+believe this section.
+
+The `biofm/matthew-mo/aviary-biosim` agent measured what the original filing asserted without
+checking, and **CTO-verified at the ref in both installed toolchains**:
+
+```
+0.82.0/tools/receipt-sign:77   --hash-d-transcript) HASH_D_TRANSCRIPT="$2"; shift 2 ;;
+0.86.0/tools/receipt-sign:77   --hash-d-transcript) HASH_D_TRANSCRIPT="$2"; shift 2 ;;
+both           receipt-sign:188 hash_d_transcript: $HASH_D_TRANSCRIPT" "$FILEPATH"
+grep -cE 'expanduser|relpath|relative_to|HOME'  →  0   in BOTH versions
+```
+
+**`receipt-sign` does not construct the path. It echoes the argument it is handed, verbatim, and
+has never normalised it in any installed version.** The absolute path is injected by the
+**quality-gate caller** that supplies `--hash-d-transcript`.
+
+Three consequences, and the third is the one that was about to cost something:
+
+1. **"Receipt writer embeds…" in the title is inaccurate.** The writer is faithful; the caller is
+   the source. The *defect class* and the *trap* described above are unchanged and still correct —
+   only the attribution of where the string originates was wrong.
+2. **There are two valid fix sites, not one.** Normalising inside `receipt-sign` (defence in depth,
+   catches every caller) and fixing the caller to pass a repo-relative path or a bare dispatch id
+   (fixes the origin). Suggestions 1–3 above are still the right *changes*; they were simply aimed
+   at only one of the two places they could live.
+3. **Upgrading to 0.86.0 DOES NOT FIX THIS, and nothing in my own records should be read as
+   implying it does.** The pending restart addresses the Hash-E version-bump invalidation, the
+   `diff-hash` basis split, the `git-safe-commit` sweep and the remote-ref delete path. It does
+   **not** touch `hash_d_transcript`. The three already-written receipts stay unpublishable until
+   this filing is actioned upstream or the principal redacts them.
+
+**Why this is recorded rather than quietly edited:** the original filing proposed fixes to a
+component I had not read, and the proposal looked sound precisely because it was specific. A
+suggestion aimed confidently at the wrong file is harder to catch than a vague one. The agent
+caught it by reading the source instead of the filing.

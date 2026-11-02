@@ -1,0 +1,19 @@
+{
+  "project": "bioFM",
+  "repo": "https://github.com/supmo668/bioFM",
+  "source_of_truth": "notion",
+  "rule": "The Notion HACP rows are the source of truth for human review and communication (principal, 2026-10-03); each floor page below mirrors its row. A page whose last commit is later than its `synced` date is drift and scripts/hacp_sync_check.py fails on it. ONLY THE CTO WRITES ROWS, so an agent prepares a fully resolved row and dispatches it. Before any HACP write, read the governance contract at https://app.notion.com/p/313fda9448094029904f344523d5bd01 and CLAUDE.md section HACP. NOTE: a row's Notion `Updated` timestamp is NOT evidence of a content mirror - it moves on any property edit - so `synced` records a mirror event that actually happened.",
+  "index_row": "https://app.notion.com/p/3e7749bd250d8140a751d01f6a820b7d",
+  "created": "2026-10-31 by the bioFM CTO. This floor had no map and was outside the CI sync guard.",
+  "note": "This is the bioFM-SIDE index for the aviary-biosim subproject. The subproject's own repository floor lives in the Aviary-BioSim repo and has its own notion-map.json there; do not confuse the two.",
+  "pages": {
+    "index.md": {
+      "notion": "https://app.notion.com/p/3ec749bd250d81a9acc5eb3fef50c4aa",
+      "kind": "Index",
+      "section": "build",
+      "granularity": "L1 — Review",
+      "synced": "2026-10-09",
+      "synced_basis": "Mirrored in the 2026-10-09 CTO sync (commit 82239ad names the aviary index). Floor last commit 2026-10-09, same day."
+    }
+  }
+}

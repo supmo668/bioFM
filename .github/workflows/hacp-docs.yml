@@ -49,8 +49,28 @@ jobs:
 
       # The Notion HACP rows are the source of truth for review; a floor page edited after the
       # sync date recorded in its project's notion-map.json has drifted from its row.
-      - name: Every ChipSim floor page matches its recorded Notion sync
-        run: uv run python scripts/hacp_sync_check.py docs/hacp/lung-on-chipsim
+      #
+      # Floors are DISCOVERED, not listed. Until 2026-10-31 this step named
+      # docs/hacp/lung-on-chipsim only, so 11 of the 29 floor pages had no staleness detection at
+      # all and nobody could see that from a green check. A named list also means a NEW floor
+      # escapes the guard silently, which is the same defect one level up. Discovery fixes both:
+      # every directory holding floor pages is checked, and a floor with no notion-map.json fails
+      # the check rather than being skipped. An empty discovery is itself a failure, because a
+      # check that silently finds nothing to do is a manufactured green light.
+      - name: Every floor page in every floor matches its recorded Notion sync
+        run: |
+          set -euo pipefail
+          floors=$(find docs/hacp -type f -name '*.md' -exec dirname {} \; | sort -u)
+          if [ -z "$floors" ]; then
+            echo "no floor directories discovered under docs/hacp - refusing to pass"
+            exit 1
+          fi
+          echo "floors discovered:"; echo "$floors" | sed 's/^/  /'
+          # Passed through xargs rather than as an unquoted $floors. Unquoted expansion
+          # word-splits in bash but NOT in zsh, so the bare form works in CI and silently
+          # collapses to a single bogus path when a maintainer runs the same line locally --
+          # a check that behaves differently where it is debugged is worse than no check.
+          echo "$floors" | xargs uv run python scripts/hacp_sync_check.py
 
       # An approvals-only PR triggers this workflow (so a ruling PR carries a check), but the two
       # checks above are repo-wide and would pass whatever the approvals diff said. A trigger whose
