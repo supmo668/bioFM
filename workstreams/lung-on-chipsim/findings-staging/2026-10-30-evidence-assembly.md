@@ -140,6 +140,66 @@ ratify as author of record — the methods note is hash-covered and I have not t
 > repository; the per-row reasoning is not. We have not reconstructed it from recollection: a
 > confidence tier recovered that way would be a fabricated provenance record, which is the precise
 > failure this study's integrity model exists to prevent.
+
+---
+
+### SUPERSEDED, 2026-11-02 — three counts in the draft text above are now WRONG
+
+**The blockquote above is left UNEDITED on purpose.** It is the record of what was drafted, and the
+same discipline the CTO applied when it migrated the 13 rejections "unedited as the record of what
+was claimed". The corrections belong beside it, not inside it.
+
+**Authority:** approvals **row 97** (which corrects row 96), from the CTO's re-search of all 13
+rejected candidates, relayed via CTO #868. **Triggered by the principal**, who challenged a single
+row: *"Bambuterol does have research ... are we sure we've searched for all 13?"* We were not.
+
+| the draft says | status | per row 97 |
+|---|---|---|
+| "All 39 were searched" | **FALSE as written** | a query was run per compound, but **only the top hit was read**. Four of five "rejected" rows had measured human lung data at result two |
+| "26 carry a resolvable DOI and 13 do not" | **FALSE** | **8 of the 13 ARE citable** → the citable pool is **34**, and **5** lack a resolvable DOI |
+| "of the 26, 9 rest on measured human lung exposure or deposition" | **UNDERSTATED** | four more carry measured human lung exposure → **13** |
+
+**I have NOT verified these myself and I am not adopting them as drafted values.** They are the
+CTO's re-search, **abstract-level and not full-text verified**, recorded here with their authority
+so the superseded counts cannot be quoted by accident. Selection remains the principal's and no
+biological number here originates with me. **Nothing was written into `configs/poc_compounds.yaml`**
+(CTO #868 forbids it, and it is the principal's call).
+
+**The two underlying defects are METHOD defects, not row defects**, which is why they generalise:
+
+1. **Only the top hit was read.** A wrong first result was recorded as *an absence of evidence* —
+   "I did not find it" written down as "it is not there". The same conflation the CLAUDE.md
+   artifacts fix corrects, and the same one this ledger's §8.4 states for abstracts.
+2. **Older journals were assumed to lack DOIs.** Adis titles carry retrospective DOIs into the
+   1980s — and **the table's own Pirbuterol row already proved it**
+   (`10.2165/00003495-198530010-00002`, *Drugs* 1985). **The table contradicted itself**, and the
+   contradiction was visible without any new search.
+
+### This EMPIRICALLY CONFIRMS §6.3's predicate collision, and sharpens it
+
+§6.3 recorded that **"13 unselected" ≠ "13 without a resolvable DOI"** — two different predicates
+that happened to denote the same set, where the shared cardinality 13 is what made the collision
+invisible. **Row 97 breaks the coincidence:** "unselected" is still **13** (39 − 26, fixed by the
+pool arithmetic), while "without a resolvable DOI" is now **5**. Different cardinalities, so the two
+predicates can no longer be mistaken for one. **A finding that predicted a distinction now has the
+distinction measured**, by a re-search run for an unrelated reason. §6.3 stands and is stronger.
+
+### The larger risk, which row 97 does NOT close
+
+**The 26 already-cited rows came off the SAME method and have NOT been re-verified.** If defect (1)
+produced four false negatives among 13 rejections, it can equally have produced false *positives*
+among the 26 — a wrong first result recorded as the citation. The CTO states plainly that it did not
+re-audit them and has flagged it to the principal. **Until that re-audit happens, "26 of 26 verified
+by the project's own roster loader" means the DOIs are present and well-formed, not that each is the
+right source for its compound.** That distinction should be in any text that cites the figure.
+
+### Carried forward: the query bug is in the STYLE, not in one query
+
+The CTO's re-search **reproduced the operator-precedence bug my original run had disclosed** — an
+unparenthesised theobromine query matched **386,373 unrelated records**, caught and re-run. Two
+independent runs, same bug. **It will recur until query construction is fixed, so it wants a guard
+rather than another correction.** Noted as a candidate; not built, because it is a code change and
+would need the quality gate.
 >
 > **The general lesson, which we report because it cost us this record.** Links to account-scoped
 > ephemeral surfaces are not citations. Such a URL is unreadable from any account but its author's,
