@@ -217,7 +217,7 @@ named beside it; rule engaged most, disclosed.*
 | `paper/PREREGISTRATION.md` | `3–4`, `12–20`, `25–29`, new last section | §1 T1 | §1 T2 | §1 T3 |
 | S13 `paper.tex:438–443` | Discussion paragraph | 2.3-T1 | 2.3-T2 | 2.3-T3 |
 | S14 `paper.tex:458–459` | "The title question is answered as posed…" | 2.4-T1 | 2.4-T2 | 2.4-T3 |
-| `results.tex` `tab:amendments` | `24–41` | unchanged | unchanged | unchanged (0.3) |
+| `results.tex` `tab:amendments` | `22–41` | unchanged | unchanged | unchanged (0.3) |
 | Zenodo / Figshare | — | fork (b) of #807, the principal's | same | same |
 
 **2.3 S13, drafted per title** (replaces `paper.tex:438–443`; `\texttt{paper/PREREGISTRATION.md}` is the existing
