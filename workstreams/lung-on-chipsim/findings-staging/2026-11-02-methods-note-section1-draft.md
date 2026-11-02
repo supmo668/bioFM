@@ -25,6 +25,22 @@ identities in both the roster and the adjudication file, with no duplicate key i
 coincide the draft says so; it does not silently write "26 compounds" and leave a reader to assume
 it.
 
+**Base of the measurement (recorded on CTO #857's instruction).** The counts above were
+re-measured on the **merged** tree `a11c0bc` — `origin/lung-on-chipsim-staging` (`02ea86d`) with
+`origin/main` (`5079a12`) merged in — and not on this branch's former base, which was 69 commits
+behind the trunk. **The counts did not change:** 26 rows and 26 distinct canonical identities in
+both files, no duplicate key in either, and yes=3 / no=0 / unknown=23 summing to 26.
+
+They could not have changed, and that is provable rather than merely re-observed: the
+`projects/lung-on-chipsim` subtree hash is **`89b5c94d`** on `origin/main`, on
+`origin/lung-on-chipsim-staging` and on the merged tree alike. Every input and every deriver is
+the same bytes on all three bases (`poc_compounds.yaml` sha256 `b87063bf…`,
+`pgp_adjudication.csv` sha256 `3fb817ef…`). The staging branch was behind in its **commit
+graph**, not in its **project tree**: it carries the Stage-2 work as 13 unsquashed commits, and
+the trunk carries the same work as one squash — different history, identical tree. The `D` for a
+hash-covered `qgr/` receipt that a stale-base diff showed was the same artifact; the merge
+restores the file, and nothing under `qgr/` or `paper/` has been edited.
+
 ---
 
 ## The draft text
