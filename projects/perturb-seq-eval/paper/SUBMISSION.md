@@ -164,33 +164,29 @@ Comments:
 Abstract:
   Multi-agent group-generation systems spend test-time compute uniformly across
   tasks. We ask whether the agents' own confidence-and-critique trace predicts
-  how hard a task is, which would let the compute be allocated adaptively.
-  Taking as testbed a five-agent orchestrator for Perturb-seq response
-  prediction inspired by CellForge and operated via MassGen, we define four
-  compute-free trace metrics — Agent Confidence Entropy (ACE), Critique Severity
-  Dispersion (CSD), a convergence signal (ΔC), and a Winner Flip Rate (WFR) —
-  and their composite, the Task Difficulty Index (TDI). We pre-register five
-  hypotheses with gates: attainable error on Adamson 2016 (CRISPR interference)
-  and Norman 2019 (CRISPR activation), the Architect agent's backbone-choice
-  entropy, the rank correlation of each TDI component with held-out error, and
-  cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
-  tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
-  deterministically, a trainer sweep of 27 records per task and three
-  fixed-length agentic lifecycle runs per task, all in one process. The LLM
-  condition is a pinned roster of Anthropic Claude models (Haiku 4.5 for the
-  four proposer roles, Sonnet 5.5 for the Validator) whose served model is
-  recorded and asserted per call; a run with any rule-based fallback step is
-  invalid. Every run records its git revision, resolved configuration, library
-  versions, dataset SHA-256 digests, task plan and label contract. Gate
-  outcomes: 4 of 5 gates pass; H5 fails (0 unevaluated) — the trainer sweep
-  attains the pre-registered error on both screens (H1, H2), the Architect
-  exercises its backbone choice (H3), and the confidence-drop component and the
-  composite rank tasks by held-out error within both screens (H4); the
-  Adamson-calibrated composite does not transfer to Norman at the pre-registered
-  level (H5, ρ = 0.286 against > 0.4). The confidence-entropy point estimates
-  run against the pre-registered direction in both screens (exploratory; no
-  claim is made). The values reported in the v0.5.0 release of this work are
-  superseded in full; the defects behind each are listed in the appendix.
+  task difficulty, which would let compute be allocated adaptively. In a
+  five-agent CellForge-style orchestrator for Perturb-seq prediction via
+  MassGen, we define four compute-free trace metrics -- Agent Confidence Entropy
+  (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C),
+  and a Winner Flip Rate (WFR) -- and their composite, the Task Difficulty Index
+  (TDI). We pre-register five hypotheses with gates: attainable error on Adamson
+  2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
+  agent's backbone-choice entropy, the rank correlation of each TDI component
+  with error, and cross-dataset transfer of a calibrated TDI. The design is 41
+  held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets)
+  drawn deterministically, with a trainer sweep of 27 records and three
+  fixed-length agentic runs per task. The LLM condition is a pinned roster of
+  Anthropic Claude models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for
+  the Validator) whose served model is recorded and asserted per call; a run
+  with any rule-based fallback step is invalid. Gate outcomes: 4 of 5 pass; H5
+  fails (0 unevaluated) -- the trainer sweep attains the pre-registered error on
+  both screens (H1, H2), the Architect exercises its backbone choice (H3), and
+  the confidence-drop component and the composite rank tasks by held-out error
+  within both screens (H4); the Adamson-calibrated composite does not transfer
+  to Norman at the pre-registered level (H5, $\rho$ = 0.286 against > 0.4). The
+  confidence-entropy point estimates run against the pre-registered direction in
+  both screens (exploratory). The values reported in the v0.5.0 release of this
+  work are superseded in full; the defects are listed in the appendix.
 
 === END ===
 
@@ -199,6 +195,8 @@ authors, the license grant is a legal act by a person, and a first submission to
 category may require endorsement. This block exists so the manual step is
 copy-paste and reproducible from the repository, not so it can be skipped.
 ```
+
+> **Regenerate, never patch.** This block is the output of the command in the lead-in above. After ANY change to `arxiv.toml` or `CITATION.cff`, re-run it and replace the whole block; a hand-edited line is how it drifted once already (the abstract here was the non-ASCII CFF one, which arXiv rejects, until 2026-11-02).
 
 **CORRECTED 2026-10-30 — the `DOI` field.** I previously said to leave it empty, on the grounds
 that it means a *published journal version*. **That was wrong.** arXiv's own wording is broader:
