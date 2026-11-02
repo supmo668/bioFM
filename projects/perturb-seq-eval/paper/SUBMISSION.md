@@ -25,7 +25,7 @@ number, gate label and the "0 unevaluated" integrity claim preserved. Use the ge
 | Work | *Does Agent Confidence Entropy Predict Task Difficulty?* v0.6.0 |
 | Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
-| Proposed venue | arXiv, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA` (approvals row 12) |
+| Venue (ruled, approvals row 12) | arXiv, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA` |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
 
 ---
@@ -281,18 +281,24 @@ rules out.
 
 ## Approval required before Part 1
 
-Two decisions are mine to ask and yours to make:
+Three items: one open decision, one recorded ruling, one blocker.
 
 1. **Flush `c0ec931`?** Without it CI cannot build the bundle, so Path A is unavailable and the whole
    runbook stalls at Part 0. The honest risk in flushing: the workflow's LaTeX step has never run.
-2. **Venue — arXiv or bioRxiv?** arXiv `cs.LG` + `q-bio.QM` + `cs.MA` is the ruling (approvals row 12; better fit for a
-   method claim about compute allocation, and Scholar indexes it well), with the endorsement risk in
-   Part 1. bioRxiv avoids endorsement entirely but is a worse topical fit for the contribution.
-   **Exactly one.**
+2. **Venue — RULED (approvals row 12, 2026-11-01).** arXiv, primary `cs.LG`, cross-lists `q-bio.QM`
+   and `cs.MA`. cs.MA matches the narrowed claim of row 11 — a multi-agent group's confidence/critique
+   distribution as an explicit item-difficulty signal. The endorsement risk in Part 1 stands; bioRxiv is
+   no longer under consideration.
+3. **Title — PENDING, and it BLOCKS submission.** Row 12 ties the venue ruling to a retitle: three
+   candidate titles are drafted on `perturb-seq-eval-staging` for the principal to pick, and row 11's
+   narrowed contribution text is not yet in `paper.tex` (`paper.tex:118` still says "generalising to
+   any propose-critique-vote system"). Do not submit — and do not paste Part 2 — until both have
+   landed and the metadata block has been regenerated; it still carries the current question-form
+   title.
 
-A third decision is adjacent and does not block submission, but affects what gets submitted:
+A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 
-3. **The five figure PDFs** — wire them into the paper, retire them, or leave them unreferenced. If
+4. **The five figure PDFs** — wire them into the paper, retire them, or leave them unreferenced. If
    you wire them in, the bundle changes and Part 0 must be re-run.
 
 ---
