@@ -104,6 +104,30 @@ is 4, not 6.** I am flagging the fork rather than choosing it.
 acetonide, 99mTc gamma scintigraphy, "10 patients with mild to moderate asthma", lung deposition
 reported as both mass and percentage of delivered dose, with plasma PK alongside.
 
+### 2.1 · CONCENTRATION RISK — half the surviving evidence rests on ONE paper
+
+Recorded at the CTO's request (#877) because it is a property of the result a ratifier should meet
+before deciding, not a caveat to find afterwards.
+
+**`10.1111/bph.15621` carries 3 of the 6 survivors** — Salbutamol, Salmeterol and Fluticasone
+Propionate, all from the same 12-volunteer cohort in a single study. Two more (Beclomethasone,
+Formoterol) come from one other study, STORM. So:
+
+| source | survivors it carries |
+|---|---|
+| `10.1111/bph.15621` (Sadiq 2021) | **3** |
+| `10.1089/jamp.2021.0046` (STORM) | 2 — and both subject to the per-molecule fork at §2 |
+| `10.1089/08942680152484090` (Hirst 2001) | 1 |
+
+**Two sources carry five of the six.** Read strictly per-molecule, STORM's two fall away and
+**`bph.15621` alone carries 3 of the surviving 4.**
+
+**This is a fact about the result, not a defect in it.** `bph.15621` is the roster's strongest
+citation and it legitimately measured all three compounds. But "6 of 26 rest on measured
+target-site exposure" and "6 of 26 rest on measured target-site exposure, 3 of them from one
+cohort" support different claims, and only the second is accurate. Any paper text quoting the
+surviving count should carry the concentration with it.
+
 ## 3 · The two with a species or subject mismatch — WRONG-SOURCE
 
 These are not weak sources. They are sources about something else.
