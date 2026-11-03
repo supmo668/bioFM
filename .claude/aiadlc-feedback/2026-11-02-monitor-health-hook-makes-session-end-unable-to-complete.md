@@ -80,10 +80,35 @@ dead for most of a turn unnoticed. **This is the opposite failure:** at the one 
 invariant is enforced, it fires against the framework's own sanctioned way of switching it off. The
 two reports are complementary and a fix should satisfy both.
 
-## Side observation, same component
+## Side observation, same component — CORRECTED 2026-11-03 after measuring it
 
-The instincts hook rewrites a **tracked** file (`last_reinforced` in
-`.aiadlc/instincts/*.md`) on every `dispatch-monitor` / `blocker-sweep` invocation, and the
-`context-commit-check` Stop-hook blocks turn-end on a dirty tree. Together they manufacture one
-`misc:` commit per monitor cycle — this session produced several, none carrying any work. Low
-severity, but it is history noise generated purely by the monitoring layer observing itself.
+**What I originally filed here was half wrong, and the half that was wrong blamed the framework for
+something I was doing.** The original text:
+
+> "The instincts hook rewrites a tracked file ... and the `context-commit-check` Stop-hook blocks
+> turn-end on a dirty tree. **Together they manufacture one `misc:` commit per monitor cycle**"
+
+**The first clause is true; the second is not.** The instincts hook does rewrite a tracked file
+(`last_reinforced` in `.aiadlc/instincts/*.md`) on every `dispatch-monitor` / `blocker-sweep`
+invocation. But `context-commit-check` guards **sandbox context artifacts** —
+`.claude/usr/<principal>/<agent>/{dispatches,seeds,*handoff*}` — **not an arbitrary dirty tree.**
+
+**Measured, not reasoned:** I deliberately ended a turn with
+`.aiadlc/instincts/verify-the-subject-not-just-the-source.md` modified and **zero** dirty files
+under `.claude/usr/`. The turn ended with no objection from `context-commit-check`. So the bump does
+not require a commit, and **the one-commit-per-cycle churn was self-imposed** — I had been committing
+it reflexively to keep `git status` clean.
+
+**Remaining real defect, narrower than filed:** a monitoring tool writes to a *tracked* file as a
+side effect of being invoked, so an idle watch leaves the working tree permanently dirty. That is
+still worth fixing (write it outside the tracked tree, or to a gitignored path), because a
+permanently dirty tree **does** block the gates that legitimately require a clean one —
+`session-preflight`, and `/pr-submit` precondition 3. But it manufactures no commits by itself.
+
+**Policy adopted here instead:** leave the bump uncommitted through idle cycles, and sweep it only
+when a boundary actually needs a clean tree or when committing real work anyway.
+
+**Why this correction is in the file rather than only in a reply:** a feedback ledger that keeps a
+false attribution is worse than no entry, because the next reader inherits the blame rather than the
+measurement. Same reason the roster audit left the original blockquote unedited and put the
+correction beside it.
