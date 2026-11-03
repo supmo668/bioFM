@@ -1,6 +1,9 @@
 ---
 type: findings-staging
-status: DRAFTED — UNRATIFIED. Every verdict is a DRAFT for the principal to ratify or reject.
+status: >
+  COUNT RULED at approvals row 102 ("Accept formulation-level: stays 6"). The surviving count of 6
+  is RATIFIED. The 26 per-row VERDICTS remain DRAFTED and unratified, and no curation act is
+  authorised — see section 8.
 authorization: principal, approvals row **100**, verbatim quote "authorize 3"; relayed via CTO #873.
   Supersedes CTO #870's "do not start it" for THIS item only.
 exploratory: false
@@ -32,6 +35,17 @@ agent: biofm/matthew-mo/lung-on-chipsim
 | rows whose source is real and relevant but **does not measure target-site exposure** | 18 |
 | rows whose source has a **species or subject mismatch** | 2 |
 | rows whose DOI is **unresolvable** | **0** |
+
+**RULED at approvals row 102 — the count stands at 6.** Principal, verbatim: *"Accept
+formulation-level: stays 6."* Deposition of a labelled product counts as target-site evidence for
+its components, **with the formulation caveat carried in the text** (§2). The strict per-molecule
+reading, which would give **4**, is **rejected but deliberately retained** below so a later reader
+can see the fork existed and which way it went.
+
+**The sentence any write-up quoting the figure must carry — not the bare 6:**
+
+> **6 of 26 rest on measured target-site exposure — three of them from one 12-volunteer cohort
+> (`10.1111/bph.15621`), two more from a single formulation study.**
 
 **6, not 9 and not 13.** The claim under audit was *"of the 26, **9** rest on measured human lung
 exposure or deposition"* (section 2 of the 2026-10-30 ledger); approvals row 97 revised the
@@ -97,8 +111,16 @@ the **formulation**:
 **So the measurement is of a three-component formulation, not of beclomethasone and formoterol
 individually.** It is a genuine measured human lung deposition for the product containing both; it
 is **not** a per-molecule deposition figure. These are the two rows most likely to move on a
-full-text pass, and if the principal wants the bar read strictly per-molecule, **the surviving count
-is 4, not 6.** I am flagging the fork rather than choosing it.
+full-text pass.
+
+**RULED, row 102 — and the caveat is part of the ruling, not a footnote.** The principal accepted
+formulation-level deposition, so beclomethasone and formoterol **stay upheld** and the count is 6.
+The strict per-molecule reading (**4**) is the **rejected alternative, retained not deleted.**
+
+**Binding consequence:** any text citing STORM for beclomethasone or formoterol target-site exposure
+**must carry the formulation qualification**. A citation that silently reads as per-molecule
+deposition would misstate the source — which is the exact defect class this audit exists to catch,
+so it does not get to re-enter through the ruling that resolved the fork.
 
 **`10.1089/08942680152484090` — Hirst et al., *J Aerosol Med* 2001 — upheld cleanly.** Triamcinolone
 acetonide, 99mTc gamma scintigraphy, "10 patients with mild to moderate asthma", lung deposition
@@ -127,6 +149,10 @@ citation and it legitimately measured all three compounds. But "6 of 26 rest on 
 target-site exposure" and "6 of 26 rest on measured target-site exposure, 3 of them from one
 cohort" support different claims, and only the second is accurate. Any paper text quoting the
 surviving count should carry the concentration with it.
+
+**Under row 102 the fork no longer applies, so the live figure is the first row of the table above
+plus the second:** **6, three of them from one 12-volunteer cohort, two more from one formulation
+study.** The `3 of 4` variant below the ruling is retained only as the rejected reading.
 
 ## 3 · The two with a species or subject mismatch — WRONG-SOURCE
 
@@ -257,8 +283,9 @@ search.** Keeping them apart matters, because the paper's defensible claim is ab
 ## 7 · What follows, for the principal
 
 1. **Any paper text resting on "9 rest on measured human lung exposure" is wrong, and so is 13.**
-   The reproducible figure from the roster's own citations is **6** — or **4** if the bar is read
-   strictly per-molecule (section 2).
+   The ruled figure (row 102) is **6**, quoted with its concentration: *three of the six from one
+   12-volunteer cohort, two more from one formulation study.* The per-molecule reading (**4**) is
+   recorded as rejected, not deleted.
 2. **Two rows should probably not be cited as they stand** — Amlexanox (rat) and Procaterol (guinea
    pig). Changing them is curation and therefore yours.
 3. **Flunisolide is a one-source fix** and the best value in the audit.
