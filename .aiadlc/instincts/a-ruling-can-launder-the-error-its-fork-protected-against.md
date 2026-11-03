@@ -1,8 +1,8 @@
 ---
 name: a-ruling-can-launder-the-error-its-fork-protected-against
-confidence: 0.700
+confidence: 0.900
 created: 2026-11-03T17:46:50Z
-last_reinforced: 2026-11-03T17:46:50Z
+last_reinforced: 2026-11-03T18:45:04Z
 ttl_days: 30
 triggers: [approvals.md, approval-log, ruling, ratified, findings-staging, poc_compounds.yaml]
 tags: []
