@@ -79,12 +79,25 @@ artifact citation is unreadable for every other reader the moment it is written,
 reader of a published paper from the moment of publication. The failure is silent: the author sees
 the page and assumes everyone does.
 
-**Recorded instance (2026-10-31).** `projects/lung-on-chipsim/configs/poc_compounds.yaml` cited an
-artifact for its full per-row evidence table. The artifact no longer resolves, and the table is
-**unrecoverable** — the 13 rejection reasons and the per-row confidence tiers are gone; only the
-aggregate counts survived because they had been written into a tracked file. The pointer was removed
-rather than re-pointed, and no substitute source was invented. That loss is what this rule exists to
-prevent.
+**Recorded instance (2026-10-31), and the correction that matters more than the instance
+(2026-11-02).** `projects/lung-on-chipsim/configs/poc_compounds.yaml` cited an artifact for its full
+per-row evidence table. This paragraph used to say the artifact "no longer resolves" and the table
+was **unrecoverable** — the 13 rejection reasons and the per-row confidence tiers "gone". **That was
+false, and it is the more instructive failure.** What had been measured was *"I cannot read it"*;
+what was written was *"it does not exist"*. The roster config corrected itself on 2026-10-31; this
+file carried the false wording for two more days.
+
+**Measured 2026-11-02:** the artifact was read in full and the table was **intact** — all 26 cited
+candidates with tiers and DOIs, all 13 rejections with reasons, and the five stated limits. It is
+now migrated to a Notion row under the ChipSim index (lung approvals row 90), at L3 — Evidence:
+<https://app.notion.com/p/40c749bd250d8115bf43ebc648952c57>.
+
+**The rule is unchanged, because the narrow claim was always the true one:** the table was never *in
+the repository*, its only copy was account-scoped, and no substitute was invented. An artifact is
+unreadable for every account but its author's — that is sufficient reason to ban the citation. It
+does not need "and the content is destroyed" to hold, so do not assert that a surface you cannot
+open is gone. **"I cannot see it" and "it is not there" are different claims; measure the one you
+write.**
 
 **On a write:** put the content in the Notion row. If a rendering helps a human read it, publish one
 and link it **from** the row, never the reverse. **Never cite an artifact URL from a tracked file, a
