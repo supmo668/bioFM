@@ -191,7 +191,7 @@ def build(
     m["TallyOut"] = str(t["out_of"])
     failed = [g for g in ("H1", "H2", "H3", "H4", "H5") if pr[g]["pass"] is False]
     m["GateSummary"] = (
-        f"{t['PASS']} of {t['out_of']} gates pass"
+        f"{t['PASS']} of {t['out_of']} criteria pass"
         + (f"; {', '.join(failed)} fail" + ("s" if len(failed) == 1 else "") if failed else "")
         + f" ({t['UNEVALUATED']} unevaluated)"
     )

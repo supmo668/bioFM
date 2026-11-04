@@ -423,7 +423,7 @@ def test_verdicts_and_gate_summary(macros, art):
             pr[g]["pass"]
         ]
         assert macros[f"res{name}Verdict"] == want, g
-    assert macros["resGateSummary"] == "4 of 5 gates pass; H5 fails (0 unevaluated)"
+    assert macros["resGateSummary"] == "4 of 5 criteria pass; H5 fails (0 unevaluated)"
     assert macros["resManifestSha"] != "n/a" and macros["resArchiveShaCache"] != "n/a"
 
 
@@ -680,7 +680,7 @@ def test_prose_claims_match_artifacts(art, land):
     assert "correlates negatively" not in main.lower() and "not through" not in main
     # doublet stratum above the gate while the all-task median passes
     assert pr["H2"]["strata"]["doublet"]["median"] > pr["H2"]["threshold"] > pr["H2"]["value"]
-    assert "lies above the gate" in res
+    assert "lies above the criterion" in res
     # run-record facts
     assert (
         s["n_steps_fallback"] == s["n_steps_mock"] == s["n_steps_unknown"] == 0
@@ -984,7 +984,7 @@ PY312_DISCLOSURE = (
     "compensated, and before Python 3.12 the backbone entropy (stated and executed, which "
     "coincide here; five keys of \\texttt{summary.json}) comes out one unit in the last place "
     "higher. The run itself ran on Python \\resRunPython, and \\texttt{provenance.json} records "
-    "that higher value. No reported figure or gate outcome changes."
+    "that higher value. No reported figure or criterion outcome changes."
 )
 
 

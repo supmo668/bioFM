@@ -16,13 +16,13 @@ The pipeline automates everything up to the Submit button; the process document 
 and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
-`CITATION.cff` one. The CFF abstract is 2153 characters with 5 non-ASCII characters; arXiv rejects
-anything over 1920 and accepts ASCII only. The override is 1906 characters, 0 non-ASCII, with every
-number, gate label and the "0 unevaluated" integrity claim preserved. Use the generated block.
+`CITATION.cff` one. The CFF abstract is 2154 characters with 5 non-ASCII characters; arXiv rejects
+anything over 1920 and accepts ASCII only. The override is 1904 characters, 0 non-ASCII, with every
+number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use the generated block.
 
 | | |
 |---|---|
-| Work | *Does Agent Confidence Entropy Predict Task Difficulty?* v0.6.0 |
+| Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 (retitled by Amendment 5) |
 | Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
 | Venue (ruled, approvals row 12) | arXiv, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA` |
@@ -47,9 +47,9 @@ bibliography.
 
 ### Path A — CI builds it (recommended; the pipeline exists for this)
 
-Requires pushing commit `c0ec931`, which is currently held unflushed for your review.
+The pipeline commit `c0ec931` is on `origin/main` (verified 2026-11-04), so the workflow is available now.
 
-1. Flush the commit (I open a coordination PR on your word — `tools/git-push main` refuses by design).
+1. Nothing to flush.
 2. The `arxiv-package` workflow runs on push. Or trigger it directly:
    **Actions → `arxiv-package` → Run workflow →** `paper_dir` = `projects/perturb-seq-eval/paper`.
 3. Download the **`arxiv-bundle-*`** artifact. It contains:
@@ -63,9 +63,10 @@ Requires pushing commit `c0ec931`, which is currently held unflushed for your re
      that matters. Tracked as a pipeline gap.
 4. The job summary carries the same metadata block, so you can read it without downloading.
 
-**The workflow's LaTeX step has never executed.** It is adapted from the working
-`paper_standalone/.github/workflows/latex.yml`, but its first real run will be this one. If it fails,
-that is a pipeline bug to fix, not a reason to hand-assemble a bundle.
+**The workflow's LaTeX step has executed.** Run `40985145366` (2026-10-30) completed "Compile LaTeX
+(generates the .bbl)" and "Assert the .bbl exists and no citation is undefined" with success, and the
+run on `origin/main` `600e510` (2026-11-04) succeeded as well. If a later run fails, that is a pipeline
+bug to fix, not a reason to hand-assemble a bundle.
 
 ### Path B — Build locally (only if you have TeX Live installed)
 
@@ -152,7 +153,7 @@ uv run --with pyyaml python scripts/arxiv_package.py metadata projects/perturb-s
 
 === PASTE INTO THE ARXIV SUBMISSION FORM ===
 
-Title:      Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction
+Title:      Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes
 Authors:    Mang-yin Mo
 Primary:    cs.LG
 Cross-list: q-bio.QM, cs.MA
@@ -169,19 +170,19 @@ Abstract:
   MassGen, we define four compute-free trace metrics -- Agent Confidence Entropy
   (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C),
   and a Winner Flip Rate (WFR) -- and their composite, the Task Difficulty Index
-  (TDI). We pre-register five hypotheses with gates: attainable error on Adamson
-  2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
-  agent's backbone-choice entropy, the rank correlation of each TDI component
-  with error, and cross-dataset transfer of a calibrated TDI. The design is 41
-  held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets)
-  drawn deterministically, with a trainer sweep of 27 records and three
-  fixed-length agentic runs per task. The LLM condition is a pinned roster of
-  Anthropic Claude models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for
-  the Validator) whose served model is recorded and asserted per call; a run
-  with any rule-based fallback step is invalid. Gate outcomes: 4 of 5 pass; H5
-  fails (0 unevaluated) -- the trainer sweep attains the pre-registered error on
-  both screens (H1, H2), the Architect exercises its backbone choice (H3), and
-  the confidence-drop component and the composite rank tasks by held-out error
+  (TDI). We pre-register five hypotheses with criteria: attainable error on
+  Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the
+  Architect agent's backbone-choice entropy, the rank correlation of each TDI
+  component with error, and cross-dataset transfer of a calibrated TDI. The
+  design is 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman
+  doublets) drawn deterministically, with a trainer sweep of 27 records and
+  three fixed-length agentic runs per task. The LLM condition is a pinned roster
+  of Anthropic Claude models (Haiku 4.5 for the four proposer roles, Sonnet 5.5
+  for the Validator) whose served model is recorded and asserted per call; a run
+  with any rule-based fallback step is invalid. Outcomes: 4 of 5 pass; H5 fails
+  (0 unevaluated) -- the trainer sweep attains the pre-registered error on both
+  screens (H1, H2), the Architect exercises its backbone choice (H3), and the
+  confidence-drop component and the composite rank tasks by held-out error
   within both screens (H4); the Adamson-calibrated composite does not transfer
   to Norman at the pre-registered level (H5, $\rho$ = 0.286 against > 0.4). The
   confidence-entropy point estimates run against the pre-registered direction in
@@ -463,20 +464,18 @@ runbook that is invisible after publication.
 
 ## Approval required before Part 1
 
-Three items: one open decision, one recorded ruling, one blocker.
+Three items: one closed decision, one recorded ruling, one blocker.
 
-1. **Flush `c0ec931`?** Without it CI cannot build the bundle, so Path A is unavailable and the whole
-   runbook stalls at Part 0. The honest risk in flushing: the workflow's LaTeX step has never run.
+1. **Flush `c0ec931` — CLOSED.** The commit is on `origin/main` and the workflow's LaTeX step has run
+   successfully (run `40985145366`; see Part 0, Path A). Path A is available.
 2. **Venue — RULED (approvals row 12, 2026-11-01).** arXiv, primary `cs.LG`, cross-lists `q-bio.QM`
    and `cs.MA`. cs.MA matches the narrowed claim of row 11 — a multi-agent group's confidence/critique
    distribution as an explicit item-difficulty signal. The endorsement risk in Part 1 stands; bioRxiv is
    no longer under consideration.
-3. **Title — PENDING, and it BLOCKS submission.** Row 12 ties the venue ruling to a retitle: three
-   candidate titles are drafted on `perturb-seq-eval-staging` for the principal to pick, and row 11's
-   narrowed contribution text is not yet in `paper.tex` (`paper.tex:118` still says "generalising to
-   any propose-critique-vote system"). Do not submit — and do not paste Part 2 — until both have
-   landed and the metadata block has been regenerated; it still carries the current question-form
-   title.
+3. **Title — RULED T1 (approvals row 13, 2026-11-04); BLOCKS submission until it lands.** The
+   question-form T1 title and row 11's narrowed contribution are applied in `paper.tex` and recorded as
+   Amendment 5 of `PREREGISTRATION.md`, and the metadata block above is regenerated. Do not submit until
+   that change has landed on `origin/main` and the block has been regenerated from it.
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 

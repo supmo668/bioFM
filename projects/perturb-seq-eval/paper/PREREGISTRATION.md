@@ -1,7 +1,8 @@
 # Pre-registration — v0.6.0 sweep
 
-**Paper:** *Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of
-Agentic Hyperparameter Tuning for Perturb-seq Response Prediction*
+**Paper:** *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
+Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence
+Drop Passes* (retitled by Amendment 5; the title in force when the sweep ran is quoted there)
 
 **Status:** fixed before the v0.6.0 sweep runs. The sweep's provenance record (`git_sha`, `git_dirty` in record 0
 of `trainer_runs.jsonl` / `lifecycle_runs.jsonl` and in `provenance.json`) identifies the revision of this file in
@@ -15,9 +16,15 @@ definitions are already written into the sections above. **Amendment 3** (2026-0
 QG-2/6/7/9 from the amendment-2 fixes quality gate) records four points the amendment-2 text left open or that its
 implementation could not meet. **Amendment 4** (`prereg_version` = `v0.6.0-a4`, 2026-09-29, principal ruling relayed by the CTO,
 #473/#476/#480/#482/#484), the last section, moves the LLM provider to the Anthropic API after the OpenRouter free roster
-died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Every
-amendment is locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
+died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Amendments
+1–4 are each locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
 fifth amendment.
+
+**Amendment 5** (`prereg_version` = `v0.6.0-a5`, 2026-11-04, principal rulings relayed by the CTO, #896, perturb-seq-eval
+approvals rows 13 and 14), the last section, is the only amendment made **after the outcome was known**. It changes the
+paper's title and renames the term "gate" to "pre-registered criterion", and discloses both changes; it changes no
+hypothesis, threshold, estimator, convention, outcome or datum, and the v0.6.0 data were produced under `v0.6.0-a4`. No run
+exists or will exist under `v0.6.0-a5`.
 
 This file contains no result values. The v0.5.0 values are superseded in full (manuscript appendix
 "Corrections relative to v0.5.0", which maps each one to the register row that supersedes it).
@@ -27,6 +34,9 @@ This file contains no result values. The v0.5.0 values are superseded in full (m
 The title asks whether agent confidence entropy predicts task difficulty, and does not assert that it does,
 so that a null answer is publishable as it stands. **A null or failed outcome on H4/H5 must not be traded back
 into a claim-form title, abstract or contribution list.**
+
+*Amendment 5 retitles the paper after the outcome; the question form is kept and this rule is not engaged (see
+Amendment 5).*
 
 ## Design (fixed)
 
@@ -596,3 +606,50 @@ is a different tier (Sonnet 5.5) from the four Haiku 4.5 proposer roles; residua
 Everything else in amendments 1-3 (A2-1 fallback = run invalid; A2-8 empty namespace + replay detection; A3-3 required Validator threshold; A3-4
 count = 7). Text it changes in `PREREGISTRATION.md`: Convention 5; "Run record" (LLM cost components); the Amendments preamble.
 
+## Amendment 5 (`prereg_version` = `v0.6.0-a5`): locked 2026-11-04, AFTER the v0.6.0 outcome — retitle with the question form kept; "gate" renamed "pre-registered criterion"
+
+Where this section and any earlier text differ, this section governs.
+
+### A5-1 Found
+The sweep ran under this file at commit `00fae29` (sha256 `6f8498eea879bb1e843511b03b821a567293402dff123487228c5f0c1330f270`,
+run `20260929T035447Z-ce5f237`, `prereg_version` `v0.6.0-a4`), with outcome "4 of 5 gates pass; H5 fails (0 unevaluated)".
+The principal then narrowed the paper's contribution to *a multi-agent group's* confidence/critique distribution, after
+`lee2026catts` (arXiv:2602.12276) was found to report a single agent's vote distribution gating compute (approvals row
+11), and ruled a retitle (row 12). The title in force when the sweep ran was:
+
+> *Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic
+> Hyperparameter Tuning for Perturb-seq Response Prediction*
+
+It names *agent confidence entropy*, singular: the case the narrowing gives up, and the quantity whose H4 test failed.
+
+### A5-2 Amended rule (title)
+The title becomes: *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
+Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
+Passes* (principal ruling T1, approvals row 13). The headline names the object of the narrowed claim (the group's
+distribution) in place of the single-agent quantity and keeps the question form. The subtitle reports the two H4
+outcomes as measured: "Entropy Fails Its Criterion" reports the H4 entropy failure (both screens); "the Confidence Drop
+Passes" reports the H4 pass on $1-\Delta C$, within each screen. H5's failure is not in the title; it is stated in the
+abstract and Results.
+
+**Why the null is not traded into a claim.** "Why the title is a question" forbids trading a null or failed outcome back
+INTO a claim-form title. This title asserts nothing: it asks, and its subtitle reports a failure as a failure and a pass
+as a pass. On the locked rule this amendment is a no-op: the question form the rule protects is unchanged and the rule
+is not engaged. It is not a no-op on this file: the title line and this section change, so the file's hash diverges from
+the published run record. That divergence is this disclosure.
+
+### A5-3 Amended rule (term)
+The term "gate" (also "gates", "gated", "gating" where it means a hypothesis's pass/fail threshold) is renamed
+**"pre-registered criterion"** (approvals row 14), shortened to "criterion" where "pre-registered" is already in the
+sentence. The text above this section keeps "gate" verbatim, as locked; read every such use as "pre-registered
+criterion". Each hypothesis keeps its identity (H1–H5), its threshold, its estimator and its outcome: the v0.6.0 tally is
+unchanged, and the run record's summary "4 of 5 gates pass; H5 fails (0 unevaluated)" reads, in the new term, "4 of 5
+criteria pass; H5 fails (0 unevaluated)". A rename that changed which hypotheses passed would be a result change, and
+this is not one. "Gating" in the sense of a method gating test-time compute (as in `lee2026catts`) is not this term and
+is not renamed.
+
+### Unchanged
+Every hypothesis, threshold, estimator and convention of amendments 1–4; the run's `prereg_version` `v0.6.0-a4`; the v0.6.0
+outcome, including H5's failure. "Why the title is a question" keeps both of its sentences, with this amendment noted
+beneath them. Amendment 5 is not recorded in `paper/data/amendments_v060.json` or in `tab:amendments`, whose caption
+covers only amendments locked before any v0.6.0 data. Text it changes in `PREREGISTRATION.md`: the title line, the
+Amendments preamble, the note under "Why the title is a question", and this section.

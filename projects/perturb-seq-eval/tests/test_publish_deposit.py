@@ -83,7 +83,7 @@ def test_gate_sentence_matches_the_summary():
     desc = " ".join(_cfg()["description"].split())
     pr = json.loads((ART / "summary.json").read_text())["preregistered"]
     assert pr["H5"]["pass"] is False and "H5 fails" in desc
-    assert f"{pr['tally']['PASS']} of {pr['tally']['out_of']} gates pass" in desc
+    assert f"{pr['tally']['PASS']} of {pr['tally']['out_of']} criteria pass" in desc
 
 
 def test_creators_use_the_ruled_name_everywhere():

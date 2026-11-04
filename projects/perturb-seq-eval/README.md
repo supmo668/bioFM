@@ -2,9 +2,9 @@
 
 Companion code for the paper [`paper/paper.tex`](paper/paper.tex) and the
 thesis [`docs/THESIS.md`](docs/THESIS.md):
-**"Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
-Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
-Response Prediction."**
+**"Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
+A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction
+in Which Entropy Fails Its Criterion and the Confidence Drop Passes."**
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
 
