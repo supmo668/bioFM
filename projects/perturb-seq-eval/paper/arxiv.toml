@@ -55,9 +55,13 @@ abstract = '''Multi-agent group-generation systems spend test-time compute unifo
 # that follows it, so a scalar placed after it silently becomes categories.<key>
 # and reads as absent. Keep every top-level scalar ABOVE this line.
 [categories]
-# cs.LG primary: the contribution is a method claim about hyperparameter allocation
-# under a confidence-entropy statistic. q-bio.QM cross-list: the evaluation substrate
-# is Perturb-seq response prediction, which is where a quantitative-biology reader
-# would look for it.
+# cs.LG primary: the contribution is a pre-registered test of multi-agent trace
+# statistics as a task-difficulty signal (motivating adaptive compute allocation).
+# q-bio.QM cross-list: the evaluation substrate is Perturb-seq response prediction,
+# which is where a quantitative-biology reader would look for it. cs.MA cross-list:
+# the claim is being narrowed (ruled, approvals row 11, 2026-10-31) to a MULTI-AGENT
+# group's confidence/critique distribution; the nearest prior art (arXiv:2602.12276)
+# is single-agent and sits in cs.AI, so the multi-agent reader is reached via cs.MA
+# (ruled, approvals row 12, 2026-11-01).
 primary = "cs.LG"
-cross_list = ["q-bio.QM"]
+cross_list = ["q-bio.QM", "cs.MA"]
