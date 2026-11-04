@@ -11,20 +11,20 @@ is `true` for the run, this file's committed revision is not by itself proof of 
 must say so.
 
 **Amendments.** Amendment 1 (2026-09-25, `0c2932a`): H4 multiplicity quantified by permutation. **Amendment 2**
-(`3bf2a9a`), locked before any v0.6.0 data exists, is given in full in the penultimate section of this file; its
+(`3bf2a9a`), locked before any v0.6.0 data exists, is given in full in its own section below; its
 definitions are already written into the sections above. **Amendment 3** (2026-09-28, principal rulings
 QG-2/6/7/9 from the amendment-2 fixes quality gate) records four points the amendment-2 text left open or that its
 implementation could not meet. **Amendment 4** (`prereg_version` = `v0.6.0-a4`, 2026-09-29, principal ruling relayed by the CTO,
-#473/#476/#480/#482/#484), the last section, moves the LLM provider to the Anthropic API after the OpenRouter free roster
+#473/#476/#480/#482/#484), the section before Amendment 5, moves the LLM provider to the Anthropic API after the OpenRouter free roster
 died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Amendments
 1–4 are each locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
-fifth amendment.
+further amendment (Amendment 5, below).
 
 **Amendment 5** (`prereg_version` = `v0.6.0-a5`, 2026-11-04, principal rulings relayed by the CTO, #896, perturb-seq-eval
 approvals rows 13 and 14), the last section, is the only amendment made **after the outcome was known**. It changes the
 paper's title and renames the term "gate" to "pre-registered criterion", and discloses both changes; it changes no
 hypothesis, threshold, estimator, convention, outcome or datum, and the v0.6.0 data were produced under `v0.6.0-a4`. No run
-exists or will exist under `v0.6.0-a5`.
+exists or will exist under `v0.6.0-a5`. Any later change is a sixth amendment.
 
 This file contains no result values. The v0.5.0 values are superseded in full (manuscript appendix
 "Corrections relative to v0.5.0", which maps each one to the register row that supersedes it).
