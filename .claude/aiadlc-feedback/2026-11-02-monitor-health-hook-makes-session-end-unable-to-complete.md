@@ -137,6 +137,33 @@ one step agents are told to run before every iteration.
 tree, or to a gitignored sidecar. Keeping the instinct *bodies* tracked is right; keeping their
 *mutable counters* tracked is what collides.
 
+#### Refinement, same day — the trigger is COMMITTING the counters, and there is a working mitigation
+
+A second sync an hour later merged **cleanly, zero conflicts**, over 43 new trunk commits. The
+difference was not luck and the mechanism is plain: **git conflicts on committed divergence, not on
+a dirty file.**
+
+| sync | local bumps | result |
+|---|---|---|
+| first | **committed** to my branch (my own per-cycle `misc:` commits) | **3 conflicts** |
+| second | uncommitted, **discarded** before merging | **0 conflicts** |
+
+So the self-imposed habit corrected earlier in this entry — committing the bumps every cycle to keep
+`git status` clean — was **also the thing manufacturing the conflicts.** Two costs from one habit,
+and both disappear with the policy already adopted here: **leave the counters uncommitted, discard
+them before a sync, and let the hook re-bump.**
+
+**This narrows the defect without excusing it.** The framework-side fix (untrack the mutable
+counters) is still the right one, because the mitigation depends on every agent knowing to discard
+before syncing — and an agent that reflexively commits a dirty tracked file to keep `git status`
+clean is behaving reasonably. But the operational cost is now avoidable today rather than blocking
+on a plugin change.
+
+**Honest bound on the evidence:** one clean merge after discarding is a single observation. The
+causal story (committed divergence vs working-tree dirt) is standard git behaviour rather than an
+inference from that one run, which is why I state it as the mechanism and the run as consistent
+with it.
+
 **Policy adopted here instead:** leave the bump uncommitted through idle cycles, and sweep it only
 when a boundary actually needs a clean tree or when committing real work anyway.
 
