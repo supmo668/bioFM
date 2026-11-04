@@ -21,7 +21,8 @@ died and the paid OpenRouter roster hit a zero credit balance; it pins the roste
 further amendment (Amendment 5, below).
 
 **Amendment 5** (`prereg_version` = `v0.6.0-a5`, 2026-11-04, principal rulings relayed by the CTO, #896, perturb-seq-eval
-approvals rows 13 and 14), the last section, is the only amendment made **after the outcome was known**. It changes the
+approvals rows 13 and 14; the `v0.6.0-a5` form and the scope of the rename ruled by the principal directly on
+2026-11-04), the last section, is the only amendment made **after the outcome was known**. It changes the
 paper's title and renames the term "gate" to "pre-registered criterion", and discloses both changes; it changes no
 hypothesis, threshold, estimator, convention, outcome or datum, and the v0.6.0 data were produced under `v0.6.0-a4`. No run
 exists or will exist under `v0.6.0-a5`. Any later change is a sixth amendment.
@@ -626,7 +627,7 @@ It names *agent confidence entropy*, singular: the case the narrowing gives up, 
 ### A5-2 Amended rule (title)
 The title becomes: *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
 Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
-Passes* (principal ruling T1, approvals row 13). The headline names the object of the narrowed claim (the group's
+Passes* (principal ruling T1, CTO #896). The headline names the object of the narrowed claim (the group's
 distribution) in place of the single-agent quantity and keeps the question form. The subtitle reports the two H4
 outcomes as measured: "Entropy Fails Its Criterion" reports the H4 entropy failure (both screens); "the Confidence Drop
 Passes" reports the H4 pass on $1-\Delta C$, within each screen. H5's failure is not in the title; it is stated in the
@@ -640,8 +641,8 @@ the published run record. That divergence is this disclosure.
 
 ### A5-3 Amended rule (term)
 The term "gate" (also "gates", "gated", "gating" where it means a hypothesis's pass/fail threshold) is renamed
-**"pre-registered criterion"** (approvals row 14), shortened to "criterion" where "pre-registered" is already in the
-sentence. The text above this section keeps "gate" verbatim, as locked; read every such use as "pre-registered
+**"pre-registered criterion"** (CTO #896), shortened to "criterion" once the term is in use. It names a hypothesis's
+threshold and, where the text speaks of one pre-registered test (e.g. one H4 test's one-sided threshold), that test's. The text above this section keeps "gate" verbatim, as locked; read every such use as "pre-registered
 criterion". Each hypothesis keeps its identity (H1–H5), its threshold, its estimator and its outcome: the v0.6.0 tally is
 unchanged (`summary.json` → `preregistered.tally` is not touched), and the manuscript's generated tally, which read "4 of 5
 gates pass; H5 fails (0 unevaluated)", reads in the new term "4 of 5 criteria pass; H5 fails (0 unevaluated)". A rename that changed which hypotheses passed would be a result change, and

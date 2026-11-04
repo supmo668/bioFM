@@ -472,10 +472,10 @@ Three items: one closed decision, one recorded ruling, one blocker.
    and `cs.MA`. cs.MA matches the narrowed claim of row 11 — a multi-agent group's confidence/critique
    distribution as an explicit item-difficulty signal. The endorsement risk in Part 1 stands; bioRxiv is
    no longer under consideration.
-3. **Title — RULED T1 (approvals row 13, 2026-11-04); BLOCKS submission until it lands.** The
+3. **Title — RULED T1 (CTO #896, 2026-11-04); BLOCKS submission until it lands.** The
    question-form T1 title and row 11's narrowed contribution are applied in `paper.tex` and recorded as
-   Amendment 5 of `PREREGISTRATION.md`, and the metadata block above is regenerated. Do not submit until
-   that change has landed on `origin/main` and the block has been regenerated from it.
+   Amendment 5 of `PREREGISTRATION.md`, and the metadata block above is regenerated from this branch. Do not submit until
+   that change has landed on `origin/main`; then re-run Part 0 so the bundle is built from it.
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 
