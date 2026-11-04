@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "workstream": "perturb-seq-eval",
-  "updated_at": "2026-10-08T23:41:16.431786+00:00",
+  "updated_at": "2026-11-02T02:39:15.833216+00:00",
   "linear": {
     "initiative_url": "",
     "initiative_id": ""
@@ -97,6 +97,18 @@
       "summary": "deposit prep gated; submission awaits principal",
       "pr": "",
       "updated_at": "2026-10-08T23:41:16.431601+00:00"
+    },
+    "FRAMING.1": {
+      "status": "done",
+      "artifact": "",
+      "linear": "",
+      "paperclip": "",
+      "gh": "",
+      "commit": "3055506",
+      "qgr": "workstreams/perturb-seq-eval/qgr/bioFM-matthew-mo-perturb-seq-eval-perturb-seq-eval-bioFM-qgr-iteration-complete-20261102-0238-12d40b4.md",
+      "summary": "cs.MA cross-list (row 12) + runbook/packager fixes under QG; title + narrowing drafts on perturb-seq-eval-staging await the principal",
+      "pr": "",
+      "updated_at": "2026-11-02T02:39:15.831185+00:00"
     }
   }
 }

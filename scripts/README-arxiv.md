@@ -132,11 +132,14 @@ everything. A checker that cannot be made to fail is not evidence.
 `preflight` and `metadata` need only Python 3.11+ and `pyyaml`:
 
 Run from the repository root, the way CLAUDE.md invokes every repo-level script.
-`preflight`, `build` and `self-test` are **stdlib-only**; `metadata` is the one
-subcommand that needs `pyyaml`, to read `CITATION.cff`:
+`preflight` and `build` are **stdlib-only**; `metadata` needs `pyyaml`, to read
+`CITATION.cff`. `self-test` needs it too, because its metadata cases (abstract length
+and ASCII, `categories.primary` and `categories.cross_list` shape) go through
+`metadata`. Without `pyyaml` those cases are reported `SKIP` and the run **exits 1**
+with `N CHECK(S) NOT RUN — not proven`: a case that did not run proves nothing.
 
 ```bash
-uv run python scripts/arxiv_package.py self-test                    # prove the checks fire
+uv run --with pyyaml python scripts/arxiv_package.py self-test      # prove the checks fire
 uv run python scripts/arxiv_package.py preflight projects/<p>/paper # expect a .bbl failure locally
 uv run --with pyyaml python scripts/arxiv_package.py metadata projects/<p>/paper
 ```
