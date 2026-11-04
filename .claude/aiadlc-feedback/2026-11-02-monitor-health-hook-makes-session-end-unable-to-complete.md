@@ -105,6 +105,38 @@ still worth fixing (write it outside the tracked tree, or to a gitignored path),
 permanently dirty tree **does** block the gates that legitimately require a clean one —
 `session-preflight`, and `/pr-submit` precondition 3. But it manufactures no commits by itself.
 
+### SEVERITY RAISED, 2026-11-04 — it is not just a dirty tree, it is cross-agent merge conflicts
+
+The dirty-tree framing above understated the cost. **Measured on a real sync:**
+`worktree-sync --auto` against `origin/main` **aborted on conflicts**, and the conflicting set was
+*exactly* three instinct files and nothing else:
+
+```
+CONFLICT (content): .aiadlc/instincts/i-cannot-see-it-is-not-it-does-not-exist.md
+CONFLICT (content): .aiadlc/instincts/tool-status-is-a-hedge-measure-the-pickup-path.md
+CONFLICT (content): .aiadlc/instincts/verify-the-subject-not-just-the-source.md
+```
+
+**Cause:** two sessions (this worktree agent and the CTO) each had the hook bump `last_reinforced`
+on the same tracked files, on divergent branches. Git cannot auto-merge a one-line metadata change
+made on both sides, so **every sync between two active agents conflicts on the monitoring layer's
+own bookkeeping.**
+
+**The conflicts carry no information.** Verified before resolving: metadata-only differences, bodies
+byte-identical, and `confidence: 1.000` on both sides for all three. Only `last_reinforced`
+timestamps differed. Resolved by taking the trunk's versions; the hook re-bumps locally and nothing
+is lost.
+
+**Why this matters more than the dirty tree:** a dirty tree inconveniences one agent at a boundary.
+A conflicting sync **blocks `worktree-sync` for every agent on every merge**, and it does so in
+files no human ever edits — so the conflict looks like a real divergence and costs a reader time to
+establish that it is not. It also lands in the path that `/iteration-start` depends on, which is the
+one step agents are told to run before every iteration.
+
+**Same fix, now better justified:** write `last_reinforced` (and `confidence`) outside the tracked
+tree, or to a gitignored sidecar. Keeping the instinct *bodies* tracked is right; keeping their
+*mutable counters* tracked is what collides.
+
 **Policy adopted here instead:** leave the bump uncommitted through idle cycles, and sweep it only
 when a boundary actually needs a clean tree or when committing real work anyway.
 
