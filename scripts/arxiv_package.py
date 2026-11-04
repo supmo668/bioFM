@@ -453,6 +453,15 @@ def metadata(paper_dir: Path, cfg: dict) -> tuple[str, list[str]]:
     # is iterable, so without this check it renders as "c, s, ., M, A" with exit 0 — the
     # pasteable-but-wrong shape the INCOMPLETE guard below exists to prevent.
     cross_problems: list[str] = []
+    # categories.primary: the same shape check. An unset primary is reported by the
+    # INCOMPLETE guard below; here only a SET-but-malformed one is an error.
+    if primary and (
+        not isinstance(primary, str) or not _CATEGORY_ID.fullmatch(primary)
+    ):
+        cross_problems.append(
+            f"categories.primary: not a single arXiv category id (archive.SUBJ): {primary!r}"
+        )
+        primary = str(primary)
     if not isinstance(cross, list):
         cross_problems.append(
             f'categories.cross_list: not a list (got {type(cross).__name__}; write ["..."])'
@@ -796,6 +805,45 @@ def self_test() -> int:
         ("repeats the primary", ["cs.LG"], "the primary repeated as a cross-list"),
         (None, ["q-bio.QM", "cs.MA"], "mirror: a valid cross-list must not error"),
     ]
+    # categories.primary gets the same shape check: it is the field arXiv files the paper
+    # under, so "cs LG" or ["cs.LG"] rendering into a pasteable block is the worse error.
+    primary_cases = [
+        ("categories.primary", "cs LG", "a primary that is not an archive.SUBJ id"),
+        ("categories.primary", ["cs.LG"], "a list instead of a single primary"),
+        (None, "cs.LG", "mirror: a valid primary must not error"),
+    ]
+    for expect, primary_value, desc in primary_cases:
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            (d / "paper.tex").write_text(
+                r"\documentclass{article}\begin{document}x\end{document}",
+                encoding="utf-8",
+            )
+            (d / cff).write_text(
+                "title: T\nabstract: >-\n  Plain ASCII abstract.\n"
+                "authors:\n  - family-names: S\n    given-names: A\n",
+                encoding="utf-8",
+            )
+            cfg = {
+                "root_tex": "paper.tex",
+                "citation_cff": cff,
+                "license": "CC BY 4.0",
+                "categories": {"primary": primary_value, "cross_list": ["q-bio.QM"]},
+            }
+            try:
+                _, probs = metadata(d, cfg)
+            except SystemExit as exc:
+                print(f"  SKIP  primary                metadata() unavailable: {exc}")
+                skipped += 1
+                continue
+            prim_probs = [x for x in probs if x.startswith("categories.primary")]
+            hit = (not prim_probs) if expect is None else bool(prim_probs)
+            label = "primary: valid" if expect is None else "primary: bad shape"
+            print(f"  {'OK  ' if hit else 'DEAD'}  {label:22s} planted: {desc}")
+            if not hit:
+                print(f"         expected {expect!r}, got {prim_probs or 'NO PROBLEMS'}")
+                failures += 1
+
     for expect, cross_value, desc in cross_cases:
         with tempfile.TemporaryDirectory() as td:
             d = Path(td)
