@@ -612,7 +612,8 @@ Where this section and any earlier text differ, this section governs.
 
 ### A5-1 Found
 The sweep ran under this file at commit `00fae29` (sha256 `6f8498eea879bb1e843511b03b821a567293402dff123487228c5f0c1330f270`,
-run `20260929T035447Z-ce5f237`, `prereg_version` `v0.6.0-a4`), with outcome "4 of 5 gates pass; H5 fails (0 unevaluated)".
+run `20260929T035447Z-ce5f237`, `prereg_version` `v0.6.0-a4`). The manuscript's generated tally (`\resGateSummary`, rendered from `summary.json` →
+`preregistered.tally` by `scripts/paper/fill_v060_numbers.py`) read "4 of 5 gates pass; H5 fails (0 unevaluated)".
 The principal then narrowed the paper's contribution to *a multi-agent group's* confidence/critique distribution, after
 `lee2026catts` (arXiv:2602.12276) was found to report a single agent's vote distribution gating compute (approvals row
 11), and ruled a retitle (row 12). The title in force when the sweep ran was:
@@ -642,8 +643,8 @@ The term "gate" (also "gates", "gated", "gating" where it means a hypothesis's p
 **"pre-registered criterion"** (approvals row 14), shortened to "criterion" where "pre-registered" is already in the
 sentence. The text above this section keeps "gate" verbatim, as locked; read every such use as "pre-registered
 criterion". Each hypothesis keeps its identity (H1–H5), its threshold, its estimator and its outcome: the v0.6.0 tally is
-unchanged, and the run record's summary "4 of 5 gates pass; H5 fails (0 unevaluated)" reads, in the new term, "4 of 5
-criteria pass; H5 fails (0 unevaluated)". A rename that changed which hypotheses passed would be a result change, and
+unchanged (`summary.json` → `preregistered.tally` is not touched), and the manuscript's generated tally, which read "4 of 5
+gates pass; H5 fails (0 unevaluated)", reads in the new term "4 of 5 criteria pass; H5 fails (0 unevaluated)". A rename that changed which hypotheses passed would be a result change, and
 this is not one. "Gating" in the sense of a method gating test-time compute (as in `lee2026catts`) is not this term and
 is not renamed.
 
