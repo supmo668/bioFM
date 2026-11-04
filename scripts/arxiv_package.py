@@ -667,6 +667,7 @@ def self_test() -> int:
         ),
     ]
     failures = 0
+    skipped = 0
     print(
         "arxiv-preflight self-test — each case plants ONE violation and asserts the check fires\n"
     )
@@ -772,6 +773,7 @@ def self_test() -> int:
                 _, probs = metadata(d, cfg)
             except SystemExit as exc:  # pyyaml absent — say so, do not report a pass
                 print(f"  SKIP  {expect:22s} metadata() unavailable: {exc}")
+                skipped += 1
                 continue
             hit = expect in probs
             print(f"  {'OK  ' if hit else 'DEAD'}  {expect:22s} planted: {desc}")
@@ -816,6 +818,7 @@ def self_test() -> int:
                 _, probs = metadata(d, cfg)
             except SystemExit as exc:
                 print(f"  SKIP  cross_list             metadata() unavailable: {exc}")
+                skipped += 1
                 continue
             cross_probs = [x for x in probs if x.startswith("categories.cross_list")]
             if expect is None:
@@ -831,10 +834,19 @@ def self_test() -> int:
                 )
                 failures += 1
 
-    print(
-        f"\n  {'ALL CHECKS PROVEN LIVE' if not failures else str(failures) + ' CHECK(S) DEAD — the checker is not evidence'}"
-    )
-    return 1 if failures else 0
+    if failures:
+        verdict = f"{failures} CHECK(S) DEAD — the checker is not evidence"
+    elif skipped:
+        # A skipped case proved nothing. Reporting the run as a pass would be the exact
+        # always-green checker this self-test exists to rule out.
+        verdict = (
+            f"{skipped} CHECK(S) NOT RUN — not proven; "
+            "re-run with pyyaml (uv run --with pyyaml ...)"
+        )
+    else:
+        verdict = "ALL CHECKS PROVEN LIVE"
+    print(f"\n  {verdict}")
+    return 1 if (failures or skipped) else 0
 
 
 def main() -> int:
