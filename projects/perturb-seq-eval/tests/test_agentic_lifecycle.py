@@ -88,7 +88,7 @@ def test_architect_dispatch_returns_backbone_and_name() -> None:
 
 
 @pytest.mark.unit
-def test_architect_dispatch_maps_scgpt_alias_or_falls_back() -> None:
+def test_architect_dispatch_maps_scgpt_alias_or_raises() -> None:
     """``scGPT`` is an alias of the KNOWN backbone ``scgpt_small``.
 
     With torch importable the alias resolves to that backbone. Without torch the
