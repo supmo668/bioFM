@@ -1053,15 +1053,20 @@ def test_amendment_records_match_git_and_the_preregistration():
             "1.3548" not in a["change"]
         )  # A4-2 states 1.3 carried in from the aborted run + the dry run separately
     a4 = next(a for a in am if a["id"] == "A4")
+    # Compare FULL hashes: `%h` length follows git's auto-abbreviation, which grows with the
+    # repository (7 chars when recorded, 8 later), so an abbreviated comparison breaks with no
+    # change to the history it checks.
     assert sorted(
         _git(
             "log",
-            "--format=%h",
+            "--format=%H",
             f"{a4['lock_commits'][0]}^..{land['run_git_sha']}",
             "--",
             "paper/PREREGISTRATION.md",
         ).split()
-    ) == sorted(a4["lock_commits"])
+    ) == sorted(
+        _git("rev-parse", "--verify", f"{c}^{{commit}}").strip() for c in a4["lock_commits"]
+    )
     assert a4.get("lock_note")
     res = RESULTS.read_text()
     assert "\\label{tab:amendments}" in res and res.count("\\ref{tab:amendments}") >= 2
