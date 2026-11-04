@@ -216,6 +216,19 @@ docs:
   root: "docs"                   # local docs tree; per-ws doc → <root>/workstreams/<ws>.md
                                  # indexed by <root>/workstreams/index.md
   notion:
+    root: "3e5749bd250d8058bebbef1ad738508c"
+                                 # The AI-RDLC HACP ROOT PAGE — the page that embeds the HACP Index
+                                 # database and whose Root directory view lists bioFM.
+                                 # SET 2026-11-02 as a REPO-LOCAL OVERRIDE. A repo's non-empty value
+                                 # beats ~/.aiadlc/user.yaml, and the global value had been pointed at
+                                 # ANOTHER project's HACP home (pokemon labs, set 2026-10-31 from the
+                                 # workos/paperclip checkout). `docs-plan root --check` therefore
+                                 # reported ROOT_UNREACHABLE on every bioFM session start: the probe
+                                 # 404s because that page belongs to a workspace this connection
+                                 # cannot see. The global comment also claims "old root 3e5749bd…
+                                 # unreachable" — VERIFIED FALSE 2026-11-02: notion-fetch returned the
+                                 # live page, Status=Current, carrying the HACP Index. Overriding here
+                                 # rather than editing the global file keeps paperclip's root working.
     parent: ""                   # Notion parent page (title/id) for Developer Documentation
                                  # pages; the fallback when no per-agent scope matches
                                  # (blank + no scope → local index only)

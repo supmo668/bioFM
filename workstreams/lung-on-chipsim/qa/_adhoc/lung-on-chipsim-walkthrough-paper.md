@@ -90,12 +90,23 @@ as the local source. Each section page should become a row with `Parent` = the m
 > citation**, whether or not it happens to resolve for someone today.
 
 
-**State, measured today.** A read of `surface_artifact_superseded:`
-(`claude.ai/artifact/VL8WMBZERBehinw1z36yQm`) returned **artifact not found**. The surface is
-**dead**, not merely superseded as the field name says. Confirmed by read, not inferred.
+**State, measured 2026-11-02 — and the 2026-10-30 reading below was WRONG.** The surface
+`claude.ai/artifact/VL8WMBZERBehinw1z36yQm` **resolves and is alive**, titled "ChipSim Review
+Index". The earlier line here said it "returned **artifact not found**" and concluded the surface
+was "**dead**, not merely superseded ... Confirmed by read, not inferred". The read was real; the
+conclusion drawn from it was not. What was measured was *"I cannot read it"*; what was written was
+*"it is not there"*. This is the same error class corrected in `CLAUDE.md` on 2026-11-02 (lung
+approvals row 96), and the file's own header already warned that "DEAD" was overstated — the body
+was never brought into line. It is now.
 
-**What survives — and this cut loses nothing material.** Unlike the T18 candidate list, whose
-per-row table existed ONLY on an artifact and died with it, this artifact was a *rendering* of
+The ban on citing it stands, unchanged and for the original reason: **a citation whose
+resolvability depends on who is asking is not a citation.** It does not need the surface to be
+destroyed in order to hold.
+
+**What survives — and this cut loses nothing material.** The T18 candidate list is no longer a
+counter-example: its per-row table did exist ONLY on an artifact, but it did **not** die with it —
+it was read in full and migrated to a Notion row on 2026-11-02 (https://app.notion.com/p/40c749bd250d8115bf43ebc648952c57).
+This artifact, likewise, was a *rendering* of
 material whose source is in the repository. All seven HACP paths this cut links are tracked at
 this commit — `index`, `vision`, `design`, `build`, `eval`, `decision`, `risk` under
 `docs/hacp/lung-on-chipsim/` (verified with `git ls-files`). The narrative is this file. The
