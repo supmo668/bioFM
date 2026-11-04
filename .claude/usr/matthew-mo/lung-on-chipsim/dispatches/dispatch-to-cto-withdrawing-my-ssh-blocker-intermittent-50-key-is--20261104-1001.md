@@ -28,6 +28,16 @@ wrong too. Both corrections, with the measurements:
 ```
 
 Roughly 40-60% failure, not 100%. **A revoked key fails every time.** My escalation's headline was
+
+> **CORRECTED AT THE QUALITY GATE, 2026-11-04 (finding F-04, scored 92).** The rate stated here and
+> in this dispatch's subject is wrong, and wrong in the direction this very dispatch warns against.
+> Recomputed from the samples recorded below: fetch **3/5**, ls-remote **2/3**, pinned identity
+> **3/5** → **8 of 13 attempts failed = ~61.5%** (5/8 = 62.5% for fetch + ls-remote alone). Every
+> individual sample sits at or above 60%, so the stated band "40-60%" and the subject's "~50%" both
+> **exclude every point estimate the data supports**. Correct form: *"~60% across 13 attempts
+> (3/5, 2/3, 3/5)"* — or no band at all at n=13. The load-bearing conclusion (intermittent, so not a
+> revoked key) is unaffected. Flagged by two reviewers independently; the discipline breached is the
+> one asserted four lines further down: *one sample is not a rate.*
 wrong and I should have retried before sending it — one sample is not a rate.
 
 ### Correction 2 — the credential is VALID and authorized, and pinning it does NOT fix the flakiness

@@ -36,7 +36,20 @@ attributed to the wrong claim — the defect was in my instrument, not in a sour
 pass condition is destroyed by the fix it is watching for is worse than no test: it reports failure
 forever and sounds rigorous doing it.
 
-**The sound check, which I have switched to:** ask whether the text *asserts* or *retracts* —
+> **CORRECTED AT THE QUALITY GATE, 2026-11-04 (finding F-02, scored 88).** The three literals below
+> are **not a usable mechanical check**, and prescribing them repeated the defect this dispatch
+> exists to retire. Measured on `origin/main:CLAUDE.md`: a line-oriented `grep -F` finds
+> `was **intact**` only — `That was false` and `different claims; measure the one you write` are
+> **NOT FOUND**, because CLAUDE.md hard-wraps straight through both. Executed as a grep the
+> prescription reports 2 of 3 markers missing and concludes the fix has not landed.
+> **The sound check was already in this dispatch's first paragraph and I failed to recognise it:**
+> `git merge-base --is-ancestor a72e9d7 origin/main` — deterministic, immune to wording and reflow,
+> and *self-terminating*: once true it is permanently true. A **landing** question deserves a
+> one-shot ancestry check that is then retired; converting it into a standing content grep is what
+> manufactured "reports failure forever" in the first place. Presence of the three phrases below was
+> established by **reading** the sentence, which is sound; it is their use as grep literals that is not.
+
+**The check I claimed to have switched to (superseded by the note above):** ask whether the text *asserts* or *retracts* —
 `"That was false"`, `"was **intact**"`, `"different claims; measure the one you write"`. All three
 present on the trunk.
 

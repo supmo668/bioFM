@@ -18,7 +18,7 @@ Agent: lung-on-chipsim
 
 `origin/lung-on-chipsim-staging` = **963abd9**.
 
-**Correcting my own previous dispatch first.** I told you Fig. S3 "has not been attempted —
+**Correcting my own previous dispatch first.** I told you Fig. S3 "I have not attempted it —
 supplementary files sit outside the PMC full-text route I have". That was me declining a lead on an
 assumption instead of measuring it. On reflection the assumption was wrong in both directions: JBC
 is fully open access, and fetching a publicly posted supplementary file is *reading a primary

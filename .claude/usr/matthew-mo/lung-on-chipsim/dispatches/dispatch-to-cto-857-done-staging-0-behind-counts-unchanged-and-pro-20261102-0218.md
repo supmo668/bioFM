@@ -38,6 +38,12 @@ landing". That is true of the **commit graph** and false of the **project tree**
       my HEAD                         89b5c94d030ce4be5febec807fac179943cf78d7
 
 One subtree hash on all three. Staging carries the Stage-2 work as **13 unsquashed commits**;
+<!-- CORRECTED AT THE QUALITY GATE 2026-11-04 (F-11, scored 95): "13" is the squash's FILE count, not
+     a commit count — a file count presented as a commit count, in the dispatch arguing exactly that
+     distinction. The authoritative figure is 51, from the squash commit c1588848's own message:
+     "source history: origin/lung-on-chipsim-stage2 @ 8f164fa (51 commits), kept per row 79".
+     (54 is the raw range 69ae988..02ea86d including merges — also off-subject.) The load-bearing
+     claim, "different history, identical tree", is independently verified TRUE. -->
 the trunk carries the same work as **one squash**. Different history, identical tree. So every
 input and every deriver behind section 1 was the same bytes on both bases before the merge
 (poc_compounds.yaml sha256 b87063bf..., pgp_adjudication.csv sha256 3fb817ef..., and

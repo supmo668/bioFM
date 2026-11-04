@@ -66,7 +66,10 @@ wait on the principal, as you instructed.
 **One thing you should know about my own branch, since it affects any landing you plan:** the
 principal ran `/pr-submit` on me and I **refused it at preflight rather than dispatch**. The diff
 `origin/main...HEAD` is 13 files and *all* of them are coordination exhaust — 10 dispatch payloads,
-1 feedback file, 2 hook-written instinct timestamp bumps. `diff-hash` = `ff0d852`, `file_count: 3`.
+1 feedback file, 2 hook-written instinct timestamp bumps. `diff-hash` = `ff0d852`, `file_count: 3`
+**over diff-hash's own narrower scope — it excludes dispatch payloads, so its 3 is the 1 feedback
+file plus the 2 instinct bumps, not a competing count of the same 13** (labelled at the quality
+gate, 2026-11-04, finding F-12).
 The `projects/lung-on-chipsim` subtree is byte-identical to the trunk (`89b5c94d`). **There is no
 substance to land**; PR #38 already carried it, and the long `origin/main..HEAD` list is the same
 squash-vs-unsquashed illusion we both hit on staging. Precondition 4 would also have failed the
