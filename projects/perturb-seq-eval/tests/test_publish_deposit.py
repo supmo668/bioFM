@@ -1639,3 +1639,44 @@ def test_availability_also_guards_the_plain_path(tmp_path, monkeypatch):
     with pytest.raises(sv.DraftMismatchError, match="still processing"):
         sub.submit(entries)
     assert not any(m == "post" and u.endswith("/777/publish") for m, u, _ in calls)
+
+
+def _norm(s: str) -> str:
+    return " ".join(s.replace("\\\\", " ").split()).rstrip(".")
+
+
+def test_every_title_surface_carries_the_paper_title():
+    """Amendment 5 retitled the paper (CTO #896). Every surface that names the work carries
+    the manuscript's \\title verbatim, so a retitle cannot reach some surfaces and not others
+    (QG Q6: publish.yml, the deposit title, was missed once)."""
+    tex = (ROOT / "paper" / "paper.tex").read_text()
+    title = _norm(re.search(r"\\title\{(.*?)\}\n", tex, re.S).group(1))
+    pdftitle = _norm(re.search(r"pdftitle=\{(.*?)\}\}", tex, re.S).group(1))
+    prereg = (ROOT / "paper" / "PREREGISTRATION.md").read_text()
+    surfaces = {
+        "pdftitle": pdftitle,
+        "CITATION.cff": _norm(yaml.safe_load((ROOT / "CITATION.cff").read_text())["title"]),
+        "publish.yml": _norm(_cfg()["title"]),
+        "README.md": _norm(
+            re.search(r'\*\*"(.*?)"\*\*', (ROOT / "README.md").read_text(), re.S).group(1)
+        ),
+        "paper/README.md": _norm(
+            (ROOT / "paper" / "README.md").read_text().splitlines()[0].removeprefix("# Paper — ")
+        ),
+        "docs/THESIS.md": _norm(
+            (ROOT / "docs" / "THESIS.md").read_text().splitlines()[0].removeprefix("# Thesis — ")
+        ),
+        "SUBMISSION.md paste block": _norm(
+            re.search(
+                r"^Title:\s+(.*)$", (ROOT / "paper" / "SUBMISSION.md").read_text(), re.M
+            ).group(1)
+        ),
+        "PREREGISTRATION.md header": _norm(
+            re.search(r"^\*\*Paper:\*\* \*(.*?)\*", prereg, re.M | re.S).group(1)
+        ),
+        "PREREGISTRATION.md A5-2": _norm(
+            re.search(r"The title becomes: \*(.*?)\*", prereg, re.S).group(1)
+        ),
+    }
+    wrong = {k: v for k, v in surfaces.items() if v != title}
+    assert not wrong, f"title differs from paper.tex \\title on: {sorted(wrong)}"
