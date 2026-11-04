@@ -1,8 +1,8 @@
 ---
 name: i-cannot-see-it-is-not-it-does-not-exist
-confidence: 0.950
+confidence: 1.000
 created: 2026-10-31T02:45:36Z
-last_reinforced: 2026-11-02T21:40:45Z
+last_reinforced: 2026-11-02T13:05:25Z
 ttl_days: 30
 triggers: [artifact, account-scoped, not recoverable, no longer resolves, behind, origin/main, IDLE, parked, monitor, unrecoverable]
 tags: []
