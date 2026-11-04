@@ -23,9 +23,16 @@ least insufficient, and I have the measurement.**
 **What happened:** the principal ran `/login` again. The session account changed for the **third**
 time this session:
 
-1. `mymm.psu@gmail.com`
-2. `mmo.darwininfotech@gmail.com`
-3. `mattmo@syntropyhealth.bio` ← current
+1. account A
+2. account B
+3. account C ← current
+
+> **Redacted at the quality gate, 2026-11-04 (finding F-01).** This list originally named the three
+> accounts by email address. That was a privacy defect: the repository is public, every commit in it
+> deliberately uses the `users.noreply.github.com` identity, and the document's own argument needs
+> only that the three accounts were **distinct** — the addresses were load-bearing for nothing. The
+> harm was the correlation the list asserted, binding one operator's work identity to two personal
+> ones. Redacted rather than preserved-beside, because for this defect class the original IS the leak.
 
 **After each one, the extension error is byte-identical.** `CLAUDE_CODE_OAUTH_TOKEN` re-checked
 after the latest login: **still not set**, and not exported from any of the five profile files. So
