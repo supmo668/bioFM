@@ -633,8 +633,8 @@ Passes" reports the H4 pass on $1-\Delta C$, within each screen. H5's failure is
 abstract and Results.
 
 **Why the null is not traded into a claim.** "Why the title is a question" forbids trading a null or failed outcome back
-INTO a claim-form title. This title asserts nothing: it asks, and its subtitle reports a failure as a failure and a pass
-as a pass. On the locked rule this amendment is a no-op: the question form the rule protects is unchanged and the rule
+INTO a claim-form title. The headline asserts nothing: it asks. The subtitle reports two measured H4 outcomes, a failure
+as a failure and a pass as a pass, and trades neither into a claim about the question. On the locked rule this amendment is a no-op: the question form the rule protects is unchanged and the rule
 is not engaged. It is not a no-op on this file: the title line and this section change, so the file's hash diverges from
 the published run record. That divergence is this disclosure.
 
