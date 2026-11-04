@@ -841,7 +841,9 @@ def self_test() -> int:
             label = "primary: valid" if expect is None else "primary: bad shape"
             print(f"  {'OK  ' if hit else 'DEAD'}  {label:22s} planted: {desc}")
             if not hit:
-                print(f"         expected {expect!r}, got {prim_probs or 'NO PROBLEMS'}")
+                print(
+                    f"         expected {expect!r}, got {prim_probs or 'NO PROBLEMS'}"
+                )
                 failures += 1
 
     for expect, cross_value, desc in cross_cases:
