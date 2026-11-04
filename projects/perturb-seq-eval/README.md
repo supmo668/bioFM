@@ -14,9 +14,9 @@ latest version (v0.6.0, 2026-10-16). Also on Figshare as
 Citation metadata, including every superseded version DOI, is in
 [`CITATION.cff`](CITATION.cff).
 
-Hypotheses, gates and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
+Hypotheses, pre-registered criteria and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
 Results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git `ce5f237`
-(`artifacts/v0.6.0/`; 4 of 5 pre-registered gates pass, H5 fails); every manuscript
+(`artifacts/v0.6.0/`; 4 of 5 pre-registered criteria pass, H5 fails); every manuscript
 value is a generated macro (`scripts/paper/fill_v060_numbers.py`). All v0.5.0 values are
 superseded (see the paper's appendix "Corrections relative to v0.5.0").
 
@@ -27,7 +27,7 @@ Is the per-round joint distribution of agent confidence + critique severity in a
 for task difficulty? If so, a cheap preflight probe of that distribution
 would yield a Bayesian recommender for team size, round count, and backbone —
 turning agentic orchestration into hyperparameter tuning. The paper tests
-this under five pre-registered gates.
+this under five pre-registered criteria.
 
 Read [`docs/THESIS.md`](docs/THESIS.md) for the full argument.
 
@@ -62,7 +62,7 @@ perturb-seq-eval/
 ├── paper/
 │   ├── paper.tex            the manuscript
 │   ├── sections/generated_numbers.tex  GENERATED result macros (fill_v060_numbers.py)
-│   └── PREREGISTRATION.md   hypotheses, gates, analysis plan, amendments 1-4
+│   └── PREREGISTRATION.md   hypotheses, criteria, analysis plan, amendments 1-5
 ├── pyproject.toml
 ├── requirements.txt
 ├── src/perturb_eval/

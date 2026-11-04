@@ -15,10 +15,14 @@ version: "0.6.0"
 # no duplicate record. publish.state.json stays the v0.5.x lineage record and is never written.
 state_file: publish.state.v060.json
 
+# Retitled by Amendment 5 of paper/PREREGISTRATION.md (2026-11-04, CTO #896). The minted v0.6.0
+# records (Zenodo 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title; this title
+# and the regenerated description below take effect at the next deposit, which is the principal's call.
 title: >-
-  Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
-  Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
-  Response Prediction
+  Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
+  A Pre-registered, Provenance-Complete Test on Perturb-seq Response
+  Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
+  Passes
 
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 description: |
