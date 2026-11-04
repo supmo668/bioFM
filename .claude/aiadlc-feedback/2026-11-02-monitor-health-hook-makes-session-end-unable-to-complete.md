@@ -1,8 +1,13 @@
 ---
+type: plugin-feedback
 date: 2026-11-02
 from: biofm/matthew-mo/lung-on-chipsim
-area: hooks/monitor-health.sh vs skills/session-end
-severity: a-sanctioned-skill-cannot-complete
+plugin_version: airdlc 0.87.0 (tools/skills/hooks as invoked this session; monitor + instinct hooks via 0.82.0 dispatch-monitor)
+area: >
+  TWO defects. (1) hooks/monitor-health.sh vs skills/session-end — a sanctioned skill cannot complete.
+  (2) hooks/instincts (tracked last_reinforced counters) vs tools/worktree-sync + context-commit-check
+  — cross-agent merge conflicts on every sync where the counters were committed.
+severity: (1) a-sanctioned-skill-cannot-complete · (2) blocks-worktree-sync-between-active-agents
 ---
 
 # The `monitor-health` Stop-hook makes `/session-end` unable to complete: the skill stops monitors by design, the hook refuses to let the turn end while they are stopped
@@ -80,7 +85,9 @@ dead for most of a turn unnoticed. **This is the opposite failure:** at the one 
 invariant is enforced, it fires against the framework's own sanctioned way of switching it off. The
 two reports are complementary and a fix should satisfy both.
 
-## Side observation, same component — CORRECTED 2026-11-03 after measuring it
+## 2. Instincts hook writes TRACKED counters — CORRECTED 2026-11-03 after measuring it
+
+*(Defect 2 of 2. Everything above this line is defect 1, `monitor-health` vs `session-end`.)*
 
 **What I originally filed here was half wrong, and the half that was wrong blamed the framework for
 something I was doing.** The original text:
@@ -105,7 +112,7 @@ still worth fixing (write it outside the tracked tree, or to a gitignored path),
 permanently dirty tree **does** block the gates that legitimately require a clean one —
 `session-preflight`, and `/pr-submit` precondition 3. But it manufactures no commits by itself.
 
-### SEVERITY RAISED, 2026-11-04 — it is not just a dirty tree, it is cross-agent merge conflicts
+## 2a. SEVERITY RAISED, 2026-11-04 — not just a dirty tree but cross-agent merge conflicts *(narrowed below at 2b)*
 
 The dirty-tree framing above understated the cost. **Measured on a real sync:**
 `worktree-sync --auto` against `origin/main` **aborted on conflicts**, and the conflicting set was
@@ -119,7 +126,8 @@ CONFLICT (content): .aiadlc/instincts/verify-the-subject-not-just-the-source.md
 
 **Cause:** two sessions (this worktree agent and the CTO) each had the hook bump `last_reinforced`
 on the same tracked files, on divergent branches. Git cannot auto-merge a one-line metadata change
-made on both sides, so **every sync between two active agents conflicts on the monitoring layer's
+made on both sides, so **every sync between two active agents in which those counters were
+committed conflicts on the monitoring layer's
 own bookkeeping.**
 
 **The conflicts carry no information.** Verified before resolving: metadata-only differences, bodies
@@ -128,7 +136,8 @@ timestamps differed. Resolved by taking the trunk's versions; the hook re-bumps 
 is lost.
 
 **Why this matters more than the dirty tree:** a dirty tree inconveniences one agent at a boundary.
-A conflicting sync **blocks `worktree-sync` for every agent on every merge**, and it does so in
+A conflicting sync **blocks `worktree-sync` for every agent on every merge where the counters were
+committed** (see 2b — uncommitted counters merge cleanly), and it does so in
 files no human ever edits — so the conflict looks like a real divergence and costs a reader time to
 establish that it is not. It also lands in the path that `/iteration-start` depends on, which is the
 one step agents are told to run before every iteration.
@@ -137,7 +146,10 @@ one step agents are told to run before every iteration.
 tree, or to a gitignored sidecar. Keeping the instinct *bodies* tracked is right; keeping their
 *mutable counters* tracked is what collides.
 
-#### Refinement, same day — the trigger is COMMITTING the counters, and there is a working mitigation
+## 2b. Refinement, same day — the trigger is COMMITTING the counters, and there is a working mitigation
+
+**Original text in 2a is preserved unchanged. This section corrects it; where they conflict, believe
+this section.**
 
 A second sync an hour later merged **cleanly, zero conflicts**, over 43 new trunk commits. The
 difference was not luck and the mechanism is plain: **git conflicts on committed divergence, not on
