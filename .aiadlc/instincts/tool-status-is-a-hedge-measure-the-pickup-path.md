@@ -2,7 +2,7 @@
 name: tool-status-is-a-hedge-measure-the-pickup-path
 confidence: 1.000
 created: 2026-10-30T18:41:53Z
-last_reinforced: 2026-11-03T23:30:53Z
+last_reinforced: 2026-11-04T01:13:09Z
 ttl_days: 30
 triggers: [agent-wake, dispatch, blocker-sweep, dispatch-monitor, @{u}, rev-list]
 tags: []
