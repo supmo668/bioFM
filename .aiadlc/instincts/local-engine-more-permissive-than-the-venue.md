@@ -1,8 +1,8 @@
 ---
 name: local-engine-more-permissive-than-the-venue
-confidence: 0.750
+confidence: 1.000
 created: 2026-10-30T18:41:54Z
-last_reinforced: 2026-11-02T02:26:19Z
+last_reinforced: 2026-11-04T22:51:09Z
 ttl_days: 30
 triggers: [pdflatex, tectonic, xelatex, latex-action, arxiv, claims.py, U+2212, metadata]
 tags: []
