@@ -114,8 +114,7 @@ prevent. The three `sections/v050_*.tex` files, the five figure PDFs and the `ta
 users posting to a new category, *"may be required to find endorsements"*, and that *"We only accept
 submissions from registered authors"*. The address of record is the **alumni** address recorded in
 [`CITATION.cff`](../CITATION.cff) — weaker evidence of current affiliation than a live
-institutional one. A
-first `cs.LG` submission may therefore land in the endorsement queue. **Superseded by Part 7.1 — the policy changed on 2026-01-21 and the queue is now the default, not the risk case.**
+institutional one.
 
 **Only one arXiv route remains (approvals row 15).** Since 2026-01-21 an institutional address alone no
 longer qualifies, the address of record is an alumni address, and there is no prior accepted arXiv paper,
@@ -127,7 +126,7 @@ closed (see the box below).
 > the standing constraint on this project is that duplicate research is either fully deleted or
 > superseded as a revision, never left as two live records. TechRxiv **and** arXiv (or bioRxiv) is a
 > violation. A preprint **and** the existing Zenodo/Figshare archives is not, because Zenodo and Figshare are
-> archives, not preprint servers, and neither counts as the one server. TechRxiv **and** the Zenodo archive is fine, because an archive and a preprint of the same
+> archives, not preprint servers, and neither counts as the one server: an archive and a preprint of the same
 > work are one work in two places, which is exactly what the cross-links in Part 4 assert.
 
 ---
@@ -220,6 +219,11 @@ article, so its DOI belongs there.
 
 ## Part 3 — Immediately after announcement
 
+> **Parts 3–5 are written for an arXiv posting.** On the ruled venue, TechRxiv, read "the venue's DOI and record"
+> wherever they say arXiv ID, `10.48550/arXiv…` DOI or crawled arXiv record. The steps are the same: record the
+> identifier, link it reciprocally on Zenodo as `isIdenticalTo` once, and merge the Scholar entry. TechRxiv mints
+> its own DOI (Part 7.2, secondary source until the principal's first-hand read).
+
 Record the assigned identifier. arXiv mints both:
 
 - arXiv ID — `arXiv:NNNN.NNNNN`
@@ -308,7 +312,8 @@ citations.**
 
 **Therefore: this work currently has no indexed Scholar record at all, and no amount of follow-up
 produces one without a Scholar-indexed venue.** Scholar visibility is not a post-submission chore.
-It *is* the venue decision in Part 1, and it is now blocked on the same thing.
+It follows from the venue, ruled TechRxiv (approvals row 15), and it is blocked on the same thing: the
+principal's first-hand read of TechRxiv's terms.
 
 ### 7.1 Why Part 1 has one route — the endorsement gate tightened on 2026-01-21
 
@@ -370,8 +375,9 @@ that was not measured at the primary source.
 
 **arXiv is still reachable — but not in parallel.** Pursuing a Path-2 endorsement is compatible with
 everything here, *provided you do not post twice.* If arXiv matters more than months of delay, get
-the endorsement **first** and wait. If a preprint is already up elsewhere when the endorsement
-arrives, the route is a **superseding revision**, never a second live posting.
+the endorsement **first** and wait (approvals row 15). Once a preprint is up on TechRxiv, arXiv is
+closed: a revision on one server cannot supersede a posting on another, so a later arXiv posting would be
+a second live preprint.
 
 ### 7.3 Channels that are not venues — unlimited, and carry no duplication risk
 
@@ -431,8 +437,8 @@ fallback it is, not as a way around the venue decision.
 |---|---|---|
 | 1 | ORCID: add the Zenodo DOI (7.3 #1) | nothing — do it today |
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
-| 3 | **Principal decides the venue** — exactly one (7.2) | 7.1, 7.2 |
-| 4 | Read the chosen venue's own submission rules at the primary source | 3 |
+| 3 | ~~Principal decides the venue~~ **Decided: TechRxiv** (approvals row 15) | 7.1, 7.2 |
+| 4 | **Principal reads TechRxiv's own terms at the primary source; BLOCKS step 5** (agents get HTTP 403) | 3 |
 | 5 | Part 0 bundle → the venue's form | 4 |
 | 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
@@ -504,8 +510,8 @@ A fourth decision is adjacent and does not block submission, but affects what ge
 
 ## What this runbook does not establish
 
-- **That the submission will be accepted.** Moderation and endorsement are human decisions made by
-  arXiv after you submit. Nothing here predicts them.
+- **That the submission will be accepted.** Moderation (and, on arXiv, endorsement) are human decisions
+  made by the venue after you submit. Nothing here predicts them.
 - **That the LaTeX compiles on arXiv's TeX Live.** CI compiling it is strong evidence, not proof —
   arXiv's toolchain is its own. Part 2 step 4 is where you find out, and it is why you read the
   generated PDF before submitting rather than after.
