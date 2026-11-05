@@ -652,6 +652,8 @@ is not renamed.
 ### Unchanged
 Every hypothesis, threshold, estimator and convention of amendments 1–4; the run's `prereg_version` `v0.6.0-a4`; the v0.6.0
 outcome, including H5's failure. "Why the title is a question" keeps both of its sentences, with this amendment noted
-beneath them. Amendment 5 is not recorded in `paper/data/amendments_v060.json` or in `tab:amendments`, whose caption
-covers only amendments locked before any v0.6.0 data. Text it changes in `PREREGISTRATION.md`: the title line, the
+beneath them. Amendment 5 is recorded in `paper/data/amendments_v060.json` and in `tab:amendments`, marked as locked
+after the outcome; the table caption separates it from A1–A4, which were locked before any v0.6.0 data (approvals row 16).
+The annotated git tag `v0.6.0-a5` marks the commit that carries it. The tag marks an amendment, not a release; it does
+not re-cut or supersede v0.6.0. Text it changes in `PREREGISTRATION.md`: the title line, the
 Amendments preamble, the note under "Why the title is a question", and this section.

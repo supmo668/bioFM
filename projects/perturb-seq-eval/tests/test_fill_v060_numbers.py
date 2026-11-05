@@ -363,7 +363,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         expect[f"resRoleCalls{word}"] = str(sum(1 for c in log if c["role"] == role))
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     for a in am:
-        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
+        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}[a["id"]]
         expect[f"resAmend{word}Version"] = a["prereg_version"] or r"\textemdash"
         expect[f"resAmend{word}Date"] = a["lock_date_utc"]
         expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
@@ -1014,7 +1014,7 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
 def test_amendment_records_match_git_and_the_preregistration():
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     prereg = (PAPER / "PREREGISTRATION.md").read_text()
-    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4"]
+    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4", "A5"]
     land = json.loads((PAPER / "data" / "land_v060.json").read_text())
     for a in am:
         n = a["id"][1]
@@ -1034,7 +1034,16 @@ def test_amendment_records_match_git_and_the_preregistration():
         )
         for c in a["lock_commits"]:
             assert re.fullmatch(r"[0-9a-f]{7,40}", c), c
-            _git("merge-base", "--is-ancestor", c, land["run_git_sha"])  # locked before the run
+            before_run = (
+                subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", c, land["run_git_sha"]], cwd=ROOT
+                ).returncode
+                == 0
+            )
+            # A1-A4 were locked before the run; A5 (approvals row 16) was locked AFTER the outcome,
+            # and the record must say so rather than pass as a pre-data amendment.
+            assert before_run is not bool(a.get("post_outcome")), (a["id"], c)
+            _git("merge-base", "--is-ancestor", c, "HEAD")  # on this history either way
             files = _git("show", "--name-only", "--format=", c)
             assert "paper/PREREGISTRATION.md" in files, c
             date = subprocess.run(

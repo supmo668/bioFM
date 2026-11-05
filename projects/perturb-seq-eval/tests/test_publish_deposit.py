@@ -840,11 +840,10 @@ def test_staged_run_matches_the_committed_artifacts_and_is_restaged_clean(tmp_pa
 def test_check_fails_on_a_hand_edit_and_write_mode_is_idempotent(tmp_path, monkeypatch, capsys):
     rd = _load("scripts/paper/render_publish_description.py", "rd_check")
     pub, cit = tmp_path / "publish.yml", tmp_path / "CITATION.cff"
-    pub.write_text(
-        (ROOT / "publish.yml")
-        .read_text()
-        .replace("Multi-agent group-generation", "Multi-agent GROUP-generation", 1)
-    )
+    src = (ROOT / "publish.yml").read_text()
+    edited = src.replace("group-generation", "GROUP-generation", 1)
+    assert edited != src  # the hand edit must land, or the --check below proves nothing
+    pub.write_text(edited)
     cit.write_text((ROOT / "CITATION.cff").read_text())
     monkeypatch.setattr(rd, "PUBLISH", pub)
     monkeypatch.setattr(rd, "CITATION", cit)

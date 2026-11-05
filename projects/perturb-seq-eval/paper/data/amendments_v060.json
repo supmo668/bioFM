@@ -1,5 +1,5 @@
 {
-  "source": "paper/PREREGISTRATION.md (amendment 1 in the preamble; amendments 2-4 as sections); lock commits from git with their UTC dates; CTO #532",
+  "source": "paper/PREREGISTRATION.md (amendment 1 in the preamble; amendments 2-5 as sections); lock commits from git with their UTC dates; CTO #532",
   "amendments": [
     {
       "id": "A1",
@@ -46,6 +46,18 @@
       "change": "provider changed to the Anthropic API with a pinned roster (Haiku 4.5 for four roles, Sonnet 5.5 for the Validator), structured outputs, per-role ceilings with one retry at twice the ceiling, refusal and served-model rules; spend lines of 12, 28 and 30 USD on the total, including the 1.3 USD carried in from the aborted run and the dry run; single-family and same-family-judge caveats stated in the methods",
       "lock_note": "a48ae5f is the lock; 535cb68 and 00fae29 are text fixes (CTO 486 and 480), all before any data",
       "introduces": "## Amendment 4"
+    },
+    {
+      "id": "A5",
+      "prereg_version": "v0.6.0-a5",
+      "lock_commits": [
+        "f2bb193"
+      ],
+      "lock_date_utc": "2026-11-04",
+      "post_outcome": true,
+      "change": "locked AFTER the v0.6.0 outcome: the title becomes a question about the confidence distribution of a multi-agent group (question form kept; subtitle reports the two H4 outcomes), and the term gate is renamed pre-registered criterion; no hypothesis, threshold, estimator or outcome changes and no run exists under it",
+      "lock_note": "f2bb193 is the lock, made after the v0.6.0 outcome (CTO 896, approvals rows 13-16); later commits fix its wording only",
+      "introduces": "## Amendment 5"
     }
   ]
 }

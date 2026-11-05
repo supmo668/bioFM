@@ -54,10 +54,13 @@
 \maketitle
 
 \begin{abstract}
-Multi-agent group-generation systems spend test-time compute uniformly
-across tasks. We ask whether the agents' own confidence-and-critique trace
-predicts how hard a task is, which would let the compute be allocated
-adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
+A multi-agent group-generation system, as operated here, spends test-time
+compute uniformly across tasks. That a single agent's own vote distribution
+can gate its test-time compute is already reported by
+\textsc{CATTS}~\citep{lee2026catts}; we ask the multi-agent question: whether
+the distribution of stated confidences and critiques across a group of
+role-specialised agents predicts how hard a task is, which would let the
+group's compute be allocated adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
 response prediction inspired by \textsc{CellForge}~\citep{chen2025cellforge}
 and operated via \textsc{MassGen}~\citep{massgen2025github}, we define four
 compute-free trace metrics --- Agent Confidence Entropy (ACE), Critique
