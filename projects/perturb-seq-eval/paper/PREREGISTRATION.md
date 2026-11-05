@@ -654,6 +654,12 @@ Every hypothesis, threshold, estimator and convention of amendments 1–4; the r
 outcome, including H5's failure. "Why the title is a question" keeps both of its sentences, with this amendment noted
 beneath them. Amendment 5 is recorded in `paper/data/amendments_v060.json` and in `tab:amendments`, marked as locked
 after the outcome; the table caption separates it from A1–A4, which were locked before any v0.6.0 data (approvals row 16).
-The annotated git tag `v0.6.0-a5` marks the commit that carries it. The tag marks an amendment, not a release; it does
-not re-cut or supersede v0.6.0. Text it changes in `PREREGISTRATION.md`: the title line, the
+The annotated git tag `v0.6.0-a5` is to be created by the CTO on the landed commit that carries this wording (not on the
+lock commit `f2bb193`, whose text still said "not recorded"); until then no such tag exists. The tag marks an amendment,
+not a release, and it does not re-cut or supersede v0.6.0.
+
+*Dated note, 2026-11-05 (approvals row 16, CTO #905).* This paragraph was revised after the lock. At `f2bb193` it said
+Amendment 5 was not recorded in the table or the JSON. Row 16 then ruled that it be recorded there and tagged, and the
+revision follows that ruling. It changes how the amendment is recorded, not what the pre-registration says: no
+hypothesis, threshold, estimator or outcome changes, so it is not a sixth amendment. Text it changes in `PREREGISTRATION.md`: the title line, the
 Amendments preamble, the note under "Why the title is a question", and this section.
