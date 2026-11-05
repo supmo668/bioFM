@@ -21,16 +21,18 @@ artifact_history: "Pw8C8QxzqL2FTuMEJ7w8tp (2026-09-19) stopped resolving — rep
 one-pager for the principal, and the skill's own rule is that two thin cuts are worse than
 one good page when only one audience is real.
 
-The pipeline produced its **first real artifact** — a **6,802-row** reference table whose
-contents can be checked byte-for-byte by anyone. Those 6,802 rows carry **6,610 distinct canonical
-identities**: canonical keys are assigned stereo-free, so rows the source never distinguished
-stereochemically pool onto one identity. Both counts are true of different subjects and neither is
-an error (**derived** — `tests/test_published_snapshot_claims.py` pins the two side by side). Everything downstream of it is waiting on
+The pipeline produced its **first real artifact** — a reference table of **6,610 distinct canonical
+identities**, carried in **6,802 rows**, whose contents can be checked byte-for-byte by anyone.
+Canonical keys are assigned stereo-free, so rows the source never distinguished stereochemically
+pool onto one identity; **6,610 is the headline figure and 6,802 is disclosed as the row count**
+(approvals row 109 — stereo-free pooling is preferred, and the roster loader already resolves
+against the 6,610-key snapshot). Both counts are true of different subjects and neither is an error
+(**derived** — `tests/test_published_snapshot_claims.py` pins the two side by side). Everything downstream of it is waiting on
 inputs only a human may write.
 
 | | |
 |---|---|
-| 6,802 | **rows** (6,610 distinct canonical identities), 9 attributes, digest-verified |
+| 6,610 | **distinct canonical identities** (in 6,802 rows), 9 attributes, digest-verified |
 | 1 of 5 | human-owned inputs delivered |
 | 0 | simulation or evaluation runs |
 
@@ -41,7 +43,7 @@ read out of the parquet, and the tracked digest was recomputed over the bytes on
 
 ```mermaid
 flowchart LR
-  A["Source ingest<br/>complete"] --> B["Reference table<br/>6,802 rows / 6,610 identities"]
+  A["Source ingest<br/>complete"] --> B["Reference table<br/>6,610 identities / 6,802 rows"]
   B --> C{"Compound roster<br/>HUMAN"}
   C -->|not yet written| D["Adjudication sheet"]
   D --> E{"Transport call<br/>HUMAN"}
@@ -105,7 +107,7 @@ Both artifact pointers in this file's frontmatter were read today. They are in *
 states, and a reader deserves the difference.
 
 **A disambiguation this annotation must not blur.** Everywhere in the body above, "artifact"
-means the **6,802-row reference table** — a parquet in the pipeline's own output,
+means the **6,610-identity reference table** (6,802 rows) — a parquet in the pipeline's own output,
 digest-verified, nothing to do with a web surface. The two URLs below are *publication
 surfaces*. Nothing in this section is a statement about the reference table.
 
@@ -121,7 +123,7 @@ withdrawn). This file already recorded that it stopped resolving on
 found. It was the original 2026-09-19 publication, and it is gone.
 
 **DEGRADED — `HDtaxnfh79HumoLY7NWKws`.** The URL resolves, and the page is still substantively
-this walkthrough: the read returns the 6,802-row figure, the 2026-09-29 re-measured state table, and
+this walkthrough: the read returns the row/identity figures, the 2026-09-29 re-measured state table, and
 this file's own path as its stated source. What has degraded is not the content but the
 **provenance channel** — the read comes back marked as a *public artifact authored outside this
 organization*, delivered as an isolated summary of untrusted third-party data rather than as this
