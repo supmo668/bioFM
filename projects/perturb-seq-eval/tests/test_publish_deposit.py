@@ -1679,3 +1679,40 @@ def test_every_title_surface_carries_the_paper_title():
     }
     wrong = {k: v for k, v in surfaces.items() if v != title}
     assert not wrong, f"title differs from paper.tex \\title on: {sorted(wrong)}"
+
+
+def test_arxiv_override_keeps_every_result_token_and_states_its_length():
+    """QG B16/B17: the venue override is hand-derived, and the tooling checks only its limits. Pin
+    the tokens the derivation promises to keep, and the length its comment and the runbook state."""
+    import tomllib
+
+    cfg = (ROOT / "paper" / "arxiv.toml").read_text()
+    ov = tomllib.loads(cfg)["abstract"]
+    assert len(ov) <= 1920 and ov.isascii()
+    for tok in (
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "H5",
+        "0.286",
+        "> 0.4",
+        "0 unevaluated",
+        "4 of 5 pass",
+        "H5 fails",
+        "41 held-out",
+        "21 Adamson",
+        "15 Norman",
+        "5 Norman",
+        "27 trainer-sweep",
+        "Haiku 4.5",
+        "Sonnet 5.5",
+        "CATTS",
+        "2602.12276",
+        "(exploratory)",
+    ):
+        assert tok in ov, tok
+    assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
+    assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
+    sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
+    assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub

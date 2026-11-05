@@ -1148,3 +1148,30 @@ def test_hand_typed_scan_still_flags_a_number_after_the_word_python(monkeypatch,
         monkeypatch.setattr(sys.modules[__name__], "PAPER", fake)
         with pytest.raises(AssertionError, match="0.86"):
             test_no_hand_typed_result_numbers("sections/results.tex")
+
+
+WORDS = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}
+
+
+def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
+    """QG B12/B13: every amendment record has a row in tab:amendments; the post-outcome ones (A5,
+    approvals row 16) carry the double dagger and the others do not; the caption never calls the
+    whole table pre-data, and names the pre-data range from the records themselves."""
+    am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
+    res = _strip(RESULTS.read_text())
+    flags = {a["id"]: a.get("post_outcome", False) for a in am}
+    assert all(type(v) is bool for v in flags.values()), flags
+    assert [k for k, v in flags.items() if v] == ["A5"]
+    for a in am:
+        w = WORDS[a["id"]]
+        row = re.search(rf"^{a['id']}\b.*\\resAmend{w}Change \\\\$", res, re.M)
+        assert row, f"no tab:amendments row for {a['id']}"
+        assert ("\\ddagger" in row.group(0)) is flags[a["id"]], a["id"]
+    cap = re.search(
+        r"\\caption\{Amendments to the pre-registration(.*?)\\label\{tab:amendments\}", res, re.S
+    )
+    cap = " ".join(cap.group(1).split())
+    assert "each locked before any v0.6.0 data existed (" not in cap
+    pre = [k for k, v in flags.items() if not v]
+    assert f"{pre[0]}--{pre[-1]} were each locked before any v0.6.0 data existed" in cap
+    assert "$^{\\ddagger}$A5 was locked \\emph{after} the v0.6.0 outcome" in cap
