@@ -45,7 +45,7 @@ acknowledge_packages = []
 # opening names CATTS (approvals row 17) by ten named compressions c1-c10 (staging 3711ac6
 # section 3.2): c1 the opening folded into one question with "as operated here"; c2 drop
 # "compute-free"; c3 "Perturb-seq orchestrator run via MassGen"; c4 "composite Task Difficulty
-# Index"; c5 "Five pre-registered criteria:"; c6 "the Architect's backbone-choice entropy, each
+# Index"; c5 "Five pre-registered gates:" (drafted wording; renamed below); c6 "the Architect's backbone-choice entropy, each
 # TDI component's rank correlation"; c7 "Design: ..."; c8 "LLM condition: ..."; c9
 # "Confidence-entropy point estimates"; c10 "The v0.5.0 release's values". Every number, every
 # hypothesis label H1-H5, the rho = 0.286 result and the "0 unevaluated" integrity claim are

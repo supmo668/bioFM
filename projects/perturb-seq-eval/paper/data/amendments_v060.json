@@ -56,7 +56,7 @@
       "lock_date_utc": "2026-11-04",
       "post_outcome": true,
       "change": "locked AFTER the v0.6.0 outcome: the title becomes a question about the confidence distribution of a multi-agent group (question form kept; subtitle reports the two H4 outcomes), and the term gate is renamed pre-registered criterion; no hypothesis, threshold, estimator or outcome changes and no run exists under it",
-      "lock_note": "f2bb193 is the lock, made after the v0.6.0 outcome (CTO 896, approvals rows 13-16); later commits fix its wording only",
+      "lock_note": "f2bb193 is the lock, made after the v0.6.0 outcome (CTO 896, approvals rows 13 and 14); recorded here and tagged per row 16; later commits revise its wording and record only",
       "introduces": "## Amendment 5"
     }
   ]
