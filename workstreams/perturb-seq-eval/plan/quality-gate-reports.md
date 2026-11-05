@@ -17,3 +17,11 @@ Checks: ruff format clean (3 files); lint clean; typecheck not configured; tests
 | iteration | status | commit | receipt |
 |---|---|---|---|
 | A5 | done | 96bd3761 | c9d568c |
+
+## QGR — Iteration B (2026-11-05) — commit 107bdeea, receipt 1f2dbd9
+
+Scope: `5487bac5..107bdeea`. CTO #905, rows 15–18: TechRxiv is the venue and posting is BLOCKED; the abstract opening names CATTS (1.1-e); the 1916-character override is applied with the row-14 rename (1914 characters); A5 is recorded post-outcome in tab:amendments and amendments_v060.json. The Morandi sentence is held for the CTO's section verification. The tag is the CTO's to create; the staging PR goes via pr-submit.
+Reviewers: code 8, design 10, test 7, security 1 (low, outside the diff). The scorer scored 21 findings; 4 reached ≥ 80 (B1 tag described as existing, B2 §7.2 vs Part 1, B3 Parts 3–5 assume arXiv, B4 venue described as undecided), and all 4 are fixed. Below threshold, also fixed: B5–B10, B12, B13, B16. The new tests were mutation-checked: 6 of 6 mutations are now caught (before, all 6 passed).
+Deferred: B14, B15, B17, B18, B19, B21. B11 rejected. B20 is report-only: the immutable 2026-11-02 dispatch payload says "Morandi (Cisco)", which is unverified.
+Incident: during review the tree moved twice, from the Stop-hook instinct timestamps and an untracked `uv.lock` (the latter removed). No reviewer wrote to the tree.
+Checks: ruff format clean; lint clean; tests 1091 passed, 13 skipped, 0 failed; render and fill checks match; the paste block equals a fresh render. The scorer built the paper with tectonic: only a 0.66 pt overfull box, which B10 fixed.
