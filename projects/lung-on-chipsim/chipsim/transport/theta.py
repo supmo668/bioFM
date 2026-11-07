@@ -46,7 +46,7 @@ import yaml
 THETA_ROOT = "theta"
 
 #: S13's scaffold, relative to the project root. Outside `configs/` proper.
-SCAFFOLD_RELPATH = Path("configs/templates/theta_priors.scaffold.yaml")
+THETA_SCAFFOLD_RELPATH = Path("configs/templates/theta_priors.scaffold.yaml")
 
 #: The two paths S6's absence guard owns. No writer in this package may create them.
 S6_FORBIDDEN_RELPATHS = (
@@ -55,7 +55,7 @@ S6_FORBIDDEN_RELPATHS = (
 )
 
 #: The keys one entry may carry (S13). Anything else is a typo or a smuggled field.
-ENTRY_KEYS = ("value", "unit", "citation", "assumed")
+_ENTRY_KEYS = ("value", "unit", "citation", "assumed")
 
 
 @dataclass(frozen=True)
@@ -150,11 +150,11 @@ def _check_entry(name: str, entry: object) -> dict:
     if not isinstance(entry, dict):
         raise ThetaError(f"θ field `{name}` is not a mapping; got {type(entry).__name__}.")
 
-    unknown = sorted(set(entry) - set(ENTRY_KEYS))
+    unknown = sorted(set(entry) - set(_ENTRY_KEYS))
     if unknown:
         raise ThetaError(
             f"θ field `{name}` carries unknown key(s) {unknown}. Permitted: "
-            f"{list(ENTRY_KEYS)}. A permissive loader ignores a misspelled key, which is "
+            f"{list(_ENTRY_KEYS)}. A permissive loader ignores a misspelled key, which is "
             "how `citaton:` passes for a citation."
         )
 
@@ -347,7 +347,7 @@ def write_scaffold(path: Path, *, force: bool = False) -> Path:
                 f"refusing to write {path}: `{forbidden.as_posix()}` is human-owned and "
                 "its ABSENCE is the mechanical form of the rule that no agent writes a "
                 "biological number (build-plan S6). The scaffold belongs at "
-                f"{SCAFFOLD_RELPATH.as_posix()}."
+                f"{THETA_SCAFFOLD_RELPATH.as_posix()}."
             )
     if path.exists() and not force and _carries_human_content(path):
         raise ThetaTemplateError(

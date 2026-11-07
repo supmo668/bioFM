@@ -148,7 +148,7 @@ def test_the_guard_the_decision_ledger_cites_exists_under_that_name():
 
 
 def test_s13_scaffold_parses_with_exactly_the_six_fields_empty_and_assumed():
-    doc = yaml.safe_load((PROJECT_ROOT / theta_mod.SCAFFOLD_RELPATH).read_text())
+    doc = yaml.safe_load((PROJECT_ROOT / theta_mod.THETA_SCAFFOLD_RELPATH).read_text())
     assert tuple(doc["theta"]) == FIELD_NAMES
     for name, entry in doc["theta"].items():
         assert entry["value"] is None, f"{name} ships a value"
@@ -243,7 +243,7 @@ def test_t28_rejects_a_file_carrying_only_one_prior(tmp_path):
 
 
 def test_s14_scaffold_parses_with_exactly_two_entries_both_assumed():
-    doc = yaml.safe_load((PROJECT_ROOT / prior_mod.SCAFFOLD_RELPATH).read_text())
+    doc = yaml.safe_load((PROJECT_ROOT / prior_mod.PRIOR_SCAFFOLD_RELPATH).read_text())
     assert tuple(doc) == PRIOR_NAMES
     for name, entry in doc.items():
         assert entry["mean_log"] is None and entry["sigma_log"] is None, name

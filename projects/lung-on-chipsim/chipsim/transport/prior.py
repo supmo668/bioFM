@@ -27,13 +27,13 @@ from types import MappingProxyType
 import yaml
 
 #: S14's scaffold, relative to the project root.
-SCAFFOLD_RELPATH = Path("configs/templates/transport_prior.scaffold.yaml")
+PRIOR_SCAFFOLD_RELPATH = Path("configs/templates/transport_prior.scaffold.yaml")
 
 #: The two entries the fit reads, in the order the scaffold emits them.
 PRIOR_NAMES = ("alpha_prior", "k_sink_prior")
 
 #: The keys one entry may carry (S14).
-ENTRY_KEYS = ("mean_log", "sigma_log", "citation", "assumed")
+_ENTRY_KEYS = ("mean_log", "sigma_log", "citation", "assumed")
 
 #: What each entry parameterises, for the message the validator raises.
 _PARAMETER_OF = {
@@ -65,10 +65,10 @@ def _is_numeric(value: object) -> bool:
 def _check_entry(name: str, entry: object) -> dict:
     if not isinstance(entry, dict):
         raise TransportPriorError(f"`{name}` is not a mapping; got {type(entry).__name__}.")
-    unknown = sorted(set(entry) - set(ENTRY_KEYS))
+    unknown = sorted(set(entry) - set(_ENTRY_KEYS))
     if unknown:
         raise TransportPriorError(
-            f"`{name}` carries unknown key(s) {unknown}. Permitted: {list(ENTRY_KEYS)}."
+            f"`{name}` carries unknown key(s) {unknown}. Permitted: {list(_ENTRY_KEYS)}."
         )
 
     for key in ("mean_log", "sigma_log"):

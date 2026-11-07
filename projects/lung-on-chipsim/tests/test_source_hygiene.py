@@ -295,3 +295,86 @@ def test_the_detector_covers_the_three_shapes_it_used_to_MISS():
     assert _shadowed_constants("AB = 1\nAB = 2\n") == {"AB": [1, 2]}
     # and a rebind inside a FUNCTION body is still not a module-level duplicate
     assert _shadowed_constants("def f():\n    AB = 1\n    AB = 2\n") == {}
+
+
+def _public_module_constants(source: str) -> dict[str, str]:
+    """Module-level PUBLIC SCREAMING_CASE names mapped to their unparsed right-hand side.
+
+    Public only: a leading underscore means a cross-module import is an explicit, loud act
+    rather than an accident, so two modules may legitimately carry the same private name.
+    The VALUE is kept (unparsed, not evaluated) because two modules agreeing on a constant is
+    fine — `A = 1` twice is one fact stated twice. Disagreeing on one under a shared public name
+    is the hazard.
+    """
+    out: dict[str, str] = {}
+    for node in ast.parse(source).body:
+        targets = node.targets if isinstance(node, ast.Assign) else []
+        if isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        for target in targets:
+            if (
+                isinstance(target, ast.Name)
+                and target.id.isupper()
+                and len(target.id) >= 2
+                and not target.id.startswith("_")
+            ):
+                out[target.id] = ast.unparse(node.value) if node.value is not None else ""
+    return out
+
+
+def test_no_public_module_constant_means_two_different_things_in_two_modules():
+    """The cross-file companion to the per-file invariant above.
+
+    `_shadowed_constants` is per-file BY CONSTRUCTION — it parses one source at a time — so a
+    public constant carrying DISJOINT meanings in two modules was invisible to it. Measured
+    2026-11-06: `ENTRY_KEYS` was `("value", "unit", ...)` in `transport/theta.py` and
+    `("mean_log", "sigma_log", ...)` in `transport/prior.py`, and `SCAFFOLD_RELPATH` named two
+    different template paths in the same two modules — while `pipeline.py` imported BOTH under
+    the same name, in two function bodies. That import placement was the only thing keeping it
+    correct: hoisting the two imports to module level, an ordinary tidy-up, would have made the
+    second binding win module-wide and sent the theta scaffold to the prior's path, silently and
+    reporting success.
+
+    Library code only. Test modules legitimately share `ROOT`, `CONFIGS` and the like, so
+    including them would make this noisy enough to be ignored — a guard nobody reads is worse
+    than none.
+    """
+    by_name: dict[str, dict[str, str]] = {}
+    library = PROJECT_ROOT / "chipsim"
+    assert library.is_dir(), f"{library} is not a directory; the scan would cover nothing"
+    found = sorted(library.rglob("*.py"))
+    assert found, "no Python files under chipsim/; the scan would be vacuous"
+
+    for path in found:
+        rel = path.relative_to(PROJECT_ROOT).as_posix()
+        for name, value in _public_module_constants(path.read_text(encoding="utf-8")).items():
+            by_name.setdefault(name, {})[rel] = value
+
+    offenders = []
+    for name, per_module in sorted(by_name.items()):
+        if len(per_module) > 1 and len(set(per_module.values())) > 1:
+            where = "; ".join(f"{m} = {v}" for m, v in sorted(per_module.items()))
+            offenders.append(f"{name}: {where}")
+
+    assert not offenders, (
+        "public module-level constant(s) carrying DIFFERENT values under the SAME name in two "
+        "or more modules. A cross-module import then binds whichever module was imported last, "
+        "so correctness depends on import placement rather than on the name:\n  "
+        + "\n  ".join(offenders)
+        + "\nFix by making the name private (a leading underscore) when it is module-internal, "
+        "or by giving each module a distinct public name."
+    )
+
+
+def test_cross_file_constant_detector_is_not_vacuous():
+    """Proof the detector above can fail — the per-file one was proved the same way."""
+    # the real shape it was written for: same public name, disjoint values
+    assert _public_module_constants('ENTRY_KEYS = ("a", "b")\n') == {"ENTRY_KEYS": "('a', 'b')"}
+    # private names are deliberately out of scope
+    assert _public_module_constants('_ENTRY_KEYS = ("a",)\n') == {}
+    # so are lowercase and single-character names
+    assert _public_module_constants("entry_keys = 1\nX = 2\n") == {}
+    # an annotated assignment is still a definition
+    assert _public_module_constants("AB: int = 1\n") == {"AB": "1"}
+    # a value inside a FUNCTION body is not a module-level definition
+    assert _public_module_constants("def f():\n    AB = 1\n") == {}
