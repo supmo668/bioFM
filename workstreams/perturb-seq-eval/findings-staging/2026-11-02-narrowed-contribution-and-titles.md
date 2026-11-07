@@ -1,7 +1,8 @@
 ---
 type: findings-staging
-status: DRAFTED — UNRATIFIED. NOT FOR paper/, CITATION.cff, the bib, Zenodo, Figshare, arXiv or any HACP surface.
-authorization: principal rulings 2026-10-31 (perturb-seq-eval approvals row 11, "approve to narrow the
+status: "MIXED — see the per-item Status (2026-11-07) lines. As drafted on 2026-11-02 this file was DRAFTED — UNRATIFIED, NOT FOR paper/, CITATION.cff, the bib, Zenodo, Figshare, arXiv or any HACP surface."
+authorization: >-
+  principal rulings 2026-10-31 (perturb-seq-eval approvals row 11, "approve to narrow the
   contribution to multi-agent case") and 2026-11-01 (row 12, "Retitle + cs.LG + cs.MA (Recommended)"),
   relayed via CTO #842 and #848. Authorization (1) (CTO #812): agents may DRAFT, each item marked with its
   provenance class; nothing reaches a deposit or public surface until the principal ratifies.
@@ -14,7 +15,7 @@ companions: 2026-10-30-paper-framing-drafts.md (R2-a..e, (b″), (b″-D), (b′
 
 # Narrowed contribution, sweep of `paper/`, (b″)/(b″-D) check, and three title candidates — DRAFTED, 2026-11-02
 
-> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary: **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows are cited from `workstreams/perturb-seq-eval/approvals.md`; rows 20–26 were committed on the CTO's local `main` and were not on `origin/main` at labelling time, so they are cited by content as well as number. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
+> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary (one term per item or sub-item): **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows 13–26 were committed on the CTO's local `main` and were NOT on `origin/main` at labelling time (`origin/main`'s approvals.md ends at row 12), so each is glossed here by content: 13 contribution narrowed to the multi-agent case; 14 T1 accepted, 'gate' rename a disclosed amendment; 15 venue superseded to TechRxiv, submission blocked; 16 Amendment 5 tagged v0.6.0-a5; 17 CATTS named in the abstract (finding 1.1-e); 18 the 1916-char arXiv override re-ratified; 19 the (b″)-Morandi sentence adopted; 20 tag v0.6.0-a5 created; 21 the locked PREREGISTRATION body keeps 'gate'; 22 v0.5.0 historical surfaces not renamed; 23 the override applied with the row-14 rename (1914 chars); 24 the Morandi sentence held until its section facts are checked at the ref; 25 the CTO tags, the agent fixes table and test; 26 this staging PR raised by pr-submit, every unratified finding labelled in place. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
 
 **What this file is.** The four items CTO #842 asked for under row 11, plus the three title candidates
 row 12 asks for (#848 item 1). The principal ratifies or strikes each numbered item; nothing here edits
@@ -46,7 +47,7 @@ steer test-time compute at all* — CATTS does it. Differentiation rests only on
 
 ### 1.1 Abstract (replaces `paper.tex:56–59`, the first two sentences)
 
-> **Status (2026-11-07):** **RATIFIED + APPLIED, in part by name.** The direction is rows 11 and 13. Finding 1.1-e is ratified by name (row 17), and the override wording by rows 18 and 23. It is on `origin/main` at `paper.tex:56–60` (`9eab7f25`, PR #42). No row ratifies the other 1.1 sentences by name.
+> **Status (2026-11-07):** Finding 1.1-e: **RATIFIED + APPLIED** (row 17). The rest of §1.1: **APPLIED UNDER A DIRECTION RULING** (rows 11 and 13), with the override wording under rows 18 and 23. On `origin/main` at `paper.tex:57–63` (`9eab7f25`, PR #42).
 
 Current (cited, `paper.tex:56–59`):
 
@@ -136,7 +137,7 @@ test-time compute — a single agent's vote distribution already does that in CA
 
 ## 2 · Sweep of `paper/` — every sentence claiming the general case or implying priority
 
-> **Status (2026-11-07):** **APPLIED UNDER A DIRECTION RULING** (row 13), in `f2bb1933` (PR #42). Its commit message is "contribution narrowed to the multi-agent group". The S1–S19 rows were **not** re-verified one by one in this labelling pass.
+> **Status (2026-11-07):** **APPLIED UNDER A DIRECTION RULING** (row 13), over three changes: S1/S2 (abstract) and S17/S18 (arXiv override, CITATION abstract) in `9eab7f25`; S16/S19 earlier, in pr-submit #863; the remaining rows in `f2bb1933` per its commit message ("contribution narrowed to the multi-agent group"). `9eab7f25` and `f2bb1933` are both in PR #42. The S1–S19 rows were **not** re-verified one by one in this labelling pass.
 
 Method: read in full `paper.tex` §Abstract, §1, §2, §3, §7 (Discussion), §9 (Conclusion) and the
 contribution-audit table; grep over `paper.tex`, `sections/*.tex`, `paper/README.md`, `SUBMISSION.md`
@@ -175,7 +176,7 @@ Checked and clean (no general-case or priority claim found): `sections/results.t
 
 ## 3 · (b″) and (b″-D) against the narrowed claim
 
-> **Status (2026-11-07):** **RECORD.** The two sentences' own status is in `2026-10-30-paper-framing-drafts.md` Item 3.
+> **Status (2026-11-07):** **REPORT / RECORD.** The two sentences' own status is in `2026-10-30-paper-framing-drafts.md` Item 3.
 
 **(b″-D) — consistent; KEEP. It is now load-bearing, not optional.** Row 11 says the differentiation
 "rests ONLY on CATTS's stated scope ('we assume a fixed base agent') and its single-model, per-step vote
@@ -211,6 +212,8 @@ Three ways to close it; the choice is the principal's/CTO's:
 
 ### 4.1 Does the current title over-claim under the narrowing? — **Yes, in scope; not in result.**
 
+> **Status (2026-11-07):** **SUPERSEDED** by row 12 (retitle) and row 14 (T1 accepted).
+
 Current (cited, `paper.tex:34–36`; identical in `CITATION.cff:5–8`):
 
 > Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of
@@ -224,12 +227,12 @@ Current (cited, `paper.tex:34–36`; identical in `CITATION.cff:5–8`):
   confidence entropy, is the one whose gate failed in both screens (cited: "both tests fail the one-sided
   gate", `results.tex:184`; point estimates "against the pre-registered positive direction",
   `results.tex:181–183`), and the quantity that passed ($1-\Delta C$, `results.tex:184–185`) is not named.
-  Row 12's basis ("a title must not imply a yes") is met by the question form; the title just withholds
+  Row 12's basis (paraphrased here; row 12 itself reads "the current title asks a question the paper answers 'no' for entropy") is met by the question form; the title just withholds
   the answer. (Unchanged from the companion file, Item 1.)
 
 ### 4.2 A constraint on every candidate — **flag for the principal**
 
-> **Status (2026-11-07):** **RESOLVED** by row 14: T1 does not engage the `PREREGISTRATION.md:27–28` lock.
+> **Status (2026-11-07):** **SUPERSEDED** by row 14: T1 does not engage the `PREREGISTRATION.md:27–28` lock.
 
 `paper/PREREGISTRATION.md:25–29` (cited, verbatim):
 
@@ -307,7 +310,7 @@ title whose headline is the general single-agent question.
 
 ## 5 · Surfaces a title change touches (for after the pick; nothing edited)
 
-> **Status (2026-11-07):** **RECORD.** Executed for T1 in PR #42.
+> **Status (2026-11-07):** **REPORT / RECORD.** Executed for T1 in PR #42.
 
 | surface | lines (cited) | note |
 |---|---|---|
@@ -325,7 +328,7 @@ title whose headline is the general single-agent question.
 
 ## 6 · The cs.MA cross-list — what the config PR touches (record only; the edit is on the working branch)
 
-> **Status (2026-11-07):** **RATIFIED + APPLIED** (row 12; `arxiv.toml:75`, on `origin/main`). Row 15 has since **SUPERSEDED** the arXiv venue with TechRxiv, and submission stays BLOCKED until the principal reads the TechRxiv terms first-hand.
+> **Status (2026-11-07):** cs.MA cross-list: **RATIFIED + APPLIED** (row 12; `arxiv.toml:75`, on `origin/main`). arXiv as the venue: **SUPERSEDED** by row 15 (TechRxiv); submission stays BLOCKED until the principal reads the TechRxiv terms first-hand.
 
 Row 12: keep `primary = "cs.LG"`, add `cs.MA` beside `q-bio.QM`. Planned diff, so the ledger and the PR
 agree:
@@ -345,12 +348,12 @@ agree:
 
 ## Not established / not done
 
-> **Status (2026-11-07):** **RECORD.**
+> **Status (2026-11-07):** **REPORT / RECORD.**
 
 - **Not done:** full-text read of arXiv:2605.19193 (§3-i). Not done: reading the five works named in the
   old novelty sentence (AutoGen, MassGen, Archon, MAV, CellForge) for the question — still unverified, as
   recorded in the companion file.
-- **Not done:** any edit to `paper/`, `CITATION.cff`, the bib, PREREGISTRATION.md, Zenodo, Figshare, or
+*(Historical — as written 2026-11-02; PR #42 has since edited these surfaces.)* - **Not done:** any edit to `paper/`, `CITATION.cff`, the bib, PREREGISTRATION.md, Zenodo, Figshare, or
   any HACP surface. The bib entries for `lee2026catts` and `morandi2026sprt` are still to be written from
   the arXiv pages, in the PR that applies the ratified text.
 - **Established (cited), bearing on §4.2:** `PREREGISTRATION.md` IS hash-pinned, by the run record, not by

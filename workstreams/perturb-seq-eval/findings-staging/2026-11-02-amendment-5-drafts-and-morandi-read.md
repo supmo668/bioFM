@@ -1,6 +1,6 @@
 ---
 type: findings-staging
-status: DRAFTED — UNRATIFIED. NOT FOR paper/, PREREGISTRATION.md, CITATION.cff, publish.yml, arxiv.toml, the bib, Zenodo, Figshare, arXiv or any HACP surface.
+status: "MIXED — see the per-item Status (2026-11-07) lines. As drafted on 2026-11-02 this file was DRAFTED — UNRATIFIED, NOT FOR paper/, PREREGISTRATION.md, CITATION.cff, publish.yml, arxiv.toml, the bib, Zenodo, Figshare, arXiv or any HACP surface."
 authorization: CTO #874 (2026-11-02, directive; principal instruction "pick up PDN item 2"). Authorized — draft Amendment 5 once per title candidate; apply the `paper/` sweep per candidate; re-derive the two downstream abstracts; record the hash consequence; READ arXiv:2605.19193 at full text. NOT authorized — choosing a title (the principal's, as author of record); adopting any differs-from sentence as paper text (§4.5 is drafted, not adopted). Standing: authorization (1) (CTO #812) — agents DRAFT, marked by provenance class; the principal ratifies.
 agent: biofm/matthew-mo/perturb-seq-eval
 paper_revision: projects/perturb-seq-eval/paper/paper.tex at HEAD of `perturb-seq-eval` — identical to ffccc92 (the row-11/12 ledger's revision) — verified by `git diff --quiet ffccc92 HEAD -- paper/paper.tex`; every line number below carries over.
@@ -10,7 +10,7 @@ companions: 2026-11-02-narrowed-contribution-and-titles.md (§1.1 abstract draft
 
 # Amendment 5 drafted three times, the sweep per title, the hash consequence, and the arXiv:2605.19193 full-text read — DRAFTED, 2026-11-02
 
-> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary: **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows are cited from `workstreams/perturb-seq-eval/approvals.md`; rows 20–26 were committed on the CTO's local `main` and were not on `origin/main` at labelling time, so they are cited by content as well as number. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
+> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary (one term per item or sub-item): **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows 13–26 were committed on the CTO's local `main` and were NOT on `origin/main` at labelling time (`origin/main`'s approvals.md ends at row 12), so each is glossed here by content: 13 contribution narrowed to the multi-agent case; 14 T1 accepted, 'gate' rename a disclosed amendment; 15 venue superseded to TechRxiv, submission blocked; 16 Amendment 5 tagged v0.6.0-a5; 17 CATTS named in the abstract (finding 1.1-e); 18 the 1916-char arXiv override re-ratified; 19 the (b″)-Morandi sentence adopted; 20 tag v0.6.0-a5 created; 21 the locked PREREGISTRATION body keeps 'gate'; 22 v0.5.0 historical surfaces not renamed; 23 the override applied with the row-14 rename (1914 chars); 24 the Morandi sentence held until its section facts are checked at the ref; 25 the CTO tags, the agent fixes table and test; 26 this staging PR raised by pr-submit, every unratified finding labelled in place. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
 
 **What this file is.** The three items CTO #874 asks for, plus the (b″) read it authorizes. **No title is chosen
 here.** §1 holds one complete Amendment 5 per candidate (T1, T2, T3 of the companion ledger §4.3) so the
@@ -33,7 +33,7 @@ CTO has it at the ref. Key `lee2026catts`, never "the Lee paper". No claim that 
 
 ## 0 · What every draft rests on — **established** / **cited**
 
-> **Status (2026-11-07):** **RECORD.** This is the basis for §1–§3.
+> **Status (2026-11-07):** **REPORT / RECORD.** This is the basis for §1–§3.
 
 **0.1 The lock** (`paper/PREREGISTRATION.md:25–29`, cited, verbatim):
 
@@ -112,7 +112,7 @@ gate failed.
 
 ### A5 · T1 — question form kept, answer added
 
-> **Status (2026-11-07):** **RATIFIED + APPLIED.** Row 14 accepts T1. It landed in `f2bb1933` (PR #42, merge `7c293c0a`) and is tagged `v0.6.0-a5` on `7c293c0a` (rows 20 and 25: "Tag v0.6.0-a5"; "CTO tags; I fix table+test"). The 'gate' rename follows rows 14, 21 (the locked body keeps 'gate') and 22 (historical v0.5.0 surfaces are not renamed).
+> **Status (2026-11-07):** **RATIFIED + APPLIED.** Row 14 accepts T1; row 16 rules that Amendment 5 is tagged. The A5 text landed in `f2bb1933` and its `tab:amendments` / `amendments_v060.json` entry in `9eab7f25` (both PR #42, merge `7c293c0a`). Tag `v0.6.0-a5` is on `7c293c0a` (rows 20 and 25). The 'gate' rename follows rows 14, 21 (the locked body keeps 'gate') and 22 (historical v0.5.0 surfaces are not renamed).
 
 ```markdown
 ## Amendment 5 (`prereg_version` = `v0.6.0-a5`): locked <date>, AFTER the v0.6.0 outcome — retitle; question form kept
@@ -201,7 +201,7 @@ named beside it; rule engaged most, disclosed.*
 
 ## 2 · The 19-row sweep, per title
 
-> **Status (2026-11-07):** The T1 column is **APPLIED** (`f2bb1933`, PR #42). The T2/T3 columns are moot (not adopted).
+> **Status (2026-11-07):** T1 column: **RATIFIED + APPLIED** (row 14), in `f2bb1933` and `9eab7f25` (PR #42), with one deviation from the table: its `tab:amendments` row says "unchanged", but A5 was added to `tab:amendments` and `amendments_v060.json` in `9eab7f25` (rows 16 and 25). T2/T3 columns: **NOT ADOPTED** (row 14). §2.1 title-invariant rows follow the status of the item each one applies (S16/S19 landed earlier, in pr-submit #863) and were not re-verified row by row; S9's "§4.5 NOT adopted" cell is **SUPERSEDED**: row 19 adopts that sentence (§4.6 here) and row 24 holds it.
 
 **2.1 Title-invariant rows — apply under any pick** (verdicts and drafts in the companion ledger §2; nothing new):
 
@@ -300,7 +300,7 @@ difficulty in the pre-registered direction.
 
 ## 3 · The two downstream abstracts — re-derived; **title-invariant** (they follow §1.1, not the title)
 
-> **Status (2026-11-07):** **RATIFIED + APPLIED.** Row 17 (finding 1.1-e: CATTS named in the abstract), row 18 (1916-char override) and row 23 (applied with the row-14 rename, 1914 chars, 0 non-ASCII). It landed in `9eab7f25` (PR #42).
+> **Status (2026-11-07):** **RATIFIED + APPLIED.** Row 17 (finding 1.1-e: CATTS named in the abstract), row 18 (1916-char override) and row 23 (applied with the row-14 rename, 1914 chars, 0 non-ASCII). It landed in `9eab7f25` (PR #42). **The block shown in §3.2 below is the pre-rename 1916-char draft, not the applied text**: row 23 applied it with "Five pre-registered criteria:" and "Outcomes: 4 of 5 pass" (1914 chars). The applied text is `projects/perturb-seq-eval/paper/arxiv.toml` on `origin/main`; the block's own "Status: drafted" line is historical.
 
 **3.1 `CITATION.cff` abstract and `publish.yml` description** — GENERATED by
 `scripts/paper/render_publish_description.py` from `paper.tex`'s abstract (**established**: `CITATION.cff:9`,
@@ -346,7 +346,7 @@ compressions, each a separate strike-able point:
 That a single agent's own vote distribution can gate its compute is reported (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the distribution of stated confidences and critiques across a group of role-specialised agents predict task difficulty, so the group's compute -- spent uniformly across tasks as operated here -- can be allocated adaptively? In a five-agent CellForge-style Perturb-seq orchestrator run via MassGen, we define four trace metrics -- Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C), and a Winner Flip Rate (WFR) -- and their composite Task Difficulty Index (TDI). Five pre-registered gates: attainable error on Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect's backbone-choice entropy, each TDI component's rank correlation with error, and cross-dataset transfer of a calibrated TDI. Design: 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn deterministically; 27 trainer-sweep records and three fixed-length agentic runs per task. LLM condition: a pinned Anthropic Claude roster (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator), served model recorded and asserted per call; any rule-based fallback invalidates the run. Gate outcomes: 4 of 5 pass; H5 fails (0 unevaluated) -- the trainer sweep attains the pre-registered error on both screens (H1, H2), the Architect exercises its backbone choice (H3), and the confidence-drop component and the composite rank tasks by held-out error within both screens (H4); the Adamson-calibrated composite does not transfer to Norman at the pre-registered level (H5, $\rho$ = 0.286 against > 0.4). Confidence-entropy point estimates run against the pre-registered direction in both screens (exploratory). The v0.5.0 release's values are superseded in full; the defects are listed in the appendix.
 ```
 
-Status: **drafted**; needs the author's re-ratification exactly as the 2026-10-30 override did, and
+*(Historical — as written 2026-11-02; superseded by the 2026-11-07 Status lines in this file.)* Status: **drafted**; needs the author's re-ratification exactly as the 2026-10-30 override did, and
 `arxiv.toml:36–49` + `SUBMISSION.md:21` ("1906 characters") rewritten to this derivation in the same PR.
 
 ---
@@ -364,7 +364,7 @@ compared against and what it governs, **(iii)** what "working" means there — v
 
 | fact | section | verified at the ref by |
 |---|---|---|
-| Title "Sequential Consensus for Multi-Agent LLM Debates: A Wald-SPRT compute governor with calibration-based failure detection"; sole author **Andrea Morandi** (Cisco Systems, Inc.); **v1, 18 May 2026, the only version**; primary **cs.LG**, no cross-list on the listing; licence `arxiv.org/licenses/nonexclusive-distrib/1.0/` | arXiv listing; header line `arXiv:2605.19193v1 [cs.LG] 18 May 2026` | **me** (the CTO verified the abstract at the ref, #809) |
+| Title "Sequential Consensus for Multi-Agent LLM Debates: A Wald-SPRT compute governor with calibration-based failure detection"; sole author **Andrea Morandi** (affiliation deliberately not recorded: row 19 — not verified at the ref, not to be written); **v1, 18 May 2026, the only version**; primary **cs.LG**, no cross-list on the listing; licence `arxiv.org/licenses/nonexclusive-distrib/1.0/` | arXiv listing; header line `arXiv:2605.19193v1 [cs.LG] 18 May 2026` | **me** (the CTO verified the abstract at the ref, #809) |
 | "an LLM judge emits a $[0,1]$ consensus score on the latest agent positions; a Wald monitor accumulates the log-likelihood ratio …" | Abstract | CTO (#809) and me |
 | "three heterogeneous agents (gpt-5, claude-opus-4-6, gemini-2.5-pro) and a claude-opus-4-6 consensus judge" | Abstract, §VI-H | CTO (#809, abstract) and me |
 | The signal is a judge's score on the agents' positions, not the agents' stated confidences (quotes in 4.3) | §III, §IV, §VI-H | **me only** |
@@ -462,9 +462,11 @@ self-consistency; the setting there (single-agent ensembling) differs from ours 
 No pre-registration, gate or directional hypothesis is stated in the sections read *(an absence claim about sections
 read; me only)*.
 
-### 4.6 Does the full text support a differs-from sentence? — **derived**; and the DRAFTED sentence, **not adopted**
+### 4.6 Does the full text support a differs-from sentence? — **derived**; and the DRAFTED sentence (*as of 2026-11-02: not adopted — see the Status lines*)
 
-> **Status (2026-11-07):** **RATIFIED, HELD.** Row 19 adopts the sentence. Row 24 holds it out of `paper.tex` until the CTO checks §III, §VII-C14 and §VII-C17 at the ref; it is **not** on `origin/main`. On 2026-11-07 a primary-source read of v1 by the aviary-biosim session (not the CTO) found §III **verified**, §VII-C17 **verified** (exact phrase present) and §VII-C14 **partly** true: "The real-LLM evaluation fixes K=3", but "The simulation does not track K directly" and "A sweep over K∈{2,3,4,5} remains future work". **On insertion the K clause becomes "with the agent count held fixed in its real-LLM evaluation (their \S VII-C14)"**, and the drafted block below is not to be pasted unqualified. The principal ruled on 2026-11-07 to keep waiting for the CTO's own check.
+> **Status (2026-11-07):** **RATIFIED, HELD.** Row 19 adopts the sentence as drafted below. Row 24, in its own words: "ROW 19's MORANDI SENTENCE IS HELD OUT OF paper.tex until its section facts (III, VII-C14, VII-C17 of arXiv:2605.19193) are checked at the ref … whether that read discharges this hold is open with the principal." It is **not** on `origin/main`.
+
+> **Status (2026-11-07), sub-item 4.6-K:** **UNRATIFIED.** A proposed amendment to the row-19 wording. Source: a 2026-11-07 primary-source read of arXiv:2605.19193v1 (HTML full text) by the aviary-biosim session, not the CTO, relayed to this agent by cross-session message; that message is not in the repository. It reports §III and §VII-C17 verified and §VII-C14 partly true, quoting "The real-LLM evaluation fixes K=3", "The simulation does not track K directly because the consensus score is the only observable" and "A sweep over K∈{2,3,4,5} remains future work". Proposed K clause: "with the agent count held fixed in its real-LLM evaluation (their \S VII-C14)". The principal's in-session answer on 2026-11-07, "Wait for the CTO (Recommended)", keeps row 24's hold; it is not yet an approvals row. Neither the read nor the proposed clause is ratified, and the drafted block below is unchanged.
 
 **Assessment.** Yes, on facts the author states himself, without characterising his method beyond his words: (a) the
 governed signal is a judge's score on the positions (§III, §IV, §VI-H), not the agents' stated confidences, which
@@ -501,7 +503,7 @@ year 2026.
 
 ## 5 · What the ratifying PR would touch (record only; nothing edited now)
 
-> **Status (2026-11-07):** **RECORD.** Executed for T1 in PR #42.
+> **Status (2026-11-07):** **REPORT / RECORD.** Executed for T1 in PR #42.
 
 `paper/PREREGISTRATION.md` (`:3–4`, `:12–20`, `:25–29`, new last section — one of §1); `paper/paper.tex` (`:34–39`,
 `:56–59`, `:109–112`, `:122–124` or R2, `:169–171`, `:358–359`, `:438–443`, `:458–459`); `CITATION.cff` (`:5–8`;
@@ -513,12 +515,12 @@ any test, Zenodo/Figshare (fork (b), the principal's), HACP.
 
 ## Not established / not done
 
-> **Status (2026-11-07):** **RECORD.**
+> **Status (2026-11-07):** **REPORT / RECORD.**
 
 - The lock date and commit of Amendment 5 — written at ratification and landing, as A2–A4's were.
 - Whether Zenodo/Figshare impose a description cap — not checked; only arXiv's cap exists in the tooling.
 - The five works named in the old novelty sentence (AutoGen, MassGen, Archon, MAV, CellForge) — still unread for the
   question; UAAD stays dropped (#812 ruling 4).
-- `morandi2026sprt` §4.1 "me only" rows — not yet verified at the ref by the CTO.
-- Not done: any edit to `paper/`, `PREREGISTRATION.md`, `CITATION.cff`, `publish.yml`, `arxiv.toml`, the bib,
+- `morandi2026sprt` §4.1 "me only" rows — not yet verified at the ref by the CTO. *(2026-11-07: row 19 records the CTO's verification of the bib fields at the abstract page; the §III / §VII-C14 / §VII-C17 check remains open under row 24.)*
+*(Historical — as written 2026-11-02; PR #42 has since edited these surfaces for T1.)* - Not done: any edit to `paper/`, `PREREGISTRATION.md`, `CITATION.cff`, `publish.yml`, `arxiv.toml`, the bib,
   Zenodo, Figshare, HACP. pr-submit #863 is untouched and not re-submitted (#874 "Not in scope").

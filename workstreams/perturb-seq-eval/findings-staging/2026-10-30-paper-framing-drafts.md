@@ -1,8 +1,8 @@
 # Paper framing drafts — UNRATIFIED (dispatch #807)
 
-> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary: **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows are cited from `workstreams/perturb-seq-eval/approvals.md`; rows 20–26 were committed on the CTO's local `main` and were not on `origin/main` at labelling time, so they are cited by content as well as number. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
+> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary (one term per item or sub-item): **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows 13–26 were committed on the CTO's local `main` and were NOT on `origin/main` at labelling time (`origin/main`'s approvals.md ends at row 12), so each is glossed here by content: 13 contribution narrowed to the multi-agent case; 14 T1 accepted, 'gate' rename a disclosed amendment; 15 venue superseded to TechRxiv, submission blocked; 16 Amendment 5 tagged v0.6.0-a5; 17 CATTS named in the abstract (finding 1.1-e); 18 the 1916-char arXiv override re-ratified; 19 the (b″)-Morandi sentence adopted; 20 tag v0.6.0-a5 created; 21 the locked PREREGISTRATION body keeps 'gate'; 22 v0.5.0 historical surfaces not renamed; 23 the override applied with the row-14 rename (1914 chars); 24 the Morandi sentence held until its section facts are checked at the ref; 25 the CTO tags, the agent fixes table and test; 26 this staging PR raised by pr-submit, every unratified finding labelled in place. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
 
-**Status: UNRATIFIED DRAFT. Nothing here has been applied to `paper/` or any public surface.**
+*(Historical — as written 2026-10-30; superseded by the 2026-11-07 Status lines in this file.)* **Status: UNRATIFIED DRAFT. Nothing here has been applied to `paper/` or any public surface.**
 Drafted 2026-10-30 by the perturb-seq-eval worktree agent in reply to CTO dispatch #807 (principal-approved
 framing review). The principal ratifies or rejects each item; only then does any text move into
 `projects/perturb-seq-eval/paper/paper.tex`. No biological number appears here. No identifier is paired
@@ -17,7 +17,7 @@ Source state: branch `perturb-seq-eval` at `69ae988` (= `origin/main`, PR #35 me
 
 ## Item 2 — Reorder the contributions (`paper.tex:117–140`)
 
-> **Status (2026-11-07):** **UNRATIFIED; NOT APPLIED.** No row in approvals 1–26 rules on the reorder or on R2-a..e. `origin/main` `paper.tex:121–145` keeps the original order and the hand-typed `$41$` (R2-a not applied); the probe item does not carry R2-c's "not validated" sentence.
+> **Status (2026-11-07):** **UNRATIFIED** — Item 2, and each of R2-a, R2-b, R2-c, R2-d and R2-e separately. No row in approvals 1–26 rules on the reorder or on any R2 point, and none is applied: `origin/main` `paper.tex:121–152` keeps the original order and the hand-typed `$41$` (R2-a), and the probe item does not carry R2-c's "not validated" sentence.
 
 ### Why this order
 
@@ -243,7 +243,7 @@ Decision stays with the principal as author of record (fork (a)/(b)/(c) in #807)
 
 ## Not established / not done
 
-> **Status (2026-11-07):** **RECORD.** The "blocking question per #809 ruling 3" (the CATTS full text) was answered in `2026-10-31-catts-full-text-read.md`.
+> **Status (2026-11-07):** **REPORT / RECORD.** The "blocking question per #809 ruling 3" (the CATTS full text) was answered in `2026-10-31-catts-full-text-read.md`.
 
 - Not established: whether any of the five works named in the novelty sentence uses such a signal (not read this session).
 - Not established: the full text of the three counterexamples — abstracts only, from corpus records; CATTS metadata checked at the arXiv abstract page.
