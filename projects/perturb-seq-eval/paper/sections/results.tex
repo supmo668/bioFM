@@ -4,14 +4,14 @@
 
 \section{Results}\label{sec:results}
 
-\subsection{Pre-registered hypotheses and gates}\label{subsec:prereg}
+\subsection{Pre-registered hypotheses and criteria}\label{subsec:prereg}
 
-The hypotheses, gates and analysis plan are fixed in \texttt{paper/PREREGISTRATION.md}
+The hypotheses, pre-registered criteria and analysis plan are fixed in \texttt{paper/PREREGISTRATION.md}
 (amendments 1--4, each locked before any v0.6.0 data existed); the sweep's provenance
 record identifies the revision in force (\texttt{git\_sha} \resGitSha, \texttt{git\_dirty}
 \resGitDirty, \texttt{prereg\_version} \resPreregVersion), and \texttt{summary.json} carries
-the pre-registration pin copied from record~0. There are five gates; each is reported as PASS,
-FAIL, or UNEVALUATED with the reason, and the tally is stated out of five. An unevaluable gate
+the pre-registration pin copied from record~0. There are five pre-registered criteria (the pre-registration's ``gates'', renamed by its Amendment~5); each is reported as PASS,
+FAIL, or UNEVALUATED with the reason, and the tally is stated out of five. An unevaluable criterion
 is UNEVALUATED, never FAIL. Every estimator is implemented in
 \texttt{src/perturb\_eval/experiments/preregistered.py} and called from
 \texttt{analyse\_v05\_run}. Bootstrap CIs are percentile intervals over \emph{tasks}
@@ -30,10 +30,13 @@ A1 & \resAmendOneVersion$^{\dagger}$ & \resAmendOneDate & \texttt{\resAmendOneCo
 A2 & \texttt{\resAmendTwoVersion} & \resAmendTwoDate & \texttt{\resAmendTwoCommit} & \resAmendTwoChange \\
 A3 & \texttt{\resAmendThreeVersion} & \resAmendThreeDate & \texttt{\resAmendThreeCommit} & \resAmendThreeChange \\
 A4 & \texttt{\resAmendFourVersion} & \resAmendFourDate & \texttt{\resAmendFourCommit} & \resAmendFourChange \\
+\midrule
+A5 & \texttt{\resAmendFiveVersion}$^{\ddagger}$ & \resAmendFiveDate & \texttt{\resAmendFiveCommit} & \resAmendFiveChange \\
 \bottomrule
 \end{tabular}
-\caption{Amendments to the pre-registration, each locked before any v0.6.0 data existed
-(\texttt{paper/PREREGISTRATION.md}). $^{\dagger}$Amendment~1 predates the \texttt{prereg\_version}
+\caption{Amendments to the pre-registration (\texttt{paper/PREREGISTRATION.md}). A1--A4 were each
+locked before any v0.6.0 data existed. $^{\ddagger}$A5 was locked \emph{after} the v0.6.0 outcome
+was known; it changes the title and one term only, and no run exists under its version. $^{\dagger}$Amendment~1 predates the \texttt{prereg\_version}
 tag, so it has none. The
 run's \texttt{prereg\_version} is \resPreregVersion. For A4, \resAmendFourNote. Dates and commits
 are transcribed from git and verified against it by test.}
@@ -45,7 +48,7 @@ are transcribed from git and verified against it by test.}
 \centering
 \begin{tabular}{p{0.05\linewidth}p{0.36\linewidth}p{0.2\linewidth}p{0.27\linewidth}}
 \toprule
-& Hypothesis & Gate & Outcome \\
+& Hypothesis & Criterion & Outcome \\
 \midrule
 H1 & Trainer sweep attains low error on Adamson (oracle, \S\ref{subsec:oracle})
   & median $<\resHOneThreshold$ & \resHOneVerdict{} (median \resHOneMedian) \\
@@ -62,7 +65,7 @@ H5 & Ridge-calibrated $\mathrm{TDI}_{\mathrm{lifecycle}}$ transfers Adamson $\to
   & Spearman $\rho>\resHFiveThreshold$ & \resHFiveVerdict{} ($\rho=\resHFiveRho$) \\
 \bottomrule
 \end{tabular}
-\caption{Pre-registered hypotheses and gates. Tally: \resTallyPass{} PASS, \resTallyFail{} FAIL,
+\caption{Pre-registered hypotheses and criteria. Tally: \resTallyPass{} PASS, \resTallyFail{} FAIL,
 \resTallyUneval{} UNEVALUATED of \resTallyOut. Estimators are given in the subsections below
 and in \texttt{paper/PREREGISTRATION.md}.}
 \label{tab:gates}
@@ -72,7 +75,7 @@ and in \texttt{paper/PREREGISTRATION.md}.}
 
 Estimator: per task, the minimum MSD on the top-$20$ evaluation genes over the
 \resNDistinctConfigs{} distinct trainer configurations (\resNTrainerRecordsPerTask{} records
-per task; an oracle, \S\ref{subsec:oracle}); the gate is the median over tasks in each
+per task; an oracle, \S\ref{subsec:oracle}); the criterion is the median over tasks in each
 dataset (\texttt{preregistered.h1\_h2\_stats}). The evaluation genes are the per-task list in
 \texttt{summary.json} $\to$ \path{eval_genes_per_task} (\resEvalGeneTasks{} tasks), shared with
 the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
@@ -83,7 +86,7 @@ the lifecycle path (A2-5; trainer/lifecycle mismatches: \resEvalGeneMismatch).
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{lllllll}
 \toprule
-Dataset & $n$ & median & IQR & max & fraction over gate & 95\% CI (median) \\
+Dataset & $n$ & median & IQR & max & fraction over criterion & 95\% CI (median) \\
 \midrule
 Adamson 2016 & \resHOneN & \resHOneMedian & [\resHOneIQRLo, \resHOneIQRHi] & \resHOneMax & \resHOneFracOver & [\resHOneCILo, \resHOneCIHi] \\
 Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \resHTwoMax & \resHTwoFracOver & [\resHTwoCILo, \resHTwoCIHi] \\
@@ -92,10 +95,10 @@ Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \res
 \bottomrule
 \end{tabular}}
 \caption{Oracle MSD on the top-$20$ evaluation genes (best of the distinct configurations,
-selected on the evaluation split). Gates: Adamson median $<\resHOneThreshold$ (\resHOneVerdict),
+selected on the evaluation split). Criteria: Adamson median $<\resHOneThreshold$ (\resHOneVerdict),
 Norman median $<\resHTwoThreshold$ (\resHTwoVerdict). Bootstrap CIs are not computed per stratum.
 The Norman doublet stratum's median
-(\resHTwoDoubletMedian) lies above the gate; the gate is the median over all $\resHTwoN$ tasks.}
+(\resHTwoDoubletMedian) lies above the criterion; the criterion is the median over all $\resHTwoN$ tasks.}
 \label{tab:headline-msd}
 \end{table}
 
@@ -108,12 +111,12 @@ the pinned menu (\texttt{preregistered.h3}; A2-6, Table~\ref{tab:amendments}). S
 (\resHThreeNCounted{} counted; missing stated \resHThreeNMissingStated, off-menu
 \resHThreeNOffMenu): \textsc{linear} \resHThreePickLinear, \textsc{mlp} \resHThreePickMlp,
 \texttt{scgpt\_small} \resHThreePickScgpt; entropy \resHThreeEntropy{} nats (\resHThreeVerdict).
-Executed-pick counts, reported alongside and not gating: \textsc{linear} \resHThreeExecPickLinear,
+Executed-pick counts, reported alongside and not entering the criterion: \textsc{linear} \resHThreeExecPickLinear,
 \textsc{mlp} \resHThreeExecPickMlp, \texttt{scgpt\_small} \resHThreeExecPickScgpt{} (entropy
 \resHThreeEntropyExecuted{} nats; missing executed \resHThreeNMissingExecuted); the executed
 backbone equalled the stated backbone on every step (executed $\ne$ stated: \resHThreeExecNeStated).
 Descriptively, the Miller--Madow bias-corrected entropy $H+(K-1)/(2N)$ with $K=\resHThreeMenuSize$,
-$N=\resHThreeNCounted$ is \resHThreeMillerMadowNats{} nats (the gate is the plug-in value, as
+$N=\resHThreeNCounted$ is \resHThreeMillerMadowNats{} nats (the criterion is the plug-in value, as
 pre-registered); the per-breakdown correction is pre-registered for breakdowns with $N<50$, and the
 smallest breakdown here (per serving model) has $N=\resHThreeSmallestBreakdownN$, so it is
 \resHThreeMillerMadow. All Architect steps were served by one model
@@ -147,10 +150,10 @@ run no component was undefined (runs undefined: \resHFourRunsUndefined; tasks dr
 final MSD (on the same \path{eval_genes_per_task} list as H1/H2, A2-5) are medians over
 the three seeds. Spearman $\rho$ is computed \emph{within}
 Adamson and \emph{within} Norman separately, with default weights and no in-sample
-calibration; all six values are reported with $n$ and a bootstrap CI, and the gate passes if any
+calibration; all six values are reported with $n$ and a bootstrap CI, and the criterion passes if any
 of the six exceeds $0.5$. The pooled $\rho$ is descriptive only. The six tests are dependent
 (TDI is a fixed combination of the other two); the pre-registered null false-positive rate of
-the whole gate, measured by permutation through the estimator itself, is $2.35\%$ (identical
+the whole criterion, measured by permutation through the estimator itself, is $2.35\%$ (identical
 ranks), $4.71\%$ (reversed ranks) and $5.84\%$ (independent), against $0.0475\%$ for one pooled
 test at $n=41$ (\texttt{scripts/local/prereg\_null\_fwer.py}); no correction was pre-registered,
 and all six $\rho$ are reported whatever their outcome.
@@ -172,16 +175,16 @@ clipped $1-\Delta C$ (descriptive) & \resHFourAdaDcClippedRho{} [\resHFourAdaDcC
 CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (not evaluated)} \\
 \bottomrule
 \end{tabular}
-\caption{All six pre-registered tests (reported regardless of outcome). Gate: $\rho>0.5$ for at
+\caption{All six pre-registered tests (reported regardless of outcome). Criterion: $\rho>0.5$ for at
 least one; \resHFourNPassing{} of \resHFourNTests{} pass (\resHFourVerdict): $1-\Delta C$ and
-$\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. Pooled $\rho$ never gates.}
+$\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. Pooled $\rho$ never enters a criterion.}
 \label{tab:tdi-real}
 \end{table}
 
 \paragraph{The ACE rows.} The two $\mathrm{ACE}_{\mathrm{norm}}$ point estimates are negative
 ($\rho=\resHFourAdaAceRho$ on Adamson, where the CI excludes zero; $\resHFourNorAceRho$ on
 Norman, where the Norman CI includes zero), against the pre-registered positive direction, so
-both tests fail the one-sided gate. The H4 pass is carried by the confidence-drop component and
+both tests fail the one-sided criterion. The H4 pass is carried by the confidence-drop component and
 by the composite that inherits it; the Adamson $\mathrm{ACE}_{\mathrm{norm}}$ values have s.d.
 \resHFiveStdSdAce{} about a mean of \resHFiveStdMeanAce{} (the H5 standardisation below), so the
 composite ranks tasks almost as $1-\Delta C$ alone does. Any reading of the negative sign is
@@ -198,7 +201,7 @@ lifecycle MSD) and applied
 \emph{unchanged} to the Norman tasks; no Norman value enters the fit. Fitted weights:
 $\mathrm{ACE}_{\mathrm{norm}}$ \resHFiveWAce, $1-\Delta C$ \resHFiveWDc{} (standardised units).
 Transfer $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
-gate $\rho>\resHFiveThreshold$: \textbf{\resHFiveVerdict}. The calibrated index does not
+criterion $\rho>\resHFiveThreshold$: \textbf{\resHFiveVerdict}. The calibrated index does not
 transfer at the pre-registered level; no re-fit, threshold or sign change is applied.
 
 \subsection{Run record}\label{subsec:runrecord}
@@ -246,5 +249,5 @@ This holds on Python 3.12: Python 3.12 made the built-in \texttt{sum()} over flo
 compensated, and before Python 3.12 the backbone entropy (stated and executed, which coincide
 here; five keys of \texttt{summary.json}) comes out one unit in the last place higher. The
 run itself ran on Python \resRunPython, and \texttt{provenance.json} records that higher
-value. No reported figure or gate outcome changes.
+value. No reported figure or criterion outcome changes.
 \end{sloppypar}

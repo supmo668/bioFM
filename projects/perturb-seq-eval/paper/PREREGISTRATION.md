@@ -1,7 +1,8 @@
 # Pre-registration — v0.6.0 sweep
 
-**Paper:** *Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of
-Agentic Hyperparameter Tuning for Perturb-seq Response Prediction*
+**Paper:** *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
+Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence
+Drop Passes* (retitled by Amendment 5; the title in force when the sweep ran is quoted there)
 
 **Status:** fixed before the v0.6.0 sweep runs. The sweep's provenance record (`git_sha`, `git_dirty` in record 0
 of `trainer_runs.jsonl` / `lifecycle_runs.jsonl` and in `provenance.json`) identifies the revision of this file in
@@ -10,14 +11,21 @@ is `true` for the run, this file's committed revision is not by itself proof of 
 must say so.
 
 **Amendments.** Amendment 1 (2026-09-25, `0c2932a`): H4 multiplicity quantified by permutation. **Amendment 2**
-(`3bf2a9a`), locked before any v0.6.0 data exists, is given in full in the penultimate section of this file; its
+(`3bf2a9a`), locked before any v0.6.0 data exists, is given in full in its own section below; its
 definitions are already written into the sections above. **Amendment 3** (2026-09-28, principal rulings
 QG-2/6/7/9 from the amendment-2 fixes quality gate) records four points the amendment-2 text left open or that its
 implementation could not meet. **Amendment 4** (`prereg_version` = `v0.6.0-a4`, 2026-09-29, principal ruling relayed by the CTO,
-#473/#476/#480/#482/#484), the last section, moves the LLM provider to the Anthropic API after the OpenRouter free roster
-died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Every
-amendment is locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
-fifth amendment.
+#473/#476/#480/#482/#484), the section before Amendment 5, moves the LLM provider to the Anthropic API after the OpenRouter free roster
+died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Amendments
+1–4 are each locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
+further amendment (Amendment 5, below).
+
+**Amendment 5** (`prereg_version` = `v0.6.0-a5`, 2026-11-04, principal rulings relayed by the CTO, #896, perturb-seq-eval
+approvals rows 13 and 14; the `v0.6.0-a5` form and the scope of the rename ruled by the principal directly on
+2026-11-04), the last section, is the only amendment made **after the outcome was known**. It changes the
+paper's title and renames the term "gate" to "pre-registered criterion", and discloses both changes; it changes no
+hypothesis, threshold, estimator, convention, outcome or datum, and the v0.6.0 data were produced under `v0.6.0-a4`. No run
+exists or will exist under `v0.6.0-a5`. Any later change is a sixth amendment.
 
 This file contains no result values. The v0.5.0 values are superseded in full (manuscript appendix
 "Corrections relative to v0.5.0", which maps each one to the register row that supersedes it).
@@ -27,6 +35,9 @@ This file contains no result values. The v0.5.0 values are superseded in full (m
 The title asks whether agent confidence entropy predicts task difficulty, and does not assert that it does,
 so that a null answer is publishable as it stands. **A null or failed outcome on H4/H5 must not be traded back
 into a claim-form title, abstract or contribution list.**
+
+*Amendment 5 retitles the paper after the outcome; the question form is kept and this rule is not engaged (see
+Amendment 5).*
 
 ## Design (fixed)
 
@@ -596,3 +607,59 @@ is a different tier (Sonnet 5.5) from the four Haiku 4.5 proposer roles; residua
 Everything else in amendments 1-3 (A2-1 fallback = run invalid; A2-8 empty namespace + replay detection; A3-3 required Validator threshold; A3-4
 count = 7). Text it changes in `PREREGISTRATION.md`: Convention 5; "Run record" (LLM cost components); the Amendments preamble.
 
+## Amendment 5 (`prereg_version` = `v0.6.0-a5`): locked 2026-11-04, AFTER the v0.6.0 outcome — retitle with the question form kept; "gate" renamed "pre-registered criterion"
+
+Where this section and any earlier text differ, this section governs.
+
+### A5-1 Found
+The sweep ran under this file at commit `00fae29` (sha256 `6f8498eea879bb1e843511b03b821a567293402dff123487228c5f0c1330f270`,
+run `20260929T035447Z-ce5f237`, `prereg_version` `v0.6.0-a4`). The manuscript's generated tally (`\resGateSummary`, rendered from `summary.json` →
+`preregistered.tally` by `scripts/paper/fill_v060_numbers.py`) read "4 of 5 gates pass; H5 fails (0 unevaluated)".
+The principal then narrowed the paper's contribution to *a multi-agent group's* confidence/critique distribution, after
+`lee2026catts` (arXiv:2602.12276) was found to report a single agent's vote distribution gating compute (approvals row
+11), and ruled a retitle (row 12). The title in force when the sweep ran was:
+
+> *Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic
+> Hyperparameter Tuning for Perturb-seq Response Prediction*
+
+It names *agent confidence entropy*, singular: the case the narrowing gives up, and the quantity whose H4 test failed.
+
+### A5-2 Amended rule (title)
+The title becomes: *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
+Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
+Passes* (principal ruling T1, CTO #896). The headline names the object of the narrowed claim (the group's
+distribution) in place of the single-agent quantity and keeps the question form. The subtitle reports the two H4
+outcomes as measured: "Entropy Fails Its Criterion" reports the H4 entropy failure (both screens); "the Confidence Drop
+Passes" reports the H4 pass on $1-\Delta C$, within each screen. H5's failure is not in the title; it is stated in the
+abstract and Results.
+
+**Why the null is not traded into a claim.** "Why the title is a question" forbids trading a null or failed outcome back
+INTO a claim-form title. The headline asserts nothing: it asks. The subtitle reports two measured H4 outcomes, a failure
+as a failure and a pass as a pass, and trades neither into a claim about the question. On the locked rule this amendment is a no-op: the question form the rule protects is unchanged and the rule
+is not engaged. It is not a no-op on this file: the title line and this section change, so the file's hash diverges from
+the published run record. That divergence is this disclosure.
+
+### A5-3 Amended rule (term)
+The term "gate" (also "gates", "gated", "gating" where it means a hypothesis's pass/fail threshold) is renamed
+**"pre-registered criterion"** (CTO #896), shortened to "criterion" once the term is in use. It names a hypothesis's
+threshold and, where the text speaks of one pre-registered test (e.g. one H4 test's one-sided threshold), that test's. The text above this section keeps "gate" verbatim, as locked; read every such use as "pre-registered
+criterion". Each hypothesis keeps its identity (H1–H5), its threshold, its estimator and its outcome: the v0.6.0 tally is
+unchanged (`summary.json` → `preregistered.tally` is not touched), and the manuscript's generated tally, which read "4 of 5
+gates pass; H5 fails (0 unevaluated)", reads in the new term "4 of 5 criteria pass; H5 fails (0 unevaluated)". A rename that changed which hypotheses passed would be a result change, and
+this is not one. "Gating" in the sense of a method gating test-time compute (as in `lee2026catts`) is not this term and
+is not renamed.
+
+### Unchanged
+Every hypothesis, threshold, estimator and convention of amendments 1–4; the run's `prereg_version` `v0.6.0-a4`; the v0.6.0
+outcome, including H5's failure. "Why the title is a question" keeps both of its sentences, with this amendment noted
+beneath them. Amendment 5 is recorded in `paper/data/amendments_v060.json` and in `tab:amendments`, marked as locked
+after the outcome; the table caption separates it from A1–A4, which were locked before any v0.6.0 data (approvals row 16).
+The annotated git tag `v0.6.0-a5` is to be created by the CTO on the landed commit that carries this wording (not on the
+lock commit `f2bb193`, whose text still said "not recorded"); until then no such tag exists. The tag marks an amendment,
+not a release, and it does not re-cut or supersede v0.6.0.
+
+*Dated note, 2026-11-05 (approvals row 16, CTO #905).* This paragraph was revised after the lock. At `f2bb193` it said
+Amendment 5 was not recorded in the table or the JSON. Row 16 then ruled that it be recorded there and tagged, and the
+revision follows that ruling. It changes how the amendment is recorded, not what the pre-registration says: no
+hypothesis, threshold, estimator or outcome changes, so it is not a sixth amendment. Text it changes in `PREREGISTRATION.md`: the title line, the
+Amendments preamble, the note under "Why the title is a question", and this section.

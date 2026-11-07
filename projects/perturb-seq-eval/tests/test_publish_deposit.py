@@ -83,7 +83,7 @@ def test_gate_sentence_matches_the_summary():
     desc = " ".join(_cfg()["description"].split())
     pr = json.loads((ART / "summary.json").read_text())["preregistered"]
     assert pr["H5"]["pass"] is False and "H5 fails" in desc
-    assert f"{pr['tally']['PASS']} of {pr['tally']['out_of']} gates pass" in desc
+    assert f"{pr['tally']['PASS']} of {pr['tally']['out_of']} criteria pass" in desc
 
 
 def test_creators_use_the_ruled_name_everywhere():
@@ -840,11 +840,10 @@ def test_staged_run_matches_the_committed_artifacts_and_is_restaged_clean(tmp_pa
 def test_check_fails_on_a_hand_edit_and_write_mode_is_idempotent(tmp_path, monkeypatch, capsys):
     rd = _load("scripts/paper/render_publish_description.py", "rd_check")
     pub, cit = tmp_path / "publish.yml", tmp_path / "CITATION.cff"
-    pub.write_text(
-        (ROOT / "publish.yml")
-        .read_text()
-        .replace("Multi-agent group-generation", "Multi-agent GROUP-generation", 1)
-    )
+    src = (ROOT / "publish.yml").read_text()
+    edited = src.replace("group-generation", "GROUP-generation", 1)
+    assert edited != src  # the hand edit must land, or the --check below proves nothing
+    pub.write_text(edited)
     cit.write_text((ROOT / "CITATION.cff").read_text())
     monkeypatch.setattr(rd, "PUBLISH", pub)
     monkeypatch.setattr(rd, "CITATION", cit)
@@ -1639,3 +1638,81 @@ def test_availability_also_guards_the_plain_path(tmp_path, monkeypatch):
     with pytest.raises(sv.DraftMismatchError, match="still processing"):
         sub.submit(entries)
     assert not any(m == "post" and u.endswith("/777/publish") for m, u, _ in calls)
+
+
+def _norm(s: str) -> str:
+    return " ".join(s.replace("\\\\", " ").split()).rstrip(".")
+
+
+def test_every_title_surface_carries_the_paper_title():
+    """Amendment 5 retitled the paper (CTO #896). Every surface that names the work carries
+    the manuscript's \\title verbatim, so a retitle cannot reach some surfaces and not others
+    (QG Q6: publish.yml, the deposit title, was missed once)."""
+    tex = (ROOT / "paper" / "paper.tex").read_text()
+    title = _norm(re.search(r"\\title\{(.*?)\}\n", tex, re.S).group(1))
+    pdftitle = _norm(re.search(r"pdftitle=\{(.*?)\}\}", tex, re.S).group(1))
+    prereg = (ROOT / "paper" / "PREREGISTRATION.md").read_text()
+    surfaces = {
+        "pdftitle": pdftitle,
+        "CITATION.cff": _norm(yaml.safe_load((ROOT / "CITATION.cff").read_text())["title"]),
+        "publish.yml": _norm(_cfg()["title"]),
+        "README.md": _norm(
+            re.search(r'\*\*"(.*?)"\*\*', (ROOT / "README.md").read_text(), re.S).group(1)
+        ),
+        "paper/README.md": _norm(
+            (ROOT / "paper" / "README.md").read_text().splitlines()[0].removeprefix("# Paper — ")
+        ),
+        "docs/THESIS.md": _norm(
+            (ROOT / "docs" / "THESIS.md").read_text().splitlines()[0].removeprefix("# Thesis — ")
+        ),
+        "SUBMISSION.md paste block": _norm(
+            re.search(
+                r"^Title:\s+(.*)$", (ROOT / "paper" / "SUBMISSION.md").read_text(), re.M
+            ).group(1)
+        ),
+        "PREREGISTRATION.md header": _norm(
+            re.search(r"^\*\*Paper:\*\* \*(.*?)\*", prereg, re.M | re.S).group(1)
+        ),
+        "PREREGISTRATION.md A5-2": _norm(
+            re.search(r"The title becomes: \*(.*?)\*", prereg, re.S).group(1)
+        ),
+    }
+    wrong = {k: v for k, v in surfaces.items() if v != title}
+    assert not wrong, f"title differs from paper.tex \\title on: {sorted(wrong)}"
+
+
+def test_arxiv_override_keeps_every_result_token_and_states_its_length():
+    """QG B16/B17: the venue override is hand-derived, and the tooling checks only its limits. Pin
+    the tokens the derivation promises to keep, and the length its comment and the runbook state."""
+    import tomllib
+
+    cfg = (ROOT / "paper" / "arxiv.toml").read_text()
+    ov = tomllib.loads(cfg)["abstract"]
+    assert len(ov) <= 1920 and ov.isascii()
+    for tok in (
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "H5",
+        "0.286",
+        "> 0.4",
+        "0 unevaluated",
+        "4 of 5 pass",
+        "H5 fails",
+        "41 held-out",
+        "21 Adamson",
+        "15 Norman",
+        "5 Norman",
+        "27 trainer-sweep",
+        "Haiku 4.5",
+        "Sonnet 5.5",
+        "CATTS",
+        "2602.12276",
+        "(exploratory)",
+    ):
+        assert tok in ov, tok
+    assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
+    assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
+    sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
+    assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub

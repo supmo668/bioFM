@@ -1,6 +1,10 @@
 # Preprint submission runbook — manual steps, for research approval
 
-**Status: READY TO EXECUTE, BLOCKED ON TWO PRINCIPAL DECISIONS (see "Approval required").**
+**Status: VENUE RULED, TechRxiv (approvals row 15, superseding row 12's arXiv). SUBMISSION BLOCKED** until the
+principal reads TechRxiv's own terms first-hand in an ordinary browser. Every TechRxiv fact in Part 7 comes from a
+secondary source (the COAR directory), and `techrxiv.org` returned HTTP 403 to the agents on 2026-11-05 (reported,
+not retried). Parts 0–2 describe the arXiv path. That path stays open only through a named `cs.LG` endorser (Path 2)
+obtained *before* any preprint is posted, never alongside one.
 **Owner: the principal. None of this is delegable to an agent** — arXiv has no deposit API for
 individual authors, and the license grant is a legal act by a person.
 
@@ -16,16 +20,16 @@ The pipeline automates everything up to the Submit button; the process document 
 and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
-`CITATION.cff` one. The CFF abstract is 2153 characters with 5 non-ASCII characters; arXiv rejects
-anything over 1920 and accepts ASCII only. The override is 1906 characters, 0 non-ASCII, with every
-number, gate label and the "0 unevaluated" integrity claim preserved. Use the generated block.
+`CITATION.cff` one. The CFF abstract is 2363 characters with 5 non-ASCII characters; arXiv rejects
+anything over 1920 and accepts ASCII only. The override is 1914 characters, 0 non-ASCII, with every
+number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use the generated block.
 
 | | |
 |---|---|
-| Work | *Does Agent Confidence Entropy Predict Task Difficulty?* v0.6.0 |
+| Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 (retitled by Amendment 5) |
 | Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
-| Venue (ruled, approvals row 12) | arXiv, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA` |
+| Venue (approvals row 15, superseding row 12) | **TechRxiv** (IEEE); posting blocked on the principal's first-hand read of its terms. arXiv (`cs.LG`, cross-lists `q-bio.QM`, `cs.MA`) only via a prior Path-2 endorsement, never in parallel |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
 
 ---
@@ -47,9 +51,9 @@ bibliography.
 
 ### Path A — CI builds it (recommended; the pipeline exists for this)
 
-Requires pushing commit `c0ec931`, which is currently held unflushed for your review.
+The pipeline commit `c0ec931` is on `origin/main` (verified 2026-11-04), so the workflow is available now.
 
-1. Flush the commit (I open a coordination PR on your word — `tools/git-push main` refuses by design).
+1. Nothing to flush.
 2. The `arxiv-package` workflow runs on push. Or trigger it directly:
    **Actions → `arxiv-package` → Run workflow →** `paper_dir` = `projects/perturb-seq-eval/paper`.
 3. Download the **`arxiv-bundle-*`** artifact. It contains:
@@ -63,9 +67,10 @@ Requires pushing commit `c0ec931`, which is currently held unflushed for your re
      that matters. Tracked as a pipeline gap.
 4. The job summary carries the same metadata block, so you can read it without downloading.
 
-**The workflow's LaTeX step has never executed.** It is adapted from the working
-`paper_standalone/.github/workflows/latex.yml`, but its first real run will be this one. If it fails,
-that is a pipeline bug to fix, not a reason to hand-assemble a bundle.
+**The workflow's LaTeX step has executed.** Run `40985145366` (2026-10-30) completed "Compile LaTeX
+(generates the .bbl)" and "Assert the .bbl exists and no citation is undefined" with success, and the
+run on `origin/main` `600e510` (2026-11-04) succeeded as well. If a later run fails, that is a pipeline
+bug to fix, not a reason to hand-assemble a bundle.
 
 ### Path B — Build locally (only if you have TeX Live installed)
 
@@ -109,19 +114,19 @@ prevent. The three `sections/v050_*.tex` files, the five figure PDFs and the `ta
 users posting to a new category, *"may be required to find endorsements"*, and that *"We only accept
 submissions from registered authors"*. The address of record is the **alumni** address recorded in
 [`CITATION.cff`](../CITATION.cff) — weaker evidence of current affiliation than a live
-institutional one. A
-first `cs.LG` submission may therefore land in the endorsement queue. **Superseded by Part 7.1 — the policy changed on 2026-01-21 and the queue is now the default, not the risk case.**
+institutional one.
 
-If it does, you have two routes, and **you must pick one, not both**:
-- **Seek endorsement** from a CMU-affiliated arXiv author in `cs.LG` (arXiv shows the endorsement
-  request flow in-form), or register with a current institutional address if one exists.
-- **Fall back to bioRxiv**, which has **no endorsement requirement**. `q-bio.QM`-shaped work is in
-  scope there.
+**Only one arXiv route remains (approvals row 15).** Since 2026-01-21 an institutional address alone no
+longer qualifies, the address of record is an alumni address, and there is no prior accepted arXiv paper,
+so arXiv is reachable only through a **named `cs.LG` endorser** (Path 2). That endorsement must come
+*before* any preprint is posted. Once the paper is on TechRxiv, arXiv is a second preprint server and is
+closed (see the box below).
 
 > **Post to EXACTLY ONE preprint server.** Two preprints of one paper is duplicate publication —
 > the standing constraint on this project is that duplicate research is either fully deleted or
-> superseded as a revision, never left as two live records. arXiv **and** bioRxiv is a violation;
-> arXiv **and** the existing Zenodo archive is not, because an archive and a preprint of the same
+> superseded as a revision, never left as two live records. TechRxiv **and** arXiv (or bioRxiv) is a
+> violation. A preprint **and** the existing Zenodo/Figshare archives is not, because Zenodo and Figshare are
+> archives, not preprint servers, and neither counts as the one server: an archive and a preprint of the same
 > work are one work in two places, which is exactly what the cross-links in Part 4 assert.
 
 ---
@@ -152,7 +157,7 @@ uv run --with pyyaml python scripts/arxiv_package.py metadata projects/perturb-s
 
 === PASTE INTO THE ARXIV SUBMISSION FORM ===
 
-Title:      Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction
+Title:      Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes
 Authors:    Mang-yin Mo
 Primary:    cs.LG
 Cross-list: q-bio.QM, cs.MA
@@ -162,31 +167,32 @@ Comments:
   Pre-registered study; pre-registration and provenance manifests included. Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). The same release is deposited on Figshare as doi:10.6084/m9.figshare.32086920.v6.
 
 Abstract:
-  Multi-agent group-generation systems spend test-time compute uniformly across
-  tasks. We ask whether the agents' own confidence-and-critique trace predicts
-  task difficulty, which would let compute be allocated adaptively. In a
-  five-agent CellForge-style orchestrator for Perturb-seq prediction via
-  MassGen, we define four compute-free trace metrics -- Agent Confidence Entropy
-  (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C),
-  and a Winner Flip Rate (WFR) -- and their composite, the Task Difficulty Index
-  (TDI). We pre-register five hypotheses with gates: attainable error on Adamson
-  2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
-  agent's backbone-choice entropy, the rank correlation of each TDI component
-  with error, and cross-dataset transfer of a calibrated TDI. The design is 41
-  held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets)
-  drawn deterministically, with a trainer sweep of 27 records and three
-  fixed-length agentic runs per task. The LLM condition is a pinned roster of
-  Anthropic Claude models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for
-  the Validator) whose served model is recorded and asserted per call; a run
-  with any rule-based fallback step is invalid. Gate outcomes: 4 of 5 pass; H5
-  fails (0 unevaluated) -- the trainer sweep attains the pre-registered error on
-  both screens (H1, H2), the Architect exercises its backbone choice (H3), and
-  the confidence-drop component and the composite rank tasks by held-out error
-  within both screens (H4); the Adamson-calibrated composite does not transfer
-  to Norman at the pre-registered level (H5, $\rho$ = 0.286 against > 0.4). The
-  confidence-entropy point estimates run against the pre-registered direction in
-  both screens (exploratory). The values reported in the v0.5.0 release of this
-  work are superseded in full; the defects are listed in the appendix.
+  That a single agent's own vote distribution can gate its compute is reported
+  (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the
+  distribution of stated confidences and critiques across a group of
+  role-specialised agents predict task difficulty, so the group's compute --
+  spent uniformly across tasks as operated here -- can be allocated adaptively?
+  In a five-agent CellForge-style Perturb-seq orchestrator run via MassGen, we
+  define four trace metrics -- Agent Confidence Entropy (ACE), Critique Severity
+  Dispersion (CSD), a convergence signal ($\Delta$C), and a Winner Flip Rate
+  (WFR) -- and their composite Task Difficulty Index (TDI). Five pre-registered
+  criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman
+  2019 (CRISPR activation), the Architect's backbone-choice entropy, each TDI
+  component's rank correlation with error, and cross-dataset transfer of a
+  calibrated TDI. Design: 41 held-out K562 tasks (21 Adamson, 15 Norman
+  singletons, 5 Norman doublets) drawn deterministically; 27 trainer-sweep
+  records and three fixed-length agentic runs per task. LLM condition: a pinned
+  Anthropic Claude roster (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for
+  the Validator), served model recorded and asserted per call; any rule-based
+  fallback invalidates the run. Outcomes: 4 of 5 pass; H5 fails (0 unevaluated)
+  -- the trainer sweep attains the pre-registered error on both screens (H1,
+  H2), the Architect exercises its backbone choice (H3), and the confidence-drop
+  component and the composite rank tasks by held-out error within both screens
+  (H4); the Adamson-calibrated composite does not transfer to Norman at the
+  pre-registered level (H5, $\rho$ = 0.286 against > 0.4). Confidence-entropy
+  point estimates run against the pre-registered direction in both screens
+  (exploratory). The v0.5.0 release's values are superseded in full; the defects
+  are listed in the appendix.
 
 === END ===
 
@@ -212,6 +218,11 @@ article, so its DOI belongs there.
 ---
 
 ## Part 3 — Immediately after announcement
+
+> **Parts 3–5 are written for an arXiv posting.** On the ruled venue, TechRxiv, read "the venue's DOI and record"
+> wherever they say arXiv ID, `10.48550/arXiv…` DOI or crawled arXiv record. The steps are the same: record the
+> identifier, link it reciprocally on Zenodo as `isIdenticalTo` once, and merge the Scholar entry. TechRxiv mints
+> its own DOI (Part 7.2, secondary source until the principal's first-hand read).
 
 Record the assigned identifier. arXiv mints both:
 
@@ -301,9 +312,10 @@ citations.**
 
 **Therefore: this work currently has no indexed Scholar record at all, and no amount of follow-up
 produces one without a Scholar-indexed venue.** Scholar visibility is not a post-submission chore.
-It *is* the venue decision in Part 1, and it is now blocked on the same thing.
+It follows from the venue, ruled TechRxiv (approvals row 15), and it is blocked on the same thing: the
+principal's first-hand read of TechRxiv's terms.
 
-### 7.1 Part 1 is out of date — the endorsement gate tightened on 2026-01-21
+### 7.1 Why Part 1 has one route — the endorsement gate tightened on 2026-01-21
 
 arXiv's own blog post of 2026-01-21 states that arXiv **"will no longer accept institutional email
 addresses"** as **"the sole qualifier of endorsement for new authors."** Two paths remain:
@@ -363,8 +375,9 @@ that was not measured at the primary source.
 
 **arXiv is still reachable — but not in parallel.** Pursuing a Path-2 endorsement is compatible with
 everything here, *provided you do not post twice.* If arXiv matters more than months of delay, get
-the endorsement **first** and wait. If a preprint is already up elsewhere when the endorsement
-arrives, the route is a **superseding revision**, never a second live posting.
+the endorsement **first** and wait (approvals row 15). Once a preprint is up on TechRxiv, arXiv is
+closed: a revision on one server cannot supersede a posting on another, so a later arXiv posting would be
+a second live preprint.
 
 ### 7.3 Channels that are not venues — unlimited, and carry no duplication risk
 
@@ -424,8 +437,8 @@ fallback it is, not as a way around the venue decision.
 |---|---|---|
 | 1 | ORCID: add the Zenodo DOI (7.3 #1) | nothing — do it today |
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
-| 3 | **Principal decides the venue** — exactly one (7.2) | 7.1, 7.2 |
-| 4 | Read the chosen venue's own submission rules at the primary source | 3 |
+| 3 | ~~Principal decides the venue~~ **Decided: TechRxiv** (approvals row 15) | 7.1, 7.2 |
+| 4 | **Principal reads TechRxiv's own terms at the primary source; BLOCKS step 5** (agents get HTTP 403) | 3 |
 | 5 | Part 0 bundle → the venue's form | 4 |
 | 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
@@ -463,20 +476,19 @@ runbook that is invisible after publication.
 
 ## Approval required before Part 1
 
-Three items: one open decision, one recorded ruling, one blocker.
+Three items: one closed decision, one superseded ruling that blocks posting, one blocker.
 
-1. **Flush `c0ec931`?** Without it CI cannot build the bundle, so Path A is unavailable and the whole
-   runbook stalls at Part 0. The honest risk in flushing: the workflow's LaTeX step has never run.
-2. **Venue — RULED (approvals row 12, 2026-11-01).** arXiv, primary `cs.LG`, cross-lists `q-bio.QM`
-   and `cs.MA`. cs.MA matches the narrowed claim of row 11 — a multi-agent group's confidence/critique
-   distribution as an explicit item-difficulty signal. The endorsement risk in Part 1 stands; bioRxiv is
-   no longer under consideration.
-3. **Title — PENDING, and it BLOCKS submission.** Row 12 ties the venue ruling to a retitle: three
-   candidate titles are drafted on `perturb-seq-eval-staging` for the principal to pick, and row 11's
-   narrowed contribution text is not yet in `paper.tex` (`paper.tex:118` still says "generalising to
-   any propose-critique-vote system"). Do not submit — and do not paste Part 2 — until both have
-   landed and the metadata block has been regenerated; it still carries the current question-form
-   title.
+1. **Flush `c0ec931` — CLOSED.** The commit is on `origin/main` and the workflow's LaTeX step has run
+   successfully (run `40985145366`; see Part 0, Path A). Path A is available.
+2. **Venue — SUPERSEDED to TechRxiv (approvals row 15, 2026-11-05); posting BLOCKED.** arXiv was
+   measured unreachable without a named `cs.LG` endorser (Part 7.1), so row 12's arXiv ruling is
+   superseded. The supersession is conditional on the principal reading TechRxiv's terms first-hand
+   (licence, scope, prior-posting rule). Every TechRxiv fact here comes from a secondary source, and the
+   agents' fetch returned HTTP 403. Do not submit until that read is done and recorded.
+3. **Title — RULED T1 (CTO #896, 2026-11-04); BLOCKS submission until it lands.** The
+   question-form T1 title and row 11's narrowed contribution are applied in `paper.tex` and recorded as
+   Amendment 5 of `PREREGISTRATION.md`, and the metadata block above is regenerated from this branch. Do not submit until
+   that change has landed on `origin/main`; then re-run Part 0 so the bundle is built from it.
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 
@@ -498,8 +510,8 @@ A fourth decision is adjacent and does not block submission, but affects what ge
 
 ## What this runbook does not establish
 
-- **That the submission will be accepted.** Moderation and endorsement are human decisions made by
-  arXiv after you submit. Nothing here predicts them.
+- **That the submission will be accepted.** Moderation (and, on arXiv, endorsement) are human decisions
+  made by the venue after you submit. Nothing here predicts them.
 - **That the LaTeX compiles on arXiv's TeX Live.** CI compiling it is strong evidence, not proof —
   arXiv's toolchain is its own. Part 2 step 4 is where you find out, and it is why you read the
   generated PDF before submitting rather than after.
