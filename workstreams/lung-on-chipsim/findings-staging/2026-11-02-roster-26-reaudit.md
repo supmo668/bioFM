@@ -1,9 +1,21 @@
 ---
 type: findings-staging
 status: >
-  COUNT RULED at approvals row 102 ("Accept formulation-level: stays 6"). The surviving count of 6
-  is RATIFIED. The 26 per-row VERDICTS remain DRAFTED and unratified, and no curation act is
-  authorised — see section 8.
+  THREE DISTINCT RATIFICATION STATES — do not imply one from another.
+  (1) COUNT RULED at approvals row 102 ("Accept formulation-level: stays 6"). The surviving count of
+  6 is RATIFIED.
+  (2) DISPOSITION OF THE TWO WRONG-SOURCE ENTRIES RULED 2026-11-07, principal, verbatim
+  "Confirmed — (b), keep 26", recorded at this ledger's local approvals row 103. Amlexanox and
+  Procaterol STAY IN THE ROSTER and are disclosed as defects; the strike to 24 is CANCELLED, not
+  deferred, and nothing in configs/ or tests/ moved. They are RETAINED BY RULING, NOT BY EVIDENCE,
+  so "26 cited" is true of the count and not of the support — carry that wherever the roster size
+  or a cited-row count appears, as part of the ruling and never under "limitations".
+  (3) The 26 per-row VERDICTS REMAIN DRAFTED and unratified. No curation act is authorised
+  — see section 8.
+  CITE BY CONTENT, NOT BY NUMERAL: the ruling was dispatched by the CTO as "row 107" but
+  approval-log assigned local 103, because this ledger's approvals.md ended at 102 on the branch and
+  on origin/main alike and rows 104-109 exist in no file in the checkout. Two decisions now share
+  the number 103 across two ledgers; recorded at local row 104 and the CTO resolves it.
 authorization: principal, approvals row **100**, verbatim quote "authorize 3"; relayed via CTO #873.
   Supersedes CTO #870's "do not start it" for THIS item only.
 exploratory: false
