@@ -363,7 +363,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         expect[f"resRoleCalls{word}"] = str(sum(1 for c in log if c["role"] == role))
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     for a in am:
-        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four"}[a["id"]]
+        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}[a["id"]]
         expect[f"resAmend{word}Version"] = a["prereg_version"] or r"\textemdash"
         expect[f"resAmend{word}Date"] = a["lock_date_utc"]
         expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
@@ -423,7 +423,7 @@ def test_verdicts_and_gate_summary(macros, art):
             pr[g]["pass"]
         ]
         assert macros[f"res{name}Verdict"] == want, g
-    assert macros["resGateSummary"] == "4 of 5 gates pass; H5 fails (0 unevaluated)"
+    assert macros["resGateSummary"] == "4 of 5 criteria pass; H5 fails (0 unevaluated)"
     assert macros["resManifestSha"] != "n/a" and macros["resArchiveShaCache"] != "n/a"
 
 
@@ -680,7 +680,7 @@ def test_prose_claims_match_artifacts(art, land):
     assert "correlates negatively" not in main.lower() and "not through" not in main
     # doublet stratum above the gate while the all-task median passes
     assert pr["H2"]["strata"]["doublet"]["median"] > pr["H2"]["threshold"] > pr["H2"]["value"]
-    assert "lies above the gate" in res
+    assert "lies above the criterion" in res
     # run-record facts
     assert (
         s["n_steps_fallback"] == s["n_steps_mock"] == s["n_steps_unknown"] == 0
@@ -984,7 +984,7 @@ PY312_DISCLOSURE = (
     "compensated, and before Python 3.12 the backbone entropy (stated and executed, which "
     "coincide here; five keys of \\texttt{summary.json}) comes out one unit in the last place "
     "higher. The run itself ran on Python \\resRunPython, and \\texttt{provenance.json} records "
-    "that higher value. No reported figure or gate outcome changes."
+    "that higher value. No reported figure or criterion outcome changes."
 )
 
 
@@ -1014,7 +1014,7 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
 def test_amendment_records_match_git_and_the_preregistration():
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     prereg = (PAPER / "PREREGISTRATION.md").read_text()
-    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4"]
+    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4", "A5"]
     land = json.loads((PAPER / "data" / "land_v060.json").read_text())
     for a in am:
         n = a["id"][1]
@@ -1034,7 +1034,16 @@ def test_amendment_records_match_git_and_the_preregistration():
         )
         for c in a["lock_commits"]:
             assert re.fullmatch(r"[0-9a-f]{7,40}", c), c
-            _git("merge-base", "--is-ancestor", c, land["run_git_sha"])  # locked before the run
+            before_run = (
+                subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", c, land["run_git_sha"]], cwd=ROOT
+                ).returncode
+                == 0
+            )
+            # A1-A4 were locked before the run; A5 (approvals row 16) was locked AFTER the outcome,
+            # and the record must say so rather than pass as a pre-data amendment.
+            assert before_run is not bool(a.get("post_outcome")), (a["id"], c)
+            _git("merge-base", "--is-ancestor", c, "HEAD")  # on this history either way
             files = _git("show", "--name-only", "--format=", c)
             assert "paper/PREREGISTRATION.md" in files, c
             date = subprocess.run(
@@ -1053,15 +1062,20 @@ def test_amendment_records_match_git_and_the_preregistration():
             "1.3548" not in a["change"]
         )  # A4-2 states 1.3 carried in from the aborted run + the dry run separately
     a4 = next(a for a in am if a["id"] == "A4")
+    # Compare FULL hashes: `%h` length follows git's auto-abbreviation, which grows with the
+    # repository (7 chars when recorded, 8 later), so an abbreviated comparison breaks with no
+    # change to the history it checks.
     assert sorted(
         _git(
             "log",
-            "--format=%h",
+            "--format=%H",
             f"{a4['lock_commits'][0]}^..{land['run_git_sha']}",
             "--",
             "paper/PREREGISTRATION.md",
         ).split()
-    ) == sorted(a4["lock_commits"])
+    ) == sorted(
+        _git("rev-parse", "--verify", f"{c}^{{commit}}").strip() for c in a4["lock_commits"]
+    )
     assert a4.get("lock_note")
     res = RESULTS.read_text()
     assert "\\label{tab:amendments}" in res and res.count("\\ref{tab:amendments}") >= 2
@@ -1134,3 +1148,30 @@ def test_hand_typed_scan_still_flags_a_number_after_the_word_python(monkeypatch,
         monkeypatch.setattr(sys.modules[__name__], "PAPER", fake)
         with pytest.raises(AssertionError, match="0.86"):
             test_no_hand_typed_result_numbers("sections/results.tex")
+
+
+WORDS = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}
+
+
+def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
+    """QG B12/B13: every amendment record has a row in tab:amendments; the post-outcome ones (A5,
+    approvals row 16) carry the double dagger and the others do not; the caption never calls the
+    whole table pre-data, and names the pre-data range from the records themselves."""
+    am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
+    res = _strip(RESULTS.read_text())
+    flags = {a["id"]: a.get("post_outcome", False) for a in am}
+    assert all(type(v) is bool for v in flags.values()), flags
+    assert [k for k, v in flags.items() if v] == ["A5"]
+    for a in am:
+        w = WORDS[a["id"]]
+        row = re.search(rf"^{a['id']}\b.*\\resAmend{w}Change \\\\$", res, re.M)
+        assert row, f"no tab:amendments row for {a['id']}"
+        assert ("\\ddagger" in row.group(0)) is flags[a["id"]], a["id"]
+    cap = re.search(
+        r"\\caption\{Amendments to the pre-registration(.*?)\\label\{tab:amendments\}", res, re.S
+    )
+    cap = " ".join(cap.group(1).split())
+    assert "each locked before any v0.6.0 data existed (" not in cap
+    pre = [k for k, v in flags.items() if not v]
+    assert f"{pre[0]}--{pre[-1]} were each locked before any v0.6.0 data existed" in cap
+    assert "$^{\\ddagger}$A5 was locked \\emph{after} the v0.6.0 outcome" in cap

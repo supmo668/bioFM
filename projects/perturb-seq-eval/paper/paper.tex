@@ -31,12 +31,13 @@
 \input{sections/generated_numbers}
 
 % ---- Title ----
-\title{Does Agent Confidence Entropy Predict Task Difficulty?\\
-       A Pre-registered, Provenance-Complete Test of Agentic
-       Hyperparameter Tuning for Perturb-seq Response Prediction}
-\hypersetup{pdftitle={Does Agent Confidence Entropy Predict Task Difficulty?
-  A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter
-  Tuning for Perturb-seq Response Prediction}}
+\title{Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?\\
+       A Pre-registered, Provenance-Complete Test on Perturb-seq Response
+       Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes}
+\hypersetup{pdftitle={Does a Multi-Agent Group's Confidence Distribution Predict
+  Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq
+  Response Prediction in Which Entropy Fails Its Criterion and the Confidence
+  Drop Passes}}
 
 \author{%
   Mang-yin Mo\\
@@ -53,16 +54,19 @@
 \maketitle
 
 \begin{abstract}
-Multi-agent group-generation systems spend test-time compute uniformly
-across tasks. We ask whether the agents' own confidence-and-critique trace
-predicts how hard a task is, which would let the compute be allocated
-adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
+A multi-agent group-generation system, as operated here, spends test-time
+compute uniformly across tasks. That a single agent's own vote distribution
+can gate its test-time compute is already reported by
+\textsc{CATTS}~\citep{lee2026catts}; we ask the multi-agent question: whether
+the distribution of stated confidences and critiques across a group of
+role-specialised agents predicts how hard a task is, which would let the
+group's compute be allocated adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
 response prediction inspired by \textsc{CellForge}~\citep{chen2025cellforge}
 and operated via \textsc{MassGen}~\citep{massgen2025github}, we define four
 compute-free trace metrics --- Agent Confidence Entropy (ACE), Critique
 Severity Dispersion (CSD), a convergence signal ($\Delta C$), and a Winner
 Flip Rate (WFR) --- and their composite, the Task Difficulty Index (TDI).
-We pre-register five hypotheses with gates: attainable error on
+We pre-register five hypotheses with criteria: attainable error on
 \textsc{Adamson 2016}~\citep{adamson2016perturbseq} (CRISPR interference) and
 \textsc{Norman 2019}~\citep{norman2019perturbseq} (CRISPR activation), the
 Architect agent's backbone-choice entropy, the rank correlation of each TDI
@@ -75,7 +79,7 @@ roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles,
 Sonnet 5.5 for the Validator) whose served model is recorded and asserted
 per call; a run with any rule-based fallback step is invalid. Every run records its git revision, resolved
 configuration, library versions, dataset SHA-256 digests, task plan and
-label contract. Gate outcomes: \resGateSummary{} --- the trainer sweep attains the pre-registered
+label contract. Outcomes: \resGateSummary{} --- the trainer sweep attains the pre-registered
 error on both screens (H1, H2), the Architect exercises its backbone choice
 (H3), and the confidence-drop component and the composite rank tasks by
 held-out error within both screens (H4); the Adamson-calibrated composite
@@ -106,8 +110,8 @@ The multi-agent case is structurally different but no less TTC-laden. A
 group-generation system such as \textsc{CellForge}~\citep{chen2025cellforge}
 dispatches several specialised agents --- typically a data curator, a
 literature/prior agent, a model architect, a trainer, and a biological
-validator --- and coordinates them through propose-critique-vote rounds. Every
-such system today spends compute \emph{uniformly}: the same number of agents
+validator --- and coordinates them through propose-critique-vote rounds. As
+operated here, such a system spends compute \emph{uniformly}: the same number of agents
 for the same number of rounds regardless of whether the task is a
 well-characterised single-gene perturbation or a novel combinatorial one.
 \emph{This paper asks whether the group's own internal dynamics carry enough
@@ -119,14 +123,22 @@ empirical frame of Perturb-seq response prediction~\citep{norman2019perturbseq,%
 adamson2016perturbseq} but generalising to any propose-critique-vote system:
 
 \begin{enumerate}[leftmargin=*]
-  \item We formalise four easy-to-compute observables of a multi-agent run ---
-        ACE, CSD, $\Delta C$/$\Delta$ACE, and WFR --- and combine them into a
-        scalar Task Difficulty Index (TDI).
+  \item We test whether a \emph{multi-agent group's} confidence/critique
+        distribution is an explicit item-difficulty signal. We formalise four
+        easy-to-compute observables of such a run --- ACE, CSD,
+        $\Delta C$/$\Delta$ACE, and WFR --- over the stated confidences and
+        critiques of $N$ role-specialised agents, within and across rounds,
+        and combine them into a scalar Task Difficulty Index (TDI). That an
+        agent's own vote distribution can gate test-time compute is reported
+        by \textsc{CATTS}~\citep{lee2026catts}, whose statistics are computed
+        over $N$ candidate actions sampled from one base model at a single
+        step (their \S3.1) under the stated assumption of ``a fixed base
+        agent'' (their \S2); we claim nothing about that case.
   \item We introduce a \emph{preflight probe}: a single shallow round whose
         four-dimensional signature is intended to serve as a sufficient
         statistic for a Bayesian recommender over orchestration
         hyperparameters $\varphi = (N, R, \textrm{backbone})$.
-  \item We pre-register five hypotheses and their gates
+  \item We pre-register five hypotheses and their criteria
         (\S\ref{sec:results}; \texttt{paper/PREREGISTRATION.md}) and test them
         on $41$ held-out K562 tasks from \textsc{Adamson 2016} and
         \textsc{Norman 2019}, with a trainer sweep and an agentic lifecycle
@@ -166,9 +178,18 @@ group setting.
 heterogeneous agent pools; \textsc{Archon}~\citep{saad2024archon} and
 \textsc{MAV}~\citep{lifshitz2025mav} treat inference-time architecture
 \emph{itself} as the search space. \textsc{CellForge}~\citep{chen2025cellforge}
-applies this pattern specifically to single-cell experimental design. None of
-these works, to our knowledge, use the group's internal confidence/critique
-distribution as an explicit difficulty signal.
+applies this pattern specifically to single-cell experimental design. We do
+not claim the signal is new. Recent work reports gating test-time
+compute on confidence- or consensus-type signals from an agent's own vote
+distribution or from a group of agents~\citep{lee2026catts,morandi2026sprt};
+we cite their abstracts and have not reproduced or re-derived
+their methods, and we make no claim here about how our signal relates to
+theirs. \textsc{CATTS}~\citep{lee2026catts} computes its uncertainty statistics over
+$N$ candidate actions sampled from one base model at a single step (their
+\S3.1), under the stated assumption of ``a fixed base agent'' (their \S2);
+the quantities tested here are computed over the stated confidences of the
+five role-specialised agents of one run, within and across rounds
+(\S\ref{sec:tdi-real}).
 
 \paragraph{Perturb-seq and single-cell foundation models.} Perturb-seq
 couples CRISPR perturbations with single-cell RNA-sequencing readouts,
@@ -355,8 +376,8 @@ improves privacy posture (LLM content is never consumed by the metric layer).
 \toprule
 File & Kind & Status \\
 \midrule
-\texttt{types.py}, \texttt{metrics.py} & Novel abstraction + metrics & contributed \\
-\texttt{probe.py}, \texttt{bayesian.py}, \texttt{calibration.py} & Novel procedures & contributed \\
+\texttt{types.py}, \texttt{metrics.py} & Abstraction + metrics authored here & contributed \\
+\texttt{probe.py}, \texttt{bayesian.py}, \texttt{calibration.py} & Procedures authored here & contributed \\
 \texttt{instrumentation.py} & Adapter for CellForge \texttt{ConsensusResult} & contributed \\
 \texttt{massgen\_adapter.py} & JSON entrypoints for MassGen skill & contributed \\
 \texttt{massgen\_skill\_draft/} (in-repo draft of a MassGen skill) & Ready-to-submit & not yet PR'd \\
@@ -436,13 +457,19 @@ claims and ``plug it in and it works'' is unambiguous.
 \section{Discussion}\label{sec:discussion}
 
 \paragraph{Why the question is posed as a question.} The title asks whether
-agent confidence entropy predicts task difficulty rather than asserting that
-it does, so that a null answer is publishable as it stands; a null or failed
-outcome on H4/H5 is reported as the answer and is not traded back into a
-claim-form title, abstract or contribution list
-(\texttt{paper/PREREGISTRATION.md}).
+a multi-agent group's confidence distribution predicts task difficulty rather
+than asserting that it does, so that a null answer is publishable as it
+stands; a null or failed outcome on H4/H5 is reported as the answer and is
+not traded back into a claim-form title, abstract or contribution list
+(\texttt{paper/PREREGISTRATION.md}). The title was amended after the outcome
+was known (Amendment~5): the pre-registered title named agent confidence
+entropy, singular; the amended title names the group's distribution, the
+object of the narrowed claim, and its subtitle reports both H4 outcomes as
+measured. The question form is unchanged. The same amendment renames the
+pre-registration's ``gate'' to ``pre-registered criterion''; no hypothesis,
+threshold or outcome changes with the word.
 
-\paragraph{Reading the gates together.} H1/H2 bound what the trainer sweep
+\paragraph{Reading the criteria together.} H1/H2 bound what the trainer sweep
 can attain (an oracle, \S\ref{subsec:oracle}); they say nothing about whether
 the agents find those configurations. H3 asks whether the Architect uses its
 backbone choice at all; H4/H5 ask whether the trace metrics carry difficulty
@@ -450,13 +477,16 @@ information. On this run H1--H3 pass; H4 passes on the confidence-drop
 component ($1-\Delta C$) and on the composite that inherits it, in both
 screens, while confidence entropy runs the opposite way to the hypothesis;
 and H5 fails: the Adamson-calibrated composite reaches $\rho=\resHFiveRho$ on
-Norman against a gate of $\resHFiveThreshold$. Read together: H4 passes on $1-\Delta C$ in both screens and on
+Norman against a criterion of $\resHFiveThreshold$. Read together: H4 passes on $1-\Delta C$ in both screens and on
 $\mathrm{TDI}_{\mathrm{lifecycle}}$, which, given the narrow observed spread of
 $\mathrm{ACE}_{\mathrm{norm}}$, ranks nearly identically; the two
-$\mathrm{ACE}_{\mathrm{norm}}$ tests fail the pre-registered one-sided gate; and
+$\mathrm{ACE}_{\mathrm{norm}}$ tests fail the pre-registered one-sided criterion; and
 the Adamson-calibrated composite does not transfer at the pre-registered level.
-The title question is answered as posed: on this evidence, confidence entropy
-does not predict difficulty in the pre-registered direction. No mechanism is
+The title question is answered as posed: on this evidence, the group's
+confidence entropy does not predict difficulty in the pre-registered
+direction, its confidence drop across rounds ranks tasks by held-out error
+within each screen, and the Adamson-calibrated composite does not transfer
+to Norman at the pre-registered level (H5). No mechanism is
 inferred; the negative point estimates are reported, not interpreted, and a
 directional hypothesis about them would be a new pre-registration.
 
@@ -470,7 +500,7 @@ empirical finding.
 \paragraph{Implications for upstream systems.} For
 \textsc{CellForge}~\citep{chen2025cellforge} and
 \textsc{MassGen}~\citep{massgen2025github}, one recommendation does not depend
-on the gate outcomes: \emph{emit the $\{C(r), S(r), w(r)\}$ trace, and the
+on the criterion outcomes: \emph{emit the $\{C(r), S(r), w(r)\}$ trace, and the
 serving model of every step, as first-class outputs} of every orchestrator
 run. Without them neither difficulty metrics nor the attribution of agent
 choices to a model is recoverable after the fact (Appendix~\ref{app:corrections}).
@@ -506,11 +536,11 @@ bias is acknowledged. Model identity is recorded and asserted per call.
 \paragraph{Sample size and the ACE sign.} The within-screen tests use $n=\resHFourAdaAceN$
 and $n=\resHFourNorAceN$ tasks; every $\rho$ carries a bootstrap CI over tasks
 (Table~\ref{tab:tdi-real}), and the pre-registered null false-positive rate of
-the six-test gate is a few percent. The confidence-entropy point estimates were negative in both screens (the
+the six-test criterion is a few percent. The confidence-entropy point estimates were negative in both screens (the
 Adamson CI excludes zero, the Norman CI includes it); that direction was not
 pre-registered, generates
 no claim, and would need its own pre-registration to test. On Norman the
-doublet stratum's oracle median (\resHTwoDoubletMedian) lies above the H2 gate
+doublet stratum's oracle median (\resHTwoDoubletMedian) lies above the H2 criterion
 while the all-task median passes; the stratum is reported, as pre-registered.
 
 \paragraph{Cell-line and dataset scope.} Both datasets are K562, and the
@@ -594,7 +624,7 @@ This holds on Python 3.12: Python 3.12 made the built-in \texttt{sum()} over flo
 compensated, and before Python 3.12 the backbone entropy (stated and executed, which coincide
 here; five keys of \texttt{summary.json}) comes out one unit in the last place higher. The
 run itself ran on Python \resRunPython, and \texttt{provenance.json} records that higher
-value. No reported figure or gate outcome changes.
+value. No reported figure or criterion outcome changes.
 \end{sloppypar}
 
 \paragraph{Pipeline.}
@@ -640,7 +670,7 @@ four-feature lens on multi-agent group-generation traces, combined into a
 Task Difficulty Index, and positioned the TDI and its probe as the
 multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation. We test whether these signals predict task
-difficulty under five pre-registered gates on $41$ held-out K562 tasks, with
+difficulty under five pre-registered criteria on $41$ held-out K562 tasks, with
 every run carrying its revision, configuration, dataset digests, task plan,
 label contract and per-step serving model. The answer, as pre-registered: \resGateSummary. Within each screen the change in confidence across rounds, and the composite
 that inherits it, rank tasks by held-out error at the pre-registered level;
