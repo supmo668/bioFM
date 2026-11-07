@@ -1,4 +1,4 @@
-# Paper — Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered, Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq Response Prediction
+# Paper — Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes
 
 Manuscript for the thesis at [`../docs/THESIS.md`](../docs/THESIS.md).
 
@@ -14,7 +14,7 @@ superseded — the appendix "Corrections relative to v0.5.0"
 ```text
 paper/
 ├── README.md                    (you are here)
-├── PREREGISTRATION.md           five hypotheses, gates, estimators, analysis plan
+├── PREREGISTRATION.md           five hypotheses, pre-registered criteria, estimators, analysis plan
 ├── paper.tex                    the manuscript
 ├── references.bib               BibTeX bibliography
 ├── sections/

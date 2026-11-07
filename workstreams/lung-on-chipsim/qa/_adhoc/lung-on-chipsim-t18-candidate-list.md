@@ -3,7 +3,11 @@ type: candidate-list
 task: T18 (roster) — CTO-owed precondition, hand-off
 workstream: lung-on-chipsim
 date: 2026-09-19
-surface: https://claude.ai/artifact/G6xdAqUj5FeuzT32PJVoM4
+surface: https://app.notion.com/p/40c749bd250d8115bf43ebc648952c57
+# Re-pointed 2026-11-02 (lung approvals rows 90, 98). The surface was
+# claude.ai/artifact/G6xdAqUj5FeuzT32PJVoM4, which is account-scoped and so unreadable for
+# every reader but its author. It was read in full and MIGRATED to the Notion row above.
+# The artifact still resolves for its author; it is simply no longer the surface.
 evidence_source: PubMed
 selection_reserved_to: principal
 ---

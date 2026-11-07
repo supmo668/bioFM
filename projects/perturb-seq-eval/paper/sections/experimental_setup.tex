@@ -82,7 +82,7 @@ task. The \textsc{linear} backbone ignores both $R$ and the seed, so the grid ho
 \resNDistinctConfigs{} distinct $(\text{backbone}, R)$ configurations
 (\resNDistinctFits{} distinct fits including seeds); the counts are recorded in provenance
 (amendments~2 and 3: $N$ was removed as an axis, and the stated count is the distinct
-$(\text{backbone}, R)$ count). The quantity gated in H1/H2 is, per task, the minimum MSD over
+$(\text{backbone}, R)$ count). The quantity tested against the criterion in H1/H2 is, per task, the minimum MSD over
 every finite record, then its median over tasks. The minimum is selected on
 the same evaluation genes and cells it is scored on, so it is an
 \emph{oracle}: an attainable upper bound on what the configuration space can
@@ -112,7 +112,7 @@ DataCurator's mito-QC threshold is recorded but not applied (no per-cell mito fr
 loaded; A3-1). The Architect's \texttt{backbone} is required and must be on the pinned menu
 $\{$\textsc{linear}, \textsc{mlp}, \texttt{scgpt\_small}$\}$; each Architect step records the
 backbone it \emph{stated} and the backbone that \emph{ran} after the Validator's rotation rule,
-and H3 gates on the stated backbone with the executed one reported alongside (A2-6). The
+and H3's criterion is evaluated on the stated backbone with the executed one reported alongside (A2-6). The
 Literature role is an LLM prompt with no retrieval tools; its expected up/down-regulated genes
 are passed to the next round's Architect prompt. Fields the agents may state but no executor
 applies (\texttt{n\_agents}, \texttt{n\_rounds}, \texttt{split\_strategy},

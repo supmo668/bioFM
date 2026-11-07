@@ -15,38 +15,45 @@ version: "0.6.0"
 # no duplicate record. publish.state.json stays the v0.5.x lineage record and is never written.
 state_file: publish.state.v060.json
 
+# Retitled by Amendment 5 of paper/PREREGISTRATION.md (2026-11-04, CTO #896). The minted v0.6.0
+# records (Zenodo 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title; this title
+# and the regenerated description below take effect at the next deposit, which is the principal's call.
 title: >-
-  Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
-  Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
-  Response Prediction
+  Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
+  A Pre-registered, Provenance-Complete Test on Perturb-seq Response
+  Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
+  Passes
 
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 description: |
-  Multi-agent group-generation systems spend test-time compute uniformly
-  across tasks. We ask whether the agents' own confidence-and-critique trace
-  predicts how hard a task is, which would let the compute be allocated
-  adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
-  response prediction inspired by CellForge and operated via MassGen, we
-  define four compute-free trace metrics — Agent Confidence Entropy (ACE),
-  Critique Severity Dispersion (CSD), a convergence signal (ΔC), and a Winner
-  Flip Rate (WFR) — and their composite, the Task Difficulty Index (TDI). We
-  pre-register five hypotheses with gates: attainable error on Adamson 2016
-  (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect
-  agent's backbone-choice entropy, the rank correlation of each TDI component
-  with held-out error, and cross-dataset transfer of a calibrated TDI. The
-  design is 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman
-  doublets) drawn deterministically, a trainer sweep of 27 records per task
-  and three fixed-length agentic lifecycle runs per task, all in one process.
-  The LLM condition is a pinned roster of Anthropic Claude models (Haiku 4.5
-  for the four proposer roles, Sonnet 5.5 for the Validator) whose served
-  model is recorded and asserted per call; a run with any rule-based fallback
-  step is invalid. Every run records its git revision, resolved configuration,
-  library versions, dataset SHA-256 digests, task plan and label contract.
-  Gate outcomes: 4 of 5 gates pass; H5 fails (0 unevaluated) — the trainer
-  sweep attains the pre-registered error on both screens (H1, H2), the
-  Architect exercises its backbone choice (H3), and the confidence-drop
-  component and the composite rank tasks by held-out error within both screens
-  (H4); the Adamson-calibrated composite does not transfer to Norman at the
+  A multi-agent group-generation system, as operated here, spends test-time
+  compute uniformly across tasks. That a single agent's own vote distribution
+  can gate its test-time compute is already reported by CATTS; we ask the
+  multi-agent question: whether the distribution of stated confidences and
+  critiques across a group of role-specialised agents predicts how hard a task
+  is, which would let the group's compute be allocated adaptively. Taking as
+  testbed a five-agent orchestrator for Perturb-seq response prediction
+  inspired by CellForge and operated via MassGen, we define four compute-free
+  trace metrics — Agent Confidence Entropy (ACE), Critique Severity Dispersion
+  (CSD), a convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their
+  composite, the Task Difficulty Index (TDI). We pre-register five hypotheses
+  with criteria: attainable error on Adamson 2016 (CRISPR interference) and
+  Norman 2019 (CRISPR activation), the Architect agent's backbone-choice
+  entropy, the rank correlation of each TDI component with held-out error, and
+  cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
+  tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
+  deterministically, a trainer sweep of 27 records per task and three
+  fixed-length agentic lifecycle runs per task, all in one process. The LLM
+  condition is a pinned roster of Anthropic Claude models (Haiku 4.5 for the
+  four proposer roles, Sonnet 5.5 for the Validator) whose served model is
+  recorded and asserted per call; a run with any rule-based fallback step is
+  invalid. Every run records its git revision, resolved configuration, library
+  versions, dataset SHA-256 digests, task plan and label contract. Outcomes: 4
+  of 5 criteria pass; H5 fails (0 unevaluated) — the trainer sweep attains the
+  pre-registered error on both screens (H1, H2), the Architect exercises its
+  backbone choice (H3), and the confidence-drop component and the composite
+  rank tasks by held-out error within both screens (H4); the
+  Adamson-calibrated composite does not transfer to Norman at the
   pre-registered level (H5, ρ = 0.286 against > 0.4). The confidence-entropy
   point estimates run against the pre-registered direction in both screens
   (exploratory; no claim is made). The values reported in the v0.5.0 release
