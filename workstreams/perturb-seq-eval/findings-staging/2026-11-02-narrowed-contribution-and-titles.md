@@ -14,6 +14,8 @@ companions: 2026-10-30-paper-framing-drafts.md (R2-a..e, (b″), (b″-D), (b′
 
 # Narrowed contribution, sweep of `paper/`, (b″)/(b″-D) check, and three title candidates — DRAFTED, 2026-11-02
 
+> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary: **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows are cited from `workstreams/perturb-seq-eval/approvals.md`; rows 20–26 were committed on the CTO's local `main` and were not on `origin/main` at labelling time, so they are cited by content as well as number. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
+
 **What this file is.** The four items CTO #842 asked for under row 11, plus the three title candidates
 row 12 asks for (#848 item 1). The principal ratifies or strikes each numbered item; nothing here edits
 `paper/`. The cs.MA cross-list (#848 item 2) is a config edit and does **not** live here — it goes through
@@ -43,6 +45,8 @@ steer test-time compute at all* — CATTS does it. Differentiation rests only on
 ## 1 · The narrowed contribution statement — **drafted**
 
 ### 1.1 Abstract (replaces `paper.tex:56–59`, the first two sentences)
+
+> **Status (2026-11-07):** **RATIFIED + APPLIED, in part by name.** The direction is rows 11 and 13. Finding 1.1-e is ratified by name (row 17), and the override wording by rows 18 and 23. It is on `origin/main` at `paper.tex:56–60` (`9eab7f25`, PR #42). No row ratifies the other 1.1 sentences by name.
 
 Current (cited, `paper.tex:56–59`):
 
@@ -81,6 +85,8 @@ What changed and why, each a separate ratification point:
   override would have to be re-derived and re-ratified. Both are downstream of this item, not part of it.
 
 ### 1.2 Introduction contribution bullet
+
+> **Status (2026-11-07):** **APPLIED UNDER A DIRECTION RULING** (row 13). It is on `origin/main` at `paper.tex:126–136` (`f2bb1933`, PR #42).
 
 Given in both orders, because R2 (the reorder) is itself unratified.
 
@@ -130,6 +136,8 @@ test-time compute — a single agent's vote distribution already does that in CA
 
 ## 2 · Sweep of `paper/` — every sentence claiming the general case or implying priority
 
+> **Status (2026-11-07):** **APPLIED UNDER A DIRECTION RULING** (row 13), in `f2bb1933` (PR #42). Its commit message is "contribution narrowed to the multi-agent group". The S1–S19 rows were **not** re-verified one by one in this labelling pass.
+
 Method: read in full `paper.tex` §Abstract, §1, §2, §3, §7 (Discussion), §9 (Conclusion) and the
 contribution-audit table; grep over `paper.tex`, `sections/*.tex`, `paper/README.md`, `SUBMISSION.md`
 and the module `README.md` for `first|novel|to our knowledge|no prior|unlike|introduce|propose|analogue|
@@ -166,6 +174,8 @@ Checked and clean (no general-case or priority claim found): `sections/results.t
 ---
 
 ## 3 · (b″) and (b″-D) against the narrowed claim
+
+> **Status (2026-11-07):** **RECORD.** The two sentences' own status is in `2026-10-30-paper-framing-drafts.md` Item 3.
 
 **(b″-D) — consistent; KEEP. It is now load-bearing, not optional.** Row 11 says the differentiation
 "rests ONLY on CATTS's stated scope ('we assume a fixed base agent') and its single-model, per-step vote
@@ -219,6 +229,8 @@ Current (cited, `paper.tex:34–36`; identical in `CITATION.cff:5–8`):
 
 ### 4.2 A constraint on every candidate — **flag for the principal**
 
+> **Status (2026-11-07):** **RESOLVED** by row 14: T1 does not engage the `PREREGISTRATION.md:27–28` lock.
+
 `paper/PREREGISTRATION.md:25–29` (cited, verbatim):
 
 > ## Why the title is a question
@@ -240,6 +252,8 @@ Two consequences, both for the principal as author of record:
    bears on T3 most, and it is listed so the principal can reject it knowingly rather than not see it.
 
 ### 4.3 Three candidates — **drafted; the principal picks, I do not**
+
+> **Status (2026-11-07):** T1 is **RATIFIED + APPLIED** (row 14; `paper.tex:34`, `f2bb1933`). T2 and T3 are **NOT ADOPTED**.
 
 Each states the narrowed (multi-agent) claim and its answer, and none implies a "yes" for entropy.
 "Pre-registered, Provenance-Complete" is retained from the current subtitle in all three since it is the
@@ -293,6 +307,8 @@ title whose headline is the general single-agent question.
 
 ## 5 · Surfaces a title change touches (for after the pick; nothing edited)
 
+> **Status (2026-11-07):** **RECORD.** Executed for T1 in PR #42.
+
 | surface | lines (cited) | note |
 |---|---|---|
 | `paper/paper.tex` | `34–36` (`\title`), `37–39` (`pdftitle`) | the two title fields in the source |
@@ -308,6 +324,8 @@ title whose headline is the general single-agent question.
 ---
 
 ## 6 · The cs.MA cross-list — what the config PR touches (record only; the edit is on the working branch)
+
+> **Status (2026-11-07):** **RATIFIED + APPLIED** (row 12; `arxiv.toml:75`, on `origin/main`). Row 15 has since **SUPERSEDED** the arXiv venue with TechRxiv, and submission stays BLOCKED until the principal reads the TechRxiv terms first-hand.
 
 Row 12: keep `primary = "cs.LG"`, add `cs.MA` beside `q-bio.QM`. Planned diff, so the ledger and the PR
 agree:
@@ -326,6 +344,8 @@ agree:
 ---
 
 ## Not established / not done
+
+> **Status (2026-11-07):** **RECORD.**
 
 - **Not done:** full-text read of arXiv:2605.19193 (§3-i). Not done: reading the five works named in the
   old novelty sentence (AutoGen, MassGen, Archon, MAV, CellForge) for the question — still unverified, as

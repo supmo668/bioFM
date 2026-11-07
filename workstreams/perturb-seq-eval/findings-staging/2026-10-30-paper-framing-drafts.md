@@ -1,5 +1,7 @@
 # Paper framing drafts — UNRATIFIED (dispatch #807)
 
+> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary: **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows are cited from `workstreams/perturb-seq-eval/approvals.md`; rows 20–26 were committed on the CTO's local `main` and were not on `origin/main` at labelling time, so they are cited by content as well as number. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
+
 **Status: UNRATIFIED DRAFT. Nothing here has been applied to `paper/` or any public surface.**
 Drafted 2026-10-30 by the perturb-seq-eval worktree agent in reply to CTO dispatch #807 (principal-approved
 framing review). The principal ratifies or rejects each item; only then does any text move into
@@ -14,6 +16,8 @@ Source state: branch `perturb-seq-eval` at `69ae988` (= `origin/main`, PR #35 me
 ---
 
 ## Item 2 — Reorder the contributions (`paper.tex:117–140`)
+
+> **Status (2026-11-07):** **UNRATIFIED; NOT APPLIED.** No row in approvals 1–26 rules on the reorder or on R2-a..e. `origin/main` `paper.tex:121–145` keeps the original order and the hand-typed `$41$` (R2-a not applied); the probe item does not carry R2-c's "not validated" sentence.
 
 ### Why this order
 
@@ -86,6 +90,8 @@ They are listed in the order of what the evidence supports.
 ---
 
 ## Item 3 — The novelty claim (`paper.tex:169–171`)
+
+> **Status (2026-11-07):** (a) **NOT ADOPTED**. (b) **SUPERSEDED** by (b″) (CTO #809 ruling 2). (b″) and (b″-D) are **APPLIED UNDER A DIRECTION RULING**: on `origin/main` at `paper.tex:182–192`, landed in `f2bb1933` (PR #42) under row 13 ("the change is concentrated in the related-work and contribution statements"). Row 11 recorded both sentences as "remain unratified", and no row ratifies their exact wording. (b′) **NOT ADOPTED**. The CTO's #817 §5 recommendation (narrow) was ruled by rows 11 and 13.
 
 ### The sentence today
 
@@ -218,6 +224,8 @@ signal is new.
 
 ## Item 1 — Retitle: HELD. A note on what the title would have to claim
 
+> **Status (2026-11-07):** **SUPERSEDED** by row 12 (retitle) and row 14 (T1 accepted). The T1 title is on `origin/main` at `paper.tex:34` (`f2bb1933`, PR #42).
+
 No candidate title is offered. The dispatch asks only for what a title would have to claim to match the surviving result.
 
 Today the title asks "Does Agent Confidence Entropy Predict Task Difficulty?" (`paper.tex:34–36`; identical string in `CITATION.cff:5–8`). The surviving result, quoted:
@@ -234,6 +242,8 @@ Decision stays with the principal as author of record (fork (a)/(b)/(c) in #807)
 ---
 
 ## Not established / not done
+
+> **Status (2026-11-07):** **RECORD.** The "blocking question per #809 ruling 3" (the CATTS full text) was answered in `2026-10-31-catts-full-text-read.md`.
 
 - Not established: whether any of the five works named in the novelty sentence uses such a signal (not read this session).
 - Not established: the full text of the three counterexamples — abstracts only, from corpus records; CATTS metadata checked at the arXiv abstract page.

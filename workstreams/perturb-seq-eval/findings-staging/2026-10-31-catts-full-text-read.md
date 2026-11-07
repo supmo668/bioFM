@@ -1,5 +1,7 @@
 # CATTS full-text read — staging note (dispatch #812)
 
+> **Ratification status, labelled in place 2026-11-07 (approvals row 26).** Each item below carries a `Status (2026-11-07)` line. Vocabulary: **RATIFIED + APPLIED** (a row rules it and it is on `origin/main`), **RATIFIED, HELD** (ruled, deliberately not applied), **APPLIED UNDER A DIRECTION RULING** (on `origin/main` under a row that rules the direction, not this wording), **NOT ADOPTED**, **SUPERSEDED**, **UNRATIFIED** (no row in perturb-seq-eval approvals 1–26 rules on it), **REPORT / RECORD** (evidence; nothing to ratify). Rows are cited from `workstreams/perturb-seq-eval/approvals.md`; rows 20–26 were committed on the CTO's local `main` and were not on `origin/main` at labelling time, so they are cited by content as well as number. `origin/main` = `7c293c0a` (PR #42 merge). Nothing in this file is ratified by being labelled.
+
 **Status: staging note, UNRATIFIED. Report only. Nothing in `paper/` or any public surface is touched.**
 **Amended 2026-10-31 per CTO #814:** correction to my #813 gloss (below, §(i)); verification-status table added.
 **Amended 2026-10-31 per CTO #817:** citation key verified at the ref; Lee-2022/Lee-2026 collision rule; cs.AI vs cs.LG fact recorded. The table is kept permanently (#817 §3).
@@ -10,6 +12,8 @@ sentence relating CATTS's method to ours, affirmative or negated.** Where the ma
 quote is recorded and the note stops.
 
 ## Verification status (who has which fact at the ref)
+
+> **Status (2026-11-07):** **REPORT / RECORD (the whole note).** By design it holds no comparison sentence, so it has nothing to ratify. Its quotes are relied on by rows 11, 13 and 17 and by `origin/main` `paper.tex:132–136` and `:187–190` (CATTS §3.1 and §2).
 
 | Fact | Section | Verified at the ref by |
 |---|---|---|
