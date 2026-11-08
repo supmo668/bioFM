@@ -103,7 +103,7 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare article concept DOI (latest version; v5 = v0.5.2, paper.pdf md5-identical to Zenodo v0.5.2's)"
+    description: "Figshare article concept DOI (latest version; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:

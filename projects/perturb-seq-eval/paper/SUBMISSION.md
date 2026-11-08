@@ -3,13 +3,15 @@
 **Status: VENUE RULED, TechRxiv (approvals row 15, superseding row 12's arXiv). SUBMISSION BLOCKED** until the
 principal reads TechRxiv's own terms first-hand in an ordinary browser. Every TechRxiv fact in Part 7 comes from a
 secondary source (the COAR directory), and `techrxiv.org` returned HTTP 403 to the agents on 2026-11-05 (reported,
-not retried). Parts 0–2 describe the arXiv path. That path stays open only through a named `cs.LG` endorser (Path 2)
+not retried). Parts 0–2 are written for arXiv; Part 0 (building and checking the paper) applies to any venue. The arXiv path stays open only through a named `cs.LG` endorser (Path 2)
 obtained *before* any preprint is posted, never alongside one.
 **2026-11-08 (principal):** the row-19 Morandi sentence is in `paper.tex`, with its K clause qualified to the
-real-LLM evaluation after two independent primary-source reads. The Amendment-5 paper is archived as Zenodo /
-Figshare version `0.6.0-a5` **before** the preprint is posted (7.5 step 4a), so that Part 4's `isIdenticalTo` is true.
-**Owner: the principal. None of this is delegable to an agent** — arXiv has no deposit API for
-individual authors, and the license grant is a legal act by a person.
+real-LLM evaluation after two independent primary-source reads, and the (b″) disclaimer is narrowed to match ("we have
+read the sections cited below …"). The revised paper is archived as Zenodo / Figshare version **`0.6.1`** — a
+manuscript revision of v0.6.0; the run and every outcome are unchanged, and `v0.6.0-a5` stays the pre-registration
+amendment tag only — **before** the preprint is posted (7.5 step 4a), so that Part 4's `isIdenticalTo` is true.
+**Owner: the principal. None of this is delegable to an agent** — the venue submission and its licence grant are
+legal acts by a person (arXiv also has no deposit API for individual authors).
 
 This is the paper-specific **instance**. Three documents divide the work:
 
@@ -30,7 +32,7 @@ number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use 
 | | |
 |---|---|
 | Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 (retitled by Amendment 5) |
-| Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) |
+| Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) — v0.6.0, pre-amendment manuscript; **next: `0.6.1`** (7.5 step 4a) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
 | Venue (approvals row 15, superseding row 12) | **TechRxiv** (IEEE); posting blocked on the principal's first-hand read of its terms. arXiv (`cs.LG`, cross-lists `q-bio.QM`, `cs.MA`) only via a prior Path-2 endorsement, never in parallel |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
@@ -243,15 +245,16 @@ preprint alongside the two archive DOIs. That part *is* mine.
 
 ## Part 4 — Reciprocal linking on Zenodo (do not skip; this is what prevents "two papers")
 
-> **Target record (principal, 2026-11-08):** link the preprint to the **`0.6.0-a5`** Zenodo version
+> **Target record (principal, 2026-11-08):** link the preprint to the **`0.6.1`** Zenodo version
 > deposited at 7.5 step 4a, not to v0.6.0 (`10.5281/zenodo.23422745`). v0.6.0 carries the pre-amendment
-> title and manuscript, so `isIdenticalTo` against it would assert something false. Read "the v6
-> record" below as "the `0.6.0-a5` record", and "arXiv" as the venue (TechRxiv).
+> title and manuscript, so `isIdenticalTo` against it would assert something false. Read "arXiv" below as the venue (TechRxiv).
 
-The Zenodo record currently carries `isIdenticalTo 10.6084/m9.figshare.32086920.v6`,
-`isNewVersionOf` ×2, and `isSupplementedBy` the repository. Add the arXiv record the same way:
+At deposit the `0.6.1` Zenodo record carries `isNewVersionOf` `10.5281/zenodo.23422745` and
+`10.6084/m9.figshare.32086920.v6`, and `isSupplementedBy` the repository. The post-publish step
+(`publish.yml` deposit-time sequence, step 5) adds `isIdenticalTo` the Figshare v7 DOI, as was done for v6 on
+2026-10-25. Add the venue record the same way:
 
-1. Zenodo → the v6 record → **Edit** (metadata-only edit; it does **not** mint a new version).
+1. Zenodo → the `0.6.1` record → **Edit** (metadata-only edit; it does **not** mint a new version).
 2. Under **Related works**, add:
    - **`is identical to`** → `10.48550/arXiv.NNNN.NNNNN`
 3. Publish the metadata edit.
@@ -273,8 +276,9 @@ consistently; do not add both.**
 > the principal's step-4 read. Checklist, in order:
 > 1. **Before posting, nothing to do in Scholar.** There is no crawled record yet (7.0); a manual edit now
 >    only adds a second profile-only entry.
-> 2. **After the TechRxiv DOI is minted:** ORCID → add the TechRxiv DOI and the `0.6.0-a5` Zenodo DOI by
->    identifier (7.3 #1), so the author record carries both.
+> 2. **After the TechRxiv DOI is minted:** ORCID → add the TechRxiv DOI and the `0.6.1` Zenodo DOI by
+>    identifier (7.3 #1), so the author record carries both. Keep the concept-DOI entry as the preferred source
+>    in the grouped Work (`docs/hacp/perturb-seq-eval/publish-complete.md`).
 > 3. **When the crawled TechRxiv entry appears in Scholar (days to weeks):** merge it with the manual entry,
 >    crawled entry primary (step 1 below). Check its title is the Amendment-5 title and its author is
 >    "Mang-yin Mo". If it never appears, check the TechRxiv landing page exposes `citation_title`,
@@ -461,9 +465,9 @@ fallback it is, not as a way around the venue decision.
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
 | 3 | ~~Principal decides the venue~~ **Decided: TechRxiv** (approvals row 15) | 7.1, 7.2 |
 | 4 | **Principal reads TechRxiv's own terms at the primary source; BLOCKS step 5** (agents get HTTP 403) | 3 |
-| 4a | **Archive the Amendment-5 paper as version `0.6.0-a5`** (principal, 2026-11-08): `build_deposit.py`, then `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3), review the drafts, then a **separate go** to publish. The v0.6.0 records carry the pre-amendment paper and title, so step 6's `isIdenticalTo` would be false against them | nothing (can run in parallel with 4) |
-| 5 | Part 0 bundle → the venue's form. **Upload the same `paper.pdf` that 4a deposited** (do not rebuild between them), so "identical" is literally true | 4, 4a |
-| 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.0-a5` Zenodo record** (not v0.6.0 `10.5281/zenodo.23422745`) | 5 |
+| 4a | **Archive the revised paper as version `0.6.1`** (principal, 2026-11-08): `build_deposit.py`, then `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3), review the drafts, then a **separate go** to publish. The v0.6.0 records carry the pre-amendment paper and title, so step 6's `isIdenticalTo` would be false against them | nothing (can run in parallel with 4) |
+| 5 | Part 0 bundle → the venue's form. **Upload the same `paper.pdf` that 4a deposited** — the `build_deposit.py` build, md5-identical, not a CI rebuild (the Part 0 CI bundle is LaTeX source) — so "identical" is literally true | 4, 4a |
+| 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.1` Zenodo record** (not v0.6.0 `10.5281/zenodo.23422745`) | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
 | 8 | Semantic Scholar: add the paper to the claimed author page | 5 |
 | 9 | Part 6 OSF cleanup | nothing — independent, and still live and wrong |
