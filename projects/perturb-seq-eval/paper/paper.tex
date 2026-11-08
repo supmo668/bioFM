@@ -190,6 +190,12 @@ $N$ candidate actions sampled from one base model at a single step (their
 the quantities tested here are computed over the stated confidences of the
 five role-specialised agents of one run, within and across rounds
 (\S\ref{sec:tdi-real}).
+The Wald-SPRT governor of \citet{morandi2026sprt} consumes an LLM judge's
+consensus score on the agents' positions after each round (their \S III),
+with the agent count held fixed in its real-LLM evaluation (their
+\S VII-C14), and its author separates that across-agent signal from
+``within-agent confidence'' (their \S VII-C17); the quantities tested here
+are the agents' own stated confidences, and we do not gate rounds on them.
 
 \paragraph{Perturb-seq and single-cell foundation models.} Perturb-seq
 couples CRISPR perturbations with single-cell RNA-sequencing readouts,

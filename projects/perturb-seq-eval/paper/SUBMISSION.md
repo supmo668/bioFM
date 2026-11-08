@@ -5,6 +5,9 @@ principal reads TechRxiv's own terms first-hand in an ordinary browser. Every Te
 secondary source (the COAR directory), and `techrxiv.org` returned HTTP 403 to the agents on 2026-11-05 (reported,
 not retried). Parts 0–2 describe the arXiv path. That path stays open only through a named `cs.LG` endorser (Path 2)
 obtained *before* any preprint is posted, never alongside one.
+**2026-11-08 (principal):** the row-19 Morandi sentence is in `paper.tex`, with its K clause qualified to the
+real-LLM evaluation after two independent primary-source reads. The Amendment-5 paper is archived as Zenodo /
+Figshare version `0.6.0-a5` **before** the preprint is posted (7.5 step 4a), so that Part 4's `isIdenticalTo` is true.
 **Owner: the principal. None of this is delegable to an agent** — arXiv has no deposit API for
 individual authors, and the license grant is a legal act by a person.
 
@@ -240,6 +243,11 @@ preprint alongside the two archive DOIs. That part *is* mine.
 
 ## Part 4 — Reciprocal linking on Zenodo (do not skip; this is what prevents "two papers")
 
+> **Target record (principal, 2026-11-08):** link the preprint to the **`0.6.0-a5`** Zenodo version
+> deposited at 7.5 step 4a, not to v0.6.0 (`10.5281/zenodo.23422745`). v0.6.0 carries the pre-amendment
+> title and manuscript, so `isIdenticalTo` against it would assert something false. Read "the v6
+> record" below as "the `0.6.0-a5` record", and "arXiv" as the venue (TechRxiv).
+
 The Zenodo record currently carries `isIdenticalTo 10.6084/m9.figshare.32086920.v6`,
 `isNewVersionOf` ×2, and `isSupplementedBy` the repository. Add the arXiv record the same way:
 
@@ -259,6 +267,20 @@ consistently; do not add both.**
 ---
 
 ## Part 5 — Google Scholar
+
+> **On TechRxiv (2026-11-08).** The Scholar path is the venue's record, as below with "arXiv" read as
+> TechRxiv. That TechRxiv is Scholar-indexed comes from the COAR directory (secondary; 7.2) — confirm it in
+> the principal's step-4 read. Checklist, in order:
+> 1. **Before posting, nothing to do in Scholar.** There is no crawled record yet (7.0); a manual edit now
+>    only adds a second profile-only entry.
+> 2. **After the TechRxiv DOI is minted:** ORCID → add the TechRxiv DOI and the `0.6.0-a5` Zenodo DOI by
+>    identifier (7.3 #1), so the author record carries both.
+> 3. **When the crawled TechRxiv entry appears in Scholar (days to weeks):** merge it with the manual entry,
+>    crawled entry primary (step 1 below). Check its title is the Amendment-5 title and its author is
+>    "Mang-yin Mo". If it never appears, check the TechRxiv landing page exposes `citation_title`,
+>    `citation_author`, `citation_publication_date` and `citation_pdf_url` (Scholar inclusion guidelines).
+> 4. **Semantic Scholar / OpenAlex:** claim the author pages and confirm the Work (7.3 #2–#3); they follow
+>    the DOI and need no submission.
 
 Scholar's crawler reads Highwire `citation_*` / Dublin Core / Eprints meta tags and needs, at
 minimum, title + authors + date. **arXiv emits these correctly**, which is the entire reason to post
@@ -439,8 +461,9 @@ fallback it is, not as a way around the venue decision.
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
 | 3 | ~~Principal decides the venue~~ **Decided: TechRxiv** (approvals row 15) | 7.1, 7.2 |
 | 4 | **Principal reads TechRxiv's own terms at the primary source; BLOCKS step 5** (agents get HTTP 403) | 3 |
-| 5 | Part 0 bundle → the venue's form | 4 |
-| 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once | 5 |
+| 4a | **Archive the Amendment-5 paper as version `0.6.0-a5`** (principal, 2026-11-08): `build_deposit.py`, then `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3), review the drafts, then a **separate go** to publish. The v0.6.0 records carry the pre-amendment paper and title, so step 6's `isIdenticalTo` would be false against them | nothing (can run in parallel with 4) |
+| 5 | Part 0 bundle → the venue's form. **Upload the same `paper.pdf` that 4a deposited** (do not rebuild between them), so "identical" is literally true | 4, 4a |
+| 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.0-a5` Zenodo record** (not v0.6.0 `10.5281/zenodo.23422745`) | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
 | 8 | Semantic Scholar: add the paper to the claimed author page | 5 |
 | 9 | Part 6 OSF cleanup | nothing — independent, and still live and wrong |
@@ -485,10 +508,10 @@ Three items: one closed decision, one superseded ruling that blocks posting, one
    superseded. The supersession is conditional on the principal reading TechRxiv's terms first-hand
    (licence, scope, prior-posting rule). Every TechRxiv fact here comes from a secondary source, and the
    agents' fetch returned HTTP 403. Do not submit until that read is done and recorded.
-3. **Title — RULED T1 (CTO #896, 2026-11-04); BLOCKS submission until it lands.** The
-   question-form T1 title and row 11's narrowed contribution are applied in `paper.tex` and recorded as
-   Amendment 5 of `PREREGISTRATION.md`, and the metadata block above is regenerated from this branch. Do not submit until
-   that change has landed on `origin/main`; then re-run Part 0 so the bundle is built from it.
+3. **Title — RULED T1 (CTO #896, 2026-11-04) — CLOSED.** The question-form T1 title and row 11's narrowed
+   contribution are applied in `paper.tex` and recorded as Amendment 5 of `PREREGISTRATION.md`. They landed on
+   `origin/main` in PR #42 (tag `v0.6.0-a5`). Re-run Part 0 after the Morandi-sentence change lands, so the
+   bundle is built from it.
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 
