@@ -149,6 +149,12 @@ each one.
   the principal still ratifies; ratification is what lets content move to its real destination and the
   staging file be deleted.
 
+  **First application (principal, 2026-11-08, perturb-seq-eval approvals rows 26–27):**
+  `perturb-seq-eval-staging` is raised as a normal PR and merged with every finding labelled in place by
+  ratification status. This is the amended rule applied, not an exception to it. The agent raised it
+  against `origin/main`'s pre-amendment text, which still said a staging branch is "never a PR head".
+  Labelling is not ratification.
+
   **Why the line moved but did not disappear.** The defect in rows 83-86 was *hiding* unratified content
   on a side branch nobody reads, not drawing the ratified/unratified boundary. Retiring the mechanism
   outright would erase the distinction instead of surfacing it, and on a public repo that lets an
