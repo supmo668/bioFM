@@ -141,10 +141,27 @@ each one.
   `workstreams/lung-on-chipsim/paper/`.
 - **`configs/theta_priors.yaml` and `configs/assumptions.yaml` must not exist** in
   `projects/lung-on-chipsim/` — the S6 absence guard asserts it.
-- **Unratified findings never reach the trunk** (principal, 2026-10-31, lung approvals rows 83-86). A
-  findings-staging ledger lives on a dedicated `<agent>-staging` branch that is never a PR head; the CTO
-  mirrors it to a Notion row, where the principal ratifies; accepted content then moves to its real
-  destination through a normal PR and the staging file is deleted. MYB-8 adds the CI guard.
+- **Unratified findings reach the trunk only labelled as unratified** (principal, 2026-11-04, lung
+  approvals rows 104 and 110; **this amends** the 2026-10-31 rule of rows 83-86, which said they never
+  reach the trunk at all). A findings-staging ledger may now sit on the public trunk and its branch may
+  be a normal PR head. What survives is the **labelling discipline**: every unratified finding states
+  that it is unratified, in place, where a reader meets it. The CTO still mirrors it to a Notion row and
+  the principal still ratifies; ratification is what lets content move to its real destination and the
+  staging file be deleted.
+
+  **First application (principal, 2026-11-08, perturb-seq-eval approvals rows 26–27):**
+  `perturb-seq-eval-staging` is raised as a normal PR and merged with every finding labelled in place by
+  ratification status. This is the amended rule applied, not an exception to it. The agent raised it
+  against `origin/main`'s pre-amendment text, which still said a staging branch is "never a PR head".
+  Labelling is not ratification.
+
+  **Why the line moved but did not disappear.** The defect in rows 83-86 was *hiding* unratified content
+  on a side branch nobody reads, not drawing the ratified/unratified boundary. Retiring the mechanism
+  outright would erase the distinction instead of surfacing it, and on a public repo that lets an
+  unratified finding read as a ratified one. **"MYB-8 adds the CI guard" was never true** — measured
+  2026-11-05: no workflow under `.github/workflows/` mentions staging and no MYB-8 issue exists, so for
+  the whole period rows 83-86 were in force this rule was carried by the ledger and by convention, with
+  nothing in CI asserting it. Do not cite a guard that does not exist.
 - **A proxy 403 or egress block is reported, never retried or routed around.** See
   `/root/.ccr/README.md`. Do not write a value out of a search snippet; read the primary source.
 
