@@ -155,9 +155,16 @@ LINEAGE_STATE_FILES: frozenset[str] = frozenset({"publish.state.json", "publish.
 
 
 def _refuse_lineage_state(path: Path) -> Path:
-    """Refuse a state path whose file name -- or, through a symlink, whose target's name -- is a
-    published lineage record (LINEAGE_STATE_FILES)."""
-    if path.name in LINEAGE_STATE_FILES or path.resolve().name in LINEAGE_STATE_FILES:
+    """Refuse a state path that is a published lineage record (LINEAGE_STATE_FILES): by file name
+    compared case-insensitively (macOS disks are case-insensitive by default), through a symlink's
+    target name, or -- for a hard link or any other alias -- by being the same file as a lineage
+    record in its own directory."""
+    lineage = {n.casefold() for n in LINEAGE_STATE_FILES}
+    same_file = path.exists() and any(
+        (path.parent / n).exists() and os.path.samefile(path, path.parent / n)
+        for n in LINEAGE_STATE_FILES
+    )
+    if path.name.casefold() in lineage or path.resolve().name.casefold() in lineage or same_file:
         raise ValueError(
             f"state file {str(path)!r} is a published lineage record "
             f"({', '.join(sorted(LINEAGE_STATE_FILES))}) and is never written; "

@@ -1905,3 +1905,23 @@ def test_a_lineage_state_file_is_refused_from_either_source(tmp_path, monkeypatc
             assert calls == [], (name, cli, calls)
             assert (run_dir / "proj" / "publish.state.v060.json").read_bytes() == lineage
             assert not (run_dir / "proj" / "publish.state.v061.json").exists()
+
+
+def test_a_lineage_state_file_is_refused_by_case_variant_or_hard_link(tmp_path):
+    """On a case-insensitive disk a different-case name, and anywhere a hard link, is the same
+    lineage record; both are refused, not only the exact file name."""
+    import os
+
+    import pytest
+
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_lineage_alias")
+    real = tmp_path / "publish.state.v060.json"
+    real.write_text("{}")
+    with pytest.raises(ValueError, match="lineage"):
+        sv._refuse_lineage_state(tmp_path / "PUBLISH.STATE.V060.JSON")
+    link = tmp_path / "innocent.json"
+    os.link(real, link)
+    with pytest.raises(ValueError, match="lineage"):
+        sv._refuse_lineage_state(link)
+    fresh = tmp_path / "publish.state.v061.json"
+    assert sv._refuse_lineage_state(fresh) == fresh

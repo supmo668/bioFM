@@ -459,6 +459,13 @@ standalone records on both venues"*** — a published record is **never** mutate
 No `newversion`, no metadata edit on a published article, no file deletion, no
 re-upload.
 
+> **Superseded in part.** The 2026-10-15 ruling was reversed on 2026-10-16 (D-1 = B: v0.6.0 is the next
+> version of the existing records), and on 2026-11-08 the principal ruled the next deposit `0.6.1` the same way.
+> The submitter now permits **exactly one** write path per venue on a published record, named in
+> `ALLOWED_REVISIONS` (`projects/perturb-seq-eval/scripts/publish/submit_to_venues.py`): a Zenodo `newversion` on
+> the current published version and Figshare article `32086920`'s next version. Every other write is refused. The
+> hand recipes stay forbidden; only the gated submitter writes.
+
 The executable recipes were **removed from this page rather than annotated**,
 deliberately. A runbook is skimmed and pasted, so a warning above a working
 command is not a guard — the command is the hazard. They remain in git history
@@ -513,17 +520,18 @@ Then stage a single PR with those four files touched."
 ## 8. Resume / recovery
 
 The state file is idempotent. If the script is interrupted between
-venues, rerunning with the same `publish.state.json` in place picks up
-where it left off — existing deposition IDs are reused.
+venues, rerunning with the same state file — **this release's `state_file` in `publish.yml`** (`publish.state.v061.json`
+for 0.6.1) — in place picks up where it left off — existing deposition IDs are reused.
 
 | Failure mode | What the script does on retry |
 |---|---|
 | Network blip mid-upload | Re-uploads missing files; deposition IDs preserved |
 | `FIGSHARE_TOKEN` expires | Mint new, re-export, rerun — article ID preserved |
 | Zenodo metadata validation error | Fix `publish.yml`, rerun; metadata PUT is idempotent |
-| Production vs sandbox mix-up | Flip `sandbox:` flag; clear only the `zenodo` section of `publish.state.json` |
+| Production vs sandbox mix-up | Flip `sandbox:` flag; clear only the `zenodo` section of this release's `state_file` |
 
-Delete the state file entirely only for a genuinely fresh start.
+Delete the state file entirely only for a genuinely fresh start. **Never point `--state` at a published lineage record**
+(`publish.state.json`, `publish.state.v060.json`); the submitter refuses them by name.
 
 ## 9. What Claude needs from you to run this unattended
 
