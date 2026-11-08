@@ -148,37 +148,56 @@ class PublishConfig:
         )
 
 
+# State files of published releases: the tracked deposit-lineage records (v0.5.x, v0.6.0). No run
+# ever resolves its state to one of them, from publish.yml or from --state, so a run can never
+# rewrite the lineage (and a lineage record's published ids are never resumed).
+LINEAGE_STATE_FILES: frozenset[str] = frozenset({"publish.state.json", "publish.state.v060.json"})
+
+
+def _refuse_lineage_state(path: Path) -> Path:
+    """Refuse a state path whose file name -- or, through a symlink, whose target's name -- is a
+    published lineage record (LINEAGE_STATE_FILES)."""
+    if path.name in LINEAGE_STATE_FILES or path.resolve().name in LINEAGE_STATE_FILES:
+        raise ValueError(
+            f"state file {str(path)!r} is a published lineage record "
+            f"({', '.join(sorted(LINEAGE_STATE_FILES))}) and is never written; "
+            "use this release's own state_file (publish.yml)."
+        )
+    return path
+
+
 def resolve_state_path(cli_state: Path | None, cfg: "PublishConfig") -> Path:
-    """--state if given, else the release's own state file from publish.yml, else the legacy one.
+    """--state if given, else the release's own state file from publish.yml.
 
     A path from publish.yml is anchored to publish.yml's directory, not the current working
     directory, so the two principal gos (create, then publish) always share one state file
     whichever directory they are run from. It must stay inside that directory and must not be
-    a symlink.
+    a symlink. Either source is refused if it names a lineage record (LINEAGE_STATE_FILES),
+    including the legacy default publish.state.json used when state_file is empty.
     """
     if cli_state is not None:
-        return cli_state
+        return _refuse_lineage_state(cli_state)
     path = Path(cfg.state_file or "publish.state.json")
     if not path.is_absolute():
         path = cfg.root / path
     root = cfg.root.resolve()
     if path.is_symlink() or root not in path.resolve().parents:
         raise ValueError(f"state_file must be a regular file inside {root}: {cfg.state_file!r}")
-    return path
+    return _refuse_lineage_state(path)
 
 
 # Published records of earlier releases. They are never written to, whatever a state file says,
 # with EXACTLY the two exceptions in ALLOWED_REVISIONS.
 SUPERSEDED_RECORDS: dict[str, frozenset] = {
     # 20074427 = v0.5.2, the newest published v0.5.x record (found by the read-only GETs);
-    # 23422745 = v0.6.0 (publish.state.v060.json), the record 0.6.0-a5 is a new version of.
+    # 23422745 = v0.6.0 (publish.state.v060.json), the record 0.6.1 is a new version of.
     "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974, 20074427, 23422745}),
     "figshare": frozenset({32086920}),
     "osf": frozenset({"wmeuy", "dhu4z_v1"}),
 }
 
 # The only two operations permitted on a published record -- exactly one revision per venue.
-# 0.6.0-a5 (the Amendment-5 manuscript, principal 2026-11-08) supersedes the published v0.6.0
+# 0.6.1 (the Amendment-5 manuscript, principal 2026-11-08) supersedes the published v0.6.0
 # record as a NEW VERSION, so no duplicate record exists (as v0.6.0 did v0.5.x, D-1 = B, CTO #647).
 #   zenodo:   POST actions/newversion on 23422745 (v0.6.0, latest under concept 19716140) --
 #             nothing else is ever sent to 23422745; files are replaced on the NEW draft only.
@@ -415,11 +434,9 @@ class ZenodoSubmitter:
         dep_id = _state_id("zenodo", "deposit_id", self.state.get("zenodo", "deposit_id"))
         rev = _revision_target("zenodo", self.vcfg)
         _refuse_superseded("zenodo", dep_id)
-        if (
-            rev is not None
-            and dep_id is not None
-            and self.state.get("zenodo", "revision_of") != rev
-        ):
+        # An int check first, so a hand-edited 23422745.0 or True cannot satisfy the comparison.
+        state_rev = _state_id("zenodo", "revision_of", self.state.get("zenodo", "revision_of"))
+        if rev is not None and dep_id is not None and state_rev != rev:
             raise PublishedRecordError(
                 f"zenodo: the state file records draft {dep_id}, which is not the new version of "
                 f"{rev}; discard that draft and clear the state before preparing the revision."
@@ -631,11 +648,9 @@ class FigshareSubmitter:
         art_id = _state_id("figshare", "article_id", self.state.get("figshare", "article_id"))
         rev = _revision_target("figshare", self.vcfg)
         _refuse_superseded("figshare", art_id, allow=rev)
-        if (
-            rev is not None
-            and art_id is not None
-            and (art_id != rev or self.state.get("figshare", "revision_of") != rev)
-        ):
+        # An int check first, so a hand-edited 32086920.0 or True cannot satisfy the comparison.
+        state_rev = _state_id("figshare", "revision_of", self.state.get("figshare", "revision_of"))
+        if rev is not None and art_id is not None and (art_id != rev or state_rev != rev):
             raise PublishedRecordError(
                 f"figshare: the state file records article {art_id}, which is not the revision of "
                 f"{rev}; discard that draft and clear the state before preparing the revision."
@@ -1165,7 +1180,7 @@ def main() -> int:
         "--state",
         type=Path,
         default=None,
-        help="state file (default: publish.yml state_file, else publish.state.json)",
+        help="state file (default: publish.yml state_file; a lineage record is refused)",
     )
     p.add_argument(
         "--env",

@@ -4,23 +4,26 @@
 # script never writes to this file. DOIs and deposition IDs go into the release's
 # state file (`state_file` below; tracked, it is the deposit-lineage record).
 # `publish.state.json` is the v0.5.x record and `publish.state.v060.json` the v0.6.0 record;
-# neither is written for 0.6.0-a5.
+# neither is written for 0.6.1 (the submitter refuses either name as a state file).
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
 
 # Version of the deposited work (sent to Zenodo as the record's version).
-version: "0.6.0-a5"
+# 0.6.1 (principal 2026-11-08) is a manuscript revision of v0.6.0: Amendment 5 and a related-work
+# sentence on Morandi (2026); the v0.6.0 run and every outcome are unchanged. The git tag v0.6.0-a5
+# is the PREREGISTRATION amendment tag only, not the deposit version.
+version: "0.6.1"
 
-# State file for THIS release (the new-version ids). 0.6.0-a5 is the NEXT VERSION of the published
+# State file for THIS release (the new-version ids). 0.6.1 is the NEXT VERSION of the published
 # v0.6.0 records on both venues (principal 2026-11-08: the Amendment-5 paper, deposited so the
 # preprint can be linked isIdenticalTo it), as v0.6.0 was of v0.5.x (principal D-1 = B,
 # 2026-10-16, CTO #647): no duplicate record. publish.state.json (v0.5.x) and
 # publish.state.v060.json (v0.6.0) stay the lineage records and are never written.
-state_file: publish.state.v060a5.json
+state_file: publish.state.v061.json
 
 # Retitled by Amendment 5 of paper/PREREGISTRATION.md (2026-11-04, CTO #896). The minted v0.6.0
 # records (Zenodo 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title; this title
-# and the regenerated description below take effect at the next deposit, which is the principal's call.
+# and the regenerated description below take effect at the 0.6.1 deposit (principal 2026-11-08).
 title: >-
   Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
   A Pre-registered, Provenance-Complete Test on Perturb-seq Response
@@ -84,7 +87,7 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Deposit-time sequence. 0.6.0-a5 supersedes v0.6.0 as a NEW VERSION of the existing records
+# Deposit-time sequence. 0.6.1 supersedes v0.6.0 as a NEW VERSION of the existing records
 # (principal 2026-11-08; as v0.6.0 did v0.5.x, D-1 = B, CTO #647), so no duplicate record exists. The submitter performs exactly the
 # two operations in ALLOWED_REVISIONS (venues.<venue>.revision_of below) and refuses any other
 # write to a published or superseded record (PublishedRecordError). This sequence names the
@@ -96,14 +99,18 @@ license: cc-by-4.0
 #        python scripts/publish/submit_to_venues.py zenodo --dry-run
 #        python scripts/publish/submit_to_venues.py figshare --dry-run
 #      Zenodo: a new-version DRAFT of 23422745 under concept 10.5281/zenodo.19716140, with the
-#      inherited files replaced by the v0.6.0-a5 set. Figshare: article 32086920's next version
+#      inherited files replaced by the 0.6.1 set. Figshare: article 32086920's next version
 #      prepared UNPUBLISHED (the public version must not change; the run checks). Nothing is
-#      published. The ids are recorded in publish.state.v060a5.json; commit it before step 4.
+#      published. The ids are recorded in publish.state.v061.json; commit it before step 4.
 #   4. Principal's SEPARATE go to publish: the same commands without --dry-run. They only
 #      publish the recorded revision (DraftRequiredError otherwise), resend the metadata, refuse
 #      a changed file (DraftMismatchError) and any Figshare author but expected_author. Do not
 #      rebuild between steps 3 and 4.
-#   5. Set CITATION.cff date-released and add the new version DOIs.
+#   5. After both publishes: set CITATION.cff `version: "0.6.1"` and `date-released`; add
+#      the 0.6.1 Zenodo DOI and the Figshare v7 DOI to its `identifiers`, and drop "this release"
+#      from the 23422745 entry; add a CHANGELOG 0.6.1 entry. Then a Zenodo metadata-only edit
+#      of the 0.6.1 record adding `isIdenticalTo` the Figshare v7 DOI (as was done for v6 on
+#      2026-10-25).
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
   # gitignored, so the build is part of the deposit, not a precondition).
@@ -140,7 +147,7 @@ venues:
       - identifier: "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
         relation: "isSupplementedBy"
         scheme: "url"
-      # 0.6.0-a5 is the next version of the v0.6.0 work under the same concept DOI, not identical.
+      # 0.6.1 is the next version of the v0.6.0 work under the same concept DOI, not identical.
       - identifier: "10.5281/zenodo.23422745"
         relation: "isNewVersionOf"
         scheme: "doi"
@@ -150,10 +157,11 @@ venues:
     # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from v0.6.0.
     revision_of: 23422745
     notes: >-
-      0.6.0-a5 is the next version of this record (concept DOI 10.5281/zenodo.19716140),
-      carrying Amendment 5 of the pre-registration: the paper is retitled, its contribution is
-      narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered criterion'. No
-      hypothesis, threshold, estimator or outcome changed.
+      0.6.1 is the next version of this record (concept DOI 10.5281/zenodo.19716140), carrying
+      Amendment 5 of the pre-registration (tag v0.6.0-a5: the paper is retitled, its
+      contribution is narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered
+      criterion') and one added related-work sentence on Morandi (2026). No hypothesis,
+      threshold, estimator, run or outcome changed.
 
   figshare:
     enabled: true
@@ -173,7 +181,8 @@ venues:
     expected_author: "Mang-yin Mo"
     # The one permitted Figshare revision (ALLOWED_REVISIONS): article 32086920's next version.
     revision_of: 32086920
-    # References carried by the revised article (replace the v0.5-era list).
+    # References carried by the 0.6.1 article (sent with its metadata; they replace the list the
+    # v6 article carries).
     references:
       - "https://doi.org/10.5281/zenodo.19716140"
       - "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
