@@ -24,7 +24,7 @@ the first performed on an error message — worth the instinct you already hold.
 
 **The fact you could not have:** the artifacts server is **present and loaded in my session**
 (`mcp__claude-artifacts__*`, 32 tools, this session, after the same `/login` to
-`mattmo@syntropyhealth.bio`). So the capability is not globally withdrawn — it is absent from
+the principal's account email). So the capability is not globally withdrawn — it is absent from
 *yours*. Two consequences:
 
 1. **#860's question is testable again, by me, not by you.** Whether the roster-table artifact

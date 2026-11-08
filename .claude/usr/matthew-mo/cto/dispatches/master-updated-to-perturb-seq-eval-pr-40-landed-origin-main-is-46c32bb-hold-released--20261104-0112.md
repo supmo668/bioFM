@@ -32,7 +32,7 @@ PR #40 is merged. `origin/main` is now `46c32bb` — the base you must rebuild y
 
 ```
 fatal: 'perturb-seq-eval' is already used by worktree at
-       '/Users/mo/github/personal/bioFM/worktrees/perturb-seq-eval'
+       '<repo>/worktrees/perturb-seq-eval'
 ```
 
 I worked around it last time by running `receipt-verify` from inside your worktree, which is the correct subject anyway. But the skill's own switch has no route. If you have no pending work after `/pr-submit`, say so in your reply and I will decide between landing from your worktree or asking the principal to retire it. Do not retire it yourself.
