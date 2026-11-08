@@ -6,8 +6,8 @@ OSF. Writes DOIs and deposition IDs into the release's state file
 (``publish.yml`` ``state_file``, anchored to publish.yml's directory) so a
 run can be resumed. Records of superseded releases (SUPERSEDED_RECORDS) and
 published records are never written to (PublishedRecordError), with exactly
-two named exceptions (ALLOWED_REVISIONS): a Zenodo new version from 20074427
-and the next version of Figshare article 32086920, selected by
+two named exceptions (ALLOWED_REVISIONS): a Zenodo new version from 23422745
+(v0.6.0) and the next version of Figshare article 32086920, selected by
 ``venues.<venue>.revision_of`` in publish.yml.
 
 Two-step deposit: ``--dry-run`` CREATES a new draft (or prepares the revision,
@@ -170,24 +170,28 @@ def resolve_state_path(cli_state: Path | None, cfg: "PublishConfig") -> Path:
 # Published records of earlier releases. They are never written to, whatever a state file says,
 # with EXACTLY the two exceptions in ALLOWED_REVISIONS.
 SUPERSEDED_RECORDS: dict[str, frozenset] = {
-    # 20074427 = v0.5.2, the newest published v0.5.x record (found by the read-only GETs).
-    "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974, 20074427}),
+    # 20074427 = v0.5.2, the newest published v0.5.x record (found by the read-only GETs);
+    # 23422745 = v0.6.0 (publish.state.v060.json), the record 0.6.0-a5 is a new version of.
+    "zenodo": frozenset({19716140, 19716141, 19721470, 19748260, 20060974, 20074427, 23422745}),
     "figshare": frozenset({32086920}),
     "osf": frozenset({"wmeuy", "dhu4z_v1"}),
 }
 
-# The only two operations permitted on a published record (principal D-1 = B, CTO #647): v0.6.0
-# supersedes the v0.5.x record as a NEW VERSION, so no duplicate record exists.
-#   zenodo:   POST actions/newversion on 20074427 (latest under concept 19716140) -- nothing else
-#             is ever sent to 20074427; files are replaced on the NEW draft only.
+# The only two operations permitted on a published record -- exactly one revision per venue.
+# 0.6.0-a5 (the Amendment-5 manuscript, principal 2026-11-08) supersedes the published v0.6.0
+# record as a NEW VERSION, so no duplicate record exists (as v0.6.0 did v0.5.x, D-1 = B, CTO #647).
+#   zenodo:   POST actions/newversion on 23422745 (v0.6.0, latest under concept 19716140) --
+#             nothing else is ever sent to 23422745; files are replaced on the NEW draft only.
+#             20074427 (v0.5.2, the previous target) is now an ordinary superseded record.
 #   figshare: metadata update + file replacement on article 32086920, published as its next
 #             version; the public version must not change during a dry run.
 # Any other id, venue or verb on a superseded record still raises PublishedRecordError.
-ALLOWED_REVISIONS: dict[str, int] = {"zenodo": 20074427, "figshare": 32086920}
+ALLOWED_REVISIONS: dict[str, int] = {"zenodo": 23422745, "figshare": 32086920}
 # The Zenodo concept record the permitted new version must belong to.
 ZENODO_CONCEPT = 19716140
-# The Figshare public version the permitted revision starts from (the .v5 relation in publish.yml).
-FIGSHARE_BASE_VERSION = 5
+# The Figshare public version the permitted revision starts from (v6 = v0.6.0; the .v6 relation
+# in publish.yml).
+FIGSHARE_BASE_VERSION = 6
 
 
 def _revision_target(venue: str, vcfg: dict) -> int | None:

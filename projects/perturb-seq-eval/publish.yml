@@ -3,17 +3,20 @@
 # Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
 # script never writes to this file. DOIs and deposition IDs go into the release's
 # state file (`state_file` below; tracked, it is the deposit-lineage record).
-# `publish.state.json` is the v0.5.x record and is not written for v0.6.0.
+# `publish.state.json` is the v0.5.x record and `publish.state.v060.json` the v0.6.0 record;
+# neither is written for 0.6.0-a5.
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
 
 # Version of the deposited work (sent to Zenodo as the record's version).
-version: "0.6.0"
+version: "0.6.0-a5"
 
-# State file for THIS release (the new-version ids). v0.6.0 is the NEXT VERSION of the existing
-# records on both venues (principal D-1 = B, 2026-10-16, CTO #647; #620 "standalone" reversed):
-# no duplicate record. publish.state.json stays the v0.5.x lineage record and is never written.
-state_file: publish.state.v060.json
+# State file for THIS release (the new-version ids). 0.6.0-a5 is the NEXT VERSION of the published
+# v0.6.0 records on both venues (principal 2026-11-08: the Amendment-5 paper, deposited so the
+# preprint can be linked isIdenticalTo it), as v0.6.0 was of v0.5.x (principal D-1 = B,
+# 2026-10-16, CTO #647): no duplicate record. publish.state.json (v0.5.x) and
+# publish.state.v060.json (v0.6.0) stay the lineage records and are never written.
+state_file: publish.state.v060a5.json
 
 # Retitled by Amendment 5 of paper/PREREGISTRATION.md (2026-11-04, CTO #896). The minted v0.6.0
 # records (Zenodo 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title; this title
@@ -81,8 +84,8 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Deposit-time sequence. v0.6.0 supersedes v0.5.x as a NEW VERSION of the existing records
-# (principal D-1 = B, CTO #647), so no duplicate record exists. The submitter performs exactly the
+# Deposit-time sequence. 0.6.0-a5 supersedes v0.6.0 as a NEW VERSION of the existing records
+# (principal 2026-11-08; as v0.6.0 did v0.5.x, D-1 = B, CTO #647), so no duplicate record exists. The submitter performs exactly the
 # two operations in ALLOWED_REVISIONS (venues.<venue>.revision_of below) and refuses any other
 # write to a published or superseded record (PublishedRecordError). This sequence names the
 # steps; the gated submitter is the only implementation (no raw API recipes here).
@@ -92,10 +95,10 @@ license: cc-by-4.0
 #   3. Principal's go for the FIRST WRITE:
 #        python scripts/publish/submit_to_venues.py zenodo --dry-run
 #        python scripts/publish/submit_to_venues.py figshare --dry-run
-#      Zenodo: a new-version DRAFT of 20074427 under concept 10.5281/zenodo.19716140, with the
-#      inherited files replaced by the v0.6.0 set. Figshare: article 32086920's next version
+#      Zenodo: a new-version DRAFT of 23422745 under concept 10.5281/zenodo.19716140, with the
+#      inherited files replaced by the v0.6.0-a5 set. Figshare: article 32086920's next version
 #      prepared UNPUBLISHED (the public version must not change; the run checks). Nothing is
-#      published. The ids are recorded in publish.state.v060.json; commit it before step 4.
+#      published. The ids are recorded in publish.state.v060a5.json; commit it before step 4.
 #   4. Principal's SEPARATE go to publish: the same commands without --dry-run. They only
 #      publish the recorded revision (DraftRequiredError otherwise), resend the metadata, refuse
 #      a changed file (DraftMismatchError) and any Figshare author but expected_author. Do not
@@ -106,7 +109,7 @@ files:
   # gitignored, so the build is part of the deposit, not a precondition).
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "Manuscript with the v0.6.0 pre-registered results, built with tectonic from the landed sources; the build log is paper_build.log."
+    description: "Amendment 5 manuscript of the v0.6.0 pre-registered results, built with tectonic from the landed sources; the build log is paper_build.log."
   - path: build/deposit/paper_build.log
     name: paper_build.log
     description: "tectonic build log of paper.pdf (overfull/undefined-reference counts are in the log)."
@@ -137,18 +140,20 @@ venues:
       - identifier: "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
         relation: "isSupplementedBy"
         scheme: "url"
-      # v0.6.0 is the next version of the v0.5.x work under the same concept DOI, not identical.
-      - identifier: "10.5281/zenodo.20074427"
+      # 0.6.0-a5 is the next version of the v0.6.0 work under the same concept DOI, not identical.
+      - identifier: "10.5281/zenodo.23422745"
         relation: "isNewVersionOf"
         scheme: "doi"
-      - identifier: "10.6084/m9.figshare.32086920.v5"
+      - identifier: "10.6084/m9.figshare.32086920.v6"
         relation: "isNewVersionOf"
         scheme: "doi"
-    # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from v0.5.2.
-    revision_of: 20074427
+    # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from v0.6.0.
+    revision_of: 23422745
     notes: >-
-      v0.6.0 is the next version of this record (concept DOI 10.5281/zenodo.19716140): the
-      pre-registered v0.6.0 study supersedes v0.5.x, whose versions remain available.
+      0.6.0-a5 is the next version of this record (concept DOI 10.5281/zenodo.19716140),
+      carrying Amendment 5 of the pre-registration: the paper is retitled, its contribution is
+      narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered criterion'. No
+      hypothesis, threshold, estimator or outcome changed.
 
   figshare:
     enabled: true
