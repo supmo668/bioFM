@@ -18,8 +18,24 @@ from pathlib import Path
 import pytest
 import yaml
 
+from chipsim.transport.prior import PRIOR_SCAFFOLD_RELPATH
+from chipsim.transport.theta import THETA_SCAFFOLD_RELPATH
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SCAFFOLD = PROJECT_ROOT / "configs" / "templates" / "theta_priors.scaffold.yaml"
+#: DERIVED from the constant, not re-spelled. It was a literal, while
+#: `tests/test_m1_inputs.py` read the same file through `THETA_SCAFFOLD_RELPATH` — two
+#: definitions of one subject with nothing asserting they agree, in the pair of tests that
+#: guard that very path. Repointing the constant at another valid theta-shaped file would
+#: have left this module asserting on the old literal and still green.
+SCAFFOLD = PROJECT_ROOT / THETA_SCAFFOLD_RELPATH
+
+
+def test_the_scaffold_constants_hold_the_paths_the_docs_promise():
+    """The invariant the rename bought, asserted on the VALUES and not only on the names."""
+    assert THETA_SCAFFOLD_RELPATH == Path("configs/templates/theta_priors.scaffold.yaml")
+    assert PRIOR_SCAFFOLD_RELPATH == Path("configs/templates/transport_prior.scaffold.yaml")
+    assert THETA_SCAFFOLD_RELPATH != PRIOR_SCAFFOLD_RELPATH
+
 
 #: A&D §1 row-S5. Exactly these, no more: an extra field is a biological claim nobody sourced,
 #: and a missing one silently drops a parameter the ODE core needs.
