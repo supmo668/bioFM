@@ -26,13 +26,16 @@ from types import MappingProxyType
 
 import yaml
 
+from chipsim.transport import _s6
+
 #: S14's scaffold, relative to the project root.
 PRIOR_SCAFFOLD_RELPATH = Path("configs/templates/transport_prior.scaffold.yaml")
 
 #: The two entries the fit reads, in the order the scaffold emits them.
 PRIOR_NAMES = ("alpha_prior", "k_sink_prior")
 
-#: The keys one entry may carry (S14).
+#: The keys one entry may carry (S14). Module-PRIVATE for the same reason as theta's:
+#: enforced here, consumed nowhere else. See `theta.py` for the rule.
 _ENTRY_KEYS = ("mean_log", "sigma_log", "citation", "assumed")
 
 #: What each entry parameterises, for the message the validator raises.
@@ -150,7 +153,7 @@ class TransportPrior:
         return tuple(n for n in PRIOR_NAMES if self.is_assumed(n))
 
 
-def scaffold_text() -> str:
+def prior_scaffold_text() -> str:
     """S14's template: two entries, no numbers, both flagged assumed."""
     lines = [
         "# Transport-core MAP prior — SCAFFOLD for build-plan T28 (S14). HUMAN-OWNED.",
@@ -184,6 +187,11 @@ def _carries_human_content(path: Path) -> bool:
         return True
     if not isinstance(doc, dict):
         return bool(doc)
+    # A parseable file of the WRONG SHAPE is human content. Measured 2026-11-08: a FILLED
+    # theta file scored blank here (its entries carry `value:`/`unit:`, not `mean_log:`)
+    # and this writer overwrote it with no error. Symmetric with theta's check.
+    if doc and not any(name in doc for name in PRIOR_NAMES):
+        return True
     for entry in doc.values():
         if not isinstance(entry, dict):
             if not _blank(entry):
@@ -195,14 +203,28 @@ def _carries_human_content(path: Path) -> bool:
     return False
 
 
-def write_scaffold(path: Path, *, force: bool = False) -> Path:
-    """Write S14's template to `path`, refusing to blank filled entries."""
+def write_prior_scaffold(path: Path, *, force: bool = False) -> Path:
+    """Write S14's template to `path`. Refuses S6's paths, and refuses to destroy work.
+
+    The S6 refusal was ABSENT here until 2026-11-08 while theta's writer had it, so this
+    function would create `configs/theta_priors.yaml` on request — a live bypass of the
+    constraint whose whole mechanism is that file's absence. Both writers now share one
+    guard (`_s6.forbidden_match`).
+    """
     path = Path(path)
+    forbidden = _s6.forbidden_match(path)
+    if forbidden is not None:
+        raise TransportPriorTemplateError(
+            f"refusing to write {path}: `{forbidden.as_posix()}` is human-owned and its "
+            "ABSENCE is the mechanical form of the rule that no agent writes a biological "
+            "number (build-plan S6). The scaffold belongs at "
+            f"{PRIOR_SCAFFOLD_RELPATH.as_posix()}."
+        )
     if path.exists() and not force and _carries_human_content(path):
         raise TransportPriorTemplateError(
             f"refusing to overwrite {path}: it already carries filled prior entries. "
             "Pass force=True only to discard them deliberately."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(scaffold_text(), encoding="utf-8")
+    path.write_text(prior_scaffold_text(), encoding="utf-8")
     return path

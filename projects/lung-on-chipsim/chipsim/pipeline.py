@@ -358,10 +358,10 @@ def _cmd_panel_seal(ns) -> int:
 
 
 def _cmd_theta_scaffold(ns: argparse.Namespace) -> int:
-    from chipsim.transport.theta import THETA_SCAFFOLD_RELPATH, write_scaffold
+    from chipsim.transport.theta import THETA_SCAFFOLD_RELPATH, write_theta_scaffold
 
     out = ns.out or (project_root() / THETA_SCAFFOLD_RELPATH)
-    print(f"theta scaffold written: {write_scaffold(out, force=ns.force)}")
+    print(f"theta scaffold written: {write_theta_scaffold(out, force=ns.force)}")
     print(
         "Copy it to configs/theta_priors.yaml yourself and fill it. No agent step "
         "creates that path: its absence is how Global Constraint #1 is enforced (S6)."
@@ -370,10 +370,10 @@ def _cmd_theta_scaffold(ns: argparse.Namespace) -> int:
 
 
 def _cmd_transport_prior_scaffold(ns: argparse.Namespace) -> int:
-    from chipsim.transport.prior import PRIOR_SCAFFOLD_RELPATH, write_scaffold
+    from chipsim.transport.prior import PRIOR_SCAFFOLD_RELPATH, write_prior_scaffold
 
     out = ns.out or (project_root() / PRIOR_SCAFFOLD_RELPATH)
-    print(f"transport-prior scaffold written: {write_scaffold(out, force=ns.force)}")
+    print(f"transport-prior scaffold written: {write_prior_scaffold(out, force=ns.force)}")
     return 0
 
 
