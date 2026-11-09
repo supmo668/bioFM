@@ -148,7 +148,7 @@ def test_the_guard_the_decision_ledger_cites_exists_under_that_name():
 
 
 def test_s13_scaffold_parses_with_exactly_the_six_fields_empty_and_assumed():
-    doc = yaml.safe_load((PROJECT_ROOT / theta_mod.SCAFFOLD_RELPATH).read_text())
+    doc = yaml.safe_load((PROJECT_ROOT / theta_mod.THETA_SCAFFOLD_RELPATH).read_text())
     assert tuple(doc["theta"]) == FIELD_NAMES
     for name, entry in doc["theta"].items():
         assert entry["value"] is None, f"{name} ships a value"
@@ -167,7 +167,7 @@ def test_s13_reasserts_the_s6_invariant(relpath):
 def test_s13_writer_refuses_the_path_s6_guards(tmp_path):
     target = tmp_path / "configs" / "theta_priors.yaml"
     with pytest.raises(ThetaTemplateError, match="human-owned"):
-        theta_mod.write_scaffold(target)
+        theta_mod.write_theta_scaffold(target)
     assert not target.exists()
 
 
@@ -177,7 +177,7 @@ def test_s13_writer_refuses_to_blank_a_filled_file(tmp_path):
     target.write_text((FIXTURES / "theta_priors_complete.yaml").read_text())
     before = target.read_text()
     with pytest.raises(ThetaTemplateError, match="already carries filled"):
-        theta_mod.write_scaffold(target)
+        theta_mod.write_theta_scaffold(target)
     assert target.read_text() == before
 
 
@@ -187,14 +187,14 @@ def test_s13_writer_overwrites_an_untouched_scaffold():
 
     with tempfile.TemporaryDirectory() as d:
         target = Path(d) / "scaffold.yaml"
-        theta_mod.write_scaffold(target)
-        theta_mod.write_scaffold(target)  # no force needed: nothing was filled
+        theta_mod.write_theta_scaffold(target)
+        theta_mod.write_theta_scaffold(target)  # no force needed: nothing was filled
         assert yaml.safe_load(target.read_text())["theta"]["porosity"]["value"] is None
 
 
 def test_s13_scaffold_carries_no_number_at_all():
     """An agent-written number in a θ file is prohibition (1). Check the bytes."""
-    text = theta_mod.scaffold_text()
+    text = theta_mod.theta_scaffold_text()
     body = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
     doc = yaml.safe_load(body)
 
@@ -243,7 +243,7 @@ def test_t28_rejects_a_file_carrying_only_one_prior(tmp_path):
 
 
 def test_s14_scaffold_parses_with_exactly_two_entries_both_assumed():
-    doc = yaml.safe_load((PROJECT_ROOT / prior_mod.SCAFFOLD_RELPATH).read_text())
+    doc = yaml.safe_load((PROJECT_ROOT / prior_mod.PRIOR_SCAFFOLD_RELPATH).read_text())
     assert tuple(doc) == PRIOR_NAMES
     for name, entry in doc.items():
         assert entry["mean_log"] is None and entry["sigma_log"] is None, name
@@ -486,3 +486,84 @@ def test_sourcing_rejects_an_unknown_key(tmp_path):
     doc = _row(valeu=1.0)
     with pytest.raises(SourcingError, match="unknown key"):
         load_sourcing_worksheet(_write(tmp_path, doc))
+
+
+# --- S14's writer and validator, which had no tests at all until 2026-11-09 ---------------
+# theta's equivalents were each pinned; the prior's were not. `prior.write_scaffold`,
+# `prior.scaffold_text`, the "already carries filled prior entries" refusal and the
+# unknown-key branch were all unexercised, so defect 22's failure mode was guarded on one
+# side of a symmetric pair and unguarded on the other. The asymmetry is the finding.
+
+
+def _filled_prior_file(tmp_path: Path) -> Path:
+    """A prior file carrying real human content, written through the real writer."""
+    target = tmp_path / "transport_prior.yaml"
+    prior_mod.write_prior_scaffold(target)
+    target.write_text(
+        target.read_text()
+        .replace("mean_log:", "mean_log: -1.2")
+        .replace("citation:", "citation: doi:10.1234/example"),
+        encoding="utf-8",
+    )
+    return target
+
+
+def test_s14_writer_refuses_to_blank_a_filled_prior_file(tmp_path: Path):
+    target = _filled_prior_file(tmp_path)
+    before = target.read_bytes()
+    with pytest.raises(prior_mod.TransportPriorTemplateError, match="already carries filled"):
+        prior_mod.write_prior_scaffold(target)
+    assert target.read_bytes() == before, "the refusal must not have written anything"
+
+
+def test_s14_writer_blanks_a_filled_prior_file_only_on_explicit_force(tmp_path: Path):
+    target = _filled_prior_file(tmp_path)
+    prior_mod.write_prior_scaffold(target, force=True)
+    assert "mean_log: -1.2" not in target.read_text()
+
+
+def test_s14_writer_re_emits_a_blank_scaffold_without_force(tmp_path: Path):
+    """The one legitimate overwrite: nothing was filled, so nothing can be destroyed."""
+    target = tmp_path / "blank.yaml"
+    prior_mod.write_prior_scaffold(target)
+    prior_mod.write_prior_scaffold(target)
+
+
+def test_s14_rejects_a_misspelled_key_rather_than_ignoring_it(tmp_path: Path):
+    """`citaton:` must not pass for a citation — theta's own message names this hazard."""
+    target = tmp_path / "typo.yaml"
+    target.write_text(
+        "alpha_prior:\n  mean_log: -1.0\n  sigma_log: 0.5\n  citaton: doi:10.1/x\n"
+        "  assumed: false\nk_sink_prior:\n  mean_log: -2.0\n  sigma_log: 0.5\n"
+        "  citation: doi:10.1/y\n  assumed: false\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(TransportPriorError, match="unknown key"):
+        TransportPrior.load(target)
+
+
+def test_neither_transport_writer_judges_the_other_schema_blank(tmp_path: Path):
+    """Each writer used to treat the OTHER's FILLED file as empty and destroy it.
+
+    Measured 2026-11-08, both directions: theta's check reads `doc.get("theta")`, so a
+    prior file (top level `alpha_prior:`) scored blank; the prior's check looks for
+    `mean_log`/`sigma_log`/`citation` per entry, so a theta file (`value:`/`unit:`) scored
+    blank. Each then overwrote the other's literature work with no error — defect 22's
+    failure mode reached through the sibling's schema rather than through a re-emit.
+    """
+    prior_file = _filled_prior_file(tmp_path)
+    with pytest.raises(ThetaTemplateError):
+        theta_mod.write_theta_scaffold(prior_file)
+    assert "mean_log: -1.2" in prior_file.read_text()
+
+    theta_file = tmp_path / "theta.yaml"
+    theta_mod.write_theta_scaffold(theta_file)
+    theta_file.write_text(
+        theta_file.read_text()
+        .replace("value:", "value: 3.4")
+        .replace("citation:", "citation: doi:10.1234/other"),
+        encoding="utf-8",
+    )
+    with pytest.raises(prior_mod.TransportPriorTemplateError):
+        prior_mod.write_prior_scaffold(theta_file)
+    assert "value: 3.4" in theta_file.read_text()

@@ -70,6 +70,32 @@ every reader of a published paper from the moment of publication. Durable proven
 not make it is a provenance falsehood. 26 cited candidates for a 20–40 band leaves the judgement
 genuinely open — which is the point.
 
+**CORRECTED 2026-11-07 (approvals row 103, principal-ratified; and row 102).** The two paragraphs
+above and below this block are left as written, because they record what was claimed. Two figures in
+them are now superseded:
+
+- **"26 cited candidates" is true only of the citation count, not of citation support.** Two of the
+  26 carry a source that does not support the entry: **Amlexanox** (`10.1002/bmc.5288` — rat plasma,
+  Wistar rats, no `Humans` MeSH, and a method-validation paper) and **Procaterol**
+  (`10.3390/ijms19071999` — guinea pig trachealis). The principal ruled on 2026-11-07 to **keep the
+  roster at 26 and disclose both as defects** rather than strike them, so these two are **retained by
+  ruling, not by evidence.** Anyone counting cited rows must carry that; it is part of the ruling, not
+  a limitation of it.
+- **"the pool is 9" is REFUTED.** At the measured-target-site bar the reproducible figure is **6**,
+  established by the 26-row re-audit and ratified at approvals row 102 — not 9 (the original claim)
+  and not 13 (an intermediate revision that was also not reproducible).
+
+**The sentence to carry, never the bare 6:** *6 of 26 rest on measured target-site exposure — three
+of them from one 12-volunteer cohort (`10.1111/bph.15621`), two more from a single formulation
+study.* **Binding:** any text citing STORM (`10.1089/jamp.2021.0046`) for Beclomethasone or
+Formoterol target-site exposure must carry the **formulation qualification** — STORM radiolabels a
+three-component formulation, so it is not per-molecule deposition. Dropping that qualification
+re-admits the exact misstate-the-source defect the re-audit exists to catch.
+
+**Ratification states, not to be implied from one another:** the **count** of 6 is ratified (row 102)
+and the **disposition** of the two defective entries is ratified (row 103); the **26 per-row
+verdicts** of the re-audit **remain drafted and unratified**.
+
 **Not a full-strength pool.** If the bar is *measured target-site exposure*, the pool is 9, not 26.
 
 ---

@@ -42,20 +42,26 @@ from types import MappingProxyType
 
 import yaml
 
+from chipsim.transport import _s6
+
 #: The literal the file's top-level mapping is keyed by.
 THETA_ROOT = "theta"
 
 #: S13's scaffold, relative to the project root. Outside `configs/` proper.
-SCAFFOLD_RELPATH = Path("configs/templates/theta_priors.scaffold.yaml")
+THETA_SCAFFOLD_RELPATH = Path("configs/templates/theta_priors.scaffold.yaml")
 
 #: The two paths S6's absence guard owns. No writer in this package may create them.
-S6_FORBIDDEN_RELPATHS = (
-    Path("configs/theta_priors.yaml"),
-    Path("configs/assumptions.yaml"),
-)
+#: Re-exported from `_s6` so the guard has ONE definition shared by every writer here;
+#: it used to live in this module and only this module's writer consulted it, which let
+#: prior.write_scaffold create a forbidden path (measured 2026-11-08).
+S6_FORBIDDEN_RELPATHS = _s6.S6_FORBIDDEN_RELPATHS
 
 #: The keys one entry may carry (S13). Anything else is a typo or a smuggled field.
-ENTRY_KEYS = ("value", "unit", "citation", "assumed")
+#: Module-PRIVATE deliberately: the permitted-key set is enforced here and consumed
+#: nowhere else, and a private name makes a cross-module import a loud explicit act
+#: rather than an accident. The rule this package follows: privatise when the name is
+#: not consumed outside its module, rename only when it must stay surface.
+_ENTRY_KEYS = ("value", "unit", "citation", "assumed")
 
 
 @dataclass(frozen=True)
@@ -150,11 +156,11 @@ def _check_entry(name: str, entry: object) -> dict:
     if not isinstance(entry, dict):
         raise ThetaError(f"θ field `{name}` is not a mapping; got {type(entry).__name__}.")
 
-    unknown = sorted(set(entry) - set(ENTRY_KEYS))
+    unknown = sorted(set(entry) - set(_ENTRY_KEYS))
     if unknown:
         raise ThetaError(
             f"θ field `{name}` carries unknown key(s) {unknown}. Permitted: "
-            f"{list(ENTRY_KEYS)}. A permissive loader ignores a misspelled key, which is "
+            f"{list(_ENTRY_KEYS)}. A permissive loader ignores a misspelled key, which is "
             "how `citaton:` passes for a citation."
         )
 
@@ -270,7 +276,7 @@ def load_theta_priors(path: Path) -> ThetaConfig:
     return ThetaConfig.load(path)
 
 
-def scaffold_text() -> str:
+def theta_scaffold_text() -> str:
     """S13's template as text: six fields, every value empty, every unit declared.
 
     Declaring the field list and the units is schema work. Filling a value would be a
@@ -322,6 +328,13 @@ def _carries_human_content(path: Path) -> bool:
         return True
     if not isinstance(doc, dict):
         return bool(doc)
+    # A parseable file of the WRONG SHAPE is human content, not a blank file. Measured
+    # 2026-11-08: a FILLED transport-prior file scored blank here (its top level is
+    # `alpha_prior:`, so `doc.get(THETA_ROOT)` was `{}`), and this writer overwrote it
+    # with no error — defect 22's failure mode reached through the other module's schema.
+    # Same reasoning as the unparseable case above: refusing to judge it blank is safe.
+    if doc and THETA_ROOT not in doc:
+        return True
     for entry in (doc.get(THETA_ROOT) or {}).values():
         if not isinstance(entry, dict):
             if not _blank(entry):
@@ -332,7 +345,7 @@ def _carries_human_content(path: Path) -> bool:
     return False
 
 
-def write_scaffold(path: Path, *, force: bool = False) -> Path:
+def write_theta_scaffold(path: Path, *, force: bool = False) -> Path:
     """Write S13's template to `path`. Refuses S6's paths, and refuses to destroy work.
 
     `force` overwrites a file that already carries filled entries. It exists for the one
@@ -340,15 +353,14 @@ def write_scaffold(path: Path, *, force: bool = False) -> Path:
     passes — never a default.
     """
     path = Path(path)
-    resolved = path.resolve()
-    for forbidden in S6_FORBIDDEN_RELPATHS:
-        if resolved.parts[-len(forbidden.parts) :] == forbidden.parts:
-            raise ThetaTemplateError(
-                f"refusing to write {path}: `{forbidden.as_posix()}` is human-owned and "
-                "its ABSENCE is the mechanical form of the rule that no agent writes a "
-                "biological number (build-plan S6). The scaffold belongs at "
-                f"{SCAFFOLD_RELPATH.as_posix()}."
-            )
+    forbidden = _s6.forbidden_match(path)
+    if forbidden is not None:
+        raise ThetaTemplateError(
+            f"refusing to write {path}: `{forbidden.as_posix()}` is human-owned and "
+            "its ABSENCE is the mechanical form of the rule that no agent writes a "
+            "biological number (build-plan S6). The scaffold belongs at "
+            f"{THETA_SCAFFOLD_RELPATH.as_posix()}."
+        )
     if path.exists() and not force and _carries_human_content(path):
         raise ThetaTemplateError(
             f"refusing to overwrite {path}: it already carries filled θ entries. "
@@ -356,5 +368,5 @@ def write_scaffold(path: Path, *, force: bool = False) -> Path:
             "defect 22's failure mode. Pass force=True only to discard them deliberately."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(scaffold_text(), encoding="utf-8")
+    path.write_text(theta_scaffold_text(), encoding="utf-8")
     return path

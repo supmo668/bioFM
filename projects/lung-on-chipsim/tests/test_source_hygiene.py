@@ -19,8 +19,22 @@ careful" but "an assertion fires".
 
 What it does NOT catch, stated
 ------------------------------
-- Duplicates of the same name in DIFFERENT files. Each test module owning its own constants is
-  normal and this rule does not reach across files.
+- Duplicates of the same name in DIFFERENT files — **this carve-out is now scoped to ``tests/``
+  only.** As of 2026-11-08 the rule DOES reach across the library: see
+  ``test_no_public_module_constant_means_two_different_things_in_two_modules`` below. Within
+  ``tests/`` each module owning its own constants stays normal.
+
+  **Measured, not asserted.** The first wording of the new cross-file rule justified excluding
+  ``tests/`` as "noisy enough to be ignored" — an unmeasured magnitude. Extending the scan there
+  yields **2 offenders out of 94 public names**, and one is REAL drift: ``LIVE_PROVENANCE``, spelled
+  ``RAW_DIR / 'provenance.yaml'`` in ``test_provenance.py`` and
+  ``PROJECT_ROOT / 'data' / 'raw' / 'drugbank' / 'provenance.yaml'`` in ``test_snapshot_fetch.py``.
+  That is a KNOWN OPEN ITEM, recorded here rather than hidden behind "noisy" — which is the same
+  reasoning error as the retracted carve-out immediately below, made one test later.
+- The new cross-file rule's own limits, stated in its docstring: a duplicate public FUNCTION or
+  CLASS name is not its business (``test_no_module_imports_one_name_from_two_different_modules``
+  catches the shape that bites), and agreement between two definitions is asserted ONLY when both
+  right-hand sides are provably literal — anything else REPORTS rather than passes.
 
   **A retracted carve-out.** This list used to name ``test_published_snapshot_counts`` and
   ``test_published_roster_provenance`` as a legitimate, documented exception — "rather than
@@ -80,27 +94,34 @@ def _python_files() -> list[pathlib.Path]:
     return files
 
 
+def _module_level(body: list[ast.stmt]) -> list[ast.stmt]:
+    """Module-level statements INCLUDING those nested in `if` / `try` / `with`.
+
+    Only `.body` was walked before, so review proved an assignment inside a module-level
+    `if True:` block was invisible. Function and class bodies stay excluded: a local rebind is
+    not a competing module-level definition.
+
+    LIFTED to module scope 2026-11-08. It was an inner function of `_shadowed_constants`, so
+    the cross-file detector added beside it could not reuse it and hand-rolled a shallow
+    `.body`-only walk instead — reintroducing the exact gap this function was written to close.
+    Two detectors may differ in what they RECORD; they have no reason to differ in what they
+    REACH. One walk, one definition.
+    """
+    out: list[ast.stmt] = []
+    for stmt in body:
+        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        out.append(stmt)
+        for attr in ("body", "orelse", "finalbody"):
+            out.extend(_module_level(getattr(stmt, attr, None) or []))
+        for handler in getattr(stmt, "handlers", None) or []:
+            out.extend(_module_level(handler.body))
+    return out
+
+
 def _shadowed_constants(source: str) -> dict[str, list[int]]:
     """Module-level SCREAMING_CASE names bound more than once, with their line numbers."""
     seen: dict[str, list[int]] = {}
-
-    def _module_level(body: list[ast.stmt]) -> list[ast.stmt]:
-        """Module-level statements INCLUDING those nested in `if` / `try` / `with`.
-
-        Only `.body` was walked before, so review proved an assignment inside a module-level
-        `if True:` block was invisible. Function and class bodies stay excluded: a local rebind is
-        not a competing module-level definition.
-        """
-        out: list[ast.stmt] = []
-        for stmt in body:
-            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                continue
-            out.append(stmt)
-            for attr in ("body", "orelse", "finalbody"):
-                out.extend(_module_level(getattr(stmt, attr, None) or []))
-            for handler in getattr(stmt, "handlers", None) or []:
-                out.extend(_module_level(handler.body))
-        return out
 
     for node in _module_level(ast.parse(source).body):
         if not isinstance(node, ast.Assign):
@@ -295,3 +316,289 @@ def test_the_detector_covers_the_three_shapes_it_used_to_MISS():
     assert _shadowed_constants("AB = 1\nAB = 2\n") == {"AB": [1, 2]}
     # and a rebind inside a FUNCTION body is still not a module-level duplicate
     assert _shadowed_constants("def f():\n    AB = 1\n    AB = 2\n") == {}
+
+
+def _literal(node: ast.expr | None) -> tuple[bool, object]:
+    """(is_provably_literal, value). Used to decide whether two RHS AGREE.
+
+    Comparing `ast.unparse` text was the first attempt and it was wrong in BOTH
+    directions, measured 2026-11-08:
+      - FALSE NEGATIVE: `SCAFFOLD = _TEMPLATES / _NAME` in two modules over different
+        private `_NAME`s unparses identically, so a real path divergence read as agreement.
+        That is the very defect this guard exists to catch, one tidy-up down.
+      - FALSE POSITIVE: `Path("x")` vs `pathlib.Path("x")` are the same value and read as
+        disagreement.
+    So agreement is now asserted ONLY when both sides are provably literal. Anything else
+    is UNDECIDABLE, and undecidable reports — the fail-closed direction this module already
+    takes for an unparseable file and for an emptied scan scope.
+    """
+    if node is None:
+        return False, None
+    try:
+        return True, ast.literal_eval(node)
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        return False, None
+
+
+def _is_reexport(name: str, node: ast.expr | None) -> bool:
+    """True for `X = other_module.X` — an ALIAS, not a competing definition.
+
+    Found by this guard firing on its own author: `theta.py` re-exports
+    `S6_FORBIDDEN_RELPATHS = _s6.S6_FORBIDDEN_RELPATHS` so the S6 guard has one
+    definition, and a textual comparison called that a collision with `_s6`'s. It is the
+    legitimate "one fact, stated once and pointed at" case, and flagging it would push an
+    author back toward two real definitions — the opposite of the point.
+    """
+    return isinstance(node, ast.Attribute) and node.attr == name
+
+
+def _public_module_constants(source: str) -> dict[str, tuple[bool, object]]:
+    """Public module-level SCREAMING_CASE names -> (is_literal, value).
+
+    Public only: a leading underscore makes a cross-module import an explicit, loud act,
+    so two modules may legitimately carry the same private name.
+    """
+    out: dict[str, tuple[bool, object]] = {}
+    for node in _module_level(ast.parse(source).body):
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign):
+            if node.value is None:
+                # A bare `AB: int` DECLARES a type; it does not define a value. Recording
+                # it (as `""`) made a declaring module collide with a defining one.
+                continue
+            targets, value = [node.target], node.value
+        else:
+            continue
+        for target in targets:
+            for nm in ast.walk(target):  # tuple/list unpacking too, per the sibling
+                if not (isinstance(nm, ast.Name) and nm.id.isupper() and len(nm.id) >= 2):
+                    continue
+                if nm.id.startswith("_") or _is_reexport(nm.id, value):
+                    continue
+                out[nm.id] = _literal(value)
+    return out
+
+
+def _cross_module_offenders(by_name: dict[str, dict[str, tuple[bool, object]]]) -> list[str]:
+    """The decision, extracted so it can be PROBED rather than only run on a clean tree.
+
+    It used to live inline in the test body, where it was evaluated against the real tree
+    alone — which yields no offenders — so the condition could have been weakened to
+    anything and the suite would have stayed green with nothing to report. The per-file
+    guard beside this one keeps its decision inside its helper for exactly that reason.
+    """
+    offenders: list[str] = []
+    for name, per_module in sorted(by_name.items()):
+        if len(per_module) < 2:
+            continue
+        literal = all(is_lit for is_lit, _ in per_module.values())
+        if literal:
+            values = {repr(v) for _, v in per_module.values()}
+            if len(values) == 1:
+                continue  # provably the same fact, stated twice: fine
+            verdict = "different values"
+        else:
+            verdict = "values NOT PROVABLY EQUAL (non-literal right-hand side)"
+        where = "; ".join(
+            f"{m} = {v!r}" if is_lit else f"{m} = <non-literal>"
+            for m, (is_lit, v) in sorted(per_module.items())
+        )
+        offenders.append(f"{name}: {verdict} — {where}")
+    return offenders
+
+
+def _imports_by_name(source: str) -> dict[str, set[str]]:
+    """Bound name -> the set of modules this file imports it FROM, anywhere in the file.
+
+    Walks the WHOLE tree, not just module level, because the hazard this catches lived in
+    two FUNCTION bodies.
+    """
+    out: dict[str, set[str]] = {}
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            for alias in node.names:
+                out.setdefault(alias.asname or alias.name, set()).add(node.module)
+    return out
+
+
+def _library_files() -> list[pathlib.Path]:
+    """The library's own modules, scope DERIVED from SOURCE_DIRS — not re-spelled.
+
+    Hardcoding `PROJECT_ROOT / "chipsim"` here put a SECOND definition of "where the
+    library is" into the one file whose thesis is that two definitions of a subject drift.
+    """
+    library = PROJECT_ROOT / SOURCE_DIRS[0]
+    assert library.is_dir(), (
+        f"{library} is not a directory. SOURCE_DIRS[0] is {SOURCE_DIRS[0]!r}; if the "
+        "package moved, update SOURCE_DIRS and both scans follow."
+    )
+    found = sorted(library.rglob("*.py"))
+    assert found, f"no Python files under {library}; the scan would be vacuous"
+    return found
+
+
+def test_no_public_module_constant_means_two_different_things_in_two_modules():
+    """The cross-file companion to the per-file invariant above.
+
+    `_shadowed_constants` is per-file by construction, so a public constant carrying
+    DISJOINT meanings in two modules was invisible to it. Measured 2026-11-06:
+    `ENTRY_KEYS` was `("value", "unit", …)` in `transport/theta.py` and
+    `("mean_log", "sigma_log", …)` in `transport/prior.py`, and `SCAFFOLD_RELPATH` named
+    two different template paths in the same two modules.
+
+    What this does NOT reach, stated because this module's habit is to state it:
+      - a duplicate public FUNCTION or CLASS name — see the import test below, which
+        catches the shape that actually bites rather than every harmless namesake;
+      - a name whose two definitions are both non-literal AND genuinely equal: that is
+        reported, not missed, and the author narrows it (fail-closed, see `_literal`);
+      - anything under `tests/`. Measured 2026-11-08 rather than asserted: extending the
+        scan there yields 2 offenders out of 94 public names, so the earlier claim that it
+        would be "noisy" was an unmeasured magnitude. One of the two is REAL drift
+        (`LIVE_PROVENANCE`, spelled two ways in `test_provenance.py` and
+        `test_snapshot_fetch.py`). It is excluded here because the library is this guard's
+        subject, and recorded as a known open item rather than hidden behind "noisy".
+    """
+    by_name: dict[str, dict[str, tuple[bool, object]]] = {}
+    reached = set()
+    for path in _library_files():
+        rel = path.relative_to(PROJECT_ROOT).as_posix()
+        reached.add(rel)
+        for name, value in _public_module_constants(path.read_text(encoding="utf-8")).items():
+            by_name.setdefault(name, {})[rel] = value
+
+    # Reach floor. `assert found` only proved SOME file was read; these two modules are the
+    # ones whose collision motivated the guard, so name them.
+    for must in ("chipsim/transport/theta.py", "chipsim/transport/prior.py"):
+        assert must in reached, f"{must} was not reached; the scan's scope has drifted"
+    assert len(by_name) >= 40, (
+        f"only {len(by_name)} public module constants discovered across {len(reached)} "
+        "files; the detector has gone quiet and the guard would pass vacuously"
+    )
+
+    offenders = _cross_module_offenders(by_name)
+    assert not offenders, (
+        "public module-level constant(s) sharing a name across modules without provably "
+        "sharing a value. A cross-module import then binds whichever module was imported "
+        "last, so correctness rests on import placement rather than on the name:\n  "
+        + "\n  ".join(offenders)
+        + "\nThe rule: PRIVATISE (leading underscore) when the name is not consumed "
+        "outside its module; RENAME to a distinct public name only when it must stay "
+        "surface. Privatisation is strictly stronger — it removes the import pathway "
+        "instead of making a collision merely unlikely."
+    )
+
+
+def test_no_module_imports_one_name_from_two_different_modules():
+    """The shape that actually bit: ONE file binding ONE name from TWO modules.
+
+    `chipsim/pipeline.py` imported `SCAFFOLD_RELPATH` AND `write_scaffold` from both
+    `transport.theta` and `transport.prior`, in two separate function bodies. It was
+    correct only because of that placement: hoisting the imports to module level — the
+    ordinary tidy-up — makes the second binding win module-wide, and measured on the
+    post-rename tree that sent `theta-scaffold` to the prior's writer, which at the time
+    had no S6 refusal at all.
+
+    This catches constants and callables alike, and it is placement-blind by design,
+    because placement was the load-bearing thing. It is the companion the constant guard
+    needs: a duplicate public FUNCTION name is only a hazard when something imports it
+    from both places, so this tests the hazard instead of flagging every namesake
+    (`build_parser` and `main` legitimately exist in two modules here).
+    """
+    offenders = []
+    for path in _library_files():
+        rel = path.relative_to(PROJECT_ROOT).as_posix()
+        for name, modules in sorted(_imports_by_name(path.read_text(encoding="utf-8")).items()):
+            if len(modules) > 1:
+                offenders.append(f"{rel}: `{name}` imported from {sorted(modules)}")
+    assert not offenders, (
+        "one name bound from two different modules in a single file. Which definition "
+        "wins depends on import ORDER and PLACEMENT, not on the name:\n  "
+        + "\n  ".join(offenders)
+        + "\nFix by giving the two definitions distinct names, or by importing the "
+        "modules and qualifying the call."
+    )
+
+
+def test_no_chipsim_file_binds_one_private_name_from_two_modules():
+    """What makes PRIVATISATION sound rather than merely conventional.
+
+    The constant guard exempts underscore names on the premise that a private name cannot
+    collide across modules by accident. The premise breaks in exactly one way: if two
+    modules both export `_ENTRY_KEYS` and ONE file imports both, the second binding wins
+    and no guard here would see it, because the exemption is the cover.
+
+    So this asserts the narrow thing the exemption needs, not a blanket ban on private
+    imports. A first draft DID ban them outright and failed on its own author — it flagged
+    `from chipsim.transport import _s6`, which imports a private MODULE and is the pattern
+    this file's own text recommends, and `_recorded_argv` from `chipsim.journal`, a
+    pre-existing single private-member import that carries no collision. A guard that
+    forbids the remedy it recommends is not a stricter guard; it is a wrong one.
+    """
+    offenders = []
+    for path in _library_files():
+        rel = path.relative_to(PROJECT_ROOT).as_posix()
+        private: dict[str, set[str]] = {}
+        for name, modules in _imports_by_name(path.read_text(encoding="utf-8")).items():
+            if name.startswith("_") and not name.startswith("__"):
+                private.setdefault(name, set()).update(modules)
+        for name, modules in sorted(private.items()):
+            if len(modules) > 1:
+                offenders.append(f"{rel}: `{name}` from {sorted(modules)}")
+    assert not offenders, (
+        "one PRIVATE name bound from two modules in a single file. The cross-file constant "
+        "guard exempts private names on the premise that this cannot happen:\n  "
+        + "\n  ".join(offenders)
+        + "\nEither give them distinct names, or import the modules and qualify."
+    )
+
+
+def test_cross_file_detectors_are_not_vacuous():
+    """Proof every piece above can fail. The per-file guard is proved the same way."""
+    # --- extraction: the real shape ---
+    assert _public_module_constants('ENTRY_KEYS = ("a", "b")\n') == {
+        "ENTRY_KEYS": (True, ("a", "b"))
+    }
+    # nested in a module-level compound statement — the gap the shallow walk had
+    assert "AB" in _public_module_constants("if True:\n    AB = 1\n")
+    assert "AB" in _public_module_constants("try:\n    AB = 1\nexcept Exception:\n    pass\n")
+    assert "AB" in _public_module_constants("if TYPE_CHECKING:\n    AB = 1\n")
+    # tuple unpacking, as the sibling covers
+    got = _public_module_constants("AB, CD = 1, 2\n")
+    assert "AB" in got and "CD" in got
+    # private, lowercase and single-char stay out of scope
+    assert _public_module_constants('_ENTRY_KEYS = ("a",)\n') == {}
+    assert _public_module_constants("entry_keys = 1\nX = 2\n") == {}
+    # a bare annotation DECLARES, it does not define
+    assert _public_module_constants("AB: int\n") == {}
+    assert _public_module_constants("AB: int = 1\n") == {"AB": (True, 1)}
+    # a function body is not a module-level definition
+    assert _public_module_constants("def f():\n    AB = 1\n") == {}
+    # a re-export is an alias, not a competing definition
+    assert _public_module_constants("AB = other.AB\n") == {}
+    assert "AB" in _public_module_constants("AB = other.DIFFERENT\n")
+    # literal detection
+    assert _literal(ast.parse("1").body[0].value) == (True, 1)
+    assert _literal(ast.parse("_X / _Y").body[0].value)[0] is False
+
+    # --- the DECISION, probed directly rather than only against a clean tree ---
+    L = lambda v: (True, v)
+    NL = (False, None)
+    assert _cross_module_offenders({"A": {"m1.py": L(1)}}) == []  # one module
+    assert _cross_module_offenders({"A": {"m1.py": L(1), "m2.py": L(1)}}) == []  # same value
+    two = _cross_module_offenders({"A": {"m1.py": L(1), "m2.py": L(2)}})
+    assert len(two) == 1 and "m1.py" in two[0] and "m2.py" in two[0]
+    # identical SOURCE TEXT over different private helpers is non-literal -> REPORTED
+    assert len(_cross_module_offenders({"A": {"m1.py": NL, "m2.py": NL}})) == 1
+    # three modules, one dissenting
+    assert len(_cross_module_offenders({"A": {"m1.py": L(1), "m2.py": L(1), "m3.py": L(2)}})) == 1
+    # Path("x") vs pathlib.Path("x") both literal-eval to the same string -> no offender
+    assert _cross_module_offenders({"A": {"m1.py": L("x"), "m2.py": L("x")}}) == []
+
+    # --- the import detectors ---
+    assert _imports_by_name("from a import X\nfrom b import X\n")["X"] == {"a", "b"}
+    assert _imports_by_name("def f():\n    from a import X\ndef g():\n    from b import X\n")[
+        "X"
+    ] == {"a", "b"}
+    assert _imports_by_name("from a import X as Y\nfrom b import Z as Y\n")["Y"] == {"a", "b"}
+    assert _imports_by_name("from a import X\n")["X"] == {"a"}
