@@ -89,3 +89,52 @@ nothing re-runs it during a long hold**, which is precisely when a coordinator d
   of the later session's own monitor.
 - **The "10 unread" and `blocker-sweep`'s "8 unread >4h" are both correct** about different things:
   the first is every unread inbound to the CTO, the second only those older than four hours.
+
+---
+
+## ADDENDUM 2026-11-13 — a SECOND cost of the same defect: orphans never die and contend on the store
+
+The original report above is unchanged and still correct. This section adds a consequence it did
+not cover, measured on a different occasion and with a **different remedy**, so it is recorded
+rather than folded into the text above.
+
+**What prompted it.** The dispatch monitor emitted
+`Command '[... dispatch, list, --status, unread]' timed out after 30 seconds`, twice on separate
+days. The first time I hypothesised the monitor's 30s timeout was mis-scaled against a scan that
+now covers ~20 inboxes, measured the query at **1s**, and **refuted my own hypothesis** — recorded
+here because the refutation is the useful part: a plausible scaling story survived until it was
+timed.
+
+**What the recurrence measured.**
+
+| probe | result |
+|---|---|
+| `dispatch list --status unread`, 3 consecutive runs | **4572ms / 2670ms / 3356ms** — slower than the 1s measured 2026-11-11, still far under 30s |
+| `dispatch*` processes on the machine | **35** |
+| `dispatch-monitor` processes | **27** |
+| of those, **ORPHANED** (PPID 1) | **2** — pids 31624 and 73517 |
+| their age | **5d 15h** and **5d 14h** |
+| their cwd | `/private/var/folders/.../T/tmp.HcOXHI5XGv` and `tmp.zsi2K4LKxm` — **deleted temp dirs** |
+| my own monitor, for contrast | live parent (ppid 13721), age 7 min |
+
+**The point.** The original report treated an orphan as a *reporting* problem: it makes
+`dispatch create` claim "recipient monitor LIVE" for a coordinator that is not reading. It is also a
+*resource* problem. An orphan does not stop. These two have been polling every 10 seconds for over
+five days, against a shared store, from working directories that no longer exist. Nothing reaps
+them, because the thing that would reap them is the session that died.
+
+**What I did NOT establish, and will not claim.** I have **not** shown that the orphans cause the
+30s timeouts. The measured baseline (2.7–4.6s) is an order of magnitude below the timeout, so the
+spikes require something episodic, and contention from 27 concurrent monitors is a *plausible*
+source, not a demonstrated one. Establishing it would mean stopping the orphans and re-measuring —
+which I did not do, because they are not mine: their owners are unidentifiable (deleted cwd) and
+killing another principal's process is outside a worktree agent's lane.
+
+**Separately worth stating:** the failure is currently BENIGN for correctness. The monitor emits a
+timeout event and keeps running, and a worktree agent's own `dispatch catchup` is authoritative and
+succeeded every time. So this is noise plus waste, not lost mail — on the evidence so far.
+
+**Remedy, distinct from the original's.** The first needs a liveness check (`PPID == 1` is not
+live). This needs **reaping**: a monitor should exit when its cwd no longer exists or its parent is
+`launchd`, or `monitor-register` should record a session id that a later start can use to retire
+predecessors. A self-terminating orphan would fix both costs at once.
