@@ -177,3 +177,27 @@ monitors; all 23 poll every ~10s against one store, so roughly 2.3 queries/secon
 alone. Reaping the orphans would remove ~9% of that. The orphan finding and the stall finding are
 **adjacent, not the same defect** — and the remedy for the stall is probably whatever serialises
 access to the store, which I have not inspected.
+
+### Correction to Addendum 2's severity claim — 2026-11-14, same day
+
+Addendum 2 said the stall "raises severity past noise and waste" because "a session-start catch-up
+gate can hang for minutes — the gate that proves the inbox is clear before work begins." The
+hanging is real. **The implied danger was overstated, and the overstatement is worth correcting as
+much as an understatement would be.**
+
+Observed on the next burst: when its query times out, the monitor does **not** fall silent and it
+does **not** report clear. It emits, verbatim:
+
+> `[DISPATCH STATE] ⚠ could not verify inbox — dispatch catchup --json unreadable (TimeoutExpired).`
+> `Treat this as UNKNOWN, not clear: check the ISCP DB, then sweep by hand with `dispatch catchup`.`
+
+That is the correct distinction, built into the tool — the same one this workstream keeps having to
+enforce by hand. A stall therefore degrades to an explicit UNKNOWN with a named remedy, not to a
+false "clear." **So the mail-loss risk is lower than Addendum 2 implied**: the failure is loud, and
+the hand sweep it names works (measured at the same moment: `CLEAR` in 48s, and `CLEAR` in 30s on
+the prior burst — the 30s one being exactly the window the monitor gives up at, so it abandoned a
+call that was about to succeed).
+
+**What stands from Addendum 2:** the stall is real, bimodal, and measured at 247s worst case; it
+costs wall-clock at session start and fires spurious alerts. **What does not stand:** the suggestion
+that it silently defeats the inbox-clear gate. It announces itself.
