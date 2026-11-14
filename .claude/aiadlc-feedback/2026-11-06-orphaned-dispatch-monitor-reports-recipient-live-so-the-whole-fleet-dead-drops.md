@@ -138,3 +138,42 @@ succeeded every time. So this is noise plus waste, not lost mail — on the evid
 live). This needs **reaping**: a monitor should exit when its cwd no longer exists or its parent is
 `launchd`, or `monitor-register` should record a session id that a later start can use to retire
 predecessors. A self-terminating orphan would fix both costs at once.
+
+## ADDENDUM 2 — 2026-11-14: the stall is BIMODAL and the worst case is 247 SECONDS
+
+The addendum above said the spikes "require something episodic" and that contention was "plausible,
+not demonstrated." A third occurrence was measured and the episodic thing is now **measured, not
+inferred** — which also raises the severity past "noise and waste."
+
+Three consecutive runs of the monitor's own query, immediately after it reported a 30s timeout:
+
+| run | elapsed |
+|---|---|
+| 1 | **247428 ms — 4 minutes 7 seconds** |
+| 2 | 2466 ms |
+| 3 | 1977 ms |
+
+Population at the same moment: **23** dispatch-monitor processes, **2** orphaned (PPID 1, the same
+two, now ~6 days old), **39** total `dispatch*` processes, **927** rows in the store.
+
+**The shape is bimodal, not a slope.** Normal is ~2s. The failure is a multi-minute block, then
+normal again. That is a lock/contention stall, not a query that has grown too slow — and it is why
+the 30s timeout fires: not because 30s is too tight for a 2s query, but because the query sometimes
+does not return for two orders of magnitude longer.
+
+**It retro-explains an earlier observation.** On 2026-11-11 a plain `dispatch catchup` of mine
+exceeded its 120s limit and was backgrounded; it later returned `✓ no unread rows`. At the time I
+recorded only that I had wrongly called the inbox UNKNOWN when the command had merely not finished.
+Same stall class. The two observations are one phenomenon.
+
+**Severity is now higher than the first addendum stated.** A 4-minute block means a monitor's
+reconcile can miss its window entirely, and any agent's catch-up gate can hang for minutes at
+session start — the gate that is supposed to prove the inbox is clear before work begins. On the
+evidence so far no mail was lost, because every stalled call eventually returned the right answer.
+**But "eventually returns" is not "is available when the gate runs."**
+
+**Still NOT established, and still not claimed:** that the 2 orphans cause this. They are 2 of 23
+monitors; all 23 poll every ~10s against one store, so roughly 2.3 queries/second from live agents
+alone. Reaping the orphans would remove ~9% of that. The orphan finding and the stall finding are
+**adjacent, not the same defect** — and the remedy for the stall is probably whatever serialises
+access to the store, which I have not inspected.
