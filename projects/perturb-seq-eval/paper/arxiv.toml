@@ -28,7 +28,7 @@ license = "CC BY 4.0"
 comments = """
 Pre-registered study; pre-registration and provenance manifests included. \
 Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). \
-The same release is deposited on Figshare as doi:10.6084/m9.figshare.32086920.v6.
+The same work is deposited on Figshare as doi:10.6084/m9.figshare.32086920 (all versions).
 """
 
 # Packages used by this paper that are not in the pipeline's vouched TeX Live set.

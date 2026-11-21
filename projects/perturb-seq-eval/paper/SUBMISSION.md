@@ -34,7 +34,7 @@ number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use 
 
 | | |
 |---|---|
-| Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 (retitled by Amendment 5) |
+| Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 run and results; the manuscript posted is revision `0.6.1` (retitled by Amendment 5) |
 | Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) — v0.6.0, pre-amendment manuscript; **next: `0.6.1`** (7.5 step 4a) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
 | Venue (approvals row 34, reversing row 32) | **arXiv**, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA`, by personal endorsement. Fallback after 14 days: Research Square, once the principal has read its licence terms. TechRxiv: closed for submissions |
@@ -50,8 +50,8 @@ run in CI (run `40985145366`, Part 0 Path A).
 **Why the build check exists.** The paper uses
 `\bibliography{references}` and **arXiv does not run BibTeX**, so the bundle must contain a generated
 `.bbl` or every citation renders as `[?]` in the announced PDF — compiled, published, and wrong, with
-no error to warn you. The same check matters for a PDF upload: read the built `paper.pdf` and confirm no `[?]`
-before 7.5 step 5.
+no error to warn you. On arXiv the check is arXiv's own preview PDF (Part 2 step 4). On the Research Square fallback, read the 4a
+`paper.pdf` before uploading it.
 
 ---
 
@@ -70,8 +70,9 @@ The pipeline commit `c0ec931` is on `origin/main` (verified 2026-11-04), so the 
    - `arxiv-metadata.txt` — the paste-ready block, identical to Part 2 below
    - `paper.pdf` — the CI-compiled PDF (latexmk). The workflow now asserts it is non-empty and uploads it;
      measured present in the artifact of run `42408464580`. An earlier run (`40985145366`) lacked it, and that
-     gap is fixed. **It is a compile check, not the file to post**: the posted PDF is the `build_deposit.py`
-     (tectonic) build from 7.5 step 4a.
+     gap is fixed. **It is a compile check, not a file you upload**: on arXiv the posted PDF is arXiv's own
+     compile of the `tar.gz`; the archived PDF is the `build_deposit.py` (tectonic) build from 7.5 step 4a, which is
+     also the upload on the Research Square fallback.
 4. The job summary carries the same metadata block, so you can read it without downloading.
 
 **The workflow's LaTeX step has executed.** Run `40985145366` (2026-10-30) completed "Compile LaTeX
@@ -112,23 +113,20 @@ prevent. The three `sections/v050_*.tex` files, the five figure PDFs and the `ta
 
 ## Part 1 — Account and endorsement
 
-> **LIVE (approvals row 34, 2026-11-21).** How an endorsement request works, from arXiv's own help page:
-> 1. Start a new submission and select `cs.LG`. arXiv emails you an endorsement request with a link and a
->    six-character code.
-> 2. Open recent `cs.LG` or `cs.MA` abstracts and use "Which authors of this paper are endorsers?" at the foot of each.
-> 3. Send those authors the code with a short request. Endorsers are not obliged to act; ask three to five.
-> 4. "At least one positive endorsement is required." Endorsement "is not peer review".
+> **LIVE (approvals row 34, 2026-11-21).** Follow the steps below in order.
 
 1. Log in at <https://arxiv.org/login> (or register). **Use the ORCID-linked route if available** —
    it attaches `0009-0009-5233-3142` to the submission and is what makes the record show up under
    your ORCID profile automatically.
 2. Confirm the author profile carries the full name as it appears on the paper: **Mang-yin Mo**.
-
-**Endorsement risk, stated plainly.** arXiv's own submission documentation states that new users, or
-users posting to a new category, *"may be required to find endorsements"*, and that *"We only accept
-submissions from registered authors"*. The address of record is the **alumni** address recorded in
-[`CITATION.cff`](../CITATION.cff) — weaker evidence of current affiliation than a live
-institutional one.
+3. Start a new submission and select `cs.LG`. arXiv emails you an endorsement request with a link and a
+   six-character code. **Keep this submission; you resume it at Part 2 once endorsed.**
+4. Find endorsers: open recent `cs.LG` or `cs.MA` abstracts and use "Which authors of this paper are endorsers?"
+   at the foot of each.
+5. Send an endorser the code with a short request. arXiv's help page says "it is inappropriate to email large
+   numbers of potential endorsers at once", and endorsers are not obliged to act. **Project advice, not arXiv's:**
+   ask one or two at a time, and move to the next after a few days of silence.
+6. "At least one positive endorsement is required." Endorsement "is not peer review". Then continue at Part 2.
 
 **Why endorsement is the only arXiv route.** Since 2026-01-21 the institutional route needs both an institutional
 email and a prior accepted arXiv paper. The address of record is an alumni address and there is no prior arXiv
@@ -179,7 +177,7 @@ Cross-list: q-bio.QM, cs.MA
 License:    CC BY 4.0
 
 Comments:
-  Pre-registered study; pre-registration and provenance manifests included. Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). The same release is deposited on Figshare as doi:10.6084/m9.figshare.32086920.v6.
+  Pre-registered study; pre-registration and provenance manifests included. Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). The same work is deposited on Figshare as doi:10.6084/m9.figshare.32086920 (all versions).
 
 Abstract:
   That a single agent's own vote distribution can gate its compute is reported
@@ -291,8 +289,8 @@ consistently; do not add both.**
 >    the DOI and need no submission.
 
 Scholar's crawler reads Highwire `citation_*` / Dublin Core / Eprints meta tags and needs, at
-minimum, title + authors + date. **arXiv emits these correctly**, which is the entire reason to post
-a preprint for Scholar visibility: it is indexed and accrues citations.
+minimum, title + authors + date. This runbook's earlier statement that arXiv emits these correctly was **not re-measured on 2026-11-21**;
+if the arXiv entry has not appeared in Scholar after several weeks, check the abstract page's meta tags.
 
 **Read Part 7.0 first:** Zenodo is not indexed by Google Scholar, so there is currently nothing crawled to merge onto.
 
@@ -320,7 +318,7 @@ rules out.
 
 ---
 
-## Part 7 — Visibility when arXiv endorsement is unavailable
+## Part 7 — Venue history and visibility measurements
 
 This part is the venue history: why arXiv needs an endorser, why TechRxiv was ruled, and what was measured when it closed. It also changes what Part 5 can deliver.
 
@@ -376,26 +374,30 @@ An earlier framing in this file (that a first `cs.LG` submission *may* land in t
 written against the pre-2026 rule and was too soft. Under the current policy the queue is the
 default, not the risk case.
 
-### 7.2 Endorsement-free venues — and the constraint that eliminates most of them
+### 7.2 Venues compared — and the constraint that eliminates most of them
 
 > **Post to EXACTLY ONE preprint server.** This is the project's standing constraint, unchanged:
 > duplicate research is either fully deleted or superseded as a revision, never left as two live
 > records. An archive (Zenodo, Figshare) plus one preprint is *one work in several places*, which is
 > what the Part 4 cross-links assert. Two preprint servers is duplicate publication.
 
+**Snapshot as written 2026-11-03 to 11-05, before row 34. Superseded by the measured table below; kept as history.**
+
 | Venue | Endorsement | Topical fit for *this* claim | Scholar-indexed | The fact that decides it |
 |---|---|---|---|---|
-| **TechRxiv** (IEEE) | **none** — moderated only | **good** — electrical engineering, computer science and related technology; the contribution is a compute-allocation method claim | **yes** (listed) | moderation is a scope/plagiarism/English screen, not technical merit; posting in **~4 business days**; **CC BY 4.0 available**, so it matches the Zenodo licence grant; **DOI minted**, and a revised version keeps the DOI with a version indicator |
+| **TechRxiv** (IEEE) — **closed for submissions since this was written** | **none** — moderated only | **good** — electrical engineering, computer science and related technology; the contribution is a compute-allocation method claim | **yes** (listed) | moderation is a scope/plagiarism/English screen, not technical merit; posting in **~4 business days**; **CC BY 4.0 available**, so it matches the Zenodo licence grant; **DOI minted**, and a revised version keeps the DOI with a version indicator |
 | **bioRxiv** | **none** | **weak** — the claim is about allocating test-time compute, not about biology | yes | *"Manuscripts already present on other preprint servers will not be posted."* A Zenodo/Figshare **archive** is not a preprint server, so this should not disqualify — but it is the sentence to read before assuming. Also: *"bioRxiv welcomes computational papers"*, yet *"Simple automated/computational analyses of public data, molecular modeling, sequence alignments"* are *"generally not sufficient"* — a real scope risk for a method paper over public Perturb-seq screens |
-| **arXiv** | **required, and unavailable** (7.1) | best | yes | needs a named `cs.LG` endorser |
-| preprints.org (MDPI), Research Square, OSF Preprints, SSRN | **unknown** | — | — | **Not verified. I did not read their policies, so this document makes no claim about them.** |
+| **arXiv** | **required** (7.1); now the path, by personal endorser (row 34) | best | yes | needs a named `cs.LG` endorser |
+| preprints.org (MDPI), SSRN | **unknown** | — | — | **Not read (HTTP 403 on 2026-11-21). No claim is made.** Research Square and OSF Preprints: see the measured table below |
 
 **History: TechRxiv was the recommendation, then the ruled venue (rows 15, 32–33), and is now closed for
 submissions.** Every TechRxiv fact in the row above came from the COAR directory, a secondary source;
 `techrxiv.org` returned HTTP 403 to agents. On 2026-11-21 the principal quoted its own notice: "We are currently
 preparing a transition to a new platform. Submissions are temporarily closed during this process."
 
-**Measured 2026-11-21 at each server's own pages (approvals row 34):**
+**Agent-measured on 2026-11-21 at each server's own pages.** Row 34 records the principal's decision; these
+measurements are the agent's, read through a fetch tool that can paraphrase, so check a quote at its source before
+relying on it. Sources are listed at the end of Part 7.
 
 | Server | Open | What decides it |
 |---|---|---|
@@ -469,9 +471,10 @@ fallback it is, not as a way around the venue decision.
 | 1 | ORCID: add the Zenodo DOI (7.3 #1) | nothing — do it today |
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
 | 3 | ~~Principal decides the venue~~ **Decided: arXiv `cs.LG` by personal endorsement** (approvals row 34; fallback Research Square after 14 days) | 7.1, 7.2 |
-| 4 | **Get one arXiv endorsement (Part 1). BLOCKS step 5.** Start the `cs.LG` submission to receive the code, then ask three to five endorsers | 3 |
+| 4 | **Get one arXiv endorsement (Part 1). BLOCKS step 5.** Start the `cs.LG` submission to receive the code, then ask endorsers one or two at a time (Part 1). **The 14-day fallback clock starts when the first request is sent** | 3 |
 | 4a | **Archive the revised paper as version `0.6.1`** (principal, 2026-11-08): `build_deposit.py`, then `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3), review the drafts, then a **separate go** to publish, then `publish.yml` deposit-time step 5 (CITATION version and DOIs, CHANGELOG, Zenodo `isIdenticalTo` Figshare v7). The v0.6.0 records carry the pre-amendment paper and title, so step 6's `isIdenticalTo` would be false against them | nothing (can run in parallel with 4) |
-| 5 | Parts 0–2: upload the CI `tar.gz` (LaTeX source) to arXiv. **Build it from the same commit as the 4a deposit**, so the arXiv record and the `0.6.1` archive are the same manuscript. Open arXiv's preview PDF: any `[?]` means stop | 4, 4a |
+| 5 | Parts 0–2: upload the CI `tar.gz` (LaTeX source) to arXiv. **Build it from the commit the 4a PDF was built from** — the SHA printed in `build/deposit/paper_build.log`. Ask the CTO to tag that commit `v0.6.1`, run the `arxiv-package` workflow on the tag, and confirm the run's head SHA matches, so the arXiv record and the `0.6.1` archive are the same manuscript. **Before pasting the metadata block, re-run `arxiv_package.py metadata`** so the Comments line is current. Open arXiv's preview PDF: any `[?]` means stop. Then Part 3: record the arXiv ID and DOI | 4, 4a |
+| 5′ | **Fallback, only if no endorser has agreed 14 days after the first request.** (1) The principal reads Research Square's licence terms; stop if CC BY 4.0 is not offered. (2) Delete the unsubmitted arXiv submission and tell any endorser you asked that the request is withdrawn — a late endorsement must not lead to a second server. (3) Upload the 4a `paper.pdf` to Research Square. A posted preprint there "cannot be removed". (4) Parts 3–5 then apply with the Research Square DOI as `<venue DOI>`; the arXiv-only checks (Comments line, cross-lists) do not | 4, 4a |
 | 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.1` Zenodo record** (not v0.6.0 `10.5281/zenodo.23422745`) | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
 | 8 | Semantic Scholar: add the paper to the claimed author page | 5 |
@@ -488,7 +491,7 @@ archived `paper.pdf` (tectonic) and arXiv's PDF (its own TeX Live) are two rende
 - **TechRxiv's rules first-hand.** `techrxiv.org/faqs` returned 403; the 7.2 row is secondary-source, and TechRxiv is closed for submissions.
 - **Preprints.org and SSRN.** Both returned HTTP 403 on 2026-11-21. Not read; no claim is made.
 - **That an endorser will agree, or when.** Endorsers are not obliged to act.
-- **preprints.org, Research Square, OSF Preprints or SSRN policies.** Not read. No claim is made.
+- **Research Square's licence and scope.** Its pages did not confirm CC BY 4.0 or that computer science is in scope; the principal reads its terms before the fallback is used.
 - **That Scholar will index a self-hosted copy.** Their guidelines state requirements, not outcomes.
 - **Anything about the paper's scientific content.** This remains a publication-logistics document.
 
@@ -501,6 +504,7 @@ archived `paper.pdf` (tectonic) and arXiv's PDF (its own TeX Live) are two rende
 - bioRxiv FAQ — <https://www.biorxiv.org/about/FAQ>
 - Semantic Scholar FAQ — <https://www.semanticscholar.org/faq>
 - OpenAlex help, *Fixing authors* / *Fixing data errors* / *Getting indexed* — <https://help.openalex.org/>
+- Read 2026-11-21 (agent): arXiv endorsement help <https://info.arxiv.org/help/endorsement.html>; Research Square support articles <https://support.researchsquare.com/>; bioRxiv FAQ <https://www.biorxiv.org/about/FAQ>; Qeios <https://www.qeios.com/publishing-policy>, <https://www.qeios.com/plans>; engrXiv <https://engrxiv.org/about>; OSF Preprints suspension <https://help.osf.io/article/687-osf-preprints-suspension>. Not read (HTTP 403): preprints.org, ssrn.com, techrxiv.org
 - COAR Directory of Open Access Preprint Repositories, TechRxiv entry — <https://doapr.coar-repositories.org/repositories/techrxiv/> (secondary source; `techrxiv.org/faqs` returned HTTP 403)
 - ORCID support, *Add works using an identifier* — <https://support.orcid.org/hc/en-us/articles/360022298153-Add-works-using-an-identifier>
 
@@ -544,5 +548,5 @@ A fourth decision is adjacent and does not block submission, but affects what ge
 - **That the submission will be accepted.** Moderation (and, on arXiv, endorsement) are human decisions
   made by the venue after you submit. Nothing here predicts them.
 - **That the posted PDF renders as intended on the venue.** CI compiling the source and the 4a build are strong
-  evidence, not proof. Read the `paper.pdf` you upload at 7.5 step 5 before submitting, and the venue's preview after.
+  evidence, not proof. On arXiv, read arXiv's preview PDF before submitting (Part 2 step 4); on the Research Square fallback, read the 4a `paper.pdf` before uploading.
 - **Any claim about the paper's scientific content.** This is a publication-logistics document.
