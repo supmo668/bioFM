@@ -150,10 +150,11 @@ is to let CI do it rather than to ship one without a bibliography.
 
 ## Endorsement, and the fallback
 
-A first submission to a category can land in arXiv's endorsement queue. The address of
-record for this work is an **alumni** address, which is likelier to need endorsement
-than a current institutional one. **bioRxiv has no endorsement requirement** and is
-the fallback if `cs.LG` stalls — but post to exactly one preprint server. Two
+A first submission to a category can land in arXiv's endorsement queue, and an alumni
+address is likelier to need endorsement than a current institutional one. Some servers
+have no endorsement requirement and can be a fallback — but post to exactly one preprint
+server. (This pipeline is generic. For the `perturb-seq-eval` paper the venue is arXiv
+`cs.LG` by personal endorsement: see `projects/perturb-seq-eval/paper/SUBMISSION.md`.) Two
 preprints of one paper is duplicate publication, which is the failure this project
 already guards against elsewhere.
 

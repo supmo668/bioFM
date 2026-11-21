@@ -1,5 +1,8 @@
 # arXiv packaging manifest for this paper.
 #
+# THIS PAPER'S SUBMISSION PATH (approvals row 34, 2026-11-21): arXiv cs.LG by personal endorsement. Row 32 had
+# closed the arXiv path; row 34 reversed it when TechRxiv closed for submissions.
+#
 # This file is the ONLY thing that ties the generic pipeline (scripts/arxiv_package.py
 # + .github/workflows/arxiv-package.yml) to this particular paper. A second paper in
 # this repo opts in by dropping its own arxiv.toml beside its root .tex — no code change.
@@ -25,7 +28,7 @@ license = "CC BY 4.0"
 comments = """
 Pre-registered study; pre-registration and provenance manifests included. \
 Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). \
-The same release is deposited on Figshare as doi:10.6084/m9.figshare.32086920.v6.
+The same work is deposited on Figshare as doi:10.6084/m9.figshare.32086920 (all versions).
 """
 
 # Packages used by this paper that are not in the pipeline's vouched TeX Live set.

@@ -101,7 +101,7 @@ Net: **8 of 10 critique items closed (MC1 + MC2 + MC3a + mc5 + mc6 + mc7 + mc8 +
 
 ### 4.1 Preprint + MassGen contribution (immediate)
 
-- [ ] upload SUPPLEMENT.md + code + artifacts to bioRxiv and arXiv cs.LG
+- [ ] post the preprint to **arXiv `cs.LG` only**, by personal endorsement — one preprint server (approvals row 34; runbook: [`paper/SUBMISSION.md`](../paper/SUBMISSION.md)). Fallback after 14 days with no endorser: Research Square. Supersedes the earlier "bioRxiv and arXiv cs.LG" target (two servers) and the TechRxiv ruling (TechRxiv is closed for submissions)
 - [ ] open a PR against [`tools/MassGen`](../../../tools/MassGen/) exposing the evaluation as a skill; draft already committed under [`massgen_skill_draft/`](../massgen_skill_draft/)
 - [ ] submit PR to [`libs/cellforge-agents`](../../../libs/cellforge-agents/) for the preflight CLI hook
 - Scope: what we can ship today, revisions or not.
@@ -197,7 +197,7 @@ Recommendation: **Zenodo DOI** for final artefacts; `artifacts/modal_run/` becom
 | License headers in every source file | ⬜ audit | add `# SPDX-License-Identifier: Apache-2.0` to src/scripts modules |
 | `pip install perturb-eval` works on a clean venv | ⬜ | `python -m venv .venv && .venv/bin/pip install dist/perturb_eval-*.whl && python -c "import perturb_eval"` |
 
-**What's left before bioRxiv submission:** the four items marked ⬜ in
+**What's left before preprint submission (written 2026-04 for bioRxiv; the venue is now arXiv only, §4.1):** the four items marked ⬜ in
 the bottom half of this table. Roughly half a day of admin work
 (SHA-256, CITATION.cff, CHANGELOG, README lead) plus the token-holder's
 wall time to run the scripted pipeline. Everything else is closed.
@@ -208,7 +208,7 @@ on Modal, ~$2). See §7 for the integrated effort estimate.
 
 ## 7. Estimated time to submission-ready
 
-- With only MC1 + MC2 + MC3(a) done: **2 engineer-days + $1 Modal** → bioRxiv preprint ready, Brief Communications draft startable.
+- With only MC1 + MC2 + MC3(a) done: **2 engineer-days + $1 Modal** → preprint ready (then bioRxiv; now arXiv, §4.1), Brief Communications draft startable.
 - With MC1–MC4 + mc5 + mc10 + MC3(b) (real traces): **5 engineer-days + $12 Modal** → ICLR-workshop-ready short paper.
 
 Either path fits inside the remaining Hackathon budget.
