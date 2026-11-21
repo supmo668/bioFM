@@ -1,5 +1,9 @@
 # arXiv packaging manifest for this paper.
 #
+# NOT THIS PAPER'S SUBMISSION PATH (approvals row 32, 2026-11-21): the venue is TechRxiv and the arXiv
+# path is closed for this paper. This manifest stays because the CI job it drives is the paper's compile
+# check and the pipeline is generic.
+#
 # This file is the ONLY thing that ties the generic pipeline (scripts/arxiv_package.py
 # + .github/workflows/arxiv-package.yml) to this particular paper. A second paper in
 # this repo opts in by dropping its own arxiv.toml beside its root .tex — no code change.
