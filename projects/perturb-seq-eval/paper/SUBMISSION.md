@@ -1,20 +1,22 @@
 # Preprint submission runbook — manual steps, for research approval
 
-**Status: VENUE FINAL — TechRxiv, and only TechRxiv (approvals rows 15 and 32). The arXiv path is CLOSED for this
-paper (row 32, 2026-11-20). POSTING BLOCKED** until the principal's first-hand read of TechRxiv's own terms is
-recorded: the principal reported the read on 2026-11-09, and its four findings (CC BY 4.0 offered, an ML method
-paper in scope, a prior Zenodo/Figshare deposit accepted, PDF accepted) are not yet on record. Every TechRxiv fact in Part 7 comes from a
+**Status: VENUE FINAL — TechRxiv, and only TechRxiv. Row 15 is the principal's ruling for TechRxiv; row 32
+(2026-11-21) CLOSES the arXiv path for this paper, as a decision delegated by the principal to the CTO seat, not a
+ruling the principal made in those words. POSTING BLOCKED** until the principal's first-hand read of TechRxiv's own terms is
+recorded: the principal reported the read on 2026-11-09 (perturb-seq-eval session 74ae8896, "1. read"), and the answers to its four checks are not yet on record: is CC BY 4.0 offered, is an ML
+method paper in scope, is a paper already on Zenodo/Figshare accepted, and is a PDF the accepted format. Every TechRxiv fact in Part 7 comes from a
 secondary source (the COAR directory), and `techrxiv.org` returned HTTP 403 to the agents on 2026-11-05 (reported,
-not retried). **How to read this file now:** Part 0 (building and checking the paper) applies to any venue. **Parts 1 and 2 are the
+not retried). **How to read this file now:** **7.5 is the one sequence to follow.** For TechRxiv, Part 0 is only the compile and
+bibliography check; its `tar.gz` is arXiv's upload format, and what you upload is the `paper.pdf` from 7.5 step 4a. **Parts 1 and 2 are the
 arXiv path and are kept as a record only — do not follow them.** Parts 3–5 give the steps after posting; where they
-say arXiv, the venue is TechRxiv. Part 7 is why.
+say arXiv, the venue is TechRxiv. Part 7 is why. **Standing constraint: post to exactly one preprint server** (7.2).
 **2026-11-08 (principal):** the row-19 Morandi sentence is in `paper.tex`, with its K clause qualified to the
 real-LLM evaluation after two independent primary-source reads, and the (b″) disclaimer is narrowed to match ("we have
 read the sections cited below …"). The revised paper is archived as Zenodo / Figshare version **`0.6.1`** — a
 manuscript revision of v0.6.0; the run and every outcome are unchanged, and `v0.6.0-a5` stays the pre-registration
 amendment tag only — **before** the preprint is posted (7.5 step 4a), so that Part 4's `isIdenticalTo` is true.
 **Owner: the principal. None of this is delegable to an agent** — the venue submission and its licence grant are
-legal acts by a person (arXiv also has no deposit API for individual authors).
+legal acts by a person.
 
 This is the paper-specific **instance**. Three documents divide the work:
 
@@ -24,34 +26,35 @@ This is the paper-specific **instance**. Three documents divide the work:
 | [`docs/preprint/arxiv-submission-process.md`](../../../docs/preprint/arxiv-submission-process.md) | the **venue process** — every arXiv screen and field, reusable for any paper |
 | **this file** | the **instance** — this paper's values, decisions and status |
 
-The pipeline automates everything up to the Submit button; the process document is the button,
-and this file is what to type.
+The process document covers arXiv's form only. **For this paper's venue, TechRxiv, there is no process document:**
+the form is read off the site at 7.5 step 5, and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
 `CITATION.cff` one. The CFF abstract is 2363 characters with 5 non-ASCII characters; arXiv rejects
 anything over 1920 and accepts ASCII only. The override is 1914 characters, 0 non-ASCII, with every
-number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use the generated block.
+number, hypothesis label and the "0 unevaluated" integrity claim preserved. This limit is arXiv's. On TechRxiv use
+the `CITATION.cff` abstract unless its form states a limit; if it does, the override is the pre-checked shorter text.
 
 | | |
 |---|---|
 | Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 (retitled by Amendment 5) |
 | Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) — v0.6.0, pre-amendment manuscript; **next: `0.6.1`** (7.5 step 4a) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
-| Venue (approvals row 15, superseding row 12) | **TechRxiv** (IEEE); posting blocked on the principal's first-hand read of its terms. arXiv (`cs.LG`, cross-lists `q-bio.QM`, `cs.MA`) only via a prior Path-2 endorsement, never in parallel |
+| Venue (approvals rows 15 and 32) | **TechRxiv** (IEEE), the one preprint server; posting blocked until the answers to the four checks of the principal's terms read are recorded. **arXiv: closed for this paper (row 32)** |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
 
 ---
 
 ## The blocking dependency, stated first
 
-**The submission bundle does not exist yet, and cannot be built on this machine.** The paper uses
+**What blocks posting today is the unrecorded terms read (7.5 step 4), not the build.** The compile check below has
+run in CI (run `40985145366`, Part 0 Path A).
+
+**Why the build check exists.** The paper uses
 `\bibliography{references}` and **arXiv does not run BibTeX**, so the bundle must contain a generated
 `.bbl` or every citation renders as `[?]` in the announced PDF — compiled, published, and wrong, with
-no error to warn you. Generating a `.bbl` needs a TeX toolchain and there is none here (`pdflatex`,
-`latexmk`, `bibtex`, `biber` all absent).
-
-So **Part 0 must complete before Part 2 is possible.** There is no workaround that preserves the
-bibliography.
+no error to warn you. The same check matters for a PDF upload: read the built `paper.pdf` and confirm no `[?]`
+before 7.5 step 5.
 
 ---
 
@@ -65,14 +68,13 @@ The pipeline commit `c0ec931` is on `origin/main` (verified 2026-11-04), so the 
 2. The `arxiv-package` workflow runs on push. Or trigger it directly:
    **Actions → `arxiv-package` → Run workflow →** `paper_dir` = `projects/perturb-seq-eval/paper`.
 3. Download the **`arxiv-bundle-*`** artifact. It contains:
-   - `perturb-seq-eval-arxiv-<date>.tar.gz` ← **this is what you upload to arXiv**
+   - `perturb-seq-eval-arxiv-<date>.tar.gz` ← arXiv's upload format (**not uploaded to TechRxiv**; see 7.5 step 5)
    - `perturb-seq-eval-arxiv-<date>.manifest.txt` — the file list with sha256 prefixes
    - `arxiv-metadata.txt` — the paste-ready block, identical to Part 2 below
-   - **`paper.pdf` is NOT in the artifact** — the workflow asked for it but the upload
-     reported only 3 files, and the job asserted `paper.bbl` while never asserting the PDF, so
-     its absence passed silently. Measured, not assumed, on run `40985145366`. It costs nothing
-     here: arXiv compiles from source and shows you its *own* PDF to preview, which is the one
-     that matters. Tracked as a pipeline gap.
+   - `paper.pdf` — the CI-compiled PDF (latexmk). The workflow now asserts it is non-empty and uploads it;
+     measured present in the artifact of run `42408464580`. An earlier run (`40985145366`) lacked it, and that
+     gap is fixed. **It is a compile check, not the file to post**: the posted PDF is the `build_deposit.py`
+     (tectonic) build from 7.5 step 4a.
 4. The job summary carries the same metadata block, so you can read it without downloading.
 
 **The workflow's LaTeX step has executed.** Run `40985145366` (2026-10-30) completed "Compile LaTeX
@@ -113,7 +115,7 @@ prevent. The three `sections/v050_*.tex` files, the five figure PDFs and the `ta
 
 ## Part 1 — Account and endorsement
 
-> **CLOSED for this paper (approvals row 32, 2026-11-20). Record only — do not follow.** arXiv needs a named `cs.LG`
+> **CLOSED for this paper (approvals row 32, 2026-11-21). Record only — do not follow.** arXiv needs a named `cs.LG`
 > endorser (7.1); the venue is TechRxiv.
 
 1. Log in at <https://arxiv.org/login> (or register). **Use the ORCID-linked route if available** —
@@ -127,10 +129,10 @@ submissions from registered authors"*. The address of record is the **alumni** a
 [`CITATION.cff`](../CITATION.cff) — weaker evidence of current affiliation than a live
 institutional one.
 
-**Only one arXiv route remains (approvals row 15).** Since 2026-01-21 an institutional address alone no
+**Row 15 left one arXiv route; row 32 closed it.** What row 15 said, kept as the record: since 2026-01-21 an institutional address alone no
 longer qualifies, the address of record is an alumni address, and there is no prior accepted arXiv paper,
-so arXiv is reachable only through a **named `cs.LG` endorser** (Path 2). That endorsement must come
-*before* any preprint is posted. Once the paper is on TechRxiv, arXiv is a second preprint server and is
+so arXiv was reachable only through a **named `cs.LG` endorser** (Path 2), and that endorsement had to come
+*before* any preprint was posted. Once the paper is on TechRxiv, arXiv is a second preprint server and is
 closed (see the box below).
 
 > **Post to EXACTLY ONE preprint server.** Two preprints of one paper is duplicate publication —
@@ -144,8 +146,8 @@ closed (see the box below).
 
 ## Part 2 — The submission form, field by field
 
-> **CLOSED for this paper (approvals row 32). Record only.** These are arXiv's form fields. The title, authors,
-> licence and abstract below are still this paper's metadata; the 1914-character ASCII abstract is an arXiv limit,
+> **CLOSED for this paper (approvals row 32). Record only — do not follow.** These are arXiv's form fields. The live
+> source of the title, authors, licence and abstract for TechRxiv is `CITATION.cff`; the 1914-character ASCII abstract is an arXiv limit,
 > and TechRxiv's own limit is to be read off its form.
 
 Start at **arxiv.org → START NEW SUBMISSION**. Values below are generated from
@@ -234,20 +236,16 @@ article, so its DOI belongs there.
 
 ## Part 3 — Immediately after announcement
 
-> **Parts 3–5 are written for an arXiv posting.** On the ruled venue, TechRxiv, read "the venue's DOI and record"
-> wherever they say arXiv ID, `10.48550/arXiv…` DOI or crawled arXiv record. The steps are the same: record the
-> identifier, link it reciprocally on Zenodo as `isIdenticalTo` once, and merge the Scholar entry. TechRxiv mints
-> its own DOI (Part 7.2, secondary source until the principal's first-hand read).
+> **Parts 3–5 were first written for arXiv; the steps below are stated for the venue, TechRxiv.** Where a later
+> paragraph still says arXiv, read the venue. TechRxiv mints its own DOI (Part 7.2, a secondary-source fact until
+> the terms read is recorded).
 
-Record the assigned identifier. arXiv mints both:
+Record the assigned identifier: the venue DOI, written `<venue DOI>` below.
 
-- arXiv ID — `arXiv:NNNN.NNNNN`
-- arXiv DOI — `10.48550/arXiv.NNNN.NNNNN`
+**Check the posted record for:** title and author rendering, the licence showing CC BY 4.0, and a visible link or
+reference to the Zenodo concept DOI `10.5281/zenodo.19716140` wherever the form allows one.
 
-**Check the announced abstract page for:** title and author rendering, the Comments line carrying
-`doi:10.5281/zenodo.19716140`, the licence showing CC BY 4.0, and the cross-lists to `q-bio.QM` and `cs.MA`.
-
-Then tell me the arXiv ID and I will update `CITATION.cff` (both the root and the project file),
+Then tell me the venue DOI and I will update `CITATION.cff` (both the root and the project file),
 the two READMEs, and `docs/hacp/perturb-seq-eval/publish-complete.md` so the repository states the
 preprint alongside the two archive DOIs. That part *is* mine.
 
@@ -266,7 +264,7 @@ At deposit the `0.6.1` Zenodo record carries `isNewVersionOf` `10.5281/zenodo.23
 
 1. Zenodo → the `0.6.1` record → **Edit** (metadata-only edit; it does **not** mint a new version).
 2. Under **Related works**, add:
-   - **`is identical to`** → `10.48550/arXiv.NNNN.NNNNN`
+   - **`is identical to`** → `<venue DOI>`
 3. Publish the metadata edit.
 
 **Relation choice is a judgment call, so here is the reasoning rather than just the answer.**
@@ -328,8 +326,7 @@ rules out.
 
 ## Part 7 — Visibility when arXiv endorsement is unavailable
 
-**Read this before Part 1.** It changes what Part 1 says is possible, and it changes what Part 5
-can deliver.
+This part is why the venue is TechRxiv and why Part 1 is closed. It also changes what Part 5 can deliver.
 
 ### 7.0 The fact that reframes the question: Zenodo is not in Google Scholar
 
@@ -348,7 +345,7 @@ citations.**
 
 **Therefore: this work currently has no indexed Scholar record at all, and no amount of follow-up
 produces one without a Scholar-indexed venue.** Scholar visibility is not a post-submission chore.
-It follows from the venue, ruled TechRxiv (approvals row 15), and it is blocked on the same thing: the
+It follows from the venue, ruled TechRxiv (approvals rows 15 and 32), and it is blocked on the same thing: the
 principal's first-hand read of TechRxiv's terms.
 
 ### 7.1 Why Part 1 has one route — the endorsement gate tightened on 2026-01-21
@@ -379,8 +376,8 @@ and there is no prior accepted arXiv paper. Path 1 fails on **both** conditions,
 is unavailable *except* by Path 2 — a named human in `cs.LG` who agrees to endorse. That is a
 decision about people, not a step in a runbook, and nothing in this repository can advance it.
 
-Part 1's framing ("a first `cs.LG` submission *may* therefore land in the endorsement queue") was
-written against the pre-2026 rule and is now too soft. Under the current policy the queue is the
+An earlier framing in this file (that a first `cs.LG` submission *may* land in the endorsement queue) was
+written against the pre-2026 rule and was too soft. Under the current policy the queue is the
 default, not the risk case.
 
 ### 7.2 Endorsement-free venues — and the constraint that eliminates most of them
@@ -409,7 +406,7 @@ licence list, the moderation criteria, the accepted file format, and whatever it
 already deposited in a repository. That is a five-minute read and it is the one thing in this part
 that was not measured at the primary source.
 
-**arXiv is closed for this paper (approvals row 32, 2026-11-20).** Row 15 had left it open through a Path-2
+**arXiv is closed for this paper (approvals row 32, 2026-11-21).** Row 15 had left it open through a Path-2
 endorsement obtained *first*. That option is withdrawn: an endorser search has no date, and once a preprint is up on
 TechRxiv a later arXiv posting would be a second live preprint, because a revision on one server cannot supersede a
 posting on another. If the terms read fails a check, the fallback is to reopen the endorser route by a new approvals
@@ -473,21 +470,20 @@ fallback it is, not as a way around the venue decision.
 |---|---|---|
 | 1 | ORCID: add the Zenodo DOI (7.3 #1) | nothing — do it today |
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
-| 3 | ~~Principal decides the venue~~ **Decided: TechRxiv** (approvals row 15) | 7.1, 7.2 |
-| 4 | **Principal reads TechRxiv's own terms at the primary source; BLOCKS step 5** (agents get HTTP 403) | 3 |
+| 3 | ~~Principal decides the venue~~ **Decided: TechRxiv only; arXiv closed** (approvals rows 15 and 32) | 7.1, 7.2 |
+| 4 | **Record the principal's answers to the four checks of the terms read — is CC BY 4.0 offered, is an ML method paper in scope, is a paper already on Zenodo/Figshare accepted, is a PDF the accepted format. BLOCKS step 5.** The read was reported on 2026-11-09; agents get HTTP 403 and cannot stand in for it. A failed check means a new approvals row, not a second server | 3 |
 | 4a | **Archive the revised paper as version `0.6.1`** (principal, 2026-11-08): `build_deposit.py`, then `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3), review the drafts, then a **separate go** to publish, then `publish.yml` deposit-time step 5 (CITATION version and DOIs, CHANGELOG, Zenodo `isIdenticalTo` Figshare v7). The v0.6.0 records carry the pre-amendment paper and title, so step 6's `isIdenticalTo` would be false against them | nothing (can run in parallel with 4) |
-| 5 | Part 0 bundle → the venue's form. **Upload the same `paper.pdf` that 4a deposited** — the `build_deposit.py` build, md5-identical, not a CI rebuild (the Part 0 CI bundle is LaTeX source) — so "identical" is literally true | 4, 4a |
+| 5 | Post on TechRxiv. **Upload the same `paper.pdf` that 4a deposited** — the `build_deposit.py` build, md5-identical, not a CI rebuild (the Part 0 CI bundle is LaTeX source) — so "identical" is literally true. This holds only if step 4 records that a PDF is the accepted format; if TechRxiv wants source, stop and re-plan | 4, 4a |
 | 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.1` Zenodo record** (not v0.6.0 `10.5281/zenodo.23422745`) | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
 | 8 | Semantic Scholar: add the paper to the claimed author page | 5 |
 | 9 | Part 6 OSF cleanup | nothing — independent, and still live and wrong |
 
 **One format caveat on step 5.** Part 0 exists because arXiv compiles from LaTeX source and does not
-run BibTeX, so a missing `.bbl` publishes every citation as `[?]`. **If the chosen venue takes a
-compiled PDF instead of a source bundle, that failure mode does not apply in the same form** — you
-upload the PDF you have already read. **Do not conclude either way from this document**: confirm the
-accepted format at step 4, because getting it wrong in this direction is the one error in this
-runbook that is invisible after publication.
+run BibTeX, so a missing `.bbl` publishes every citation as `[?]`. With a PDF upload that failure mode does not
+apply in the same form — you upload the PDF you have already read. **The accepted format is the fourth check
+answered at step 4, not something this document establishes**; getting it wrong is the one error in this runbook
+that is invisible after publication.
 
 ### What Part 7 does not establish
 
@@ -511,21 +507,21 @@ runbook that is invisible after publication.
 
 ---
 
-## Approval required before Part 1
+## Approval required before posting (7.5 step 5)
 
-Three items: one closed decision, one superseded ruling that blocks posting, one blocker.
+Three items: two closed, and one that blocks posting (item 2).
 
 1. **Flush `c0ec931` — CLOSED.** The commit is on `origin/main` and the workflow's LaTeX step has run
    successfully (run `40985145366`; see Part 0, Path A). Path A is available.
 2. **Venue — FINAL: TechRxiv only (approvals rows 15 and 32); posting BLOCKED on the recorded terms read.** arXiv was
    measured unreachable without a named `cs.LG` endorser (Part 7.1), so row 12's arXiv ruling is
-   superseded. The supersession is conditional on the principal reading TechRxiv's terms first-hand
-   (licence, scope, prior-posting rule). Every TechRxiv fact here comes from a secondary source, and the
-   agents' fetch returned HTTP 403. The principal reported the read on 2026-11-09; its four findings are not yet recorded. Do not submit until they are. Row 32 closes the arXiv path for this paper.
+   superseded. The venue is not conditional; **posting** is, on the principal's first-hand read of TechRxiv's terms
+   (licence, scope, prior-posting rule, file format). A failed check means a new approvals row, not a return to row 12. Every TechRxiv fact here comes from a secondary source, and the
+   agents' fetch returned HTTP 403. The principal reported the read on 2026-11-09; the answers to its four checks are not yet recorded. Do not submit until they are. Row 32 closes the arXiv path for this paper.
 3. **Title — RULED T1 (CTO #896, 2026-11-04) — CLOSED.** The question-form T1 title and row 11's narrowed
    contribution are applied in `paper.tex` and recorded as Amendment 5 of `PREREGISTRATION.md`. They landed on
-   `origin/main` in PR #42 (tag `v0.6.0-a5`). Re-run Part 0 after the Morandi-sentence change lands, so the
-   bundle is built from it.
+   `origin/main` in PR #42 (tag `v0.6.0-a5`). The Morandi-sentence change landed in PR #46; the compile check runs in
+   CI on every change to the paper.
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 
@@ -549,7 +545,6 @@ A fourth decision is adjacent and does not block submission, but affects what ge
 
 - **That the submission will be accepted.** Moderation (and, on arXiv, endorsement) are human decisions
   made by the venue after you submit. Nothing here predicts them.
-- **That the LaTeX compiles on arXiv's TeX Live.** CI compiling it is strong evidence, not proof —
-  arXiv's toolchain is its own. Part 2 step 4 is where you find out, and it is why you read the
-  generated PDF before submitting rather than after.
+- **That the posted PDF renders as intended on the venue.** CI compiling the source and the 4a build are strong
+  evidence, not proof. Read the `paper.pdf` you upload at 7.5 step 5 before submitting, and the venue's preview after.
 - **Any claim about the paper's scientific content.** This is a publication-logistics document.
