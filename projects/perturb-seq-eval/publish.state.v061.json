@@ -1,0 +1,42 @@
+{
+  "zenodo": {
+    "deposit_id": 24430429,
+    "bucket": "https://zenodo.org/api/files/b13a228b-cabc-4d75-a8de-bee8e2aa2b7d",
+    "revision_of": 23422745,
+    "inherited_files_removed": true,
+    "doi": "10.5281/zenodo.24430429",
+    "prepared": true
+  },
+  "figshare": {
+    "article_id": 32086920,
+    "revision_of": 32086920,
+    "doi": "10.6084/m9.figshare.32086920",
+    "public_baseline": [
+      6,
+      [
+        [
+          "paper.pdf",
+          "f137dab214e85aa21606604cc29dae20"
+        ],
+        [
+          "paper_build.log",
+          "4019b884bd77275564293c5b727957d8"
+        ],
+        [
+          "supplement.zip",
+          "52edb3d08ad0157e373977c8ded96d48"
+        ],
+        [
+          "v050_run_artifacts.zip",
+          "f1c1fccc1aa99eaa2d90d1c8f386adb8"
+        ],
+        [
+          "v060_run_artifacts.zip",
+          "5b41a91947966426611b99c20ea14311"
+        ]
+      ]
+    ],
+    "inherited_files_removed": true,
+    "prepared": true
+  }
+}
