@@ -101,7 +101,7 @@ Net: **8 of 10 critique items closed (MC1 + MC2 + MC3a + mc5 + mc6 + mc7 + mc8 +
 
 ### 4.1 Preprint + MassGen contribution (immediate)
 
-- [ ] upload SUPPLEMENT.md + code + artifacts to bioRxiv and arXiv cs.LG
+- [ ] post the preprint to **TechRxiv only** — one preprint server (approvals rows 15 and 32; runbook: [`paper/SUBMISSION.md`](../paper/SUBMISSION.md)). Supersedes the earlier "bioRxiv and arXiv cs.LG" target, which named two servers
 - [ ] open a PR against [`tools/MassGen`](../../../tools/MassGen/) exposing the evaluation as a skill; draft already committed under [`massgen_skill_draft/`](../massgen_skill_draft/)
 - [ ] submit PR to [`libs/cellforge-agents`](../../../libs/cellforge-agents/) for the preflight CLI hook
 - Scope: what we can ship today, revisions or not.

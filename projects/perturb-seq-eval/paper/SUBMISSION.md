@@ -1,10 +1,13 @@
 # Preprint submission runbook — manual steps, for research approval
 
-**Status: VENUE RULED, TechRxiv (approvals row 15, superseding row 12's arXiv). SUBMISSION BLOCKED** until the
-principal reads TechRxiv's own terms first-hand in an ordinary browser. Every TechRxiv fact in Part 7 comes from a
+**Status: VENUE FINAL — TechRxiv, and only TechRxiv (approvals rows 15 and 32). The arXiv path is CLOSED for this
+paper (row 32, 2026-11-20). POSTING BLOCKED** until the principal's first-hand read of TechRxiv's own terms is
+recorded: the principal reported the read on 2026-11-09, and its four findings (CC BY 4.0 offered, an ML method
+paper in scope, a prior Zenodo/Figshare deposit accepted, PDF accepted) are not yet on record. Every TechRxiv fact in Part 7 comes from a
 secondary source (the COAR directory), and `techrxiv.org` returned HTTP 403 to the agents on 2026-11-05 (reported,
-not retried). Parts 0–2 are written for arXiv; Part 0 (building and checking the paper) applies to any venue. The arXiv path stays open only through a named `cs.LG` endorser (Path 2)
-obtained *before* any preprint is posted, never alongside one.
+not retried). **How to read this file now:** Part 0 (building and checking the paper) applies to any venue. **Parts 1 and 2 are the
+arXiv path and are kept as a record only — do not follow them.** Parts 3–5 give the steps after posting; where they
+say arXiv, the venue is TechRxiv. Part 7 is why.
 **2026-11-08 (principal):** the row-19 Morandi sentence is in `paper.tex`, with its K clause qualified to the
 real-LLM evaluation after two independent primary-source reads, and the (b″) disclaimer is narrowed to match ("we have
 read the sections cited below …"). The revised paper is archived as Zenodo / Figshare version **`0.6.1`** — a
@@ -110,6 +113,9 @@ prevent. The three `sections/v050_*.tex` files, the five figure PDFs and the `ta
 
 ## Part 1 — Account and endorsement
 
+> **CLOSED for this paper (approvals row 32, 2026-11-20). Record only — do not follow.** arXiv needs a named `cs.LG`
+> endorser (7.1); the venue is TechRxiv.
+
 1. Log in at <https://arxiv.org/login> (or register). **Use the ORCID-linked route if available** —
    it attaches `0009-0009-5233-3142` to the submission and is what makes the record show up under
    your ORCID profile automatically.
@@ -137,6 +143,10 @@ closed (see the box below).
 ---
 
 ## Part 2 — The submission form, field by field
+
+> **CLOSED for this paper (approvals row 32). Record only.** These are arXiv's form fields. The title, authors,
+> licence and abstract below are still this paper's metadata; the 1914-character ASCII abstract is an arXiv limit,
+> and TechRxiv's own limit is to be read off its form.
 
 Start at **arxiv.org → START NEW SUBMISSION**. Values below are generated from
 `projects/perturb-seq-eval/CITATION.cff` via the pipeline, so the paper, the repository and this form
@@ -399,11 +409,11 @@ licence list, the moderation criteria, the accepted file format, and whatever it
 already deposited in a repository. That is a five-minute read and it is the one thing in this part
 that was not measured at the primary source.
 
-**arXiv is still reachable — but not in parallel.** Pursuing a Path-2 endorsement is compatible with
-everything here, *provided you do not post twice.* If arXiv matters more than months of delay, get
-the endorsement **first** and wait (approvals row 15). Once a preprint is up on TechRxiv, arXiv is
-closed: a revision on one server cannot supersede a posting on another, so a later arXiv posting would be
-a second live preprint.
+**arXiv is closed for this paper (approvals row 32, 2026-11-20).** Row 15 had left it open through a Path-2
+endorsement obtained *first*. That option is withdrawn: an endorser search has no date, and once a preprint is up on
+TechRxiv a later arXiv posting would be a second live preprint, because a revision on one server cannot supersede a
+posting on another. If the terms read fails a check, the fallback is to reopen the endorser route by a new approvals
+row — never a second server.
 
 ### 7.3 Channels that are not venues — unlimited, and carry no duplication risk
 
@@ -507,11 +517,11 @@ Three items: one closed decision, one superseded ruling that blocks posting, one
 
 1. **Flush `c0ec931` — CLOSED.** The commit is on `origin/main` and the workflow's LaTeX step has run
    successfully (run `40985145366`; see Part 0, Path A). Path A is available.
-2. **Venue — SUPERSEDED to TechRxiv (approvals row 15, 2026-11-05); posting BLOCKED.** arXiv was
+2. **Venue — FINAL: TechRxiv only (approvals rows 15 and 32); posting BLOCKED on the recorded terms read.** arXiv was
    measured unreachable without a named `cs.LG` endorser (Part 7.1), so row 12's arXiv ruling is
    superseded. The supersession is conditional on the principal reading TechRxiv's terms first-hand
    (licence, scope, prior-posting rule). Every TechRxiv fact here comes from a secondary source, and the
-   agents' fetch returned HTTP 403. Do not submit until that read is done and recorded.
+   agents' fetch returned HTTP 403. The principal reported the read on 2026-11-09; its four findings are not yet recorded. Do not submit until they are. Row 32 closes the arXiv path for this paper.
 3. **Title — RULED T1 (CTO #896, 2026-11-04) — CLOSED.** The question-form T1 title and row 11's narrowed
    contribution are applied in `paper.tex` and recorded as Amendment 5 of `PREREGISTRATION.md`. They landed on
    `origin/main` in PR #42 (tag `v0.6.0-a5`). Re-run Part 0 after the Morandi-sentence change lands, so the
