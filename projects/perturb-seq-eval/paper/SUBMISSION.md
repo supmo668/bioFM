@@ -35,7 +35,7 @@ number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use 
 | | |
 |---|---|
 | Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 run and results; the manuscript posted is revision `0.6.1` (retitled by Amendment 5) |
-| Already archived | Zenodo concept `10.5281/zenodo.19716140` · Figshare `10.6084/m9.figshare.32086920.v6` (linked `isIdenticalTo`) — v0.6.0, pre-amendment manuscript; **next: `0.6.1`** (7.5 step 4a) |
+| Already archived | **`0.6.1`, published 2026-11-22** (approvals row 37): Zenodo `10.5281/zenodo.24430429` (concept `10.5281/zenodo.19716140`) · Figshare `10.6084/m9.figshare.32086920.v7`; `paper.pdf` md5-identical on both, built from `980fd099`. The Zenodo ↔ Figshare v7 `isIdenticalTo` link is still to add. v0.6.0 (`23422745`, Figshare v6) holds the pre-amendment manuscript |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
 | Venue (approvals row 34, reversing row 32) | **arXiv**, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA`, by personal endorsement. Fallback after 14 days: Research Square, once the principal has read its licence terms. TechRxiv: closed for submissions |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
