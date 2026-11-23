@@ -211,8 +211,12 @@ class TestMSD:
 # ---------------------------------------------------------------------------
 
 # Regression pin captured from the pre-T9 single-int code path (commit 16f4f54)
-# on ``_pin_setup()``. A 1-tuple and a plain int must reproduce these
-# bit-for-bit (rtol=0, atol=0).
+# on ``_pin_setup()``. A 1-tuple and a plain int must reproduce these.
+# The linear pin is still bit-for-bit on every build we run. The MLP pin moves by a
+# few ulp with the numpy/BLAS build (HACA-121), so it is compared within
+# ``MLP_PIN_MAX_ULP`` ulp of the output's scale instead (HACA-124). The pins were
+# recorded in an environment nobody wrote down (2026-09-24, x86_64). The builds the
+# bound was checked on are in tests/fixtures/numeric_environment.json.
 _PIN_LINEAR = [
     0.0018316583237388457, -0.08090151514344297, 0.009073835886043824,
     0.00114820377095907, 0.05077691989006361, -0.6317395604314169,
@@ -247,13 +251,30 @@ def _pin_predict(cls, as_tuple: bool) -> np.ndarray:
     return bb.predict_logfc(held, wrap(ds["target_gene_idx"][held]), 16)
 
 
+# The bound is in ulp of the largest pinned magnitude, not per element: element 0
+# (-0.0094) is a cancellation result, so its own ulp is 64x finer than the vector's
+# and it moves 12 of its own ulp (2e-17 absolute) on the aarch64 host while every
+# element stays within 1 ulp of the scale.
+MLP_PIN_MAX_ULP = 4
+
+
 @pytest.mark.unit
-@pytest.mark.parametrize("cls,pin", [(LinearBackbone, _PIN_LINEAR), (MLPBackbone, _PIN_MLP)])
 @pytest.mark.parametrize("as_tuple", [False, True], ids=["int", "1-tuple"])
-def test_single_target_regression_pin_bit_exact(cls, pin, as_tuple: bool) -> None:
-    pred = _pin_predict(cls, as_tuple)
-    np.testing.assert_allclose(pred, np.asarray(pin), rtol=0, atol=0)
-    assert pred.tobytes() == np.asarray(pin, dtype=np.float64).tobytes()
+def test_single_target_regression_pin_bit_exact(as_tuple: bool) -> None:
+    pred = _pin_predict(LinearBackbone, as_tuple)
+    np.testing.assert_allclose(pred, np.asarray(_PIN_LINEAR), rtol=0, atol=0)
+    assert pred.tobytes() == np.asarray(_PIN_LINEAR, dtype=np.float64).tobytes()
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("as_tuple", [False, True], ids=["int", "1-tuple"])
+def test_single_target_regression_pin_within_ulp(as_tuple: bool) -> None:
+    pin = np.asarray(_PIN_MLP, dtype=np.float64)
+    pred = _pin_predict(MLPBackbone, as_tuple)
+    assert pred.dtype == np.float64 and pred.shape == pin.shape
+    ulp = np.spacing(np.max(np.abs(pin)))
+    worst = float(np.max(np.abs(pred - pin)) / ulp)
+    assert worst <= MLP_PIN_MAX_ULP, f"MLP pin off by {worst:g} ulp of scale (> {MLP_PIN_MAX_ULP})"
 
 
 def _doublet_dataset() -> tuple[dict, dict[str, tuple[int, ...]]]:

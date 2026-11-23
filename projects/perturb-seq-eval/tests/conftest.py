@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import pytest
 
+from numeric_env import header_line
 from perturb_eval.types import RoundTrace, RunTrace
+
+
+def pytest_terminal_summary(terminalreporter) -> None:
+    """Print the numeric environment (python, numpy, scipy, scikit-learn, BLAS) at the end of
+    every run, -q included, so a ulp-bounded comparison can be tied to the build that produced
+    it (HACA-124)."""
+    terminalreporter.write_line(header_line())
 
 
 @pytest.fixture
