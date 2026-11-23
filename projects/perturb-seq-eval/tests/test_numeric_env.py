@@ -21,8 +21,10 @@ def note() -> dict:
 @pytest.mark.unit
 def test_record_names_the_numeric_stack() -> None:
     env = numeric_environment()
-    for key in ("machine", "python", "numpy", "scipy", "scikit-learn"):
+    for key in ("machine", "python", "numpy"):
         assert env[key], key
+    # scipy and scikit-learn are optional (pyproject research group): recorded, maybe None.
+    assert "scipy" in env and "scikit-learn" in env
     assert env["blas"]["blas"]["name"], env["blas"]
     line = header_line()
     assert line.startswith("numeric environment: {")
