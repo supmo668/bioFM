@@ -31,7 +31,7 @@ def macros() -> dict[str, str]:
         re.findall(
             r"^\\newcommand\{\\((?:res|expl)[A-Za-z]+)\}\{(.*)\}$",
             GEN.read_text() + "\n" + GEN_EXPLORATORY.read_text(),
-            flags=re.M,
+            flags=re.MULTILINE,
         )
     )
     return {k: _value(v) for k, v in raw.items()}

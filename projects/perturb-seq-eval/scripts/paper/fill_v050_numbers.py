@@ -62,12 +62,8 @@ def fill(summary: dict) -> dict[str, str]:
         "RHO_WFR": _fmt_float(summary.get("rho_wfr", float("nan")), 2),
         "RHO_TDI": _fmt_float(summary.get("rho_tdi", float("nan")), 2),
         "RHO_TRANSFER": _fmt_float(summary.get("rho_transfer", float("nan")), 2),
-        "GATE_ADAMSON": _fmt_gate(
-            bool(summary.get("gate_adamson_median_below_0_20", False))
-        ),
-        "GATE_NORMAN": _fmt_gate(
-            bool(summary.get("gate_norman_median_below_0_30", False))
-        ),
+        "GATE_ADAMSON": _fmt_gate(bool(summary.get("gate_adamson_median_below_0_20", False))),
+        "GATE_NORMAN": _fmt_gate(bool(summary.get("gate_norman_median_below_0_30", False))),
         "GATE_ENTROPY": _fmt_gate(
             bool(summary.get("gate_architect_entropy_above_0_5_nats", False))
         ),
