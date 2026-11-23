@@ -42,7 +42,18 @@ SAFE_VALUE = re.compile(r"[A-Za-z0-9.,:;()+\- /_]*")  # `_` is escaped at emissi
 ENSUREMATH_NEG = re.compile(
     r"\\ensuremath\{-\d+(\.\d+)?\}|\d{1,3}(\\,\d{3})+"
 )  # negatives; thin-space thousands
-VERDICTS = {r"\textbf{PASS}", r"\textbf{FAIL}", r"\textbf{UNEVALUATED}", r"\textemdash"}
+# Outcome words, typeset in prose and in the hypotheses table (HACA-119: no capitalised status words).
+SUPPORTED, NOT_SUPPORTED, NOT_EVALUABLE = "supported", "not supported", "could not be evaluated"
+VERDICTS = {r"\textemdash"}
+# What each pre-registered hypothesis claims, as the summary sentence names it.
+HYPOTHESIS_NAMES = {
+    "H1": "the attainable-error hypothesis on Adamson",
+    "H2": "the attainable-error hypothesis on Norman",
+    "H3": "the backbone-choice hypothesis",
+    "H4": "the trace-feature ranking hypothesis",
+    "H5": "the cross-dataset transfer hypothesis",
+}
+NUMBER_WORDS = ("no", "one", "two", "three", "four", "five")
 
 
 def f(x, d: int = 3) -> str:
@@ -55,8 +66,29 @@ def f(x, d: int = 3) -> str:
 
 def verdict(ok) -> str:
     if ok is None:
-        return r"\textbf{UNEVALUATED}"
-    return r"\textbf{PASS}" if ok else r"\textbf{FAIL}"
+        return NOT_EVALUABLE
+    return SUPPORTED if ok else NOT_SUPPORTED
+
+
+def _join(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def gate_summary(outcomes: dict[str, bool | None], out_of: int) -> str:
+    """The tally as an English sentence (no labels, no capitalised status words)."""
+    if len(outcomes) != out_of or out_of >= len(NUMBER_WORDS):
+        raise ValueError("the tally does not cover every pre-registered hypothesis")
+    failed = [HYPOTHESIS_NAMES[g] for g, ok in outcomes.items() if ok is False]
+    uneval = [HYPOTHESIS_NAMES[g] for g, ok in outcomes.items() if ok is None]
+    n_ok = sum(ok is True for ok in outcomes.values())
+    text = f"{NUMBER_WORDS[n_ok]} of the {NUMBER_WORDS[out_of]} pre-registered hypotheses are supported"
+    if failed:
+        text += f"; {_join(failed)} " + ("is not" if len(failed) == 1 else "are not")
+    if uneval:
+        text += f"; {_join(uneval)} could not be evaluated"
+    else:
+        text += ", and every hypothesis could be evaluated"
+    return text
 
 
 def _sha16(path: Path) -> str:
@@ -189,12 +221,14 @@ def build(
     m["TallyFail"] = str(t["FAIL"])
     m["TallyUneval"] = str(t["UNEVALUATED"])
     m["TallyOut"] = str(t["out_of"])
-    failed = [g for g in ("H1", "H2", "H3", "H4", "H5") if pr[g]["pass"] is False]
-    m["GateSummary"] = (
-        f"{t['PASS']} of {t['out_of']} criteria pass"
-        + (f"; {', '.join(failed)} fail" + ("s" if len(failed) == 1 else "") if failed else "")
-        + f" ({t['UNEVALUATED']} unevaluated)"
-    )
+    outcomes = {g: pr[g]["pass"] for g in HYPOTHESIS_NAMES}
+    if [sum(ok is v for ok in outcomes.values()) for v in (True, False, None)] != [
+        t["PASS"],
+        t["FAIL"],
+        t["UNEVALUATED"],
+    ]:
+        raise ValueError("the analyser's tally disagrees with the per-hypothesis outcomes")
+    m["GateSummary"] = gate_summary(outcomes, t["out_of"])
     # ---- run record (analyser counters first, the call log second)
     rep = p["llm_report"]
     log = p["llm_call_log"]

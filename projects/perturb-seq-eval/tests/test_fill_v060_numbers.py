@@ -419,17 +419,38 @@ def test_verdicts_and_gate_summary(macros, art):
         ("H4", "HFour"),
         ("H5", "HFive"),
     ):
-        want = {True: r"\textbf{PASS}", False: r"\textbf{FAIL}", None: r"\textbf{UNEVALUATED}"}[
+        want = {True: "supported", False: "not supported", None: "could not be evaluated"}[
             pr[g]["pass"]
         ]
         assert macros[f"res{name}Verdict"] == want, g
-    assert macros["resGateSummary"] == "4 of 5 criteria pass; H5 fails (0 unevaluated)"
+    assert macros["resGateSummary"] == (
+        "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
+        "hypothesis is not, and every hypothesis could be evaluated"
+    )
+    # HACA-119: an English sentence, with no hypothesis label and no capitalised status word
+    assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED", macros["resGateSummary"])
     assert macros["resManifestSha"] != "n/a" and macros["resArchiveShaCache"] != "n/a"
 
 
 def test_verdict_none_is_unevaluated(fv):
-    assert fv.verdict(None) == r"\textbf{UNEVALUATED}"
-    assert fv.verdict(True) == r"\textbf{PASS}" and fv.verdict(False) == r"\textbf{FAIL}"
+    assert fv.verdict(None) == "could not be evaluated"
+    assert fv.verdict(True) == "supported" and fv.verdict(False) == "not supported"
+
+
+def test_gate_summary_sentence_covers_every_outcome_mix(fv):
+    all_ok = {g: True for g in fv.HYPOTHESIS_NAMES}
+    assert fv.gate_summary(all_ok, 5) == (
+        "five of the five pre-registered hypotheses are supported, and every hypothesis could be "
+        "evaluated"
+    )
+    mixed = {**all_ok, "H1": False, "H5": False, "H3": None}
+    assert fv.gate_summary(mixed, 5) == (
+        "two of the five pre-registered hypotheses are supported; the attainable-error hypothesis "
+        "on Adamson and the cross-dataset transfer hypothesis are not; the backbone-choice "
+        "hypothesis could not be evaluated"
+    )
+    with pytest.raises(ValueError):
+        fv.gate_summary(all_ok, 6)
 
 
 def test_numeric_invariants(macros):
@@ -533,9 +554,12 @@ def test_unevaluated_gate_is_not_typeset_as_fail(fv, tmp_path):
             row["passes"] = None
 
     m = _patched_build(fv, tmp_path, patch)
-    assert m["HFiveVerdict"] == r"\textbf{UNEVALUATED}"
-    assert "FAIL" not in m["HFiveVerdict"] and "fail" not in m["GateSummary"]
-    assert "1 unevaluated" in m["GateSummary"]
+    assert m["HFiveVerdict"] == "could not be evaluated"
+    assert "not supported" not in m["HFiveVerdict"] and "not," not in m["GateSummary"]
+    assert m["GateSummary"] == (
+        "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
+        "hypothesis could not be evaluated"
+    )
     assert m["HFourAdaAcePass"] == "undefined"
 
 
@@ -559,8 +583,8 @@ def test_render_refuses_unsafe_values(fv):
         fv.render({"RunId": "a%b"})
     with pytest.raises(ValueError):
         fv.render({"RunId": "a\nb"})
-    assert r"\newcommand{\resHOneVerdict}{\textbf{PASS}}" in fv.render(
-        {"HOneVerdict": r"\textbf{PASS}"}
+    assert r"\newcommand{\resHOneVerdict}{not supported}" in fv.render(
+        {"HOneVerdict": "not supported"}
     )
 
 
