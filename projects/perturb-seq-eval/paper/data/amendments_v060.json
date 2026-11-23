@@ -9,7 +9,7 @@
       ],
       "lock_date_utc": "2026-09-25",
       "lock_note": "lock commit",
-      "change": "H4 multiplicity quantified by permutation through the estimator (all six rho reported whatever their outcome)",
+      "change": "the dependence among the six trace-feature ranking tests is quantified by permutation through the estimator, and all six correlations are reported whatever their outcome",
       "introduces": "under the null (no association)"
     },
     {
@@ -19,7 +19,7 @@
         "3bf2a9a"
       ],
       "lock_date_utc": "2026-09-27",
-      "change": "measurand fixes: required verbalised confidence; fixed three rounds; applied agent choices with precedence; N dropped from the trainer grid; one evaluation-gene universe shared by both paths; H3 on the stated backbone with a pinned menu; the task draw described as implemented; dataset and modality in every prompt and an empty version-namespaced cache; FWER bracket with a permutation bound; direct-simplex ACE (metrics.ace_d) as the ACE feature; unclipped delta C",
+      "change": "fixes to what is measured: a verbalised confidence is required; every run has exactly three rounds; the agent choices are applied in a fixed precedence; the agent-count axis is dropped from the trainer grid; one set of evaluation genes is shared by the trainer sweep and the agents; the backbone-choice entropy is computed on the stated backbone over a fixed menu; the task draw is described as implemented; every prompt names the dataset and its modality, and the run starts on an empty, version-specific cache; the false-positive rate of the ranking criterion is bounded by permutation; the confidence entropy uses the direct simplex projection; the confidence-drop term is not clipped",
       "lock_note": "lock commit",
       "introduces": "## Amendment 2"
     },
@@ -30,7 +30,7 @@
         "114a01f"
       ],
       "lock_date_utc": "2026-09-28",
-      "change": "mito-QC threshold recorded, not applied; Trainer role as a precedence tier; Validator threshold required (an unstated value is a schema failure); the stated grid count is the number of distinct (backbone, R) configurations, seven",
+      "change": "the mitochondrial-read QC threshold is recorded, not applied; the Trainer role is a precedence tier; the Validator threshold is required (an unstated value is a schema failure); the stated grid size is the number of distinct (backbone, R) configurations, seven",
       "lock_note": "lock commit",
       "introduces": "## Amendment 3"
     },
@@ -43,8 +43,8 @@
         "00fae29"
       ],
       "lock_date_utc": "2026-09-29",
-      "change": "provider changed to the Anthropic API with a pinned roster (Haiku 4.5 for four roles, Sonnet 5.5 for the Validator), structured outputs, per-role ceilings with one retry at twice the ceiling, refusal and served-model rules; spend lines of 12, 28 and 30 USD on the total, including the 1.3 USD carried in from the aborted run and the dry run; single-family and same-family-judge caveats stated in the methods",
-      "lock_note": "a48ae5f is the lock; 535cb68 and 00fae29 are text fixes (CTO 486 and 480), all before any data",
+      "change": "provider changed to the Anthropic API with a pinned roster (Haiku 4.5 for four roles, Sonnet 5.5 for the Validator), structured outputs, per-role output ceilings with one retry at twice the ceiling, and rules for refusals and for the served model; spend lines of 12, 28 and 30 USD on the total, including the 1.3 USD carried in from the aborted run and the dry run; the single-family and same-family-judge caveats are stated in the methods",
+      "lock_note": "a48ae5f is the lock; 535cb68 and 00fae29 are text fixes, all made before any data",
       "introduces": "## Amendment 4"
     },
     {
@@ -55,7 +55,7 @@
       ],
       "lock_date_utc": "2026-11-04",
       "post_outcome": true,
-      "change": "locked AFTER the v0.6.0 outcome: the title becomes a question about the confidence distribution of a multi-agent group (question form kept; subtitle reports the two H4 outcomes), and the term gate is renamed pre-registered criterion; no hypothesis, threshold, estimator or outcome changes and no run exists under it",
+      "change": "locked after the outcome was known: the title becomes a question about the confidence distribution of a multi-agent group (the question form is kept, and the subtitle reports both outcomes of the trace-feature ranking test), and the term gate is renamed pre-registered criterion; no hypothesis, threshold, estimator or outcome changes, and no run exists under it",
       "lock_note": "f2bb193 is the lock, made after the v0.6.0 outcome (CTO 896, approvals rows 13 and 14); recorded here and tagged per row 16; later commits revise its wording and record only",
       "introduces": "## Amendment 5"
     }
