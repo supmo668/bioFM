@@ -53,6 +53,7 @@ HYPOTHESIS_NAMES = {
     "H4": "the trace-feature ranking hypothesis",
     "H5": "the cross-dataset transfer hypothesis",
 }
+THINKING_WORDS = {"none": "off", "disabled": "off", "between_tools": "on between tool calls"}
 NUMBER_WORDS = ("no", "one", "two", "three", "four", "five")
 
 
@@ -344,8 +345,9 @@ def build(
     # ---- A4-1 thinking / sampling facts from the run record (CTO #532 ii)
     th = rep["thinking"]
     sm = rep["sampling"]
-    m["ThinkingHaiku"] = str((th.get(HAIKU) or {}).get("thinking", {}).get("type", "none"))
-    m["ThinkingSonnet"] = str((th.get(SONNET) or {}).get("thinking", {}).get("type", "none"))
+    # The recorded thinking mode, in words (HACA-119: no API tokens in prose); an unknown mode is refused.
+    m["ThinkingHaiku"] = THINKING_WORDS[(th.get(HAIKU) or {}).get("thinking", {}).get("type", "none")]
+    m["ThinkingSonnet"] = THINKING_WORDS[(th.get(SONNET) or {}).get("thinking", {}).get("type", "none")]
     m["EffortSonnet"] = str((th.get(SONNET) or {}).get("effort", "default"))
     m["TemperatureHaiku"] = f(sm[HAIKU]["temperature"], 1)
     m["SamplingSonnet"] = (

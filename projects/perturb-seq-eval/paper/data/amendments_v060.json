@@ -44,7 +44,7 @@
       ],
       "lock_date_utc": "2026-09-29",
       "change": "provider changed to the Anthropic API with a pinned roster (Haiku 4.5 for four roles, Sonnet 5.5 for the Validator), structured outputs, per-role output ceilings with one retry at twice the ceiling, and rules for refusals and for the served model; spend lines of 12, 28 and 30 USD on the total, including the 1.3 USD carried in from the aborted run and the dry run; the single-family and same-family-judge caveats are stated in the methods",
-      "lock_note": "a48ae5f is the lock; 535cb68 and 00fae29 are text fixes, all made before any data",
+      "lock_note": "the first commit is the lock and the other two correct its text, all before any data were collected",
       "introduces": "## Amendment 4"
     },
     {
@@ -56,7 +56,7 @@
       "lock_date_utc": "2026-11-04",
       "post_outcome": true,
       "change": "locked after the outcome was known: the title becomes a question about the confidence distribution of a multi-agent group (the question form is kept, and the subtitle reports both outcomes of the trace-feature ranking test), and the term gate is renamed pre-registered criterion; no hypothesis, threshold, estimator or outcome changes, and no run exists under it",
-      "lock_note": "f2bb193 is the lock, made after the v0.6.0 outcome (CTO 896, approvals rows 13 and 14); recorded here and tagged per row 16; later commits revise its wording and record only",
+      "lock_note": "the commit is the lock, made after the outcome was known; later commits revise only its wording and record",
       "introduces": "## Amendment 5"
     }
   ]
