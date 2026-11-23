@@ -39,6 +39,24 @@
         "summary_ulp_per_element": 4,
         "summary_keys_moved": 15
       }
+    },
+    {
+      "where": "GitHub Actions ubuntu-latest, run 45109377753 (module tree d25aef4)",
+      "date": "2026-11-23",
+      "machine": "x86_64",
+      "python": "3.12.16",
+      "numpy": "2.4.4",
+      "scipy": "1.17.1",
+      "scikit-learn": "1.8.0",
+      "torch": "2.14.0+cpu",
+      "blas": "scipy-openblas 0.3.31.188.0 (DYNAMIC_ARCH, built Haswell, runtime Haswell)",
+      "observed": {
+        "mlp_pin_ulp_of_scale": 1,
+        "mlp_pin_ulp_per_element": 28,
+        "linear_pin_ulp": 0,
+        "summary_ulp_per_element": 2,
+        "summary_keys_moved": 10
+      }
     }
   ]
 }
