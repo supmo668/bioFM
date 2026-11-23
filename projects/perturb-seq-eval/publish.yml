@@ -49,22 +49,24 @@ description: |
   cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
   tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
   deterministically, a trainer sweep of 27 records per task and three
-  fixed-length agentic lifecycle runs per task, all in one process. The LLM
-  condition is a pinned roster of Anthropic Claude models (Haiku 4.5 for the
-  four proposer roles, Sonnet 5.5 for the Validator) whose served model is
-  recorded and asserted per call; a run with any rule-based fallback step is
-  invalid. Every run records its git revision, resolved configuration, library
-  versions, dataset SHA-256 digests, task plan and label contract. Outcomes: 4
-  of 5 criteria pass; H5 fails (0 unevaluated) — the trainer sweep attains the
-  pre-registered error on both screens (H1, H2), the Architect exercises its
-  backbone choice (H3), and the confidence-drop component and the composite
-  rank tasks by held-out error within both screens (H4); the
-  Adamson-calibrated composite does not transfer to Norman at the
-  pre-registered level (H5, ρ = 0.286 against > 0.4). The confidence-entropy
-  point estimates run against the pre-registered direction in both screens
-  (exploratory; no claim is made). The values reported in the v0.5.0 release
-  of this work are superseded in full; the defects behind each are listed in
-  the appendix.
+  fixed-length agentic lifecycle runs per task, all in one process. The agents
+  are large language models (LLMs) from a pinned roster of Anthropic Claude
+  models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator)
+  whose served model is recorded and asserted per call; a run with any
+  rule-based fallback step is invalid. Every run records its git revision,
+  resolved configuration, library versions, dataset SHA-256 digests, task plan
+  and label contract. We find that four of the five pre-registered hypotheses
+  are supported and the cross-dataset transfer hypothesis is not; every
+  hypothesis could be evaluated. The trainer sweep reaches the pre-registered
+  error on both screens, and the Architect's choice of backbone varies above
+  the pre-registered entropy floor. Within each screen, the drop in the
+  agents' confidence across rounds, and the composite that inherits it, rank
+  tasks by held-out error. The composite calibrated on Adamson does not
+  transfer to Norman at the pre-registered level (ρ = 0.286 against a
+  criterion of > 0.4). The point estimates for confidence entropy run against
+  the pre-registered direction in both screens; this is exploratory, and no
+  claim is made. The values reported in the earlier release of this work are
+  superseded in full; the defects behind each are listed in the appendix.
 
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.

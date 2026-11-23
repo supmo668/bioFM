@@ -11,6 +11,12 @@
 # framework never hardcodes names; it resolves them here. `name` is the slug
 # used for sandbox/handoff paths under <sandbox_root>/<name>/.
 principals:
+  mymm-psu:
+    name: matthew-mo
+    seat: cto
+    display_name: "Matthew Mo"
+    address:
+      informal: "Matthew"
   mo:
     name: matthew-mo
     display_name: "Matthew Mo"

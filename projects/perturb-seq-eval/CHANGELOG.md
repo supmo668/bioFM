@@ -4,6 +4,19 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
+## [0.6.1] — 2026-11-22 (manuscript revision; published)
+
+Published as the next version of the existing records: Zenodo 10.5281/zenodo.24430429 (concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v7 — the same five files, `paper.pdf` md5-identical on both, built from commit `980fd099`. Principal's go: perturb-seq-eval approvals row 37.
+
+### Changed
+
+- **Manuscript only.** Amendment 5 of `paper/PREREGISTRATION.md` (tag `v0.6.0-a5`): the paper is retitled, its contribution is narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered criterion'. One related-work sentence on Morandi (2026) is added and the prior-work disclaimer is narrowed to match.
+- **No hypothesis, threshold, estimator, run or outcome changed.** The run artifacts are the v0.6.0 run's.
+
+### Open
+
+- The Zenodo 0.6.1 record does not yet carry `isIdenticalTo` the Figshare v7 DOI (done for v6 on 2026-10-25).
+
 ## [0.6.0] — 2026-10-16 (pre-registered sweep run; manuscript filled; published)
 
 Published as the next version of the existing records: Zenodo 10.5281/zenodo.23422745 (concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v6 — the same five files with identical md5s on both venues.

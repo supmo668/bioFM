@@ -52,9 +52,10 @@ preferred-citation:
   url: "https://doi.org/10.5281/zenodo.19716140"
   license: "CC-BY-4.0"
   notes: >-
-    Preprint-class deposit archived on Zenodo (concept DOI; resolves to v0.6.0,
-    published 2026-10-16). The same release is deposited on Figshare as
-    10.6084/m9.figshare.32086920.v6, and the two records reference each other —
-    the Zenodo record carries `isIdenticalTo` to the Figshare DOI. Full version
+    Preprint-class deposit archived on Zenodo (concept DOI; resolves to 0.6.1,
+    10.5281/zenodo.24430429, published 2026-11-22). The same release is deposited
+    on Figshare as 10.6084/m9.figshare.32086920.v7. The earlier v0.6.0 pair (Zenodo
+    10.5281/zenodo.23422745, Figshare v6) reference each other by `isIdenticalTo`;
+    the 0.6.1 pair does not yet carry that link. Full version
     lineage v1..v6 and every superseded DOI are documented in
     projects/perturb-seq-eval/CITATION.cff.
