@@ -4,6 +4,12 @@ All notable changes to the perturb-seq-eval supplement are documented here
 in conventional-commits style. This file is the version-controlled mirror
 of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
+## [Unreleased]
+
+### Changed
+
+- **Tests: three bit-exact pins compare within a bounded ulp (HACA-124).** The numbers move by a few ulp with the numpy/BLAS build: numpy 2.4.4 and 2.5.5 on the same x86_64 CPU differ, and the aarch64 host and the x86_64 runner both miss the pins recorded 2026-09-24 (HACA-121). The MLP regression pin now matches within 4 ulp of its largest magnitude (the linear pin stays bit-exact). The reproduction check stays exact for every `summary.json` key except `preregistered.H5.weights.one_minus_delta_c` and `preregistered.H5.norman_tdi`, which match within 4 ulp per element, and every reported value must be identical. Every test run prints its numeric environment (python, numpy, scipy, scikit-learn, torch, BLAS build and runtime core); the checked builds are in `tests/fixtures/numeric_environment.json`. The paper's Reproducibility paragraph discloses the two keys. No result, macro or artifact changed.
+
 ## [0.6.1] — 2026-11-22 (manuscript revision; published)
 
 Published as the next version of the existing records: Zenodo 10.5281/zenodo.24430429 (concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v7 — the same five files, `paper.pdf` md5-identical on both, built from commit `980fd099`. Principal's go: perturb-seq-eval approvals row 37.

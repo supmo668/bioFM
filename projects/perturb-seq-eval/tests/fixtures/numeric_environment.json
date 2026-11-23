@@ -1,0 +1,44 @@
+{
+  "about": "The numeric environments the ulp-bounded comparisons were checked on (HACA-121/124). Every pytest run prints its own environment in the terminal summary (tests/numeric_env.py). Add an entry when a new build is checked.",
+  "pins_recorded": {
+    "date": "2026-09-24",
+    "machine": "x86_64",
+    "mlp_pin_commit": "16f4f54",
+    "environment": null,
+    "note": "Nobody wrote the numpy/BLAS build down; numpy 2.4.4 and 2.5.5 on x86_64 both miss the MLP pin by 1-2 ulp (HACA-121)."
+  },
+  "bounds": {
+    "tests/test_backbones.py::test_single_target_regression_pin_within_ulp": {
+      "unit": "ulp of max|pin|",
+      "max": 4
+    },
+    "tests/test_fill_v060_numbers.py::test_landed_analyser_reproduces_the_committed_summary": {
+      "unit": "ulp per element",
+      "max": 4,
+      "paths": [
+        "preregistered/H5/weights/one_minus_delta_c",
+        "preregistered/H5/norman_tdi"
+      ]
+    }
+  },
+  "verified": [
+    {
+      "where": "Paperclip host",
+      "date": "2026-11-23",
+      "machine": "aarch64",
+      "python": "3.12.16",
+      "numpy": "2.4.4",
+      "scipy": "1.17.1",
+      "scikit-learn": "1.8.0",
+      "torch": "2.14.0+cpu",
+      "blas": "scipy-openblas 0.3.31.188.0 (DYNAMIC_ARCH, built neoversev2, runtime neoversen1)",
+      "observed": {
+        "mlp_pin_ulp_of_scale": 1,
+        "mlp_pin_ulp_per_element": 12,
+        "linear_pin_ulp": 0,
+        "summary_ulp_per_element": 4,
+        "summary_keys_moved": 15
+      }
+    }
+  ]
+}
