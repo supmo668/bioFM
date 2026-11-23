@@ -13,7 +13,9 @@ name: perturb-seq-eval-tests
 # not poetry.lock: the lock is stale against pyproject (torch 2.11 vs ==2.14.0).
 # numpy / scipy / scikit-learn are pinned to the poetry.lock versions for Python
 # >=3.11: the MLP pin is pure numpy and moves by 1 ulp with the numpy build
-# (numpy 2.5.5 fails it on x86_64, run 45107486401). torch is the CPU wheel.
+# (numpy 2.5.5 fails it on x86_64, run 45107486401). h5py matches the lock too.
+# torch (==2.14.0, CPU wheel) and anndata (==0.12.19) follow pyproject, not the
+# stale lock (2.11.0 / 0.12.10).
 
 on:
   push:
