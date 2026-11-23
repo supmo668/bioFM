@@ -281,8 +281,10 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resLandSha": land["land_git_sha"],
         "resLandPR": str(land["pr_number"]),
         "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
-        "resThinkingHaiku": "none",
-        "resThinkingSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["thinking"]["type"],
+        "resThinkingHaiku": "off",  # recorded "none", in words
+        "resThinkingSonnet": {"between_tools": "on between tool calls"}[
+            p["llm_report"]["thinking"]["claude-sonnet-5-5"]["thinking"]["type"]
+        ],
         "resEffortSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["effort"],
         "resTemperatureHaiku": f(
             p["llm_report"]["sampling"]["claude-haiku-4-5-20251001"]["temperature"], 1
@@ -786,7 +788,8 @@ def test_prose_claims_match_artifacts(art, land):
         "code paths the run did not reach" in main
         and "revision at which v0.6.0 landed on main" in main
     )
-    assert "\\resLandSha" not in res and "reproduces every committed value" not in res
+    flat_res = " ".join(_strip(res).split())
+    assert "\\resLandSha" not in flat_res and "reproduces every committed value" not in flat_res
     para = main[main.index("\\resLandSha") : main.index("reproduces every committed value")]
     named = re.findall(r"\\path\{((?:src|scripts/modal)/[^}]*\.py)\}", para)
     assert sorted(named) == sorted(land["post_run_changed_paths"]), named
@@ -1066,14 +1069,13 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
     followed by the exact disclosure (requirement, cause, the run's own value), so an inverted,
     negated or relocated rewording fails, and the next editor cannot drop it as superstition."""
     assert len(PY312_ENTROPY_PATHS) == 5  # "five keys"
-    # HACA-119: the claim is made once, in Reproducibility; Results no longer repeats it.
-    assert "reproduces every committed value" not in RESULTS.read_text()
-    for rel, claim_end in (
-        ("paper.tex", "reproduces every committed value of \\texttt{summary.json}. "),
-    ):
-        text = " ".join(_strip((PAPER / rel).read_text()).split())
-        assert text.count("reproduces every committed value") == 1, rel
-        assert claim_end + PY312_DISCLOSURE in text, rel
+    # HACA-119: the claim is made exactly once across the manuscript, in Reproducibility
+    # (paper.tex), and that copy carries the full disclosure.
+    flat = {f.name: " ".join(_strip(f.read_text()).split()) for f in TEX_INPUTS}
+    assert sum(t.count("reproduces every committed value") for t in flat.values()) == 1, flat.keys()
+    assert flat["paper.tex"].count("reproduces every committed value") == 1
+    claim_end = "reproduces every committed value of \\texttt{summary.json}. "
+    assert claim_end + PY312_DISCLOSURE in flat["paper.tex"]
     # Outside the paper, the same claim must carry the requirement too.
     changelog = " ".join((ROOT / "CHANGELOG.md").read_text().split())
     for m in re.finditer(r"reproduces the committed `summary\.json`", changelog):
@@ -1248,26 +1250,40 @@ def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
 
 
 # --------------------------------------------------------------------------- HACA-119 wording
+HLABEL = re.compile(r"\bH(?:\\,|~|\$?_\{?)?[1-5]\b")
+REGISTER_CODE = re.compile(
+    r"\bA\d(?:-{1,3}|\\nobreakdash-)\d+\b|\bDF-\d+|\\#\d+|\bR\d\b|\bRR-\d|record~0"
+    r"|\b(?!SHA-)[A-Z]{2,}-\d+\b"
+)
+STATUS_WORD = re.compile(
+    r"PASS|FAIL|UNEVALUATED|\\textsc\{(?i:pass|fail)\}|\\textbf\{(?i:pass|fail|unevaluated)\}"
+)
+
+
 def test_hypothesis_labels_appear_only_in_the_hypotheses_table():
-    """HACA-119: H1-H5 are defined in tab:gates and named in words everywhere else."""
-    for fpath in TEX_INPUTS:
+    """HACA-119: H1-H5 are defined in tab:gates and named in words everywhere else, captions
+    and headings included, and the generated macros carry none."""
+    for fpath in TEX_INPUTS + [GEN]:
         text = _strip(fpath.read_text())
         if fpath == RESULTS:
             start = text.rindex("\\begin{tabular}", 0, text.index("& Hypothesis & Criterion"))
             text = text[:start] + text[text.index("\\end{tabular}", start) :]
-        assert not re.search(r"\bH[1-5]\b", text), fpath.name
+        assert not HLABEL.search(text), (fpath.name, HLABEL.search(text))
 
 
 def test_no_capitalised_status_words_or_inline_register_codes():
-    """HACA-119: no PASS/FAIL/UNEVALUATED in the manuscript, and no amendment, defect or ticket
-    code (A2-7, DF-07, #227, R3, record 0) in running text, headings or captions."""
-    code = re.compile(r"\bA\d-\d+\b|\bDF-\d+|\\#\d+|\bR\d\b|\bRR-\d|record~0")
+    """HACA-119: no PASS/FAIL/UNEVALUATED (or a styled variant) in the manuscript, and no
+    amendment, defect or ticket code (A2-7, A2--7, DF-07, #227, R3, HACA-119, record 0)."""
     for fpath in TEX_INPUTS + [GEN]:
         text = _strip(fpath.read_text())
-        assert not re.search(r"PASS|FAIL|UNEVALUATED", text), fpath.name
-        assert not code.search(text), (fpath.name, code.search(text))
-    for fpath in TEX_INPUTS:
-        text = _strip(fpath.read_text())
-        for m in re.finditer(r"\\(?:sub)*section\*?\{([^}]*)\}|\\caption\{", text):
-            head = m.group(1) if m.group(1) is not None else text[m.end() : m.end() + 600]
-            assert not re.search(r"\bH[1-5]\b", head), (fpath.name, head[:80])
+        assert not STATUS_WORD.search(text), (fpath.name, STATUS_WORD.search(text))
+        assert not REGISTER_CODE.search(text), (fpath.name, REGISTER_CODE.search(text))
+
+
+@pytest.mark.parametrize(
+    "bad",
+    ["Results for H3", "$H_3$", "H\\,3", "see A2-7.", "see A2--7.", "A2\\nobreakdash-7",
+     "PR~\\#227", "HACA-119", "\\textsc{pass}", "\\textbf{Fail}", "DF-07", "record~0"],
+)
+def test_shorthand_guards_catch_variants(bad):
+    assert HLABEL.search(bad) or REGISTER_CODE.search(bad) or STATUS_WORD.search(bad), bad
