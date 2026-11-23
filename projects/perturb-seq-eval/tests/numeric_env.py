@@ -51,9 +51,7 @@ def _runtime_blas() -> list[dict[str, Any]]:
     except ImportError:
         return []
     keep = ("internal_api", "version", "architecture", "num_threads")
-    return [
-        {k: i.get(k) for k in keep} for i in threadpool_info() if i.get("user_api") == "blas"
-    ]
+    return [{k: i.get(k) for k in keep} for i in threadpool_info() if i.get("user_api") == "blas"]
 
 
 def numeric_environment() -> dict[str, Any]:

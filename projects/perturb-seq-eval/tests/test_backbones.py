@@ -218,19 +218,39 @@ class TestMSD:
 # recorded in an environment nobody wrote down (2026-09-24, x86_64). The builds the
 # bound was checked on are in tests/fixtures/numeric_environment.json.
 _PIN_LINEAR = [
-    0.0018316583237388457, -0.08090151514344297, 0.009073835886043824,
-    0.00114820377095907, 0.05077691989006361, -0.6317395604314169,
-    0.01801914330536336, -0.06555686935383834, 0.06152788966762908,
-    0.06207339829435761, -0.6331045698353186, 0.009449865180770992,
-    -0.011774689481254633, 0.06684052376052133, 0.1031091229110146,
+    0.0018316583237388457,
+    -0.08090151514344297,
+    0.009073835886043824,
+    0.00114820377095907,
+    0.05077691989006361,
+    -0.6317395604314169,
+    0.01801914330536336,
+    -0.06555686935383834,
+    0.06152788966762908,
+    0.06207339829435761,
+    -0.6331045698353186,
+    0.009449865180770992,
+    -0.011774689481254633,
+    0.06684052376052133,
+    0.1031091229110146,
     -1.944742291219042,
 ]
 _PIN_MLP = [
-    -0.009365195013296586, -0.14963805361775354, 0.19098722259695713,
-    -0.2678582565891176, 0.40536695483053803, -0.9189982415483317,
-    0.37012031111759813, -0.32211288458697085, -0.37221127966963297,
-    0.18888931797622535, -0.9502761244104112, -0.09854404831468926,
-    0.182800894177524, 0.5907664585269514, -0.03091329616600319,
+    -0.009365195013296586,
+    -0.14963805361775354,
+    0.19098722259695713,
+    -0.2678582565891176,
+    0.40536695483053803,
+    -0.9189982415483317,
+    0.37012031111759813,
+    -0.32211288458697085,
+    -0.37221127966963297,
+    0.18888931797622535,
+    -0.9502761244104112,
+    -0.09854404831468926,
+    0.182800894177524,
+    0.5907664585269514,
+    -0.03091329616600319,
     -0.2854345396762541,
 ]
 
@@ -246,8 +266,13 @@ def _pin_predict(cls, as_tuple: bool) -> np.ndarray:
     wrap = (lambda i: (i,)) if as_tuple else (lambda i: i)
     tg = {p: wrap(i) for p, i in ds["target_gene_idx"].items() if p != held}
     bb = cls()
-    bb.fit(ds["X"][m], ds["labels"][m].tolist(), ds["control_mask"][m], tg,
-           BackboneTrainConfig(seed=11, max_iter=50))
+    bb.fit(
+        ds["X"][m],
+        ds["labels"][m].tolist(),
+        ds["control_mask"][m],
+        tg,
+        BackboneTrainConfig(seed=11, max_iter=50),
+    )
     return bb.predict_logfc(held, wrap(ds["target_gene_idx"][held]), 16)
 
 
@@ -324,8 +349,13 @@ class TestMultiTarget:
         held = "A_B"
         m = ds["labels"] != held
         bb = LinearBackbone()
-        bb.fit(ds["X"][m], ds["labels"][m].tolist(), ds["control_mask"][m],
-               {p: t for p, t in targets.items() if p != held}, BackboneTrainConfig())
+        bb.fit(
+            ds["X"][m],
+            ds["labels"][m].tolist(),
+            ds["control_mask"][m],
+            {p: t for p, t in targets.items() if p != held},
+            BackboneTrainConfig(),
+        )
         pred = bb.predict_logfc(held, (3, 5), n_genes=20)
         assert pred[3] == bb._target_dip
         assert pred[5] == bb._target_dip
@@ -337,8 +367,13 @@ class TestMultiTarget:
     def test_mlp_doublet_fit_and_predict(self) -> None:
         ds, targets = _doublet_dataset()
         bb = MLPBackbone()
-        art = bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets,
-                     BackboneTrainConfig(max_iter=20))
+        art = bb.fit(
+            ds["X"],
+            ds["labels"].tolist(),
+            ds["control_mask"],
+            targets,
+            BackboneTrainConfig(max_iter=20),
+        )
         assert art.n_train_perturbations == 4
         pred = bb.predict_logfc("A_B", (3, 5), n_genes=20)
         assert pred.shape == (20,) and np.all(np.isfinite(pred))
@@ -353,8 +388,13 @@ class TestMultiTarget:
         ds, targets = _doublet_dataset()
         arch = _ArchitectureConfig(embed_dim=16, n_layers=1, n_heads=2, ffn_dim=32)
         bb = SCGPTSmallBackbone(arch)
-        art = bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets,
-                     BackboneTrainConfig(max_iter=5))
+        art = bb.fit(
+            ds["X"],
+            ds["labels"].tolist(),
+            ds["control_mask"],
+            targets,
+            BackboneTrainConfig(max_iter=5),
+        )
         assert art.n_train_perturbations == 4
         pred = bb.predict_logfc("A_B", (3, 5), n_genes=20)
         assert pred.shape == (20,) and np.all(np.isfinite(pred))
