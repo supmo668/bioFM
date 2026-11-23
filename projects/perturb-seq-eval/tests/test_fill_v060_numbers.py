@@ -421,9 +421,7 @@ def test_verdicts_and_gate_summary(macros, art):
         ("H4", "HFour"),
         ("H5", "HFive"),
     ):
-        want = {True: "supported", False: "not supported", None: "not evaluable"}[
-            pr[g]["pass"]
-        ]
+        want = {True: "supported", False: "not supported", None: "not evaluable"}[pr[g]["pass"]]
         assert macros[f"res{name}Verdict"] == want, g
     assert macros["resGateSummary"] == (
         "four of the five pre-registered hypotheses are supported and the cross-dataset transfer "
@@ -843,7 +841,8 @@ def test_methods_wording_matches_the_amendments():
     # section Metrics points at the amended definitions (cited by the amendments table, not by code)
     assert (
         "Both changes were made by amendment before any data from this sweep existed "
-        "(Table~\\ref{tab:amendments})" in " ".join(main.split())
+        "(Table~\\ref{tab:amendments})"
+        in " ".join(main.split())
         and "throughout"
         not in main[
             main.index("\\section{Metrics") : main.index(
@@ -1282,8 +1281,20 @@ def test_no_capitalised_status_words_or_inline_register_codes():
 
 @pytest.mark.parametrize(
     "bad",
-    ["Results for H3", "$H_3$", "H\\,3", "see A2-7.", "see A2--7.", "A2\\nobreakdash-7",
-     "PR~\\#227", "HACA-119", "\\textsc{pass}", "\\textbf{Fail}", "DF-07", "record~0"],
+    [
+        "Results for H3",
+        "$H_3$",
+        "H\\,3",
+        "see A2-7.",
+        "see A2--7.",
+        "A2\\nobreakdash-7",
+        "PR~\\#227",
+        "HACA-119",
+        "\\textsc{pass}",
+        "\\textbf{Fail}",
+        "DF-07",
+        "record~0",
+    ],
 )
 def test_shorthand_guards_catch_variants(bad):
     assert HLABEL.search(bad) or REGISTER_CODE.search(bad) or STATUS_WORD.search(bad), bad

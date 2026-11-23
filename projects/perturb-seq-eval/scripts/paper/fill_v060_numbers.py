@@ -346,8 +346,12 @@ def build(
     th = rep["thinking"]
     sm = rep["sampling"]
     # The recorded thinking mode, in words (HACA-119: no API tokens in prose); an unknown mode is refused.
-    m["ThinkingHaiku"] = THINKING_WORDS[(th.get(HAIKU) or {}).get("thinking", {}).get("type", "none")]
-    m["ThinkingSonnet"] = THINKING_WORDS[(th.get(SONNET) or {}).get("thinking", {}).get("type", "none")]
+    m["ThinkingHaiku"] = THINKING_WORDS[
+        (th.get(HAIKU) or {}).get("thinking", {}).get("type", "none")
+    ]
+    m["ThinkingSonnet"] = THINKING_WORDS[
+        (th.get(SONNET) or {}).get("thinking", {}).get("type", "none")
+    ]
     m["EffortSonnet"] = str((th.get(SONNET) or {}).get("effort", "default"))
     m["TemperatureHaiku"] = f(sm[HAIKU]["temperature"], 1)
     m["SamplingSonnet"] = (
