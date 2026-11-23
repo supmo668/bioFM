@@ -302,6 +302,13 @@ def test_single_target_regression_pin_within_ulp(as_tuple: bool) -> None:
     assert worst <= MLP_PIN_MAX_ULP, f"MLP pin off by {worst:g} ulp of scale (> {MLP_PIN_MAX_ULP})"
 
 
+@pytest.mark.unit
+def test_single_target_mlp_int_and_1_tuple_are_bit_identical() -> None:
+    """The ulp bound is against a pin from another build; on one build, a plain int and a
+    1-tuple take the same code path and must give the same bytes."""
+    assert _pin_predict(MLPBackbone, False).tobytes() == _pin_predict(MLPBackbone, True).tobytes()
+
+
 def _doublet_dataset() -> tuple[dict, dict[str, tuple[int, ...]]]:
     """Toy data plus a doublet ``A_B`` knocking down columns 3 and 5."""
     ds = _toy_dataset(n_cells=200, n_genes=20, perturbations=("A", "B", "C"), seed=3)
