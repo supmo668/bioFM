@@ -1,105 +1,108 @@
-% Corrections relative to v0.5.0. This is the ONLY place v0.5.0 values
-% appear, each marked superseded and mapped to the register row(s) that
-% supersede it. Register ids: R*/A* = workstreams/perturb-seq-eval/qa/_adhoc/
-% 2026-09-23-publication-rigor-review.md (review + Addendum); DF-* =
-% workstreams/perturb-seq-eval/deferred-findings.md; #227 = CTO ruling on HVG
-% selection over all cells. RR-* = run-record amendments to v0.6.0 (subsection
-% at the end; paper/data/run_record_amendments.json).
+% Corrections relative to the earlier release (v0.5.0). This is the ONLY place values of that
+% release appear, each marked superseded and mapped to the defects that supersede it. The defects
+% are recorded in the project's publication-rigour review register and deferred-findings list,
+% released with the code; the run-record amendments are in paper/data/run_record_amendments.json.
 
 \section{Corrections relative to v0.5.0}\label{app:corrections}
 
-All values reported in the v0.5.0 release of this work are superseded; none
-is carried into this version. The v0.5.0 figures quoted below are read from the v0.5.0 record
-(\texttt{artifacts/v0.5.0/}, added at commit \texttt{\resVFiveRecordCommit} and unchanged since), never
-typed; the narrative figures --- the Norman split, the \texttt{YIPF5} share, the almost disjoint task
-sets, the four-of-five roles and the four pooled constructs --- are quoted from the
-publication-rigour register that found them, and each quote is checked against that register. The v0.5.0 artifact set does not describe a
-single experiment, and several values were computed on inputs a code defect
-had altered. The defects, by register id (review and addendum:
-\path{workstreams/perturb-seq-eval/qa/_adhoc/2026-09-23-publication-rigor-review.md};
-DF rows: \path{workstreams/perturb-seq-eval/deferred-findings.md}):
+All values reported in the earlier release of this work are superseded; none is carried
+into this version. The figures of the earlier release quoted below are read from its archived
+record (added at commit \texttt{\resVFiveRecordCommit} and unchanged since), never typed. The
+narrative figures (the Norman split, the share of unannotated cells in one task, the almost
+disjoint task sets, the four of five roles and the four pooled constructs) are quoted from the
+publication-rigour review that found them, and each quote is checked against that review. The
+artifact set of the earlier release does not describe a single experiment, and several of its
+values were computed on inputs that a code defect had altered. The defects, all recorded in the
+review register and the deferred-findings list released with the code, were the following.
 
 \begin{description}[leftmargin=1.2em,itemsep=1pt,font=\normalfont\bfseries]
-  \item[A1] The trainer and lifecycle files covered almost disjoint task
+  \item[Disjoint task sets.] The trainer and lifecycle files covered almost disjoint task
     sets (2 shared of \resVFiveNTasks{} each), produced by two processes whose task draws
-    diverged (A6: process-salted stratification); statistics joining them
+    diverged because the stratification was salted per process; statistics joining them
     were computed across that intersection.
-  \item[A2] The seed was recorded but not passed to the lifecycle trainer or
-    the LLM cache key; the three seeds per task were byte-identical copies.
-  \item[A3] Lifecycle steps did not record whether a proposal came from an
-    LLM or the rule-based fallback; four of five roles emitted their schema
-    default throughout.
-  \item[A4] Norman doublet labels were tested with the wrong delimiter, so
-    the doublet stratum was empty and each doublet task was trained and
-    scored with a randomly chosen gene as its target.
-  \item[A7] No dataset digest was pinned; the fetchers were described as
-    SHA-gated but trusted any cached file.
-  \item[DF-06] Norman labels that did not resolve to a symbol were given a
-    random target and entered the training set of every Norman task not
-    holding them out.
-  \item[DF-07] The Adamson task \texttt{ATF6} pooled four distinct
-    constructs (single, two doubles, one triple) into one population.
-  \item[DF-10] Adamson cells with a missing annotation were decoded as the
-    file's last category; the \texttt{YIPF5} population was about 91\%
-    unannotated cells, and both \texttt{YIPF5} and \texttt{ZNF326} entered
-    training for other Adamson tasks and were lifecycle held-out tasks.
-  \item[\#227] Highly variable genes were selected on all cells, including
-    the held-out perturbation's cells.
-  \item[R1, R2, R3, R9] Unevaluated gates dropped from the tally; LLM
-    condition misstated and unrecorded; documented Norman design contradicted
-    by the artifact; provenance record without revision, seed or digests.
+  \item[Seeds not propagated.] The seed was recorded but not passed to the lifecycle trainer
+    or the LLM cache key, so the three seeds per task were byte-identical copies.
+  \item[Step source not recorded.] Lifecycle steps did not record whether a proposal came
+    from an LLM or the rule-based fallback; four of five roles emitted their schema default
+    throughout.
+  \item[Doublet labels misparsed.] Norman doublet labels were tested with the wrong delimiter,
+    so the doublet stratum was empty and each doublet task was trained and scored with a
+    randomly chosen gene as its target.
+  \item[Datasets not pinned.] No dataset digest was pinned; the fetchers were described as
+    verifying digests but trusted any cached file.
+  \item[Unresolved Norman labels.] Norman labels that did not resolve to a symbol were given a
+    random target and entered the training set of every Norman task not holding them out.
+  \item[Pooled Adamson constructs.] The Adamson task \textit{ATF6} pooled four distinct
+    constructs (a single, two doubles and a triple) into one population.
+  \item[Missing annotations decoded.] Adamson cells with a missing annotation were decoded as
+    the file's last category; the \textit{YIPF5} population was about 91\% unannotated cells,
+    and both \textit{YIPF5} and \textit{ZNF326} entered training for other Adamson tasks and
+    were lifecycle held-out tasks.
+  \item[Gene selection saw held-out cells.] Highly variable genes were selected on all cells,
+    including the held-out perturbation's cells.
+  \item[Reporting defects.] Criteria that could not be evaluated were dropped from the tally;
+    the LLM condition was misstated and not recorded; the documented Norman design
+    contradicted the artifact; and the provenance record held no code revision, seed or
+    dataset digest.
 \end{description}
 
 \begin{table}[h]
 \small
 \centering
-\begin{tabular}{p{0.44\linewidth}p{0.18\linewidth}p{0.28\linewidth}}
+\begin{tabular}{p{0.44\linewidth}p{0.24\linewidth}p{0.22\linewidth}}
 \toprule
-Superseded v0.5.0 value or claim & Superseded by & Replacement \\
+Superseded value or claim of the earlier release & Superseded because of & Replacement \\
 \midrule
-Adamson median best-config MSD $\resVFiveAdamsonMedian$; Adamson gate PASS
-  & A1, DF-07, DF-10, \#227 & H1, \resHOneVerdict \\
-Norman median best-config MSD $\resVFiveNormanMedian$; Norman gate PASS
-  & A1, A4, DF-06, \#227 & H2, \resHTwoVerdict \\
+Adamson median best-configuration MSD $\resVFiveAdamsonMedian$, reported as meeting its criterion
+  & disjoint task sets, pooled constructs, decoded missing annotations, leaky gene selection
+  & Adamson attainable-error hypothesis, \resHOneVerdict \\
+Norman median best-configuration MSD $\resVFiveNormanMedian$, reported as meeting its criterion
+  & disjoint task sets, misparsed doublets, unresolved labels, leaky gene selection
+  & Norman attainable-error hypothesis, \resHTwoVerdict \\
 Norman $n=15$ described as $15$ singletons $+\,5$ doublets (artifact: $7+8$)
-  & R3, A4 & $\resHTwoSingletonN+\resHTwoDoubletN$ asserted at preflight \\
+  & documented design contradicted the artifact; misparsed doublets
+  & $\resHTwoSingletonN+\resHTwoDoubletN$ asserted at preflight \\
 $\resVFiveNTrainerRuns$ trainer cells ($\resVFiveNTasks$ tasks $\times$ $\resVFiveConfigsPerTask$)
-  & A1, A4 & $\resNTasks$ tasks $\times$ \resNTrainerRecordsPerTask{} records (\resNDistinctConfigs{} distinct configurations) \\
+  & disjoint task sets, misparsed doublets
+  & $\resNTasks$ tasks $\times$ \resNTrainerRecordsPerTask{} records (\resNDistinctConfigs{} distinct configurations) \\
 $\resVFiveNLifecycleRuns$ lifecycle runs over $\resVFiveNTasks$ held-out tasks
-  & A1, A2 & $\resNTasks$ tasks $\times$ $3$ seeds, same task set as the trainer \\
-Architect backbone entropy $\resVFiveBackboneEntropy$ nats; \texttt{scgpt\_small} in $\resVFiveScgptSharePct\%$ of
+  & disjoint task sets, seeds not propagated
+  & $\resNTasks$ tasks $\times$ $3$ seeds, same task set as the trainer \\
+Architect backbone entropy $\resVFiveBackboneEntropy$ nats; the transformer in $\resVFiveScgptSharePct\%$ of
   $\resVFiveNPicks$ picks; HVG-count entropy $\resVFiveHVGEntropy$ nats
-  & A1, A2, A3, R2, DF-10 & H3, \resHThreeVerdict; HVG-count entropy \resHVGEntropy{} nats \\
-TDI and component $\rho$ reported as n/a; transfer $\rho$ n/a
-  & R1 & H4, H5 \\
+  & disjoint task sets, seeds not propagated, step source not recorded, LLM condition misstated, decoded missing annotations
+  & backbone-choice hypothesis, \resHThreeVerdict; HVG-count entropy \resHVGEntropy{} nats \\
+TDI and component $\rho$ reported as not available; transfer $\rho$ not available
+  & criteria dropped from the tally
+  & trace-feature ranking and cross-dataset transfer hypotheses \\
 ``Two of three pre-registered gates pass''
-  & R1 & tally out of five \\
+  & criteria dropped from the tally & tally out of five \\
 ``\textsc{Nemotron-30B} throughout''
-  & R2 & pinned Anthropic roster, served \texttt{model\_id} asserted per call \\
+  & LLM condition misstated and not recorded & pinned Anthropic roster, served model asserted per call \\
 Spend \$\resVFiveSpend{} over \resVFiveGPUHours{} GPU-hours; \$\resVFiveBudgetCap{} quoted as the envelope
-  & A1, R9 & LLM \$\resSpendLLM, GPU \$\resSpendGPU{} (\resGPUHours{} A100-h), total \$\resSpendTotal \\
-``SHA-gated'' fetchers & A7 & four digests pinned, fail closed \\
-Byte-equivalent re-run from ``the same code revision'' & R9 & re-run at the
-  recorded SHA and configuration \\
+  & disjoint task sets, incomplete provenance & LLM \$\resSpendLLM, GPU \$\resSpendGPU{} (\resGPUHours{} A100-h), total \$\resSpendTotal \\
+Fetchers described as verifying digests & datasets not pinned & four digests pinned, failing closed \\
+Byte-equivalent re-run from ``the same code revision'' & incomplete provenance & re-run at the
+  recorded revision and configuration \\
 \bottomrule
 \end{tabular}
-\caption{One-to-one map from each superseded v0.5.0 value to the register
-rows that supersede it.}
+\caption{Map from each superseded value or claim of the earlier release to the defects, named as
+in the list above, that supersede it, and to its replacement in this version.}
 \label{tab:corrections}
 \end{table}
 
-\subsection*{Amendments to the v0.6.0 run record}\label{app:rr}
+\subsection*{Amendments to the run record}\label{app:rr}
 \begin{sloppypar}
-Register id RR-* = \path{paper/data/run_record_amendments.json}, logged in
-\path{workstreams/perturb-seq-eval/plan/plan-approval-log.md}. \textbf{RR-1}
-(\resRROneDate, principal ruling): the record of where the LLM key was stored --- the
-secret-store name, an organisation project, an environment, a home project and a
-cross-project flag; no secret value --- was removed from \resRROneFileCount{} run files
-(the run record and the three run manifests) because it supports no claim. The run
-manifest's SHA-256 prefix \resManifestShaSuperseded{}, as first published, is superseded by
-\resManifestSha. No result changes. The code at the run's revision records the field; the
-code was changed so that it no longer does, and a re-run as now documented
-does not record it. \textbf{RR-2} (\resRRTwoDate, text only; no file or hash changes):
-three of RR-1's notes in the register said the code still recorded the field and was out of
-scope; RR-2 replaces them with the corrected text, and RR-1 itself is left unchanged.
+The run record was amended twice after the run; both amendments are logged with the code, and
+the hashes of every file before and after are released with the data. The first amendment
+(\resRROneDate, a ruling of the principal investigator) removed the record of where the LLM API
+key was stored (the name of the secret store, an organisation project, an environment, a home
+project and a cross-project flag; no secret value) from \resRROneFileCount{} run files, the run
+record and the three run manifests, because it supports no claim. The SHA-256 prefix of the run
+manifest, \resManifestShaSuperseded{} as first published, is superseded by \resManifestSha. No
+result changes. The code at the run's revision records the field; the code was changed so that
+it no longer does, and a re-run as now documented does not record it. The second amendment
+(\resRRTwoDate) changed text only, and no file or hash: three of the first amendment's notes said
+that the code still recorded the field and was out of scope, and the second amendment replaces
+them with the corrected text, leaving the first amendment itself unchanged.
 \end{sloppypar}

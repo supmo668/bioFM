@@ -686,7 +686,8 @@ def test_prose_claims_match_artifacts(art, land):
     assert [pr[g]["pass"] for g in ("H1", "H2", "H3", "H4")] == [True] * 4 and pr["H5"][
         "pass"
     ] is False
-    assert "H5 fails" in main and "\\resGateSummary" in main
+    flat_main = " ".join(main.split())
+    assert "The transfer hypothesis is not supported" in flat_main and "\\resGateSummary" in main
     # caption: 1-dC and TDI pass in both datasets, both ACE tests fail
     assert all(
         six[(d, c)]["passes"]
@@ -717,7 +718,7 @@ def test_prose_claims_match_artifacts(art, land):
     assert (
         p["stop_reason"] is None and p["cost_usd_actual"] < p["entrypoint_kwargs"]["spend_stop_usd"]
     )
-    assert "neither reached" in res
+    assert "Neither line was reached" in res
     assert {rd["values"]["hvg_count"] for r in runs for rd in r["applied_config_per_round"]} == {
         2000
     }
@@ -730,19 +731,16 @@ def test_prose_claims_match_artifacts(art, land):
     assert (
         "\\resHFourAdaAceN" in main and "\\resHFourNorAceN" in main
     )  # Limitations n, not hand-typed
-    # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the reproduction check
-    assert "\\resLandSha" in res and "\\resPostRunPathCount" in res and "\\resLandPR" in res
-    assert "reproduces every committed value" in res and "\\path{served_mismatch_count}" in res
+    # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the
+    # reproduction check; since HACA-119 it is stated once, in Reproducibility (paper.tex)
+    assert "\\resLandSha" in main and "\\resPostRunPathCount" in main and "\\resLandPR" in main
+    assert "reproduces every committed value" in main and "\\path{served_mismatch_count}" in main
     assert (
-        "code paths the run did not reach" in res
-        and "revision at which v0.6.0 landed on main" in res
+        "code paths the run did not reach" in main
+        and "revision at which v0.6.0 landed on main" in main
     )
-    assert (
-        "\\resLandSha" in main
-        and "\\resPostRunPathCount" in main
-        and "reproduces every committed value" in main
-    )
-    para = res[res.index("\\resLandSha") : res.index("reproduces every committed value")]
+    assert "\\resLandSha" not in res and "reproduces every committed value" not in res
+    para = main[main.index("\\resLandSha") : main.index("reproduces every committed value")]
     named = re.findall(r"\\path\{((?:src|scripts/modal)/[^}]*\.py)\}", para)
     assert sorted(named) == sorted(land["post_run_changed_paths"]), named
     assert land["run_git_sha"] == p["git_sha"][:7] and land["land_git_sha"] != land["run_git_sha"]
@@ -764,7 +762,11 @@ def test_methods_wording_matches_the_amendments():
     )
     # A3-2 / A3-3: Validator threshold gates the rule-based delta; the LLM Validator's own delta is not applied
     assert "recorded, not acted on" not in setup
-    assert "score\\_and\\_gate" in setup and "suggested\\_next\\_config\\_delta" in setup
+    flat_setup = " ".join(setup.split())
+    assert (
+        "that decision selects a rule-based adjustment to the configuration" in flat_setup
+        and "suggested adjustment is recorded and \\emph{not} applied" in flat_setup
+    )
     # A4-1 / A4-3 / A2-8 / A2-1
     assert "H3 condition is unchanged" not in setup
     assert (
@@ -788,10 +790,10 @@ def test_methods_wording_matches_the_amendments():
     assert (
         "\\resRoleServedValidator" in res and "\\resNFailover" in res and "\\resPriceHaikuIn" in res
     )
-    # section Metrics points at the amended definitions
+    # section Metrics points at the amended definitions (cited by the amendments table, not by code)
     assert (
-        "A2-10" in main
-        and "A2-11" in main
+        "Both changes were made by amendment before any data from this sweep existed "
+        "(Table~\\ref{tab:amendments})" in " ".join(main.split())
         and "throughout"
         not in main[
             main.index("\\section{Metrics") : main.index(
@@ -826,7 +828,7 @@ def test_post_run_docs_and_prose_are_current():
     """After the sweep, nothing may still describe results as pending or the LLM condition as OpenRouter."""
     res, setup, main = RESULTS.read_text(), SETUP.read_text(), MAIN.read_text()
     assert (
-        "\\path{eval_genes_per_task}" in res
+        "\\path{eval_genes_per_task}" in MAIN.read_text()  # named in Reproducibility only
         and "\\resEvalGeneTasks" in res
         and "\\resEvalGeneMismatch" in res
     )
@@ -1017,13 +1019,10 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
     followed by the exact disclosure (requirement, cause, the run's own value), so an inverted,
     negated or relocated rewording fails, and the next editor cannot drop it as superstition."""
     assert len(PY312_ENTROPY_PATHS) == 5  # "five keys"
+    # HACA-119: the claim is made once, in Reproducibility; Results no longer repeats it.
+    assert "reproduces every committed value" not in RESULTS.read_text()
     for rel, claim_end in (
         ("paper.tex", "reproduces every committed value of \\texttt{summary.json}. "),
-        (
-            "sections/results.tex",
-            "the landed analyser adds one key, \\path{served_mismatch_count}, equal to "
-            "\\resServedMismatch. ",
-        ),
     ):
         text = " ".join(_strip((PAPER / rel).read_text()).split())
         assert text.count("reproduces every committed value") == 1, rel
@@ -1195,7 +1194,33 @@ def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
         r"\\caption\{Amendments to the pre-registration(.*?)\\label\{tab:amendments\}", res, re.S
     )
     cap = " ".join(cap.group(1).split())
-    assert "each locked before any v0.6.0 data existed (" not in cap
+    assert "each locked before any data from this sweep existed (" not in cap
     pre = [k for k, v in flags.items() if not v]
-    assert f"{pre[0]}--{pre[-1]} were each locked before any v0.6.0 data existed" in cap
-    assert "$^{\\ddagger}$A5 was locked \\emph{after} the v0.6.0 outcome" in cap
+    assert f"{pre[0]}--{pre[-1]} were each locked before any data from this sweep existed" in cap
+    assert "$^{\\ddagger}$A5 was locked \\emph{after} the outcome was known" in cap
+
+
+# --------------------------------------------------------------------------- HACA-119 wording
+def test_hypothesis_labels_appear_only_in_the_hypotheses_table():
+    """HACA-119: H1-H5 are defined in tab:gates and named in words everywhere else."""
+    for fpath in TEX_INPUTS:
+        text = _strip(fpath.read_text())
+        if fpath == RESULTS:
+            start = text.rindex("\\begin{tabular}", 0, text.index("& Hypothesis & Criterion"))
+            text = text[:start] + text[text.index("\\end{tabular}", start) :]
+        assert not re.search(r"\bH[1-5]\b", text), fpath.name
+
+
+def test_no_capitalised_status_words_or_inline_register_codes():
+    """HACA-119: no PASS/FAIL/UNEVALUATED in the manuscript, and no amendment, defect or ticket
+    code (A2-7, DF-07, #227, R3, record 0) in running text, headings or captions."""
+    code = re.compile(r"\bA\d-\d+\b|\bDF-\d+|\\#\d+|\bR\d\b|\bRR-\d|record~0")
+    for fpath in TEX_INPUTS + [GEN]:
+        text = _strip(fpath.read_text())
+        assert not re.search(r"PASS|FAIL|UNEVALUATED", text), fpath.name
+        assert not code.search(text), (fpath.name, code.search(text))
+    for fpath in TEX_INPUTS:
+        text = _strip(fpath.read_text())
+        for m in re.finditer(r"\\(?:sub)*section\*?\{([^}]*)\}|\\caption\{", text):
+            head = m.group(1) if m.group(1) is not None else text[m.end() : m.end() + 600]
+            assert not re.search(r"\bH[1-5]\b", head), (fpath.name, head[:80])
