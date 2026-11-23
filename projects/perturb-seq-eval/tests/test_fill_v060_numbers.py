@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from numeric_env import header_line
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPER = ROOT / "paper"
@@ -281,8 +282,10 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resLandSha": land["land_git_sha"],
         "resLandPR": str(land["pr_number"]),
         "resPostRunPathCount": str(len(land["post_run_changed_paths"])),
-        "resThinkingHaiku": "none",
-        "resThinkingSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["thinking"]["type"],
+        "resThinkingHaiku": "off",  # recorded "none", in words
+        "resThinkingSonnet": {"between_tools": "on between tool calls"}[
+            p["llm_report"]["thinking"]["claude-sonnet-5-5"]["thinking"]["type"]
+        ],
         "resEffortSonnet": p["llm_report"]["thinking"]["claude-sonnet-5-5"]["effort"],
         "resTemperatureHaiku": f(
             p["llm_report"]["sampling"]["claude-haiku-4-5-20251001"]["temperature"], 1
@@ -419,17 +422,83 @@ def test_verdicts_and_gate_summary(macros, art):
         ("H4", "HFour"),
         ("H5", "HFive"),
     ):
-        want = {True: r"\textbf{PASS}", False: r"\textbf{FAIL}", None: r"\textbf{UNEVALUATED}"}[
-            pr[g]["pass"]
-        ]
+        want = {True: "supported", False: "not supported", None: "not evaluable"}[pr[g]["pass"]]
         assert macros[f"res{name}Verdict"] == want, g
-    assert macros["resGateSummary"] == "4 of 5 criteria pass; H5 fails (0 unevaluated)"
+    assert macros["resGateSummary"] == (
+        "four of the five pre-registered hypotheses are supported and the cross-dataset transfer "
+        "hypothesis is not; every hypothesis could be evaluated"
+    )
+    # HACA-119: an English sentence, with no hypothesis label and no capitalised status word
+    assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED", macros["resGateSummary"])
     assert macros["resManifestSha"] != "n/a" and macros["resArchiveShaCache"] != "n/a"
 
 
 def test_verdict_none_is_unevaluated(fv):
-    assert fv.verdict(None) == r"\textbf{UNEVALUATED}"
-    assert fv.verdict(True) == r"\textbf{PASS}" and fv.verdict(False) == r"\textbf{FAIL}"
+    assert fv.verdict(None) == "not evaluable"
+    assert fv.verdict(True) == "supported" and fv.verdict(False) == "not supported"
+
+
+GATE_CASES = [
+    ({}, "all five pre-registered hypotheses are supported; every hypothesis could be evaluated"),
+    (
+        {"H5": False},
+        "four of the five pre-registered hypotheses are supported and the cross-dataset transfer "
+        "hypothesis is not; every hypothesis could be evaluated",
+    ),
+    (
+        {"H2": False, "H3": False, "H4": False, "H5": False},
+        "one of the five pre-registered hypotheses is supported and the attainable-error hypothesis "
+        "on Norman, the backbone-choice hypothesis, the trace-feature ranking hypothesis and the "
+        "cross-dataset transfer hypothesis are not; every hypothesis could be evaluated",
+    ),
+    (
+        {g: False for g in ("H1", "H2", "H3", "H4", "H5")},
+        "none of the five pre-registered hypotheses is supported; every hypothesis could be evaluated",
+    ),
+    (
+        {g: None for g in ("H1", "H2", "H3", "H4", "H5")},
+        "none of the five pre-registered hypotheses could be evaluated",
+    ),
+    (
+        {"H1": False, "H5": False, "H3": None},
+        "two of the five pre-registered hypotheses are supported and the attainable-error hypothesis "
+        "on Adamson and the cross-dataset transfer hypothesis are not; the backbone-choice "
+        "hypothesis could not be evaluated",
+    ),
+    (
+        {"H5": None},
+        "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
+        "hypothesis could not be evaluated",
+    ),
+]
+
+
+@pytest.mark.parametrize("patch,want", GATE_CASES)
+def test_gate_summary_sentence_covers_every_outcome_mix(fv, patch, want):
+    outcomes = {**{g: True for g in fv.HYPOTHESIS_NAMES}, **patch}
+    got = fv.gate_summary(outcomes, 5)
+    assert got == want
+    assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED|\bno of\b", got)
+
+
+def test_gate_summary_refuses_malformed_outcomes(fv):
+    ok = {g: True for g in fv.HYPOTHESIS_NAMES}
+    with pytest.raises(ValueError):
+        fv.gate_summary(ok, 6)
+    with pytest.raises(ValueError):
+        fv.gate_summary({**ok, "H6": True}, 5)
+    with pytest.raises(ValueError):
+        fv.gate_summary({**ok, "H3": 1}, 5)  # an integer is not an outcome
+    with pytest.raises(ValueError):
+        fv.verdict(0)
+
+
+def test_tally_that_disagrees_with_the_outcomes_is_refused(fv, tmp_path):
+    def patch(s):
+        s["preregistered"]["tally"] = {"PASS": 5, "FAIL": 0, "UNEVALUATED": 0, "out_of": 5}
+
+    with pytest.raises(ValueError, match="tally disagrees"):
+        _patched_build(fv, tmp_path, patch)
 
 
 def test_numeric_invariants(macros):
@@ -533,9 +602,12 @@ def test_unevaluated_gate_is_not_typeset_as_fail(fv, tmp_path):
             row["passes"] = None
 
     m = _patched_build(fv, tmp_path, patch)
-    assert m["HFiveVerdict"] == r"\textbf{UNEVALUATED}"
-    assert "FAIL" not in m["HFiveVerdict"] and "fail" not in m["GateSummary"]
-    assert "1 unevaluated" in m["GateSummary"]
+    assert m["HFiveVerdict"] == "not evaluable"
+    assert "not supported" not in m["HFiveVerdict"] and "is not" not in m["GateSummary"]
+    assert m["GateSummary"] == (
+        "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
+        "hypothesis could not be evaluated"
+    )
     assert m["HFourAdaAcePass"] == "undefined"
 
 
@@ -559,8 +631,8 @@ def test_render_refuses_unsafe_values(fv):
         fv.render({"RunId": "a%b"})
     with pytest.raises(ValueError):
         fv.render({"RunId": "a\nb"})
-    assert r"\newcommand{\resHOneVerdict}{\textbf{PASS}}" in fv.render(
-        {"HOneVerdict": r"\textbf{PASS}"}
+    assert r"\newcommand{\resHOneVerdict}{not supported}" in fv.render(
+        {"HOneVerdict": "not supported"}
     )
 
 
@@ -662,7 +734,8 @@ def test_prose_claims_match_artifacts(art, land):
     assert [pr[g]["pass"] for g in ("H1", "H2", "H3", "H4")] == [True] * 4 and pr["H5"][
         "pass"
     ] is False
-    assert "H5 fails" in main and "\\resGateSummary" in main
+    flat_main = " ".join(main.split())
+    assert "The transfer hypothesis is not supported" in flat_main and "\\resGateSummary" in main
     # caption: 1-dC and TDI pass in both datasets, both ACE tests fail
     assert all(
         six[(d, c)]["passes"]
@@ -693,7 +766,7 @@ def test_prose_claims_match_artifacts(art, land):
     assert (
         p["stop_reason"] is None and p["cost_usd_actual"] < p["entrypoint_kwargs"]["spend_stop_usd"]
     )
-    assert "neither reached" in res
+    assert "Neither line was reached" in res
     assert {rd["values"]["hvg_count"] for r in runs for rd in r["applied_config_per_round"]} == {
         2000
     }
@@ -706,19 +779,17 @@ def test_prose_claims_match_artifacts(art, land):
     assert (
         "\\resHFourAdaAceN" in main and "\\resHFourNorAceN" in main
     )  # Limitations n, not hand-typed
-    # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the reproduction check
-    assert "\\resLandSha" in res and "\\resPostRunPathCount" in res and "\\resLandPR" in res
-    assert "reproduces every committed value" in res and "\\path{served_mismatch_count}" in res
+    # deposit gate (CTO #509/#526): run vs landed revision stated from the land record, with the
+    # reproduction check; since HACA-119 it is stated once, in Reproducibility (paper.tex)
+    assert "\\resLandSha" in main and "\\resPostRunPathCount" in main and "\\resLandPR" in main
+    assert "reproduces every committed value" in main and "\\path{served_mismatch_count}" in main
     assert (
-        "code paths the run did not reach" in res
-        and "revision at which v0.6.0 landed on main" in res
+        "code paths the run did not reach" in main
+        and "revision at which v0.6.0 landed on main" in main
     )
-    assert (
-        "\\resLandSha" in main
-        and "\\resPostRunPathCount" in main
-        and "reproduces every committed value" in main
-    )
-    para = res[res.index("\\resLandSha") : res.index("reproduces every committed value")]
+    flat_res = " ".join(_strip(res).split())
+    assert "\\resLandSha" not in flat_res and "reproduces every committed value" not in flat_res
+    para = main[main.index("\\resLandSha") : main.index("reproduces every committed value")]
     named = re.findall(r"\\path\{((?:src|scripts/modal)/[^}]*\.py)\}", para)
     assert sorted(named) == sorted(land["post_run_changed_paths"]), named
     assert land["run_git_sha"] == p["git_sha"][:7] and land["land_git_sha"] != land["run_git_sha"]
@@ -740,7 +811,11 @@ def test_methods_wording_matches_the_amendments():
     )
     # A3-2 / A3-3: Validator threshold gates the rule-based delta; the LLM Validator's own delta is not applied
     assert "recorded, not acted on" not in setup
-    assert "score\\_and\\_gate" in setup and "suggested\\_next\\_config\\_delta" in setup
+    flat_setup = " ".join(setup.split())
+    assert (
+        "that decision selects a rule-based adjustment to the configuration" in flat_setup
+        and "suggested adjustment is recorded and \\emph{not} applied" in flat_setup
+    )
     # A4-1 / A4-3 / A2-8 / A2-1
     assert "H3 condition is unchanged" not in setup
     assert (
@@ -764,10 +839,11 @@ def test_methods_wording_matches_the_amendments():
     assert (
         "\\resRoleServedValidator" in res and "\\resNFailover" in res and "\\resPriceHaikuIn" in res
     )
-    # section Metrics points at the amended definitions
+    # section Metrics points at the amended definitions (cited by the amendments table, not by code)
     assert (
-        "A2-10" in main
-        and "A2-11" in main
+        "Both changes were made by amendment before any data from this sweep existed "
+        "(Table~\\ref{tab:amendments})"
+        in " ".join(main.split())
         and "throughout"
         not in main[
             main.index("\\section{Metrics") : main.index(
@@ -802,7 +878,7 @@ def test_post_run_docs_and_prose_are_current():
     """After the sweep, nothing may still describe results as pending or the LLM condition as OpenRouter."""
     res, setup, main = RESULTS.read_text(), SETUP.read_text(), MAIN.read_text()
     assert (
-        "\\path{eval_genes_per_task}" in res
+        "\\path{eval_genes_per_task}" in MAIN.read_text()  # named in Reproducibility only
         and "\\resEvalGeneTasks" in res
         and "\\resEvalGeneMismatch" in res
     )
@@ -934,7 +1010,7 @@ def test_land_record_drives_the_land_macros(fv, tmp_path):
     assert (m["LandSha"], m["LandPR"], m["PostRunPathCount"]) == ("abc1234", "99", str(n + 1))
 
 
-def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
+def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art, fv):
     """The reproduction check the paper cites: the analyser at this revision, on the committed run files,
     reproduces every committed value; the only addition is served_mismatch_count = 0."""
     import os
@@ -952,6 +1028,38 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
     new = json.loads((tmp_path / "summary.json").read_text())
     assert new.pop("served_mismatch_count") == 0
     committed = art[0]
+    # Every reported (rounded) value is identical: the macros built from the re-run summary
+    # (before any tolerance below is applied) equal the macros built from the committed one.
+    rerun = tmp_path / "rerun"
+    rerun.mkdir()
+    for name in ("lifecycle_runs.jsonl", "provenance.json"):
+        shutil.copy(ART / name, rerun / name)
+    (rerun / "summary.json").write_text(json.dumps(new))
+    build_args = (
+        PAPER / "data" / "projection_v060.json",
+        ROOT / "configs" / "runs" / "20260929T035447Z-ce5f237.json",
+        [],
+        PAPER / "data" / "land_v060.json",
+    )
+    assert fv.build(rerun, *build_args) == fv.build(ART, *build_args)
+    # The disclosed exception across numpy/BLAS builds (paper, Reproducibility; HACA-121/124):
+    # these keys move by a few ulp with the build, so they must match within BLAS_MAX_ULP ulp,
+    # element by element. Every other key stays exactly equal.
+    import numpy as np
+
+    for path in BLAS_ULP_PATHS:
+        a, b = new, committed
+        for k in path[:-1]:
+            a, b = a[k], b[k]
+        got, want = np.asarray(a[path[-1]], dtype=float), np.asarray(b[path[-1]], dtype=float)
+        assert got.shape == want.shape, path
+        try:
+            np.testing.assert_array_max_ulp(got, want, maxulp=BLAS_MAX_ULP)
+        except AssertionError as exc:
+            # A new numpy/BLAS build, not necessarily a regression: name the build so it can
+            # be recorded (tests/fixtures/numeric_environment.json) and the bound ruled on.
+            raise AssertionError(f"{'/'.join(path)}: {exc}\n{header_line()}") from None
+        a[path[-1]] = b[path[-1]]
     if sys.version_info < (3, 12):
         # The disclosed exception (paper, Reproducibility): before 3.12, float sum() is not
         # compensated, and exactly the backbone entropy (five keys) comes out one ulp HIGHER.
@@ -970,6 +1078,22 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
         k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
     )
 
+
+# The keys that move by a few ulp with the numpy/BLAS build (HACA-121): the H5 fit's weight
+# on 1 - delta_c and its per-task Norman TDI scores. Observed: up to 4 ulp on the aarch64
+# host (numpy 2.4.4, scipy-openblas 0.3.31), 2 on x86_64 CI; see
+# tests/fixtures/numeric_environment.json. The bound (CTO ruling, HACA-124) equals the host's
+# observed maximum, so a failure on a new build means: record the build, then rule on the bound.
+BLAS_ULP_PATHS = (
+    ("preregistered", "H5", "weights", "one_minus_delta_c"),
+    ("preregistered", "H5", "norman_tdi"),
+)
+BLAS_MAX_ULP = 4
+BLAS_DISCLOSURE = (
+    "Across numpy and BLAS builds, two keys are reproduced to within four units in the last "
+    "place rather than exactly: the cross-dataset ridge weight on $1-\\Delta C$ and the "
+    "transferred index on each Norman task. Every reported value is identical."
+)
 
 # The one quantity that differs before Python 3.12 (paper: "five keys of summary.json").
 PY312_ENTROPY_PATHS = (
@@ -993,17 +1117,16 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
     followed by the exact disclosure (requirement, cause, the run's own value), so an inverted,
     negated or relocated rewording fails, and the next editor cannot drop it as superstition."""
     assert len(PY312_ENTROPY_PATHS) == 5  # "five keys"
-    for rel, claim_end in (
-        ("paper.tex", "reproduces every committed value of \\texttt{summary.json}. "),
-        (
-            "sections/results.tex",
-            "the landed analyser adds one key, \\path{served_mismatch_count}, equal to "
-            "\\resServedMismatch. ",
-        ),
-    ):
-        text = " ".join(_strip((PAPER / rel).read_text()).split())
-        assert text.count("reproduces every committed value") == 1, rel
-        assert claim_end + PY312_DISCLOSURE in text, rel
+    # HACA-119: the claim is made exactly once across the manuscript, in Reproducibility
+    # (paper.tex), and that copy carries the full disclosure.
+    flat = {f.name: " ".join(_strip(f.read_text()).split()) for f in TEX_INPUTS}
+    assert sum(t.count("reproduces every committed value") for t in flat.values()) == 1, flat.keys()
+    assert flat["paper.tex"].count("reproduces every committed value") == 1
+    claim_end = "reproduces every committed value of \\texttt{summary.json}. "
+    assert claim_end + PY312_DISCLOSURE in flat["paper.tex"]
+    # HACA-124: the ulp-bounded keys across numpy/BLAS builds are disclosed right after it.
+    assert PY312_DISCLOSURE + " " + BLAS_DISCLOSURE in flat["paper.tex"]
+    assert BLAS_MAX_ULP == 4 and len(BLAS_ULP_PATHS) == 2  # "four units", two named keys
     # Outside the paper, the same claim must carry the requirement too.
     changelog = " ".join((ROOT / "CHANGELOG.md").read_text().split())
     for m in re.finditer(r"reproduces the committed `summary\.json`", changelog):
@@ -1171,7 +1294,59 @@ def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
         r"\\caption\{Amendments to the pre-registration(.*?)\\label\{tab:amendments\}", res, re.S
     )
     cap = " ".join(cap.group(1).split())
-    assert "each locked before any v0.6.0 data existed (" not in cap
+    assert "each locked before any data from this sweep existed (" not in cap
     pre = [k for k, v in flags.items() if not v]
-    assert f"{pre[0]}--{pre[-1]} were each locked before any v0.6.0 data existed" in cap
-    assert "$^{\\ddagger}$A5 was locked \\emph{after} the v0.6.0 outcome" in cap
+    assert f"{pre[0]}--{pre[-1]} were each locked before any data from this sweep existed" in cap
+    assert "$^{\\ddagger}$A5 was locked \\emph{after} the outcome was known" in cap
+
+
+# --------------------------------------------------------------------------- HACA-119 wording
+HLABEL = re.compile(r"\bH(?:\\,|~|\$?_\{?)?[1-5]\b")
+REGISTER_CODE = re.compile(
+    r"\bA\d(?:-{1,3}|\\nobreakdash-)\d+\b|\bDF-\d+|\\#\d+|\bR\d\b|\bRR-\d|record~0"
+    r"|\b(?!SHA-)[A-Z]{2,}-\d+\b"
+)
+STATUS_WORD = re.compile(
+    r"PASS|FAIL|UNEVALUATED|\\textsc\{(?i:pass|fail)\}|\\textbf\{(?i:pass|fail|unevaluated)\}"
+)
+
+
+def test_hypothesis_labels_appear_only_in_the_hypotheses_table():
+    """HACA-119: H1-H5 are defined in tab:gates and named in words everywhere else, captions
+    and headings included, and the generated macros carry none."""
+    for fpath in TEX_INPUTS + [GEN]:
+        text = _strip(fpath.read_text())
+        if fpath == RESULTS:
+            start = text.rindex("\\begin{tabular}", 0, text.index("& Hypothesis & Criterion"))
+            text = text[:start] + text[text.index("\\end{tabular}", start) :]
+        assert not HLABEL.search(text), (fpath.name, HLABEL.search(text))
+
+
+def test_no_capitalised_status_words_or_inline_register_codes():
+    """HACA-119: no PASS/FAIL/UNEVALUATED (or a styled variant) in the manuscript, and no
+    amendment, defect or ticket code (A2-7, A2--7, DF-07, #227, R3, HACA-119, record 0)."""
+    for fpath in TEX_INPUTS + [GEN]:
+        text = _strip(fpath.read_text())
+        assert not STATUS_WORD.search(text), (fpath.name, STATUS_WORD.search(text))
+        assert not REGISTER_CODE.search(text), (fpath.name, REGISTER_CODE.search(text))
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "Results for H3",
+        "$H_3$",
+        "H\\,3",
+        "see A2-7.",
+        "see A2--7.",
+        "A2\\nobreakdash-7",
+        "PR~\\#227",
+        "HACA-119",
+        "\\textsc{pass}",
+        "\\textbf{Fail}",
+        "DF-07",
+        "record~0",
+    ],
+)
+def test_shorthand_guards_catch_variants(bad):
+    assert HLABEL.search(bad) or REGISTER_CODE.search(bad) or STATUS_WORD.search(bad), bad

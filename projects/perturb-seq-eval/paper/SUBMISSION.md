@@ -28,9 +28,10 @@ The pipeline automates everything up to the Submit button; the process document 
 and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
-`CITATION.cff` one. The CFF abstract is 2363 characters with 5 non-ASCII characters; arXiv rejects
-anything over 1920 and accepts ASCII only. The override is 1914 characters, 0 non-ASCII, with every
-number, hypothesis label and the "0 unevaluated" integrity claim preserved. Use the generated block.
+`CITATION.cff` one. The CFF abstract is 2548 characters with 4 non-ASCII characters; arXiv rejects
+anything over 1920 and accepts ASCII only. The override is 1912 characters, 0 non-ASCII, with every
+number and the integrity claim that every hypothesis could be evaluated preserved, in sentences rather
+than hypothesis labels. Use the generated block.
 
 | | |
 |---|---|
@@ -183,29 +184,29 @@ Abstract:
   That a single agent's own vote distribution can gate its compute is reported
   (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the
   distribution of stated confidences and critiques across a group of
-  role-specialised agents predict task difficulty, so the group's compute --
-  spent uniformly across tasks as operated here -- can be allocated adaptively?
+  role-specialised agents predict task difficulty, so the group's compute,
+  spent uniformly across tasks as operated here, can be allocated adaptively?
   In a five-agent CellForge-style Perturb-seq orchestrator run via MassGen, we
-  define four trace metrics -- Agent Confidence Entropy (ACE), Critique Severity
-  Dispersion (CSD), a convergence signal ($\Delta$C), and a Winner Flip Rate
-  (WFR) -- and their composite Task Difficulty Index (TDI). Five pre-registered
-  criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman
-  2019 (CRISPR activation), the Architect's backbone-choice entropy, each TDI
-  component's rank correlation with error, and cross-dataset transfer of a
-  calibrated TDI. Design: 41 held-out K562 tasks (21 Adamson, 15 Norman
-  singletons, 5 Norman doublets) drawn deterministically; 27 trainer-sweep
-  records and three fixed-length agentic runs per task. LLM condition: a pinned
-  Anthropic Claude roster (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for
-  the Validator), served model recorded and asserted per call; any rule-based
-  fallback invalidates the run. Outcomes: 4 of 5 pass; H5 fails (0 unevaluated)
-  -- the trainer sweep attains the pre-registered error on both screens (H1,
-  H2), the Architect exercises its backbone choice (H3), and the confidence-drop
-  component and the composite rank tasks by held-out error within both screens
-  (H4); the Adamson-calibrated composite does not transfer to Norman at the
-  pre-registered level (H5, $\rho$ = 0.286 against > 0.4). Confidence-entropy
-  point estimates run against the pre-registered direction in both screens
-  (exploratory). The v0.5.0 release's values are superseded in full; the defects
-  are listed in the appendix.
+  define four trace metrics, Agent Confidence Entropy (ACE), Critique Severity
+  Dispersion (CSD), a convergence signal ($\Delta$C) and a Winner Flip Rate
+  (WFR), and their composite Task Difficulty Index (TDI). We pre-register five
+  hypotheses: low attainable error on Adamson 2016 (CRISPR interference) and
+  on Norman 2019 (CRISPR activation), varied backbone choice by the Architect,
+  the rank correlation of each TDI component with error, and cross-dataset
+  transfer of a calibrated TDI. We test them on 41 held-out K562 tasks (21
+  Adamson, 15 Norman singletons, 5 Norman doublets) drawn deterministically,
+  with 27 trainer-sweep records and three fixed-length agentic runs per task.
+  The agents are a pinned Claude roster (Haiku 4.5 for the four proposer
+  roles, Sonnet 5.5 for the Validator) whose served model is recorded and
+  asserted per call; any rule-based fallback invalidates the run. We find that
+  four of the five hypotheses are supported and the cross-dataset transfer
+  hypothesis is not; every hypothesis could be evaluated. Within each screen,
+  the drop in confidence across rounds, and the composite that inherits it,
+  rank tasks by held-out error, but the Adamson-calibrated composite does not
+  transfer to Norman at the pre-registered level ($\rho$ = 0.286 against >
+  0.4). Confidence-entropy point estimates run against the pre-registered
+  direction in both screens; this is exploratory. The earlier release's values
+  are superseded in full; the appendix lists the defects.
 
 === END ===
 

@@ -82,8 +82,11 @@ def test_method_sentence_matches_the_run_evidence():
 def test_gate_sentence_matches_the_summary():
     desc = " ".join(_cfg()["description"].split())
     pr = json.loads((ART / "summary.json").read_text())["preregistered"]
-    assert pr["H5"]["pass"] is False and "H5 fails" in desc
-    assert f"{pr['tally']['PASS']} of {pr['tally']['out_of']} criteria pass" in desc
+    # HACA-119: the description carries the generator's own sentence, so a rename there reaches it
+    fv = _load("scripts/paper/fill_v060_numbers.py", "fv_gate_sentence")
+    outcomes = {g: pr[g]["pass"] for g in fv.HYPOTHESIS_NAMES}
+    assert pr["H5"]["pass"] is False
+    assert fv.gate_summary(outcomes, pr["tally"]["out_of"]) in desc
 
 
 def test_creators_use_the_ruled_name_everywhere():
@@ -1780,16 +1783,18 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     ov = tomllib.loads(cfg)["abstract"]
     assert len(ov) <= 1920 and ov.isascii()
     for tok in (
-        "H1",
-        "H2",
-        "H3",
-        "H4",
-        "H5",
         "0.286",
         "> 0.4",
-        "0 unevaluated",
-        "4 of 5 pass",
-        "H5 fails",
+        "four of the five hypotheses are supported",
+        "the cross-dataset transfer hypothesis is not",
+        "every hypothesis could be evaluated",
+        # the five hypotheses, named by what they claim (HACA-119)
+        "low attainable error on Adamson 2016",
+        "and on Norman 2019",
+        "varied backbone choice by the Architect",
+        "the rank correlation of each TDI component with error",
+        "cross-dataset transfer of a calibrated TDI",
+        "at the pre-registered level",
         "41 held-out",
         "21 Adamson",
         "15 Norman",
@@ -1799,10 +1804,12 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         "Sonnet 5.5",
         "CATTS",
         "2602.12276",
-        "(exploratory)",
+        "this is exploratory",
     ):
         assert tok in ov, tok
     assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
+    # HACA-119: the venue abstract names hypotheses in words, never by label or status word
+    assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED|unevaluated", ov)
     assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
     sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
     assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub
