@@ -16,6 +16,25 @@ The pins were recorded on x86_64. The reference platform for this module is
 therefore **ubuntu x86_64, Python 3.12**, run by
 `.github/workflows/perturb-seq-eval-tests.yml`.
 
+## Finding (2026-11-23): x86_64 does not reproduce the pins either
+
+The same three tests fail on ubuntu x86_64 / Python 3.12:
+
+- run 45107486401 (numpy 2.5.5, shallow clone): the 2 MLP pins plus 7 history tests
+  that need full history; fixed in the workflow.
+- run 45107946442 (numpy 2.4.4 / scipy 1.17.1 / scikit-learn 1.8.0 from the lock, full
+  history, PR head 6cb9ef4, module tree 54cc281 = perturb-seq-eval @ 147d915):
+  **1246 passed, 3 failed, 1 skipped**. The 3 are exactly the host set.
+
+The MLP output differs by 1 to 2 ulp between numpy 2.5.5 and 2.4.4 on the same x86
+CPU, so the pins depend on the numpy/BLAS build, not on the architecture. They were
+recorded on 2026-09-24 in an environment nobody can reproduce now. Until the
+perturb-seq-eval tests are changed (re-record the pins with the environment written
+down, or compare within a few ulp, e.g. `np.testing.assert_array_max_ulp`), no
+platform turns these three green and the procedure below does not apply to them.
+Until then the CTO's per-PR waiver (HACA-119, comment 16ba31cd) stays the
+mechanism, and this run shows that the failing set is the same on x86.
+
 ## How a worktree agent cites the run in `/pr-prep`
 
 1. Run the suite on the host as usual (`quality.test_command_perturb-seq-eval`).
