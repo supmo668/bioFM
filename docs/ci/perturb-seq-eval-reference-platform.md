@@ -33,10 +33,14 @@ therefore **ubuntu x86_64, Python 3.12**, run by
      reference run result (N passed, 0 failed), with the run URL.
 5. If the reference run is red, the receipt is `fail`. Fix it; no waiver.
 
-A pull_request run tests the merge commit with the base branch. That is the
-right check for landing; when the receipt is on the branch head, cite a
-`workflow_dispatch` run on the branch instead, or check that `module_tree=`
-in the log equals `git rev-parse <E>:projects/perturb-seq-eval`.
+The workflow checks out the PR head (not the synthetic merge commit) with full
+history, so the `commit=` it prints is the branch head; `module_tree=` must
+equal `git rev-parse <E>:projects/perturb-seq-eval`.
+
+numpy, scipy and scikit-learn are pinned to the poetry.lock versions: the MLP
+pin is pure numpy and moves by 1 ulp with the numpy build (numpy 2.5.5 failed
+it on x86_64 too, run 45107486401). Do not unpin them without re-recording the
+pins.
 
 ## What this does not change
 
