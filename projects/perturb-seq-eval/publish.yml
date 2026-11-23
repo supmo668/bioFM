@@ -55,8 +55,8 @@ description: |
   recorded and asserted per call; a run with any rule-based fallback step is
   invalid. Every run records its git revision, resolved configuration, library
   versions, dataset SHA-256 digests, task plan and label contract. We find
-  that four of the five pre-registered hypotheses are supported; the
-  cross-dataset transfer hypothesis is not, and every hypothesis could be
+  that four of the five pre-registered hypotheses are supported and the
+  cross-dataset transfer hypothesis is not; every hypothesis could be
   evaluated. The trainer sweep reaches the pre-registered error on both
   screens, and the Architect's choice of backbone varies above the
   pre-registered entropy floor. Within each screen, the drop in the agents'

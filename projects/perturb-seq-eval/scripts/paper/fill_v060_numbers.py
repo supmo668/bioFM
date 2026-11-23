@@ -43,7 +43,7 @@ ENSUREMATH_NEG = re.compile(
     r"\\ensuremath\{-\d+(\.\d+)?\}|\d{1,3}(\\,\d{3})+"
 )  # negatives; thin-space thousands
 # Outcome words, typeset in prose and in the hypotheses table (HACA-119: no capitalised status words).
-SUPPORTED, NOT_SUPPORTED, NOT_EVALUABLE = "supported", "not supported", "could not be evaluated"
+SUPPORTED, NOT_SUPPORTED, NOT_EVALUABLE = "supported", "not supported", "not evaluable"
 VERDICTS = {r"\textemdash"}
 # What each pre-registered hypothesis claims, as the summary sentence names it.
 HYPOTHESIS_NAMES = {
@@ -65,6 +65,8 @@ def f(x, d: int = 3) -> str:
 
 
 def verdict(ok) -> str:
+    if ok is not None and not isinstance(ok, bool):
+        raise ValueError(f"a hypothesis outcome must be true, false or null, not {ok!r}")
     if ok is None:
         return NOT_EVALUABLE
     return SUPPORTED if ok else NOT_SUPPORTED
@@ -76,18 +78,29 @@ def _join(names: list[str]) -> str:
 
 def gate_summary(outcomes: dict[str, bool | None], out_of: int) -> str:
     """The tally as an English sentence (no labels, no capitalised status words)."""
-    if len(outcomes) != out_of or out_of >= len(NUMBER_WORDS):
-        raise ValueError("the tally does not cover every pre-registered hypothesis")
+    if set(outcomes) != set(HYPOTHESIS_NAMES) or out_of != len(HYPOTHESIS_NAMES):
+        raise ValueError("the outcomes must cover exactly the five pre-registered hypotheses")
+    for ok in outcomes.values():
+        verdict(ok)  # refuses anything but true / false / null
     failed = [HYPOTHESIS_NAMES[g] for g, ok in outcomes.items() if ok is False]
     uneval = [HYPOTHESIS_NAMES[g] for g, ok in outcomes.items() if ok is None]
     n_ok = sum(ok is True for ok in outcomes.values())
-    text = f"{NUMBER_WORDS[n_ok]} of the {NUMBER_WORDS[out_of]} pre-registered hypotheses are supported"
-    if failed:
-        text += f"; {_join(failed)} " + ("is not" if len(failed) == 1 else "are not")
+    total = NUMBER_WORDS[out_of]
+    if len(uneval) == out_of:
+        return f"none of the {total} pre-registered hypotheses could be evaluated"
+    if n_ok == out_of:
+        text = f"all {total} pre-registered hypotheses are supported"
+    elif n_ok == 0:
+        text = f"none of the {total} pre-registered hypotheses is supported"
+    else:
+        verb = "is" if n_ok == 1 else "are"
+        text = f"{NUMBER_WORDS[n_ok]} of the {total} pre-registered hypotheses {verb} supported"
+    if failed and n_ok:
+        text += f" and {_join(failed)} " + ("is not" if len(failed) == 1 else "are not")
     if uneval:
         text += f"; {_join(uneval)} could not be evaluated"
     else:
-        text += ", and every hypothesis could be evaluated"
+        text += "; every hypothesis could be evaluated"
     return text
 
 

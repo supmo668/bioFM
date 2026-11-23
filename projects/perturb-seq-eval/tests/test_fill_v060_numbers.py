@@ -419,13 +419,13 @@ def test_verdicts_and_gate_summary(macros, art):
         ("H4", "HFour"),
         ("H5", "HFive"),
     ):
-        want = {True: "supported", False: "not supported", None: "could not be evaluated"}[
+        want = {True: "supported", False: "not supported", None: "not evaluable"}[
             pr[g]["pass"]
         ]
         assert macros[f"res{name}Verdict"] == want, g
     assert macros["resGateSummary"] == (
-        "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
-        "hypothesis is not, and every hypothesis could be evaluated"
+        "four of the five pre-registered hypotheses are supported and the cross-dataset transfer "
+        "hypothesis is not; every hypothesis could be evaluated"
     )
     # HACA-119: an English sentence, with no hypothesis label and no capitalised status word
     assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED", macros["resGateSummary"])
@@ -433,24 +433,71 @@ def test_verdicts_and_gate_summary(macros, art):
 
 
 def test_verdict_none_is_unevaluated(fv):
-    assert fv.verdict(None) == "could not be evaluated"
+    assert fv.verdict(None) == "not evaluable"
     assert fv.verdict(True) == "supported" and fv.verdict(False) == "not supported"
 
 
-def test_gate_summary_sentence_covers_every_outcome_mix(fv):
-    all_ok = {g: True for g in fv.HYPOTHESIS_NAMES}
-    assert fv.gate_summary(all_ok, 5) == (
-        "five of the five pre-registered hypotheses are supported, and every hypothesis could be "
-        "evaluated"
-    )
-    mixed = {**all_ok, "H1": False, "H5": False, "H3": None}
-    assert fv.gate_summary(mixed, 5) == (
-        "two of the five pre-registered hypotheses are supported; the attainable-error hypothesis "
+GATE_CASES = [
+    ({}, "all five pre-registered hypotheses are supported; every hypothesis could be evaluated"),
+    (
+        {"H5": False},
+        "four of the five pre-registered hypotheses are supported and the cross-dataset transfer "
+        "hypothesis is not; every hypothesis could be evaluated",
+    ),
+    (
+        {"H2": False, "H3": False, "H4": False, "H5": False},
+        "one of the five pre-registered hypotheses is supported and the attainable-error hypothesis "
+        "on Norman, the backbone-choice hypothesis, the trace-feature ranking hypothesis and the "
+        "cross-dataset transfer hypothesis are not; every hypothesis could be evaluated",
+    ),
+    (
+        {g: False for g in ("H1", "H2", "H3", "H4", "H5")},
+        "none of the five pre-registered hypotheses is supported; every hypothesis could be evaluated",
+    ),
+    (
+        {g: None for g in ("H1", "H2", "H3", "H4", "H5")},
+        "none of the five pre-registered hypotheses could be evaluated",
+    ),
+    (
+        {"H1": False, "H5": False, "H3": None},
+        "two of the five pre-registered hypotheses are supported and the attainable-error hypothesis "
         "on Adamson and the cross-dataset transfer hypothesis are not; the backbone-choice "
-        "hypothesis could not be evaluated"
-    )
+        "hypothesis could not be evaluated",
+    ),
+    (
+        {"H5": None},
+        "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
+        "hypothesis could not be evaluated",
+    ),
+]
+
+
+@pytest.mark.parametrize("patch,want", GATE_CASES)
+def test_gate_summary_sentence_covers_every_outcome_mix(fv, patch, want):
+    outcomes = {**{g: True for g in fv.HYPOTHESIS_NAMES}, **patch}
+    got = fv.gate_summary(outcomes, 5)
+    assert got == want
+    assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED|\bno of\b", got)
+
+
+def test_gate_summary_refuses_malformed_outcomes(fv):
+    ok = {g: True for g in fv.HYPOTHESIS_NAMES}
     with pytest.raises(ValueError):
-        fv.gate_summary(all_ok, 6)
+        fv.gate_summary(ok, 6)
+    with pytest.raises(ValueError):
+        fv.gate_summary({**ok, "H6": True}, 5)
+    with pytest.raises(ValueError):
+        fv.gate_summary({**ok, "H3": 1}, 5)  # an integer is not an outcome
+    with pytest.raises(ValueError):
+        fv.verdict(0)
+
+
+def test_tally_that_disagrees_with_the_outcomes_is_refused(fv, tmp_path):
+    def patch(s):
+        s["preregistered"]["tally"] = {"PASS": 5, "FAIL": 0, "UNEVALUATED": 0, "out_of": 5}
+
+    with pytest.raises(ValueError, match="tally disagrees"):
+        _patched_build(fv, tmp_path, patch)
 
 
 def test_numeric_invariants(macros):
@@ -554,8 +601,8 @@ def test_unevaluated_gate_is_not_typeset_as_fail(fv, tmp_path):
             row["passes"] = None
 
     m = _patched_build(fv, tmp_path, patch)
-    assert m["HFiveVerdict"] == "could not be evaluated"
-    assert "not supported" not in m["HFiveVerdict"] and "not," not in m["GateSummary"]
+    assert m["HFiveVerdict"] == "not evaluable"
+    assert "not supported" not in m["HFiveVerdict"] and "is not" not in m["GateSummary"]
     assert m["GateSummary"] == (
         "four of the five pre-registered hypotheses are supported; the cross-dataset transfer "
         "hypothesis could not be evaluated"

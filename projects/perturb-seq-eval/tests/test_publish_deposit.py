@@ -82,13 +82,11 @@ def test_method_sentence_matches_the_run_evidence():
 def test_gate_sentence_matches_the_summary():
     desc = " ".join(_cfg()["description"].split())
     pr = json.loads((ART / "summary.json").read_text())["preregistered"]
-    words = ("no", "one", "two", "three", "four", "five")
-    assert pr["H5"]["pass"] is False and "the cross-dataset transfer hypothesis is not" in desc
-    assert (
-        f"{words[pr['tally']['PASS']]} of the {words[pr['tally']['out_of']]} pre-registered "
-        "hypotheses are supported" in desc
-    )
-    assert pr["tally"]["UNEVALUATED"] == 0 and "every hypothesis could be evaluated" in desc
+    # HACA-119: the description carries the generator's own sentence, so a rename there reaches it
+    fv = _load("scripts/paper/fill_v060_numbers.py", "fv_gate_sentence")
+    outcomes = {g: pr[g]["pass"] for g in fv.HYPOTHESIS_NAMES}
+    assert pr["H5"]["pass"] is False
+    assert fv.gate_summary(outcomes, pr["tally"]["out_of"]) in desc
 
 
 def test_creators_use_the_ruled_name_everywhere():
