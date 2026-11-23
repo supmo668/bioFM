@@ -3,6 +3,9 @@
 
 \section{Experimental Setup}\label{sec:setup_exp}
 
+The design described here is the pre-registered one, including the amendments made before any
+data were collected; Table~\ref{tab:amendments} lists them.
+
 \subsection{Data and provenance}\label{subsec:datasets}
 
 We use two published K562 Perturb-seq screens in the scPerturb
@@ -17,12 +20,12 @@ cross-checked against the size and MD5 published in the Zenodo record; a missing
 pin or a digest mismatch refuses the fetch.
 
 Perturbation labels follow a recorded label contract. Adamson construct labels are
-parsed structurally: the plasmid suffix and the ``only'' marker are stripped; a
-one-component construct becomes a gene task, with the plasmids for the same gene pooled
-and the guide count per gene recorded; multi-gene constructs are excluded; negative-control
-constructs are controls; cells with a missing perturbation annotation are excluded and
-counted; and labels whose target cannot be corroborated in the data are excluded with the
-reason. Norman symbols renamed since publication are joined to the dataset vocabulary on
+parsed structurally, after the plasmid suffix and the ``only'' marker are removed. A
+construct that targets one gene becomes a gene task, which pools all plasmids for that gene
+and records the guide count. Constructs that target several genes are excluded, and
+negative-control constructs serve as controls. Cells with no perturbation annotation are
+excluded and counted, and so are labels whose target cannot be corroborated in the data, with
+the reason recorded. Norman symbols renamed since publication are joined to the dataset vocabulary on
 their Ensembl gene IDs, and labels that resolve under neither name are excluded with the
 reason.
 
@@ -31,13 +34,11 @@ quantile bins of the mean $|\Delta\log1\mathrm{p}|$ of the target gene, and up t
 drawn per bin from the structurally eligible single-gene constructs with a generator seeded
 with 2026. A bin with fewer eligible labels contributes all of them, and the draw is then
 topped up to exactly $21$ by a seeded permutation of the sorted remaining labels, or trimmed
-to the sorted prefix. Norman singletons and doublets are drawn separately, stratified by a
-stratum derived from a CRC32 hash, and topped up or trimmed by the same rule to exactly $15$
+to the sorted prefix. Norman singletons and doublets are drawn separately, stratified by strata
+derived from a CRC32 hash, and topped up or trimmed by the same rule to exactly $15$
 and $5$ ($20$ tasks), for $41$ tasks in total. Only the per-pool total is asserted: a pool
 smaller than its requested count refuses the run in preflight, and the eligible-pool size of
-each bin is written to the provenance record so that an uneven fill is visible. This
-description of the draw, as implemented, was adopted before data collection
-(Table~\ref{tab:amendments}). Every excluded label, every digest, the resolved task plan with
+each bin is written to the provenance record so that an uneven fill is visible. Every excluded label, every digest, the resolved task plan with
 its strata and eligible-pool sizes, and the cap on cells per perturbation label are written
 to the run's provenance record (\S\ref{sec:reproducibility}).
 
@@ -52,28 +53,27 @@ is learned from the data rather than assumed.
 
 \paragraph{Features.} For each held-out task, highly variable genes (HVGs) are selected on
 that task's \emph{training} cells only. The trainer sweep uses $2000$; in the lifecycle the
-count is the value the agents chose and the executor applied, as amended before data
-collection (Table~\ref{tab:amendments}). Feature spaces may therefore vary by run as well as
+count is the value the agents chose and the executor applied. Feature spaces may therefore vary by run as well as
 by task, and every cross-task median is a median over models with differing inputs. The
 target gene(s) and the $20$ evaluation genes are force-included in every feature set. In
-this run every applied choice was \resHVGAppliedValue{} (\resHVGDistinctApplied{} distinct
-value over \resNRoundsTotal{} rounds; the entropy of the HVG count is \resHVGEntropy{} nats),
-so the lifecycle and trainer feature sets coincide up to the forced genes.
+this run every applied choice was \resHVGAppliedValue{}, a single distinct value
+(\resHVGDistinctApplied) over \resNRoundsTotal{} rounds, so the entropy of the HVG count is
+\resHVGEntropy{} nats and the lifecycle and trainer feature sets coincide up to the forced genes.
 
 \paragraph{Evaluation genes.} The error metric is the mean squared deviation (MSD) between
 predicted and observed mean log-fold-change on the $20$ genes with the largest absolute mean
 difference between the held-out perturbation's cells and control cells, the CPA/GEARS
 convention~\citep{lotfollahi2023cpa,roohani2024gears}. These genes are chosen once per task
-on the full post-QC gene axis and are shared by the trainer sweep and the agentic lifecycle;
+on the full gene axis after quality control (QC) and are shared by the trainer sweep and the agentic lifecycle;
 the analysis refuses a run in which the two lists differ. They are chosen using the
 held-out cells.
 
 \subsection{Backbone pool}\label{subsec:backbones}
 
-The Architect picks from three backbones: \textsc{linear} (ridge regression
-per gene, NumPy); \textsc{mlp} (a two-layer MLP, PyTorch); and a
-$2.1$\,M-parameter gene-token transformer trained from scratch, which is not a
-pretrained foundation model.
+The Architect picks from three backbones: ridge regression fitted separately for each gene
+in NumPy (\textsc{linear}), a two-layer multilayer perceptron in PyTorch (\textsc{mlp}), and a
+$2.1$\,M-parameter gene-token transformer trained from scratch, which is not a pretrained
+foundation model.
 
 \subsection{Trainer sweep and the oracle quantity}\label{subsec:oracle}
 
@@ -83,8 +83,8 @@ $3$ seeds ($2026$--$2028$): \resNTrainerRecordsPerTask{} records per task. The
 \resNDistinctConfigs{} distinct $(\text{backbone}, R)$ configurations
 (\resNDistinctFits{} distinct fits including seeds); the counts are recorded in provenance.
 Two amendments made before data collection removed the agent count $N$ as an axis and
-defined the stated count as the number of distinct $(\text{backbone}, R)$ configurations
-(Table~\ref{tab:amendments}). The quantity tested against the attainable-error criteria is,
+defined the stated count as the number of distinct $(\text{backbone}, R)$ configurations. The
+quantity tested against the attainable-error criteria is,
 per task, the minimum MSD over every finite record, and then its median over tasks. The
 minimum is selected on the same evaluation genes and cells it is scored on, so it is an
 \emph{oracle}: an attainable upper bound on what the configuration space can reach, not an
@@ -111,7 +111,7 @@ on all \resNValidatorSteps{} Validator steps (\resValidatorAccepted{} accepted a
 The executors \emph{apply} the parsed fields (the HVG count, learning rate, ridge $\lambda$
 and number of epochs) with precedence Validator delta $>$ Architect $>$ DataCurator $>$ Trainer $>$
 defaults, and the applied value and its source are recorded per round. The DataCurator's
-threshold for mitochondrial-read QC is recorded but not applied, because no per-cell
+threshold for the QC of mitochondrial reads is recorded but not applied, because no per-cell
 mitochondrial fraction is loaded. The Architect must state a backbone from the fixed menu of
 three; each Architect step records the backbone it \emph{stated} and the backbone that
 \emph{ran} after the Validator's rotation rule, and the backbone-choice criterion is evaluated
@@ -119,32 +119,33 @@ on the stated backbone, with the executed one reported alongside. The Literature
 LLM prompt with no retrieval tools; its expected up- and down-regulated genes are passed to
 the Architect's prompt in the next round. Fields that the agents may state but no executor
 applies (the number of agents and rounds, the split strategy, the batch correction and the
-HVG method) are recorded only. These rules were fixed by amendments made before data
-collection (Table~\ref{tab:amendments}).
+HVG method) are recorded only. The precedence order, the unapplied mitochondrial-read
+threshold and the use of the stated backbone were fixed by amendments made before data
+collection.
 
-\paragraph{LLM condition.} The agents are served through the Anthropic Messages API by a
-pinned roster, adopted before data collection (Table~\ref{tab:amendments}): Claude Haiku 4.5
-for DataCurator, Literature, Architect and Trainer, and Claude Sonnet 5.5 for the Validator,
+\paragraph{Large language model condition.} The agents are large language models (LLMs),
+served through the Anthropic Messages API by a pinned roster adopted before data collection
+(Table~\ref{tab:amendments}): Claude Haiku 4.5 (\resRosterHaiku) for DataCurator, Literature,
+Architect and Trainer, and Claude Sonnet 5.5 (\resRosterSonnet) for the Validator,
 so the judge sits on a different tier from the roles it judges. Each role fails over to the
 other model. Every reply is constrained to the role's JSON schema by structured outputs, and
-numeric ranges are enforced by the role schema after parsing, never clamped; the two free-form
-maps in the Literature and Validator schemas travel as key/value arrays and are rebuilt after
-parsing. Every prompt states the dataset and its modality. Extended thinking, as recorded, was
-\resThinkingHaiku{} for Haiku 4.5 and \resThinkingSonnet{} for Sonnet 5.5, at
-\resEffortSonnet{} effort. Haiku was sampled at temperature \resTemperatureHaiku{}, the value
+numeric ranges are enforced by the role schema after parsing, never clamped. The two free-form
+maps in the Literature and Validator schemas are sent as key/value arrays and rebuilt after
+parsing. Every prompt states the dataset and its modality. As recorded, extended thinking was \resThinkingHaiku{} for Haiku 4.5 and
+\resThinkingSonnet{} for Sonnet 5.5, at \resEffortSonnet{} effort. Haiku was sampled at temperature \resTemperatureHaiku{}, the value
 used by an earlier roster, and Sonnet 5.5 at its \resSamplingSonnet, because it rejects
 non-default sampling. The output ceiling of each role is four times the largest output seen in
 the dry run, with a minimum of 256 tokens: DataCurator \resCeilingCurator, Literature
 \resCeilingLiterature, Architect \resCeilingArchitect, Trainer \resCeilingTrainer{} and
 Validator \resCeilingValidator. A reply that stops at its ceiling is retried once at twice the
 ceiling, with both calls billed, and a second such stop is treated like a fallback. In this
-run \resStopMaxTokens{} of \resNCalls{} calls reached its ceiling, was retried once at twice
-the ceiling and then ended normally; the other \resStopEndTurn{} ended normally.
+run, the calls that reached their ceiling (\resStopMaxTokens{} of \resNCalls) were each retried
+once at twice the ceiling and then ended normally, as did the other \resStopEndTurn.
 
 Every call records why it stopped, the requested and the served model, which are asserted
 equal (a mismatch is treated like a fallback, with no failover), and its token usage. A
-refusal aborts the run; the request never carries a server-side fallback parameter; and an
-authentication, payment, permission or not-found error (HTTP 401/402/403/404) aborts the run.
+refusal aborts the run, as does an authentication, payment, permission or not-found error
+(HTTP 401/402/403/404), and no request asks the API for a server-side fallback model.
 Before any spend, the preflight probes both roster models with every role's schema and records
 the liveness table in provenance. Each lifecycle step is labelled as coming from the LLM or
 from the rule-based fallback, together with the model that served it; a run with any fallback
@@ -152,8 +153,8 @@ step is invalid, and the pre-registered run starts on an empty LLM cache, specif
 version, so that no reply is replayed (\resCacheStart{} cache entries at the start and
 \resCacheHits{} hits). Each task runs the lifecycle with three seeds, and the seed is passed to
 the trainer and into the LLM cache key. Every call in this run was served by its role's pinned
-model (\resNFailover{} failovers; \resRoleCallsValidator{} Validator calls, all on
-\resRoleServedValidator), and the preflight liveness table recorded \resLivenessOkPairs{} of
+model, with \resNFailover{} failovers; all \resRoleCallsValidator{} Validator calls were served
+by \resRoleServedValidator. The preflight liveness table recorded \resLivenessOkPairs{} of
 \resLivenessTotalPairs{} model--role probes as live. The pre-registration requires two caveats
 to be stated here; both are taken up in \S\ref{sec:limits}. Every role runs on a
 single model family, so nothing here supports a cross-family claim; and the judge is same-family on a

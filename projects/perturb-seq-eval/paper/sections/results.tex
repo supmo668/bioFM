@@ -12,8 +12,8 @@ from this sweep existed, and once more, changing only the title and one term, af
 was known; Table~\ref{tab:amendments} lists the amendments, and the run's provenance record
 identifies the revision of the pre-registration in force. Table~\ref{tab:gates} states the five
 hypotheses and their criteria. Each criterion is reported as supported, not supported or, when the
-data do not allow it to be computed, as one that could not be evaluated, with the reason; a
-criterion that cannot be evaluated is never counted as not supported, and the tally is always
+data do not allow it to be computed, as not evaluable, with the reason; a criterion that cannot
+be evaluated is never counted as not supported, and the tally is always
 stated out of five. In the text we refer to the hypotheses by what they claim: the two
 \emph{attainable-error} hypotheses, one per screen; the \emph{backbone-choice} hypothesis; the
 \emph{trace-feature ranking} hypothesis; and the \emph{cross-dataset transfer} hypothesis.
@@ -37,9 +37,10 @@ A5 & \texttt{\resAmendFiveVersion}$^{\ddagger}$ & \resAmendFiveDate & \texttt{\r
 \end{tabular}
 \caption{Amendments to the pre-registration. A1--A4 were each locked before any data from this
 sweep existed. $^{\ddagger}$A5 was locked \emph{after} the outcome was known; it changes the title
-and one term only, and no run exists under it. $^{\dagger}$Amendment~1 predates the version tags,
-so it has none; the run was made under tag \texttt{\resPreregVersion}. For A4, \resAmendFourNote. Dates and commits
-are taken from the repository history and checked against it automatically.}
+and one term only, and no run exists under it. $^{\dagger}$The first amendment predates the
+version tags, so it has none; the run was made under the fourth amendment's tag. For the fourth
+amendment, \resAmendFourNote. Dates and commits are taken from the repository history and
+checked against it automatically.}
 \label{tab:amendments}
 \end{table}
 
@@ -66,10 +67,10 @@ H5 & Ridge-calibrated $\mathrm{TDI}_{\mathrm{lifecycle}}$ transfers Adamson $\to
 \bottomrule
 \end{tabular}
 \caption{Pre-registered hypotheses and criteria. The outcome reads \emph{supported} when the
-criterion is met, \emph{not supported} when it is not, and \emph{could not be evaluated} when the
-data do not allow the test. Of the \resTallyOut{} hypotheses, \resTallyPass{} are supported,
-\resTallyFail{} is not supported and \resTallyUneval{} could not be evaluated. The estimators are
-given in the subsections below and in the pre-registration.}
+criterion is met, \emph{not supported} when it is not, and \emph{not evaluable} when the data do
+not allow the test. Tally out of \resTallyOut: supported \resTallyPass, not supported
+\resTallyFail, not evaluable \resTallyUneval. The estimators are given in the subsections below
+and in the pre-registration.}
 \label{tab:gates}
 \end{table}
 
@@ -122,21 +123,22 @@ before data collection (Table~\ref{tab:amendments}). Of \resHThreeNSteps{} Archi
 \resHThreeVerdict. Executed-pick counts, reported alongside and not entering the criterion, are
 \textsc{linear} \resHThreeExecPickLinear, \textsc{mlp} \resHThreeExecPickMlp{} and the transformer
 \resHThreeExecPickScgpt{} (entropy \resHThreeEntropyExecuted{} nats, with
-\resHThreeNMissingExecuted{} steps lacking an executed backbone); the executed backbone equalled
-the stated one on every step (\resHThreeExecNeStated{} differed). As a descriptive check, the
-Miller--Madow bias-corrected entropy $H+(K-1)/(2N)$ with $K=\resHThreeMenuSize$ and
-$N=\resHThreeNCounted$ is \resHThreeMillerMadowNats{} nats; the criterion uses the plug-in value,
-as pre-registered. The correction is pre-registered for breakdowns with $N<50$; the smallest
-breakdown here, by serving model, has $N=\resHThreeSmallestBreakdownN$, so the correction is
-\resHThreeMillerMadow. All Architect steps were served by one model (\resRosterHaiku;
-\resHThreeNModels{} distinct serving model), so the breakdown by serving model coincides with the
-pooled value. Per-role counts of distinct proposals are not computed: they are
-flagged as not implemented in the pre-registration, and reported as such.
+\resHThreeNMissingExecuted{} steps lacking an executed backbone). The executed backbone
+equalled the stated one on every step; the count of steps where they differ is
+\resHThreeExecNeStated. As a descriptive check, the Miller--Madow bias-corrected entropy
+$H+(K-1)/(2M)$, with $K=\resHThreeMenuSize$ backbones and $M=\resHThreeNCounted$ counted steps, is
+\resHThreeMillerMadowNats{} nats; the criterion uses the plug-in value, as pre-registered. The
+correction is pre-registered for breakdowns with $M<50$; the smallest breakdown here, by serving
+model, has $M=\resHThreeSmallestBreakdownN$, so the correction is \resHThreeMillerMadow. All
+Architect steps were served by one model, Claude Haiku 4.5 (\resRosterHaiku;
+\resHThreeNModels{} distinct serving model), so the breakdown by serving model coincides with the pooled value. The pre-registration
+also lists per-role counts of distinct proposals as a descriptive statistic, but those counts
+are flagged as not implemented there; they are not computed here, and are reported as such.
 
 \subsection{Do the trace metrics rank tasks by held-out error?}\label{sec:tdi-real}
 
-\paragraph{Which quantities.} The four-component TDI of equation~(\ref{eq:tdi}) is
-\emph{not evaluated}: CSD needs a critique matrix and WFR a per-round winner, and the five-role
+\paragraph{Which quantities.} The four-component TDI of equation~(\ref{eq:tdi})
+\emph{cannot be computed}: CSD needs a critique matrix and WFR a per-round winner, and the five-role
 lifecycle records neither. The trace-feature ranking hypothesis therefore uses the components the
 traces supply. For each run, with $C(r)$ the confidences of the LLM-sourced steps in round $r$,
 these are $\mathrm{ACE}_{\mathrm{norm}}$ of the final round, the entropy of the direct simplex
@@ -150,9 +152,9 @@ confidence fell ranks above one whose confidence stayed flat); and
 which renormalises the default weights over the two terms and applies no outer clip. These forms
 replaced the softmax entropy and the clipped convergence term before any data were collected
 (Table~\ref{tab:amendments}); the replaced forms are reported descriptively beside them.
-Undefined values are never imputed. In this run no component was undefined
-(\resHFourRunsUndefined{} runs undefined and \resHFourTasksDropped{} tasks dropped), every run
-having exactly three rounds.
+Undefined values are never imputed. In this run no component was undefined, because every run
+had exactly three rounds: \resHFourRunsUndefined{} runs were undefined and
+\resHFourTasksDropped{} tasks were dropped.
 
 \paragraph{Estimator.} The unit of analysis is the task: per task, each component and the
 lifecycle's final MSD, scored on the same evaluation genes as the attainable-error hypotheses, are
@@ -172,7 +174,7 @@ outcome.
 \centering
 \begin{tabular}{p{0.24\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.16\linewidth}}
 \toprule
-Component & Adamson $\rho$ ($n=\resHFourAdaAceN$; CI) & Norman $\rho$ ($n=\resHFourNorAceN$; CI) & Pooled $\rho$ (descr.) \\
+Component & Adamson $\rho$ ($n=\resHFourAdaAceN$; CI) & Norman $\rho$ ($n=\resHFourNorAceN$; CI) & Pooled $\rho$ (descriptive) \\
 \midrule
 $\mathrm{ACE}_{\mathrm{norm}}$ (final round) & \resHFourAdaAceRho{} [\resHFourAdaAceCILo, \resHFourAdaAceCIHi] & \resHFourNorAceRho{} [\resHFourNorAceCILo, \resHFourNorAceCIHi] & \resHFourPooledAceRho \\
 $1-\Delta C$ & \resHFourAdaDcRho{} [\resHFourAdaDcCILo, \resHFourAdaDcCIHi] & \resHFourNorDcRho{} [\resHFourNorDcCILo, \resHFourNorDcCIHi] & \resHFourPooledDcRho \\
@@ -181,7 +183,7 @@ $\mathrm{TDI}_{\mathrm{lifecycle}}$ & \resHFourAdaTdiRho{} [\resHFourAdaTdiCILo,
 softmax $\mathrm{ACE}_{\mathrm{norm}}$ (descriptive) & \resHFourAdaAceSoftmaxRho{} [\resHFourAdaAceSoftmaxCILo, \resHFourAdaAceSoftmaxCIHi] & \resHFourNorAceSoftmaxRho{} [\resHFourNorAceSoftmaxCILo, \resHFourNorAceSoftmaxCIHi] & --- \\
 clipped $1-\Delta C$ (descriptive) & \resHFourAdaDcClippedRho{} [\resHFourAdaDcClippedCILo, \resHFourAdaDcClippedCIHi] & \resHFourNorDcClippedRho{} [\resHFourNorDcClippedCILo, \resHFourNorDcClippedCIHi] & --- \\
 \midrule
-CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (not evaluated)} \\
+CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (cannot be computed)} \\
 \bottomrule
 \end{tabular}
 \caption{All six pre-registered tests, reported regardless of outcome. The criterion is
@@ -213,7 +215,7 @@ standardised with the Adamson mean and standard deviation: \resHFiveStdMeanAce{}
 \resHFiveStdSdDc{} for $1-\Delta C$. In standardised units the fitted weights are \resHFiveWAce{}
 for $\mathrm{ACE}_{\mathrm{norm}}$ and \resHFiveWDc{} for $1-\Delta C$. On Norman the transferred
 index reaches $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
-criterion $\rho>\resHFiveThreshold$, so the hypothesis is \textbf{\resHFiveVerdict}. The
+criterion $\rho>\resHFiveThreshold$, so the hypothesis is \resHFiveVerdict. The
 calibrated index does not transfer at the pre-registered level; no re-fit, threshold change or
 sign change is applied.
 
@@ -221,17 +223,18 @@ sign change is applied.
 
 The sweep was a single run, identified with its code revision and manifest in
 \S\ref{sec:reproducibility}. It analysed \resNTasks{} tasks with \resNLifecycleRuns{} lifecycle
-runs, each of exactly three rounds, comprising \resNSteps{} agent steps, all LLM-sourced: no step
-came from the rule-based fallback (\resNFallback), from a mock (\resNStepsMock) or from an
-unknown source (\resNStepsUnknown), and a valid run admits none of these. The LLM cache held
-\resCacheStart{} entries at the start; there were \resCacheHits{} cache hits and \resReplay{}
-replayed replies. Of the \resNCalls{} API calls, \resStopEndTurn{} ended normally and
-\resStopMaxTokens{} reached its output ceiling, was retried once at twice the ceiling and then
-answered. There were \resRefusals{} refusals and \resServedMismatch{} calls whose served model
+runs, each of exactly three rounds, comprising \resNSteps{} agent steps, all LLM-sourced. A
+valid run admits no step from the rule-based fallback, from a mock or from an unknown source,
+and the counts of such steps are \resNFallback, \resNStepsMock{} and \resNStepsUnknown. The LLM
+cache held \resCacheStart{} entries at the start, there were \resCacheHits{} cache hits, and
+no reply was replayed from the cache (the recorded replay flag is \resReplay). Of the
+\resNCalls{} API calls, \resStopEndTurn{} ended normally, and those that reached their output
+ceiling (\resStopMaxTokens) were each retried once at twice the ceiling and then answered. There were \resRefusals{} refusals and \resServedMismatch{} calls whose served model
 differed from the requested one, and the calls used \resTokensIn{} input and \resTokensOut{}
 output tokens. The DataCurator, Literature, Architect and Trainer roles were served by
-\resRoleServedCurator{} (\resRoleCallsCurator, \resRoleCallsLiterature, \resRoleCallsArchitect{}
-and \resRoleCallsTrainer{} calls respectively) and the Validator by \resRoleServedValidator{}
+Claude Haiku 4.5, \resRoleServedCurator{} (\resRoleCallsCurator, \resRoleCallsLiterature, \resRoleCallsArchitect{}
+and \resRoleCallsTrainer{} calls respectively), and the Validator by Claude Sonnet 5.5,
+\resRoleServedValidator{}
 (\resRoleCallsValidator{} calls), with \resNFailover{} failovers. Prices, in US dollars per
 million input and output tokens, were \resPriceHaikuIn{} and \resPriceHaikuOut{} for Haiku and
 \resPriceSonnetIn{} and \resPriceSonnetOut{} for Sonnet, with cache reads and writes at the
@@ -241,7 +244,7 @@ model--role probes live. The trainer sweep wrote \resNTrainerRuns{} records
 
 Spend was \$\resSpendLLM{} on LLM calls (Haiku \$\resSpendHaiku{} and Sonnet \$\resSpendSonnet{}
 in the sweep, plus \$\resSpendPreflight{} of preflight probes), \$\resSpendGPU{} on GPU time
-(\resGPUHours{} A100-hours) and \$\resSpendPrior{} carried in from earlier attempts, a total of
+(\resGPUHours{} A100-hours) and \$\resSpendPrior{} carried in from the aborted earlier attempt and the dry run, a total of
 \$\resSpendTotal{} against a \$\resSpendStopLine{} stop-and-report line and a \$\resKillLine{}
 kill line. Neither line was reached (recorded stop reason: \resStopReasonNone).
 

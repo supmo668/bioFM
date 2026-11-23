@@ -74,7 +74,7 @@ component with held-out error, and cross-dataset transfer of a calibrated
 TDI. The design is $41$ held-out K562 tasks ($21$ Adamson, $15$ Norman
 singletons, $5$ Norman doublets) drawn deterministically, a trainer sweep of
 \resNTrainerRecordsPerTask{} records per task and three fixed-length agentic
-lifecycle runs per task, all in one process. The LLM condition is a pinned
+lifecycle runs per task, all in one process. The agents are large language models (LLMs) from a pinned
 roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles,
 Sonnet 5.5 for the Validator) whose served model is recorded and asserted
 per call; a run with any rule-based fallback step is invalid. Every run records its git revision, resolved
@@ -95,7 +95,7 @@ full; the defects behind each are listed in the appendix.
 \section{Introduction}\label{sec:intro}
 
 Test-time compute (TTC) has emerged as a first-class axis of capability in
-large language models. \citet{snell2024scaling} showed that an
+large language models (LLMs). \citet{snell2024scaling} showed that an
 \emph{optimally allocated} per-prompt TTC budget lets a small model match a
 $14\times$ larger model under FLOPs-matched comparison, with the optimal
 allocation depending on the difficulty of the prompt. The recent taxonomy of
@@ -166,7 +166,7 @@ beyond K562.
 organised by whether the extra compute is spent \emph{in parallel} (best-of-$N$
 with a verifier~\citep{cobbe2021verifiers,lightman2024prm}, self-consistency
 voting~\citep{wang2023selfconsistency}), \emph{sequentially} (iterative
-revision, self-refine), \emph{hybrid} (tree search, MCTS,
+revision, self-refine), \emph{hybrid} (tree search, Monte Carlo tree search,
 \citep{yao2023tot}), or \emph{internal} to the model
 (\citep{deepseek2025r1,muennighoff2025s1}); see \citet{zhang2025ttssurvey} for
 a taxonomy and \citet{wu2024smalltllm,liu2025rethinkingtts} for scaling-law
@@ -224,7 +224,7 @@ denote the per-round tuples.
 
 A task $t$ has a latent intrinsic difficulty $d_t\!\in\![0,1]$. The team's
 downstream utility on the task is proxied by the prediction error
-$u(t, \varphi)$ on the held-out perturbation (MSD on its top-$20$
+$u(t, \varphi)$ on the held-out perturbation (the mean squared deviation, MSD, on its top-$20$
 differentially expressed genes, \S\ref{subsec:eval}), where
 $\varphi = (N, R, b)$ with $b$ a backbone choice.
 \emph{Agentic hyperparameter tuning} is the problem of picking
@@ -459,7 +459,7 @@ claims and ``plug it in and it works'' is unambiguous.
 \paragraph{Why the question is posed as a question.} The title asks whether
 a multi-agent group's confidence distribution predicts task difficulty rather
 than asserting that it does, so that a null answer is publishable as it
-stands. As the pre-registration requires, a null or failed outcome on the
+stands. As the pre-registration requires, a null or unsupported outcome on the
 trace-feature ranking or the cross-dataset transfer hypothesis is reported as the
 answer and is not traded back into a claim-form title, abstract or contribution
 list. The title was amended after the outcome was known, by the fifth amendment
@@ -555,7 +555,7 @@ non-K562 follow-up are explicit next steps.
 include continuous learning-rate schedules, per-agent retrieval depth,
 and explicit batch-correction ablations is straightforward but would
 expand the trainer sweep beyond its budget cap. Our Bayesian recommender is
-also a MAP estimator; full posterior sampling would expose uncertainty
+also a maximum a posteriori (MAP) estimator; full posterior sampling would expose uncertainty
 currently swept into point predictions.
 
 \paragraph{Reward model free-riding.} We deliberately do not train a
@@ -616,10 +616,12 @@ known defects outside the sweep path & repository file
 \begin{sloppypar}
 The run files of this release (v0.6.0) are written to \path{artifacts/v0.6.0/}: run
 \texttt{\resRunId} at \texttt{git\_sha} \resGitSha{} (\texttt{git\_dirty}
-\resGitDirty), \texttt{prereg\_version} \resPreregVersion. The run manifest
+\resGitDirty), \texttt{prereg\_version} \resPreregVersion; \texttt{summary.json} carries the
+pre-registration pin copied from the first record. The run manifest
 \path{configs/runs/}\texttt{\resRunId}\path{.json} has SHA-256 prefix \resManifestSha{}
 since the first run-record amendment of \resRROneDate{} (superseded prefix
-\resManifestShaSuperseded; Appendix~\ref{app:rr}). The
+\resManifestShaSuperseded; Appendix~\ref{app:rr}); every file's SHA-256 before and after the
+run-record amendments is in \path{paper/data/run_record_amendments.json}. The
 cache namespace and output directory of an earlier aborted attempt were archived
 with SHA-256 manifests (prefixes \resArchiveShaCache{} and
 \resArchiveShaOutputs), never deleted. Every estimator of \S\ref{sec:results} is
@@ -642,7 +644,7 @@ The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on 
 mismatch now aborts without failover, ``replay'' is a finalisable status, a recorded
 mismatch withdraws the analyser's licence, and docstrings and one recorded-reason
 string changed. The run recorded \resServedMismatch{} mismatches, \resNFailover{}
-failovers and replay \resReplay. The landed analyser adds one key,
+failovers and replay flag \resReplay. The landed analyser adds one key,
 \path{served_mismatch_count}, equal to \resServedMismatch; re-run on the committed run
 files, it reproduces every committed value of \texttt{summary.json}.
 This holds on Python 3.12: Python 3.12 made the built-in \texttt{sum()} over floats
@@ -703,7 +705,7 @@ multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation. We test whether these signals predict task
 difficulty under five pre-registered criteria on $41$ held-out K562 tasks, with
 every run carrying its revision, configuration, dataset digests, task plan,
-label contract and per-step serving model. The answer is that
+label contract and per-step serving model. The test gives this answer:
 \resGateSummary. Within each screen the change in confidence across rounds, and the
 composite that inherits it, rank tasks by held-out error at the pre-registered level;
 confidence entropy does not, in the pre-registered direction; and the
