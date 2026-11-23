@@ -48,10 +48,12 @@ def _runtime_blas() -> list[dict[str, Any]]:
     is available; the build config above names only the core the wheel was built on."""
     try:
         from threadpoolctl import threadpool_info
-    except ImportError:
+
+        info = threadpool_info()
+    except Exception:  # absent, or a broken library: never fail the run over a record
         return []
     keep = ("internal_api", "version", "architecture", "num_threads")
-    return [{k: i.get(k) for k in keep} for i in threadpool_info() if i.get("user_api") == "blas"]
+    return [{k: i.get(k) for k in keep} for i in info if i.get("user_api") == "blas"]
 
 
 def numeric_environment() -> dict[str, Any]:

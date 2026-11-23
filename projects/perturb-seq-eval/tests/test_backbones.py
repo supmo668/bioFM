@@ -278,8 +278,8 @@ def _pin_predict(cls, as_tuple: bool) -> np.ndarray:
 
 # The bound is in ulp of the largest pinned magnitude, not per element: element 0
 # (-0.0094) is a cancellation result, so its own ulp is 64x finer than the vector's
-# and it moves 12 (aarch64 host) to 28 (x86_64 CI) of its own ulp, about 2e-17
-# absolute, while every element stays within 1 ulp of the scale on both.
+# and it moves 12 (aarch64 host) to 28 (x86_64 CI) of its own ulp, about 2e-17 to
+# 5e-17 absolute, while every element stays within 1 ulp of the scale on both.
 MLP_PIN_MAX_ULP = 4
 
 

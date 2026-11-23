@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from numeric_env import header_line
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPER = ROOT / "paper"
@@ -1009,7 +1010,7 @@ def test_land_record_drives_the_land_macros(fv, tmp_path):
     assert (m["LandSha"], m["LandPR"], m["PostRunPathCount"]) == ("abc1234", "99", str(n + 1))
 
 
-def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
+def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art, fv):
     """The reproduction check the paper cites: the analyser at this revision, on the committed run files,
     reproduces every committed value; the only addition is served_mismatch_count = 0."""
     import os
@@ -1034,7 +1035,6 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
     for name in ("lifecycle_runs.jsonl", "provenance.json"):
         shutil.copy(ART / name, rerun / name)
     (rerun / "summary.json").write_text(json.dumps(new))
-    fv = _load_module()
     build_args = (
         PAPER / "data" / "projection_v060.json",
         ROOT / "configs" / "runs" / "20260929T035447Z-ce5f237.json",
@@ -1053,7 +1053,12 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
             a, b = a[k], b[k]
         got, want = np.asarray(a[path[-1]], dtype=float), np.asarray(b[path[-1]], dtype=float)
         assert got.shape == want.shape, path
-        np.testing.assert_array_max_ulp(got, want, maxulp=BLAS_MAX_ULP)
+        try:
+            np.testing.assert_array_max_ulp(got, want, maxulp=BLAS_MAX_ULP)
+        except AssertionError as exc:
+            # A new numpy/BLAS build, not necessarily a regression: name the build so it can
+            # be recorded (tests/fixtures/numeric_environment.json) and the bound ruled on.
+            raise AssertionError(f"{'/'.join(path)}: {exc}\n{header_line()}") from None
         a[path[-1]] = b[path[-1]]
     if sys.version_info < (3, 12):
         # The disclosed exception (paper, Reproducibility): before 3.12, float sum() is not
@@ -1076,7 +1081,9 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
 
 # The keys that move by a few ulp with the numpy/BLAS build (HACA-121): the H5 fit's weight
 # on 1 - delta_c and its per-task Norman TDI scores. Observed: up to 4 ulp on the aarch64
-# host (numpy 2.4.4, scipy-openblas 0.3.31); see tests/fixtures/numeric_environment.json.
+# host (numpy 2.4.4, scipy-openblas 0.3.31), 2 on x86_64 CI; see
+# tests/fixtures/numeric_environment.json. The bound (CTO ruling, HACA-124) equals the host's
+# observed maximum, so a failure on a new build means: record the build, then rule on the bound.
 BLAS_ULP_PATHS = (
     ("preregistered", "H5", "weights", "one_minus_delta_c"),
     ("preregistered", "H5", "norman_tdi"),
