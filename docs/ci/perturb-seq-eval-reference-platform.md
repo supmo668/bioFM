@@ -35,6 +35,22 @@ platform turns these three green and the procedure below does not apply to them.
 Until then the CTO's per-PR waiver (HACA-119, comment 16ba31cd) stays the
 mechanism, and this run shows that the failing set is the same on x86.
 
+## Resolved (HACA-124): ulp-bounded comparison, no waiver
+
+HACA-124 replaced the three bit-exact checks with a bounded comparison (CTO decision on
+HACA-121; the pins were kept, not re-recorded):
+
+- the MLP pin uses `np.testing.assert_array_max_ulp(..., maxulp=4)`; its int and 1-tuple
+  outputs must still be byte-identical to each other on one build;
+- the summary test keeps exact equality for every key except two disclosed keys
+  (`H5/weights/one_minus_delta_c`, the `H5/norman_tdi` scores), which match within 4 ulp,
+  and every reported (rounded) value must stay identical;
+- the checked numeric environments (python, numpy, scipy, scikit-learn, BLAS) are recorded
+  in a test fixture note, and a failure prints the build it ran on.
+
+The full suite is now green on both the aarch64 host and this x86_64 workflow, so the
+HACA-119 waiver no longer applies: from here on a failure on either platform is a real failure.
+
 ## How a worktree agent cites the run in `/pr-prep`
 
 1. Run the suite on the host as usual (`quality.test_command_perturb-seq-eval`).
