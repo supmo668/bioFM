@@ -1788,6 +1788,13 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         "four of the five hypotheses are supported",
         "the cross-dataset transfer hypothesis is not",
         "every hypothesis could be evaluated",
+        # the five hypotheses, named by what they claim (HACA-119)
+        "low attainable error on Adamson 2016",
+        "and on Norman 2019",
+        "varied backbone choice by the Architect",
+        "the rank correlation of each TDI component with error",
+        "cross-dataset transfer of a calibrated TDI",
+        "at the pre-registered level",
         "41 held-out",
         "21 Adamson",
         "15 Norman",
@@ -1797,7 +1804,7 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         "Sonnet 5.5",
         "CATTS",
         "2602.12276",
-        "(exploratory)",
+        "this is exploratory",
     ):
         assert tok in ov, tok
     assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
