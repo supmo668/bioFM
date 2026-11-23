@@ -1785,16 +1785,11 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     ov = tomllib.loads(cfg)["abstract"]
     assert len(ov) <= 1920 and ov.isascii()
     for tok in (
-        "H1",
-        "H2",
-        "H3",
-        "H4",
-        "H5",
         "0.286",
         "> 0.4",
-        "0 unevaluated",
-        "4 of 5 pass",
-        "H5 fails",
+        "four of the five hypotheses are supported",
+        "the cross-dataset transfer hypothesis is not",
+        "every hypothesis could be evaluated",
         "41 held-out",
         "21 Adamson",
         "15 Norman",
@@ -1808,6 +1803,8 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     ):
         assert tok in ov, tok
     assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
+    # HACA-119: the venue abstract names hypotheses in words, never by label or status word
+    assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED|unevaluated", ov)
     assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
     sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
     assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub

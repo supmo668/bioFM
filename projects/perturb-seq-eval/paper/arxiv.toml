@@ -40,27 +40,21 @@ acknowledge_packages = []
 # canonical scholarly abstract and must not be reshaped to suit a submission form.
 #
 # arXiv imposes two hard limits (info.arxiv.org/help/prep): metadata fields accept ASCII
-# ONLY, and "Abstracts over 1920 characters are rejected." The CFF abstract is 2363
-# characters with 5 non-ASCII characters, so arXiv refuses it outright. `metadata` now
+# ONLY, and "Abstracts over 1920 characters are rejected." The CFF abstract is 2548
+# characters with 4 non-ASCII characters, so arXiv refuses it outright. `metadata` now
 # fails closed on both, with a self-test case proving each check fires.
 #
-# This version is 1914 characters, 0 non-ASCII. It is re-derived from the abstract whose
-# opening names CATTS (approvals row 17) by ten named compressions c1-c10 (staging 3711ac6
-# section 3.2): c1 the opening folded into one question with "as operated here"; c2 drop
-# "compute-free"; c3 "Perturb-seq orchestrator run via MassGen"; c4 "composite Task Difficulty
-# Index"; c5 "Five pre-registered gates:" (drafted wording; renamed below); c6 "the Architect's backbone-choice entropy, each
-# TDI component's rank correlation"; c7 "Design: ..."; c8 "LLM condition: ..."; c9
-# "Confidence-entropy point estimates"; c10 "The v0.5.0 release's values". Every number, every
-# hypothesis label H1-H5, the rho = 0.286 result and the "0 unevaluated" integrity claim are
-# preserved; that was checked against the previous override's token set when it was derived.
-# The tooling checks only the length and ASCII limits, not the content.
-# Drafted at 1916 characters and re-ratified as drafted (approvals row 18, CTO #905). It was then
-# applied with the Amendment 5 rename of "gate" (row 14; principal, 2026-11-05):
-# "Five pre-registered criteria:" and "Outcomes: 4 of 5 pass", giving 1916 -> 1914 characters.
-# Supersedes the 2026-10-30 override (1906 characters, author-ratified then).
+# This version is 1902 characters, 0 non-ASCII. It was rewritten for HACA-118/119 (2026-11-23) from the
+# manuscript abstract, which no longer uses project shorthand: the hypotheses are named by what they
+# claim instead of H1-H5, the tally is a sentence ("four of the five hypotheses are supported; the
+# cross-dataset transfer hypothesis is not, and every hypothesis could be evaluated"), and the
+# "Design:" / "LLM condition:" / "Outcomes:" fragments are sentences. Every number, the rho = 0.286
+# result and the integrity claim that every hypothesis could be evaluated are preserved; no result
+# changes. The tooling checks only the length and ASCII limits; a test pins the result tokens.
+# Supersedes the 1914-character override (approvals row 18, CTO #905, with the Amendment 5 rename).
 #
 # A TOML LITERAL string is required here so the TeX backslashes are not escape-processed.
-abstract = '''That a single agent's own vote distribution can gate its compute is reported (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the distribution of stated confidences and critiques across a group of role-specialised agents predict task difficulty, so the group's compute -- spent uniformly across tasks as operated here -- can be allocated adaptively? In a five-agent CellForge-style Perturb-seq orchestrator run via MassGen, we define four trace metrics -- Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C), and a Winner Flip Rate (WFR) -- and their composite Task Difficulty Index (TDI). Five pre-registered criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR activation), the Architect's backbone-choice entropy, each TDI component's rank correlation with error, and cross-dataset transfer of a calibrated TDI. Design: 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn deterministically; 27 trainer-sweep records and three fixed-length agentic runs per task. LLM condition: a pinned Anthropic Claude roster (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator), served model recorded and asserted per call; any rule-based fallback invalidates the run. Outcomes: 4 of 5 pass; H5 fails (0 unevaluated) -- the trainer sweep attains the pre-registered error on both screens (H1, H2), the Architect exercises its backbone choice (H3), and the confidence-drop component and the composite rank tasks by held-out error within both screens (H4); the Adamson-calibrated composite does not transfer to Norman at the pre-registered level (H5, $\rho$ = 0.286 against > 0.4). Confidence-entropy point estimates run against the pre-registered direction in both screens (exploratory). The v0.5.0 release's values are superseded in full; the defects are listed in the appendix.'''
+abstract = '''That a single agent's own vote distribution can gate its compute is reported (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the distribution of stated confidences and critiques across a group of role-specialised agents predict task difficulty, so that the group's compute, spent uniformly across tasks as operated here, can be allocated adaptively? In a five-agent CellForge-style Perturb-seq orchestrator run via MassGen, we define four trace metrics, Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C) and a Winner Flip Rate (WFR), and their composite Task Difficulty Index (TDI). We pre-register five hypotheses: low attainable error on Adamson 2016 (CRISPR interference) and on Norman 2019 (CRISPR activation), varied backbone choice by the Architect agent, ranking of tasks by error for each TDI component, and cross-dataset transfer of a calibrated TDI. We test them on 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn deterministically, with 27 trainer-sweep records and three fixed-length agentic runs per task. The agents are a pinned Anthropic Claude roster (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator) whose served model is recorded and asserted per call; any rule-based fallback invalidates the run. We find that four of the five hypotheses are supported; the cross-dataset transfer hypothesis is not, and every hypothesis could be evaluated. Within each screen, the drop in confidence across rounds, and the composite that inherits it, rank tasks by held-out error, but the Adamson-calibrated composite does not transfer to Norman ($\rho$ = 0.286 against > 0.4). Confidence-entropy point estimates run against the pre-registered direction in both screens (exploratory). The earlier release's values are superseded in full; the defects are listed in the appendix.'''
 
 # NOTE: [categories] is LAST on purpose. A TOML table header captures every key
 # that follows it, so a scalar placed after it silently becomes categories.<key>
