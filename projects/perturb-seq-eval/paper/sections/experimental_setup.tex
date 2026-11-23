@@ -123,6 +123,20 @@ HVG method) are recorded only. The precedence order, the unapplied mitochondrial
 threshold and the use of the stated backbone were fixed by amendments made before data
 collection.
 
+\paragraph{What each agent has seen when it states a confidence.}\label{par:feedback}
+Within a round, all five roles state their proposals and confidences \emph{before} that
+round's model is fitted and scored. In round $0$ the prompts carry the task and the dataset and
+no result. From round $1$ on, every role's prompt also carries the previous round's outcome:
+the held-out MSD on the evaluation genes, the Validator's verdict on it, the rule-based
+adjustment, the genes that failed and the Literature genes. The confidences of rounds $1$ and $2$
+are therefore stated after the agents have been shown a held-out error, measured on the same
+evaluation genes on which the final error is scored; only the round-$0$ confidences are stated
+before any error feedback. The confidence-drop feature $\Delta C$ is the last round's mean
+confidence minus the first round's, so it is a difference between confidence after that
+feedback and confidence before it. This is how the lifecycle was designed and run; it was not
+stated in the pre-registration or in the earlier archived versions of this paper, and it
+governs how the ranking result is read (\S\ref{sec:tdi-real}, \S\ref{sec:limits}).
+
 \paragraph{Large language model condition.} The agents are large language models (LLMs),
 served through the Anthropic Messages API by a pinned roster adopted before data collection
 (Table~\ref{tab:amendments}): Claude Haiku 4.5 (\resRosterHaiku) for DataCurator, Literature,

@@ -29,6 +29,7 @@
 % Every result value is a macro generated from artifacts/v0.6.0 by
 % scripts/paper/fill_v060_numbers.py (no number is typed by hand).
 \input{sections/generated_numbers}
+\input{sections/generated_exploratory}
 
 % ---- Title ----
 \title{Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?\\
@@ -63,7 +64,7 @@ role-specialised agents predicts how hard a task is, which would let the
 group's compute be allocated adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
 response prediction inspired by \textsc{CellForge}~\citep{chen2025cellforge}
 and operated via \textsc{MassGen}~\citep{massgen2025github}, we define four
-compute-free trace metrics --- Agent Confidence Entropy (ACE), Critique
+trace metrics --- Agent Confidence Entropy (ACE), Critique
 Severity Dispersion (CSD), a convergence signal ($\Delta C$), and a Winner
 Flip Rate (WFR) --- and their composite, the Task Difficulty Index (TDI).
 We pre-register five hypotheses with criteria: attainable error on
@@ -83,10 +84,18 @@ label contract. We find that \resGateSummary. The trainer sweep reaches
 the pre-registered error on both screens, and the Architect's choice of backbone
 varies above the pre-registered entropy floor. Within each screen, the drop in the
 agents' confidence across rounds, and the composite that inherits it, rank tasks by
-held-out error. The composite calibrated on Adamson does not transfer to Norman at the
-pre-registered level ($\rho=\resHFiveRho$ against a criterion of
-$>\resHFiveThreshold$). The point estimates for confidence entropy run against the
+held-out error. From the second round on, however, every agent's prompt carries the
+previous round's held-out error, so that drop is stated after an error has been
+shown. In an exploratory analysis, the confidence stated before any feedback does
+not rank tasks by error ($\rho=\explAdaConfRZeroMsdRho$ on Adamson and
+$\explNorConfRZeroMsdRho$ on Norman, both intervals including zero). The supported
+result is therefore that stated confidence falls further where a larger error was
+shown, not that the group's confidence anticipates difficulty. The composite fitted
+on Adamson did not meet the pre-registered transfer criterion on Norman
+($\rho=\resHFiveRho$ against a criterion of $>\resHFiveThreshold$). The point
+estimates for confidence entropy, an evenness index over the agents, run against the
 pre-registered direction in both screens; this is exploratory, and no claim is made.
+The preflight probe and recommender are specified but not evaluated.
 The values reported in the earlier release of this work are superseded in
 full; the defects behind each are listed in the appendix.
 \end{abstract}
@@ -117,7 +126,12 @@ for the same number of rounds regardless of whether the task is a
 well-characterised single-gene perturbation or a novel combinatorial one.
 \emph{This paper asks whether the group's own internal dynamics carry enough
 signal to allocate its compute adaptively}, and tests that question under a
-pre-registered design so that either answer is informative.
+pre-registered design so that either answer is informative. The answer on this
+run is narrower than the question: the trace feature that meets its criterion is
+stated after the agents have been shown a held-out error, and the confidences
+stated before any such feedback do not rank tasks
+(\S\ref{subsec:exploratory}). Nothing here shows a signal that is available
+before compute is spent.
 
 \paragraph{Contributions.} We make four contributions, all within the
 empirical frame of Perturb-seq response prediction~\citep{norman2019perturbseq,%
@@ -135,10 +149,12 @@ adamson2016perturbseq} but generalising to any propose-critique-vote system:
         over $N$ candidate actions sampled from one base model at a single
         step (their \S3.1) under the stated assumption of ``a fixed base
         agent'' (their \S2); we claim nothing about that case.
-  \item We introduce a \emph{preflight probe}: a single shallow round whose
-        four-dimensional signature is intended to serve as a sufficient
-        statistic for a Bayesian recommender over orchestration
-        hyperparameters $\varphi = (N, R, \textrm{backbone})$.
+  \item We specify a \emph{preflight probe}: a single shallow round whose
+        four-dimensional signature is the feature vector of a recommender
+        over orchestration hyperparameters
+        $\varphi = (N, R, \textrm{backbone})$. The probe and the recommender
+        are specified and released; neither is fitted or evaluated in this
+        paper (\S\ref{sec:probe}, \S\ref{sec:limits}).
   \item We pre-register five hypotheses and their criteria
         (\S\ref{sec:results}) and test them
         on $41$ held-out K562 tasks from \textsc{Adamson 2016} and
@@ -200,10 +216,11 @@ are the agents' own stated confidences, and we do not gate rounds on them.
 
 \paragraph{Perturb-seq and single-cell foundation models.} Perturb-seq
 couples CRISPR perturbations with single-cell RNA-sequencing readouts,
-offering a clean testbed for agentic scientific reasoning because ground-truth
-hardness can be proxied from literature density, replicate agreement, and
-donor-split transfer~\citep{norman2019perturbseq,adamson2016perturbseq,
-replogle2022perturbseq}. Pretrained single-cell foundation models such as
+offering a testbed for agentic scientific reasoning because every held-out
+perturbation has a measured response against which a prediction is
+scored~\citep{norman2019perturbseq,adamson2016perturbseq,
+replogle2022perturbseq}. The difficulty proxy used in this paper is that held-out
+prediction error (\S\ref{subsec:eval}) and nothing else. Pretrained single-cell foundation models such as
 \textsc{scGPT}~\citep{cui2024scgpt}, \textsc{Geneformer}%
 ~\citep{theodoris2023geneformer}, \textsc{scFoundation}~\citep{hao2024scfoundation},
 and \textsc{scPRINT}~\citep{kalfon2025scprint} are related work; none of them
@@ -213,7 +230,7 @@ is among the backbones evaluated here (\S\ref{subsec:backbones}).
 \section{Problem Setup}\label{sec:setup}
 
 We consider an orchestrator with $N$ specialised agents $\{\mathcal{A}_i\}_{i=1}^N$
-coordinated over $R$ rounds. At each round $r$, every agent produces a
+coordinated over $R$ rounds, indexed $r = 0, \dots, R-1$. At each round $r$, every agent produces a
 structured proposal with scalar confidence $c_i(r) \in [0,1]$ and every other
 agent emits a critique with severity $S_{ij}(r) \in [0,1]$ (row $i$ critic,
 column $j$ target; self-critique is undefined). A winner index $w(r)$ is
@@ -244,11 +261,29 @@ $[0,1]$ by its maximum:
   \mathrm{ACE}(r) = -\sum_{i=1}^{N} p_i(r) \log p_i(r),\quad
   \mathrm{ACE}_{\mathrm{norm}}(r) = \mathrm{ACE}(r)\,/\,\log N.
 \end{equation}
-$\mathrm{ACE}_{\mathrm{norm}}\!\to\!0$ when one agent dominates (a crisp hierarchy
-among agents) and $\to\!1$ when the distribution is flat. Crucially, a flat
-distribution has two very different causes --- \emph{confident consensus}
-(easy task) and \emph{uniform uncertainty} (hard task) --- so ACE must be read
-alongside the mean confidence.
+$\mathrm{ACE}_{\mathrm{norm}}\!=\!1$ when the distribution is flat. In this softmax
+form it cannot approach $0$ on the stated domain: with $c_i\in[0,1]$ and $\tau=1$
+no two softmax weights differ by more than a factor of $e$, so for five agents the value
+stays in a narrow band just below $1$ (the pre-registration gives the band). The pre-registered tests therefore use the entropy
+of the direct simplex projection $p_i = c_i/\sum_j c_j$ instead
+(\S\ref{sec:probe}), which does reach $0$ when one agent holds all the confidence.
+
+\paragraph{What ACE measures.} ACE is the entropy of a vector of stated
+confidences normalised across agents. It is not the entropy of a predictive
+distribution, and it is none of the total, expected (aleatoric) or
+mutual-information (epistemic) terms of the ensemble decomposition of predictive
+uncertainty. For the simplex projection, with $\mu$ the mean confidence,
+\begin{equation}
+  \mathrm{ACE}_{\mathrm{norm}} = 1 - \frac{T}{\log N},\qquad
+  T = \frac{1}{N}\sum_{i=1}^{N} \frac{c_i}{\mu}\log\frac{c_i}{\mu},
+\end{equation}
+where $T$ is the Theil index of the confidences: ACE is an \emph{evenness} index.
+It is unchanged when every confidence is multiplied by the same factor, so five
+agents who all state a low confidence and five who all state a high one give the
+same value, and it \emph{falls}
+as the agents' confidences diverge. A flat distribution thus has two very
+different causes --- \emph{confident consensus} and \emph{uniform uncertainty}
+--- and ACE must be read alongside the mean confidence.
 
 \subsection{Critique Severity Dispersion (CSD)}
 
@@ -257,40 +292,58 @@ We define CSD as the population variance of its entries:
 \begin{equation}
   \mathrm{CSD}(r) = \mathrm{Var}\left(\mathbf{S}(r)\right).
 \end{equation}
-Large CSD concentrates disagreement: a small number of severe critiques weighs
-more than uniformly moderate ones. We also track the row- and column-variances
+Since $S_{ij}\in[0,1]$, $\mathrm{CSD}\in[0,\tfrac14]$. It is zero when all critiques
+are equally severe, whatever their level, and largest when the severities split
+evenly between $0$ and $1$: CSD measures how \emph{unequal} the critiques are, not
+how severe. We also track the row- and column-variances
 for diagnostic use (which critic is inconsistent? which proposal is contested?).
 
 \subsection{Convergence signals}
 
 For a run with $R$ rounds we track three convergence signals:
 \begin{align}
-  \Delta\mathrm{ACE}     &\triangleq \mathrm{ACE}_{\mathrm{norm}}(R) - \mathrm{ACE}_{\mathrm{norm}}(0), \\
-  \Delta C               &\triangleq \overline{\mathbf{C}}(R) - \overline{\mathbf{C}}(0), \\
-  \mathrm{WFR}           &\triangleq \frac{1}{R-1} \sum_{r=2}^{R} \mathbb{1}\!\left[w(r) \neq w(r-1)\right].
+  \Delta\mathrm{ACE}     &\triangleq \mathrm{ACE}_{\mathrm{norm}}(R-1) - \mathrm{ACE}_{\mathrm{norm}}(0), \\
+  \Delta C               &\triangleq \overline{\mathbf{C}}(R-1) - \overline{\mathbf{C}}(0), \\
+  \mathrm{WFR}           &\triangleq \frac{1}{R-1} \sum_{r=1}^{R-1} \mathbb{1}\!\left[w(r) \neq w(r-1)\right],
 \end{align}
-A well-posed run has $\Delta\mathrm{ACE}\!<\!0$, $\Delta C\!>\!0$, and
-$\mathrm{WFR}\!\approx\!0$. We use $1-\min(\max(\Delta C,0),1)$ as a
+that is, last round minus first round, and the fraction of round transitions at
+which the winner changes. The design expectation for a run that converges was
+$\Delta C\!>\!0$ and $\mathrm{WFR}\!\approx\!0$. No sign of $\Delta\mathrm{ACE}$
+follows from convergence: agreement among the agents raises evenness, and one
+agent pulling ahead lowers it. We use $1-\min(\max(\Delta C,0),1)$ as a
 bounded ``lack of convergence'' feature.
+
+\paragraph{Undefined cases.} All three signals need $R\ge 2$. $\mathrm{ACE}_{\mathrm{norm}}$
+needs $N\ge 2$, and its simplex form needs a non-zero sum of confidences. In the
+pre-registered tests a quantity that is undefined for a run is recorded as
+undefined with its reason and is never imputed (\S\ref{sec:results}).
 
 \subsection{Task Difficulty Index}
 
 We combine the four signals linearly:
 \begin{equation}
-  \mathrm{TDI} = \alpha\,\mathrm{ACE}_{\mathrm{norm}}(R)
-               + \beta\,\mathrm{CSD}(R)
+  \mathrm{TDI} = \alpha\,\mathrm{ACE}_{\mathrm{norm}}(R-1)
+               + \beta\,\mathrm{CSD}(R-1)
                + \gamma\,\bigl(1 - \min(\max(\Delta C, 0), 1)\bigr)
                + \delta\,\mathrm{WFR},
   \label{eq:tdi}
 \end{equation}
-with non-negative weights that sum to unity so $\mathrm{TDI}\!\in\![0,1]$. We
-compare two weight regimes: the hand-set \emph{default}
-$(\alpha,\beta,\gamma,\delta)=(0.35,0.25,0.25,0.15)$ and the \emph{calibrated}
-weights fitted by ridge regression of~(\ref{eq:tdi}) against a ground-truth
-difficulty label.
+with non-negative weights that sum to unity so $\mathrm{TDI}\!\in\![0,1]$. The
+four terms are not on a common scale ($\mathrm{CSD}$ cannot exceed $\tfrac14$, and
+in its softmax form $\mathrm{ACE}_{\mathrm{norm}}$ occupies a narrow band near $1$),
+so the weights are not relative importances and the index is a heuristic
+composite, not a derived quantity. The hand-set \emph{default} weights are
+$(\alpha,\beta,\gamma,\delta)=(0.35,0.25,0.25,0.15)$. ``Calibrated'' in this paper
+means \emph{fitted by ridge regression against held-out error}; it is not a
+statement about probabilistic calibration, which the trace gives no label to
+assess. Three forms of the index appear and should not be confused:
+the four-term form~(\ref{eq:tdi}); the two-term lifecycle composite with
+renormalised default weights that enters the ranking tests (\S\ref{sec:probe});
+and the two-term ridge fit on standardised features that enters the transfer test
+(\S\ref{subsec:h5}).
 
 % =====================================================================
-\section{Preflight Probe and Bayesian Recommender}\label{sec:probe}
+\section{Preflight Probe and Recommender}\label{sec:probe}
 
 \paragraph{Forms used in the pre-registered tests.} For the pre-registered tests in
 \S\ref{sec:results}, $\mathrm{ACE}_{\mathrm{norm}}$ is the entropy of the \emph{direct
@@ -301,38 +354,51 @@ $\mathrm{TDI}_{\mathrm{lifecycle}}\in[0,17/12]$. The softmax form above and the 
 term are reported descriptively beside them. Both changes were made by amendment before any
 data from this sweep existed (Table~\ref{tab:amendments}).
 
+\paragraph{Status of this section.} The probe and the recommender below are a
+specification with released code. The recommender is not fitted on any data in
+this paper and no result in \S\ref{sec:results} depends on it.
+
 \paragraph{Probe signature.} Given a run, the round-$0$ probe signature is
 \[\mathbf{x}_0 = (\mathrm{ACE}_{\mathrm{norm}}(0), \overline{\mathbf{C}}(0),
 \max_i c_i(0), \mathrm{CSD}(0)) \in \mathbb{R}^4.\]
-In practice the probe is
-produced by a \emph{shallow} one-round execution of the orchestrator (smaller
-tool-call budget, narrower retrieval) so it is materially cheaper than a full
-run.
+The released code computes the first entry in the softmax form. The probe is
+meant to be produced by a \emph{shallow} one-round execution of the orchestrator
+(smaller tool-call budget, narrower retrieval), cheaper than a full run; no such
+shallow execution was run for this paper.
 
-\paragraph{Bayesian recommender.} Let $\Phi$ be a discrete configuration
+\paragraph{Recommender.} Let $\Phi$ be a discrete configuration
 space of orchestration hyperparameters
 $\varphi = (N, R, b)$. We model
 $\mathbf{x}_0 \mid \varphi^\star \sim \mathcal{N}(\mu_\varphi,
-\Sigma_\varphi)$ with diagonal $\Sigma_\varphi$ and a structured prior
-$\pi(\varphi) \propto \exp(-\mathrm{FLOPs}(\varphi) / \kappa)$ that penalises
-compute. Given a calibration set
+\Sigma_\varphi)$ with diagonal $\Sigma_\varphi$, and weight each configuration by
+$\pi(\varphi) \propto \exp(-\mathrm{cost}(\varphi) / \kappa)$, where
+$\mathrm{cost}(\varphi) = N \cdot R \cdot \omega_b$ is a unitless proxy for compute
+with a per-backbone weight $\omega_b$; it is not a count of floating-point
+operations. $\pi$ sits where a prior would, but it encodes a cost preference, not
+a belief about which configuration is best. Given a calibration set
 $\{(\mathbf{x}_0^{(k)}, \varphi^{\star(k)})\}_{k=1}^K$, the recommender
 picks
 \begin{equation}
-  \widehat\varphi(\mathbf{x}_0) = \arg\max_{\varphi \in \Phi,\, \mathrm{FLOPs}(\varphi) \leq B}
+  \widehat\varphi(\mathbf{x}_0) = \arg\max_{\varphi \in \Phi,\, \mathrm{cost}(\varphi) \leq B}
   \;\; \log \pi(\varphi) + \log \mathcal{N}(\mathbf{x}_0; \mu_\varphi, \Sigma_\varphi).
 \end{equation}
-With $K\!\sim\!100$ calibration tuples this is cheap, closed-form, and
-uncertainty-reportable.
+This is a cost-penalised, plug-in Gaussian discriminant with independent features:
+$\mu_\varphi$ and $\Sigma_\varphi$ are point estimates, no posterior over them or
+over $\varphi$ is computed, and the rule returns a single configuration. We
+therefore do not call it Bayesian in the text; the released class keeps the name
+\texttt{BayesianRecommender}. Unfitted, as it is throughout this paper, the rule
+ignores $\mathbf{x}_0$ and returns the cheapest configuration within the budget.
+The default configuration space in the released code names backbones that are
+not among those evaluated here (\S\ref{subsec:backbones}).
 
 \begin{center}
 \fbox{\begin{minipage}{0.92\linewidth}
-\textbf{Procedure 1: Bayesian agentic hyperparameter tuning (one task).}\\[2pt]
+\textbf{Procedure 1: probe-based hyperparameter recommendation (one task; specified, not evaluated).}\\[2pt]
 \textbf{Input:} task $t$, calibrated means $\{\mu_\varphi\}$, variances
 $\{\Sigma_\varphi\}$, budget $B$.\\
 \begin{enumerate}[leftmargin=2em,topsep=1pt,itemsep=0pt]
   \item $\mathbf{x}_0 \gets \textsc{Signature}(\textsc{ShallowOneRound}(t))$.
-  \item For each $\varphi \in \Phi$ with $\mathrm{FLOPs}(\varphi) \le B$:
+  \item For each $\varphi \in \Phi$ with $\mathrm{cost}(\varphi) \le B$:
         compute $\ell_\varphi = \log \pi(\varphi) + \log \mathcal{N}(\mathbf{x}_0; \mu_\varphi, \Sigma_\varphi)$.
   \item Return $\arg\max_\varphi \ell_\varphi$.
 \end{enumerate}
@@ -383,7 +449,7 @@ improves privacy posture (LLM content is never consumed by the metric layer).
 Component & Kind & Status \\
 \midrule
 Trace types and metrics & Abstraction + metrics authored here & contributed \\
-Preflight probe, Bayesian recommender, calibration & Procedures authored here & contributed \\
+Preflight probe, recommender, calibration & Procedures authored here & contributed \\
 Adapter for the \textsc{CellForge} consensus result & Adapter & contributed \\
 JSON entry points for the \textsc{MassGen} skill & Adapter & contributed \\
 Draft \textsc{MassGen} skill (in the repository) & Ready to submit & not yet submitted upstream \\
@@ -475,29 +541,49 @@ bound what the trainer sweep can reach (an oracle, \S\ref{subsec:oracle}); they 
 nothing about whether the agents find those configurations. The backbone-choice
 hypothesis asks whether the Architect uses its choice of backbone at all, and the
 ranking and transfer hypotheses ask whether the trace metrics carry information
-about difficulty. On this run the first three hypotheses are supported. The
+about difficulty. Only those last two bear on the title question. On this run the
+first three hypotheses are supported. The
 ranking hypothesis is supported through the confidence-drop component
 ($1-\Delta C$) and through the composite that inherits it, in both screens, while
 confidence entropy runs opposite to the hypothesis: its two tests do not meet the
 pre-registered one-sided criterion, and given the narrow observed spread of
 $\mathrm{ACE}_{\mathrm{norm}}$ the composite $\mathrm{TDI}_{\mathrm{lifecycle}}$
 ranks tasks nearly identically to $1-\Delta C$. The transfer hypothesis is not
-supported: the composite calibrated on Adamson reaches $\rho=\resHFiveRho$ on Norman
-against a criterion of $\resHFiveThreshold$. The title question is therefore
-answered as posed. On this evidence, the group's confidence entropy does not
-predict difficulty in the pre-registered direction; its confidence drop across
-rounds ranks tasks by held-out error within each screen; and the composite
-calibrated on Adamson does not transfer to Norman at the pre-registered level. No
-mechanism is inferred; the negative point estimates are reported, not
-interpreted, and a directional hypothesis about them would need a new
+supported: the composite fitted on Adamson reaches $\rho=\resHFiveRho$ on Norman
+against a criterion of $\resHFiveThreshold$, with an interval that contains both
+zero and the criterion. On this evidence, the group's confidence entropy does not
+rank tasks in the pre-registered direction; its confidence drop across rounds ranks
+tasks by held-out error within each screen; and the composite fitted on Adamson did
+not meet the transfer criterion on Norman. The negative point estimates are
+reported, not interpreted, and a directional hypothesis about them would need a new
 pre-registration.
+
+\paragraph{What the supported result does and does not show.} The title asks
+whether the group's confidence distribution \emph{predicts} task difficulty. The
+pre-registered ranking criterion is met, and that outcome stands. But the feature
+that meets it, $1-\Delta C$, compares confidence stated after the agents were shown
+the previous round's held-out error with confidence stated before
+(\S\ref{sec:setup_exp}), and the error is nearly the same from round to round.
+The exploratory analysis of \S\ref{subsec:exploratory} finds no rank association
+between the pre-feedback mean confidence and error, and a strong one once the
+error has been shown. The result this run supports is thus \emph{reactive}:
+agents lower their stated confidence more where a larger measured error was put in
+front of them. That is a check that the agents read their feedback. It is not
+prediction in the sense the allocation problem needs, because the feature exists
+only after a full train-and-evaluate round on the held-out cells, which is the
+compute an allocator would be trying to save. Whether confidence elicited without
+the error in context carries any signal is not answered by this run; it needs a
+new pre-registered experiment.
 
 \paragraph{What a single-round probe can and cannot observe.} A single-round
 probe by definition cannot observe convergence. It sees only the starting
 distribution of agent confidences and critiques, which encodes a snapshot of
 prior agreement but not the response-to-critique dynamics that $\Delta C$ and
-WFR summarise. This is a structural property of the minimal probe, not an
-empirical finding.
+WFR summarise. That is a structural property of the minimal probe. The data now
+add an empirical observation, exploratory and stated as such: in this run the
+round-$0$ mean confidence, which is what such a probe would see, does not rank
+tasks by error (\S\ref{subsec:exploratory}), and the probe and recommender of
+\S\ref{sec:probe} were not evaluated.
 
 \paragraph{Implications for upstream systems.} For
 \textsc{CellForge}~\citep{chen2025cellforge} and
@@ -535,6 +621,27 @@ same family; it sits on a different tier (Sonnet 5.5) from the four Haiku 4.5
 proposer roles, which is reported, not a remedy --- residual same-family judge
 bias is acknowledged. Model identity is recorded and asserted per call.
 
+\paragraph{The passing feature is conditioned on a shown error.} From round $1$ on,
+every prompt carries the previous round's held-out MSD and the Validator's verdict
+on it (\S\ref{sec:setup_exp}). The confidence drop that meets the ranking criterion
+is therefore partly a response to an error measured on the same evaluation genes
+as the target. The pre-registered null (no association) does not model this
+feedback, the pre-registration did not state it, and the archived versions of this
+paper before this one did not disclose it. A test of prediction proper would elicit
+confidence with no error in context; that needs new runs under a new
+pre-registration.
+
+\paragraph{Point-estimate criteria, no power analysis, one sweep.} Every criterion
+thresholds a point estimate at about twenty tasks per screen, and no power analysis
+was made. The intervals of the tests that meet the ranking criterion extend below
+the criterion value, and the transfer interval contains both zero and its criterion
+(\S\ref{sec:results}). Tasks within a screen share control cells, a training pool,
+the models and the prompts, while the bootstrap and the null treat them as
+exchangeable. LLM sampling is not seeded, and the study is a single sweep with
+three within-sweep seeds per task and no replicate sweep. The tally of supported
+hypotheses counts two feasibility checks and one check of a design lever alongside
+the two hypotheses that bear on the title question.
+
 \paragraph{Sample size and the sign of confidence entropy.} The within-screen tests
 use $n=\resHFourAdaAceN$ and $n=\resHFourNorAceN$ tasks; every $\rho$ carries a
 bootstrap CI over tasks (Table~\ref{tab:tdi-real}), and the pre-registered
@@ -554,9 +661,12 @@ non-K562 follow-up are explicit next steps.
 \paragraph{Configuration space.} $|\Phi|$ remains modest. Widening to
 include continuous learning-rate schedules, per-agent retrieval depth,
 and explicit batch-correction ablations is straightforward but would
-expand the trainer sweep beyond its budget cap. Our Bayesian recommender is
-also a maximum a posteriori (MAP) estimator; full posterior sampling would expose uncertainty
-currently swept into point predictions.
+expand the trainer sweep beyond its budget cap.
+
+\paragraph{The probe and recommender are not evaluated.} The recommender of
+\S\ref{sec:probe} is never fitted in this paper, so nothing here shows that a
+round-$0$ signature can select a configuration. It is a plug-in point rule and
+reports no uncertainty.
 
 \paragraph{Reward model free-riding.} We deliberately do not train a
 process reward model. A PRM over agent traces could outperform hand-designed
@@ -705,15 +815,20 @@ We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
 four-feature lens on multi-agent group-generation traces, combined into a
 Task Difficulty Index, and positioned the TDI and its probe as the
 multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
-single-chain allocation. We test whether these signals predict task
-difficulty under five pre-registered criteria on $41$ held-out K562 tasks, with
+single-chain allocation. We test whether these signals rank tasks by held-out
+error under five pre-registered criteria on $41$ held-out K562 tasks, with
 every run carrying its revision, configuration, dataset digests, task plan,
 label contract and per-step serving model. The test gives this answer:
 \resGateSummary. Within each screen the change in confidence across rounds, and the
 composite that inherits it, rank tasks by held-out error at the pre-registered level;
 confidence entropy does not, in the pre-registered direction; and the
-calibrated composite did not transfer across screens at the pre-registered
-level.
+fitted composite did not meet the transfer criterion across screens. The
+confidence change that meets its criterion is stated after the agents have been
+shown a held-out error, and in an exploratory analysis the confidence stated
+before any feedback does not rank tasks. What this run supports is that the
+group's stated confidence responds to measured error; whether it predicts
+difficulty before that error is measured remains open, and the probe and
+recommender that would use such a signal were not evaluated.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the

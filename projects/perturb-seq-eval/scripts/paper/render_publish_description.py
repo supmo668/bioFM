@@ -20,6 +20,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PAPER = PROJECT_ROOT / "paper" / "paper.tex"
 GEN = PROJECT_ROOT / "paper" / "sections" / "generated_numbers.tex"
+GEN_EXPLORATORY = PROJECT_ROOT / "paper" / "sections" / "generated_exploratory.tex"
 PUBLISH = PROJECT_ROOT / "publish.yml"
 CITATION = PROJECT_ROOT / "CITATION.cff"
 MARK = "# GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand."
@@ -27,7 +28,11 @@ MARK = "# GENERATED from paper/paper.tex's abstract by scripts/paper/render_publ
 
 def macros() -> dict[str, str]:
     raw = dict(
-        re.findall(r"^\\newcommand\{\\(res[A-Za-z]+)\}\{(.*)\}$", GEN.read_text(), flags=re.M)
+        re.findall(
+            r"^\\newcommand\{\\((?:res|expl)[A-Za-z]+)\}\{(.*)\}$",
+            GEN.read_text() + "\n" + GEN_EXPLORATORY.read_text(),
+            flags=re.M,
+        )
     )
     return {k: _value(v) for k, v in raw.items()}
 
@@ -55,7 +60,7 @@ def render() -> str:
     body = re.sub(r"(?<!\\)%.*", "", body)
     body = re.sub(r"~?\\citep?\{[^}]*\}", "", body)
     body = re.sub(r"\\textsc\{([^}]*)\}", r"\1", body)
-    body = re.sub(r"\\(res[A-Z][A-Za-z]*)(\{\})?", lambda x: m[x.group(1)], body)
+    body = re.sub(r"\\((?:res|expl)[A-Z][A-Za-z]*)(\{\})?", lambda x: m[x.group(1)], body)
     body = re.sub(r"\$([^$]*)\$", _math, body)
     body = body.replace("---", "\u2014").replace("--", "\u2013")
     body = re.sub(r"\s+", " ", body).strip()

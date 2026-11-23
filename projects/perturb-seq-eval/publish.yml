@@ -39,13 +39,13 @@ description: |
   critiques across a group of role-specialised agents predicts how hard a task
   is, which would let the group's compute be allocated adaptively. Taking as
   testbed a five-agent orchestrator for Perturb-seq response prediction
-  inspired by CellForge and operated via MassGen, we define four compute-free
-  trace metrics — Agent Confidence Entropy (ACE), Critique Severity Dispersion
-  (CSD), a convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their
-  composite, the Task Difficulty Index (TDI). We pre-register five hypotheses
-  with criteria: attainable error on Adamson 2016 (CRISPR interference) and
-  Norman 2019 (CRISPR activation), the Architect agent's backbone-choice
-  entropy, the rank correlation of each TDI component with held-out error, and
+  inspired by CellForge and operated via MassGen, we define four trace metrics
+  — Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a
+  convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their composite,
+  the Task Difficulty Index (TDI). We pre-register five hypotheses with
+  criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman
+  2019 (CRISPR activation), the Architect agent's backbone-choice entropy, the
+  rank correlation of each TDI component with held-out error, and
   cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
   tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
   deterministically, a trainer sweep of 27 records per task and three
@@ -61,11 +61,19 @@ description: |
   error on both screens, and the Architect's choice of backbone varies above
   the pre-registered entropy floor. Within each screen, the drop in the
   agents' confidence across rounds, and the composite that inherits it, rank
-  tasks by held-out error. The composite calibrated on Adamson does not
-  transfer to Norman at the pre-registered level (ρ = 0.286 against a
-  criterion of > 0.4). The point estimates for confidence entropy run against
-  the pre-registered direction in both screens; this is exploratory, and no
-  claim is made. The values reported in the earlier release of this work are
+  tasks by held-out error. From the second round on, however, every agent's
+  prompt carries the previous round's held-out error, so that drop is stated
+  after an error has been shown. In an exploratory analysis, the confidence
+  stated before any feedback does not rank tasks by error (ρ = 0.003 on
+  Adamson and 0.214 on Norman, both intervals including zero). The supported
+  result is therefore that stated confidence falls further where a larger
+  error was shown, not that the group's confidence anticipates difficulty. The
+  composite fitted on Adamson did not meet the pre-registered transfer
+  criterion on Norman (ρ = 0.286 against a criterion of > 0.4). The point
+  estimates for confidence entropy, an evenness index over the agents, run
+  against the pre-registered direction in both screens; this is exploratory,
+  and no claim is made. The preflight probe and recommender are specified but
+  not evaluated. The values reported in the earlier release of this work are
   superseded in full; the defects behind each are listed in the appendix.
 
 
