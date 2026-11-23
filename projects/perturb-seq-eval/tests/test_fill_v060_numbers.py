@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from numeric_env import header_line
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPER = ROOT / "paper"
@@ -1009,7 +1010,7 @@ def test_land_record_drives_the_land_macros(fv, tmp_path):
     assert (m["LandSha"], m["LandPR"], m["PostRunPathCount"]) == ("abc1234", "99", str(n + 1))
 
 
-def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
+def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art, fv):
     """The reproduction check the paper cites: the analyser at this revision, on the committed run files,
     reproduces every committed value; the only addition is served_mismatch_count = 0."""
     import os
@@ -1027,6 +1028,38 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
     new = json.loads((tmp_path / "summary.json").read_text())
     assert new.pop("served_mismatch_count") == 0
     committed = art[0]
+    # Every reported (rounded) value is identical: the macros built from the re-run summary
+    # (before any tolerance below is applied) equal the macros built from the committed one.
+    rerun = tmp_path / "rerun"
+    rerun.mkdir()
+    for name in ("lifecycle_runs.jsonl", "provenance.json"):
+        shutil.copy(ART / name, rerun / name)
+    (rerun / "summary.json").write_text(json.dumps(new))
+    build_args = (
+        PAPER / "data" / "projection_v060.json",
+        ROOT / "configs" / "runs" / "20260929T035447Z-ce5f237.json",
+        [],
+        PAPER / "data" / "land_v060.json",
+    )
+    assert fv.build(rerun, *build_args) == fv.build(ART, *build_args)
+    # The disclosed exception across numpy/BLAS builds (paper, Reproducibility; HACA-121/124):
+    # these keys move by a few ulp with the build, so they must match within BLAS_MAX_ULP ulp,
+    # element by element. Every other key stays exactly equal.
+    import numpy as np
+
+    for path in BLAS_ULP_PATHS:
+        a, b = new, committed
+        for k in path[:-1]:
+            a, b = a[k], b[k]
+        got, want = np.asarray(a[path[-1]], dtype=float), np.asarray(b[path[-1]], dtype=float)
+        assert got.shape == want.shape, path
+        try:
+            np.testing.assert_array_max_ulp(got, want, maxulp=BLAS_MAX_ULP)
+        except AssertionError as exc:
+            # A new numpy/BLAS build, not necessarily a regression: name the build so it can
+            # be recorded (tests/fixtures/numeric_environment.json) and the bound ruled on.
+            raise AssertionError(f"{'/'.join(path)}: {exc}\n{header_line()}") from None
+        a[path[-1]] = b[path[-1]]
     if sys.version_info < (3, 12):
         # The disclosed exception (paper, Reproducibility): before 3.12, float sum() is not
         # compensated, and exactly the backbone entropy (five keys) comes out one ulp HIGHER.
@@ -1045,6 +1078,22 @@ def test_landed_analyser_reproduces_the_committed_summary(tmp_path, art):
         k for k in set(new) | set(committed) if new.get(k) != committed.get(k)
     )
 
+
+# The keys that move by a few ulp with the numpy/BLAS build (HACA-121): the H5 fit's weight
+# on 1 - delta_c and its per-task Norman TDI scores. Observed: up to 4 ulp on the aarch64
+# host (numpy 2.4.4, scipy-openblas 0.3.31), 2 on x86_64 CI; see
+# tests/fixtures/numeric_environment.json. The bound (CTO ruling, HACA-124) equals the host's
+# observed maximum, so a failure on a new build means: record the build, then rule on the bound.
+BLAS_ULP_PATHS = (
+    ("preregistered", "H5", "weights", "one_minus_delta_c"),
+    ("preregistered", "H5", "norman_tdi"),
+)
+BLAS_MAX_ULP = 4
+BLAS_DISCLOSURE = (
+    "Across numpy and BLAS builds, two keys are reproduced to within four units in the last "
+    "place rather than exactly: the cross-dataset ridge weight on $1-\\Delta C$ and the "
+    "transferred index on each Norman task. Every reported value is identical."
+)
 
 # The one quantity that differs before Python 3.12 (paper: "five keys of summary.json").
 PY312_ENTROPY_PATHS = (
@@ -1075,6 +1124,9 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
     assert flat["paper.tex"].count("reproduces every committed value") == 1
     claim_end = "reproduces every committed value of \\texttt{summary.json}. "
     assert claim_end + PY312_DISCLOSURE in flat["paper.tex"]
+    # HACA-124: the ulp-bounded keys across numpy/BLAS builds are disclosed right after it.
+    assert PY312_DISCLOSURE + " " + BLAS_DISCLOSURE in flat["paper.tex"]
+    assert BLAS_MAX_ULP == 4 and len(BLAS_ULP_PATHS) == 2  # "four units", two named keys
     # Outside the paper, the same claim must carry the requirement too.
     changelog = " ".join((ROOT / "CHANGELOG.md").read_text().split())
     for m in re.finditer(r"reproduces the committed `summary\.json`", changelog):

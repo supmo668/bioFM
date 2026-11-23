@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import pytest
 
+from numeric_env import header_line
 from perturb_eval.types import RoundTrace, RunTrace
+
+
+def pytest_terminal_summary(terminalreporter) -> None:
+    """Print the numeric environment (python, numpy, scipy, scikit-learn, BLAS) at the end of
+    every run, -q included, so a ulp-bounded comparison can be tied to the build that produced
+    it (HACA-124)."""
+    terminalreporter.write_line(header_line())
 
 
 @pytest.fixture
@@ -54,12 +62,30 @@ def hard_round(agent_names: tuple[str, ...]) -> RoundTrace:
 def converging_run(agent_names: tuple[str, ...]) -> RunTrace:
     """A 3-round run where confidence rises and entropy falls each round."""
     rounds = (
-        RoundTrace(0, agent_names, (0.5, 0.5, 0.5, 0.5, 0.5),
-                   ((0.5, 0.5, 0.5, 0.5),) * 5, winner_index=0, consensus_score=0.3),
-        RoundTrace(1, agent_names, (0.6, 0.7, 0.65, 0.7, 0.8),
-                   ((0.3, 0.3, 0.3, 0.3),) * 5, winner_index=4, consensus_score=0.5),
-        RoundTrace(2, agent_names, (0.7, 0.8, 0.75, 0.85, 0.95),
-                   ((0.15, 0.15, 0.15, 0.15),) * 5, winner_index=4, consensus_score=0.8),
+        RoundTrace(
+            0,
+            agent_names,
+            (0.5, 0.5, 0.5, 0.5, 0.5),
+            ((0.5, 0.5, 0.5, 0.5),) * 5,
+            winner_index=0,
+            consensus_score=0.3,
+        ),
+        RoundTrace(
+            1,
+            agent_names,
+            (0.6, 0.7, 0.65, 0.7, 0.8),
+            ((0.3, 0.3, 0.3, 0.3),) * 5,
+            winner_index=4,
+            consensus_score=0.5,
+        ),
+        RoundTrace(
+            2,
+            agent_names,
+            (0.7, 0.8, 0.75, 0.85, 0.95),
+            ((0.15, 0.15, 0.15, 0.15),) * 5,
+            winner_index=4,
+            consensus_score=0.8,
+        ),
     )
     return RunTrace(task_id="converging", rounds=rounds, converged=True, backbone="scGPT")
 
@@ -68,11 +94,29 @@ def converging_run(agent_names: tuple[str, ...]) -> RunTrace:
 def thrashing_run(agent_names: tuple[str, ...]) -> RunTrace:
     """Winner flips every round; confidence does not rise."""
     rounds = (
-        RoundTrace(0, agent_names, (0.5, 0.6, 0.45, 0.55, 0.5),
-                   ((0.6, 0.6, 0.6, 0.6),) * 5, winner_index=1, consensus_score=0.1),
-        RoundTrace(1, agent_names, (0.6, 0.45, 0.5, 0.55, 0.5),
-                   ((0.6, 0.6, 0.6, 0.6),) * 5, winner_index=0, consensus_score=0.1),
-        RoundTrace(2, agent_names, (0.5, 0.55, 0.6, 0.45, 0.5),
-                   ((0.6, 0.6, 0.6, 0.6),) * 5, winner_index=2, consensus_score=0.1),
+        RoundTrace(
+            0,
+            agent_names,
+            (0.5, 0.6, 0.45, 0.55, 0.5),
+            ((0.6, 0.6, 0.6, 0.6),) * 5,
+            winner_index=1,
+            consensus_score=0.1,
+        ),
+        RoundTrace(
+            1,
+            agent_names,
+            (0.6, 0.45, 0.5, 0.55, 0.5),
+            ((0.6, 0.6, 0.6, 0.6),) * 5,
+            winner_index=0,
+            consensus_score=0.1,
+        ),
+        RoundTrace(
+            2,
+            agent_names,
+            (0.5, 0.55, 0.6, 0.45, 0.5),
+            ((0.6, 0.6, 0.6, 0.6),) * 5,
+            winner_index=2,
+            consensus_score=0.1,
+        ),
     )
     return RunTrace(task_id="thrashing", rounds=rounds, converged=False, backbone="scGPT")

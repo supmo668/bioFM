@@ -211,22 +211,46 @@ class TestMSD:
 # ---------------------------------------------------------------------------
 
 # Regression pin captured from the pre-T9 single-int code path (commit 16f4f54)
-# on ``_pin_setup()``. A 1-tuple and a plain int must reproduce these
-# bit-for-bit (rtol=0, atol=0).
+# on ``_pin_setup()``. A 1-tuple and a plain int must reproduce these.
+# The linear pin is still bit-for-bit on every build we run. The MLP pin moves by a
+# few ulp with the numpy/BLAS build (HACA-121), so it is compared within
+# ``MLP_PIN_MAX_ULP`` ulp of the output's scale instead (HACA-124). The pins were
+# recorded in an environment nobody wrote down (2026-09-24, x86_64). The builds the
+# bound was checked on are in tests/fixtures/numeric_environment.json.
 _PIN_LINEAR = [
-    0.0018316583237388457, -0.08090151514344297, 0.009073835886043824,
-    0.00114820377095907, 0.05077691989006361, -0.6317395604314169,
-    0.01801914330536336, -0.06555686935383834, 0.06152788966762908,
-    0.06207339829435761, -0.6331045698353186, 0.009449865180770992,
-    -0.011774689481254633, 0.06684052376052133, 0.1031091229110146,
+    0.0018316583237388457,
+    -0.08090151514344297,
+    0.009073835886043824,
+    0.00114820377095907,
+    0.05077691989006361,
+    -0.6317395604314169,
+    0.01801914330536336,
+    -0.06555686935383834,
+    0.06152788966762908,
+    0.06207339829435761,
+    -0.6331045698353186,
+    0.009449865180770992,
+    -0.011774689481254633,
+    0.06684052376052133,
+    0.1031091229110146,
     -1.944742291219042,
 ]
 _PIN_MLP = [
-    -0.009365195013296586, -0.14963805361775354, 0.19098722259695713,
-    -0.2678582565891176, 0.40536695483053803, -0.9189982415483317,
-    0.37012031111759813, -0.32211288458697085, -0.37221127966963297,
-    0.18888931797622535, -0.9502761244104112, -0.09854404831468926,
-    0.182800894177524, 0.5907664585269514, -0.03091329616600319,
+    -0.009365195013296586,
+    -0.14963805361775354,
+    0.19098722259695713,
+    -0.2678582565891176,
+    0.40536695483053803,
+    -0.9189982415483317,
+    0.37012031111759813,
+    -0.32211288458697085,
+    -0.37221127966963297,
+    0.18888931797622535,
+    -0.9502761244104112,
+    -0.09854404831468926,
+    0.182800894177524,
+    0.5907664585269514,
+    -0.03091329616600319,
     -0.2854345396762541,
 ]
 
@@ -242,18 +266,47 @@ def _pin_predict(cls, as_tuple: bool) -> np.ndarray:
     wrap = (lambda i: (i,)) if as_tuple else (lambda i: i)
     tg = {p: wrap(i) for p, i in ds["target_gene_idx"].items() if p != held}
     bb = cls()
-    bb.fit(ds["X"][m], ds["labels"][m].tolist(), ds["control_mask"][m], tg,
-           BackboneTrainConfig(seed=11, max_iter=50))
+    bb.fit(
+        ds["X"][m],
+        ds["labels"][m].tolist(),
+        ds["control_mask"][m],
+        tg,
+        BackboneTrainConfig(seed=11, max_iter=50),
+    )
     return bb.predict_logfc(held, wrap(ds["target_gene_idx"][held]), 16)
 
 
+# The bound is in ulp of the largest pinned magnitude, not per element: element 0
+# (-0.0094) is a cancellation result, so its own ulp is 64x finer than the vector's
+# and it moves 12 (aarch64 host) to 28 (x86_64 CI) of its own ulp, about 2e-17 to
+# 5e-17 absolute, while every element stays within 1 ulp of the scale on both.
+MLP_PIN_MAX_ULP = 4
+
+
 @pytest.mark.unit
-@pytest.mark.parametrize("cls,pin", [(LinearBackbone, _PIN_LINEAR), (MLPBackbone, _PIN_MLP)])
 @pytest.mark.parametrize("as_tuple", [False, True], ids=["int", "1-tuple"])
-def test_single_target_regression_pin_bit_exact(cls, pin, as_tuple: bool) -> None:
-    pred = _pin_predict(cls, as_tuple)
-    np.testing.assert_allclose(pred, np.asarray(pin), rtol=0, atol=0)
-    assert pred.tobytes() == np.asarray(pin, dtype=np.float64).tobytes()
+def test_single_target_regression_pin_bit_exact(as_tuple: bool) -> None:
+    pred = _pin_predict(LinearBackbone, as_tuple)
+    np.testing.assert_allclose(pred, np.asarray(_PIN_LINEAR), rtol=0, atol=0)
+    assert pred.tobytes() == np.asarray(_PIN_LINEAR, dtype=np.float64).tobytes()
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("as_tuple", [False, True], ids=["int", "1-tuple"])
+def test_single_target_regression_pin_within_ulp(as_tuple: bool) -> None:
+    pin = np.asarray(_PIN_MLP, dtype=np.float64)
+    pred = _pin_predict(MLPBackbone, as_tuple)
+    assert pred.dtype == np.float64 and pred.shape == pin.shape
+    ulp = np.spacing(np.max(np.abs(pin)))
+    worst = float(np.max(np.abs(pred - pin)) / ulp)
+    assert worst <= MLP_PIN_MAX_ULP, f"MLP pin off by {worst:g} ulp of scale (> {MLP_PIN_MAX_ULP})"
+
+
+@pytest.mark.unit
+def test_single_target_mlp_int_and_1_tuple_are_bit_identical() -> None:
+    """The ulp bound is against a pin from another build; on one build, a plain int and a
+    1-tuple take the same code path and must give the same bytes."""
+    assert _pin_predict(MLPBackbone, False).tobytes() == _pin_predict(MLPBackbone, True).tobytes()
 
 
 def _doublet_dataset() -> tuple[dict, dict[str, tuple[int, ...]]]:
@@ -303,8 +356,13 @@ class TestMultiTarget:
         held = "A_B"
         m = ds["labels"] != held
         bb = LinearBackbone()
-        bb.fit(ds["X"][m], ds["labels"][m].tolist(), ds["control_mask"][m],
-               {p: t for p, t in targets.items() if p != held}, BackboneTrainConfig())
+        bb.fit(
+            ds["X"][m],
+            ds["labels"][m].tolist(),
+            ds["control_mask"][m],
+            {p: t for p, t in targets.items() if p != held},
+            BackboneTrainConfig(),
+        )
         pred = bb.predict_logfc(held, (3, 5), n_genes=20)
         assert pred[3] == bb._target_dip
         assert pred[5] == bb._target_dip
@@ -316,8 +374,13 @@ class TestMultiTarget:
     def test_mlp_doublet_fit_and_predict(self) -> None:
         ds, targets = _doublet_dataset()
         bb = MLPBackbone()
-        art = bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets,
-                     BackboneTrainConfig(max_iter=20))
+        art = bb.fit(
+            ds["X"],
+            ds["labels"].tolist(),
+            ds["control_mask"],
+            targets,
+            BackboneTrainConfig(max_iter=20),
+        )
         assert art.n_train_perturbations == 4
         pred = bb.predict_logfc("A_B", (3, 5), n_genes=20)
         assert pred.shape == (20,) and np.all(np.isfinite(pred))
@@ -332,8 +395,13 @@ class TestMultiTarget:
         ds, targets = _doublet_dataset()
         arch = _ArchitectureConfig(embed_dim=16, n_layers=1, n_heads=2, ffn_dim=32)
         bb = SCGPTSmallBackbone(arch)
-        art = bb.fit(ds["X"], ds["labels"].tolist(), ds["control_mask"], targets,
-                     BackboneTrainConfig(max_iter=5))
+        art = bb.fit(
+            ds["X"],
+            ds["labels"].tolist(),
+            ds["control_mask"],
+            targets,
+            BackboneTrainConfig(max_iter=5),
+        )
         assert art.n_train_perturbations == 4
         pred = bb.predict_logfc("A_B", (3, 5), n_genes=20)
         assert pred.shape == (20,) and np.all(np.isfinite(pred))
