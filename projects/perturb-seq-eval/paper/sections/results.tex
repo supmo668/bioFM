@@ -8,8 +8,10 @@
 
 The hypotheses, their criteria and the analysis plan were fixed in a pre-registration that is
 released with the code (\S\ref{sec:reproducibility}). It was amended four times before any data
-from this sweep existed, and once more, changing only the title and one term, after the outcome
-was known; Table~\ref{tab:amendments} lists the amendments, and the run's provenance record
+from this sweep existed, and twice more after the outcome was known: once changing only the
+title and one term, and once changing the title again and recording that the exploratory
+analyses of \S\ref{subsec:exploratory} were added after the outcome. Neither changes a
+hypothesis, a threshold, an estimator or an outcome. Table~\ref{tab:amendments} lists the amendments, and the run's provenance record
 identifies the revision of the pre-registration in force. Table~\ref{tab:gates} states the five
 hypotheses and their criteria. Each criterion is reported as supported, not supported or, when the
 data do not allow it to be computed, as not evaluable, with the reason; a criterion that cannot
@@ -19,6 +21,14 @@ stated out of five. In the text we refer to the hypotheses by what they claim: t
 \emph{trace-feature ranking} hypothesis; and the \emph{cross-dataset transfer} hypothesis.
 Bootstrap confidence intervals are 95\% percentile intervals over \emph{tasks}, with $B=10\,000$
 resamples from a generator seeded with 2026. In summary, \resGateSummary.
+
+The five criteria are of three kinds, and the tally should be read with that in mind. The two
+attainable-error hypotheses are feasibility checks on an oracle selected on the evaluation
+split. The backbone-choice hypothesis checks that a design lever was exercised. Only the
+ranking and transfer hypotheses bear on the title question, and of those two one is supported
+and one is not. Each criterion is a threshold on a point estimate. No error rate spanning the
+five was pre-registered and no power analysis was made; the only quantified false-positive rate
+is that of the ranking criterion (\S\ref{sec:tdi-real}).
 
 \begin{table}[ht]
 \footnotesize
@@ -33,11 +43,13 @@ A3 & \texttt{\resAmendThreeVersion} & \resAmendThreeDate & \texttt{\resAmendThre
 A4 & \texttt{\resAmendFourVersion} & \resAmendFourDate & \texttt{\resAmendFourCommit} & \resAmendFourChange \\
 \midrule
 A5 & \texttt{\resAmendFiveVersion}$^{\ddagger}$ & \resAmendFiveDate & \texttt{\resAmendFiveCommit} & \resAmendFiveChange \\
+A6 & \texttt{\resAmendSixVersion}$^{\ddagger}$ & \resAmendSixDate & \texttt{\resAmendSixCommit} & \resAmendSixChange \\
 \bottomrule
 \end{tabular}
 \caption{Amendments to the pre-registration. A1--A4 were each locked before any data from this
-sweep existed. $^{\ddagger}$A5 was locked \emph{after} the outcome was known; it changes the title
-and one term only, and no run exists under it. $^{\dagger}$The first amendment predates the
+sweep existed. $^{\ddagger}$A5 and A6 were locked \emph{after} the outcome was known; A5 changes
+the title and one term only, A6 changes the title again and records the exploratory analyses
+added after the outcome, and no run exists under either. $^{\dagger}$The first amendment predates the
 version tags, so it has none; the run was made under the fourth amendment's tag. For the fourth
 amendment, \resAmendFourNote. Dates and commits are taken from the repository history and
 checked against it automatically.}
@@ -193,6 +205,20 @@ $\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. The pooled $\rho$ never en
 \label{tab:tdi-real}
 \end{table}
 
+\paragraph{Reading the intervals against the criterion.} For each of the four tests that meet
+the criterion, the lower bound of the interval lies above zero and below the criterion value of
+$0.5$. The intervals therefore support a positive rank association in both screens; they do not
+by themselves place $\rho$ above the criterion, which is met on the point estimate as
+pre-registered.
+
+\paragraph{What the passing feature is conditioned on.} The confidences of rounds $1$ and $2$
+are stated after every role has been shown the previous round's held-out error (the paragraph
+``What each agent has seen when it states a confidence'' in \S\ref{par:feedback}).
+$1-\Delta C$ is therefore large when confidence fell after that error was shown. The
+pre-registered outcome stands; how it is to be read is examined in \S\ref{subsec:exploratory}.
+Figure~\ref{fig:h4-scatter} shows the per-task values behind the six tests; the figure was
+added after the outcome.
+
 \paragraph{The confidence-entropy rows.} The two $\mathrm{ACE}_{\mathrm{norm}}$ point estimates are
 negative ($\rho=\resHFourAdaAceRho$ on Adamson, where the CI excludes zero, and
 $\resHFourNorAceRho$ on Norman, where the Norman CI includes zero), against the pre-registered
@@ -200,7 +226,12 @@ positive direction, so neither test meets the one-sided criterion. The support f
 hypothesis comes from the confidence-drop component and from the composite that inherits it. The
 Adamson $\mathrm{ACE}_{\mathrm{norm}}$ values have a standard deviation of \resHFiveStdSdAce{}
 about a mean of \resHFiveStdMeanAce{} (the standardisation used for the transfer test below), so
-the composite ranks tasks almost as $1-\Delta C$ alone does. Any reading of the negative sign is
+the composite ranks tasks almost as $1-\Delta C$ alone does. Because
+$\mathrm{ACE}_{\mathrm{norm}}$ is an evenness index (\S\ref{sec:metrics}), it can fall when some
+roles lower their confidence and others do not: it does so when the roles that lower theirs
+were at or below the mean, and such a change also lowers the mean. The confidence-entropy rows
+may therefore be coupled to the confidence-drop rows; the coupling is a possibility that
+follows from the definitions, not a property shown here. Any reading of the negative sign is
 exploratory and post hoc: it generates no claim here, and testing it would need a new
 pre-registration before any new data are collected.
 
@@ -216,8 +247,117 @@ standardised with the Adamson mean and standard deviation: \resHFiveStdMeanAce{}
 for $\mathrm{ACE}_{\mathrm{norm}}$ and \resHFiveWDc{} for $1-\Delta C$. On Norman the transferred
 index reaches $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
 criterion $\rho>\resHFiveThreshold$, so the hypothesis is \resHFiveVerdict. The
-calibrated index does not transfer at the pre-registered level; no re-fit, threshold change or
-sign change is applied.
+fitted index did not meet the pre-registered transfer criterion; no re-fit, threshold change or
+sign change is applied. The interval contains both zero and the criterion value, so this run
+neither establishes nor excludes transfer at that level. The interval resamples Norman tasks
+with the Adamson weights held fixed, so it is conditional on that one fit and does not carry
+the uncertainty of the weights. The fitted weight on $1-\Delta C$ is negative although the
+rank correlation of $1-\Delta C$ with error within Adamson is positive
+(Table~\ref{tab:tdi-real}); with $n=\resHFiveNFit$ tasks in the fit the individual weights
+should not be interpreted.
+
+\subsection{Exploratory: confidence before and after error feedback}\label{subsec:exploratory}
+
+\emph{Everything in this subsection is exploratory. It was specified after the outcomes above
+were known, it enters no criterion, and it changes none of them.} It asks how the outcome of the
+ranking hypothesis is to be read, given that every role is shown the previous round's held-out
+error from round $1$ on (\S\ref{par:feedback}). The values come from the committed run files through
+\path{scripts/paper/fill_v060_exploratory.py}, which first reproduces the pre-registered
+$1-\Delta C$ correlations of Table~\ref{tab:tdi-real}; all \explNQuantities{} quantities it computes
+are in \path{paper/data/exploratory_v060.json}, and Table~\ref{tab:exploratory} gives every
+rank correlation among them.
+
+\begin{table}[ht]
+\small
+\centering
+\begin{tabular}{p{0.46\linewidth}p{0.22\linewidth}p{0.22\linewidth}}
+\toprule
+Quantity (exploratory) & Adamson $\rho$ ($n=\explAdaNTasks$; CI) & Norman $\rho$ ($n=\explNorNTasks$; CI) \\
+\midrule
+\multicolumn{3}{l}{\emph{Stated before any error feedback}} \\
+Mean confidence, round $0$, vs final MSD & \explAdaConfRZeroMsdRho{} [\explAdaConfRZeroMsdCILo, \explAdaConfRZeroMsdCIHi] & \explNorConfRZeroMsdRho{} [\explNorConfRZeroMsdCILo, \explNorConfRZeroMsdCIHi] \\
+$\mathrm{ACE}_{\mathrm{norm}}$ of round $0$, vs final MSD & \explAdaAceRZeroMsdRho{} [\explAdaAceRZeroMsdCILo, \explAdaAceRZeroMsdCIHi] & \explNorAceRZeroMsdRho{} [\explNorAceRZeroMsdCILo, \explNorAceRZeroMsdCIHi] \\
+\midrule
+\multicolumn{3}{l}{\emph{Stated after error feedback}} \\
+Mean confidence, round $1$, vs final MSD & \explAdaConfROneMsdRho{} [\explAdaConfROneMsdCILo, \explAdaConfROneMsdCIHi] & \explNorConfROneMsdRho{} [\explNorConfROneMsdCILo, \explNorConfROneMsdCIHi] \\
+Mean confidence, round $2$, vs final MSD & \explAdaConfRTwoMsdRho{} [\explAdaConfRTwoMsdCILo, \explAdaConfRTwoMsdCIHi] & \explNorConfRTwoMsdRho{} [\explNorConfRTwoMsdCILo, \explNorConfRTwoMsdCIHi] \\
+$1-\Delta C$ vs round-$0$ MSD (shown before round $1$) & \explAdaDcMsdRZeroRho{} [\explAdaDcMsdRZeroCILo, \explAdaDcMsdRZeroCIHi] & \explNorDcMsdRZeroRho{} [\explNorDcMsdRZeroCILo, \explNorDcMsdRZeroCIHi] \\
+$1-\Delta C$ vs round-$1$ MSD (shown before round $2$) & \explAdaDcMsdROneRho{} [\explAdaDcMsdROneCILo, \explAdaDcMsdROneCIHi] & \explNorDcMsdROneRho{} [\explNorDcMsdROneCILo, \explNorDcMsdROneCIHi] \\
+\midrule
+\multicolumn{3}{l}{\emph{The error itself}} \\
+Round-$0$ MSD vs round-$2$ MSD & \explAdaMsdRZeroVsRTwoRho{} [\explAdaMsdRZeroVsRTwoCILo, \explAdaMsdRZeroVsRTwoCIHi] & \explNorMsdRZeroVsRTwoRho{} [\explNorMsdRZeroVsRTwoCILo, \explNorMsdRZeroVsRTwoCIHi] \\
+Round-$1$ MSD vs round-$2$ MSD & \explAdaMsdROneVsRTwoRho{} [\explAdaMsdROneVsRTwoCILo, \explAdaMsdROneVsRTwoCIHi] & \explNorMsdROneVsRTwoRho{} [\explNorMsdROneVsRTwoCILo, \explNorMsdROneVsRTwoCIHi] \\
+Lifecycle final MSD vs trainer-sweep oracle MSD & \explAdaOracleRho{} [\explAdaOracleCILo, \explAdaOracleCIHi] & \explNorOracleRho{} [\explNorOracleCILo, \explNorOracleCIHi] \\
+\bottomrule
+\end{tabular}
+\caption{Exploratory rank correlations, none pre-registered and none entering a criterion. The estimator is the
+pre-registered one (seed medians per task, Spearman's $\rho$ within screen, bootstrap over tasks, $B=\explBootstrapB$).
+All \explNCorrelations{} correlations computed for this section are shown, \explNCorrelationsPerScreen{} per screen.}
+\label{tab:exploratory}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_confidence_by_round.pdf}
+\caption{Left: mean stated confidence per role by round (mean over tasks of the seed median).
+Right: median held-out MSD by round. The dashed line marks where the previous round's held-out
+error enters every prompt. Exploratory.}
+\label{fig:conf-by-round}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_h4_scatter.pdf}
+\caption{The six pre-registered tests of Table~\ref{tab:tdi-real}, one point per task (seed
+medians), with the held-out MSD on a logarithmic axis. No statistic is added; the figure shows
+the data behind the reported $\rho$. Added after the outcome (Amendment 6).}
+\label{fig:h4-scatter}
+\end{figure}
+
+\paragraph{Before feedback, mean confidence does not rank tasks.} The mean confidence stated in
+round $0$ has no detectable rank association with the final error in either screen
+($\rho=\explAdaConfRZeroMsdRho$ on Adamson and $\explNorConfRZeroMsdRho$ on Norman; both intervals
+include zero), and it hardly varies across tasks: its standard deviation across tasks is
+\explAdaConfSdRZero{} on Adamson and \explNorConfSdRZero{} on Norman, against \explAdaConfSdRTwo{}
+and \explNorConfSdRTwo{} in round $2$.
+
+\paragraph{After feedback, it does.} The mean confidence of rounds $1$ and $2$ is strongly and
+negatively rank-associated with the final error, and $1-\Delta C$ is associated with the errors
+the agents had been shown about as strongly as with the final error it was tested against. The
+rank order of tasks by error is close to a property of the task: it barely changes from round to
+round, and the lifecycle's final MSD ranks tasks almost as the trainer sweep's oracle does
+(Table~\ref{tab:exploratory}). The rank order of tasks by the difficulty proxy thus depends
+little on the agents' choices. Its level does depend on them: the lifecycle's percentile rank
+within the trainer sweep differs between the screens (a median of \explAdaOraclePctRankMedian{}
+on Adamson and \explNorOraclePctRankMedian{} on Norman; ``Stability and the sweep'' below). Read with
+the design, the pre-registered pass is consistent with \emph{stated confidence falling further
+on tasks where the agents were shown a larger held-out error}; it is not evidence that the
+group's confidence anticipates difficulty before any error is measured. Nor does it isolate the
+error as the cause, because the prompts of rounds $1$ and $2$ carry more than the error
+(\S\ref{sec:limits}).
+
+\paragraph{Which role moves.} The change in mean confidence from round $0$ to round $2$ is not
+shared evenly (Figure~\ref{fig:conf-by-round}). The Validator, the only role on the larger
+model, states a low confidence in round $0$ and a much higher one afterwards
+(\explAdaRoleValidatorConfChange{} on Adamson and \explNorRoleValidatorConfChange{} on Norman), the
+DataCurator's falls (\explAdaRoleCuratorConfChange{} and \explNorRoleCuratorConfChange), and the
+Architect's barely moves (\explAdaRoleArchitectConfChange{} and \explNorRoleArchitectConfChange).
+Role is confounded with model for the Validator.
+
+\paragraph{One pre-feedback association, reported and not claimed.} On Norman the round-$0$
+$\mathrm{ACE}_{\mathrm{norm}}$ is negatively associated with the final error
+($\rho=\explNorAceRZeroMsdRho$, interval excluding zero); on Adamson the estimate has the same sign
+and its interval includes zero ($\explAdaAceRZeroMsdRho$). This is one of \explNCorrelations{}
+unplanned correlations, in the direction opposite to the pre-registered one, and it generates no
+claim; testing it needs a new pre-registration.
+
+\paragraph{Stability and the sweep.} Leaving out one task at a time, the pre-registered
+$1-\Delta C$ correlation ranges over [\explAdaLotoDcRhoMin, \explAdaLotoDcRhoMax] on Adamson and
+[\explNorLotoDcRhoMin, \explNorLotoDcRhoMax] on Norman; the criterion is evaluated once, on all
+tasks, and this range re-decides nothing. Within each task's \resNTrainerRecordsPerTask{} trainer
+records, the lifecycle's final MSD sits at a median percentile rank of \explAdaOraclePctRankMedian{}
+on Adamson and \explNorOraclePctRankMedian{} on Norman (lower is better). The comparison is
+descriptive: the lifecycle's applied hyperparameters are not on the trainer grid.
 
 \subsection{Run record}\label{subsec:runrecord}
 

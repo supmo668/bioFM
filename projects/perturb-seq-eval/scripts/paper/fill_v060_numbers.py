@@ -220,6 +220,7 @@ def build(
     h5 = pr["H5"]
     m["HFiveRho"] = f(h5["value"])
     m["HFiveN"] = str(h5["n"])
+    m["HFiveNFit"] = str(h5["n_fit"])  # the Adamson tasks the ridge weights are fitted on
     m["HFiveCILo"] = f(h5["ci_low"])
     m["HFiveCIHi"] = f(h5["ci_high"])
     m["HFiveWAce"] = f(h5["weights"]["ace_norm"], 2)
@@ -363,9 +364,9 @@ def build(
     am = json.loads(
         (amendments or (PROJECT_ROOT / "paper" / "data" / "amendments_v060.json")).read_text()
     )
-    words = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}
+    words = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five", "A6": "Six"}
     if [a["id"] for a in am["amendments"]] != list(words):
-        raise ValueError("amendments record must list A1, A2, A3, A4, A5 in order")
+        raise ValueError("amendments record must list A1, A2, A3, A4, A5, A6 in order")
     for a in am["amendments"]:
         word = words[a["id"]]
         for c in a["lock_commits"]:

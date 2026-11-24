@@ -1,5 +1,5 @@
 {
-  "source": "paper/PREREGISTRATION.md (amendment 1 in the preamble; amendments 2-5 as sections); lock commits from git with their UTC dates; CTO #532",
+  "source": "paper/PREREGISTRATION.md (amendment 1 in the preamble; amendments 2-6 as sections); lock commits from git with their UTC dates; CTO #532",
   "amendments": [
     {
       "id": "A1",
@@ -58,6 +58,18 @@
       "change": "locked after the outcome was known: the title becomes a question about the confidence distribution of a multi-agent group (the question form is kept, and the subtitle reports both outcomes of the trace-feature ranking test), and the term gate is renamed pre-registered criterion; no hypothesis, threshold, estimator or outcome changes, and no run exists under it",
       "lock_note": "the commit is the lock, made after the outcome was known; later commits revise only its wording and record",
       "introduces": "## Amendment 5"
+    },
+    {
+      "id": "A6",
+      "prereg_version": "v0.6.0-a6",
+      "lock_commits": [
+        "052e1704"
+      ],
+      "lock_date_utc": "2026-11-24",
+      "post_outcome": true,
+      "change": "locked after the outcome was known: the title becomes a question of whether multi-agent confidence predicts task difficulty or only reacts to it (the question form is kept, and the subtitle no longer reports outcomes), and the exploratory analyses added after the outcome are recorded as such; no hypothesis, threshold, estimator or outcome changes, and no run exists under it",
+      "lock_note": "the commit is the lock, made after the outcome was known; a later commit records its hash here",
+      "introduces": "## Amendment 6"
     }
   ]
 }

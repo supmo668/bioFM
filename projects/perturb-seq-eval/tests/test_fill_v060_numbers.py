@@ -162,6 +162,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resHFourTasksDropped": "0",
         "resHFiveRho": f(pr["H5"]["value"]),
         "resHFiveN": str(pr["H5"]["n"]),
+        "resHFiveNFit": str(pr["H5"]["n_fit"]),
         "resHFiveCILo": f(pr["H5"]["ci_low"]),
         "resHFiveCIHi": f(pr["H5"]["ci_high"]),
         "resHFiveWAce": f(pr["H5"]["weights"]["ace_norm"], 2),
@@ -366,7 +367,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         expect[f"resRoleCalls{word}"] = str(sum(1 for c in log if c["role"] == role))
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     for a in am:
-        word = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}[a["id"]]
+        word = WORDS[a["id"]]
         expect[f"resAmend{word}Version"] = a["prereg_version"] or r"\textemdash"
         expect[f"resAmend{word}Date"] = a["lock_date_utc"]
         expect[f"resAmend{word}Commit"] = ", ".join(a["lock_commits"])
@@ -1137,7 +1138,7 @@ def test_reproduction_claim_states_its_python_requirement_and_cause():
 def test_amendment_records_match_git_and_the_preregistration():
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     prereg = (PAPER / "PREREGISTRATION.md").read_text()
-    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4", "A5"]
+    assert [a["id"] for a in am] == ["A1", "A2", "A3", "A4", "A5", "A6"]
     land = json.loads((PAPER / "data" / "land_v060.json").read_text())
     for a in am:
         n = a["id"][1]
@@ -1163,8 +1164,9 @@ def test_amendment_records_match_git_and_the_preregistration():
                 ).returncode
                 == 0
             )
-            # A1-A4 were locked before the run; A5 (approvals row 16) was locked AFTER the outcome,
-            # and the record must say so rather than pass as a pre-data amendment.
+            # A1-A4 were locked before the run; A5 (approvals row 16) and A6 (approvals row 40)
+            # were locked AFTER the outcome, and the record must say so rather than pass as a
+            # pre-data amendment.
             assert before_run is not bool(a.get("post_outcome")), (a["id"], c)
             _git("merge-base", "--is-ancestor", c, "HEAD")  # on this history either way
             files = _git("show", "--name-only", "--format=", c)
@@ -1273,18 +1275,19 @@ def test_hand_typed_scan_still_flags_a_number_after_the_word_python(monkeypatch,
             test_no_hand_typed_result_numbers("sections/results.tex")
 
 
-WORDS = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five"}
+WORDS = {"A1": "One", "A2": "Two", "A3": "Three", "A4": "Four", "A5": "Five", "A6": "Six"}
 
 
 def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
     """QG B12/B13: every amendment record has a row in tab:amendments; the post-outcome ones (A5,
-    approvals row 16) carry the double dagger and the others do not; the caption never calls the
-    whole table pre-data, and names the pre-data range from the records themselves."""
+    approvals row 16; A6, approvals row 40) carry the double dagger and the others do not; the
+    caption never calls the whole table pre-data, and names the pre-data range from the records
+    themselves."""
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     res = _strip(RESULTS.read_text())
     flags = {a["id"]: a.get("post_outcome", False) for a in am}
     assert all(type(v) is bool for v in flags.values()), flags
-    assert [k for k, v in flags.items() if v] == ["A5"]
+    assert [k for k, v in flags.items() if v] == ["A5", "A6"]
     for a in am:
         w = WORDS[a["id"]]
         row = re.search(rf"^{a['id']}\b.*\\resAmend{w}Change \\\\$", res, re.M)
@@ -1297,7 +1300,8 @@ def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
     assert "each locked before any data from this sweep existed (" not in cap
     pre = [k for k, v in flags.items() if not v]
     assert f"{pre[0]}--{pre[-1]} were each locked before any data from this sweep existed" in cap
-    assert "$^{\\ddagger}$A5 was locked \\emph{after} the outcome was known" in cap
+    assert "$^{\\ddagger}$A5 and A6 were locked \\emph{after} the outcome was known" in cap
+    assert "no run exists under either" in cap
 
 
 # --------------------------------------------------------------------------- HACA-119 wording

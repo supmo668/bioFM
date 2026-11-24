@@ -3,10 +3,8 @@ message: >-
   If you use this software or results, please cite the supplement and
   the upstream references below.
 title: >-
-  Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
-  A Pre-registered, Provenance-Complete Test on Perturb-seq Response
-  Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
-  Passes
+  Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
+  A Pre-registered Test on Perturb-seq
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 abstract: >-
   A multi-agent group-generation system, as operated here, spends test-time
@@ -16,13 +14,13 @@ abstract: >-
   critiques across a group of role-specialised agents predicts how hard a task
   is, which would let the group's compute be allocated adaptively. Taking as
   testbed a five-agent orchestrator for Perturb-seq response prediction
-  inspired by CellForge and operated via MassGen, we define four compute-free
-  trace metrics — Agent Confidence Entropy (ACE), Critique Severity Dispersion
-  (CSD), a convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their
-  composite, the Task Difficulty Index (TDI). We pre-register five hypotheses
-  with criteria: attainable error on Adamson 2016 (CRISPR interference) and
-  Norman 2019 (CRISPR activation), the Architect agent's backbone-choice
-  entropy, the rank correlation of each TDI component with held-out error, and
+  inspired by CellForge and operated via MassGen, we define four trace metrics
+  — Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a
+  convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their composite,
+  the Task Difficulty Index (TDI). We pre-register five hypotheses with
+  criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman
+  2019 (CRISPR activation), the Architect agent's backbone-choice entropy, the
+  rank correlation of each TDI component with held-out error, and
   cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
   tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
   deterministically, a trainer sweep of 27 records per task and three
@@ -38,11 +36,20 @@ abstract: >-
   error on both screens, and the Architect's choice of backbone varies above
   the pre-registered entropy floor. Within each screen, the drop in the
   agents' confidence across rounds, and the composite that inherits it, rank
-  tasks by held-out error. The composite calibrated on Adamson does not
-  transfer to Norman at the pre-registered level (ρ = 0.286 against a
-  criterion of > 0.4). The point estimates for confidence entropy run against
-  the pre-registered direction in both screens; this is exploratory, and no
-  claim is made. The values reported in the earlier release of this work are
+  tasks by held-out error. From the second round on, however, every agent's
+  prompt carries the previous round's held-out error, so that drop is stated
+  after an error has been shown. In an exploratory analysis, the mean
+  confidence stated before any feedback does not rank tasks by error (ρ =
+  0.003 on Adamson and 0.214 on Norman, both intervals including zero). Read
+  with the design and that analysis, the pre-registered pass is consistent
+  with stated confidence falling further where a larger error was shown; it is
+  not evidence that the group's confidence anticipates difficulty. The
+  composite fitted on Adamson did not meet the pre-registered transfer
+  criterion on Norman (ρ = 0.286 against a criterion of > 0.4). The point
+  estimates for confidence entropy, an evenness index over the agents, run
+  against the pre-registered direction in both screens; this is exploratory,
+  and no claim is made. The preflight probe and recommender are specified but
+  not evaluated. The values reported in the earlier release of this work are
   superseded in full; the defects behind each are listed in the appendix.
 authors:
   - family-names: "Mo"
@@ -50,6 +57,11 @@ authors:
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
+# `version` and `date-released` name the latest PUBLISHED release, 0.6.1. The title and abstract
+# above are already those of the 0.6.2 manuscript (Amendment 6), which is prepared and NOT
+# published (approvals row 41: preparation and dry run only). 0.6.2 has no DOI and no release
+# date yet; after both publishes, publish.yml's deposit-time step 5 sets `version: "0.6.2"`,
+# `date-released` and the two new DOIs here. Until then none is written.
 version: "0.6.1"
 date-released: "2026-11-22"
 license: "Apache-2.0"
@@ -92,7 +104,7 @@ identifiers:
     description: "Zenodo v6 (v0.6.0, published 2026-10-16; pre-amendment manuscript)"
   - type: doi
     value: "10.5281/zenodo.24430429"
-    description: "Zenodo v7 (0.6.1, published 2026-11-22; this release)"
+    description: "Zenodo v7 (0.6.1, published 2026-11-22; the latest published release, which holds the Amendment-5 manuscript and title)"
   - type: doi
     value: "10.6084/m9.figshare.32086920.v7"
     description: "Figshare article version 7 (0.6.1, published 2026-11-22; same files as Zenodo v7)"
@@ -116,7 +128,7 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare article concept DOI (latest version; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
+    description: "Figshare article concept DOI (latest version; v7 = 0.6.1; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:
