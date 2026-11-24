@@ -32,13 +32,10 @@
 \input{sections/generated_exploratory}
 
 % ---- Title ----
-\title{Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?\\
-       A Pre-registered, Provenance-Complete Test on Perturb-seq Response
-       Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes}
-\hypersetup{pdftitle={Does a Multi-Agent Group's Confidence Distribution Predict
-  Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq
-  Response Prediction in Which Entropy Fails Its Criterion and the Confidence
-  Drop Passes}}
+\title{Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?\\
+       A Pre-registered Test on Perturb-seq}
+\hypersetup{pdftitle={Does Multi-Agent Confidence Predict Task Difficulty, or
+  Only React to It? A Pre-registered Test on Perturb-seq}}
 
 \author{%
   Mang-yin Mo\\
@@ -523,18 +520,22 @@ claims and ``plug it in and it works'' is unambiguous.
 \section{Discussion}\label{sec:discussion}
 
 \paragraph{Why the question is posed as a question.} The title asks whether
-a multi-agent group's confidence distribution predicts task difficulty rather
-than asserting that it does, so that a null answer is publishable as it
+multi-agent confidence predicts task difficulty or only reacts to it, and asserts
+neither, so that a null answer is publishable as it
 stands. As the pre-registration requires, a null or unsupported outcome on the
 trace-feature ranking or the cross-dataset transfer hypothesis is reported as the
 answer and is not traded back into a claim-form title, abstract or contribution
-list. The title was amended after the outcome was known, by the fifth amendment
-(Table~\ref{tab:amendments}): the pre-registered title named agent confidence
-entropy, singular; the amended title names the group's distribution, the object of
-the narrowed claim, and its subtitle reports both outcomes of the ranking test as
-measured. The question form is unchanged. The same amendment renames the
+list. The title was amended twice after the outcome was known, by the fifth and
+sixth amendments (Table~\ref{tab:amendments}). The pre-registered title named agent
+confidence entropy, singular. The fifth amendment named the group's distribution, the
+object of the narrowed claim, and reported both outcomes of the ranking test in its
+subtitle. The sixth was made after the error feedback behind the supported result was
+found (\S\ref{sec:setup_exp}): the title now also asks whether confidence only reacts
+to difficulty, and it reports no outcome. The question form is unchanged throughout.
+The fifth amendment also renames the
 pre-registration's ``gate'' to ``pre-registered criterion''; no hypothesis,
-threshold or outcome changes with the word.
+threshold or outcome changes with the word. The sixth also records that the
+exploratory analyses of \S\ref{subsec:exploratory} were added after the outcome.
 
 \paragraph{Reading the criteria together.} The two attainable-error hypotheses
 bound what the trainer sweep can reach (an oracle, \S\ref{subsec:oracle}); they say
@@ -559,7 +560,7 @@ reported, not interpreted, and a directional hypothesis about them would need a 
 pre-registration.
 
 \paragraph{What the supported result does and does not show.} The title asks
-whether the group's confidence distribution \emph{predicts} task difficulty. The
+whether multi-agent confidence \emph{predicts} task difficulty or only reacts to it. The
 pre-registered ranking criterion is met, and that outcome stands. But the feature
 that meets it, $1-\Delta C$, compares confidence stated after the agents were shown
 the previous round's held-out error with confidence stated before
@@ -689,8 +690,8 @@ than two live models (each model is probed with every role's JSON schema), if a
 pool is smaller than its requested count (the draw is topped up or trimmed to the
 per-pool total), or if a target gene cannot be resolved.
 
-\paragraph{Where each provenance element lives.} ``Provenance-complete'' in
-the title refers to the following artifacts; all paths are relative to the
+\paragraph{Where each provenance element lives.} The provenance record
+consists of the following artifacts; all paths are relative to the
 project directory unless stated.
 \begin{center}
 \small

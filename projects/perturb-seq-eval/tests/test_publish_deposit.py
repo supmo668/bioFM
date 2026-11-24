@@ -1738,13 +1738,21 @@ def _norm(s: str) -> str:
 
 
 def test_every_title_surface_carries_the_paper_title():
-    """Amendment 5 retitled the paper (CTO #896). Every surface that names the work carries
-    the manuscript's \\title verbatim, so a retitle cannot reach some surfaces and not others
-    (QG Q6: publish.yml, the deposit title, was missed once)."""
+    """Amendment 5 retitled the paper (CTO #896) and Amendment 6 retitled it again (approvals
+    row 40). Every surface that names the work carries the manuscript's \\title verbatim, so a
+    retitle cannot reach some surfaces and not others (QG Q6: publish.yml, the deposit title, was
+    missed once). The pre-registration states the title in its header and in the governing
+    amendment's rule (A6-2, the last amendment that sets a title); A5-2 keeps the superseded
+    title verbatim, as history."""
     tex = (ROOT / "paper" / "paper.tex").read_text()
     title = _norm(re.search(r"\\title\{(.*?)\}\n", tex, re.S).group(1))
     pdftitle = _norm(re.search(r"pdftitle=\{(.*?)\}\}", tex, re.S).group(1))
     prereg = (ROOT / "paper" / "PREREGISTRATION.md").read_text()
+    rules = re.findall(
+        r"^### (A\d-\d) Amended rule \(title\)\nThe title becomes: \*(.*?)\*",
+        prereg,
+        re.MULTILINE | re.DOTALL,
+    )
     surfaces = {
         "pdftitle": pdftitle,
         "CITATION.cff": _norm(yaml.safe_load((ROOT / "CITATION.cff").read_text())["title"]),
@@ -1766,10 +1774,11 @@ def test_every_title_surface_carries_the_paper_title():
         "PREREGISTRATION.md header": _norm(
             re.search(r"^\*\*Paper:\*\* \*(.*?)\*", prereg, re.M | re.S).group(1)
         ),
-        "PREREGISTRATION.md A5-2": _norm(
-            re.search(r"The title becomes: \*(.*?)\*", prereg, re.S).group(1)
-        ),
+        "PREREGISTRATION.md A6-2 (governing amendment)": _norm(rules[-1][1]),
     }
+    # one "The title becomes" rule per retitling amendment, in order; the last one governs
+    assert [h for h, _ in rules] == ["A5-2", "A6-2"], [h for h, _ in rules]
+    assert _norm(rules[0][1]) != title  # A5-2 is quoted history, not rewritten to the new title
     wrong = {k: v for k, v in surfaces.items() if v != title}
     assert not wrong, f"title differs from paper.tex \\title on: {sorted(wrong)}"
 

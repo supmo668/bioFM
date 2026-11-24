@@ -35,7 +35,7 @@ than hypothesis labels. Use the generated block.
 
 | | |
 |---|---|
-| Work | *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?* v0.6.0 run and results; the manuscript posted is revision `0.6.1` (retitled by Amendment 5) |
+| Work | *Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?* v0.6.0 run and results. Retitled by Amendment 6 (2026-11-24, approvals row 40); the archived revision `0.6.1` carries the Amendment-5 title, *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?*, and a new archive version follows only on a separate go |
 | Already archived | **`0.6.1`, published 2026-11-22** (approvals row 37): Zenodo `10.5281/zenodo.24430429` (concept `10.5281/zenodo.19716140`) · Figshare `10.6084/m9.figshare.32086920.v7`; `paper.pdf` md5-identical on both, built from `980fd099`. The Zenodo ↔ Figshare v7 `isIdenticalTo` link is still to add. v0.6.0 (`23422745`, Figshare v6) holds the pre-amendment manuscript |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
 | Venue (approvals row 34, reversing row 32) | **arXiv**, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA`, by personal endorsement. Fallback after 14 days: Research Square, once the principal has read its licence terms. TechRxiv: closed for submissions |
@@ -171,7 +171,7 @@ uv run --with pyyaml python scripts/arxiv_package.py metadata projects/perturb-s
 
 === PASTE INTO THE ARXIV SUBMISSION FORM ===
 
-Title:      Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes
+Title:      Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on Perturb-seq
 Authors:    Mang-yin Mo
 Primary:    cs.LG
 Cross-list: q-bio.QM, cs.MA
@@ -191,19 +191,18 @@ Abstract:
   (WFR), and their composite Task Difficulty Index (TDI). We pre-register five
   hypotheses: low attainable error on Adamson 2016 and on Norman 2019, varied
   backbone choice by the Architect, the rank correlation of each TDI component
-  with error, and cross-dataset transfer of a calibrated TDI. We test them on
-  41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman
-  doublets), with 27 trainer-sweep records and three fixed-length agentic runs
-  per task, on a pinned Claude roster (Haiku 4.5, Sonnet 5.5) asserted per
-  call. We find that four of the five hypotheses are supported and the
-  cross-dataset transfer hypothesis is not; every hypothesis could be
-  evaluated. Within each screen the drop in confidence across rounds ranks
-  tasks by held-out error, but the fitted composite does not reach the
-  transfer criterion at the pre-registered level ($\rho$ = 0.286 against >
-  0.4). From the second round on, every prompt carries the previous round's
-  held-out error, so that drop is stated after an error is shown; the
-  confidence stated before any feedback does not rank tasks ($\rho$ = 0.003
-  and 0.214; this is exploratory). The supported result is that stated
+  with error, and cross-dataset transfer of a calibrated TDI. We test them on 41
+  held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets),
+  with 27 trainer-sweep records and three fixed-length agentic runs per task, on
+  a pinned Claude roster (Haiku 4.5, Sonnet 5.5) asserted per call. We find that
+  four of the five hypotheses are supported and the cross-dataset transfer
+  hypothesis is not; every hypothesis could be evaluated. Within each screen the
+  drop in confidence across rounds ranks tasks by held-out error, but the fitted
+  composite does not reach the transfer criterion at the pre-registered level
+  ($\rho$ = 0.286 against > 0.4). From the second round on, every prompt carries
+  the previous round's held-out error, so that drop is stated after an error is
+  shown; the confidence stated before any feedback does not rank tasks ($\rho$ =
+  0.003 and 0.214; this is exploratory). The supported result is that stated
   confidence falls further where a larger error was shown, not that it
   anticipates difficulty. ACE, an evenness index, runs against the
   pre-registered direction. The probe and recommender are specified, not
@@ -284,7 +283,7 @@ consistently; do not add both.**
 >    identifier (7.3 #1), so the author record carries both. Keep the concept-DOI entry as the preferred source
 >    in the grouped Work (`docs/hacp/perturb-seq-eval/publish-complete.md`).
 > 3. **When the crawled arXiv entry appears in Scholar (days to weeks):** merge it with the manual entry,
->    crawled entry primary (step 1 below). Check its title is the Amendment-5 title and its author is
+>    crawled entry primary (step 1 below). Check its title is the title of the manuscript that was posted (the Amendment-6 title once that revision is the one posted) and its author is
 >    "Mang-yin Mo". If it never appears, check the arXiv abstract page exposes `citation_title`,
 >    `citation_author`, `citation_publication_date` and `citation_pdf_url` (Scholar inclusion guidelines).
 > 4. **Semantic Scholar / OpenAlex:** claim the author pages and confirm the Work (7.3 #2–#3); they follow
@@ -524,7 +523,8 @@ Three items: two closed, and one that blocks posting (item 2).
    the principal's read of its licence terms.
 3. **Title — RULED T1 (CTO #896, 2026-11-04) — CLOSED.** The question-form T1 title and row 11's narrowed
    contribution are applied in `paper.tex` and recorded as Amendment 5 of `PREREGISTRATION.md`. They landed on
-   `origin/main` in PR #42 (tag `v0.6.0-a5`). The Morandi-sentence change landed in PR #46; the compile check runs in
+   `origin/main` in PR #42 (tag `v0.6.0-a5`). *Dated note, 2026-11-24 (approvals rows 39 and 40):* the paper was
+   retitled again by Amendment 6, after the review finding on error feedback; the paste block above carries that title. The Morandi-sentence change landed in PR #46; the compile check runs in
    CI on every change to the paper.
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:

@@ -1,4 +1,4 @@
-# Thesis — Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes
+# Thesis — Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on Perturb-seq
 
 Status: thesis for the v0.6.0 regeneration (revised 2026-09-24; first drafted as v0.1, 2026-04-18). The claim below is the hypothesis the paper tests, not a finding: the hypotheses, pre-registered criteria and analysis plan are fixed in [`../paper/PREREGISTRATION.md`](../paper/PREREGISTRATION.md), results are those of the v0.6.0 sweep (run `20260929T035447Z-ce5f237`; 4 of 5 criteria pass, H5 fails, reported as pre-registered), and all v0.5.0 values are superseded (paper appendix "Corrections relative to v0.5.0").
 Target venue: workshop submission to ICML 2026 FM4LS and/or a MassGen contribution RFC.

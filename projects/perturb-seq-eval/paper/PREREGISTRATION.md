@@ -1,8 +1,8 @@
 # Pre-registration — v0.6.0 sweep
 
-**Paper:** *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
-Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence
-Drop Passes* (retitled by Amendment 5; the title in force when the sweep ran is quoted there)
+**Paper:** *Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on
+Perturb-seq* (retitled by Amendment 6; the title in force when the sweep ran is quoted in Amendment 5, and the
+Amendment 5 title in Amendments 5 and 6)
 
 **Status:** fixed before the v0.6.0 sweep runs. The sweep's provenance record (`git_sha`, `git_dirty` in record 0
 of `trainer_runs.jsonl` / `lifecycle_runs.jsonl` and in `provenance.json`) identifies the revision of this file in
@@ -18,14 +18,20 @@ implementation could not meet. **Amendment 4** (`prereg_version` = `v0.6.0-a4`, 
 #473/#476/#480/#482/#484), the section before Amendment 5, moves the LLM provider to the Anthropic API after the OpenRouter free roster
 died and the paid OpenRouter roster hit a zero credit balance; it pins the roster, the spend lines and the caveats. Amendments
 1–4 are each locked before any v0.6.0 data. For any text that differs, **the later amendment governs**. Any later change is a
-further amendment (Amendment 5, below).
+further amendment (Amendments 5 and 6, below).
 
 **Amendment 5** (`prereg_version` = `v0.6.0-a5`, 2026-11-04, principal rulings relayed by the CTO, #896, perturb-seq-eval
 approvals rows 13 and 14; the `v0.6.0-a5` form and the scope of the rename ruled by the principal directly on
-2026-11-04), the last section, is the only amendment made **after the outcome was known**. It changes the
+2026-11-04), the section before Amendment 6, is the first of two amendments made **after the outcome was known**. It changes the
 paper's title and renames the term "gate" to "pre-registered criterion", and discloses both changes; it changes no
 hypothesis, threshold, estimator, convention, outcome or datum, and the v0.6.0 data were produced under `v0.6.0-a4`. No run
-exists or will exist under `v0.6.0-a5`. Any later change is a sixth amendment.
+exists or will exist under `v0.6.0-a5`.
+
+**Amendment 6** (`prereg_version` = `v0.6.0-a6`, 2026-11-24, principal rulings, perturb-seq-eval approvals rows 39
+and 40), the last section, is the second amendment made **after the outcome was known**. It changes the paper's
+title again and records that the exploratory analyses in the manuscript were added after the outcome, and discloses
+both; it changes no hypothesis, threshold, estimator, convention, outcome or datum, and the v0.6.0 data were produced
+under `v0.6.0-a4`. No run exists or will exist under `v0.6.0-a6`. Any later change is a seventh amendment.
 
 This file contains no result values. The v0.5.0 values are superseded in full (manuscript appendix
 "Corrections relative to v0.5.0", which maps each one to the register row that supersedes it).
@@ -38,6 +44,9 @@ into a claim-form title, abstract or contribution list.**
 
 *Amendment 5 retitles the paper after the outcome; the question form is kept and this rule is not engaged (see
 Amendment 5).*
+
+*Amendment 6 retitles the paper again after the outcome; the question form is kept and this rule is not engaged (see
+Amendment 6).*
 
 ## Design (fixed)
 
@@ -663,3 +672,95 @@ Amendment 5 was not recorded in the table or the JSON. Row 16 then ruled that it
 revision follows that ruling. It changes how the amendment is recorded, not what the pre-registration says: no
 hypothesis, threshold, estimator or outcome changes, so it is not a sixth amendment. Text it changes in `PREREGISTRATION.md`: the title line, the
 Amendments preamble, the note under "Why the title is a question", and this section.
+
+## Amendment 6 (`prereg_version` = `v0.6.0-a6`): locked 2026-11-24, AFTER the v0.6.0 outcome — retitle with the question form kept; exploratory analyses recorded as added after the outcome
+
+Where this section and any earlier text differ, this section governs.
+
+### A6-1 Found
+A review of the formulation and the statistics, made after the outcome was known and after Amendment 5
+(`workstreams/perturb-seq-eval/code-reviews/perturb-seq-eval-review-20261122-formulation-statistics-enrichment.md`,
+approvals row 39), found a feedback path that this file did not state. At the end of each round
+`src/perturb_eval/agentic_lifecycle/loop.py` puts that round's held-out error (`last_msd`) and the Validator's
+rationale (`last_validator_rationale`) into the next round's context, and the context goes into every agent's prompt.
+Round 0 has no such context. So from round 1 on, every confidence is stated after the agent has been shown the
+previous round's held-out error, and only the round-0 confidences are stated before any error feedback. ΔC is the last
+round's mean confidence minus the first round's (H4/H5 definitions, A2-11), so 1−ΔC, the feature whose H4 test passed,
+compares confidence stated after that feedback with confidence stated before it.
+
+This is how the lifecycle was designed and how the sweep ran. Nothing was changed in the run. What was missing is the
+statement: neither this file nor the earlier archived versions of the manuscript said that the agents see the previous
+round's error. The sweep ran under this file at commit `00fae29` (run `20260929T035447Z-ce5f237`, `prereg_version`
+`v0.6.0-a4`), as A5-1 records.
+
+The title set by Amendment 5 was:
+
+> *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered,
+> Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
+> Passes*
+
+Its subtitle reports the H4 pass as "the Confidence Drop Passes", under a headline that asks whether confidence
+*predicts* difficulty. Read together they present the pass as prediction. With the feedback path stated, the pass does
+not carry that reading: the feature exists only after a round has been trained and scored on the held-out cells.
+The principal ruled that the paper disclose the feedback path and reframe its claims, with every hypothesis, threshold,
+estimator and outcome kept locked and none re-decided (row 39), and then picked a new title (row 40; it supersedes the
+title picked in row 38, which was never applied).
+
+### A6-2 Amended rule (title)
+The title becomes: *Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test
+on Perturb-seq* (principal ruling, approvals row 40). The question form is kept, and both halves of the headline are
+a question: whether multi-agent confidence predicts task difficulty, and whether it only reacts to it. The headline
+asserts nothing; it does not say which half holds. The subtitle no longer reports any outcome: the two H4 outcomes
+that the Amendment 5 subtitle reported, and H5's failure, are stated in the abstract and Results. "Provenance-Complete"
+leaves the title; the provenance record itself ("Run record", and the files it names) is unchanged.
+
+**Why the null is not traded into a claim.** "Why the title is a question" forbids trading a null or failed outcome back
+INTO a claim-form title. This title makes no claim and reports no outcome, so on the locked rule this amendment is, like
+Amendment 5, a no-op: the question form the rule protects is unchanged and the rule is not engaged. It is not a no-op on
+this file: the title line, the preamble and this section change, so the file's hash diverges again from the published
+run record. That divergence is this disclosure.
+
+### A6-3 Exploratory analyses added after the outcome
+Following row 39, the manuscript now carries analyses that were chosen and run **after the outcome was known**. They
+are not pre-registered. They are recorded here so that no reader takes them for part of the locked plan.
+
+- **How they are marked.** Each is labelled exploratory where it appears in the manuscript (the subsection
+  "Exploratory: confidence before and after error feedback", `subsec:exploratory`, and wherever it is cited).
+- **How they are produced.** All of them are generated by `scripts/paper/fill_v060_exploratory.py`, which reads only
+  the committed v0.6.0 run files, writes `paper/data/exploratory_v060.json` and
+  `paper/sections/generated_exploratory.tex`, and refuses to emit anything unless it first reproduces the committed H4
+  estimate for 1−ΔC on both screens. It uses the pre-registered Spearman estimate and task bootstrap
+  (`perturb_eval.experiments.preregistered`); the unit is the task, each task value is the median over its seeds, and
+  every estimate is computed within one screen.
+- **What they may not do.** They enter no criterion and re-decide none. No H1–H5 outcome, tally or threshold reads
+  them, and `summary.json` → `preregistered` is not touched.
+
+The script computes eight families of quantities, each within each screen:
+
+1. the mean stated confidence at each round against the final-round error;
+2. 1−ΔC against the error of the round before the last (the error the agents were shown before the last round) and
+   against the round-0 error;
+3. the ACE feature (`metrics.ace_d`) computed on the round-0 confidences, against the final-round error;
+4. the rank agreement between the error of each earlier round and the error of the last round;
+5. the spread across tasks (sample standard deviation) of the mean stated confidence at each round;
+6. each role's mean stated confidence at each round, and its change from round 0 to the last round;
+7. the lifecycle's final error against the trainer sweep of the same task: its rank correlation with the sweep's
+   minimum, and its percentile rank within the sweep's records;
+8. the leave-one-task-out range of the committed H4 estimate for 1−ΔC.
+
+The estimator choices listed under "What these estimator choices close (so that they cannot be loosened later)" are
+untouched: there is no in-sample calibration for H4, the ridge parameter α stays fixed and the ridge weights are fitted
+on Adamson and applied unchanged to Norman, and the bootstrap is over tasks. An exploratory quantity that pointed the
+other way would not reopen any of them. A directional or feedback-free hypothesis suggested by these analyses needs new
+runs under a new pre-registration; it cannot be tested on this run.
+
+### Unchanged
+Every hypothesis, threshold, estimator and convention of amendments 1–5, including Amendment 5's rename of "gate" to
+"pre-registered criterion"; the run's `prereg_version` `v0.6.0-a4`; the v0.6.0 outcome, including H4's pass on 1−ΔC and
+H5's failure. "Why the title is a question" keeps both of its sentences, with this amendment noted beneath them.
+Amendment 6 is recorded in `paper/data/amendments_v060.json` and in `tab:amendments`, marked, with Amendment 5, as
+locked after the outcome. The lock commit is the commit that first carries this section; no hash is written here, and
+the JSON record names it. The annotated git tag `v0.6.0-a6` is to be created by the CTO on the landed commit that
+carries this wording; until then no such tag exists. The tag marks an amendment, not a release, and it does not re-cut
+or supersede v0.6.0. No run exists or will exist under `v0.6.0-a6`. Text it changes in `PREREGISTRATION.md`: the title
+line, the Amendments preamble, the note under "Why the title is a question", and this section.

@@ -2,9 +2,8 @@
 
 Companion code for the paper [`paper/paper.tex`](paper/paper.tex) and the
 thesis [`docs/THESIS.md`](docs/THESIS.md):
-**"Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
-A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction
-in Which Entropy Fails Its Criterion and the Confidence Drop Passes."**
+**"Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
+A Pre-registered Test on Perturb-seq."**
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
 

@@ -3,10 +3,8 @@ message: >-
   If you use this software or results, please cite the supplement and
   the upstream references below.
 title: >-
-  Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
-  A Pre-registered, Provenance-Complete Test on Perturb-seq Response
-  Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
-  Passes
+  Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
+  A Pre-registered Test on Perturb-seq
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 abstract: >-
   A multi-agent group-generation system, as operated here, spends test-time

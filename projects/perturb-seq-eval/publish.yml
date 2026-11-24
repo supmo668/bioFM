@@ -24,11 +24,12 @@ state_file: publish.state.v061.json
 # Retitled by Amendment 5 of paper/PREREGISTRATION.md (2026-11-04, CTO #896). The minted v0.6.0
 # records (Zenodo 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title; this title
 # and the regenerated description below take effect at the 0.6.1 deposit (principal 2026-11-08).
+# Retitled again by Amendment 6 (2026-11-24, approvals row 40). The published 0.6.1 records carry
+# the Amendment-5 title; the title below takes effect only at a later deposit, which needs its own
+# go and its own `version` (not bumped here).
 title: >-
-  Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?
-  A Pre-registered, Provenance-Complete Test on Perturb-seq Response
-  Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
-  Passes
+  Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
+  A Pre-registered Test on Perturb-seq
 
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 description: |

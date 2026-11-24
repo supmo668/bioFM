@@ -8,8 +8,10 @@
 
 The hypotheses, their criteria and the analysis plan were fixed in a pre-registration that is
 released with the code (\S\ref{sec:reproducibility}). It was amended four times before any data
-from this sweep existed, and once more, changing only the title and one term, after the outcome
-was known; Table~\ref{tab:amendments} lists the amendments, and the run's provenance record
+from this sweep existed, and twice more after the outcome was known: once changing only the
+title and one term, and once changing the title again and recording that the exploratory
+analyses of \S\ref{subsec:exploratory} were added after the outcome. Neither changes a
+hypothesis, a threshold, an estimator or an outcome. Table~\ref{tab:amendments} lists the amendments, and the run's provenance record
 identifies the revision of the pre-registration in force. Table~\ref{tab:gates} states the five
 hypotheses and their criteria. Each criterion is reported as supported, not supported or, when the
 data do not allow it to be computed, as not evaluable, with the reason; a criterion that cannot
@@ -41,11 +43,13 @@ A3 & \texttt{\resAmendThreeVersion} & \resAmendThreeDate & \texttt{\resAmendThre
 A4 & \texttt{\resAmendFourVersion} & \resAmendFourDate & \texttt{\resAmendFourCommit} & \resAmendFourChange \\
 \midrule
 A5 & \texttt{\resAmendFiveVersion}$^{\ddagger}$ & \resAmendFiveDate & \texttt{\resAmendFiveCommit} & \resAmendFiveChange \\
+A6 & \texttt{\resAmendSixVersion}$^{\ddagger}$ & \resAmendSixDate & \texttt{\resAmendSixCommit} & \resAmendSixChange \\
 \bottomrule
 \end{tabular}
 \caption{Amendments to the pre-registration. A1--A4 were each locked before any data from this
-sweep existed. $^{\ddagger}$A5 was locked \emph{after} the outcome was known; it changes the title
-and one term only, and no run exists under it. $^{\dagger}$The first amendment predates the
+sweep existed. $^{\ddagger}$A5 and A6 were locked \emph{after} the outcome was known; A5 changes
+the title and one term only, A6 changes the title again and records the exploratory analyses
+added after the outcome, and no run exists under either. $^{\dagger}$The first amendment predates the
 version tags, so it has none; the run was made under the fourth amendment's tag. For the fourth
 amendment, \resAmendFourNote. Dates and commits are taken from the repository history and
 checked against it automatically.}
