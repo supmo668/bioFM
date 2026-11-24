@@ -38,11 +38,12 @@ abstract: >-
   agents' confidence across rounds, and the composite that inherits it, rank
   tasks by held-out error. From the second round on, however, every agent's
   prompt carries the previous round's held-out error, so that drop is stated
-  after an error has been shown. In an exploratory analysis, the confidence
-  stated before any feedback does not rank tasks by error (ρ = 0.003 on
-  Adamson and 0.214 on Norman, both intervals including zero). The supported
-  result is therefore that stated confidence falls further where a larger
-  error was shown, not that the group's confidence anticipates difficulty. The
+  after an error has been shown. In an exploratory analysis, the mean
+  confidence stated before any feedback does not rank tasks by error (ρ =
+  0.003 on Adamson and 0.214 on Norman, both intervals including zero). Read
+  with the design and that analysis, the pre-registered pass is consistent
+  with stated confidence falling further where a larger error was shown; it is
+  not evidence that the group's confidence anticipates difficulty. The
   composite fitted on Adamson did not meet the pre-registered transfer
   criterion on Norman (ρ = 0.286 against a criterion of > 0.4). The point
   estimates for confidence entropy, an evenness index over the agents, run

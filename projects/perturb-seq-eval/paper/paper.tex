@@ -26,8 +26,14 @@
 \graphicspath{{figures/}}
 
 % ---- Result values ----
-% Every result value is a macro generated from artifacts/v0.6.0 by
-% scripts/paper/fill_v060_numbers.py (no number is typed by hand).
+% Every result value is a macro generated from artifacts/v0.6.0 (no number is typed by hand):
+% the "res" macro family holds the pre-registered and run-record values
+%   (sections/generated_numbers.tex, written by scripts/paper/fill_v060_numbers.py);
+% the "expl" macro family holds the exploratory values added after the outcome, Amendment 6
+%   (sections/generated_exploratory.tex, written with paper/data/exploratory_v060.json by
+%   scripts/paper/fill_v060_exploratory.py).
+% figures/fig_h4_scatter.pdf and figures/fig_confidence_by_round.pdf are drawn from that
+% JSON by scripts/paper/make_v060_figures.py.
 \input{sections/generated_numbers}
 \input{sections/generated_exploratory}
 
@@ -83,11 +89,12 @@ varies above the pre-registered entropy floor. Within each screen, the drop in t
 agents' confidence across rounds, and the composite that inherits it, rank tasks by
 held-out error. From the second round on, however, every agent's prompt carries the
 previous round's held-out error, so that drop is stated after an error has been
-shown. In an exploratory analysis, the confidence stated before any feedback does
+shown. In an exploratory analysis, the mean confidence stated before any feedback does
 not rank tasks by error ($\rho=\explAdaConfRZeroMsdRho$ on Adamson and
-$\explNorConfRZeroMsdRho$ on Norman, both intervals including zero). The supported
-result is therefore that stated confidence falls further where a larger error was
-shown, not that the group's confidence anticipates difficulty. The composite fitted
+$\explNorConfRZeroMsdRho$ on Norman, both intervals including zero). Read with the
+design and that analysis, the pre-registered pass is consistent with stated confidence
+falling further where a larger error was shown; it is not evidence that the group's
+confidence anticipates difficulty. The composite fitted
 on Adamson did not meet the pre-registered transfer criterion on Norman
 ($\rho=\resHFiveRho$ against a criterion of $>\resHFiveThreshold$). The point
 estimates for confidence entropy, an evenness index over the agents, run against the
@@ -125,10 +132,10 @@ well-characterised single-gene perturbation or a novel combinatorial one.
 signal to allocate its compute adaptively}, and tests that question under a
 pre-registered design so that either answer is informative. The answer on this
 run is narrower than the question: the trace feature that meets its criterion is
-stated after the agents have been shown a held-out error, and the confidences
-stated before any such feedback do not rank tasks
-(\S\ref{subsec:exploratory}). Nothing here shows a signal that is available
-before compute is spent.
+stated after the agents have been shown a held-out error, and, in an exploratory
+analysis added after the outcome, the mean confidence stated before any such
+feedback does not rank tasks (\S\ref{subsec:exploratory}). No pre-registered or
+claimed signal here is available before compute is spent.
 
 \paragraph{Contributions.} We make four contributions, all within the
 empirical frame of Perturb-seq response prediction~\citep{norman2019perturbseq,%
@@ -137,7 +144,7 @@ adamson2016perturbseq} but generalising to any propose-critique-vote system:
 \begin{enumerate}[leftmargin=*]
   \item We test whether a \emph{multi-agent group's} confidence/critique
         distribution is an explicit item-difficulty signal. We formalise four
-        easy-to-compute observables of such a run --- ACE, CSD,
+        observables of such a run, each computed from the trace --- ACE, CSD,
         $\Delta C$/$\Delta$ACE, and WFR --- over the stated confidences and
         critiques of $N$ role-specialised agents, within and across rounds,
         and combine them into a scalar Task Difficulty Index (TDI). That an
@@ -184,8 +191,8 @@ revision, self-refine), \emph{hybrid} (tree search, Monte Carlo tree search,
 (\citep{deepseek2025r1,muennighoff2025s1}); see \citet{zhang2025ttssurvey} for
 a taxonomy and \citet{wu2024smalltllm,liu2025rethinkingtts} for scaling-law
 analyses. \citet{snell2024scaling} is the primary reference for the
-difficulty-conditional compute-optimal idea that our work extends to the
-group setting.
+difficulty-conditional compute-optimal idea that motivates our question in
+the group setting.
 
 \paragraph{Multi-agent TTC.} \textsc{AutoGen}~\citep{wu2023autogen} and
 \textsc{MassGen}~\citep{massgen2025github} generalise propose-critique-vote to
@@ -275,7 +282,7 @@ uncertainty. For the simplex projection, with $\mu$ the mean confidence,
   T = \frac{1}{N}\sum_{i=1}^{N} \frac{c_i}{\mu}\log\frac{c_i}{\mu},
 \end{equation}
 where $T$ is the Theil index of the confidences: ACE is an \emph{evenness} index.
-It is unchanged when every confidence is multiplied by the same factor, so five
+In the simplex form, it is unchanged when every confidence is multiplied by the same factor, so five
 agents who all state a low confidence and five who all state a high one give the
 same value, and it \emph{falls}
 as the agents' confidences diverge. A flat distribution thus has two very
@@ -529,7 +536,7 @@ list. The title was amended twice after the outcome was known, by the fifth and
 sixth amendments (Table~\ref{tab:amendments}). The pre-registered title named agent
 confidence entropy, singular. The fifth amendment named the group's distribution, the
 object of the narrowed claim, and reported both outcomes of the ranking test in its
-subtitle. The sixth was made after the error feedback behind the supported result was
+subtitle. The sixth was made after the error feedback behind the ranking outcome was
 found (\S\ref{sec:setup_exp}): the title now also asks whether confidence only reacts
 to difficulty, and it reports no outcome. The question form is unchanged throughout.
 The fifth amendment also renames the
@@ -559,20 +566,22 @@ not meet the transfer criterion on Norman. The negative point estimates are
 reported, not interpreted, and a directional hypothesis about them would need a new
 pre-registration.
 
-\paragraph{What the supported result does and does not show.} The title asks
+\paragraph{How the pre-registered pass is to be read.} The title asks
 whether multi-agent confidence \emph{predicts} task difficulty or only reacts to it. The
 pre-registered ranking criterion is met, and that outcome stands. But the feature
 that meets it, $1-\Delta C$, compares confidence stated after the agents were shown
 the previous round's held-out error with confidence stated before
-(\S\ref{sec:setup_exp}), and the error is nearly the same from round to round.
-The exploratory analysis of \S\ref{subsec:exploratory} finds no rank association
-between the pre-feedback mean confidence and error, and a strong one once the
-error has been shown. The result this run supports is thus \emph{reactive}:
-agents lower their stated confidence more where a larger measured error was put in
-front of them. That is a check that the agents read their feedback. It is not
-prediction in the sense the allocation problem needs, because the feature exists
-only after a full train-and-evaluate round on the held-out cells, which is the
-compute an allocator would be trying to save. Whether confidence elicited without
+(\S\ref{sec:setup_exp}), and the rank order of tasks by error is nearly the same
+from round to round. The exploratory analysis of \S\ref{subsec:exploratory} finds no
+rank association between the pre-feedback mean confidence and error, and a strong one
+once the error has been shown. Read with the design and that analysis, the
+pre-registered pass is consistent with a \emph{reactive} reading: agents lower their
+stated confidence more where a larger measured error was put in front of them. On
+that reading it is a check that the agents respond to their feedback. It is not
+evidence of prediction in the sense the allocation problem needs, because the feature
+exists only after a full train-and-evaluate round on the held-out cells, which is the
+compute an allocator would be trying to save. The reactive reading is itself not
+established as causal (\S\ref{sec:limits}). Whether confidence elicited without
 the error in context carries any signal is not answered by this run; it needs a
 new pre-registered experiment.
 
@@ -623,14 +632,19 @@ proposer roles, which is reported, not a remedy --- residual same-family judge
 bias is acknowledged. Model identity is recorded and asserted per call.
 
 \paragraph{The passing feature is conditioned on a shown error.} From round $1$ on,
-every prompt carries the previous round's held-out MSD and the Validator's verdict
-on it (\S\ref{sec:setup_exp}). The confidence drop that meets the ranking criterion
-is therefore partly a response to an error measured on the same evaluation genes
-as the target. The pre-registered null (no association) does not model this
-feedback, the pre-registration did not state it, and the archived versions of this
-paper before this one did not disclose it. A test of prediction proper would elicit
-confidence with no error in context; that needs new runs under a new
-pre-registration.
+every role's prompt carries the previous round's held-out MSD (\S\ref{par:feedback}).
+The confidence drop that meets the ranking criterion is therefore stated after an
+error measured on the same evaluation genes as the target has been shown. The
+later-round prompts carry more than that error. The Architect's prompt adds the
+rule-based adjustment, failed-gene labels and the Literature genes. The prompts of the
+other four roles add those and a one-line rationale holding the held-out sign
+agreement and the accept-or-reject verdict against the Validator's threshold. The
+round index changes with them as well. The design therefore does not isolate the
+shown error as the cause of the drop. The pre-registered null (no association) does
+not model this feedback, the pre-registration did not state it, and the archived
+versions of this paper before this one did not disclose it. A test of prediction
+proper would elicit confidence with no error in context; that needs new runs under a
+new pre-registration.
 
 \paragraph{Point-estimate criteria, no power analysis, one sweep.} Every criterion
 thresholds a point estimate at about twenty tasks per screen, and no power analysis
@@ -814,7 +828,7 @@ severity-rater prompt is \path{massgen_skill_draft/prompts/severity_rater.md}).
 
 We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
 four-feature lens on multi-agent group-generation traces, combined into a
-Task Difficulty Index, and positioned the TDI and its probe as the
+Task Difficulty Index, and proposed the TDI and its probe as a candidate
 multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation. We test whether these signals rank tasks by held-out
 error under five pre-registered criteria on $41$ held-out K562 tasks, with
@@ -825,11 +839,12 @@ composite that inherits it, rank tasks by held-out error at the pre-registered l
 confidence entropy does not, in the pre-registered direction; and the
 fitted composite did not meet the transfer criterion across screens. The
 confidence change that meets its criterion is stated after the agents have been
-shown a held-out error, and in an exploratory analysis the confidence stated
-before any feedback does not rank tasks. What this run supports is that the
-group's stated confidence responds to measured error; whether it predicts
-difficulty before that error is measured remains open, and the probe and
-recommender that would use such a signal were not evaluated.
+shown a held-out error, and in an exploratory analysis the mean confidence stated
+before any feedback does not rank tasks. Read with the design and that analysis,
+the pre-registered pass is consistent with the group's stated confidence
+responding to measured error; it is not evidence that confidence predicts
+difficulty before that error is measured. That question remains open, and the
+probe and recommender that would use such a signal were not evaluated.
 
 \paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
 repository that accompanies this submission, including the

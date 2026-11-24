@@ -125,11 +125,22 @@ collection.
 
 \paragraph{What each agent has seen when it states a confidence.}\label{par:feedback}
 Within a round, all five roles state their proposals and confidences \emph{before} that
-round's model is fitted and scored. In round $0$ the prompts carry the task and the dataset and
-no result. From round $1$ on, every role's prompt also carries the previous round's outcome:
-the held-out MSD on the evaluation genes, the Validator's verdict on it, the rule-based
-adjustment, the genes that failed and the Literature genes. The confidences of rounds $1$ and $2$
-are therefore stated after the agents have been shown a held-out error, measured on the same
+round's model is fitted and scored. In round $0$ no prompt carries a result: each carries the
+task, the dataset and an empty context. From round $1$ on, every role's prompt carries the
+previous round's held-out MSD on the evaluation genes. What else it carries differs by role.
+The Architect's prompt carries that MSD, the rule-based adjustment, up to five failed-gene
+labels (evaluation genes whose predicted sign was wrong in the previous round) and up to five
+expected up-regulated and five expected down-regulated genes from the previous round's
+Literature proposal; it does not carry the rationale described next. The prompts of the other
+four roles (DataCurator, Literature, Trainer and Validator) carry the whole context record,
+each value cut to its first $120$ characters: the MSD; a one-line rationale that repeats the
+MSD and adds the fraction of evaluation genes whose predicted sign agrees with the observed
+one (a second held-out quantity), a constant placeholder value labelled as a foundation-model
+cosine, which is not computed, and the accept-or-reject verdict against the Validator's
+threshold; the rule-based adjustment; the failed-gene labels; and the Literature genes. The
+failed-gene labels are placeholder column labels, not gene symbols, and the list is empty when
+the round was accepted, as is the rule-based adjustment. The confidences of rounds $1$ and $2$
+are therefore stated after every role has been shown a held-out error, measured on the same
 evaluation genes on which the final error is scored; only the round-$0$ confidences are stated
 before any error feedback. The confidence-drop feature $\Delta C$ is the last round's mean
 confidence minus the first round's, so it is a difference between confidence after that

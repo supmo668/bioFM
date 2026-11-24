@@ -162,6 +162,7 @@ def test_every_result_macro_is_pinned_to_an_artifact_key(fv, macros, art, land):
         "resHFourTasksDropped": "0",
         "resHFiveRho": f(pr["H5"]["value"]),
         "resHFiveN": str(pr["H5"]["n"]),
+        "resHFiveNFit": str(pr["H5"]["n_fit"]),
         "resHFiveCILo": f(pr["H5"]["ci_low"]),
         "resHFiveCIHi": f(pr["H5"]["ci_high"]),
         "resHFiveWAce": f(pr["H5"]["weights"]["ace_norm"], 2),

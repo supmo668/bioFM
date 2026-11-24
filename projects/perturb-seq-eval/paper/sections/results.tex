@@ -212,10 +212,12 @@ by themselves place $\rho$ above the criterion, which is met on the point estima
 pre-registered.
 
 \paragraph{What the passing feature is conditioned on.} The confidences of rounds $1$ and $2$
-are stated after the agents have been shown the previous round's held-out error
-(\S\ref{sec:setup_exp}, ``What each agent has seen''). $1-\Delta C$ is therefore large when
-confidence fell after that error was shown. The pre-registered outcome stands; what it
-supports is examined in \S\ref{subsec:exploratory}.
+are stated after every role has been shown the previous round's held-out error (the paragraph
+``What each agent has seen when it states a confidence'' in \S\ref{par:feedback}).
+$1-\Delta C$ is therefore large when confidence fell after that error was shown. The
+pre-registered outcome stands; how it is to be read is examined in \S\ref{subsec:exploratory}.
+Figure~\ref{fig:h4-scatter} shows the per-task values behind the six tests; the figure was
+added after the outcome.
 
 \paragraph{The confidence-entropy rows.} The two $\mathrm{ACE}_{\mathrm{norm}}$ point estimates are
 negative ($\rho=\resHFourAdaAceRho$ on Adamson, where the CI excludes zero, and
@@ -225,21 +227,45 @@ hypothesis comes from the confidence-drop component and from the composite that 
 Adamson $\mathrm{ACE}_{\mathrm{norm}}$ values have a standard deviation of \resHFiveStdSdAce{}
 about a mean of \resHFiveStdMeanAce{} (the standardisation used for the transfer test below), so
 the composite ranks tasks almost as $1-\Delta C$ alone does. Because
-$\mathrm{ACE}_{\mathrm{norm}}$ is an evenness index (\S\ref{sec:metrics}), it falls when some
-roles lower their confidence and others do not, which also lowers the mean; the
-confidence-entropy rows are thus not independent of the confidence-drop rows. Any reading of the negative sign is
+$\mathrm{ACE}_{\mathrm{norm}}$ is an evenness index (\S\ref{sec:metrics}), it can fall when some
+roles lower their confidence and others do not: it does so when the roles that lower theirs
+were at or below the mean, and such a change also lowers the mean. The confidence-entropy rows
+may therefore be coupled to the confidence-drop rows; the coupling is a possibility that
+follows from the definitions, not a property shown here. Any reading of the negative sign is
 exploratory and post hoc: it generates no claim here, and testing it would need a new
 pre-registration before any new data are collected.
+
+\subsection{Does the calibrated index transfer across screens?}\label{subsec:h5}
+
+The cross-dataset transfer hypothesis is tested by fitting ridge weights for
+$\mathrm{ACE}_{\mathrm{norm}}$ and $1-\Delta C$ on the Adamson tasks, with a penalty of
+$\alpha=1.0$ fixed in advance and the per-task lifecycle MSD as the target, and applying them
+\emph{unchanged} to the Norman tasks; no Norman value enters the fit. The features are
+standardised with the Adamson mean and standard deviation: \resHFiveStdMeanAce{} $\pm$
+\resHFiveStdSdAce{} for $\mathrm{ACE}_{\mathrm{norm}}$ and \resHFiveStdMeanDc{} $\pm$
+\resHFiveStdSdDc{} for $1-\Delta C$. In standardised units the fitted weights are \resHFiveWAce{}
+for $\mathrm{ACE}_{\mathrm{norm}}$ and \resHFiveWDc{} for $1-\Delta C$. On Norman the transferred
+index reaches $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
+criterion $\rho>\resHFiveThreshold$, so the hypothesis is \resHFiveVerdict. The
+fitted index did not meet the pre-registered transfer criterion; no re-fit, threshold change or
+sign change is applied. The interval contains both zero and the criterion value, so this run
+neither establishes nor excludes transfer at that level. The interval resamples Norman tasks
+with the Adamson weights held fixed, so it is conditional on that one fit and does not carry
+the uncertainty of the weights. The fitted weight on $1-\Delta C$ is negative although the
+rank correlation of $1-\Delta C$ with error within Adamson is positive
+(Table~\ref{tab:tdi-real}); with $n=\resHFiveNFit$ tasks in the fit the individual weights
+should not be interpreted.
 
 \subsection{Exploratory: confidence before and after error feedback}\label{subsec:exploratory}
 
 \emph{Everything in this subsection is exploratory. It was specified after the outcomes above
-were known, it enters no criterion, and it changes none of them.} It asks what the supported
-ranking result reflects, given that the agents are shown the previous round's held-out error from
-round $1$ on (\S\ref{sec:setup_exp}). The values come from the committed run files through
+were known, it enters no criterion, and it changes none of them.} It asks how the outcome of the
+ranking hypothesis is to be read, given that every role is shown the previous round's held-out
+error from round $1$ on (\S\ref{par:feedback}). The values come from the committed run files through
 \path{scripts/paper/fill_v060_exploratory.py}, which first reproduces the pre-registered
 $1-\Delta C$ correlations of Table~\ref{tab:tdi-real}; all \explNQuantities{} quantities it computes
-are in \path{paper/data/exploratory_v060.json}.
+are in \path{paper/data/exploratory_v060.json}, and Table~\ref{tab:exploratory} gives every
+rank correlation among them.
 
 \begin{table}[ht]
 \small
@@ -266,7 +292,7 @@ Lifecycle final MSD vs trainer-sweep oracle MSD & \explAdaOracleRho{} [\explAdaO
 \end{tabular}
 \caption{Exploratory rank correlations, none pre-registered and none entering a criterion. The estimator is the
 pre-registered one (seed medians per task, Spearman's $\rho$ within screen, bootstrap over tasks, $B=\explBootstrapB$).
-All \explNCorrelations{} correlations computed for this section are shown, nine per screen.}
+All \explNCorrelations{} correlations computed for this section are shown, \explNCorrelationsPerScreen{} per screen.}
 \label{tab:exploratory}
 \end{table}
 
@@ -284,7 +310,7 @@ error enters every prompt. Exploratory.}
 \includegraphics[width=\linewidth]{figures/fig_h4_scatter.pdf}
 \caption{The six pre-registered tests of Table~\ref{tab:tdi-real}, one point per task (seed
 medians), with the held-out MSD on a logarithmic axis. No statistic is added; the figure shows
-the data behind the reported $\rho$.}
+the data behind the reported $\rho$. Added after the outcome (Amendment 6).}
 \label{fig:h4-scatter}
 \end{figure}
 
@@ -298,12 +324,17 @@ and \explNorConfSdRTwo{} in round $2$.
 \paragraph{After feedback, it does.} The mean confidence of rounds $1$ and $2$ is strongly and
 negatively rank-associated with the final error, and $1-\Delta C$ is associated with the errors
 the agents had been shown about as strongly as with the final error it was tested against. The
-error is close to a property of the task: the rank order of tasks by MSD barely changes from
-round to round, and the lifecycle's final MSD ranks tasks almost exactly as the trainer sweep's
-oracle does, so the difficulty proxy does not depend on the agents' choices. Read together, the
-supported result is that \emph{stated confidence falls further on tasks where the agents were
-shown a larger held-out error}. It is not evidence that the group's confidence anticipates
-difficulty before any error is measured.
+rank order of tasks by error is close to a property of the task: it barely changes from round to
+round, and the lifecycle's final MSD ranks tasks almost as the trainer sweep's oracle does
+(Table~\ref{tab:exploratory}). The rank order of tasks by the difficulty proxy thus depends
+little on the agents' choices. Its level does depend on them: the lifecycle's percentile rank
+within the trainer sweep differs between the screens (a median of \explAdaOraclePctRankMedian{}
+on Adamson and \explNorOraclePctRankMedian{} on Norman; ``Stability and the sweep'' below). Read with
+the design, the pre-registered pass is consistent with \emph{stated confidence falling further
+on tasks where the agents were shown a larger held-out error}; it is not evidence that the
+group's confidence anticipates difficulty before any error is measured. Nor does it isolate the
+error as the cause, because the prompts of rounds $1$ and $2$ carry more than the error
+(\S\ref{sec:limits}).
 
 \paragraph{Which role moves.} The change in mean confidence from round $0$ to round $2$ is not
 shared evenly (Figure~\ref{fig:conf-by-round}). The Validator, the only role on the larger
@@ -327,27 +358,6 @@ tasks, and this range re-decides nothing. Within each task's \resNTrainerRecords
 records, the lifecycle's final MSD sits at a median percentile rank of \explAdaOraclePctRankMedian{}
 on Adamson and \explNorOraclePctRankMedian{} on Norman (lower is better). The comparison is
 descriptive: the lifecycle's applied hyperparameters are not on the trainer grid.
-
-\subsection{Does the calibrated index transfer across screens?}\label{subsec:h5}
-
-The cross-dataset transfer hypothesis is tested by fitting ridge weights for
-$\mathrm{ACE}_{\mathrm{norm}}$ and $1-\Delta C$ on the Adamson tasks, with a penalty of
-$\alpha=1.0$ fixed in advance and the per-task lifecycle MSD as the target, and applying them
-\emph{unchanged} to the Norman tasks; no Norman value enters the fit. The features are
-standardised with the Adamson mean and standard deviation: \resHFiveStdMeanAce{} $\pm$
-\resHFiveStdSdAce{} for $\mathrm{ACE}_{\mathrm{norm}}$ and \resHFiveStdMeanDc{} $\pm$
-\resHFiveStdSdDc{} for $1-\Delta C$. In standardised units the fitted weights are \resHFiveWAce{}
-for $\mathrm{ACE}_{\mathrm{norm}}$ and \resHFiveWDc{} for $1-\Delta C$. On Norman the transferred
-index reaches $\rho=\resHFiveRho$ ($n=\resHFiveN$; CI [\resHFiveCILo, \resHFiveCIHi]) against the
-criterion $\rho>\resHFiveThreshold$, so the hypothesis is \resHFiveVerdict. The
-fitted index did not meet the pre-registered transfer criterion; no re-fit, threshold change or
-sign change is applied. The interval contains both zero and the criterion value, so this run
-neither establishes nor excludes transfer at that level. The interval resamples Norman tasks
-with the Adamson weights held fixed, so it is conditional on that one fit and does not carry
-the uncertainty of the weights. The fitted weight on $1-\Delta C$ is negative although the
-rank correlation of $1-\Delta C$ with error within Adamson is positive
-(Table~\ref{tab:tdi-real}); with $n=\resHFourAdaAceN$ tasks the individual weights should not
-be interpreted.
 
 \subsection{Run record}\label{subsec:runrecord}
 

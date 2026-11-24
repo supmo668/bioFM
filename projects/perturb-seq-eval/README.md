@@ -16,17 +16,22 @@ Citation metadata, including every superseded version DOI, is in
 Hypotheses, pre-registered criteria and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
 Results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git `ce5f237`
 (`artifacts/v0.6.0/`; 4 of 5 pre-registered criteria pass, H5 fails); every manuscript
-value is a generated macro (`scripts/paper/fill_v060_numbers.py`). All v0.5.0 values are
+value is a generated macro (`scripts/paper/fill_v060_numbers.py` for the pre-registered and
+run-record values, `scripts/paper/fill_v060_exploratory.py` for the exploratory ones added
+after the outcome, Amendment 6). All v0.5.0 values are
 superseded (see the paper's appendix "Corrections relative to v0.5.0").
 
 ## Question in one sentence
 
-Is the per-round joint distribution of agent confidence + critique severity in a
-[CellForge-style 5-agent team](../../libs/cellforge-agents/) a sufficient statistic
-for task difficulty? If so, a cheap preflight probe of that distribution
-would yield a Bayesian recommender for team size, round count, and backbone —
-turning agentic orchestration into hyperparameter tuning. The paper tests
-this under five pre-registered criteria.
+Does the distribution of stated confidences and critiques across a
+[CellForge-style 5-agent team](../../libs/cellforge-agents/) predict how hard a task
+is, or does it only react to an error the agents have been shown? The paper tests
+this under five pre-registered criteria. The feature that meets its ranking criterion
+(the drop in confidence across rounds) is stated after every role has been shown the
+previous round's held-out error; in an exploratory analysis the mean confidence stated
+before any feedback does not rank tasks. The preflight probe and the recommender for
+team size, round count and backbone are specified and released, not fitted or
+evaluated.
 
 Read [`docs/THESIS.md`](docs/THESIS.md) for the full argument.
 
@@ -39,10 +44,15 @@ Read [`docs/THESIS.md`](docs/THESIS.md) for the full argument.
 2. **Instrumentation** — non-invasive hook into the CellForge orchestrator
    that emits a `RoundTrace` per round without changing agent code.
 3. **Preflight probe** — runs one shallow round, extracts a 4-d signature.
-4. **Bayesian recommender** — maps probe signature → recommended
-   `(n_agents, n_rounds, backbone)` configuration under a compute budget.
-5. **Calibration harness** — fits TDI coefficients + Bayesian likelihood from
-   logged runs on a labelled calibration set.
+   Specified and released; no shallow round was run for the paper.
+4. **Recommender** (class `BayesianRecommender`) — maps probe signature → recommended
+   `(n_agents, n_rounds, backbone)` configuration under a unitless compute-cost budget.
+   It is a cost-penalised plug-in Gaussian rule that returns one configuration and no
+   posterior; it is specified, not fitted or evaluated in the paper.
+5. **Calibration harness** — fits TDI coefficients (ridge regression against held-out
+   error) and the recommender's per-configuration Gaussian parameters from logged runs
+   on a labelled calibration set. "Calibrated" here means fitted, not probabilistically
+   calibrated.
 6. **Perturb-seq data + model adapters** — `PerturbSeqDataset` protocol,
    Norman/Adamson loaders with a recorded label contract; `PerturbationPredictor`
    protocol with `ScGPTPredictor` (adapter over the public scGPT release; not
@@ -60,8 +70,11 @@ perturb-seq-eval/
 ├── artifacts/v0.6.0/        the pre-registered run: trainer_runs.jsonl, lifecycle_runs.jsonl, provenance.json, summary.json
 ├── paper/
 │   ├── paper.tex            the manuscript
-│   ├── sections/generated_numbers.tex  GENERATED result macros (fill_v060_numbers.py)
-│   └── PREREGISTRATION.md   hypotheses, criteria, analysis plan, amendments 1-5
+│   ├── sections/generated_numbers.tex      GENERATED `\res...` result macros (fill_v060_numbers.py)
+│   ├── sections/generated_exploratory.tex  GENERATED `\expl...` exploratory macros (fill_v060_exploratory.py)
+│   ├── data/exploratory_v060.json          GENERATED exploratory record: every value, inputs' sha256
+│   ├── figures/fig_h4_scatter.pdf, fig_confidence_by_round.pdf  drawn from that JSON (make_v060_figures.py)
+│   └── PREREGISTRATION.md   hypotheses, criteria, analysis plan, amendments 1-6 (5 and 6 after the outcome)
 ├── pyproject.toml
 ├── requirements.txt
 ├── src/perturb_eval/
@@ -70,8 +83,8 @@ perturb-seq-eval/
 │   ├── metrics.py           ACE, CSD, ΔACE, ΔC, WFR, CST, TDI
 │   ├── instrumentation.py   orchestrator hook → RoundTrace emitter
 │   ├── probe.py             preflight probe → ProbeSignature
-│   ├── bayesian.py          Gaussian-likelihood recommender + MAP policy
-│   ├── calibration.py       fit TDI + likelihood from logged runs
+│   ├── bayesian.py          the recommender (class `BayesianRecommender`): cost-penalised plug-in Gaussian rule; specified, not evaluated
+│   ├── calibration.py       fit TDI weights + the recommender's Gaussian parameters from logged runs
 │   ├── data/protocol.py     PerturbSeqDataset protocol + loaders + stub
 │   ├── model.py             PerturbationPredictor + ScGPT/Mock implementations
 │   ├── massgen_adapter.py   MassGen skill entrypoint
@@ -84,6 +97,8 @@ perturb-seq-eval/
 └── scripts/
     ├── modal/app_v05.py     the sweep: preflight + trainer + lifecycle, one process
     ├── paper/fill_v060_numbers.py  v0.6.0 result macros from artifacts/v0.6.0 (`--check` in the tests)
+    ├── paper/fill_v060_exploratory.py  exploratory JSON + `\expl...` macros from artifacts/v0.6.0 (`--check` in the tests)
+    ├── paper/make_v060_figures.py  the two figures, from paper/data/exploratory_v060.json (needs matplotlib)
     └── paper/fill_v050_numbers.py  v0.5.0 number filler (targets a file the paper no longer inputs)
 ```
 
@@ -99,7 +114,7 @@ pytest -q                                                    # framework tests
 # Toy-trace demo — hand-written RoundTraces, no downloads, no GPU
 python examples/end_to_end.py
 
-# Bayesian recommendation from a probe signature
+# Recommendation from a probe signature (unfitted: returns the cheapest configuration in budget)
 perturb-eval preflight --ace-norm 0.6 --mean-conf 0.5 --max-conf 0.7 --csd 0.05
 ```
 
@@ -155,12 +170,13 @@ python -m perturb_eval.experiments.e_v05_real_traces artifacts/v0.6.0
 research/test-time-compute-guide/       theory of TTC + taxonomy
 libs/test-time-compute/             TTC applied to a single BioFM (BioFM-265M)
 libs/cellforge-agents/              5-agent orchestration — the thing under study here
-projects/perturb-seq-eval/  ──────────► evaluation + Bayesian HP tuning for the above
+projects/perturb-seq-eval/  ──────────► evaluation of the above; a specified, unevaluated recommender
 ```
 
-This project is the **evaluation and adaptive-allocation layer** on top of
-`cellforge-agents`. `cellforge-agents` produces the dynamics; `perturb-seq-eval`
-measures them, reasons about them, and recommends how to spend compute.
+This project is the **evaluation layer** on top of `cellforge-agents`.
+`cellforge-agents` produces the dynamics; `perturb-seq-eval` measures them and tests
+whether they carry a difficulty signal. The adaptive-allocation part (probe and
+recommender) is specified and released, not evaluated.
 
 ## Sources
 

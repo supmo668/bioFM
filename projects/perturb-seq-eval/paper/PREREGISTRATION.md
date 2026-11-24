@@ -681,8 +681,12 @@ Where this section and any earlier text differ, this section governs.
 A review of the formulation and the statistics, made after the outcome was known and after Amendment 5
 (`workstreams/perturb-seq-eval/code-reviews/perturb-seq-eval-review-20261122-formulation-statistics-enrichment.md`,
 approvals row 39), found a feedback path that this file did not state. At the end of each round
-`src/perturb_eval/agentic_lifecycle/loop.py` puts that round's held-out error (`last_msd`) and the Validator's
-rationale (`last_validator_rationale`) into the next round's context, and the context goes into every agent's prompt.
+`src/perturb_eval/agentic_lifecycle/loop.py` puts that round's held-out error (`last_msd`) and the validator gate's
+rationale (`last_validator_rationale`) into the next round's context. Every role's next prompt carries the held-out
+error; the rest of the context reaches the roles differently (corrected in place on 2026-11-24, see the dated note at
+the end of this section). The Architect's prompt carries `last_msd`, the rule-based delta, up to five failed-gene
+labels and up to five expected up and five expected down Literature genes, and not the rationale. The prompts of
+the other four roles carry the whole context, each value cut to its first 120 characters.
 Round 0 has no such context. So from round 1 on, every confidence is stated after the agent has been shown the
 previous round's held-out error, and only the round-0 confidences are stated before any error feedback. ΔC is the last
 round's mean confidence minus the first round's (H4/H5 definitions, A2-11), so 1−ΔC, the feature whose H4 test passed,
@@ -764,3 +768,34 @@ the JSON record names it. The annotated git tag `v0.6.0-a6` is to be created by 
 carries this wording; until then no such tag exists. The tag marks an amendment, not a release, and it does not re-cut
 or supersede v0.6.0. No run exists or will exist under `v0.6.0-a6`. Text it changes in `PREREGISTRATION.md`: the title
 line, the Amendments preamble, the note under "Why the title is a question", and this section.
+
+*Dated note, 2026-11-24 (quality gate on the Amendment 6 manuscript; approvals rows 39 and 40).* Two points in this
+section were revised after the lock (lock commit `052e1704`).
+
+1. **A6-1, what each role's prompt carries.** At the lock, A6-1 said that `loop.py` puts the held-out error and the
+   Validator's rationale into the next round's context "and the context goes into every agent's prompt". That is not
+   true of every role. What is true, read from `src/perturb_eval/agentic_lifecycle/llm_agent_pool.py` and
+   `validator_gate.py`: every role's prompt from round 1 on carries the previous round's held-out error (`last_msd`).
+   The Architect's prompt (`_architect_prompt`) carries only that error, the rule-based delta, up to five failed-gene
+   labels and up to five expected up and five expected down genes from the Literature role; it does not carry
+   `last_validator_rationale`. The prompts of the other four roles (`_simple_prompt`: DataCurator, Literature, Trainer,
+   Validator) carry the whole context, with each value cut to its first 120 characters. The rationale is a string
+   written by the validator gate (`score_and_gate`), not by the LLM Validator: it repeats the held-out error and adds
+   the held-out sign agreement on the evaluation genes, a constant placeholder value labelled as a cosine, and the
+   accept-or-reject verdict against the Validator's threshold. The failed-gene labels are placeholder column labels,
+   not gene symbols, and the list is empty when the round was accepted. So later-round prompts carry more than the
+   error, and the design does not isolate the error as the cause of a change in confidence. The sentence in A6-1 is
+   corrected in place and marked there. The headline fact of A6-1 is unchanged: from round 1 on every role is shown
+   the previous round's held-out error, and only the round-0 confidences are stated before any error feedback.
+2. **A6-3, what else was added after the outcome.** A6-3 lists the exploratory analyses and their generator. It did
+   not say that two figures were added with them, also after the outcome was known: `paper/figures/fig_h4_scatter.pdf`
+   (the per-task values behind the six H4 tests; no statistic is drawn) and
+   `paper/figures/fig_confidence_by_round.pdf`, both drawn by `scripts/paper/make_v060_figures.py` from
+   `paper/data/exploratory_v060.json` alone. The figure script plots one quantity that is outside the eight families
+   listed in A6-3: the median held-out error by round, within each screen, which the generator stores under
+   `figure_only` in that JSON file. It is plotted, it is not typeset as a number in the manuscript, and it enters no
+   criterion.
+
+This note changes how the feedback path and the post-outcome additions are described, not what the pre-registration
+says: no hypothesis, threshold, estimator or outcome changes, so it is not a seventh amendment. Text it changes in
+`PREREGISTRATION.md`: the sentences of A6-1 marked above, and this note.

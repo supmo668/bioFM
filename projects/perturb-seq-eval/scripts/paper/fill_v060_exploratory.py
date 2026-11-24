@@ -102,6 +102,15 @@ def _run_features(run: dict) -> dict:
         raise ValueError(f"{run.get('task_id')}: expected rounds 0, 1, 2; got {rounds}")
     if msd[-1] != float(run["final_msd_topk"]):
         raise ValueError(f"{run.get('task_id')}: final_msd_topk is not the last round's MSD")
+    # The last round's MSD is checked through the pre-registered table (an undefined value
+    # raises in ``_task_rows``). Rounds 0 and 1 are read only here, so a non-finite value
+    # (a failed fit is recorded as inf) must stop the build instead of reaching a median.
+    for r in ROUNDS[:-1]:
+        if not math.isfinite(msd[r]):
+            raise ValueError(
+                f"{run.get('task_id')}: round-{r} MSD is not finite ({msd[r]!r}); "
+                "the exploratory quantities need a finite held-out error in every round"
+            )
     out: dict = {"msd": msd, "mean_conf": [], "role_conf": {role: [] for role in ROLES}}
     for r in ROUNDS:
         vec, why = pre._round_vector(steps, r)  # the pre-registered C(r)
@@ -294,9 +303,13 @@ def build(artifacts: Path) -> dict:
     per_screen = {len(s["quantities"]) for s in screens.values()}
     if len(per_screen) != 1:
         raise ValueError("the screens report different numbers of quantities")
-    n_corr = sum(
-        q["kind"] == "spearman" for s in screens.values() for q in s["quantities"].values()
-    )
+    corr_per_screen = {
+        sum(q["kind"] == "spearman" for q in s["quantities"].values()) for s in screens.values()
+    }
+    if len(corr_per_screen) != 1:
+        raise ValueError("the screens report different numbers of correlations")
+    n_corr_per_screen = corr_per_screen.pop()
+    n_corr = n_corr_per_screen * len(screens)
     return {
         "label": "exploratory: not pre-registered; the pre-registered outcomes are not re-decided",
         "generator": "scripts/paper/fill_v060_exploratory.py",
@@ -320,6 +333,7 @@ def build(artifacts: Path) -> dict:
             "n_quantities_per_screen": per_screen.pop(),
             "n_quantities": sum(len(s["quantities"]) for s in screens.values()),
             "n_correlations": n_corr,
+            "n_correlations_per_screen": n_corr_per_screen,
         },
         "screens": screens,
     }
@@ -332,6 +346,7 @@ def macros(data: dict) -> dict[str, str]:
     m["NQuantities"] = str(c["n_quantities"])
     m["NQuantitiesPerScreen"] = str(c["n_quantities_per_screen"])
     m["NCorrelations"] = str(c["n_correlations"])
+    m["NCorrelationsPerScreen"] = str(c["n_correlations_per_screen"])
     m["BootstrapB"] = str(data["estimator"]["bootstrap_B"])
 
     def corr(key: str, q: dict) -> None:

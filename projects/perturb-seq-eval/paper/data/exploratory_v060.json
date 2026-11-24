@@ -2,6 +2,7 @@
  "counts": {
   "n_analyses": 8,
   "n_correlations": 18,
+  "n_correlations_per_screen": 9,
   "n_quantities": 68,
   "n_quantities_per_screen": 34
  },

@@ -926,6 +926,11 @@ def test_render_rules(tmp_path, monkeypatch):
         "\\newcommand{\\resA}{\\ensuremath{-0.12}}\n\\newcommand{\\resB}{\\textbf{3}}\n"
         "\\newcommand{\\resC}{1\\,234}\n\\newcommand{\\resD}{\\textemdash}\n"
     )
+    # the exploratory macro family is read from its own generated file (Amendment 6)
+    gen_expl = tmp_path / "gen_expl.tex"
+    gen_expl.write_text(
+        "\\newcommand{\\explNeg}{\\ensuremath{-0.207}}\n\\newcommand{\\explPos}{0.003}\n"
+    )
     paper = tmp_path / "p.tex"
 
     def run(body):
@@ -933,7 +938,13 @@ def test_render_rules(tmp_path, monkeypatch):
         return rd.render()
 
     monkeypatch.setattr(rd, "GEN", gen)
+    monkeypatch.setattr(rd, "GEN_EXPLORATORY", gen_expl)
     monkeypatch.setattr(rd, "PAPER", paper)
+    assert set(rd.macros()) == {"resA", "resB", "resC", "resD", "explNeg", "explPos"}
+    assert (
+        run("($\\rho=\\explPos$ on Adamson and $\\explNeg$ on Norman, \\explNeg{} again)")
+        == "(\u03c1 = 0.003 on Adamson and \u22120.207 on Norman, \u22120.207 again)"
+    )
     assert run("$\\Delta C$ and $\\rho=\\resA$ and $>\\resB$.") == "ΔC and ρ = −0.12 and > 3."
     assert run("a---b, 1--2, \\resC{} cells, \\resD.") == "a—b, 1–2, 1,234 cells, —."
     assert (
@@ -946,6 +957,11 @@ def test_render_rules(tmp_path, monkeypatch):
         run("(\\citet{k}) 10\\%")
     with pytest.raises(KeyError):
         run("\\resZ")
+    with pytest.raises(KeyError, match="explZ"):
+        run("$\\explZ$")  # an exploratory macro the generated file does not define
+    gen_expl.write_text("")  # the family comes from GEN_EXPLORATORY and nowhere else
+    with pytest.raises(KeyError, match="explNeg"):
+        run("\\explNeg")
 
 
 def test_keywords_and_citation_version_are_true_of_the_work():
@@ -1822,6 +1838,73 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
     sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
     assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub
+
+
+ARXIV_OTHER_DECIMALS = {"4.5", "5.5", "2602.12276"}  # the two model versions, the CATTS arXiv id
+
+
+def _generated_macros() -> dict[str, str]:
+    text = (ROOT / "paper/sections/generated_numbers.tex").read_text() + (
+        ROOT / "paper/sections/generated_exploratory.tex"
+    ).read_text()
+    return dict(
+        re.findall(r"^\\newcommand\{\\((?:res|expl)[A-Za-z]+)\}\{(.*)\}$", text, re.MULTILINE)
+    )
+
+
+def _arxiv_number_problems(ov: str, m: dict[str, str]) -> list[str]:
+    """The venue abstract is typed by hand, so each result number in it is tied to the macro the
+    manuscript prints, and every other decimal must be on a short explicit allow-list."""
+    expected = [
+        f"$\\rho$ = {m['resHFiveRho']} against > {m['resHFiveThreshold']}",
+        (
+            f"$\\rho$ = {m['explAdaConfRZeroMsdRho']} on Adamson and "
+            f"{m['explNorConfRZeroMsdRho']} on Norman"
+        ),
+    ]
+    problems = [f"missing: {e}" for e in expected if ov.count(e) != 1]
+    rest = ov
+    for e in expected:
+        rest = rest.replace(e, "")
+    decimals = re.findall(r"(?<![\w.])-?\d*\.\d+", rest)
+    problems += [f"unlisted decimal: {d}" for d in decimals if d not in ARXIV_OTHER_DECIMALS]
+    problems += [
+        f"allow-listed decimal not used: {d}"
+        for d in sorted(ARXIV_OTHER_DECIMALS)
+        if d not in decimals
+    ]
+    return problems
+
+
+def test_arxiv_override_numbers_are_the_generated_macros():
+    import tomllib
+
+    ov = tomllib.loads((ROOT / "paper" / "arxiv.toml").read_text())["abstract"]
+    m = _generated_macros()
+    for name in (
+        "resHFiveRho",
+        "resHFiveThreshold",
+        "explAdaConfRZeroMsdRho",
+        "explNorConfRZeroMsdRho",
+    ):
+        assert re.fullmatch(r"\d\.\d+", m[name]), (name, m[name])  # plain and non-negative here
+    assert _arxiv_number_problems(ov, m) == []
+    # the guard is live: a changed macro, a retyped number and a new decimal are each caught
+    assert _arxiv_number_problems(ov, {**m, "resHFiveRho": "0.287"})
+    assert _arxiv_number_problems(ov, {**m, "explNorConfRZeroMsdRho": "0.215"})
+    assert _arxiv_number_problems(ov.replace("0.003 on Adamson", "0.004 on Adamson"), m)
+    assert _arxiv_number_problems(ov + " (0.82 elsewhere)", m) == ["unlisted decimal: 0.82"]
+    # wording the override must carry after the row-39 reframe and its quality gate
+    for tok in (
+        "the mean confidence stated before any feedback does not rank tasks",
+        "in both screens; exploratory, no claim",
+        "The pass is consistent with",
+        "it is not evidence that",
+        "The probe and recommender are specified, not evaluated",
+    ):
+        assert tok in ov, tok
+    assert "supported result" not in ov
+    assert not re.search(r"(?<!mean )confidence stated before any feedback", ov)
 
 
 def test_v052_record_20074427_is_now_merely_superseded(tmp_path, monkeypatch):

@@ -1,14 +1,15 @@
 # Thesis — Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on Perturb-seq
 
 Status: thesis for the v0.6.0 regeneration (revised 2026-09-24; first drafted as v0.1, 2026-04-18). The claim below is the hypothesis the paper tests, not a finding: the hypotheses, pre-registered criteria and analysis plan are fixed in [`../paper/PREREGISTRATION.md`](../paper/PREREGISTRATION.md), results are those of the v0.6.0 sweep (run `20260929T035447Z-ce5f237`; 4 of 5 criteria pass, H5 fails, reported as pre-registered), and all v0.5.0 values are superseded (paper appendix "Corrections relative to v0.5.0").
+**Status note, 2026-11-24 (Amendment 6; approvals rows 39 and 40).** This document is the design thesis written before the pre-registered sweep. Sections 1 to 9 state what was proposed, not what was found, and several of their targets (a ρ ≥ 0.6 intrinsic target, a ≤ 50% compute target, a 100-task calibration set, scGPT as backbone) were never part of the pre-registered study. The paper as it now stands differs in five ways. (1) It discloses that from round 1 on every role's prompt carries the previous round's held-out error, so the trace feature that meets the ranking criterion (the drop in confidence across rounds) is stated after an error has been shown; in an exploratory analysis added after the outcome, the mean confidence stated before any feedback does not rank tasks. See `../paper/PREREGISTRATION.md`, Amendment 6 and its dated note, and the paper's paragraph "What each agent has seen when it states a confidence". (2) It does not claim that the trace distribution is sufficient for difficulty in any formal sense; no such property was derived, and §1 below is reworded accordingly. (3) The recommender (class `BayesianRecommender`) is a cost-penalised plug-in Gaussian rule that returns one configuration and no posterior; it and the preflight probe are specified and released, not fitted or evaluated. (4) Its compute proxy is a unitless cost, not a FLOPs count, and no accuracy-per-compute result exists. (5) ACE is an evenness index over the agents' confidences, so no sign of ΔACE follows from convergence; §4 M1 and M3 below read it otherwise and are superseded by the paper's Metrics section. No hypothesis, threshold, estimator or outcome changed with this note.
 Target venue: workshop submission to ICML 2026 FM4LS and/or a MassGen contribution RFC.
 Companion code: this directory (`projects/perturb-seq-eval/`) is the reference implementation; the orchestration layer under evaluation is `libs/cellforge-agents/`.
 
 ## 1. One-sentence claim
 
-> **The per-round joint distribution of agent confidence and critique severity in a CellForge-style 5-agent team is a sufficient statistic for task difficulty, and a single cheap preflight round of that distribution yields a Bayesian recommender for the optimal team size, round count, and backbone choice — turning agentic orchestration into a tractable hyperparameter-tuning problem.**
+> **Hypothesis (tested, not established): the per-round distribution of agent confidence and critique severity in a CellForge-style 5-agent team carries a signal of task difficulty, and a single cheap preflight round of that distribution could feed a recommender for team size, round count, and backbone choice — turning agentic orchestration into a hyperparameter-tuning problem.**
 
-Put differently: multi-agent group generation is already doing test-time compute scaling, but it spends the budget uniformly. If we read the agent dynamics themselves as a difficulty signal — the same way Snell et al. 2024 use a PRM to route single-chain TTC — we can spend compute adaptively and match full-team accuracy at a fraction of the FLOPs.
+Put differently: multi-agent group generation is already doing test-time compute scaling, but as operated here it spends the budget uniformly. The question is whether the agent dynamics themselves can be read as a difficulty signal — the role a PRM plays in routing single-chain TTC in Snell et al. 2024 — so that compute could be spent adaptively. The pre-registered test answers only part of it: the confidence drop across rounds ranks tasks by held-out error within each screen, but it is stated after the agents have been shown that error, and the fitted composite did not meet the transfer criterion. No saving in compute was measured.
 
 ## 2. Why this matters
 
@@ -94,7 +95,7 @@ TDI = α·ACE_norm(R)                      # residual entropy at end-of-run
 
 TDI is our **empirical difficulty oracle**. Thesis Claim 1: TDI computed post-hoc on a run strongly rank-correlates with a held-out, biology-based difficulty label (perturbation literature density; wet-lab DEG reproducibility; donor-split AUROC drop).
 
-## 5. The preflight probe + Bayesian recommender (the practical contribution)
+## 5. The preflight probe + recommender (specified, not evaluated)
 
 TDI is useful diagnostically, but by the time you've computed it the compute has been spent. The interesting question is: **can we estimate TDI — or, equivalently, the optimal `(n_agents, n_rounds, backbone)` configuration — from a much cheaper preflight?**
 
@@ -108,7 +109,9 @@ probe signature x = (ACE_norm(0), mean(c(0)), CSD(0), max(c(0)))  ∈ ℝ⁴
 
 The probe is ≤ ~10% of the cost of a full run. It captures the first-look shape of group disagreement on the task.
 
-### 5.2 The Bayesian recommender
+### 5.2 The recommender (class `BayesianRecommender`)
+
+*As released, this is a plug-in rule: the Gaussian parameters are point estimates, no posterior over them is computed, the "prior" slot holds a cost preference, the rule returns a single configuration, and the budget is a unitless cost proxy, not FLOPs. It was not fitted or evaluated in the paper. The text below is the original design.*
 
 Model task configuration as a random variable φ = (n_agents, n_rounds, backbone) ∈ Φ, and ground-truth-required configuration as φ* (the smallest configuration that reaches the accuracy plateau on that task).
 
@@ -130,7 +133,7 @@ This is the **agentic hyperparameter tuning** move: the analogue of Snell's prom
 
 ### 5.3 Why this is tractable
 
-The configuration space Φ is small (say 3 choices of n_agents × 3 of n_rounds × 3 backbones = 27 configurations). The probe signature is 4-dim. A hundred calibration tasks is enough to fit the likelihood. This is a classic small-n Bayesian regression setting, and the uncertainty on φ̂ is meaningful and reportable.
+The configuration space Φ is small (say 3 choices of n_agents × 3 of n_rounds × 3 backbones = 27 configurations). The probe signature is 4-dim. A hundred calibration tasks is enough to fit the likelihood. As released, the rule reports no uncertainty on φ̂.
 
 ## 6. Experimental design
 
@@ -177,7 +180,7 @@ Secondary diagnostics:
 1. Instrument the CellForge orchestrator to emit `RoundTrace` records (see `instrumentation.py`).
 2. Build the 100-task calibration set (gene list + difficulty-tier labels).
 3. For each calibration task, run the orchestrator at each point in Φ (27 configs), log all metrics + final downstream AUROC.
-4. Fit the Bayesian likelihood P(probe_x | φ*).
+4. Fit the recommender's Gaussian likelihood P(probe_x | φ*).
 5. Fit the TDI coefficients (α, β, γ, δ) via ridge regression against the difficulty-tier labels.
 6. On a held-out set of 20 tasks, apply the preflight-routed policy and compare accuracy-per-FLOPs vs. uniform.
 7. Report both headline numbers + 95% CIs.
@@ -198,11 +201,11 @@ A MassGen-installable evaluation skill `cellforge-eval` that wraps any MassGen m
 
 ### 9.2 To CellForge
 
-An instrumentation hook + a preflight CLI (`cellforge preflight "GSK3B knockout" --modality scRNA-seq`) that returns a configuration recommendation before running. Essentially a routing layer that turns CellForge into a compute-optimal system rather than a fixed-budget one.
+An instrumentation hook + a preflight CLI (`cellforge preflight "GSK3B knockout" --modality scRNA-seq`) that returns a configuration recommendation before running. It is meant as a routing layer; the recommendation it returns comes from the unevaluated recommender of §5.2.
 
 ### 9.3 To the TTC literature
 
-A clean extension of Snell 2024 to group generation: the same "difficulty-conditional allocation" principle holds, with the group's own internal dynamics serving as the difficulty proxy — no separate PRM needed.
+A proposed extension of Snell 2024 to group generation: whether the same "difficulty-conditional allocation" principle holds, with the group's own internal dynamics serving as the difficulty proxy, is the question the paper tests. On the pre-registered run it is not established (see the status note at the top).
 
 ## 10. What's in this repo, right now
 
@@ -211,11 +214,11 @@ A clean extension of Snell 2024 to group generation: the same "difficulty-condit
 | `src/perturb_eval/metrics.py` | ACE, CSD, ΔACE, ΔC, WFR, CST, TDI (immutable dataclasses, verified by tests) |
 | `src/perturb_eval/instrumentation.py` | `RoundTrace` recorder + orchestrator hook |
 | `src/perturb_eval/probe.py` | preflight probe — runs one shallow round, returns signature |
-| `src/perturb_eval/bayesian.py` | closed-form Gaussian-likelihood recommender + MAP policy |
-| `src/perturb_eval/calibration.py` | fits TDI coefficients + Bayesian likelihood from logged runs |
+| `src/perturb_eval/bayesian.py` | the recommender (class `BayesianRecommender`): cost-penalised plug-in Gaussian rule; specified, not evaluated |
+| `src/perturb_eval/calibration.py` | fits TDI coefficients + the recommender's Gaussian parameters from logged runs |
 | `src/perturb_eval/data/protocol.py` | `PerturbSeqDataset` protocol + Norman/Adamson loaders + synthetic stub |
 | `src/perturb_eval/model.py` | `PerturbationPredictor` protocol + `ScGPTPredictor` + `MockPredictor` |
 | `src/perturb_eval/massgen_adapter.py` | expose as a MassGen skill |
 | `src/perturb_eval/cli.py` | `perturb-eval preflight`, `calibrate`, `evaluate` |
 | `examples/end_to_end.py` | demo run on synthetic data showing all pieces wired |
-| `tests/` | unit tests for every metric and every Bayesian move |
+| `tests/` | unit tests for every metric and for the recommender |

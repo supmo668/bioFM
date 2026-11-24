@@ -220,6 +220,7 @@ def build(
     h5 = pr["H5"]
     m["HFiveRho"] = f(h5["value"])
     m["HFiveN"] = str(h5["n"])
+    m["HFiveNFit"] = str(h5["n_fit"])  # the Adamson tasks the ridge weights are fitted on
     m["HFiveCILo"] = f(h5["ci_low"])
     m["HFiveCIHi"] = f(h5["ci_high"])
     m["HFiveWAce"] = f(h5["weights"]["ace_norm"], 2)
