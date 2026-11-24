@@ -57,6 +57,11 @@ authors:
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
+# `version` and `date-released` name the latest PUBLISHED release, 0.6.1. The title and abstract
+# above are already those of the 0.6.2 manuscript (Amendment 6), which is prepared and NOT
+# published (approvals row 41: preparation and dry run only). 0.6.2 has no DOI and no release
+# date yet; after both publishes, publish.yml's deposit-time step 5 sets `version: "0.6.2"`,
+# `date-released` and the two new DOIs here. Until then none is written.
 version: "0.6.1"
 date-released: "2026-11-22"
 license: "Apache-2.0"
@@ -123,7 +128,7 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare article concept DOI (latest version; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
+    description: "Figshare article concept DOI (latest version; v7 = 0.6.1; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:

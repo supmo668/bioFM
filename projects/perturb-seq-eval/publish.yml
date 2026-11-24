@@ -3,30 +3,38 @@
 # Consumed by `scripts/publish/submit_to_venues.py`. Human-maintained; the
 # script never writes to this file. DOIs and deposition IDs go into the release's
 # state file (`state_file` below; tracked, it is the deposit-lineage record).
-# `publish.state.json` is the v0.5.x record and `publish.state.v060.json` the v0.6.0 record;
-# neither is written for 0.6.1 (the submitter refuses either name as a state file).
+# `publish.state.json` is the v0.5.x record, `publish.state.v060.json` the v0.6.0 record and
+# `publish.state.v061.json` the 0.6.1 record; none is written for 0.6.2 (the submitter refuses
+# each name as a state file).
 #
 # See research/PUBLISHING_RUNBOOK.md for end-to-end operation.
 
 # Version of the deposited work (sent to Zenodo as the record's version).
-# 0.6.1 (principal 2026-11-08) is a manuscript revision of v0.6.0: Amendment 5 and a related-work
-# sentence on Morandi (2026); the v0.6.0 run and every outcome are unchanged. The git tag v0.6.0-a5
-# is the PREREGISTRATION amendment tag only, not the deposit version.
-version: "0.6.1"
+# 0.6.2 (perturb-seq-eval approvals row 41, 2026-11-24, with rows 39-40) is the Amendment 6
+# manuscript revision of 0.6.1: it discloses that from round 1 on the agents' prompts carry the
+# previous round's held-out error, reframes the reading of the H4 pass, adds a labelled
+# exploratory section with two figures, and takes the Amendment 6 title. It includes the
+# plain-English rewrite (HACA-119) and the reproducibility sentence (HACA-124). No hypothesis,
+# threshold, estimator, run or outcome changed. paper/PREREGISTRATION.md IS amended (Amendment 6).
+# PREPARED, NOT APPROVED FOR PUBLICATION: row 41 authorises preparation and a dry run only;
+# publishing needs a separate explicit go after the dry run is reviewed (rows 2-3).
+# 0.6.1 (principal 2026-11-08) was the Amendment-5 revision of v0.6.0. The git tags v0.6.0-a5 and
+# v0.6.0-a6 (the latter to be created by the CTO; it does not exist yet) are PREREGISTRATION
+# amendment tags only, not deposit versions.
+version: "0.6.2"
 
-# State file for THIS release (the new-version ids). 0.6.1 is the NEXT VERSION of the published
-# v0.6.0 records on both venues (principal 2026-11-08: the Amendment-5 paper, deposited so the
-# preprint can be linked isIdenticalTo it), as v0.6.0 was of v0.5.x (principal D-1 = B,
-# 2026-10-16, CTO #647): no duplicate record. publish.state.json (v0.5.x) and
-# publish.state.v060.json (v0.6.0) stay the lineage records and are never written.
-state_file: publish.state.v061.json
+# State file for THIS release (the new-version ids). 0.6.2 is the NEXT VERSION of the published
+# 0.6.1 records on both venues (approvals row 41, 2026-11-24), as 0.6.1 was of v0.6.0
+# (principal 2026-11-08) and v0.6.0 of v0.5.x (principal D-1 = B, 2026-10-16, CTO #647): no
+# duplicate record. publish.state.json (v0.5.x), publish.state.v060.json (v0.6.0) and
+# publish.state.v061.json (0.6.1) stay the lineage records and are never written.
+state_file: publish.state.v062.json
 
-# Retitled by Amendment 5 of paper/PREREGISTRATION.md (2026-11-04, CTO #896). The minted v0.6.0
-# records (Zenodo 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title; this title
-# and the regenerated description below take effect at the 0.6.1 deposit (principal 2026-11-08).
-# Retitled again by Amendment 6 (2026-11-24, approvals row 40). The published 0.6.1 records carry
-# the Amendment-5 title; the title below takes effect only at a later deposit, which needs its own
-# go and its own `version` (not bumped here).
+# The Amendment 6 title (paper/PREREGISTRATION.md, 2026-11-24, approvals row 40), deposited with
+# 0.6.2. Earlier records keep their own titles: the v0.6.0 records (Zenodo
+# 10.5281/zenodo.23422745, Figshare v6) carry the pre-amendment title, and the 0.6.1 records
+# (Zenodo 10.5281/zenodo.24430429, Figshare v7) the Amendment 5 title (2026-11-04, CTO #896).
+# The description below is the 0.6.2 (Amendment 6) abstract.
 title: >-
   Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
   A Pre-registered Test on Perturb-seq
@@ -99,8 +107,10 @@ keywords:
 # per-file below.
 license: cc-by-4.0
 
-# Deposit-time sequence. 0.6.1 supersedes v0.6.0 as a NEW VERSION of the existing records
-# (principal 2026-11-08; as v0.6.0 did v0.5.x, D-1 = B, CTO #647), so no duplicate record exists. The submitter performs exactly the
+# Deposit-time sequence. 0.6.2 supersedes 0.6.1 as a NEW VERSION of the existing records
+# (approvals row 41, 2026-11-24: preparation and dry run only, no publication go yet; as 0.6.1
+# did v0.6.0 and v0.6.0 did v0.5.x, D-1 = B, CTO #647), so no duplicate record exists. The
+# submitter performs exactly the
 # two operations in ALLOWED_REVISIONS (venues.<venue>.revision_of below) and refuses any other
 # write to a published or superseded record (PublishedRecordError). This sequence names the
 # steps; the gated submitter is the only implementation (no raw API recipes here).
@@ -110,25 +120,25 @@ license: cc-by-4.0
 #   3. Principal's go for the FIRST WRITE:
 #        python scripts/publish/submit_to_venues.py zenodo --dry-run
 #        python scripts/publish/submit_to_venues.py figshare --dry-run
-#      Zenodo: a new-version DRAFT of 23422745 under concept 10.5281/zenodo.19716140, with the
-#      inherited files replaced by the 0.6.1 set. Figshare: article 32086920's next version
-#      prepared UNPUBLISHED (the public version must not change; the run checks). Nothing is
-#      published. The ids are recorded in publish.state.v061.json; commit it before step 4.
+#      Zenodo: a new-version DRAFT of 24430429 under concept 10.5281/zenodo.19716140, with the
+#      inherited files replaced by the 0.6.2 set. Figshare: article 32086920's next version
+#      prepared UNPUBLISHED (the public version, v7, must not change; the run checks). Nothing is
+#      published. The ids are recorded in publish.state.v062.json; commit it before step 4.
 #   4. Principal's SEPARATE go to publish: the same commands without --dry-run. They only
 #      publish the recorded revision (DraftRequiredError otherwise), resend the metadata, refuse
 #      a changed file (DraftMismatchError) and any Figshare author but expected_author. Do not
 #      rebuild between steps 3 and 4.
-#   5. After both publishes: set CITATION.cff `version: "0.6.1"` and `date-released`; add
-#      the 0.6.1 Zenodo DOI and the Figshare v7 DOI to its `identifiers`, and drop "this release"
-#      from the 23422745 entry; add a CHANGELOG 0.6.1 entry. Then a Zenodo metadata-only edit
-#      of the 0.6.1 record adding `isIdenticalTo` the Figshare v7 DOI (as was done for v6 on
-#      2026-10-25).
+#   5. After both publishes: set CITATION.cff `version: "0.6.2"` and `date-released`; add
+#      the 0.6.2 Zenodo DOI and the Figshare v8 DOI to its `identifiers`, and drop "this release"
+#      from the 24430429 entry; mark the CHANGELOG 0.6.2 entry published with both DOIs. Then a
+#      Zenodo metadata-only edit of the 0.6.2 record adding `isIdenticalTo` the Figshare v8 DOI
+#      (as was done for v6 on 2026-10-25).
 files:
   # Built at deposit time by scripts/publish/build_deposit.py (paper.pdf and build/ are
   # gitignored, so the build is part of the deposit, not a precondition).
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "Amendment 5 manuscript of the v0.6.0 pre-registered results, built with tectonic from the landed sources; the build log is paper_build.log."
+    description: "The 0.6.2 manuscript (Amendment 6) of the v0.6.0 pre-registered results: it discloses the error feedback in the agents' prompts, reframes the reading of the H4 pass and adds a labelled exploratory section with two figures; no hypothesis, threshold, estimator, run or outcome changed. Built with tectonic from the landed sources; the build log is paper_build.log."
   - path: build/deposit/paper_build.log
     name: paper_build.log
     description: "tectonic build log of paper.pdf (overfull/undefined-reference counts are in the log)."
@@ -159,21 +169,30 @@ venues:
       - identifier: "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"
         relation: "isSupplementedBy"
         scheme: "url"
-      # 0.6.1 is the next version of the v0.6.0 work under the same concept DOI, not identical.
-      - identifier: "10.5281/zenodo.23422745"
+      # 0.6.2 is the next version of the 0.6.1 work under the same concept DOI, not identical.
+      - identifier: "10.5281/zenodo.24430429"
         relation: "isNewVersionOf"
         scheme: "doi"
-      - identifier: "10.6084/m9.figshare.32086920.v6"
+      - identifier: "10.6084/m9.figshare.32086920.v7"
         relation: "isNewVersionOf"
         scheme: "doi"
-    # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from v0.6.0.
-    revision_of: 23422745
+    # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from 0.6.1.
+    revision_of: 24430429
+    # The notes name the amendment tag v0.6.0-a6. The CTO creates it on the landed commit; it must
+    # exist before the dry run, or the notes would cite a tag that does not exist.
     notes: >-
-      0.6.1 is the next version of this record (concept DOI 10.5281/zenodo.19716140), carrying
-      Amendment 5 of the pre-registration (tag v0.6.0-a5: the paper is retitled, its
-      contribution is narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered
-      criterion') and one added related-work sentence on Morandi (2026). No hypothesis,
-      threshold, estimator, run or outcome changed.
+      0.6.2 is the next version of this record (concept DOI 10.5281/zenodo.19716140), carrying
+      Amendment 6 of the pre-registration (tag v0.6.0-a6). The manuscript now discloses that
+      from the second round on (round 1 in the run's zero-based indexing) every agent's prompt
+      carries the previous round's held-out error, which neither the pre-registration nor the
+      earlier versions stated. It reframes the reading of the H4 pass accordingly: the pass is
+      consistent with stated confidence falling further where a larger error was shown, and is
+      not evidence that the group's confidence anticipates difficulty. It adds an exploratory
+      section with two figures, labelled exploratory and added after the outcomes were known,
+      and the paper is retitled 'Does Multi-Agent Confidence Predict Task Difficulty, or Only
+      React to It? A Pre-registered Test on Perturb-seq'. The text is also rewritten in plain
+      academic English, with one added sentence on reproducing two values across numerical
+      libraries. No hypothesis, threshold, estimator, run or outcome changed.
 
   figshare:
     enabled: true
@@ -193,8 +212,8 @@ venues:
     expected_author: "Mang-yin Mo"
     # The one permitted Figshare revision (ALLOWED_REVISIONS): article 32086920's next version.
     revision_of: 32086920
-    # References carried by the 0.6.1 article (sent with its metadata; they replace the list the
-    # v6 article carries).
+    # References carried by the 0.6.2 article (sent with its metadata; they replace the list the
+    # v7 article carries).
     references:
       - "https://doi.org/10.5281/zenodo.19716140"
       - "https://github.com/supmo668/bioFM/tree/ce5f2379bac485930ff57c4b9e96a486676413a8/projects/perturb-seq-eval"

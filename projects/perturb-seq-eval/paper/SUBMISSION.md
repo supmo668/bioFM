@@ -10,9 +10,16 @@ live again and are the arXiv path; **7.5 is the one sequence to follow.** Part 7
 measurements behind it. **Standing constraint: post to exactly one preprint server** (7.2).
 **2026-11-08 (principal):** the row-19 Morandi sentence is in `paper.tex`, with its K clause qualified to the
 real-LLM evaluation after two independent primary-source reads, and the (b″) disclaimer is narrowed to match ("we have
-read the sections cited below …"). The revised paper is archived as Zenodo / Figshare version **`0.6.1`** — a
-manuscript revision of v0.6.0; the run and every outcome are unchanged, and `v0.6.0-a5` stays the pre-registration
-amendment tag only — **before** the preprint is posted (7.5 step 4a), so that Part 4's `isIdenticalTo` is true.
+read the sections cited below …"). That revision is archived as Zenodo / Figshare version `0.6.1` (published
+2026-11-22).
+**2026-11-24 (approvals rows 39–41):** the manuscript changed again after `0.6.1` — Amendment 6: the error-feedback
+disclosure, the reframed reading of the H4 pass, an exploratory section with two figures and a new title. **The
+manuscript posted to the preprint server is this Amendment 6 one, so it is archived first as version `0.6.2`** — a
+manuscript revision; the run and every pre-registered outcome are unchanged, and `v0.6.0-a5` / `v0.6.0-a6` are
+pre-registration amendment tags only — **before** the preprint is posted (7.5 step 4a), so that Part 4's
+`isIdenticalTo` is true. `0.6.1` holds a different manuscript and is not what the preprint is identical to.
+**`0.6.2` is prepared, not published:** row 41 authorises preparation and a dry run only; publishing needs a
+separate go, and until then `0.6.2` has no DOI.
 **Owner: the principal. None of this is delegable to an agent** — the venue submission and its licence grant are
 legal acts by a person.
 
@@ -28,15 +35,16 @@ The pipeline automates everything up to the Submit button; the process document 
 and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
-`CITATION.cff` one. The CFF abstract is 2548 characters with 4 non-ASCII characters; arXiv rejects
+`CITATION.cff` one. The CFF abstract is 3222 characters with 5 non-ASCII characters (measured 2026-11-24); arXiv rejects
 anything over 1920 and accepts ASCII only. The override is 1918 characters, 0 non-ASCII, with every
 number and the integrity claim that every hypothesis could be evaluated preserved, in sentences rather
 than hypothesis labels. Use the generated block.
 
 | | |
 |---|---|
-| Work | *Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?* v0.6.0 run and results. Retitled by Amendment 6 (2026-11-24, approvals row 40); the archived revision `0.6.1` carries the Amendment-5 title, *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty?*, and a new archive version follows only on a separate go |
-| Already archived | **`0.6.1`, published 2026-11-22** (approvals row 37): Zenodo `10.5281/zenodo.24430429` (concept `10.5281/zenodo.19716140`) · Figshare `10.6084/m9.figshare.32086920.v7`; `paper.pdf` md5-identical on both, built from `980fd099`. The Zenodo ↔ Figshare v7 `isIdenticalTo` link is still to add. v0.6.0 (`23422745`, Figshare v6) holds the pre-amendment manuscript |
+| Work | *Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on Perturb-seq* — the Amendment 6 manuscript (2026-11-24, approvals rows 39–40) of the v0.6.0 run and results. This is the manuscript to post, archived as `0.6.2`. The archived revision `0.6.1` carries the Amendment-5 title, *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop Passes*, and the Amendment-5 manuscript |
+| Already archived | **`0.6.1`, published 2026-11-22** (approvals row 37): Zenodo `10.5281/zenodo.24430429` (concept `10.5281/zenodo.19716140`) · Figshare `10.6084/m9.figshare.32086920.v7`; `paper.pdf` md5-identical on both, built from `980fd099` (tag `v0.6.1`). It holds the Amendment-5 manuscript, **not the one to be posted**. The Zenodo ↔ Figshare v7 `isIdenticalTo` link is still to add. v0.6.0 (`23422745`, Figshare v6) holds the pre-amendment manuscript |
+| Archive pending | **`0.6.2` — prepared, NOT published** (approvals row 41: preparation and dry run only). It will be a new version of Zenodo `24430429` and Figshare `32086920` version 8. **No `0.6.2` DOI, publication date, deposit commit or `v0.6.2` tag exists yet**; none is written in this file until it does. Posting the preprint waits on it (7.5 step 4a) |
 | Author of record | Mang-yin Mo · ORCID `0009-0009-5233-3142` · Carnegie Mellon University |
 | Venue (approvals row 34, reversing row 32) | **arXiv**, primary `cs.LG`, cross-lists `q-bio.QM` and `cs.MA`, by personal endorsement. Fallback after 14 days: Research Square, once the principal has read its licence terms. TechRxiv: closed for submissions |
 | Licence | CC BY 4.0 (matches the Zenodo deposit, so the records do not disagree on reuse terms) |
@@ -45,8 +53,10 @@ than hypothesis labels. Use the generated block.
 
 ## The blocking dependency, stated first
 
-**What blocks posting today is the endorsement (Part 1), not the build.** The compile check below has
-run in CI (run `40985145366`, Part 0 Path A).
+**Two things block posting today, and neither is the build: the endorsement (Part 1), and the `0.6.2` archive
+(7.5 step 4a), which is prepared but not published and needs the principal's separate go.** The compile check
+below has run in CI for earlier revisions (run `40985145366`, Part 0 Path A); the bundle to upload is a new CI
+build from the `0.6.2` deposit commit (7.5 step 5).
 
 **Why the build check exists.** The paper uses
 `\bibliography{references}` and **arXiv does not run BibTeX**, so the bundle must contain a generated
@@ -74,6 +84,9 @@ The pipeline commit `c0ec931` is on `origin/main` (verified 2026-11-04), so the 
      gap is fixed. **It is a compile check, not a file you upload**: on arXiv the posted PDF is arXiv's own
      compile of the `tar.gz`; the archived PDF is the `build_deposit.py` (tectonic) build from 7.5 step 4a, which is
      also the upload on the Research Square fallback.
+
+   **Use only a bundle built from the `0.6.2` deposit commit (tag `v0.6.2`, 7.5 step 5). The existing artifact of
+   run `44977934225` was built from `980fd099` and is the `0.6.1` manuscript: do NOT upload it.**
 4. The job summary carries the same metadata block, so you can read it without downloading.
 
 **The workflow's LaTeX step has executed.** Run `40985145366` (2026-10-30) completed "Compile LaTeX
@@ -98,17 +111,21 @@ uv run python scripts/arxiv_package.py build projects/perturb-seq-eval/paper --o
 tar tzf perturb-seq-eval-arxiv-<date>.tar.gz
 ```
 
-Expect **exactly 7 files, flat at the root** (no wrapping directory — arXiv requires this):
+Expect **exactly 10 files, with no wrapping directory** (arXiv requires this):
 
 ```
 paper.bbl  paper.tex  references.bib
 sections/corrections.tex  sections/experimental_setup.tex
-sections/generated_numbers.tex  sections/results.tex
+sections/generated_exploratory.tex  sections/generated_numbers.tex  sections/results.tex
+figures/fig_confidence_by_round.pdf  figures/fig_h4_scatter.pdf
 ```
 
+(Measured 2026-11-24 with `arxiv_package.py preflight` on the Amendment 6 sources: 9 files that would ship,
+plus the `paper.bbl` the CI compile generates. A 7-file bundle is the `0.6.1` manuscript: stop.)
+
 If `paper.bbl` is absent or 0 bytes, **stop** — that is the failure this whole runbook exists to
-prevent. The three `sections/v050_*.tex` files, the five figure PDFs and the `tables/` directory are
-**correctly absent**: nothing in the paper references them (see "Known state of the paper" below).
+prevent. The three `sections/v050_*.tex` files, the five v0.5-era figure PDFs (`fig1_`–`fig5_`) and the `tables/`
+directory are **correctly absent**: nothing in the paper references them (see "Known state of the paper" below).
 
 ---
 
@@ -249,16 +266,18 @@ preprint alongside the two archive DOIs. That part *is* mine.
 
 ## Part 4 — Reciprocal linking on Zenodo (do not skip; this is what prevents "two papers")
 
-> **Target record (principal, 2026-11-08):** link the preprint to the **`0.6.1`** Zenodo version
-> deposited at 7.5 step 4a, not to v0.6.0 (`10.5281/zenodo.23422745`). v0.6.0 carries the pre-amendment
-> title and manuscript, so `isIdenticalTo` against it would assert something false.
+> **Target record:** link the preprint to the **`0.6.2`** Zenodo version deposited at 7.5 step 4a — the
+> Amendment 6 manuscript, the one that is posted. Not to `0.6.1` (`10.5281/zenodo.24430429`), which carries the
+> Amendment-5 title and manuscript, and not to v0.6.0 (`10.5281/zenodo.23422745`): `isIdenticalTo` against
+> either would assert something false. **The `0.6.2` record does not exist yet, so its DOI is not known.** It is
+> recorded in `publish.state.v062.json` at the 4a dry run; do not link anything before it is published.
 
-At deposit the `0.6.1` Zenodo record carries `isNewVersionOf` `10.5281/zenodo.23422745` and
-`10.6084/m9.figshare.32086920.v6`, and `isSupplementedBy` the repository. The post-publish step
-(`publish.yml` deposit-time sequence, step 5) adds `isIdenticalTo` the Figshare v7 DOI, as was done for v6 on
+At deposit the `0.6.2` Zenodo record carries `isNewVersionOf` `10.5281/zenodo.24430429` and
+`10.6084/m9.figshare.32086920.v7`, and `isSupplementedBy` the repository. The post-publish step
+(`publish.yml` deposit-time sequence, step 5) adds `isIdenticalTo` the Figshare version 8 DOI, as was done for v6 on
 2026-10-25. Add the venue record the same way:
 
-1. Zenodo → the `0.6.1` record → **Edit** (metadata-only edit; it does **not** mint a new version).
+1. Zenodo → the `0.6.2` record → **Edit** (metadata-only edit; it does **not** mint a new version).
 2. Under **Related works**, add:
    - **`is identical to`** → `<venue DOI>`
 3. Publish the metadata edit.
@@ -279,11 +298,12 @@ consistently; do not add both.**
 > re-measured on 2026-11-21: arXiv's help page for it returned 404):
 > 1. **Before posting, nothing to do in Scholar.** There is no crawled record yet (7.0); a manual edit now
 >    only adds a second profile-only entry.
-> 2. **After the arXiv DOI is minted:** ORCID → add the arXiv DOI and the `0.6.1` Zenodo DOI by
+> 2. **After the arXiv DOI is minted:** ORCID → add the arXiv DOI and the `0.6.2` Zenodo DOI (known only once
+>    `0.6.2` is published) by
 >    identifier (7.3 #1), so the author record carries both. Keep the concept-DOI entry as the preferred source
 >    in the grouped Work (`docs/hacp/perturb-seq-eval/publish-complete.md`).
 > 3. **When the crawled arXiv entry appears in Scholar (days to weeks):** merge it with the manual entry,
->    crawled entry primary (step 1 below). Check its title is the title of the manuscript that was posted (the Amendment-6 title once that revision is the one posted) and its author is
+>    crawled entry primary (step 1 below). Check its title is the Amendment 6 title of the posted manuscript, "Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on Perturb-seq", and its author is
 >    "Mang-yin Mo". If it never appears, check the arXiv abstract page exposes `citation_title`,
 >    `citation_author`, `citation_publication_date` and `citation_pdf_url` (Scholar inclusion guidelines).
 > 4. **Semantic Scholar / OpenAlex:** claim the author pages and confirm the Work (7.3 #2–#3); they follow
@@ -334,7 +354,7 @@ no resolution."** Google Search and Google **Dataset** Search *do* index Zenodo,
 metadata embedded in record landing pages — neither of which is Scholar.
 
 So the two deposits this work already has — Zenodo `10.5281/zenodo.19716140` and Figshare
-`10.6084/m9.figshare.32086920.v6` — buy **zero Google Scholar presence**, and the existing Scholar
+`10.6084/m9.figshare.32086920` (latest published version: v7) — buy **zero Google Scholar presence**, and the existing Scholar
 entry is the manual one described in Part 5, which is **profile-only: not indexed, accruing no
 citations.**
 
@@ -473,10 +493,10 @@ fallback it is, not as a way around the venue decision.
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
 | 3 | ~~Principal decides the venue~~ **Decided: arXiv `cs.LG` by personal endorsement** (approvals row 34; fallback Research Square after 14 days) | 7.1, 7.2 |
 | 4 | **Get one arXiv endorsement (Part 1). BLOCKS step 5.** Start the `cs.LG` submission to receive the code, then ask endorsers one or two at a time (Part 1). **The 14-day fallback clock starts when the first request is sent** | 3 |
-| 4a | **Archive the revised paper as version `0.6.1`** (principal, 2026-11-08): `build_deposit.py`, then `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3), review the drafts, then a **separate go** to publish, then `publish.yml` deposit-time step 5 (CITATION version and DOIs, CHANGELOG, Zenodo `isIdenticalTo` Figshare v7). The v0.6.0 records carry the pre-amendment paper and title, so step 6's `isIdenticalTo` would be false against them | nothing (can run in parallel with 4) |
-| 5 | Parts 0–2: upload the CI `tar.gz` (LaTeX source) to arXiv. **Build it from the commit the 4a PDF was built from** — the SHA printed in `build/deposit/paper_build.log`. Ask the CTO to tag that commit `v0.6.1`, run the `arxiv-package` workflow on the tag, and confirm the run's head SHA matches, so the arXiv record and the `0.6.1` archive are the same manuscript. **Before pasting the metadata block, re-run `arxiv_package.py metadata`** so the Comments line is current. Open arXiv's preview PDF: any `[?]` means stop. Then Part 3: record the arXiv ID and DOI | 4, 4a |
+| 4a | **Archive the Amendment 6 manuscript as version `0.6.2`** (approvals row 41, 2026-11-24: preparation and dry run only). In order: (i) this branch lands and the CTO creates the amendment tag `v0.6.0-a6`, which the Zenodo notes name; (ii) `build_deposit.py` on the clean landed commit — that commit is the **`0.6.2` deposit commit**, printed in `build/deposit/paper_build.log`; (iii) `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3): a new-version draft of Zenodo `24430429` and Figshare `32086920`'s next version prepared unpublished, ids recorded in `publish.state.v062.json`; (iv) the principal reviews both drafts; (v) **a separate, explicit go to publish — not yet given** — then the same commands without `--dry-run`, with no rebuild in between; (vi) `publish.yml` deposit-time step 5 (CITATION version, date and DOIs, CHANGELOG, Zenodo `isIdenticalTo` Figshare version 8). **The `0.6.2` Zenodo DOI is unknown until the dry run (iii) reserves it and does not resolve until (v); the Figshare version 8 DOI and the publication date are unknown until (v).** This file states none. The `0.6.1` records carry the Amendment-5 manuscript and title, and the v0.6.0 records the pre-amendment ones, so step 6's `isIdenticalTo` would be false against either | nothing for (i)–(iv) (can run in parallel with 4); (v) needs the principal's go |
+| 5 | Parts 0–2: upload the CI `tar.gz` (LaTeX source) to arXiv. **The bundle is built by CI from the `0.6.2` deposit commit** — the SHA printed in `build/deposit/paper_build.log` at 4a. Ask the CTO to tag that commit `v0.6.2`, run the `arxiv-package` workflow on the tag, and confirm the run's head SHA matches, so the arXiv record and the `0.6.2` archive are the same manuscript. **Not from `980fd099` (tag `v0.6.1`): the existing artifact of run `44977934225` is the `0.6.1` manuscript and must NOT be uploaded.** A correct bundle has 10 files and the Amendment 6 title (Part 0). **Before pasting the metadata block, re-run `arxiv_package.py metadata`** so the Comments line is current. Open arXiv's preview PDF: any `[?]` means stop. Then Part 3: record the arXiv ID and DOI | 4, 4a (published) |
 | 5′ | **Fallback, only if no endorser has agreed 14 days after the first request.** (1) The principal reads Research Square's licence terms; stop if CC BY 4.0 is not offered. (2) Delete the unsubmitted arXiv submission and tell any endorser you asked that the request is withdrawn — a late endorsement must not lead to a second server. (3) Upload the 4a `paper.pdf` to Research Square. A posted preprint there "cannot be removed". (4) Parts 3–5 then apply with the Research Square DOI as `<venue DOI>`; the arXiv-only checks (Comments line, cross-lists) do not | 4, 4a |
-| 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.1` Zenodo record** (not v0.6.0 `10.5281/zenodo.23422745`) | 5 |
+| 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.2` Zenodo record** — its DOI is reserved at the 4a dry run and resolves only once 4a publishes; read it from `publish.state.v062.json`. Not on `0.6.1` (`10.5281/zenodo.24430429`) and not on v0.6.0 (`10.5281/zenodo.23422745`): both hold a different manuscript | 5 |
 | 7 | Part 5 Scholar merge, once the crawled record appears (days to weeks) | 5 |
 | 8 | Semantic Scholar: add the paper to the claimed author page | 5 |
 | 9 | Part 6 OSF cleanup | nothing — independent, and still live and wrong |
@@ -513,7 +533,8 @@ archived `paper.pdf` (tectonic) and arXiv's PDF (its own TeX Live) are two rende
 
 ## Approval required before posting (7.5 step 5)
 
-Three items: two closed, and one that blocks posting (item 2).
+Three items: two closed, and one that blocks posting (item 2). Separately, the `0.6.2` archive must be
+published before posting (7.5 step 4a); that go has not been given (approvals row 41).
 
 1. **Flush `c0ec931` — CLOSED.** The commit is on `origin/main` and the workflow's LaTeX step has run
    successfully (run `40985145366`; see Part 0, Path A). Path A is available.
@@ -529,17 +550,19 @@ Three items: two closed, and one that blocks posting (item 2).
 
 A fourth decision is adjacent and does not block submission, but affects what gets submitted:
 
-4. **The five figure PDFs** — wire them into the paper, retire them, or leave them unreferenced. If
-   you wire them in, the bundle changes and Part 0 must be re-run.
+4. **The five v0.5-era figure PDFs** (`fig1_`–`fig5_`) — wire them into the paper, retire them, or leave them
+   unreferenced. If you wire them in, the bundle changes and Part 0 must be re-run. (The two Amendment 6
+   figures are already in the paper and in the bundle.)
 
 ---
 
 ## Known state of the paper, so nothing here is a surprise at submission time
 
-- **The paper references no figures at all.** `graphicx` is loaded but unused; all six tables are
-  inline `tabular` environments; `\includegraphics` count is **zero**. The five figure PDFs and the
+- **The paper references two figures**, both in the exploratory section added by Amendment 6:
+  `figures/fig_confidence_by_round.pdf` and `figures/fig_h4_scatter.pdf` (`\includegraphics` count is **two**,
+  measured 2026-11-24). Every table is an inline `tabular` environment. The five `fig1_`–`fig5_` PDFs and the
   entire `tables/` directory are v0.5-era orphans, as are the three `sections/v050_*.tex` files. The
-  7-file bundle is therefore *complete* for what this paper is.
+  10-file bundle is therefore *complete* for what this paper is.
 - **v0.5.0 values are superseded in full** and the defects behind each are listed in the paper's
   appendix (`sections/corrections.tex`, which **is** in the bundle).
 - The preflight passes 10 checks and states what it does **not** check: whether the document
