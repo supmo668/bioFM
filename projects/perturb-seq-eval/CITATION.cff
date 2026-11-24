@@ -104,7 +104,7 @@ identifiers:
     description: "Zenodo v6 (v0.6.0, published 2026-10-16; pre-amendment manuscript)"
   - type: doi
     value: "10.5281/zenodo.24430429"
-    description: "Zenodo v7 (0.6.1, published 2026-11-22; this release)"
+    description: "Zenodo v7 (0.6.1, published 2026-11-22; the latest published release, which holds the Amendment-5 manuscript and title)"
   - type: doi
     value: "10.6084/m9.figshare.32086920.v7"
     description: "Figshare article version 7 (0.6.1, published 2026-11-22; same files as Zenodo v7)"
