@@ -196,12 +196,7 @@ def round_metrics(rt: RoundTrace) -> RoundMetrics:
 # ---------------------------------------------------------------------------
 
 def delta_ace(rounds: tuple[RoundMetrics, ...]) -> float:
-    """ACE_norm of the last round minus ACE_norm of the first round.
-
-    The sign says nothing about convergence: ACE_norm is an evenness index over the
-    agents' confidences, so agreement among the agents raises it and one agent pulling
-    ahead lowers it.
-    """
+    """ACE_norm(R) − ACE_norm(0). Negative = converging."""
     if len(rounds) < 2:
         return 0.0
     return rounds[-1].ace_norm - rounds[0].ace_norm
