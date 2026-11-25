@@ -2086,8 +2086,10 @@ def test_the_published_062_and_063_releases_are_on_record():
     assert "before** the self-contained rewrite that was published as 0.6.3" in e062
     assert doi_063 in e063 and fig_063 in e063 and "8f35d652" in e063
     assert "not published" not in e063
-    # the open post-publish item stays listed where outstanding work is looked for
-    assert "### Open" in e063 and "`isIdenticalTo` the Figshare v9 DOI" in e063
+    # the post-publish isIdenticalTo edit is done (HACA-141): recorded as a follow-up, not open
+    assert "### Open" not in e063
+    assert "carries `isIdenticalTo` the Figshare v9 DOI since 2026-11-25" in e063
+    assert "carries `isIdenticalTo` the Figshare v8 DOI since 2026-11-25" in e062
 
     surfaces = {
         rel: " ".join((ROOT / rel).read_text().split())
@@ -2102,6 +2104,10 @@ def test_the_published_062_and_063_releases_are_on_record():
             "to be archived as `0.6.3`",
             "latest published version: v8",
             "resolves to 0.6.2",
+            "not yet carry",
+            "NOT yet carry",
+            "`isIdenticalTo` link is still to add",
+            "Figshare version 9 edit is still open",
         ):
             assert stale not in text, (rel, stale)
     assert f"latest published version, which is 0.6.3 (`{doi_063}`" in surfaces["README.md"]
