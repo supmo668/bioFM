@@ -1345,20 +1345,6 @@ def test_stale_scan_normaliser_sees_through_formatting(tmp_path):
 
 # ---- release state file, lineage records and the deposit-time sequence (0.6.3 is the next
 # version of the published 0.6.2 records on both venues, approvals row 45, 2026-11-25) ----
-SUPERSEDED = (
-    "24518637",
-    "24430429",
-    "23422745",
-    "20074427",
-    "20060974",
-    "19748260",
-    "19716140",
-    "19716141",
-    "19721470",
-    "32086920",
-)
-
-
 def _sequence_steps(text):
     seq = text[text.index("# Deposit-time sequence") : text.index("\nfiles:")]
     lines = seq.splitlines()
