@@ -2087,9 +2087,13 @@ def test_the_published_062_and_063_releases_are_on_record():
     assert doi_063 in e063 and fig_063 in e063 and "8f35d652" in e063
     assert "not published" not in e063
     # the post-publish isIdenticalTo edit is done (HACA-141): recorded as a follow-up, not open
-    assert "### Open" not in e063
-    assert "carries `isIdenticalTo` the Figshare v9 DOI since 2026-11-25" in e063
-    assert "carries `isIdenticalTo` the Figshare v8 DOI since 2026-11-25" in e062
+    h061 = next(ln for ln in changelog.splitlines() if ln.startswith("## [0.6.1]"))
+    e061 = " ".join(changelog.split(h061, 1)[1].split("\n## [", 1)[0].split())
+    for entry, fig_version in ((e063, "v9"), (e062, "v8"), (e061, "v7")):
+        assert "### Open" not in entry, fig_version
+        assert (
+            f"carries `isIdenticalTo` the Figshare {fig_version} DOI since 2026-11-25" in entry
+        ), fig_version
 
     surfaces = {
         rel: " ".join((ROOT / rel).read_text().split())
@@ -2104,12 +2108,35 @@ def test_the_published_062_and_063_releases_are_on_record():
             "to be archived as `0.6.3`",
             "latest published version: v8",
             "resolves to 0.6.2",
-            "not yet carry",
-            "NOT yet carry",
+            "not yet carry `isIdenticalTo` the Figshare",
+            "NOT yet carry `isIdenticalTo` the Figshare",
             "`isIdenticalTo` link is still to add",
-            "Figshare version 9 edit is still open",
+            "edit is still open",
         ):
             assert stale not in text, (rel, stale)
+    # ...and each surface says the Zenodo -> Figshare isIdenticalTo link is in place
+    submission = surfaces["paper/SUBMISSION.md"]
+    for v in ("v7", "v8", "v9"):
+        assert (
+            f"The Zenodo record carries `isIdenticalTo` Figshare {v} since 2026-11-25" in submission
+        )
+    for n in ("8", "9"):
+        assert f"Figshare version {n} edit was made on 2026-11-25 (HACA-141)" in submission
+    assert "added `isIdenticalTo` the Figshare version 9 DOI on 2026-11-25" in submission
+    assert (
+        "the Zenodo 0.6.3 record carries `isIdenticalTo` the Figshare v9 DOI"
+        in surfaces["README.md"]
+    )
+    assert (
+        "since 2026-11-25 the 0.6.1, 0.6.2 and 0.6.3 Zenodo records each carry "
+        "`isIdenticalTo` their Figshare version (v7, v8, v9)"
+    ) in surfaces["../../CITATION.cff"]
+    # the module CITATION records it in its version-lineage comments, wrapped across lines
+    lineage = " ".join(
+        ln.strip().lstrip("#").strip() for ln in (ROOT / "CITATION.cff").read_text().splitlines()
+    )
+    for v in ("v7", "v8", "v9"):
+        assert f"carries `isIdenticalTo` the Figshare {v} DOI since 2026-11-25" in lineage, v
     assert f"latest published version, which is 0.6.3 (`{doi_063}`" in surfaces["README.md"]
     # 0.6.2 holds the wording BEFORE the rewrite, said where a reader meets the 0.6.2 record
     assert (
