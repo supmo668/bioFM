@@ -10,6 +10,7 @@ Repository changes that are in no archive deposit. An archive deposit (0.6.2, 0.
 
 ### Changed
 
+- **Zenodo ↔ Figshare `isIdenticalTo` links added to the 0.6.1, 0.6.2 and 0.6.3 records (HACA-141, 2026-11-25).** Zenodo `24430429` → Figshare v7, `24518637` → v8, `24519260` → v9, each a metadata-only edit published on the principal's go (card `1164ce4d`) and read back from the public API. No file md5 and no other metadata field changed, and no new version was minted. It closes the post-publish item that the 0.6.3, 0.6.2 and 0.6.1 entries below listed as open; each now records it under "Follow-up".
 - **Tests: the MLP regression pin and two `summary.json` keys compare within a bounded ulp instead of bit-exactly (HACA-124).** The numbers move by a few ulp with the numpy/BLAS build: numpy 2.4.4 and 2.5.5 on the same x86_64 CPU differ, and the aarch64 host and the x86_64 runner both miss the pins recorded 2026-09-24 (HACA-121). The MLP regression pin now matches within 4 ulp of its largest magnitude (the linear pin stays bit-exact). The reproduction check stays exact for every `summary.json` key except `preregistered.H5.weights.one_minus_delta_c` and `preregistered.H5.norman_tdi`, which match within 4 ulp per element, and every reported value must be identical. Every test run prints its numeric environment (python, numpy, scipy, scikit-learn, torch, BLAS build and runtime core); the checked builds are in `tests/fixtures/numeric_environment.json`. The paper's Reproducibility paragraph discloses the two keys. No result, macro or artifact changed.
 
 ## [0.6.3] — 2026-11-25 (manuscript wording revision; published)
@@ -57,10 +58,10 @@ wording of version 0.6.2 only. It reports the same pre-registered run as v0.6.0,
   the open draft of the new version and replaced its files and metadata with the 0.6.3 set; it
   was published only after that, as reviewed.
 
-### Open
+### Follow-up
 
-- The Zenodo 0.6.3 record does not yet carry `isIdenticalTo` the Figshare v9 DOI
-  (`publish.yml` deposit-time step 5; done for v6 on 2026-10-25).
+- The Zenodo 0.6.3 record carries `isIdenticalTo` the Figshare v9 DOI since 2026-11-25
+  (`publish.yml` deposit-time step 5, done after publication under HACA-141).
 
 ## [0.6.2] — 2026-11-25 (manuscript revision; published)
 
@@ -105,9 +106,9 @@ Published as the next version of the existing records: Zenodo 10.5281/zenodo.245
   Zenodo record 24430429 and Figshare version 8, with the state file `publish.state.v062.json`,
   which now records the published ids.
 
-### Open
+### Follow-up
 
-- The Zenodo 0.6.2 record does not yet carry `isIdenticalTo` the Figshare v8 DOI (`publish.yml` deposit-time step 5; done for v6 on 2026-10-25).
+- The Zenodo 0.6.2 record carries `isIdenticalTo` the Figshare v8 DOI since 2026-11-25 (`publish.yml` deposit-time step 5, done after publication under HACA-141).
 
 ## [0.6.1] — 2026-11-22 (manuscript revision; published)
 
@@ -118,9 +119,9 @@ Published as the next version of the existing records: Zenodo 10.5281/zenodo.244
 - **Manuscript only.** Amendment 5 of `paper/PREREGISTRATION.md` (tag `v0.6.0-a5`): the paper is retitled, its contribution is narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered criterion'. One related-work sentence on Morandi (2026) is added and the prior-work disclaimer is narrowed to match.
 - **No hypothesis, threshold, estimator, run or outcome changed.** The run artifacts are the v0.6.0 run's.
 
-### Open
+### Follow-up
 
-- The Zenodo 0.6.1 record does not yet carry `isIdenticalTo` the Figshare v7 DOI (done for v6 on 2026-10-25).
+- The Zenodo 0.6.1 record carries `isIdenticalTo` the Figshare v7 DOI since 2026-11-25 (HACA-141).
 
 ## [0.6.0] — 2026-10-16 (pre-registered sweep run; manuscript filled; published)
 

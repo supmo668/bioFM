@@ -108,7 +108,8 @@ license: "Apache-2.0"
 #                narrowed contribution, tag v0.6.0-a5, plus one related-work sentence on Morandi 2026).
 #                The v0.6.0 run and every outcome are unchanged. Same release published as Figshare
 #                32086920 version 7; paper.pdf md5-identical on both, read back from the public APIs.
-#                The Zenodo record does NOT yet carry `isIdenticalTo` the Figshare v7 DOI.
+#                The Zenodo record carries `isIdenticalTo` the Figshare v7 DOI since 2026-11-25
+#                (HACA-141; metadata-only edit, no file or other metadata changed).
 # v8 (24518637): 0.6.2, published 2026-11-25 — the manuscript revision of 0.6.1 made under the sixth
 #                amendment to the pre-registration (tag v0.6.0-a6): the disclosure that the agents'
 #                prompts carry the previous round's held-out error, the revised reading of the
@@ -117,15 +118,16 @@ license: "Apache-2.0"
 #                from commit 07a5e57b (git tag v0.6.2), before the self-contained rewrite of the
 #                wording that was published as 0.6.3. Same release published as
 #                Figshare 32086920 version 8; paper.pdf md5-identical on both, downloaded from the
-#                public records. The Zenodo record does NOT yet carry `isIdenticalTo` the Figshare v8
-#                DOI.
+#                public records. The Zenodo record carries `isIdenticalTo` the Figshare v8 DOI since
+#                2026-11-25 (HACA-141; metadata-only edit, no file or other metadata changed).
 # v9 (24519260): 0.6.3, published 2026-11-25 — the self-contained rewrite of the 0.6.2 manuscript:
 #                hypotheses and amendments named in words, abbreviations and symbols defined at first
 #                use, and the CellForge reference corrected. The v0.6.0 run and every outcome are
 #                unchanged, and so is the title. Built from commit 8f35d652 (git tag v0.6.3). Same
 #                release published as Figshare 32086920 version 9; paper.pdf md5-identical on both
 #                (8264667ba840276071f631a962643e42), read back from the public records. The Zenodo
-#                record does NOT yet carry `isIdenticalTo` the Figshare v9 DOI.
+#                record carries `isIdenticalTo` the Figshare v9 DOI since 2026-11-25 (HACA-141;
+#                metadata-only edit, no file or other metadata changed).
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
