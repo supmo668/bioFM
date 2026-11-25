@@ -57,13 +57,11 @@ authors:
     affiliation: "Carnegie Mellon University"
     email: "mangyinm@alumni.cmu.edu"
     orcid: "https://orcid.org/0009-0009-5233-3142"
-# `version` and `date-released` name the latest PUBLISHED release, 0.6.1. The title and abstract
-# above are already those of the 0.6.2 manuscript (Amendment 6), which is prepared and NOT
-# published (approvals row 41: preparation and dry run only). 0.6.2 has no DOI and no release
-# date yet; after both publishes, publish.yml's deposit-time step 5 sets `version: "0.6.2"`,
-# `date-released` and the two new DOIs here. Until then none is written.
-version: "0.6.1"
-date-released: "2026-11-22"
+# `version` and `date-released` name the latest published release, 0.6.2: the Amendment 6
+# manuscript, whose title and abstract are the ones above. Published 2026-11-25 on Zenodo and
+# Figshare on the principal's go (perturb-seq-eval approvals row 42).
+version: "0.6.2"
+date-released: "2026-11-25"
 license: "Apache-2.0"
 # Concept DOI — always resolves to the latest Zenodo version. Lineage:
 # v1 (19716141): anonymous-authors placeholder (superseded);
@@ -94,17 +92,30 @@ license: "Apache-2.0"
 #                The v0.6.0 run and every outcome are unchanged. Same release published as Figshare
 #                32086920 version 7; paper.pdf md5-identical on both, read back from the public APIs.
 #                The Zenodo record does NOT yet carry `isIdenticalTo` the Figshare v7 DOI.
+# v8 (24518637): 0.6.2, published 2026-11-25 — the Amendment 6 manuscript revision of 0.6.1 (tag
+#                v0.6.0-a6): the error-feedback disclosure, the reframed reading of the H4 pass, a
+#                labelled exploratory section with two figures, and the new title. The v0.6.0 run and
+#                every outcome are unchanged. Built from commit 07a5e57b. Same release published as
+#                Figshare 32086920 version 8; paper.pdf md5-identical on both, downloaded from the
+#                public records. The Zenodo record does NOT yet carry `isIdenticalTo` the Figshare v8
+#                DOI.
 doi: "10.5281/zenodo.19716140"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.19716140"
     description: "Zenodo concept DOI (resolves to the latest version)"
   - type: doi
+    value: "10.5281/zenodo.24518637"
+    description: "Zenodo v8 (0.6.2, published 2026-11-25; the latest published release, which holds the Amendment 6 manuscript and title)"
+  - type: doi
+    value: "10.6084/m9.figshare.32086920.v8"
+    description: "Figshare article version 8 (0.6.2, published 2026-11-25; same files as Zenodo v8)"
+  - type: doi
     value: "10.5281/zenodo.23422745"
     description: "Zenodo v6 (v0.6.0, published 2026-10-16; pre-amendment manuscript)"
   - type: doi
     value: "10.5281/zenodo.24430429"
-    description: "Zenodo v7 (0.6.1, published 2026-11-22; the latest published release, which holds the Amendment-5 manuscript and title)"
+    description: "Zenodo v7 (0.6.1, published 2026-11-22; superseded by 0.6.2; holds the Amendment-5 manuscript and title)"
   - type: doi
     value: "10.6084/m9.figshare.32086920.v7"
     description: "Figshare article version 7 (0.6.1, published 2026-11-22; same files as Zenodo v7)"
@@ -128,7 +139,7 @@ identifiers:
     description: "Zenodo v1 (superseded — anonymous-author placeholder, kept for provenance)"
   - type: doi
     value: "10.6084/m9.figshare.32086920"
-    description: "Figshare article concept DOI (latest version; v7 = 0.6.1; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
+    description: "Figshare article concept DOI (latest version; v8 = 0.6.2; v7 = 0.6.1; v6 = v0.6.0; v5 = v0.5.2, whose paper.pdf is md5-identical to Zenodo v0.5.2's)"
 repository-code: "https://github.com/supmo668/bioFM"
 url: "https://github.com/supmo668/bioFM/tree/main/projects/perturb-seq-eval"
 keywords:

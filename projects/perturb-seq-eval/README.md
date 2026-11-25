@@ -8,14 +8,14 @@ A Pre-registered Test on Perturb-seq."**
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
 
 **Published:** Zenodo, concept DOI <https://doi.org/10.5281/zenodo.19716140> — always resolves to the
-latest published version, which is 0.6.1 (`10.5281/zenodo.24430429`, 2026-11-22). Also on Figshare as
-`10.6084/m9.figshare.32086920.v7` (same files; the Zenodo 0.6.1 record does not yet carry
-`isIdenticalTo` the Figshare v7 DOI). The 0.6.1 records hold the Amendment 5 manuscript under its
-earlier title, *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A
-Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails
-Its Criterion and the Confidence Drop Passes*. The manuscript in this repository, with the title
-above (Amendment 6), is prepared as archive version 0.6.2 and is **not published**: it has no DOI
-yet, and publishing needs the principal's separate go.
+latest published version, which is 0.6.2 (`10.5281/zenodo.24518637`, 2026-11-25). Also on Figshare as
+`10.6084/m9.figshare.32086920.v8` (same files; the Zenodo 0.6.2 record does not yet carry
+`isIdenticalTo` the Figshare v8 DOI). The 0.6.2 records hold the manuscript in this repository,
+with the title above (Amendment 6). The superseded 0.6.1 records (`10.5281/zenodo.24430429`,
+Figshare v7) hold the Amendment 5 manuscript under its earlier title, *Does a Multi-Agent Group's
+Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on
+Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
+Passes*.
 Citation metadata, including every superseded version DOI, is in
 [`CITATION.cff`](CITATION.cff).
 

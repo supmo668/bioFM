@@ -16,10 +16,10 @@
 # exploratory section with two figures, and takes the Amendment 6 title. It includes the
 # plain-English rewrite (HACA-119) and the reproducibility sentence (HACA-124). No hypothesis,
 # threshold, estimator, run or outcome changed. paper/PREREGISTRATION.md IS amended (Amendment 6).
-# PREPARED, NOT APPROVED FOR PUBLICATION: row 41 authorises preparation and a dry run only;
-# publishing needs a separate explicit go after the dry run is reviewed (rows 2-3).
+# PUBLISHED 2026-11-25 on the principal's separate go (approvals row 42), after the row 41 dry
+# run was reviewed: Zenodo 10.5281/zenodo.24518637 and Figshare 10.6084/m9.figshare.32086920.v8.
 # 0.6.1 (principal 2026-11-08) was the Amendment-5 revision of v0.6.0. The git tags v0.6.0-a5 and
-# v0.6.0-a6 (the latter to be created by the CTO; it does not exist yet) are PREREGISTRATION
+# v0.6.0-a6 (on the deposit commit 07a5e57b) are PREREGISTRATION
 # amendment tags only, not deposit versions.
 version: "0.6.2"
 
@@ -108,7 +108,7 @@ keywords:
 license: cc-by-4.0
 
 # Deposit-time sequence. 0.6.2 supersedes 0.6.1 as a NEW VERSION of the existing records
-# (approvals row 41, 2026-11-24: preparation and dry run only, no publication go yet; as 0.6.1
+# (approvals row 41, 2026-11-24, published on the go of row 42, 2026-11-25; as 0.6.1
 # did v0.6.0 and v0.6.0 did v0.5.x, D-1 = B, CTO #647), so no duplicate record exists. The
 # submitter performs exactly the
 # two operations in ALLOWED_REVISIONS (venues.<venue>.revision_of below) and refuses any other
@@ -178,8 +178,8 @@ venues:
         scheme: "doi"
     # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from 0.6.1.
     revision_of: 24430429
-    # The notes name the amendment tag v0.6.0-a6. The CTO creates it on the landed commit; it must
-    # exist before the dry run, or the notes would cite a tag that does not exist.
+    # The notes name the amendment tag v0.6.0-a6, which the CTO created on the landed commit
+    # 07a5e57b before the dry run.
     notes: >-
       0.6.2 is the next version of this record (concept DOI 10.5281/zenodo.19716140), carrying
       Amendment 6 of the pre-registration (tag v0.6.0-a6). The manuscript now discloses that

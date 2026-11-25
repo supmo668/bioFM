@@ -982,8 +982,8 @@ def test_keywords_and_citation_version_are_true_of_the_work():
         assert kw.lower() in tex, kw
     assert set(cit["keywords"]) >= set(_cfg()["keywords"]) - {"provenance"}
     # 0.6.2 is the Amendment 6 manuscript deposit of the unchanged v0.6.0 run (approvals row 41,
-    # 2026-11-24: prepared, not yet approved for publication). CITATION.cff names the released
-    # work (0.6.1) until the 0.6.2 deposit is published; then it names 0.6.2 and its DOI
+    # 2026-11-24; published 2026-11-25 on the go of row 42). CITATION.cff names the released
+    # work: 0.6.1 until the 0.6.2 deposit was published, 0.6.2 and its DOI since
     # (publish.yml sequence step 5).
     sv = _load("scripts/publish/submit_to_venues.py", "sv_citation")
     state_path = sv.resolve_state_path(None, sv.PublishConfig.load(ROOT / "publish.yml"))

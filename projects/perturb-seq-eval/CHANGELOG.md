@@ -10,9 +10,9 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
 - **Tests: the MLP regression pin and two `summary.json` keys compare within a bounded ulp instead of bit-exactly (HACA-124).** The numbers move by a few ulp with the numpy/BLAS build: numpy 2.4.4 and 2.5.5 on the same x86_64 CPU differ, and the aarch64 host and the x86_64 runner both miss the pins recorded 2026-09-24 (HACA-121). The MLP regression pin now matches within 4 ulp of its largest magnitude (the linear pin stays bit-exact). The reproduction check stays exact for every `summary.json` key except `preregistered.H5.weights.one_minus_delta_c` and `preregistered.H5.norman_tdi`, which match within 4 ulp per element, and every reported value must be identical. Every test run prints its numeric environment (python, numpy, scipy, scikit-learn, torch, BLAS build and runtime core); the checked builds are in `tests/fixtures/numeric_environment.json`. The paper's Reproducibility paragraph discloses the two keys. No result, macro or artifact changed.
 
-## [0.6.2] — unreleased (deposit prepared, not yet published)
+## [0.6.2] — 2026-11-25 (manuscript revision; published)
 
-Prepared as the next version of the existing records: a Zenodo new version of 10.5281/zenodo.24430429 (concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920 version 8. **Not published, and publication is not approved.** Perturb-seq-eval approvals row 41 (2026-11-24) authorises preparation and a dry run only; publishing needs a separate explicit go after the dry run is reviewed. No 0.6.2 DOI, release date or deposit commit exists yet. The deposited `paper.pdf` is to be built from this branch's landed commit (the Amendment 6 manuscript), not from `main` at `db93576f`, whose plain-English-only manuscript is not to be published as 0.6.2 (row 41).
+Published as the next version of the existing records: Zenodo 10.5281/zenodo.24518637 (a new version of 10.5281/zenodo.24430429, concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v8 — the same five files, `paper.pdf` md5-identical on both (`e605c293db3296b80adb3b835a50888d`, downloaded from the public records), built from commit `07a5e57b` (tag `v0.6.0-a6`). Principal's go: perturb-seq-eval approvals row 42 (2026-11-25), the separate go that row 41 required; the drafts were published as reviewed, with no rebuild. The deposited manuscript is the Amendment 6 one, not the plain-English-only manuscript of `main` at `db93576f` (row 41).
 
 ### Changed
 
@@ -20,6 +20,10 @@ Prepared as the next version of the existing records: a Zenodo new version of 10
 - **Included from `main`:** the manuscript rewritten in plain academic English with no project shorthand (HACA-119, PR #52), and one sentence on reproducing two values across numerical libraries in the reproducibility paragraph (HACA-124, PR #55).
 - **No hypothesis, threshold, estimator, run or outcome changed.** The run artifacts are the v0.6.0 run's; the exploratory values enter no criterion. The reading of the H4 pass did change (see above), and `paper/PREREGISTRATION.md` is amended (Amendment 6).
 - **Deposit plumbing** (reused from the HACA-126 preparation, commit `b2b235f9`, with its description of the content rewritten): `publish.yml` targets a new version of Zenodo 24430429 and Figshare version 8 with state file `publish.state.v062.json`; in `scripts/publish/submit_to_venues.py` the one permitted Zenodo revision moves to 24430429, 23422745 (v0.6.0) becomes an ordinary superseded record, `publish.state.v061.json` joins the lineage records and the Figshare base version is 7.
+
+### Open
+
+- The Zenodo 0.6.2 record does not yet carry `isIdenticalTo` the Figshare v8 DOI (`publish.yml` deposit-time step 5; done for v6 on 2026-10-25).
 
 ## [0.6.1] — 2026-11-22 (manuscript revision; published)
 
