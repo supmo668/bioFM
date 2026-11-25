@@ -29,7 +29,8 @@
       ]
     ],
     "inherited_files_removed": true,
-    "prepared": true
+    "prepared": true,
+    "published": true
   },
   "zenodo": {
     "deposit_id": 24519260,
@@ -37,6 +38,7 @@
     "revision_of": 24518637,
     "inherited_files_removed": true,
     "doi": "10.5281/zenodo.24519260",
-    "prepared": true
+    "prepared": true,
+    "published": true
   }
 }
