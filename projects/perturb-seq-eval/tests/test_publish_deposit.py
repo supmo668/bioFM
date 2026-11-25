@@ -668,6 +668,20 @@ def test_figshare_revision_refuses_the_v5_base_with_gets_only(tmp_path, monkeypa
     assert json.loads(state_path.read_text()) == {}
 
 
+def test_figshare_revision_refuses_the_previous_base_v7_with_gets_only(tmp_path, monkeypatch):
+    """v7 was the base of the 0.6.2 revision: with 0.6.2 public as v8, a v7 public view is not
+    a base 0.6.3 may start from."""
+    import pytest
+
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(7,))
+    )
+    with pytest.raises(sv.PublishedRecordError, match="starts only from v8"):
+        sub.submit([])
+    assert calls and all(m == "get" for m, _, _ in calls)
+    assert json.loads(state_path.read_text()) == {}
+
+
 def test_state_revision_of_must_be_a_real_integer(tmp_path, monkeypatch):
     """SEC-2: a recorded revision_of of 24518637.0 or True never satisfies the revision check."""
     import pytest
