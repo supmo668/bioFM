@@ -623,7 +623,7 @@ def test_figshare_revision_dry_run_prepares_the_next_version_unpublished(tmp_pat
     }
 
 
-def test_figshare_revision_refuses_a_base_other_than_v7_and_stops_on_public_change(
+def test_figshare_revision_refuses_a_later_base_and_stops_on_public_change(
     tmp_path, monkeypatch
 ):
     import pytest
