@@ -105,12 +105,6 @@ identifiers:
     value: "10.5281/zenodo.19716140"
     description: "Zenodo concept DOI (resolves to the latest version)"
   - type: doi
-    value: "10.5281/zenodo.24518637"
-    description: "Zenodo v8 (0.6.2, published 2026-11-25; the latest published release, which holds the Amendment 6 manuscript and title)"
-  - type: doi
-    value: "10.6084/m9.figshare.32086920.v8"
-    description: "Figshare article version 8 (0.6.2, published 2026-11-25; same files as Zenodo v8)"
-  - type: doi
     value: "10.5281/zenodo.23422745"
     description: "Zenodo v6 (v0.6.0, published 2026-10-16; pre-amendment manuscript)"
   - type: doi
@@ -119,6 +113,12 @@ identifiers:
   - type: doi
     value: "10.6084/m9.figshare.32086920.v7"
     description: "Figshare article version 7 (0.6.1, published 2026-11-22; same files as Zenodo v7)"
+  - type: doi
+    value: "10.5281/zenodo.24518637"
+    description: "Zenodo v8 (0.6.2, published 2026-11-25; the latest published release, which holds the Amendment 6 manuscript and title)"
+  - type: doi
+    value: "10.6084/m9.figshare.32086920.v8"
+    description: "Figshare article version 8 (0.6.2, published 2026-11-25; same files as Zenodo v8)"
   - type: doi
     value: "10.6084/m9.figshare.32086920.v6"
     description: "Figshare article version 6 (v0.6.0, published 2026-10-16; same files as Zenodo v6; Zenodo v6 carries isIdenticalTo to this DOI since 2026-10-25)"
