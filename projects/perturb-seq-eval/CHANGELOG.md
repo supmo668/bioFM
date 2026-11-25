@@ -29,13 +29,15 @@ from the commit of this branch once it is merged; the manuscript on the `main` b
   known found that from the second round on (round 1 in the run's zero-based numbering) every
   agent's prompt carries the previous round's held-out prediction error
   (`agentic_lifecycle/loop.py`, `llm_agent_pool.py`). Neither the pre-registration nor the
-  archived manuscripts (v0.6.0 and 0.6.1) stated this. The author decided to disclose it and to
+  manuscripts archived earlier (including v0.6.0 and 0.6.1, which report this run) stated
+  this. The author decided to disclose it and to
   revise how the affected result is read. The manuscript now states, for each agent role, what
   its prompt carries; it does so in the experimental setup, at the ranking result and in the
   limitations.
 - **Revised reading of one supported hypothesis.** The pre-registered trace-feature ranking
-  hypothesis (that a feature of the agents' stated confidences ranks tasks by held-out error) is
-  still supported: its criterion is met through the drop in confidence across rounds. Because
+  hypothesis (that a feature of the agents' stated confidences ranks tasks by held-out error
+  within each dataset) is still supported: its criterion is met through the drop in confidence
+  across rounds and the composite that includes it. Because
   that drop is stated after an error has been shown, the manuscript now reads the outcome as
   consistent with confidence reacting to the shown error, and not as evidence that confidence
   predicts difficulty. The claims about prediction, about the single-round probe and about the
@@ -50,12 +52,19 @@ from the commit of this branch once it is merged; the manuscript on the `main` b
   A Pre-registered Test on Perturb-seq" and records that the exploratory analyses were added
   after the outcome. A dated note of 2026-11-24 in that section corrects its description of
   what each role's prompt carries and records the figures. The annotated git tag `v0.6.0-a6`
-  for this amendment does not exist yet; it is to be created on the merged commit.
+  for this amendment exists: it was created on 2026-11-25 on the merge commit `07a5e57b`. It
+  marks the amendment, not a release.
 - **Plain academic English.** The manuscript is rewritten without project shorthand: the
   hypotheses are named by what they claim instead of by label, abbreviations and symbols are
   defined where they are first used, and every table and figure caption defines what it shows.
   One sentence on reproducing two values across numerical libraries is added to the
   reproducibility section.
+- **Reference corrected: the CellForge preprint (arXiv:2508.02276).** Versions up to 0.6.1
+  credited it to "Xiangru Chen and others" in the bibliography and to "Wei, Yi" under a
+  different title in `CITATION.cff`. Its authors are Xiangru Tang, Jiapeng Chen, Daniel Shao,
+  Zhuoyun Yu and others (15 authors); its version-1 title is "CellForge: Agentic Design of
+  Virtual Cell Models" and its current (version 3) title is "AI Scientists for Building
+  Virtual-Cell Models". The bibliography key is unchanged.
 - **Deposit configuration.** `publish.yml` targets a new version of Zenodo record 24430429 and
   Figshare version 8, with the state file `publish.state.v062.json`. In
   `scripts/publish/submit_to_venues.py` the one permitted Zenodo revision moves to 24430429,

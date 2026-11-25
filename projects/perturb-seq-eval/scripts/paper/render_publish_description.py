@@ -23,6 +23,9 @@ GEN = PROJECT_ROOT / "paper" / "sections" / "generated_numbers.tex"
 GEN_EXPLORATORY = PROJECT_ROOT / "paper" / "sections" / "generated_exploratory.tex"
 PUBLISH = PROJECT_ROOT / "publish.yml"
 CITATION = PROJECT_ROOT / "CITATION.cff"
+# A textual citation in the abstract is rendered from this explicit map, never derived from the
+# bibliography; a key that is not listed here stops the render.
+CITET = {"lee2026catts": "Lee and colleagues (2026)"}
 MARK = "# GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand."
 
 
@@ -51,6 +54,13 @@ def _math(m: re.Match) -> str:
     return s.strip()
 
 
+def _citet(m: re.Match) -> str:
+    key = m.group(1)
+    if key not in CITET:
+        raise ValueError(f"\\citet{{{key}}} has no plain-text form in CITET")
+    return CITET[key]
+
+
 def render() -> str:
     tex = PAPER.read_text()
     body = tex[
@@ -58,6 +68,7 @@ def render() -> str:
     ]
     m = macros()
     body = re.sub(r"(?<!\\)%.*", "", body)
+    body = re.sub(r"\\citet\{([^}]*)\}", _citet, body)
     body = re.sub(r"~?\\citep?\{[^}]*\}", "", body)
     body = re.sub(r"\\textsc\{([^}]*)\}", r"\1", body)
     body = re.sub(r"\\((?:res|expl)[A-Z][A-Za-z]*)(\{\})?", lambda x: m[x.group(1)], body)

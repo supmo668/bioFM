@@ -19,47 +19,54 @@ abstract: >-
   is a five-agent orchestrator that predicts gene-expression responses in
   Perturb-seq data (pooled CRISPR screens read out by single-cell RNA
   sequencing), inspired by the CellForge system and operated with the MassGen
-  framework. We define four metrics on the record of a run — Agent Confidence
-  Entropy, Critique Severity Dispersion, the change in the agents' mean stated
-  confidence from the first round to the last, and Winner Flip Rate — and
-  their composite, the Task Difficulty Index (TDI). We pre-register five
-  hypotheses, each with a criterion: that a sweep of trained models attains
-  low held-out error on each of two screens of the K562 cell line, Adamson
-  2016 (CRISPR interference) and Norman 2019 (CRISPR activation); that the
-  Architect, the agent that selects the prediction model (the backbone),
-  varies its choice; that a TDI component ranks tasks by held-out error; and
-  that a TDI calibrated on one screen transfers to the other. The design is 41
-  held-out perturbations, called tasks (21 from Adamson, and 15 single-gene
-  and 5 two-gene perturbations from Norman), a sweep of 27 trained-model
-  records per task, and three runs of the agents per task, each of exactly
-  three rounds. The agents are large language models from a pinned roster of
-  Anthropic Claude models (Haiku 4.5 for the four roles that propose, Sonnet
-  5.5 for the role that validates) whose served model is recorded and asserted
-  per call. A run in which any agent step falls back to a rule-based default
-  is invalid, and every run carries a provenance record. We find that four of
-  the five pre-registered hypotheses are supported and the cross-dataset
-  transfer hypothesis is not; every hypothesis could be evaluated. The sweep
-  reaches the pre-registered error on both screens, and the Architect's choice
-  of backbone varies above the pre-registered entropy floor. Within each
-  screen, the drop in the agents' mean confidence across rounds, and the
-  composite that includes it, rank tasks by held-out error, which meets the
-  pre-registered ranking criterion. From the second round on, however, every
-  agent's prompt carries the previous round's held-out error, so that drop is
-  stated after an error has been shown. In an exploratory analysis, the mean
-  confidence stated before any feedback does not rank tasks by error
-  (Spearman's rank correlation ρ = 0.003 on Adamson and 0.214 on Norman, both
-  confidence intervals including zero). Read with the design and that
-  analysis, the pre-registered pass is consistent with stated confidence
-  falling further where a larger error was shown; it is not evidence that the
-  group's confidence anticipates difficulty. The composite fitted on Adamson
-  did not meet the pre-registered transfer criterion on Norman (ρ = 0.286
-  against a criterion of > 0.4). The point estimates for Agent Confidence
-  Entropy, an evenness index over the agents, run against the pre-registered
-  direction in both screens; this observation is exploratory and supports no
-  claim. A single-round probe, and a rule that would recommend an agent
-  configuration from it, are specified but not evaluated. The values reported
-  in the earlier release of this work (v0.5.0) are superseded in full; the
-  appendix lists the defects behind each.
+  framework. We define metrics on the record of a run, among them Agent
+  Confidence Entropy (an evenness index of the agents' stated confidences) and
+  the change in the agents' mean stated confidence from the first round to the
+  last, and a composite, the Task Difficulty Index (TDI). The testbed records
+  no agent-by-agent critiques and no per-round winner, so only the confidence
+  metrics and their composite are tested. We pre-register five hypotheses,
+  each with a criterion: that a sweep of trained models can attain low error,
+  taking the best configuration for each task (a best-case bound, selected on
+  the data it is scored on), on each of two screens of the K562 cell line,
+  Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR activation); that
+  the Architect, the agent that selects the prediction model (the backbone),
+  states varied choices, as measured by their Shannon entropy; that one of
+  those metrics or their composite ranks tasks, within a screen, by held-out
+  error (the mean squared deviation on the twenty most differentially
+  expressed genes of the held-out perturbation); and that a composite fitted
+  on one screen (its weights estimated by regression on that screen's tasks)
+  ranks the tasks of the other. The design is 41 held-out perturbations,
+  called tasks (21 from Adamson, and 15 single-gene and 5 two-gene
+  perturbations from Norman), a sweep of 27 model fits per task, and three
+  runs of the agents per task, each of exactly three rounds. The agents are
+  large language models from a pinned roster of Anthropic Claude models (Haiku
+  4.5 for the four roles that propose, Sonnet 5.5 for the role that validates)
+  whose served model is recorded and asserted per call. A run in which any
+  agent step falls back to a rule-based default is invalid, and every run
+  records its code revision, configuration, dataset digests and serving
+  models. We find that four of the five pre-registered hypotheses are
+  supported and the cross-dataset transfer hypothesis is not; every hypothesis
+  could be evaluated. The sweep reaches the pre-registered error on both
+  screens, and the entropy of the Architect's stated choices is above the
+  pre-registered minimum. Within each screen, the drop in the agents' mean
+  confidence across rounds, and the composite that includes it, rank tasks by
+  held-out error, which meets the pre-registered ranking criterion. From the
+  second round on, however, every agent's prompt carries the previous round's
+  held-out error, so that drop is stated after an error has been shown. In an
+  exploratory analysis, the mean confidence stated before any feedback does
+  not rank tasks by error (Spearman's rank correlation ρ = 0.003 on Adamson
+  and 0.214 on Norman, both confidence intervals including zero). Read with
+  the design and that analysis, the pre-registered pass is consistent with
+  stated confidence falling further where a larger error was shown; it is not
+  evidence that the group's confidence anticipates difficulty. The composite
+  fitted on Adamson did not meet the pre-registered transfer criterion on
+  Norman (ρ = 0.286 against a criterion of > 0.4). The point estimates for
+  Agent Confidence Entropy run against the pre-registered direction in both
+  screens; this observation is exploratory and supports no claim. A probe that
+  would observe the agents' confidences and critiques in a single shallow
+  round, and a rule that would recommend an agent configuration from it, are
+  specified but not evaluated. The values reported in the earlier release
+  (v0.5.0) are superseded in full; the appendix lists the defects behind each.
 authors:
   - family-names: "Mo"
     given-names: "Mang-yin"
@@ -281,3 +288,70 @@ references:
     journal: "Cell"
     volume: 167
     pages: "1867-1882"
+  - type: article
+    authors:
+      - family-names: "Norman"
+        given-names: "Thomas M."
+      - family-names: "Horlbeck"
+        given-names: "Max A."
+      - family-names: "Replogle"
+        given-names: "Joseph M."
+      - family-names: "Ge"
+        given-names: "Alex Y."
+      - family-names: "Xu"
+        given-names: "Albert"
+      - family-names: "Jost"
+        given-names: "Marco"
+      - family-names: "Gilbert"
+        given-names: "Luke A."
+      - family-names: "Weissman"
+        given-names: "Jonathan S."
+    title: "Exploring genetic interaction manifolds constructed from rich single-cell phenotypes"
+    year: 2019
+    journal: "Cell"
+    volume: 179
+    issue: 7
+    start: 1541
+    end: 1554
+    doi: "10.1016/j.cell.2019.05.031"
+  - type: article
+    authors:
+      - family-names: "Peidli"
+        given-names: "Stefan"
+      - family-names: "Green"
+        given-names: "Tessa D."
+      - family-names: "Shen"
+        given-names: "Ciyue"
+      - name: "others"
+    title: "scPerturb: harmonized single-cell perturbation data"
+    year: 2024
+    journal: "Nature Methods"
+    doi: "10.1038/s41592-023-02144-y"
+  - type: article
+    authors:
+      - family-names: "Lee"
+        given-names: "Nicholas"
+      - family-names: "Erdogan"
+        given-names: "Lutfi Eren"
+      - family-names: "John"
+        given-names: "Chris Joseph"
+      - family-names: "Krishnapillai"
+        given-names: "Surya"
+      - family-names: "Mahoney"
+        given-names: "Michael W."
+      - family-names: "Keutzer"
+        given-names: "Kurt"
+      - family-names: "Gholami"
+        given-names: "Amir"
+    title: "Agentic Test-Time Scaling for WebAgents"
+    year: 2026
+    url: "https://arxiv.org/abs/2602.12276"
+  - type: generic
+    authors:
+      - family-names: "Li"
+        given-names: "Zekun"
+      - name: "contributors"
+    title: "MassGen: Multi-Agent Scaling System for GenAI"
+    year: 2025
+    url: "https://github.com/Leezekun/MassGen"
+    notes: "GitHub repository"

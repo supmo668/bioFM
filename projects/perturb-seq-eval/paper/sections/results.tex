@@ -35,7 +35,7 @@ is that of the ranking criterion (\S\ref{sec:tdi-real}).
 \centering
 \begin{tabular}{p{0.03\linewidth}p{0.09\linewidth}p{0.1\linewidth}p{0.17\linewidth}p{0.45\linewidth}}
 \toprule
-No. & Version tag & Locked (UTC) & Lock commit(s) & Change \\
+No. & Version label & Locked (UTC) & Lock commit(s) & Change \\
 \midrule
 1 & \resAmendOneVersion$^{\dagger}$ & \resAmendOneDate & \texttt{\resAmendOneCommit} & \resAmendOneChange \\
 2 & \texttt{\resAmendTwoVersion} & \resAmendTwoDate & \texttt{\resAmendTwoCommit} & \resAmendTwoChange \\
@@ -47,14 +47,16 @@ No. & Version tag & Locked (UTC) & Lock commit(s) & Change \\
 \bottomrule
 \end{tabular}
 \caption{The six amendments to the pre-registration, numbered in order. For each, the table
-gives the version tag of the pre-registration in the released repository, the date on which
+gives the pre-registration's version label (the \texttt{prereg\_version} string that the
+amendment sets and that a run made under it records in its provenance; amendments 5 and 6 are
+also git tags of that name), the date on which
 the amendment was locked, the repository commit or commits that locked its text (the lock
 commits), and what it changed. Amendments 1--4 were each locked before any data from this
 sweep existed. $^{\ddagger}$Amendments 5 and 6 were locked \emph{after} the outcome was known;
 the fifth changes the title and one term only, the sixth changes the title again and records
 the exploratory analyses added after the outcome, and no run exists under either.
 $^{\dagger}$The first amendment predates the
-version tags, so it has none; the run was made under the fourth amendment's tag. For the fourth
+version labels, so it has none; the run was made under the fourth amendment's label. For the fourth
 amendment, \resAmendFourNote. Dates and commits are taken from the repository history and
 checked against it automatically.}
 \label{tab:amendments}
@@ -67,13 +69,15 @@ checked against it automatically.}
 \toprule
 Hypothesis & Criterion & Outcome \\
 \midrule
-\emph{Attainable error on Adamson.} The trainer sweep attains low held-out error on the
-  Adamson tasks.
+\emph{Attainable error on Adamson.} The best configuration of the trainer sweep, selected
+  on the data it is scored on (an oracle quantity, \S\ref{subsec:oracle}), attains low error
+  on the Adamson tasks.
   & The median over tasks of the lowest MSD is below $\resHOneThreshold$.
   & \resHOneVerdict{} (median \resHOneMedian) \\
 \addlinespace
-\emph{Attainable error on Norman.} The trainer sweep attains low held-out error on the
-  Norman tasks.
+\emph{Attainable error on Norman.} The best configuration of the trainer sweep, selected
+  on the data it is scored on (an oracle quantity, \S\ref{subsec:oracle}), attains low error
+  on the Norman tasks.
   & The median over tasks of the lowest MSD is below $\resHTwoThreshold$.
   & \resHTwoVerdict{} (median \resHTwoMedian) \\
 \addlinespace
@@ -87,8 +91,9 @@ Hypothesis & Criterion & Outcome \\
   & Spearman's $\rho$ exceeds $0.5$ in at least one of the six within-dataset tests.
   & \resHFourVerdict{} (\resHFourNPassing{} of \resHFourNTests{} tests) \\
 \addlinespace
-\emph{Cross-dataset transfer.} $\mathrm{TDI}_{\mathrm{lifecycle}}$ with weights fitted by
-  ridge regression on the Adamson tasks ranks the Norman tasks by held-out error.
+\emph{Cross-dataset transfer.} A two-term composite of $\mathrm{ACE}_{\mathrm{norm}}$ and
+  $1-\Delta C$, with weights fitted by ridge regression on the Adamson tasks, ranks the Norman
+  tasks by held-out error.
   & Spearman's $\rho$ on the Norman tasks exceeds $\resHFiveThreshold$.
   & \resHFiveVerdict{} ($\rho=\resHFiveRho$) \\
 \bottomrule
@@ -102,8 +107,9 @@ not allow the test. Tally out of \resTallyOut: supported \resTallyPass, not supp
 oracle quantity (\S\ref{subsec:oracle}). $\mathrm{ACE}_{\mathrm{norm}}$ is the normalised
 entropy of the agents' final-round confidences, $1-\Delta C$ is one minus the change in their
 mean confidence from the first round to the last, and $\mathrm{TDI}_{\mathrm{lifecycle}}$ is
-the weighted composite of the two (\S\ref{sec:tdi-real}); $\rho$ is Spearman's rank
-correlation across tasks. The estimators are given in the subsections that follow
+the fixed-weight composite of the two (\S\ref{sec:tdi-real}); $\rho$ is Spearman's rank
+correlation across tasks. The six within-dataset tests of the ranking hypothesis are these
+three features in each of the two screens. The estimators are given in the subsections that follow
 and in the pre-registration.}
 \label{tab:gates}
 \end{table}
@@ -178,8 +184,8 @@ are flagged as not implemented there; they are not computed here, and are report
 \subsection{Do the trace metrics rank tasks by held-out error?}\label{sec:tdi-real}
 
 \paragraph{Which quantities.} The four-component TDI of equation~(\ref{eq:tdi})
-\emph{cannot be computed}: CSD needs a critique matrix and WFR a per-round winner, and the five-role
-lifecycle records neither. The trace-feature ranking hypothesis therefore uses the components the
+\emph{cannot be computed}: CSD needs a critique-severity matrix and WFR a per-round winner,
+and the five-role lifecycle records no such matrix and has no per-round winner. The trace-feature ranking hypothesis therefore uses the components the
 traces supply. For each run, with $C(r)$ the confidences of the LLM-sourced steps in round $r$,
 these are $\mathrm{ACE}_{\mathrm{norm}}$ of the final round, the entropy of the direct simplex
 projection of $C(\text{last})$ divided by $\ln N$ (range $[0,1]$); the unclipped $1-\Delta C$, with
@@ -223,7 +229,7 @@ $\mathrm{TDI}_{\mathrm{lifecycle}}$ & \resHFourAdaTdiRho{} [\resHFourAdaTdiCILo,
 $\mathrm{ACE}_{\mathrm{norm}}$, softmax form & \resHFourAdaAceSoftmaxRho{} [\resHFourAdaAceSoftmaxCILo, \resHFourAdaAceSoftmaxCIHi] & \resHFourNorAceSoftmaxRho{} [\resHFourNorAceSoftmaxCILo, \resHFourNorAceSoftmaxCIHi] & --- \\
 $1-\Delta C$, clipped form & \resHFourAdaDcClippedRho{} [\resHFourAdaDcClippedCILo, \resHFourAdaDcClippedCIHi] & \resHFourNorDcClippedRho{} [\resHFourNorDcClippedCILo, \resHFourNorDcClippedCIHi] & --- \\
 \midrule
-CSD and WFR & \multicolumn{3}{p{0.64\linewidth}}{cannot be computed: the lifecycle records neither critiques nor a round winner} \\
+CSD and WFR & \multicolumn{3}{p{0.64\linewidth}}{cannot be computed: the lifecycle records no critique-severity matrix and has no per-round winner} \\
 \bottomrule
 \end{tabular}
 \caption{Spearman's rank correlation $\rho$ across tasks between each trace feature and the

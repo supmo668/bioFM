@@ -31,9 +31,10 @@ The five hypotheses, their pre-registered criteria and the analysis plan are in
 [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
 The results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git revision `ce5f237`
 (`artifacts/v0.6.0/`). Four of the five pre-registered hypotheses are supported: a sweep of
-trained models attains low held-out error on each of the two datasets (two hypotheses), the
-agent that selects the prediction model varies its choice, and a feature of the agents' stated
-confidences ranks tasks by held-out error. The fifth, that an index fitted on one dataset
+trained models can attain low error (best configuration per task, an oracle bound) on each of
+the two datasets (two hypotheses), the agent that selects the prediction model varies its
+choice, and a feature of the agents' stated confidences ranks tasks by held-out error within
+each dataset. The fifth, that an index fitted on one dataset
 transfers to the other, is not supported. Every manuscript
 value is a generated macro (`scripts/paper/fill_v060_numbers.py` for the pre-registered and
 run-record values, `scripts/paper/fill_v060_exploratory.py` for the exploratory ones, which were
@@ -45,8 +46,9 @@ superseded (see the paper's appendix "Corrections relative to v0.5.0").
 Does the distribution of stated confidences and critiques across a
 [five-agent team modelled on the CellForge system](../../libs/cellforge-agents/) predict
 how hard a task is, or does it only react to an error the agents have been shown? The paper tests
-this under five pre-registered criteria. The feature that meets its ranking criterion
-(the drop in confidence across rounds) is stated after every role has been shown the
+this under five pre-registered criteria. The features that meet the ranking criterion
+(the drop in confidence across rounds and the composite that includes it) are stated after
+every role has been shown the
 previous round's held-out error; in an exploratory analysis the mean confidence stated
 before any feedback does not rank tasks. The preflight probe and the recommender for
 team size, round count and backbone are specified and released, not fitted or

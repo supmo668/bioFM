@@ -1290,7 +1290,12 @@ def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
     flags = {a["id"]: a.get("post_outcome", False) for a in am}
     assert all(type(v) is bool for v in flags.values()), flags
     assert [k for k, v in flags.items() if v] == ["A5", "A6"]
-    assert "No. & Version tag & Locked (UTC) & Lock commit(s) & Change" in res
+    assert "No. & Version label & Locked (UTC) & Lock commit(s) & Change" in res
+    # amendments 2-4 have a version label and no git tag: the caption must not call the column tags
+    flat = " ".join(res.split())
+    assert "version tag" not in flat.lower()
+    assert "amendments 5 and 6 are also git tags of that name" in flat
+    assert "predates the version labels" in flat
     for a in am:
         w = WORDS[a["id"]]
         num = a["id"].removeprefix("A")
@@ -1384,3 +1389,95 @@ def test_no_capitalised_status_words_or_inline_register_codes():
 )
 def test_shorthand_guards_catch_variants(bad):
     assert HLABEL.search(bad) or REGISTER_CODE.search(bad) or STATUS_WORD.search(bad), bad
+
+
+def test_clarity_pass_corrections_stay_true_to_the_code_and_the_run():
+    """Statements a self-containment pass got wrong, each pinned to its source: the attainable
+    error is an oracle (never "held-out"); two features in both screens meet the ranking
+    criterion (never "the one feature"); the sweep's R is a training-budget index whose formula
+    is the code's; the lifecycle has no critique-severity matrix and no per-round winner; the
+    transfer composite is ridge-fitted, not the fixed-weight TDI_lifecycle."""
+    from perturb_eval.experiments.heldout import R_SEED_INVARIANT_BACKBONES, trainer_config
+
+    flat = {p.name: " ".join(_strip(p.read_text()).split()) for p in (MAIN, RESULTS, SETUP)}
+    main, res, setup = flat["paper.tex"], flat["results.tex"], flat["experimental_setup.tex"]
+    readme = " ".join((ROOT / "README.md").read_text().split())
+    abstract = main[main.index("\\begin{abstract}") : main.index("\\end{abstract}")]
+
+    # the oracle is not a held-out error, on any surface that states the hypotheses
+    for name, text in (("abstract", abstract), ("results", res), ("README", readme)):
+        assert "low held-out error" not in text, name
+    for ds in ("Adamson", "Norman"):
+        assert (
+            f"\\emph{{Attainable error on {ds}.}} The best configuration of the trainer sweep, "
+            "selected on the data it is scored on (an oracle quantity, \\S\\ref{subsec:oracle}), "
+            f"attains low error on the {ds} tasks." in res
+        )
+    assert (
+        "taking the best configuration for each task (a best-case bound, selected on the "
+        in abstract
+    )
+    assert "(best configuration per task, an oracle bound)" in readme
+    assert "ranks tasks by held-out error within each dataset" in readme
+
+    # four of the six tests pass: two features in each of two screens
+    h4 = json.loads((ROOT / "artifacts/v0.6.0/summary.json").read_text())["preregistered"]["H4"]
+    assert h4["n_tests_passing"] == 4 and len(h4["all_six"]) == 6
+    assert "the one feature" not in main and "The feature that meets" not in readme
+    assert (
+        "the features of a run's record (its \\emph{trace}) that meet the ranking criterion --- "
+        "the drop in confidence across rounds and the composite that includes it --- are stated "
+        "after the agents have been shown a held-out error" in main
+    )
+    assert (
+        "The six within-dataset tests of the ranking hypothesis are these three features in "
+        "each of the two screens." in res
+    )
+
+    # R in the trainer sweep: the stated formula is trainer_config's, and linear ignores it
+    assert "round count" not in setup
+    assert (
+        "it sets the trainer's iteration budget, the number of training iterations, to $20+40R$"
+        in setup
+    )
+    assert [trainer_config(r, 2026).max_iter for r in (1, 2, 3)] == [20 + 40 * r for r in (1, 2, 3)]
+    assert R_SEED_INVARIANT_BACKBONES == {"linear"}
+    assert "The \\textsc{linear} backbone ignores both $R$ and the seed" in setup
+
+    # CSD / WFR
+    assert "records neither critiques" not in res
+    assert (
+        "cannot be computed: the lifecycle records no critique-severity matrix and has no "
+        "per-round winner" in res
+    )
+
+    # the transfer composite is not the fixed-weight TDI_lifecycle
+    assert (
+        "\\emph{Cross-dataset transfer.} A two-term composite of $\\mathrm{ACE}_{\\mathrm{norm}}$ "
+        "and $1-\\Delta C$, with weights fitted by ridge regression on the Adamson tasks, ranks "
+        "the Norman tasks by held-out error." in res
+    )
+    assert "a TDI calibrated on one screen" not in abstract
+    assert "composite fitted on one screen (its weights estimated by regression" in abstract
+
+    # earlier archived versions are not a complete two-item list
+    for text in (main, setup):
+        assert "(including versions 0.6.0 and 0.6.1, which report this run)" in text
+        assert "(versions 0.6.0 and 0.6.1)" not in text
+
+    # the amendment tag v0.6.0-a6 exists and marks the amendment, not a release
+    for rel in ("CHANGELOG.md", "publish.yml", "paper/SUBMISSION.md"):
+        text = " ".join((ROOT / rel).read_text().replace("#", " ").split())
+        assert "creates the amendment tag" not in text and "to be created by the CTO" not in text, (
+            rel
+        )
+        if rel != "paper/SUBMISSION.md":  # there the phrase is about the 0.6.2 record, truly
+            assert "does not exist yet" not in text, rel
+        assert "07a5e57b" in text and "not a release" in text, rel
+    # ... and the CellForge reference correction is disclosed where a reader of the record looks
+    for rel in ("CHANGELOG.md", "publish.yml"):
+        text = " ".join((ROOT / rel).read_text().split())
+        assert (
+            "Xiangru Tang, Jiapeng Chen, Daniel Shao, Zhuoyun Yu and others (15 authors)" in text
+        ), rel
+        assert "Xiangru Chen and others" in text and "Wei, Yi" in text, rel

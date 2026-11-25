@@ -61,35 +61,40 @@
 A multi-agent group-generation system, in which language-model agents propose,
 critique and vote over several rounds, spends test-time compute (computation at
 inference) uniformly across tasks as operated here. That a single agent's own vote distribution can gate its test-time compute
-is already reported by the \textsc{CATTS} method of Lee and colleagues (2026); we ask the
+is already reported by the \textsc{CATTS} method of \citet{lee2026catts}; we ask the
 multi-agent question: whether the distribution of stated confidences and
 critiques across a group of role-specialised agents predicts how hard a task
 is, which would let the group's compute be allocated adaptively. The testbed is
 a five-agent orchestrator that predicts gene-expression responses in Perturb-seq
 data (pooled CRISPR screens read out by single-cell RNA sequencing), inspired by
 the \textsc{CellForge} system~\citep{chen2025cellforge} and operated with the
-\textsc{MassGen} framework~\citep{massgen2025github}. We define four metrics on
-the record of a run --- Agent Confidence Entropy, Critique Severity Dispersion,
-the change in the agents' mean stated confidence from the first round to the
-last, and Winner Flip Rate --- and their composite, the Task Difficulty Index
-(TDI). We pre-register five hypotheses, each with a criterion: that a sweep of
-trained models attains low held-out error on each of two screens of the K562 cell
+\textsc{MassGen} framework~\citep{massgen2025github}. We define metrics on
+the record of a run, among them Agent Confidence Entropy (an evenness index of the
+agents' stated confidences) and the change in the agents' mean stated confidence
+from the first round to the last, and a composite, the Task Difficulty Index (TDI).
+The testbed records no agent-by-agent critiques and no per-round winner, so only the
+confidence metrics and their composite are tested. We pre-register five hypotheses, each with
+a criterion: that a sweep of trained models can attain low error, taking the best
+configuration for each task (a best-case bound, selected on the data it is scored
+on), on each of two screens of the K562 cell
 line, \textsc{Adamson 2016}~\citep{adamson2016perturbseq} (CRISPR interference) and
 \textsc{Norman 2019}~\citep{norman2019perturbseq} (CRISPR activation); that the
-Architect, the agent that selects the prediction model (the backbone), varies its
-choice; that a TDI component ranks tasks by held-out error; and that a TDI
-calibrated on one screen transfers to the other. The design is $41$ held-out
+Architect, the agent that selects the prediction model (the backbone), states varied
+choices, as measured by their Shannon entropy; that one of those metrics or their
+composite ranks tasks, within a screen, by held-out error (the mean squared deviation
+on the twenty most differentially expressed genes of the held-out perturbation); and
+that a composite fitted on one screen (its weights estimated by regression on that screen's tasks) ranks the tasks of the other. The design is $41$ held-out
 perturbations, called tasks ($21$ from Adamson, and $15$ single-gene and $5$
 two-gene perturbations from Norman), a sweep of \resNTrainerRecordsPerTask{}
-trained-model records per task, and three runs of the agents per task, each of
+model fits per task, and three runs of the agents per task, each of
 exactly three rounds. The agents
 are large language models from a pinned roster of Anthropic Claude
 models (Haiku 4.5 for the four roles that propose, Sonnet 5.5 for the role that
 validates) whose served model is recorded and asserted per call. A run in which
 any agent step falls back to a rule-based default is invalid, and every run
-carries a provenance record. We find that \resGateSummary. The sweep reaches
-the pre-registered error on both screens, and the Architect's choice of backbone
-varies above the pre-registered entropy floor. Within each screen, the drop in the
+records its code revision, configuration, dataset digests and serving models. We find that \resGateSummary. The sweep reaches
+the pre-registered error on both screens, and the entropy of the Architect's stated
+choices is above the pre-registered minimum. Within each screen, the drop in the
 agents' mean confidence across rounds, and the composite that includes it, rank tasks
 by held-out error, which meets the pre-registered ranking criterion. From the second
 round on, however, every agent's prompt carries the
@@ -103,12 +108,13 @@ confidence falling further where a larger error was shown; it is not evidence th
 group's confidence anticipates difficulty. The composite fitted
 on Adamson did not meet the pre-registered transfer criterion on Norman
 ($\rho=\resHFiveRho$ against a criterion of $>\resHFiveThreshold$). The point
-estimates for Agent Confidence Entropy, an evenness index over the agents, run against
+estimates for Agent Confidence Entropy run against
 the pre-registered direction in both screens; this observation is exploratory and
-supports no claim. A single-round probe, and a rule that would recommend an agent
+supports no claim. A probe that would observe the agents' confidences and critiques in a single
+shallow round, and a rule that would recommend an agent
 configuration from it, are specified but not evaluated. The values reported in the
-earlier release of this work (v0.5.0) are superseded in full; the appendix lists the
-defects behind each.
+earlier release (v0.5.0) are superseded in full; the appendix lists the defects behind
+each.
 \end{abstract}
 
 % =====================================================================
@@ -139,8 +145,9 @@ well-characterised single-gene perturbation or a novel combinatorial one.
 \emph{This paper asks whether the group's own internal dynamics carry enough
 signal to allocate its compute adaptively}, and tests that question under a
 pre-registered design so that either answer is informative. The answer on this
-run is narrower than the question: the one feature of a run's record (its
-\emph{trace}) that meets its criterion is
+run is narrower than the question: the features of a run's record (its
+\emph{trace}) that meet the ranking criterion --- the drop in confidence across
+rounds and the composite that includes it --- are
 stated after the agents have been shown a held-out error, and, in an exploratory
 analysis added after the outcome, the mean confidence stated before any such
 feedback does not rank tasks (\S\ref{subsec:exploratory}). No pre-registered or
@@ -672,7 +679,8 @@ agreement and the accept-or-reject verdict against the Validator's threshold. Th
 round index changes with them as well. The design therefore does not isolate the
 shown error as the cause of the drop. The pre-registered null (no association) does
 not model this feedback, the pre-registration did not state it, and the versions of
-this paper archived before this one (versions 0.6.0 and 0.6.1) did not disclose it. A test of prediction
+this paper archived before this one (including versions 0.6.0 and 0.6.1, which report
+this run) did not disclose it. A test of prediction
 proper would elicit confidence with no error in context; that needs new runs under a
 new pre-registration.
 

@@ -963,6 +963,15 @@ def test_render_rules(tmp_path, monkeypatch):
     )
     import pytest
 
+    # a textual citation renders from the explicit CITET map and from nowhere else: the mapped
+    # key gives its plain-text form, and an unmapped key stops the render
+    assert rd.CITET == {"lee2026catts": "Lee and colleagues (2026)"}
+    assert (
+        run("the \\textsc{CATTS} method of \\citet{lee2026catts}; we ask~\\citep{k}.")
+        == "the CATTS method of Lee and colleagues (2026); we ask."
+    )
+    with pytest.raises(ValueError, match="CITET"):
+        run("as \\citet{k} show")
     with pytest.raises(ValueError):
         run("(\\citet{k}) 10\\%")
     with pytest.raises(KeyError):
@@ -1822,7 +1831,7 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     for tok in (
         "0.286",
         "> 0.4",
-        "four of the five hypotheses are supported",
+        "Four of the five hypotheses are supported",
         "the cross-dataset transfer hypothesis is not",
         "every hypothesis could be evaluated",
         # the five hypotheses, named by what they claim (HACA-119)
@@ -1836,7 +1845,11 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         "21 Adamson",
         "15 Norman",
         "5 Norman",
-        "27 trained-model records",
+        "27 model fits",
+        # restored after the self-containment pass dropped or weakened them
+        "a group of role-specialised agents",
+        "(Haiku 4.5, Sonnet 5.5), the served model asserted per call",
+        "every prompt carries the prior round's held-out error",
         "Haiku 4.5",
         "Sonnet 5.5",
         "CATTS",
@@ -1857,7 +1870,10 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         assert len(re.findall(rf"\b{abbr}\b", ov)) >= 2, abbr
     assert not re.search(r"\b(CSD|WFR|LLM|HVG|MSD|CI)\b|Delta|singleton|doublet", ov)
     assert ov.index("Spearman's $\\rho$") == ov.index("$\\rho$") - len("Spearman's ")
-    assert "from these K562 screens" in ov and "Perturb-seq (single-cell CRISPR screen)" in ov
+    assert "on Norman 2019 (screens of the K562 cell line)" in ov and "from these screens" in ov
+    assert "Perturb-seq (single-cell CRISPR screen)" in ov
+    assert "it is not evidence that confidence anticipates difficulty" in ov  # no dangling "it"
+    assert "that it anticipates" not in ov
     assert "the Architect (the model-choosing agent)" in ov
     assert "ranks tasks by error, meeting its criterion" in ov  # the antecedent of "The pass"
     assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg

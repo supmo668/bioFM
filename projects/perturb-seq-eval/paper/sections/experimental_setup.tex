@@ -84,8 +84,11 @@ foundation model.
 
 \subsection{Trainer sweep and the oracle quantity}\label{subsec:oracle}
 
-For every task the trainer sweep fits each of the three backbones with a round count
-$R\in\{1,2,3\}$ and $3$ seeds ($2026$--$2028$): \resNTrainerRecordsPerTask{} records per task. The
+For every task the trainer sweep fits each of the three backbones at three settings of a
+training-budget index $R\in\{1,2,3\}$ and with $3$ seeds ($2026$--$2028$):
+\resNTrainerRecordsPerTask{} records per task. In the sweep $R$ is not a number of agent
+rounds: it sets the trainer's iteration budget, the number of training iterations, to
+$20+40R$. The
 \textsc{linear} backbone ignores both $R$ and the seed, so the grid holds
 \resNDistinctConfigs{} distinct $(\text{backbone}, R)$ configurations
 (\resNDistinctFits{} distinct fits including seeds); the counts are written to the run's
@@ -157,7 +160,7 @@ before any error feedback. The confidence-drop feature $\Delta C$ is the last ro
 confidence minus the first round's, so it is a difference between confidence after that
 feedback and confidence before it. This is how the lifecycle was designed and run; it was not
 stated in the pre-registration or in the versions of this paper archived before this one
-(versions 0.6.0 and 0.6.1), and it
+(including versions 0.6.0 and 0.6.1, which report this run), and it
 governs how the ranking result is read (\S\ref{sec:tdi-real}, \S\ref{sec:limits}).
 
 \paragraph{Large language model condition.} The agents are large language models (LLMs),
