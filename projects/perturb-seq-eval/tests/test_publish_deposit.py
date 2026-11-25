@@ -478,6 +478,21 @@ def test_zenodo_newversion_response_is_validated_before_any_delete(tmp_path, mon
         with pytest.raises(sv.PublishedRecordError):
             sub.submit([])
         assert not any(m in ("delete", "put") for m, _, _ in calls), bad
+    # A self-consistent draft whose id is not newer than the record being revised (and is in
+    # no superseded list) is refused by the id-order check alone.
+    older = 24500555
+    assert older < sv.ALLOWED_REVISIONS["zenodo"] and older not in sv.SUPERSEDED_RECORDS["zenodo"]
+    routes = _revision_routes(draft={"id": older})
+    routes[("post", "/deposit/depositions/24518637/actions/newversion")] = {
+        "links": {"latest_draft": f"{ZEN_BASE}/deposit/depositions/{older}"}
+    }
+    routes[("get", f"/deposit/depositions/{older}")] = routes[
+        ("get", f"/deposit/depositions/{NEW_ZEN}")
+    ]
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
+    with pytest.raises(sv.PublishedRecordError):
+        sub.submit([])
+    assert not any(m in ("delete", "put") for m, _, _ in calls)
     routes = _revision_routes()
     routes[("post", "/deposit/depositions/24518637/actions/newversion")] = {
         "links": {"latest_draft": "https://evil.example/api/deposit/depositions/555"}
@@ -623,9 +638,7 @@ def test_figshare_revision_dry_run_prepares_the_next_version_unpublished(tmp_pat
     }
 
 
-def test_figshare_revision_refuses_a_later_base_and_stops_on_public_change(
-    tmp_path, monkeypatch
-):
+def test_figshare_revision_refuses_a_later_base_and_stops_on_public_change(tmp_path, monkeypatch):
     import pytest
 
     sv, sub, calls, _, _ = _submitter(
@@ -1036,7 +1049,7 @@ def test_keywords_and_citation_version_are_true_of_the_work():
         revised = f"10.5281/zenodo.{sv.ALLOWED_REVISIONS['zenodo']}"
         assert "latest published release" not in ids[revised]
         # ... and the Figshare version it was published as stays on record beside it.
-        assert f"{state[\x27figshare\x27][\x27doi\x27]}.v{sv.FIGSHARE_BASE_VERSION}" in ids
+        assert f"{state['figshare']['doi']}.v{sv.FIGSHARE_BASE_VERSION}" in ids
         assert sum("latest published release" in d for d in ids.values()) == 1
         # The CHANGELOG entry is marked published with the release date and both DOIs.
         released = str(cit["date-released"])
@@ -2068,7 +2081,8 @@ def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
     assert "latest published release" in ids[zenodo_doi] and figshare_doi in ids
     # exactly one record is the latest, and it is not the 0.6.1 record that 0.6.2 revised
     assert sum("latest published release" in d for d in ids.values()) == 1
-    assert "latest published release" not in ids[f"10.5281/zenodo.{v062[\x27zenodo\x27][\x27revision_of\x27]}"]
+    revised = f"10.5281/zenodo.{v062['zenodo']['revision_of']}"
+    assert revised == "10.5281/zenodo.24430429" and "latest published release" not in ids[revised]
     assert not any("0.6.3" in d for d in ids.values())  # no identifier is claimed for 0.6.3
     changelog = (ROOT / "CHANGELOG.md").read_text()
     heads = [ln for ln in changelog.splitlines() if ln.startswith("## [0.6.")]
@@ -2087,8 +2101,9 @@ def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
         assert "figshare.32086920.v9" not in text, rel
     assert not any(k.endswith(".v9") for k in ids)
     # 0.6.2 holds the wording BEFORE the rewrite, said where a reader meets the 0.6.2 record
-    assert "in the wording it had before the hypotheses and amendments were named in words" in (
-        surfaces["README.md"]
+    assert (
+        "in the wording it had before the hypotheses and amendments were named in words"
+        in (surfaces["README.md"])
     )
     assert "`0.6.2` holds it in the wording before that rewrite" in surfaces["paper/SUBMISSION.md"]
     assert "before the self-contained rewrite of the wording that is prepared as 0.6.3" in (
