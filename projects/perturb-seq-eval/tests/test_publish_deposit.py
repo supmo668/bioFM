@@ -2078,6 +2078,9 @@ def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
     assert str(cit["date-released"]) == "2026-11-25"
     ids = {i["value"]: i.get("description", "") for i in cit["identifiers"]}
     assert "latest published release" in ids[zenodo_doi] and figshare_doi in ids
+    # exactly one record is the latest, and it is not the 0.6.1 record that 0.6.2 revised
+    assert sum("latest published release" in d for d in ids.values()) == 1
+    assert "latest published release" not in ids[f"10.5281/zenodo.{v062[\x27zenodo\x27][\x27revision_of\x27]}"]
     assert not any("0.6.3" in d for d in ids.values())  # no identifier is claimed for 0.6.3
     changelog = (ROOT / "CHANGELOG.md").read_text()
     heads = [ln for ln in changelog.splitlines() if ln.startswith("## [0.6.")]
