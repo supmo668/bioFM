@@ -209,11 +209,11 @@ SUPERSEDED_RECORDS: dict[str, frozenset] = {
 }
 
 # The only two operations permitted on a published record -- exactly one revision per venue.
-# 0.6.2 (the Amendment 6 manuscript; perturb-seq-eval approvals row 41, 2026-11-24, which
-# authorises preparation and a dry run only -- publishing needs its own go) supersedes the
+# 0.6.2 (the Amendment 6 manuscript; perturb-seq-eval approvals row 41, 2026-11-24, for the
+# preparation and dry run, and row 42, 2026-11-25, the separate go to publish) supersedes the
 # published 0.6.1 record as a NEW VERSION, so no duplicate record exists (as 0.6.1 did v0.6.0,
 # and v0.6.0 did v0.5.x, D-1 = B, CTO #647).
-#   zenodo:   POST actions/newversion on 24430429 (0.6.1, latest under concept 19716140) --
+#   zenodo:   POST actions/newversion on 24430429 (0.6.1; superseded by 24518637 = 0.6.2) --
 #             nothing else is ever sent to 24430429; files are replaced on the NEW draft only.
 #             23422745 (v0.6.0, the previous target) is now an ordinary superseded record.
 #   figshare: metadata update + file replacement on article 32086920, published as its next

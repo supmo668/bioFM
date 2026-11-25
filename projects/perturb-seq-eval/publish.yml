@@ -19,7 +19,7 @@
 # PUBLISHED 2026-11-25 on the principal's separate go (approvals row 42), after the row 41 dry
 # run was reviewed: Zenodo 10.5281/zenodo.24518637 and Figshare 10.6084/m9.figshare.32086920.v8.
 # 0.6.1 (principal 2026-11-08) was the Amendment-5 revision of v0.6.0. The git tags v0.6.0-a5 and
-# v0.6.0-a6 (on the deposit commit 07a5e57b) are PREREGISTRATION
+# v0.6.0-a6 (the latter on the deposit commit 07a5e57b) are PREREGISTRATION
 # amendment tags only, not deposit versions.
 version: "0.6.2"
 
