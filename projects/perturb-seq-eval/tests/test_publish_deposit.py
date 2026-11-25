@@ -1025,9 +1025,9 @@ def test_keywords_and_citation_version_are_true_of_the_work():
         assert kw.lower() in tex, kw
     assert set(cit["keywords"]) >= set(_cfg()["keywords"]) - {"provenance"}
     # 0.6.3 is the self-contained rewrite of the manuscript, a deposit of the unchanged v0.6.0 run
-    # (approvals row 45, 2026-11-25: relabel and dry run only). CITATION.cff names the released
-    # work: 0.6.2 (published 2026-11-25 on the go of row 43) until the 0.6.3 deposit is
-    # published, 0.6.3 and its DOI after that (publish.yml sequence step 5).
+    # (approvals row 45, 2026-11-25: relabel and dry run; published 2026-11-25 on the principal's
+    # separate go). CITATION.cff names the released work: 0.6.3 and its DOI once both venues are
+    # published (publish.yml sequence step 5), an earlier release before that.
     sv = _load("scripts/publish/submit_to_venues.py", "sv_citation")
     state_path = sv.resolve_state_path(None, sv.PublishConfig.load(ROOT / "publish.yml"))
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
@@ -2056,65 +2056,64 @@ def test_lineage_records_agree_with_the_permitted_revisions():
     )
 
 
-def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
-    """0.6.2 is public and 0.6.3 is not (approvals rows 43 and 45). Until 0.6.3 is published,
-    CITATION.cff names 0.6.2 with the DOIs of its tracked lineage record, the CHANGELOG keeps a
-    published 0.6.2 entry with both DOIs below an unreleased 0.6.3 entry, and no surface gives
-    0.6.3 a DOI or says that 0.6.2 holds the reworded manuscript."""
-    sv = _load("scripts/publish/submit_to_venues.py", "sv_062_on_record")
+def test_the_published_062_and_063_releases_are_on_record():
+    """0.6.2 (approvals row 43) and 0.6.3 (row 45's dry run, then the principal's separate go of
+    2026-11-25) are both public. 0.6.2 stays on record as the earlier wording; 0.6.3 is the latest
+    release on every reader-facing surface, with the DOIs of its state file, and no surface still
+    calls it prepared or unpublished."""
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_062_063_on_record")
     v062 = json.loads((ROOT / "publish.state.v062.json").read_text())
     assert v062["zenodo"]["published"] is True and v062["figshare"]["published"] is True
-    zenodo_doi = v062["zenodo"]["doi"]
-    figshare_doi = f"{v062['figshare']['doi']}.v{v062['figshare']['public_baseline'][0] + 1}"
-    assert (zenodo_doi, figshare_doi) == (
-        "10.5281/zenodo.24518637",
-        "10.6084/m9.figshare.32086920.v8",
-    )
+    doi_062 = v062["zenodo"]["doi"]
+    fig_062 = f"{v062['figshare']['doi']}.v{v062['figshare']['public_baseline'][0] + 1}"
+    assert (doi_062, fig_062) == ("10.5281/zenodo.24518637", "10.6084/m9.figshare.32086920.v8")
     state_path = sv.resolve_state_path(None, sv.PublishConfig.load(ROOT / "publish.yml"))
-    state = json.loads(state_path.read_text()) if state_path.exists() else {}
-    if state.get("zenodo", {}).get("published"):
-        return  # 0.6.3 is out: test_keywords_and_citation_version_... checks the surfaces then
-    cit = yaml.safe_load((ROOT / "CITATION.cff").read_text())
-    assert _cfg()["version"] == "0.6.3" and str(cit["version"]) == "0.6.2"
-    assert str(cit["date-released"]) == "2026-11-25"
-    ids = {i["value"]: i.get("description", "") for i in cit["identifiers"]}
-    assert "latest published release" in ids[zenodo_doi] and figshare_doi in ids
-    # exactly one record is the latest, and it is not the 0.6.1 record that 0.6.2 revised
-    assert sum("latest published release" in d for d in ids.values()) == 1
-    revised = f"10.5281/zenodo.{v062['zenodo']['revision_of']}"
-    assert revised == "10.5281/zenodo.24430429" and "latest published release" not in ids[revised]
-    assert not any("0.6.3" in d for d in ids.values())  # no identifier is claimed for 0.6.3
+    assert state_path.name == "publish.state.v063.json"
+    v063 = json.loads(state_path.read_text())
+    assert v063["zenodo"]["published"] is True and v063["figshare"]["published"] is True
+    doi_063 = v063["zenodo"]["doi"]
+    fig_063 = f"{v063['figshare']['doi']}.v{sv.FIGSHARE_BASE_VERSION + 1}"
+    assert (doi_063, fig_063) == ("10.5281/zenodo.24519260", "10.6084/m9.figshare.32086920.v9")
+
     changelog = (ROOT / "CHANGELOG.md").read_text()
     heads = [ln for ln in changelog.splitlines() if ln.startswith("## [0.6.")]
-    assert heads[0].startswith("## [0.6.3]") and "unreleased" in heads[0]
+    assert heads[0] == "## [0.6.3] — 2026-11-25 (manuscript wording revision; published)"
     assert heads[1] == "## [0.6.2] — 2026-11-25 (manuscript revision; published)"
-    e063, e062 = (changelog.split(h, 1)[1].split("\n## [", 1)[0] for h in heads[:2])
-    assert zenodo_doi in e062 and figshare_doi in e062 and "07a5e57b" in e062
-    assert "before** the self-contained rewrite" in e062
-    assert "It is not published" in " ".join(e063.split())
-    # the next Figshare DOI does not exist yet, on any surface or as a parsed identifier
+    e063, e062 = (
+        " ".join(changelog.split(h, 1)[1].split("\n## [", 1)[0].split()) for h in heads[:2]
+    )
+    assert doi_062 in e062 and fig_062 in e062 and "07a5e57b" in e062
+    assert "before** the self-contained rewrite that was published as 0.6.3" in e062
+    assert doi_063 in e063 and fig_063 in e063 and "8f35d652" in e063
+    assert "not published" not in e063
+    # the open post-publish item stays listed where outstanding work is looked for
+    assert "### Open" in e063 and "`isIdenticalTo` the Figshare v9 DOI" in e063
+
     surfaces = {
         rel: " ".join((ROOT / rel).read_text().split())
-        for rel in ("CHANGELOG.md", "CITATION.cff", "README.md", "paper/SUBMISSION.md")
+        for rel in ("README.md", "paper/SUBMISSION.md", "CITATION.cff", "../../CITATION.cff")
     }
     for rel, text in surfaces.items():
-        assert "figshare.32086920.v9" not in text, rel
-    assert not any(k.endswith(".v9") for k in ids)
+        assert doi_063 in text and fig_063 in text, rel
+        for stale in (
+            "0.6.3 and is **not published**",
+            "`0.6.3` is prepared and **not published**",
+            "**`0.6.3`, prepared, not published**",
+            "to be archived as `0.6.3`",
+            "latest published version: v8",
+            "resolves to 0.6.2",
+        ):
+            assert stale not in text, (rel, stale)
+    assert f"latest published version, which is 0.6.3 (`{doi_063}`" in surfaces["README.md"]
     # 0.6.2 holds the wording BEFORE the rewrite, said where a reader meets the 0.6.2 record
     assert (
         "in the wording it had before the hypotheses and amendments were named in words"
-        in (surfaces["README.md"])
+        in surfaces["README.md"]
     )
     assert "`0.6.2` holds it in the wording before that rewrite" in surfaces["paper/SUBMISSION.md"]
-    assert "before the self-contained rewrite of the wording that is prepared as 0.6.3" in (
+    assert "before the self-contained rewrite of the wording that was published as 0.6.3" in (
         surfaces["CITATION.cff"].replace("# ", "")
     )
-    # "not published" is checked in the sentence that names 0.6.3, not anywhere in the file
-    assert "prepared as archive version 0.6.3 and is **not published**" in surfaces["README.md"]
-    assert "`0.6.3` is prepared and **not published**" in surfaces["paper/SUBMISSION.md"]
-    assert "**`0.6.3`, prepared, not published**" in surfaces["paper/SUBMISSION.md"]
-    for rel in ("README.md", "paper/SUBMISSION.md"):
-        assert zenodo_doi in surfaces[rel], rel
 
 
 def test_a_lineage_state_file_is_refused_from_either_source(tmp_path, monkeypatch):
