@@ -107,20 +107,20 @@ def test_related_identifiers_assert_a_new_version_not_identity():
     rel = _cfg()["venues"]["zenodo"]["related_identifiers"]
     relations = {(r["identifier"], r["relation"]) for r in rel}
     assert not any(r["relation"] == "isIdenticalTo" for r in rel)
-    assert ("10.6084/m9.figshare.32086920.v7", "isNewVersionOf") in relations
-    # Single Zenodo parent: the published 0.6.1 version that 0.6.2 revises (approvals row 41,
-    # 2026-11-24); the concept DOI in the notes carries the rest of the chain (CTO #639).
+    assert ("10.6084/m9.figshare.32086920.v8", "isNewVersionOf") in relations
+    # Single Zenodo parent: the published 0.6.2 version that 0.6.3 revises (approvals row 45,
+    # 2026-11-25); the concept DOI in the notes carries the rest of the chain (CTO #639).
     zen = [r for r in rel if r["relation"] == "isNewVersionOf" and "zenodo" in r["identifier"]]
-    assert [r["identifier"] for r in zen] == ["10.5281/zenodo.24430429"]
+    assert [r["identifier"] for r in zen] == ["10.5281/zenodo.24518637"]
     cit = (ROOT / "CITATION.cff").read_text()
-    assert "10.5281/zenodo.24430429" in cit  # the version the new deposit supersedes is on record
+    assert "10.5281/zenodo.24518637" in cit  # the version the new deposit supersedes is on record
     assert "v5 = v0.5.1" not in cit  # Figshare v5 matches Zenodo v0.5.2 by checksum, not v0.5.1
     changelog = (ROOT / "CHANGELOG.md").read_text()
     assert "Known gap: 0.5.1 and 0.5.2 are not documented here" in changelog
     assert (
         "10.5281/zenodo.20074427" in changelog and "No release note is reconstructed" in changelog
     )
-    assert "10.5281/zenodo.24430429" in changelog  # the 0.6.1 record the new deposit revises
+    assert "10.5281/zenodo.24518637" in changelog  # the 0.6.2 record the new deposit revises
 
 
 def test_files_block_ships_the_v060_run_and_marks_v050_superseded():
@@ -169,7 +169,7 @@ class _Resp:
 # (inherited ones until deleted, uploads once made), so the exact-file-set checks are exercised.
 ZEN_BASE = "https://zenodo.org/api"
 FIG_BASE = "https://api.figshare.com/v2"
-NEW_ZEN = 24500555  # the new-version draft id Zenodo would return (newer than 24430429)
+NEW_ZEN = 24600555  # the new-version draft id Zenodo would return (newer than 24518637)
 ZBUCKET = f"{ZEN_BASE}/files/new-draft-bucket"
 
 
@@ -183,7 +183,7 @@ def _world():
     }
 
 
-def _revision_routes(public_versions=(7,), world=None, draft=None):
+def _revision_routes(public_versions=(8,), world=None, draft=None):
     w = world if world is not None else _world()
     pub = list(public_versions)
 
@@ -241,7 +241,7 @@ def _revision_routes(public_versions=(7,), world=None, draft=None):
         return {"files": held, "authors": w["fig_authors"]}
 
     return {
-        ("post", "/deposit/depositions/24430429/actions/newversion"): {
+        ("post", "/deposit/depositions/24518637/actions/newversion"): {
             "links": {"latest_draft": f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}"}
         },
         ("get", f"/deposit/depositions/{NEW_ZEN}"): zen_draft,
@@ -337,7 +337,7 @@ ZSTATE = {
     "zenodo": {
         "deposit_id": NEW_ZEN,
         "bucket": ZBUCKET,
-        "revision_of": 24430429,
+        "revision_of": 24518637,
         "inherited_files_removed": True,
         "prepared": True,
     }
@@ -347,7 +347,7 @@ FSTATE = {
         "article_id": 32086920,
         "revision_of": 32086920,
         "doi": "10.6084/m9.figshare.32086920",
-        "public_baseline": [7, [["paper.pdf", "old"]]],
+        "public_baseline": [8, [["paper.pdf", "old"]]],
         "inherited_files_removed": True,
         "prepared": True,
     }
@@ -365,10 +365,10 @@ def _prepared_world():
 
 def test_only_two_named_revisions_are_permitted():
     sv = _load("scripts/publish/submit_to_venues.py", "sv_allowed")
-    assert sv.ALLOWED_REVISIONS == {"zenodo": 24430429, "figshare": 32086920}
-    assert sv.ZENODO_CONCEPT == 19716140 and sv.FIGSHARE_BASE_VERSION == 7
+    assert sv.ALLOWED_REVISIONS == {"zenodo": 24518637, "figshare": 32086920}
+    assert sv.ZENODO_CONCEPT == 19716140 and sv.FIGSHARE_BASE_VERSION == 8
     cfg = yaml.safe_load((ROOT / "publish.yml").read_text())["venues"]
-    assert cfg["zenodo"]["revision_of"] == 24430429
+    assert cfg["zenodo"]["revision_of"] == 24518637
     assert cfg["figshare"]["revision_of"] == 32086920
     assert "revision_of" not in cfg["osf"]
     rel = {r["identifier"] for r in cfg["zenodo"]["related_identifiers"]}
@@ -380,12 +380,14 @@ def test_published_or_superseded_records_are_refused_before_any_request(tmp_path
 
     cases = (
         ("zenodo", {"zenodo": {"deposit_id": 19748260, "published": True}}, None),
-        ("zenodo", {"zenodo": {"deposit_id": 24430429}}, None),  # the target itself, as a draft
-        ("zenodo", {"zenodo": {"deposit_id": "24430429", "revision_of": 24430429}}, None),  # str
+        ("zenodo", {"zenodo": {"deposit_id": 24518637}}, None),  # the target itself, as a draft
+        ("zenodo", {"zenodo": {"deposit_id": "24518637", "revision_of": 24518637}}, None),  # str
         ("zenodo", {"zenodo": {"deposit_id": 20060974}}, PLAIN),
         ("zenodo", {"zenodo": {"deposit_id": 23411021, "bucket": "x"}}, None),  # mixing
         ("zenodo", {}, {"revision_of": 20060974}),  # any other revision target
-        ("zenodo", {}, {"revision_of": 24430429.0}),  # not an int
+        ("zenodo", {}, {"revision_of": 24430429}),  # 0.6.1, the previous target: refused now
+        ("zenodo", {"zenodo": {"deposit_id": 24430429, "revision_of": 24430429}}, None),
+        ("zenodo", {}, {"revision_of": 24518637.0}),  # not an int
         ("figshare", {"figshare": {"article_id": 32086920, "published": True}}, None),
         ("figshare", {"figshare": {"article_id": 32086920}}, None),  # hand-seeded, no revision_of
         ("figshare", {"figshare": {"article_id": 32086920}}, PLAIN),  # no revision configured
@@ -404,14 +406,14 @@ def test_published_or_superseded_records_are_refused_before_any_request(tmp_path
         assert json.loads(state_path.read_text()) == state
 
 
-def test_zenodo_revision_dry_run_touches_24430429_only_via_newversion(tmp_path, monkeypatch):
+def test_zenodo_revision_dry_run_touches_24518637_only_via_newversion(tmp_path, monkeypatch):
     routes = _revision_routes()
     sv, sub, calls, state_path, cfg = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
     f = tmp_path / "paper.pdf"
     f.write_bytes(b"v060")
     sub.submit([{"name": "paper.pdf", "path": f, "md5": "m"}])
-    on_target = [(m, u) for m, u, _ in calls if "24430429" in u]
-    assert on_target == [("post", f"{ZEN_BASE}/deposit/depositions/24430429/actions/newversion")]
+    on_target = [(m, u) for m, u, _ in calls if "24518637" in u]
+    assert on_target == [("post", f"{ZEN_BASE}/deposit/depositions/24518637/actions/newversion")]
     deletes = [u for m, u, _ in calls if m == "delete"]
     assert deletes == [
         f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}/files/f1",
@@ -421,32 +423,35 @@ def test_zenodo_revision_dry_run_touches_24430429_only_via_newversion(tmp_path, 
     meta = next(kw for m, u, kw in calls if m == "put" and u.endswith(f"/{NEW_ZEN}"))["json"][
         "metadata"
     ]
-    assert meta["version"] == "0.6.2" and "standalone" not in meta["notes"]
+    assert meta["version"] == "0.6.3" and "standalone" not in meta["notes"]
     notes = " ".join(meta["notes"].split())
-    assert notes.startswith("0.6.2 is the next version of this record")
-    assert "10.5281/zenodo.19716140" in notes and "tag v0.6.0-a6" in notes  # the prereg tag
-    assert "Amendment 6" in notes and "previous round's held-out error" in notes
-    assert "not evidence that the group's confidence anticipates difficulty" in notes
-    assert "exploratory section with two figures" in notes
-    assert "or Only React to It?" in notes
-    assert "plain academic English" in notes
+    assert notes.startswith("0.6.3 is the next version of this record")
+    assert "10.5281/zenodo.19716140" in notes
+    # 0.6.3 revises the wording of 0.6.2 and says what 0.6.2 already carries, so that a reader
+    # of the record does not take the sixth amendment or its disclosure for new in 0.6.3.
+    assert "It revises the wording of version 0.6.2" in notes
+    assert "Version 0.6.2 already carries the sixth amendment" in notes
+    assert "tag v0.6.0-a6" in notes and "previous round's held-out error" in notes
+    assert "none of that is changed in this version" in notes
+    assert "named by what they claim" in notes and "defined where they are first used" in notes
+    assert "versions up to 0.6.2 credited to 'Xiangru Chen and others'" in notes
     assert "No hypothesis, threshold, estimator, run or outcome changed" in notes
-    # The 0.6.2 notes describe the Amendment 6 manuscript: never a wording-only revision, never
-    # an untouched pre-registration, and no ticket or go is cited in a public record.
-    for false_claim in ("wording changed only", "untouched", "HACA-", "65d00211", "db93576"):
+    # No ticket, ledger row, draft id or commit is cited in a public record, and the notes do
+    # not call the pre-registration untouched (the sixth amendment stands, from 0.6.2).
+    for false_claim in ("untouched", "HACA-", "2792a52d", "24519260", "c42ac57", "approvals row"):
         assert false_claim not in notes, false_claim
     zen_parents = [
         r["identifier"]
         for r in meta["related_identifiers"]
         if r["relation"] == "isNewVersionOf" and "zenodo" in r["identifier"]
     ]
-    assert zen_parents == ["10.5281/zenodo.24430429"]
+    assert zen_parents == ["10.5281/zenodo.24518637"]
     assert not any(m == "post" and u.endswith("/actions/publish") for m, u, _ in calls)  # dry run
     st = json.loads(state_path.read_text())["zenodo"]
     assert st == {
         "deposit_id": NEW_ZEN,
         "bucket": ZBUCKET,
-        "revision_of": 24430429,
+        "revision_of": 24518637,
         "inherited_files_removed": True,
         "doi": f"10.5281/zenodo.{NEW_ZEN}",
         "prepared": True,
@@ -473,8 +478,23 @@ def test_zenodo_newversion_response_is_validated_before_any_delete(tmp_path, mon
         with pytest.raises(sv.PublishedRecordError):
             sub.submit([])
         assert not any(m in ("delete", "put") for m, _, _ in calls), bad
+    # A self-consistent draft whose id is not newer than the record being revised (and is in
+    # no superseded list) is refused by the id-order check alone.
+    older = 24500555
+    assert older < sv.ALLOWED_REVISIONS["zenodo"] and older not in sv.SUPERSEDED_RECORDS["zenodo"]
+    routes = _revision_routes(draft={"id": older})
+    routes[("post", "/deposit/depositions/24518637/actions/newversion")] = {
+        "links": {"latest_draft": f"{ZEN_BASE}/deposit/depositions/{older}"}
+    }
+    routes[("get", f"/deposit/depositions/{older}")] = routes[
+        ("get", f"/deposit/depositions/{NEW_ZEN}")
+    ]
+    sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
+    with pytest.raises(sv.PublishedRecordError):
+        sub.submit([])
+    assert not any(m in ("delete", "put") for m, _, _ in calls)
     routes = _revision_routes()
-    routes[("post", "/deposit/depositions/24430429/actions/newversion")] = {
+    routes[("post", "/deposit/depositions/24518637/actions/newversion")] = {
         "links": {"latest_draft": "https://evil.example/api/deposit/depositions/555"}
     }
     sv, sub, calls, _, _ = _submitter(monkeypatch, tmp_path, "zenodo", {}, routes=routes)
@@ -489,7 +509,7 @@ def test_zenodo_revision_publish_publishes_only_the_prepared_new_version(tmp_pat
         monkeypatch, tmp_path, "zenodo", ZSTATE, dry_run=False, routes=routes
     )
     sub.submit([])
-    assert not any("24430429" in u for _, u, _ in calls)
+    assert not any("24518637" in u for _, u, _ in calls)
     assert any(m == "post" and u.endswith(f"/{NEW_ZEN}/actions/publish") for m, u, _ in calls)
     assert json.loads(state_path.read_text())["zenodo"]["published"] is True
 
@@ -612,26 +632,24 @@ def test_figshare_revision_dry_run_prepares_the_next_version_unpublished(tmp_pat
         "article_id": 32086920,
         "revision_of": 32086920,
         "doi": "10.6084/m9.figshare.32086920",
-        "public_baseline": [7, [["paper.pdf", "old"]]],
+        "public_baseline": [8, [["paper.pdf", "old"]]],
         "inherited_files_removed": True,
         "prepared": True,
     }
 
 
-def test_figshare_revision_refuses_a_base_other_than_v7_and_stops_on_public_change(
-    tmp_path, monkeypatch
-):
+def test_figshare_revision_refuses_a_later_base_and_stops_on_public_change(tmp_path, monkeypatch):
     import pytest
 
     sv, sub, calls, _, _ = _submitter(
-        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(8,))
+        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(9,))
     )
-    with pytest.raises(sv.PublishedRecordError, match="starts only from v7"):
+    with pytest.raises(sv.PublishedRecordError, match="starts only from v8"):
         sub.submit([])
     assert calls and all(m == "get" for m, _, _ in calls)
     # The public view changes after the metadata PUT: stop BEFORE deleting any file.
     sv, sub, calls, _, _ = _submitter(
-        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(7, 8))
+        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(8, 9))
     )
     with pytest.raises(sv.PublishedRecordError, match="PUBLIC version changed"):
         sub.submit([])
@@ -643,7 +661,7 @@ def test_figshare_revision_refuses_a_base_other_than_v7_and_stops_on_public_chan
         "figshare",
         FSTATE,
         dry_run=False,
-        routes=_revision_routes(public_versions=(8,), world=_prepared_world()),
+        routes=_revision_routes(public_versions=(9,), world=_prepared_world()),
     )
     with pytest.raises(sv.PublishedRecordError, match="PUBLIC version changed"):
         sub.submit([])
@@ -651,23 +669,37 @@ def test_figshare_revision_refuses_a_base_other_than_v7_and_stops_on_public_chan
 
 
 def test_figshare_revision_refuses_the_v5_base_with_gets_only(tmp_path, monkeypatch):
-    """v5 is the v0.5.x public version: 0.6.2 starts only from v7 (0.6.1)."""
+    """v5 is the v0.5.x public version: 0.6.3 starts only from v8 (0.6.2)."""
     import pytest
 
     sv, sub, calls, state_path, _ = _submitter(
         monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(5,))
     )
-    with pytest.raises(sv.PublishedRecordError, match="starts only from v7"):
+    with pytest.raises(sv.PublishedRecordError, match="starts only from v8"):
+        sub.submit([])
+    assert calls and all(m == "get" for m, _, _ in calls)
+    assert json.loads(state_path.read_text()) == {}
+
+
+def test_figshare_revision_refuses_the_previous_base_v7_with_gets_only(tmp_path, monkeypatch):
+    """v7 was the base of the 0.6.2 revision: with 0.6.2 public as v8, a v7 public view is not
+    a base 0.6.3 may start from."""
+    import pytest
+
+    sv, sub, calls, state_path, _ = _submitter(
+        monkeypatch, tmp_path, "figshare", {}, routes=_revision_routes(public_versions=(7,))
+    )
+    with pytest.raises(sv.PublishedRecordError, match="starts only from v8"):
         sub.submit([])
     assert calls and all(m == "get" for m, _, _ in calls)
     assert json.loads(state_path.read_text()) == {}
 
 
 def test_state_revision_of_must_be_a_real_integer(tmp_path, monkeypatch):
-    """SEC-2: a recorded revision_of of 24430429.0 or True never satisfies the revision check."""
+    """SEC-2: a recorded revision_of of 24518637.0 or True never satisfies the revision check."""
     import pytest
 
-    for bad in (24430429.0, True, "24430429"):
+    for bad in (24518637.0, True, "24518637"):
         state = {"zenodo": {**ZSTATE["zenodo"], "revision_of": bad}}
         sv, sub, calls, state_path, _ = _submitter(
             monkeypatch, tmp_path, "zenodo", state, dry_run=False
@@ -792,7 +824,7 @@ def _run_main(monkeypatch, tmp_path, argv, state=None, routes=None, yml=None, ca
         (ROOT / "publish.state.v060.json").read_bytes()
     )
     if state is not None:
-        (cfgdir / "publish.state.v062.json").write_text(json.dumps(state))
+        (cfgdir / "publish.state.v063.json").write_text(json.dumps(state))
     legacy = '{"zenodo": {"deposit_id": 19748260, "published": true}}'
     (cfgdir / "publish.state.json").write_text(legacy)
     env = tmp_path / ".env"
@@ -819,12 +851,12 @@ def test_main_dry_run_prepares_both_revisions_in_the_config_anchored_state(tmp_p
     (nothing published), prepares exactly the two revisions, and never writes the v0.5 state."""
     rc, calls, cfgdir, cwd, legacy = _run_main(monkeypatch, tmp_path, ["all", "--dry-run"])
     assert rc == 0
-    st = json.loads((cfgdir / "publish.state.v062.json").read_text())
-    assert st["zenodo"]["deposit_id"] == NEW_ZEN and st["zenodo"]["revision_of"] == 24430429
+    st = json.loads((cfgdir / "publish.state.v063.json").read_text())
+    assert st["zenodo"]["deposit_id"] == NEW_ZEN and st["zenodo"]["revision_of"] == 24518637
     assert st["zenodo"]["prepared"] is True and st["figshare"]["prepared"] is True
     assert st["figshare"]["article_id"] == 32086920 and st["figshare"]["revision_of"] == 32086920
     assert "published" not in st["zenodo"] and "published" not in st["figshare"]
-    assert not (cwd / "publish.state.v062.json").exists()
+    assert not (cwd / "publish.state.v063.json").exists()
     assert (cfgdir / "publish.state.json").read_text() == legacy
     lineage = (ROOT / "publish.state.v060.json").read_bytes()
     assert (cfgdir / "publish.state.v060.json").read_bytes() == lineage  # never written
@@ -839,7 +871,7 @@ def test_main_publish_without_a_recorded_draft_creates_nothing(tmp_path, monkeyp
     rc, calls, cfgdir, _, _ = _run_main(monkeypatch, tmp_path, ["all"])
     assert rc == 1
     assert not [c for c in calls if c[0] in ("post", "put", "delete")], calls
-    assert not (cfgdir / "publish.state.v062.json").exists()
+    assert not (cfgdir / "publish.state.v063.json").exists()
 
 
 def test_main_publishes_only_the_recorded_revisions(tmp_path, monkeypatch):
@@ -852,7 +884,7 @@ def test_main_publishes_only_the_recorded_revisions(tmp_path, monkeypatch):
     assert any(u.endswith(f"/deposit/depositions/{NEW_ZEN}/actions/publish") for u in posts)
     assert any(u.endswith("/account/articles/32086920/publish") for u in posts)
     assert not any(m == "delete" for m, _, _ in calls)
-    st = json.loads((cfgdir / "publish.state.v062.json").read_text())
+    st = json.loads((cfgdir / "publish.state.v063.json").read_text())
     assert st["zenodo"]["published"] is True and st["figshare"]["published"] is True
     lineage = (ROOT / "publish.state.v060.json").read_bytes()
     assert (cfgdir / "publish.state.v060.json").read_bytes() == lineage  # never written
@@ -863,7 +895,7 @@ def test_main_reports_a_mismatched_state_and_continues(tmp_path, monkeypatch):
     rc, calls, _, _, _ = _run_main(monkeypatch, tmp_path, ["all", "--dry-run"], state=seeded)
     assert rc == 1  # figshare refused ...
     assert not any("34562538" in c[1] or "32086920" in c[1] for c in calls), calls
-    assert any(c[1].endswith("/24430429/actions/newversion") for c in calls)  # ... zenodo still ran
+    assert any(c[1].endswith("/24518637/actions/newversion") for c in calls)  # ... zenodo still ran
 
 
 def test_files_paths_follow_the_build_step(tmp_path, monkeypatch):
@@ -992,19 +1024,42 @@ def test_keywords_and_citation_version_are_true_of_the_work():
     for kw in _cfg()["keywords"]:
         assert kw.lower() in tex, kw
     assert set(cit["keywords"]) >= set(_cfg()["keywords"]) - {"provenance"}
-    # 0.6.2 is the Amendment 6 manuscript deposit of the unchanged v0.6.0 run (approvals row 41,
-    # 2026-11-24: prepared, not yet approved for publication). CITATION.cff names the released
-    # work (0.6.1) until the 0.6.2 deposit is published; then it names 0.6.2 and its DOI
-    # (publish.yml sequence step 5).
+    # 0.6.3 is the self-contained rewrite of the manuscript, a deposit of the unchanged v0.6.0 run
+    # (approvals row 45, 2026-11-25: relabel and dry run only). CITATION.cff names the released
+    # work: 0.6.2 (published 2026-11-25 on the go of row 43) until the 0.6.3 deposit is
+    # published, 0.6.3 and its DOI after that (publish.yml sequence step 5).
     sv = _load("scripts/publish/submit_to_venues.py", "sv_citation")
     state_path = sv.resolve_state_path(None, sv.PublishConfig.load(ROOT / "publish.yml"))
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
-    cit_text = (ROOT / "CITATION.cff").read_text()
+    ids = {i["value"]: i.get("description", "") for i in cit["identifiers"]}
+    changelog = (ROOT / "CHANGELOG.md").read_text()
+    version = _cfg()["version"]
+    head = [ln for ln in changelog.splitlines() if ln.startswith(f"## [{version}]")]
+    assert len(head) == 1, head
     if state.get("zenodo", {}).get("published"):
-        assert str(cit["version"]) == _cfg()["version"]
-        assert state["zenodo"]["doi"] in cit_text
+        # Both venues are published before CITATION names the release (sequence step 5).
+        assert state.get("figshare", {}).get("published") is True
+        assert str(cit["version"]) == version
+        # The DOIs are parsed identifiers, not text that a comment could supply.
+        zenodo_doi = state["zenodo"]["doi"]
+        figshare_doi = f"{state['figshare']['doi']}.v{sv.FIGSHARE_BASE_VERSION + 1}"
+        assert zenodo_doi in ids and figshare_doi in ids
+        assert "latest published release" in ids[zenodo_doi]
+        # Only this release's record calls itself the latest; the one it revises no longer does.
+        revised = f"10.5281/zenodo.{sv.ALLOWED_REVISIONS['zenodo']}"
+        assert "latest published release" not in ids[revised]
+        # ... and the Figshare version it was published as stays on record beside it.
+        assert f"{state['figshare']['doi']}.v{sv.FIGSHARE_BASE_VERSION}" in ids
+        assert sum("latest published release" in d for d in ids.values()) == 1
+        # The CHANGELOG entry is marked published with the release date and both DOIs.
+        released = str(cit["date-released"])
+        assert released in head[0] and "published" in head[0] and "unreleased" not in head[0]
+        entry = changelog.split(head[0], 1)[1].split("\n## [", 1)[0]
+        assert zenodo_doi in entry and figshare_doi in entry
     else:
-        assert _cfg()["version"] == "0.6.2" and str(cit["version"]) == "0.6.1"
+        # Until the release is published CITATION names an earlier one, and the CHANGELOG entry
+        # says so.
+        assert str(cit["version"]) != version and "unreleased" in head[0]
     prereg = json.loads((ART / "provenance.json").read_text())["prereg_version"]
     assert prereg.startswith("v0.6.0")  # the run's pre-registration, whatever the deposit
     notes = " ".join(r.get("notes", "") for r in cit.get("references", []))
@@ -1303,21 +1358,8 @@ def test_stale_scan_normaliser_sees_through_formatting(tmp_path):
     assert not any(re.search(p, _normalised(tmp_path / "c.tex")) for p in _STALE_PATTERNS)
 
 
-# ---- release state file, lineage records and the deposit-time sequence (0.6.2 is the next
-# version of the published 0.6.1 records on both venues, approvals row 41, 2026-11-24) ----
-SUPERSEDED = (
-    "24430429",
-    "23422745",
-    "20074427",
-    "20060974",
-    "19748260",
-    "19716140",
-    "19716141",
-    "19721470",
-    "32086920",
-)
-
-
+# ---- release state file, lineage records and the deposit-time sequence (0.6.3 is the next
+# version of the published 0.6.2 records on both venues, approvals row 45, 2026-11-25) ----
 def _sequence_steps(text):
     seq = text[text.index("# Deposit-time sequence") : text.index("\nfiles:")]
     lines = seq.splitlines()
@@ -1334,8 +1376,8 @@ def _sequence_steps(text):
 def test_release_has_its_own_config_anchored_state_and_never_reuses_a_lineage_one(tmp_path):
     sv = _load("scripts/publish/submit_to_venues.py", "sv_state")
     cfg = sv.PublishConfig.load(ROOT / "publish.yml")
-    assert cfg.state_file == "publish.state.v062.json"
-    assert sv.resolve_state_path(None, cfg) == ROOT / "publish.state.v062.json"  # anchored to cfg
+    assert cfg.state_file == "publish.state.v063.json"
+    assert sv.resolve_state_path(None, cfg) == ROOT / "publish.state.v063.json"  # anchored to cfg
     assert sv.resolve_state_path(Path("x.json"), cfg) == Path("x.json")  # --state still wins
     old = json.loads((ROOT / "publish.state.json").read_text())
     assert old["zenodo"]["deposit_id"] == 19748260 and old["zenodo"]["published"] is True
@@ -1361,7 +1403,7 @@ def test_release_has_its_own_config_anchored_state_and_never_reuses_a_lineage_on
     (tmp_path / "publish.yml").write_text(
         (ROOT / "publish.yml")
         .read_text()
-        .replace("state_file: publish.state.v062.json", "state_file:")
+        .replace("state_file: publish.state.v063.json", "state_file:")
     )
     assert sv.PublishConfig.load(tmp_path / "publish.yml").state_file == ""
 
@@ -1397,12 +1439,12 @@ def test_deposit_sequence_names_the_two_revisions_and_carries_no_raw_recipes():
     assert "DraftRequiredError" in steps[4] and "expected_author" in steps[4]
     step5 = " ".join(steps[5].replace("#", " ").split())
     for named in (
-        'CITATION.cff `version: "0.6.2"`',
+        'CITATION.cff `version: "0.6.3"`',
         "date-released",
         "identifiers",
-        "Figshare v8",
-        'drop "this release" from the 24430429 entry',
-        "CHANGELOG 0.6.2 entry",
+        "Figshare v9",
+        'drop "the latest published release" from the 24518637 entry',
+        "CHANGELOG 0.6.3 entry",
         "metadata-only",
         "isIdenticalTo",
     ):
@@ -1432,7 +1474,7 @@ def test_each_guard_layer_refuses_on_its_own(tmp_path, monkeypatch):
     with pytest.raises(sv.PublishedRecordError):
         sv._refuse_superseded("figshare", None, allow=99)
     with pytest.raises(sv.PublishedRecordError):
-        sv._refuse_superseded("zenodo", 24430429, allow=None)
+        sv._refuse_superseded("zenodo", 24518637, allow=None)
     sv_, zsub, zcalls, _, _ = _submitter(
         monkeypatch, tmp_path, "zenodo", {}, routes=_revision_routes()
     )
@@ -1490,7 +1532,7 @@ def test_resumed_dry_runs_never_write_to_the_published_record_or_publish(tmp_pat
         monkeypatch, tmp_path, "zenodo", ZSTATE, routes=_revision_routes(world=_prepared_world())
     )
     sub.submit([])
-    assert not any("24430429" in u for _, u, _ in calls)
+    assert not any("24518637" in u for _, u, _ in calls)
     puts = [u for m, u, _ in calls if m == "put"]
     assert puts == [f"{ZEN_BASE}/deposit/depositions/{NEW_ZEN}"]
     assert not any(m == "delete" for m, _, _ in calls)  # flag set: no re-removal
@@ -1515,7 +1557,7 @@ def test_public_snapshot_compares_files_too_and_is_unauthenticated(tmp_path, mon
 
     def public(url, kw):
         return {
-            "version": 7,
+            "version": 8,
             "files": [
                 {"name": "paper.pdf", "supplied_md5": seq.pop(0) if len(seq) > 1 else seq[0]}
             ],
@@ -1611,7 +1653,7 @@ def test_single_venue_dry_runs_never_publish_through_main(tmp_path, monkeypatch)
         assert rc == 0, venue
         assert not any(m == "post" and u.endswith("publish") for m, u, _ in calls), venue
         assert (
-            "published" not in json.loads((cfgdir / "publish.state.v062.json").read_text())[venue]
+            "published" not in json.loads((cfgdir / "publish.state.v063.json").read_text())[venue]
         )
 
 
@@ -1641,6 +1683,7 @@ def test_superseded_ids_are_refused_whatever_their_type():
     sv = _load("scripts/publish/submit_to_venues.py", "sv_types")
     for venue, i in (
         ("figshare", "32086920"),
+        ("zenodo", "24518637"),
         ("zenodo", "24430429"),
         ("zenodo", "20074427"),
         ("zenodo", 19716140),
@@ -1949,12 +1992,12 @@ def test_arxiv_override_numbers_are_the_generated_macros():
 
 
 def test_v052_record_20074427_is_now_merely_superseded(tmp_path, monkeypatch):
-    """0.6.2 revises 0.6.1 (24430429); the v0.5.2 record 20074427, an earlier revision
+    """0.6.3 revises 0.6.2 (24518637); the v0.5.2 record 20074427, an earlier revision
     target, is an ordinary superseded record: every write to it is refused."""
     import pytest
 
     sv = _load("scripts/publish/submit_to_venues.py", "sv_v052")
-    assert {20074427, 23422745, 24430429} <= sv.SUPERSEDED_RECORDS["zenodo"]
+    assert {20074427, 23422745, 24430429, 24518637} <= sv.SUPERSEDED_RECORDS["zenodo"]
     assert 20074427 not in sv.ALLOWED_REVISIONS.values()
     with pytest.raises(sv.PublishedRecordError):
         sv._revision_target("zenodo", {"revision_of": 20074427})
@@ -1983,15 +2026,15 @@ def test_v052_record_20074427_is_now_merely_superseded(tmp_path, monkeypatch):
 
 
 def test_lineage_records_agree_with_the_permitted_revisions():
-    """The tracked 0.6.1 record is what 0.6.2 revises: its ids are ALLOWED_REVISIONS, its own
-    revision target (v0.6.0) is merely superseded, and the Figshare base is the version after
+    """The tracked 0.6.2 record is what 0.6.3 revises: its ids are ALLOWED_REVISIONS, its own
+    revision target (0.6.1) is merely superseded, and the Figshare base is the version after
     its recorded public baseline."""
     sv = _load("scripts/publish/submit_to_venues.py", "sv_lineage")
-    v061 = json.loads((ROOT / "publish.state.v061.json").read_text())
-    zen, fig = v061["zenodo"], v061["figshare"]
+    v062 = json.loads((ROOT / "publish.state.v062.json").read_text())
+    zen, fig = v062["zenodo"], v062["figshare"]
     assert zen["published"] is True and fig["published"] is True
     assert sv.ALLOWED_REVISIONS["zenodo"] == zen["deposit_id"]
-    assert zen["revision_of"] == 23422745
+    assert zen["revision_of"] == 24430429
     assert zen["revision_of"] in sv.SUPERSEDED_RECORDS["zenodo"]
     assert zen["revision_of"] != sv.ALLOWED_REVISIONS["zenodo"]
     assert sv.ALLOWED_REVISIONS["figshare"] == fig["article_id"] == fig["revision_of"]
@@ -2004,8 +2047,74 @@ def test_lineage_records_agree_with_the_permitted_revisions():
         "scheme": "doi",
     } in rel
     assert sv.LINEAGE_STATE_FILES == frozenset(
-        {"publish.state.json", "publish.state.v060.json", "publish.state.v061.json"}
+        {
+            "publish.state.json",
+            "publish.state.v060.json",
+            "publish.state.v061.json",
+            "publish.state.v062.json",
+        }
     )
+
+
+def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
+    """0.6.2 is public and 0.6.3 is not (approvals rows 43 and 45). Until 0.6.3 is published,
+    CITATION.cff names 0.6.2 with the DOIs of its tracked lineage record, the CHANGELOG keeps a
+    published 0.6.2 entry with both DOIs below an unreleased 0.6.3 entry, and no surface gives
+    0.6.3 a DOI or says that 0.6.2 holds the reworded manuscript."""
+    sv = _load("scripts/publish/submit_to_venues.py", "sv_062_on_record")
+    v062 = json.loads((ROOT / "publish.state.v062.json").read_text())
+    assert v062["zenodo"]["published"] is True and v062["figshare"]["published"] is True
+    zenodo_doi = v062["zenodo"]["doi"]
+    figshare_doi = f"{v062['figshare']['doi']}.v{v062['figshare']['public_baseline'][0] + 1}"
+    assert (zenodo_doi, figshare_doi) == (
+        "10.5281/zenodo.24518637",
+        "10.6084/m9.figshare.32086920.v8",
+    )
+    state_path = sv.resolve_state_path(None, sv.PublishConfig.load(ROOT / "publish.yml"))
+    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    if state.get("zenodo", {}).get("published"):
+        return  # 0.6.3 is out: test_keywords_and_citation_version_... checks the surfaces then
+    cit = yaml.safe_load((ROOT / "CITATION.cff").read_text())
+    assert _cfg()["version"] == "0.6.3" and str(cit["version"]) == "0.6.2"
+    assert str(cit["date-released"]) == "2026-11-25"
+    ids = {i["value"]: i.get("description", "") for i in cit["identifiers"]}
+    assert "latest published release" in ids[zenodo_doi] and figshare_doi in ids
+    # exactly one record is the latest, and it is not the 0.6.1 record that 0.6.2 revised
+    assert sum("latest published release" in d for d in ids.values()) == 1
+    revised = f"10.5281/zenodo.{v062['zenodo']['revision_of']}"
+    assert revised == "10.5281/zenodo.24430429" and "latest published release" not in ids[revised]
+    assert not any("0.6.3" in d for d in ids.values())  # no identifier is claimed for 0.6.3
+    changelog = (ROOT / "CHANGELOG.md").read_text()
+    heads = [ln for ln in changelog.splitlines() if ln.startswith("## [0.6.")]
+    assert heads[0].startswith("## [0.6.3]") and "unreleased" in heads[0]
+    assert heads[1] == "## [0.6.2] — 2026-11-25 (manuscript revision; published)"
+    e063, e062 = (changelog.split(h, 1)[1].split("\n## [", 1)[0] for h in heads[:2])
+    assert zenodo_doi in e062 and figshare_doi in e062 and "07a5e57b" in e062
+    assert "before** the self-contained rewrite" in e062
+    assert "It is not published" in " ".join(e063.split())
+    # the next Figshare DOI does not exist yet, on any surface or as a parsed identifier
+    surfaces = {
+        rel: " ".join((ROOT / rel).read_text().split())
+        for rel in ("CHANGELOG.md", "CITATION.cff", "README.md", "paper/SUBMISSION.md")
+    }
+    for rel, text in surfaces.items():
+        assert "figshare.32086920.v9" not in text, rel
+    assert not any(k.endswith(".v9") for k in ids)
+    # 0.6.2 holds the wording BEFORE the rewrite, said where a reader meets the 0.6.2 record
+    assert (
+        "in the wording it had before the hypotheses and amendments were named in words"
+        in (surfaces["README.md"])
+    )
+    assert "`0.6.2` holds it in the wording before that rewrite" in surfaces["paper/SUBMISSION.md"]
+    assert "before the self-contained rewrite of the wording that is prepared as 0.6.3" in (
+        surfaces["CITATION.cff"].replace("# ", "")
+    )
+    # "not published" is checked in the sentence that names 0.6.3, not anywhere in the file
+    assert "prepared as archive version 0.6.3 and is **not published**" in surfaces["README.md"]
+    assert "`0.6.3` is prepared and **not published**" in surfaces["paper/SUBMISSION.md"]
+    assert "**`0.6.3`, prepared, not published**" in surfaces["paper/SUBMISSION.md"]
+    for rel in ("README.md", "paper/SUBMISSION.md"):
+        assert zenodo_doi in surfaces[rel], rel
 
 
 def test_a_lineage_state_file_is_refused_from_either_source(tmp_path, monkeypatch):
@@ -2033,7 +2142,7 @@ def test_a_lineage_state_file_is_refused_from_either_source(tmp_path, monkeypatc
     lineage = (ROOT / "publish.state.v060.json").read_bytes()
     yml = (ROOT / "publish.yml").read_text()
     for i, name in enumerate(sorted(sv.LINEAGE_STATE_FILES)):
-        via_yml = yml.replace("state_file: publish.state.v062.json", f"state_file: {name}")
+        via_yml = yml.replace("state_file: publish.state.v063.json", f"state_file: {name}")
         assert via_yml != yml
         for k, (cli, text) in enumerate(((True, yml), (False, via_yml))):
             run_dir = tmp_path / f"run{i}{k}"
@@ -2046,7 +2155,7 @@ def test_a_lineage_state_file_is_refused_from_either_source(tmp_path, monkeypatc
                 _run_main(monkeypatch, run_dir, argv, yml=text, calls=calls)
             assert calls == [], (name, cli, calls)
             assert (run_dir / "proj" / "publish.state.v060.json").read_bytes() == lineage
-            assert not (run_dir / "proj" / "publish.state.v062.json").exists()
+            assert not (run_dir / "proj" / "publish.state.v063.json").exists()
 
 
 def test_a_lineage_state_file_is_refused_by_case_variant_or_hard_link(tmp_path):
@@ -2065,5 +2174,5 @@ def test_a_lineage_state_file_is_refused_by_case_variant_or_hard_link(tmp_path):
     os.link(real, link)
     with pytest.raises(ValueError, match="lineage"):
         sv._refuse_lineage_state(link)
-    fresh = tmp_path / "publish.state.v062.json"
+    fresh = tmp_path / "publish.state.v063.json"
     assert sv._refuse_lineage_state(fresh) == fresh

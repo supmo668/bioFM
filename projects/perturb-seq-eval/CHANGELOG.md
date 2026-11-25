@@ -6,22 +6,60 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
 ## [Unreleased]
 
+Repository changes that are in no archive deposit. An archive deposit (0.6.2, and 0.6.3 as prepared) holds the manuscript, its build log, the run artifacts and the superseded supplement, and no tests; the test change below is in the deposit commit `07a5e57b` but is not a deposited file.
+
 ### Changed
 
 - **Tests: the MLP regression pin and two `summary.json` keys compare within a bounded ulp instead of bit-exactly (HACA-124).** The numbers move by a few ulp with the numpy/BLAS build: numpy 2.4.4 and 2.5.5 on the same x86_64 CPU differ, and the aarch64 host and the x86_64 runner both miss the pins recorded 2026-09-24 (HACA-121). The MLP regression pin now matches within 4 ulp of its largest magnitude (the linear pin stays bit-exact). The reproduction check stays exact for every `summary.json` key except `preregistered.H5.weights.one_minus_delta_c` and `preregistered.H5.norman_tdi`, which match within 4 ulp per element, and every reported value must be identical. Every test run prints its numeric environment (python, numpy, scipy, scikit-learn, torch, BLAS build and runtime core); the checked builds are in `tests/fixtures/numeric_environment.json`. The paper's Reproducibility paragraph discloses the two keys. No result, macro or artifact changed.
 
-## [0.6.2] — unreleased (deposit prepared, not yet published)
+## [0.6.3] — unreleased (manuscript wording revision; prepared, not published)
 
-Version 0.6.2 is a revision of the manuscript only. It reports the same pre-registered run as
-v0.6.0 and 0.6.1, and no hypothesis, threshold, estimator, run or outcome changed. It is prepared
-as the next version of the existing archive records: a new version of Zenodo record
-10.5281/zenodo.24430429 (under the concept DOI 10.5281/zenodo.19716140) and version 8 of Figshare
-article 10.6084/m9.figshare.32086920. **It is not published, and the author has not yet approved
-its publication**: so far only the preparation of the deposit and a dry run are approved. No
-0.6.2 DOI, release date or deposit commit exists yet. The deposited `paper.pdf` is to be built
-from the commit of this branch once it is merged; the manuscript on the `main` branch at commit
-`db93576f`, which has only the plain-English rewrite described below, is not to be published as
-0.6.2.
+Version 0.6.3 revises the wording of version 0.6.2 only. It reports the same pre-registered run
+as v0.6.0, 0.6.1 and 0.6.2, and no hypothesis, threshold, estimator, run or outcome changed;
+`paper/PREREGISTRATION.md` is not changed by it. It is prepared as the next version of the
+existing archive records: a new version of Zenodo record 10.5281/zenodo.24518637 (under the
+concept DOI 10.5281/zenodo.19716140) and version 9 of Figshare article
+10.6084/m9.figshare.32086920. **It is not published, and the author has not yet approved its
+publication**: the author decided that this manuscript is archived as 0.6.3 and not as a second
+0.6.2 (perturb-seq-eval approvals row 45, 2026-11-25), which covers the relabel and a dry run
+only. No 0.6.3 DOI, release date or deposit commit exists yet. The deposited `paper.pdf` is to
+be built from the commit of this branch once it is merged.
+
+### Changed
+
+- **Self-contained wording (approvals row 42).** The hypotheses are named by what they claim
+  and the amendments to the pre-registration by number, in words, instead of by the labels that
+  version 0.6.2 still used in places (its hypotheses table and its table of amendments among
+  them); abbreviations and symbols are defined where they are first used; and every table and
+  figure caption defines what it shows. The same pass was made over the abstract for the
+  preprint server, the deposit notes and descriptions, the citation file and the README.
+- **Reference corrected: the CellForge preprint (arXiv:2508.02276).** Versions up to 0.6.2
+  credited it to "Xiangru Chen and others" in the bibliography and to "Wei, Yi" under a
+  different title in `CITATION.cff`. Its authors are Xiangru Tang, Jiapeng Chen, Daniel Shao,
+  Zhuoyun Yu and others (15 authors); its version-1 title is "CellForge: Agentic Design of
+  Virtual Cell Models" and its current (version 3) title is "AI Scientists for Building
+  Virtual-Cell Models". The bibliography key is unchanged.
+- **Deposit configuration.** `publish.yml` has version `0.6.3` and targets a new version of
+  Zenodo record 24518637 and Figshare version 9, with the state file `publish.state.v063.json`.
+  In `scripts/publish/submit_to_venues.py` the one permitted Zenodo revision moves to 24518637,
+  record 24430429 (0.6.1) becomes an ordinary superseded record, `publish.state.v062.json`
+  joins the lineage records, and the Figshare base version is 8.
+- **Manuscript: one clause about earlier archived versions.** The two sentences that say the
+  error feedback was not disclosed in "the versions of this paper archived before this one" now
+  say "archived before version 0.6.2", because version 0.6.2 discloses it and, with 0.6.3, is
+  itself an earlier archived version.
+
+### Open
+
+- An unpublished Zenodo draft, deposit 24519260, was made from commit `c42ac57c` with the
+  version field `0.6.2` before the version number was decided. It is not recorded in any state
+  file and is not to be published as it is. If Zenodo hands it back as the open draft of the
+  new version, the 0.6.3 dry run reuses it (its files and metadata are replaced by the 0.6.3
+  set); otherwise the dry run stops. The submitter cannot discard a draft.
+
+## [0.6.2] — 2026-11-25 (manuscript revision; published)
+
+Published as the next version of the existing records: Zenodo 10.5281/zenodo.24518637 (a new version of 10.5281/zenodo.24430429, concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v8 — the same five files, `paper.pdf` md5-identical on both (`e605c293db3296b80adb3b835a50888d`, downloaded from the public records), built from commit `07a5e57b` (tag `v0.6.0-a6`). Principal's go: perturb-seq-eval approvals row 43 (2026-11-25), the separate go that row 41 required; the drafts were published as reviewed, with no rebuild. The deposited manuscript is the Amendment 6 one, not the plain-English-only manuscript of `main` at `db93576f` (row 41). It holds the manuscript as it read **before** the self-contained rewrite that is prepared as 0.6.3 (above). The git tag `v0.6.2` is on commit `07a5e57b`.
 
 ### Changed
 
@@ -54,22 +92,17 @@ from the commit of this branch once it is merged; the manuscript on the `main` b
   what each role's prompt carries and records the figures. The annotated git tag `v0.6.0-a6`
   for this amendment exists: it was created on 2026-11-25 on the merge commit `07a5e57b`. It
   marks the amendment, not a release.
-- **Plain academic English.** The manuscript is rewritten without project shorthand: the
-  hypotheses are named by what they claim instead of by label, abbreviations and symbols are
-  defined where they are first used, and every table and figure caption defines what it shows.
-  One sentence on reproducing two values across numerical libraries is added to the
-  reproducibility section.
-- **Reference corrected: the CellForge preprint (arXiv:2508.02276).** Versions up to 0.6.1
-  credited it to "Xiangru Chen and others" in the bibliography and to "Wei, Yi" under a
-  different title in `CITATION.cff`. Its authors are Xiangru Tang, Jiapeng Chen, Daniel Shao,
-  Zhuoyun Yu and others (15 authors); its version-1 title is "CellForge: Agentic Design of
-  Virtual Cell Models" and its current (version 3) title is "AI Scientists for Building
-  Virtual-Cell Models". The bibliography key is unchanged.
-- **Deposit configuration.** `publish.yml` targets a new version of Zenodo record 24430429 and
-  Figshare version 8, with the state file `publish.state.v062.json`. In
-  `scripts/publish/submit_to_venues.py` the one permitted Zenodo revision moves to 24430429,
-  record 23422745 (v0.6.0) becomes an ordinary superseded record, `publish.state.v061.json`
-  joins the lineage records, and the Figshare base version is 7.
+- **Plain academic English.** The manuscript is rewritten without project shorthand, and one
+  sentence on reproducing two values across numerical libraries is added to the
+  reproducibility section. Hypothesis and amendment labels still appear in places in this
+  version; version 0.6.3 replaces them.
+- **Deposit configuration, as it was for this release.** `publish.yml` targeted a new version of
+  Zenodo record 24430429 and Figshare version 8, with the state file `publish.state.v062.json`,
+  which now records the published ids.
+
+### Open
+
+- The Zenodo 0.6.2 record does not yet carry `isIdenticalTo` the Figshare v8 DOI (`publish.yml` deposit-time step 5; done for v6 on 2026-10-25).
 
 ## [0.6.1] — 2026-11-22 (manuscript revision; published)
 
