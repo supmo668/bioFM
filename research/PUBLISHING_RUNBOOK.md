@@ -485,10 +485,12 @@ this in code rather than by instruction:
 | `DraftRequiredError` | publishing in the same run that created the draft — the two-gos rule, enforced mechanically |
 | `DraftMismatchError` | a same-name file whose content changed since the draft was created |
 
-Each release gets **its own state file** (`state_file:` in `publish.yml`;
-`publish.state.v060.json` for v0.6.0). `publish.state.json` is the v0.5.x record
-and is **never written again** — so the references to it elsewhere on this page
-(§5, §6.3, §8, §9) describe the v0.5.x history, not a file to update.
+Each release gets **its own state file** (`state_file:` in `publish.yml`). The prepared,
+unpublished release 0.6.3 uses `publish.state.v063.json`. Four lineage records are **never
+written again**: `publish.state.json` (v0.5.x), `publish.state.v060.json` (v0.6.0),
+`publish.state.v061.json` (0.6.1) and `publish.state.v062.json` (0.6.2). The references to
+`publish.state.json` elsewhere on this page (§5, §6.3, §8, §9) describe the v0.5.x history, not a
+file to update.
 
 **Known defect on this page, left for whoever edits it next:** the heading `6.5`
 is used twice — once for Research Square above, once here. Renumber when this
@@ -520,8 +522,8 @@ Then stage a single PR with those four files touched."
 ## 8. Resume / recovery
 
 The state file is idempotent. If the script is interrupted between
-venues, rerunning with the same state file — **this release's `state_file` in `publish.yml`** (`publish.state.v061.json`
-for 0.6.1) — in place picks up where it left off — existing deposition IDs are reused.
+venues, rerunning with the same state file — **this release's `state_file` in `publish.yml`** (`publish.state.v063.json`
+for 0.6.3) — in place picks up where it left off — existing deposition IDs are reused.
 
 | Failure mode | What the script does on retry |
 |---|---|
@@ -531,7 +533,8 @@ for 0.6.1) — in place picks up where it left off — existing deposition IDs a
 | Production vs sandbox mix-up | Flip `sandbox:` flag; clear only the `zenodo` section of this release's `state_file` |
 
 Delete the state file entirely only for a genuinely fresh start. **Never point `--state` at a published lineage record**
-(`publish.state.json`, `publish.state.v060.json`); the submitter refuses them by name.
+(`publish.state.json`, `publish.state.v060.json`, `publish.state.v061.json`,
+`publish.state.v062.json`); the submitter refuses them by name.
 
 ## 9. What Claude needs from you to run this unattended
 
