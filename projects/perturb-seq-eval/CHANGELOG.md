@@ -24,8 +24,7 @@ manuscript is archived as 0.6.3 and not as a second 0.6.2 (perturb-seq-eval appr
 publish; the drafts were published as reviewed, with no rebuild. Version 0.6.3 revises the
 wording of version 0.6.2 only. It reports the same pre-registered run as v0.6.0, 0.6.1 and
 0.6.2, and no hypothesis, threshold, estimator, run or outcome changed;
-`paper/PREREGISTRATION.md` is not changed by it. The Zenodo 0.6.3 record does not yet carry
-`isIdenticalTo` the Figshare v9 DOI.
+`paper/PREREGISTRATION.md` is not changed by it.
 
 ### Changed
 
@@ -57,6 +56,11 @@ wording of version 0.6.2 only. It reports the same pre-registered run as v0.6.0,
   version field `0.6.2` before the version number was decided. The 0.6.3 dry run reused it as
   the open draft of the new version and replaced its files and metadata with the 0.6.3 set; it
   was published only after that, as reviewed.
+
+### Open
+
+- The Zenodo 0.6.3 record does not yet carry `isIdenticalTo` the Figshare v9 DOI
+  (`publish.yml` deposit-time step 5; done for v6 on 2026-10-25).
 
 ## [0.6.2] — 2026-11-25 (manuscript revision; published)
 
