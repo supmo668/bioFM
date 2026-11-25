@@ -43,19 +43,18 @@ preferred-citation:
       affiliation: "Carnegie Mellon University"
       orcid: "https://orcid.org/0009-0009-5233-3142"
   title: >-
-    Does Agent Confidence Entropy Predict Task Difficulty? A Pre-registered,
-    Provenance-Complete Test of Agentic Hyperparameter Tuning for Perturb-seq
-    Response Prediction
+    Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
+    A Pre-registered Test on Perturb-seq
   year: 2026
   month: 10
   doi: "10.5281/zenodo.19716140"
   url: "https://doi.org/10.5281/zenodo.19716140"
   license: "CC-BY-4.0"
   notes: >-
-    Preprint-class deposit archived on Zenodo (concept DOI; resolves to 0.6.1,
-    10.5281/zenodo.24430429, published 2026-11-22). The same release is deposited
-    on Figshare as 10.6084/m9.figshare.32086920.v7. The earlier v0.6.0 pair (Zenodo
+    Preprint-class deposit archived on Zenodo (concept DOI; resolves to 0.6.2,
+    10.5281/zenodo.24518637, published 2026-11-25). The same release is deposited
+    on Figshare as 10.6084/m9.figshare.32086920.v8. The earlier v0.6.0 pair (Zenodo
     10.5281/zenodo.23422745, Figshare v6) reference each other by `isIdenticalTo`;
-    the 0.6.1 pair does not yet carry that link. Full version
-    lineage v1..v6 and every superseded DOI are documented in
+    the 0.6.1 and 0.6.2 pairs do not yet carry that link. Full version
+    lineage v1..v8 and every superseded DOI are documented in
     projects/perturb-seq-eval/CITATION.cff.
