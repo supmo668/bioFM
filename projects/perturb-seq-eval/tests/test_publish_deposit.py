@@ -1035,6 +1035,8 @@ def test_keywords_and_citation_version_are_true_of_the_work():
         # Only this release's record calls itself the latest; the one it revises no longer does.
         revised = f"10.5281/zenodo.{sv.ALLOWED_REVISIONS['zenodo']}"
         assert "latest published release" not in ids[revised]
+        # ... and the Figshare version it was published as stays on record beside it.
+        assert f"{state[\x27figshare\x27][\x27doi\x27]}.v{sv.FIGSHARE_BASE_VERSION}" in ids
         assert sum("latest published release" in d for d in ids.values()) == 1
         # The CHANGELOG entry is marked published with the release date and both DOIs.
         released = str(cit["date-released"])
