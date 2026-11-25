@@ -2090,7 +2090,22 @@ def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
     assert zenodo_doi in e062 and figshare_doi in e062 and "07a5e57b" in e062
     assert "before** the self-contained rewrite" in e062
     assert "It is not published" in " ".join(e063.split())
-    assert "figshare.32086920.v9" not in changelog  # the next Figshare DOI does not exist yet
+    # the next Figshare DOI does not exist yet, on any surface or as a parsed identifier
+    surfaces = {
+        rel: " ".join((ROOT / rel).read_text().split())
+        for rel in ("CHANGELOG.md", "CITATION.cff", "README.md", "paper/SUBMISSION.md")
+    }
+    for rel, text in surfaces.items():
+        assert "figshare.32086920.v9" not in text, rel
+    assert not any(k.endswith(".v9") for k in ids)
+    # 0.6.2 holds the wording BEFORE the rewrite, said where a reader meets the 0.6.2 record
+    assert "in the wording it had before the hypotheses and amendments were named in words" in (
+        surfaces["README.md"]
+    )
+    assert "`0.6.2` holds it in the wording before that rewrite" in surfaces["paper/SUBMISSION.md"]
+    assert "before the self-contained rewrite of the wording that is prepared as 0.6.3" in (
+        surfaces["CITATION.cff"].replace("# ", "")
+    )
     for rel in ("README.md", "paper/SUBMISSION.md"):
         text = " ".join((ROOT / rel).read_text().split())
         assert "0.6.3" in text and "not published" in text, rel
