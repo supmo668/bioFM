@@ -8,18 +8,20 @@ data were collected; Table~\ref{tab:amendments} lists them.
 
 \subsection{Data and provenance}\label{subsec:datasets}
 
-We use two published K562 Perturb-seq screens in the scPerturb
-repackaging~\citep{peidli2024scperturb} (Zenodo record $13350497$):
+We use two published Perturb-seq screens of the K562 cell line, as distributed
+in the scPerturb collection~\citep{peidli2024scperturb} (Zenodo record $13350497$):
 \textsc{Adamson 2016}~\citep{adamson2016perturbseq}, a CRISPR interference
-screen, from its three 10X runs (pilot, 10X005, 10X010) concatenated onto the
-intersection of their gene vocabularies; and
-\textsc{Norman 2019}~\citep{norman2019perturbseq}, a CRISPR activation screen
-with single and double perturbations. All four files are fetched
+(CRISPRi) screen, from its three subsets in that collection (named pilot, 10X005
+and 10X010) concatenated onto the intersection of their gene vocabularies; and
+\textsc{Norman 2019}~\citep{norman2019perturbseq}, a CRISPR activation (CRISPRa)
+screen with single-gene perturbations (\emph{singletons}) and two-gene
+perturbations (\emph{doublets}). All four files are fetched
 programmatically. The SHA-256 digest of each file is pinned in the code and was
 cross-checked against the size and MD5 published in the Zenodo record; a missing
 pin or a digest mismatch refuses the fetch.
 
-Perturbation labels follow a recorded label contract. Adamson construct labels are
+Perturbation labels are mapped to tasks by a recorded set of rules, the
+\emph{label contract}. Adamson construct labels are
 parsed structurally, after the plasmid suffix and the ``only'' marker are removed. A
 construct that targets one gene becomes a gene task, which pools all plasmids for that gene
 and records the guide count. Constructs that target several genes are excluded, and
@@ -30,30 +32,34 @@ their Ensembl gene IDs, and labels that resolve under neither name are excluded 
 reason.
 
 The held-out task plan is drawn deterministically. Adamson targets are binned into $3$
-quantile bins of the mean $|\Delta\log1\mathrm{p}|$ of the target gene, and up to $7$ are
+quantile bins of the mean $|\Delta\log1\mathrm{p}|$ of the target gene (the absolute change
+in its $\log(1+x)$-transformed expression), and up to $7$ are
 drawn per bin from the structurally eligible single-gene constructs with a generator seeded
 with 2026. A bin with fewer eligible labels contributes all of them, and the draw is then
 topped up to exactly $21$ by a seeded permutation of the sorted remaining labels, or trimmed
 to the sorted prefix. Norman singletons and doublets are drawn separately, stratified by strata
 derived from a CRC32 hash, and topped up or trimmed by the same rule to exactly $15$
 and $5$ ($20$ tasks), for $41$ tasks in total. Only the per-pool total is asserted: a pool
-smaller than its requested count refuses the run in preflight, and the eligible-pool size of
+smaller than its requested count refuses the run in the preflight check that precedes any
+model fitting (\S\ref{subsec:compute}), and the eligible-pool size of
 each bin is written to the provenance record so that an uneven fill is visible. Every excluded label, every digest, the resolved task plan with
 its strata and eligible-pool sizes, and the cap on cells per perturbation label are written
 to the run's provenance record (\S\ref{sec:reproducibility}).
 
-\paragraph{On-target signal.} Each backbone receives the signed
+\paragraph{On-target signal.} Each backbone (prediction model, \S\ref{subsec:backbones})
+receives the signed
 log-fold-change of the perturbation's target gene(s) as its on-target
 feature; for a doublet it is the mean over the two target genes. In Adamson
-(CRISPR interference) the on-target signal is a decrease; in Norman (CRISPR
-activation) it is an increase. Because the feature is signed, the direction
+(CRISPRi) the on-target signal is a decrease; in Norman (CRISPRa) it is an
+increase. Because the feature is signed, the direction
 is learned from the data rather than assumed.
 
 \subsection{Features and evaluation}\label{subsec:eval}
 
 \paragraph{Features.} For each held-out task, highly variable genes (HVGs) are selected on
-that task's \emph{training} cells only. The trainer sweep uses $2000$; in the lifecycle the
-count is the value the agents chose and the executor applied. Feature spaces may therefore vary by run as well as
+that task's \emph{training} cells only. The trainer sweep (\S\ref{subsec:oracle}) uses
+$2000$; in the agentic lifecycle (\S\ref{subsec:lifecycle}) the count is the value the agents
+chose and the pipeline applied. Feature spaces may therefore vary by run as well as
 by task, and every cross-task median is a median over models with differing inputs. The
 target gene(s) and the $20$ evaluation genes are force-included in every feature set. In
 this run every applied choice was \resHVGAppliedValue{}, a single distinct value
@@ -62,38 +68,41 @@ this run every applied choice was \resHVGAppliedValue{}, a single distinct value
 
 \paragraph{Evaluation genes.} The error metric is the mean squared deviation (MSD) between
 predicted and observed mean log-fold-change on the $20$ genes with the largest absolute mean
-difference between the held-out perturbation's cells and control cells, the CPA/GEARS
-convention~\citep{lotfollahi2023cpa,roohani2024gears}. These genes are chosen once per task
+difference between the held-out perturbation's cells and control cells, the convention of
+CPA and GEARS~\citep{lotfollahi2023cpa,roohani2024gears}. These genes are chosen once per task
 on the full gene axis after quality control (QC) and are shared by the trainer sweep and the agentic lifecycle;
 the analysis refuses a run in which the two lists differ. They are chosen using the
 held-out cells.
 
 \subsection{Backbone pool}\label{subsec:backbones}
 
-The Architect picks from three backbones: ridge regression fitted separately for each gene
+A \emph{backbone} is the prediction model fitted for a task. The Architect agent
+(\S\ref{subsec:lifecycle}) picks from three backbones: ridge regression fitted separately for each gene
 in NumPy (\textsc{linear}), a two-layer multilayer perceptron in PyTorch (\textsc{mlp}), and a
 $2.1$\,M-parameter gene-token transformer trained from scratch, which is not a pretrained
 foundation model.
 
 \subsection{Trainer sweep and the oracle quantity}\label{subsec:oracle}
 
-For every task the trainer sweep fits each of the three backbones with $R\in\{1,2,3\}$ and
-$3$ seeds ($2026$--$2028$): \resNTrainerRecordsPerTask{} records per task. The
+For every task the trainer sweep fits each of the three backbones with a round count
+$R\in\{1,2,3\}$ and $3$ seeds ($2026$--$2028$): \resNTrainerRecordsPerTask{} records per task. The
 \textsc{linear} backbone ignores both $R$ and the seed, so the grid holds
 \resNDistinctConfigs{} distinct $(\text{backbone}, R)$ configurations
-(\resNDistinctFits{} distinct fits including seeds); the counts are recorded in provenance.
+(\resNDistinctFits{} distinct fits including seeds); the counts are written to the run's
+provenance record.
 Two amendments made before data collection removed the agent count $N$ as an axis and
 defined the stated count as the number of distinct $(\text{backbone}, R)$ configurations. The
 quantity tested against the attainable-error criteria is,
 per task, the minimum MSD over every finite record, and then its median over tasks. The
 minimum is selected on the same evaluation genes and cells it is scored on, so it is an
 \emph{oracle}: an attainable upper bound on what the configuration space can reach, not an
-estimate of held-out performance. There is no nested validation/test split.
+estimate of held-out performance. There is no nested split into validation and test data.
 
 \subsection{Agentic lifecycle}\label{subsec:lifecycle}
 
-Five agents (DataCurator, Literature, Architect, Trainer and Validator) produce proposals that
-are validated against a schema. Every proposal states a verbalised confidence in $[0,1]$. A
+The \emph{agentic lifecycle}, or lifecycle for short, is the multi-round run of the five
+agents on one task. The agents (DataCurator, Literature, Architect, Trainer and Validator)
+produce proposals that are validated against a schema. Every proposal states a verbalised confidence in $[0,1]$. A
 missing, non-numeric, non-finite or out-of-range value is a schema failure: the step falls
 back to the rule-based default and the run is invalid, so confidence is never imputed. Every
 run has exactly three rounds with no early stop, and the Validator's verdict never stops the
@@ -102,23 +111,25 @@ run.
 The Validator must state an acceptance threshold on the MSD, in $[0.02,0.3]$. The threshold
 decides whether the round's fit is accepted, and that decision selects a rule-based
 adjustment to the configuration, which is applied at the highest precedence in the next
-round; ``Validator delta'' below means that rule-based adjustment. The LLM Validator's own
+round; in the rest of this section, ``Validator delta'' means that rule-based adjustment. The LLM Validator's own
 suggested adjustment is recorded and \emph{not} applied. In this run the threshold was stated
 on all \resNValidatorSteps{} Validator steps (\resValidatorAccepted{} accepted and
 \resValidatorRejected{} rejected), and a value from the Validator was applied in
 \resValidatorSourcedRounds{} of \resNRoundsTotal{} rounds.
 
-The executors \emph{apply} the parsed fields (the HVG count, learning rate, ridge $\lambda$
-and number of epochs) with precedence Validator delta $>$ Architect $>$ DataCurator $>$ Trainer $>$
-defaults, and the applied value and its source are recorded per round. The DataCurator's
-threshold for the QC of mitochondrial reads is recorded but not applied, because no per-cell
+The code that executes each round \emph{applies} the parsed fields (the HVG count, the
+learning rate, the ridge penalty $\lambda$ and the number of epochs). Where several sources
+state a field, the order of precedence, from highest to lowest, is the Validator delta, the
+Architect, the DataCurator, the Trainer and the defaults; the applied value and its source are
+recorded per round. The DataCurator's
+quality-control threshold for mitochondrial reads is recorded but not applied, because no per-cell
 mitochondrial fraction is loaded. The Architect must state a backbone from the fixed menu of
 three; each Architect step records the backbone it \emph{stated} and the backbone that
 \emph{ran} after the Validator's rotation rule, and the backbone-choice criterion is evaluated
 on the stated backbone, with the executed one reported alongside. The Literature role is an
 LLM prompt with no retrieval tools; its expected up- and down-regulated genes are passed to
-the Architect's prompt in the next round. Fields that the agents may state but no executor
-applies (the number of agents and rounds, the split strategy, the batch correction and the
+the Architect's prompt in the next round. Fields that the agents may state but that are
+never applied (the number of agents and rounds, the split strategy, the batch correction and the
 HVG method) are recorded only. The precedence order, the unapplied mitochondrial-read
 threshold and the use of the stated backbone were fixed by amendments made before data
 collection.
@@ -145,7 +156,8 @@ evaluation genes on which the final error is scored; only the round-$0$ confiden
 before any error feedback. The confidence-drop feature $\Delta C$ is the last round's mean
 confidence minus the first round's, so it is a difference between confidence after that
 feedback and confidence before it. This is how the lifecycle was designed and run; it was not
-stated in the pre-registration or in the earlier archived versions of this paper, and it
+stated in the pre-registration or in the versions of this paper archived before this one
+(versions 0.6.0 and 0.6.1), and it
 governs how the ranking result is read (\S\ref{sec:tdi-real}, \S\ref{sec:limits}).
 
 \paragraph{Large language model condition.} The agents are large language models (LLMs),
@@ -155,12 +167,12 @@ Architect and Trainer, and Claude Sonnet 5.5 (\resRosterSonnet) for the Validato
 so the judge sits on a different tier from the roles it judges. Each role fails over to the
 other model. Every reply is constrained to the role's JSON schema by structured outputs, and
 numeric ranges are enforced by the role schema after parsing, never clamped. The two free-form
-maps in the Literature and Validator schemas are sent as key/value arrays and rebuilt after
+maps in the Literature and Validator schemas are sent as arrays of key--value pairs and rebuilt after
 parsing. Every prompt states the dataset and its modality. As recorded, extended thinking was \resThinkingHaiku{} for Haiku 4.5 and
 \resThinkingSonnet{} for Sonnet 5.5, at \resEffortSonnet{} effort. Haiku was sampled at temperature \resTemperatureHaiku{}, the value
-used by an earlier roster, and Sonnet 5.5 at its \resSamplingSonnet, because it rejects
+used with the provider that the fourth amendment replaced (Table~\ref{tab:amendments}), and Sonnet 5.5 at its \resSamplingSonnet, because it rejects
 non-default sampling. The output ceiling of each role is four times the largest output seen in
-the dry run, with a minimum of 256 tokens: DataCurator \resCeilingCurator, Literature
+a dry run made before the sweep, with a minimum of 256 tokens: DataCurator \resCeilingCurator, Literature
 \resCeilingLiterature, Architect \resCeilingArchitect, Trainer \resCeilingTrainer{} and
 Validator \resCeilingValidator. A reply that stops at its ceiling is retried once at twice the
 ceiling, with both calls billed, and a second such stop is treated like a fallback. In this
@@ -170,9 +182,9 @@ once at twice the ceiling and then ended normally, as did the other \resStopEndT
 Every call records why it stopped, the requested and the served model, which are asserted
 equal (a mismatch is treated like a fallback, with no failover), and its token usage. A
 refusal aborts the run, as does an authentication, payment, permission or not-found error
-(HTTP 401/402/403/404), and no request asks the API for a server-side fallback model.
-Before any spend, the preflight probes both roster models with every role's schema and records
-the liveness table in provenance. Each lifecycle step is labelled as coming from the LLM or
+(HTTP status 401, 402, 403 or 404), and no request asks the API for a server-side fallback model.
+Before any spend, the preflight check probes both roster models with every role's schema and
+records, in the provenance record, which model--role pairs answered (the liveness table). Each lifecycle step is labelled as coming from the LLM or
 from the rule-based fallback, together with the model that served it; a run with any fallback
 step is invalid, and the pre-registered run starts on an empty LLM cache, specific to its
 version, so that no reply is replayed (\resCacheStart{} cache entries at the start and
@@ -195,8 +207,8 @@ confidence-derived quantities (\S\ref{sec:tdi-real}).
 
 \subsection{Compute}\label{subsec:compute}
 
-Preflight, trainer sweep and lifecycle sweep run in one process on a single Modal A100-40GB
-container. Spend is measured as GPU wall-clock time plus LLM usage at the pinned list prices
+The preflight check, the trainer sweep and the lifecycle sweep run in one process in a single
+container with one NVIDIA A100 GPU (40\,GB) on the Modal cloud platform. Spend is measured as GPU wall-clock time plus LLM usage at the pinned list prices
 plus the spend carried in from an aborted earlier attempt and the dry run. It is held against
 pre-registered lines of \$\resSpendStopLine{} (stop and report) and \$\resKillLine{} (kill)
 under a \$\resCeilingLine{} ceiling; the lines are limits, not the spend. Every run is

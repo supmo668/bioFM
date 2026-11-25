@@ -40,12 +40,12 @@ acknowledge_packages = []
 # canonical scholarly abstract and must not be reshaped to suit a submission form.
 #
 # arXiv imposes two hard limits (info.arxiv.org/help/prep): metadata fields accept ASCII
-# ONLY, and "Abstracts over 1920 characters are rejected." The CFF abstract is 3222
-# characters with 5 non-ASCII characters (measured 2026-11-24; it was 2548 with 4 before the
-# row-39 rewrite), so arXiv refuses it outright. `metadata` now
+# ONLY, and "Abstracts over 1920 characters are rejected." The CFF abstract is 3795
+# characters with 4 non-ASCII characters (measured 2026-11-25; it was 3222 with 5 before the
+# self-containment pass), so arXiv refuses it outright. `metadata` now
 # fails closed on both, with a self-test case proving each check fires.
 #
-# This version is 1918 characters, 0 non-ASCII. The tooling checks only the length and ASCII
+# This version is 1915 characters, 0 non-ASCII. The tooling checks only the length and ASCII
 # limits; tests pin the result tokens, tie each rho to its generated macro and allow-list every
 # other decimal. Its history, oldest first:
 #
@@ -60,15 +60,22 @@ acknowledge_packages = []
 #    that the confidence drop follows shown held-out error, the exploratory pre-feedback rho from
 #    paper/sections/generated_exploratory.tex, and that the probe and recommender are not evaluated.
 #    Superseded.
-# 4. 2026-11-24, quality gate on the row-39 manuscript: this version. It names the screen of each
+# 4. 2026-11-24, quality gate on the row-39 manuscript. Superseded. It names the screen of each
 #    exploratory rho, says "mean confidence" (only the round-0 MEAN confidence is null), restores
 #    "in both screens; exploratory, no claim" on the ACE sentence, and replaces "The supported result
 #    is ..." with "The pass is consistent with ...; it is not evidence that ...", because "supported"
 #    is the paper's word for a criterion outcome. "and the composite that inherits it" (in the
 #    manuscript abstract) is left out for length. No result changes.
+# 5. 2026-11-25, self-containment pass: this version. Every label, abbreviation and symbol is
+#    defined where it is first used or written out: the metrics used once are no longer listed by
+#    acronym, the two datasets are called screens of the K562 cell line, the Architect and the
+#    backbone are glossed, "Spearman's" precedes the first rho, the ranking result is said to
+#    meet its criterion (so "The pass" has an antecedent), and the note-like closing fragments
+#    are sentences. "run via MassGen" is left out for length (the manuscript abstract keeps it).
+#    No result or caveat changes.
 #
 # A TOML LITERAL string is required here so the TeX backslashes are not escape-processed.
-abstract = '''That a single agent's own vote distribution can gate its compute is reported (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the distribution of stated confidences across a group of role-specialised agents predict task difficulty, allowing adaptive compute allocation? In a five-agent CellForge-style Perturb-seq orchestrator run via MassGen, we define four trace metrics, Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a convergence signal ($\Delta$C) and Winner Flip Rate (WFR), and their composite Task Difficulty Index (TDI). We pre-register five hypotheses: low attainable error on Adamson 2016 and on Norman 2019, varied backbone choice by the Architect, the rank correlation of each TDI component with error, and cross-dataset transfer of a calibrated TDI. We test them on 41 held-out K562 tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets), with 27 trainer-sweep records and three fixed-length agentic runs each, on a pinned Claude roster (Haiku 4.5, Sonnet 5.5) asserted per call. We find that four of the five hypotheses are supported and the cross-dataset transfer hypothesis is not; every hypothesis could be evaluated. Within each screen the drop in confidence across rounds ranks tasks by error; the fitted composite does not reach the transfer criterion at the pre-registered level ($\rho$ = 0.286 against > 0.4). From round two on, every prompt carries the prior round's held-out error, so that drop follows a shown error; the mean confidence stated before any feedback does not rank tasks ($\rho$ = 0.003 on Adamson and 0.214 on Norman; this is exploratory). The pass is consistent with confidence falling further after a larger shown error; it is not evidence that it anticipates difficulty. ACE, an evenness index, runs against the pre-registered direction in both screens; exploratory, no claim. The probe and recommender are specified, not evaluated.'''
+abstract = '''That a single agent's own vote distribution can gate its compute is reported (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the distribution of confidences stated by a group of agents predict task difficulty, enabling adaptive compute allocation? In a five-agent CellForge-style system that predicts Perturb-seq (single-cell CRISPR screen) responses, we define run metrics, including Agent Confidence Entropy (ACE), and a composite Task Difficulty Index (TDI). We pre-register five hypotheses: low attainable error on Adamson 2016 and on Norman 2019, varied backbone choice by the Architect (the model-choosing agent), the rank correlation of each TDI component with error, and cross-dataset transfer of a calibrated TDI. We test them on 41 held-out perturbations from these K562 screens (21 Adamson, 15 Norman single-gene, 5 Norman two-gene), with 27 trained-model records and three agent runs each; agents are pinned Claude models (Haiku 4.5, Sonnet 5.5). We find that four of the five hypotheses are supported and the cross-dataset transfer hypothesis is not; every hypothesis could be evaluated. Within each screen the confidence drop across rounds ranks tasks by error, meeting its criterion; the fitted composite misses the transfer criterion at the pre-registered level (Spearman's $\rho$ = 0.286 against > 0.4). From round two on, prompts carry the prior round's held-out error, so that drop follows a shown error; the mean confidence stated before any feedback does not rank tasks ($\rho$ = 0.003 on Adamson and 0.214 on Norman; this is exploratory). The pass is consistent with confidence falling further after a larger shown error; it is not evidence that it anticipates difficulty. ACE, an evenness index, runs against the pre-registered direction in both screens. This too is exploratory; no claim is made. A one-round probe and configuration recommender are specified, not evaluated.'''
 
 # NOTE: [categories] is LAST on purpose. A TOML table header captures every key
 # that follows it, so a scalar placed after it silently becomes categories.<key>

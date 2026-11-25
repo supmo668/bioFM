@@ -1,56 +1,65 @@
 cff-version: 1.2.0
 message: >-
-  If you use this software or results, please cite the supplement and
-  the upstream references below.
+  If you use this software or these results, please cite the paper named in
+  the title below through its DOI, together with the works listed under
+  references that your use relies on.
 title: >-
   Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
   A Pre-registered Test on Perturb-seq
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 abstract: >-
-  A multi-agent group-generation system, as operated here, spends test-time
-  compute uniformly across tasks. That a single agent's own vote distribution
-  can gate its test-time compute is already reported by CATTS; we ask the
-  multi-agent question: whether the distribution of stated confidences and
+  A multi-agent group-generation system, in which language-model agents
+  propose, critique and vote over several rounds, spends test-time compute
+  (computation at inference) uniformly across tasks as operated here. That a
+  single agent's own vote distribution can gate its test-time compute is
+  already reported by the CATTS method of Lee and colleagues (2026); we ask
+  the multi-agent question: whether the distribution of stated confidences and
   critiques across a group of role-specialised agents predicts how hard a task
-  is, which would let the group's compute be allocated adaptively. Taking as
-  testbed a five-agent orchestrator for Perturb-seq response prediction
-  inspired by CellForge and operated via MassGen, we define four trace metrics
-  — Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a
-  convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their composite,
-  the Task Difficulty Index (TDI). We pre-register five hypotheses with
-  criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman
-  2019 (CRISPR activation), the Architect agent's backbone-choice entropy, the
-  rank correlation of each TDI component with held-out error, and
-  cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
-  tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
-  deterministically, a trainer sweep of 27 records per task and three
-  fixed-length agentic lifecycle runs per task, all in one process. The agents
-  are large language models (LLMs) from a pinned roster of Anthropic Claude
-  models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator)
-  whose served model is recorded and asserted per call; a run with any
-  rule-based fallback step is invalid. Every run records its git revision,
-  resolved configuration, library versions, dataset SHA-256 digests, task plan
-  and label contract. We find that four of the five pre-registered hypotheses
-  are supported and the cross-dataset transfer hypothesis is not; every
-  hypothesis could be evaluated. The trainer sweep reaches the pre-registered
-  error on both screens, and the Architect's choice of backbone varies above
-  the pre-registered entropy floor. Within each screen, the drop in the
-  agents' confidence across rounds, and the composite that inherits it, rank
-  tasks by held-out error. From the second round on, however, every agent's
-  prompt carries the previous round's held-out error, so that drop is stated
-  after an error has been shown. In an exploratory analysis, the mean
-  confidence stated before any feedback does not rank tasks by error (ρ =
-  0.003 on Adamson and 0.214 on Norman, both intervals including zero). Read
-  with the design and that analysis, the pre-registered pass is consistent
-  with stated confidence falling further where a larger error was shown; it is
-  not evidence that the group's confidence anticipates difficulty. The
-  composite fitted on Adamson did not meet the pre-registered transfer
-  criterion on Norman (ρ = 0.286 against a criterion of > 0.4). The point
-  estimates for confidence entropy, an evenness index over the agents, run
-  against the pre-registered direction in both screens; this is exploratory,
-  and no claim is made. The preflight probe and recommender are specified but
-  not evaluated. The values reported in the earlier release of this work are
-  superseded in full; the defects behind each are listed in the appendix.
+  is, which would let the group's compute be allocated adaptively. The testbed
+  is a five-agent orchestrator that predicts gene-expression responses in
+  Perturb-seq data (pooled CRISPR screens read out by single-cell RNA
+  sequencing), inspired by the CellForge system and operated with the MassGen
+  framework. We define four metrics on the record of a run — Agent Confidence
+  Entropy, Critique Severity Dispersion, the change in the agents' mean stated
+  confidence from the first round to the last, and Winner Flip Rate — and
+  their composite, the Task Difficulty Index (TDI). We pre-register five
+  hypotheses, each with a criterion: that a sweep of trained models attains
+  low held-out error on each of two screens of the K562 cell line, Adamson
+  2016 (CRISPR interference) and Norman 2019 (CRISPR activation); that the
+  Architect, the agent that selects the prediction model (the backbone),
+  varies its choice; that a TDI component ranks tasks by held-out error; and
+  that a TDI calibrated on one screen transfers to the other. The design is 41
+  held-out perturbations, called tasks (21 from Adamson, and 15 single-gene
+  and 5 two-gene perturbations from Norman), a sweep of 27 trained-model
+  records per task, and three runs of the agents per task, each of exactly
+  three rounds. The agents are large language models from a pinned roster of
+  Anthropic Claude models (Haiku 4.5 for the four roles that propose, Sonnet
+  5.5 for the role that validates) whose served model is recorded and asserted
+  per call. A run in which any agent step falls back to a rule-based default
+  is invalid, and every run carries a provenance record. We find that four of
+  the five pre-registered hypotheses are supported and the cross-dataset
+  transfer hypothesis is not; every hypothesis could be evaluated. The sweep
+  reaches the pre-registered error on both screens, and the Architect's choice
+  of backbone varies above the pre-registered entropy floor. Within each
+  screen, the drop in the agents' mean confidence across rounds, and the
+  composite that includes it, rank tasks by held-out error, which meets the
+  pre-registered ranking criterion. From the second round on, however, every
+  agent's prompt carries the previous round's held-out error, so that drop is
+  stated after an error has been shown. In an exploratory analysis, the mean
+  confidence stated before any feedback does not rank tasks by error
+  (Spearman's rank correlation ρ = 0.003 on Adamson and 0.214 on Norman, both
+  confidence intervals including zero). Read with the design and that
+  analysis, the pre-registered pass is consistent with stated confidence
+  falling further where a larger error was shown; it is not evidence that the
+  group's confidence anticipates difficulty. The composite fitted on Adamson
+  did not meet the pre-registered transfer criterion on Norman (ρ = 0.286
+  against a criterion of > 0.4). The point estimates for Agent Confidence
+  Entropy, an evenness index over the agents, run against the pre-registered
+  direction in both screens; this observation is exploratory and supports no
+  claim. A single-round probe, and a rule that would recommend an agent
+  configuration from it, are specified but not evaluated. The values reported
+  in the earlier release of this work (v0.5.0) are superseded in full; the
+  appendix lists the defects behind each.
 authors:
   - family-names: "Mo"
     given-names: "Mang-yin"
@@ -101,10 +110,10 @@ identifiers:
     description: "Zenodo concept DOI (resolves to the latest version)"
   - type: doi
     value: "10.5281/zenodo.23422745"
-    description: "Zenodo v6 (v0.6.0, published 2026-10-16; pre-amendment manuscript)"
+    description: "Zenodo v6 (v0.6.0, published 2026-10-16; the manuscript before the fifth and sixth amendments to the pre-registration, which were made after the outcome)"
   - type: doi
     value: "10.5281/zenodo.24430429"
-    description: "Zenodo v7 (0.6.1, published 2026-11-22; the latest published release, which holds the Amendment-5 manuscript and title)"
+    description: "Zenodo v7 (0.6.1, published 2026-11-22; the latest published release, which holds the manuscript and title as revised by the fifth amendment to the pre-registration)"
   - type: doi
     value: "10.6084/m9.figshare.32086920.v7"
     description: "Figshare article version 7 (0.6.1, published 2026-11-22; same files as Zenodo v7)"
@@ -116,10 +125,10 @@ identifiers:
     description: "Zenodo v5 (v0.5.2; only paper.pdf differs from v0.5.1; the latest v0.5.x version)"
   - type: doi
     value: "10.5281/zenodo.20060974"
-    description: "Zenodo v4 (v0.5.1 — synthetic claims fully retracted, CI guardrail added)"
+    description: "Zenodo v4 (v0.5.1 — claims based on synthetic data fully retracted; a continuous-integration check against synthetic-data generators added)"
   - type: doi
     value: "10.5281/zenodo.19748260"
-    description: "Zenodo v3 (v0.5.0; superseded by v0.5.1 — body still had legacy synthetic claims)"
+    description: "Zenodo v3 (v0.5.0; superseded by v0.5.1 — the body still carried claims based on synthetic data)"
   - type: doi
     value: "10.5281/zenodo.19721470"
     description: "Zenodo v2 (v0.4.1; superseded — historical)"
@@ -144,12 +153,19 @@ keywords:
 references:
   - type: article
     authors:
-      - family-names: "Wei"
-        given-names: "Yi"
-    title: "CellForge: a multi-agent LLM system for experimental design in computational biology"
+      - family-names: "Tang"
+        given-names: "Xiangru"
+      - family-names: "Chen"
+        given-names: "Jiapeng"
+      - family-names: "Shao"
+        given-names: "Daniel"
+      - family-names: "Yu"
+        given-names: "Zhuoyun"
+      - name: "others"
+    title: "CellForge: Agentic Design of Virtual Cell Models"
     year: 2025
     url: "https://arxiv.org/abs/2508.02276"
-    notes: "propose-critique-vote 5-agent orchestration reference"
+    notes: "The five-agent system, organised in rounds of proposal, critique and voting, on which the orchestrator studied here is modelled"
   - type: article
     authors:
       - family-names: "Snell"
@@ -186,7 +202,7 @@ references:
     year: 2008
     journal: "Journal of Machine Learning Research"
     volume: 9
-    notes: "background for the repository optimizer code (v0.4-era); not used in the v0.6.0 study"
+    notes: "Background for optimizer code that remains in the repository from version 0.4; not used in the v0.6.0 study"
   - type: article
     authors:
       - family-names: "Hansen"
@@ -216,7 +232,7 @@ references:
     title: "BioGPT: generative pre-trained transformer for biomedical text generation and mining"
     year: 2022
     journal: "Briefings in Bioinformatics"
-    notes: "BioGPT; used only in the superseded v0.5 condition"
+    notes: "BioGPT; used only in the superseded version 0.5 of this work"
   - type: article
     authors:
       - family-names: "Lotfollahi"

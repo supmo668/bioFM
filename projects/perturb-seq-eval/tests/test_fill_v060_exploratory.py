@@ -438,7 +438,7 @@ def test_qualitative_prose_is_pinned_to_the_json_and_the_summary(committed):
         assert c["ci_low"] < 0.0 < c["ci_high"]
     says(res, "has no detectable rank association with the final error in either screen")
     says(res, "both intervals include zero")
-    says(main, "on Norman, both intervals including zero")
+    says(main, "on Norman, both confidence intervals including zero")
     says(main, "the mean confidence stated before any feedback does not rank tasks")
 
     # round-0 ACE: Norman's interval excludes zero (negative); Adamson's includes it, same sign
@@ -543,7 +543,12 @@ def test_the_reading_of_the_pass_does_not_use_the_criterion_word():
     for label in ("tab:exploratory", "fig:conf-by-round", "fig:h4-scatter"):
         assert f"\\label{{{label}}}" in expl, label
         assert f"\\ref{{{label}}}" in res, label
-    assert "Added after the outcome (Amendment 6)." in expl
+    # the amendment is named in words and points at the table that describes it
+    assert (
+        "The figure was added after the outcome was known, under the sixth amendment to the "
+        "pre-registration (Table~\\ref{tab:amendments})." in expl
+    )
+    assert "Amendment 6" not in res
     assert "\\resHFourAdaAceN" not in res[order[1] : order[2]]  # the transfer fit cites its own n
 
 

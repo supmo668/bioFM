@@ -35,10 +35,10 @@ The pipeline automates everything up to the Submit button; the process document 
 and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
-`CITATION.cff` one. The CFF abstract is 3222 characters with 5 non-ASCII characters (measured 2026-11-24); arXiv rejects
-anything over 1920 and accepts ASCII only. The override is 1918 characters, 0 non-ASCII, with every
+`CITATION.cff` one. The CFF abstract is 3795 characters with 4 non-ASCII characters (measured 2026-11-25); arXiv rejects
+anything over 1920 and accepts ASCII only. The override is 1915 characters, 0 non-ASCII, with every
 number and the integrity claim that every hypothesis could be evaluated preserved, in sentences rather
-than hypothesis labels. Use the generated block.
+than hypothesis labels, and with every abbreviation and symbol it uses defined in it. Use the generated block.
 
 | | |
 |---|---|
@@ -200,30 +200,30 @@ Comments:
 Abstract:
   That a single agent's own vote distribution can gate its compute is reported
   (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the
-  distribution of stated confidences across a group of role-specialised agents
-  predict task difficulty, allowing adaptive compute allocation? In a five-agent
-  CellForge-style Perturb-seq orchestrator run via MassGen, we define four trace
-  metrics, Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a
-  convergence signal ($\Delta$C) and Winner Flip Rate (WFR), and their composite
-  Task Difficulty Index (TDI). We pre-register five hypotheses: low attainable
-  error on Adamson 2016 and on Norman 2019, varied backbone choice by the
-  Architect, the rank correlation of each TDI component with error, and
-  cross-dataset transfer of a calibrated TDI. We test them on 41 held-out K562
-  tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets), with 27
-  trainer-sweep records and three fixed-length agentic runs each, on a pinned
-  Claude roster (Haiku 4.5, Sonnet 5.5) asserted per call. We find that four of
-  the five hypotheses are supported and the cross-dataset transfer hypothesis is
-  not; every hypothesis could be evaluated. Within each screen the drop in
-  confidence across rounds ranks tasks by error; the fitted composite does not
-  reach the transfer criterion at the pre-registered level ($\rho$ = 0.286
-  against > 0.4). From round two on, every prompt carries the prior round's
-  held-out error, so that drop follows a shown error; the mean confidence stated
-  before any feedback does not rank tasks ($\rho$ = 0.003 on Adamson and 0.214
-  on Norman; this is exploratory). The pass is consistent with confidence
-  falling further after a larger shown error; it is not evidence that it
-  anticipates difficulty. ACE, an evenness index, runs against the
-  pre-registered direction in both screens; exploratory, no claim. The probe and
-  recommender are specified, not evaluated.
+  distribution of confidences stated by a group of agents predict task
+  difficulty, enabling adaptive compute allocation? In a five-agent
+  CellForge-style system that predicts Perturb-seq (single-cell CRISPR screen)
+  responses, we define run metrics, including Agent Confidence Entropy (ACE),
+  and a composite Task Difficulty Index (TDI). We pre-register five hypotheses:
+  low attainable error on Adamson 2016 and on Norman 2019, varied backbone
+  choice by the Architect (the model-choosing agent), the rank correlation of
+  each TDI component with error, and cross-dataset transfer of a calibrated TDI.
+  We test them on 41 held-out perturbations from these K562 screens (21 Adamson,
+  15 Norman single-gene, 5 Norman two-gene), with 27 trained-model records and
+  three agent runs each; agents are pinned Claude models (Haiku 4.5, Sonnet
+  5.5). We find that four of the five hypotheses are supported and the
+  cross-dataset transfer hypothesis is not; every hypothesis could be evaluated.
+  Within each screen the confidence drop across rounds ranks tasks by error,
+  meeting its criterion; the fitted composite misses the transfer criterion at
+  the pre-registered level (Spearman's $\rho$ = 0.286 against > 0.4). From round
+  two on, prompts carry the prior round's held-out error, so that drop follows a
+  shown error; the mean confidence stated before any feedback does not rank
+  tasks ($\rho$ = 0.003 on Adamson and 0.214 on Norman; this is exploratory).
+  The pass is consistent with confidence falling further after a larger shown
+  error; it is not evidence that it anticipates difficulty. ACE, an evenness
+  index, runs against the pre-registered direction in both screens. This too is
+  exploratory; no claim is made. A one-round probe and configuration recommender
+  are specified, not evaluated.
 
 === END ===
 

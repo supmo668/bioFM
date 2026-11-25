@@ -49,12 +49,14 @@ def test_descriptions_are_a_fresh_render_of_the_abstract():
 
 
 def test_method_sentence_matches_the_run_evidence():
-    """The roster sentence is bound to provenance: pinned Haiku/Sonnet roster, Validator on
-    Sonnet, four proposer roles on Haiku, no served-model mismatch, no fallback step."""
+    """The roster sentence is bound to provenance: pinned Haiku/Sonnet roster, the validating
+    role on Sonnet, the four proposing roles on Haiku, no served-model mismatch, no fallback
+    step. The abstract names the roles by what they do, since it does not define their names."""
     desc = " ".join(_cfg()["description"].split())
     assert (
-        "pinned roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles, "
-        "Sonnet 5.5 for the Validator) whose served model is recorded and asserted per call" in desc
+        "pinned roster of Anthropic Claude models (Haiku 4.5 for the four roles that propose, "
+        "Sonnet 5.5 for the role that validates) whose served model is recorded and asserted "
+        "per call" in desc
     )
     import re
 
@@ -1834,7 +1836,7 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         "21 Adamson",
         "15 Norman",
         "5 Norman",
-        "27 trainer-sweep",
+        "27 trained-model records",
         "Haiku 4.5",
         "Sonnet 5.5",
         "CATTS",
@@ -1845,6 +1847,19 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
     # HACA-119: the venue abstract names hypotheses in words, never by label or status word
     assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED|unevaluated", ov)
+    # Self-containment: an abbreviation is defined at first use and then used again (one used
+    # once is written out instead), no metric acronym appears undefined, the first rho is named,
+    # the two datasets are said to be screens, and the role and model terms are glossed.
+    defined = re.findall(r"\(([A-Z]{2,})\)", ov)
+    assert defined == ["ACE", "TDI"], defined
+    for abbr in defined:
+        assert ov.index(f"({abbr})") == re.search(rf"\b{abbr}\b", ov).start() - 1, abbr
+        assert len(re.findall(rf"\b{abbr}\b", ov)) >= 2, abbr
+    assert not re.search(r"\b(CSD|WFR|LLM|HVG|MSD|CI)\b|Delta|singleton|doublet", ov)
+    assert ov.index("Spearman's $\\rho$") == ov.index("$\\rho$") - len("Spearman's ")
+    assert "from these K562 screens" in ov and "Perturb-seq (single-cell CRISPR screen)" in ov
+    assert "the Architect (the model-choosing agent)" in ov
+    assert "ranks tasks by error, meeting its criterion" in ov  # the antecedent of "The pass"
     assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
     sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
     assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub
@@ -1907,10 +1922,10 @@ def test_arxiv_override_numbers_are_the_generated_macros():
     # wording the override must carry after the row-39 reframe and its quality gate
     for tok in (
         "the mean confidence stated before any feedback does not rank tasks",
-        "in both screens; exploratory, no claim",
+        "in both screens. This too is exploratory; no claim is made.",
         "The pass is consistent with",
         "it is not evidence that",
-        "The probe and recommender are specified, not evaluated",
+        "A one-round probe and configuration recommender are specified, not evaluated.",
     ):
         assert tok in ov, tok
     assert "supported result" not in ov
