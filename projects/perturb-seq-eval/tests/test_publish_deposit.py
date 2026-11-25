@@ -988,12 +988,33 @@ def test_keywords_and_citation_version_are_true_of_the_work():
     sv = _load("scripts/publish/submit_to_venues.py", "sv_citation")
     state_path = sv.resolve_state_path(None, sv.PublishConfig.load(ROOT / "publish.yml"))
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
-    cit_text = (ROOT / "CITATION.cff").read_text()
+    ids = {i["value"]: i.get("description", "") for i in cit["identifiers"]}
+    changelog = (ROOT / "CHANGELOG.md").read_text()
+    version = _cfg()["version"]
+    head = [ln for ln in changelog.splitlines() if ln.startswith(f"## [{version}]")]
+    assert len(head) == 1, head
     if state.get("zenodo", {}).get("published"):
-        assert str(cit["version"]) == _cfg()["version"]
-        assert state["zenodo"]["doi"] in cit_text
+        # Both venues are published before CITATION names the release (sequence step 5).
+        assert state.get("figshare", {}).get("published") is True
+        assert str(cit["version"]) == version
+        # The DOIs are parsed identifiers, not text that a comment could supply.
+        zenodo_doi = state["zenodo"]["doi"]
+        figshare_doi = f"{state['figshare']['doi']}.v{sv.FIGSHARE_BASE_VERSION + 1}"
+        assert zenodo_doi in ids and figshare_doi in ids
+        assert "latest published release" in ids[zenodo_doi]
+        # Only this release's record calls itself the latest; the one it revises no longer does.
+        revised = f"10.5281/zenodo.{sv.ALLOWED_REVISIONS['zenodo']}"
+        assert "latest published release" not in ids[revised]
+        assert sum("latest published release" in d for d in ids.values()) == 1
+        # The CHANGELOG entry is marked published with the release date and both DOIs.
+        released = str(cit["date-released"])
+        assert released in head[0] and "published" in head[0] and "unreleased" not in head[0]
+        entry = changelog.split(head[0], 1)[1].split("\n## [", 1)[0]
+        assert zenodo_doi in entry and figshare_doi in entry
     else:
-        assert _cfg()["version"] == "0.6.2" and str(cit["version"]) == "0.6.1"
+        # Until the release is published CITATION names an earlier one, and the CHANGELOG entry
+        # says so.
+        assert str(cit["version"]) != version and "unreleased" in head[0]
     prereg = json.loads((ART / "provenance.json").read_text())["prereg_version"]
     assert prereg.startswith("v0.6.0")  # the run's pre-registration, whatever the deposit
     notes = " ".join(r.get("notes", "") for r in cit.get("references", []))
