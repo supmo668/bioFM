@@ -1464,6 +1464,10 @@ def test_clarity_pass_corrections_stay_true_to_the_code_and_the_run():
     for text in (main, setup):
         assert "(including versions 0.6.0 and 0.6.1, which report this run)" in text
         assert "(versions 0.6.0 and 0.6.1)" not in text
+        # 0.6.2 discloses the feedback and is itself archived, so the clause names the version
+        # before which nothing disclosed it, not "before this one" (false from 0.6.3 on)
+        assert "archived before version 0.6.2 (including versions 0.6.0 and 0.6.1" in text
+        assert "archived before this one" not in text
 
     # the amendment tag v0.6.0-a6 exists and marks the amendment, not a release
     for rel in ("CHANGELOG.md", "publish.yml", "paper/SUBMISSION.md"):
