@@ -385,6 +385,8 @@ def test_published_or_superseded_records_are_refused_before_any_request(tmp_path
         ("zenodo", {"zenodo": {"deposit_id": 20060974}}, PLAIN),
         ("zenodo", {"zenodo": {"deposit_id": 23411021, "bucket": "x"}}, None),  # mixing
         ("zenodo", {}, {"revision_of": 20060974}),  # any other revision target
+        ("zenodo", {}, {"revision_of": 24430429}),  # 0.6.1, the previous target: refused now
+        ("zenodo", {"zenodo": {"deposit_id": 24430429, "revision_of": 24430429}}, None),
         ("zenodo", {}, {"revision_of": 24518637.0}),  # not an int
         ("figshare", {"figshare": {"article_id": 32086920, "published": True}}, None),
         ("figshare", {"figshare": {"article_id": 32086920}}, None),  # hand-seeded, no revision_of
@@ -1667,6 +1669,7 @@ def test_superseded_ids_are_refused_whatever_their_type():
     for venue, i in (
         ("figshare", "32086920"),
         ("zenodo", "24518637"),
+        ("zenodo", "24430429"),
         ("zenodo", "20074427"),
         ("zenodo", 19716140),
     ):
