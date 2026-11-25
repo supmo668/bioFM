@@ -16,7 +16,10 @@ screens read out by single-cell RNA sequencing).
 latest published version, which is 0.6.2 (`10.5281/zenodo.24518637`, 2026-11-25). Also on Figshare as
 `10.6084/m9.figshare.32086920.v8` (same files; the Zenodo 0.6.2 record does not yet carry
 `isIdenticalTo` the Figshare v8 DOI). The 0.6.2 records hold the manuscript under the title above,
-given by the sixth amendment to the pre-registration. The superseded 0.6.1 records
+given by the sixth amendment to the pre-registration, in the wording it had before the hypotheses
+and amendments were named in words throughout. The manuscript in this repository has that later
+wording, with the same title, run and results; it is prepared as archive version 0.6.3 and is
+**not published**: it has no DOI yet, and the author has not yet approved its publication. The superseded 0.6.1 records
 (`10.5281/zenodo.24430429`, Figshare v7) hold the manuscript under the title it was given by the
 fifth amendment, *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A
 Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails
