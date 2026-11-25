@@ -1,39 +1,53 @@
-# Project 3 — Perturb-Seq Agentic Evaluation (Thesis Infrastructure)
+# perturb-seq-eval — a pre-registered test of multi-agent confidence as a task-difficulty signal
 
-Companion code for the paper [`paper/paper.tex`](paper/paper.tex) and the
-thesis [`docs/THESIS.md`](docs/THESIS.md):
+Code, run files and pre-registration for the paper [`paper/paper.tex`](paper/paper.tex)
+(and its longer argument, [`docs/THESIS.md`](docs/THESIS.md)):
 **"Does Multi-Agent Confidence Predict Task Difficulty, or Only React to It?
 A Pre-registered Test on Perturb-seq."**
+
+The paper asks whether the confidences that a group of large-language-model agents
+state while they work on a task indicate how hard the task is. The tasks are predictions of
+the gene-expression response to a genetic perturbation in Perturb-seq data (pooled CRISPR
+screens read out by single-cell RNA sequencing).
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19716140.svg)](https://doi.org/10.5281/zenodo.19716140)
 
 **Published:** Zenodo, concept DOI <https://doi.org/10.5281/zenodo.19716140> — always resolves to the
 latest published version, which is 0.6.2 (`10.5281/zenodo.24518637`, 2026-11-25). Also on Figshare as
 `10.6084/m9.figshare.32086920.v8` (same files; the Zenodo 0.6.2 record does not yet carry
-`isIdenticalTo` the Figshare v8 DOI). The 0.6.2 records hold the manuscript in this repository,
-with the title above (Amendment 6). The superseded 0.6.1 records (`10.5281/zenodo.24430429`,
-Figshare v7) hold the Amendment 5 manuscript under its earlier title, *Does a Multi-Agent Group's
-Confidence Distribution Predict Task Difficulty? A Pre-registered, Provenance-Complete Test on
-Perturb-seq Response Prediction in Which Entropy Fails Its Criterion and the Confidence Drop
-Passes*.
-Citation metadata, including every superseded version DOI, is in
-[`CITATION.cff`](CITATION.cff).
+`isIdenticalTo` the Figshare v8 DOI). The 0.6.2 records hold the manuscript under the title above,
+given by the sixth amendment to the pre-registration. The superseded 0.6.1 records
+(`10.5281/zenodo.24430429`, Figshare v7) hold the manuscript under the title it was given by the
+fifth amendment, *Does a Multi-Agent Group's Confidence Distribution Predict Task Difficulty? A
+Pre-registered, Provenance-Complete Test on Perturb-seq Response Prediction in Which Entropy Fails
+Its Criterion and the Confidence Drop Passes*. The amendments are listed in
+[`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md) and in the manuscript's table of amendments.
 
-Hypotheses, pre-registered criteria and analysis plan: [`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
-Results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git `ce5f237`
-(`artifacts/v0.6.0/`; 4 of 5 pre-registered criteria pass, H5 fails); every manuscript
+**How to cite:** cite the Zenodo concept DOI above; the citation metadata, including every
+superseded version DOI, is in [`CITATION.cff`](CITATION.cff).
+
+The five hypotheses, their pre-registered criteria and the analysis plan are in
+[`paper/PREREGISTRATION.md`](paper/PREREGISTRATION.md).
+The results come from the v0.6.0 sweep, run `20260929T035447Z-ce5f237` at git revision `ce5f237`
+(`artifacts/v0.6.0/`). Four of the five pre-registered hypotheses are supported: a sweep of
+trained models can attain low error (best configuration per task, an oracle bound) on each of
+the two datasets (two hypotheses), the agent that selects the prediction model varies its
+choice, and a feature of the agents' stated confidences ranks tasks by held-out error within
+each dataset. The fifth, that an index fitted on one dataset
+transfers to the other, is not supported. Every manuscript
 value is a generated macro (`scripts/paper/fill_v060_numbers.py` for the pre-registered and
-run-record values, `scripts/paper/fill_v060_exploratory.py` for the exploratory ones added
-after the outcome, Amendment 6). All v0.5.0 values are
+run-record values, `scripts/paper/fill_v060_exploratory.py` for the exploratory ones, which were
+added after the outcome under the sixth amendment). All values of the earlier release v0.5.0 are
 superseded (see the paper's appendix "Corrections relative to v0.5.0").
 
 ## Question in one sentence
 
 Does the distribution of stated confidences and critiques across a
-[CellForge-style 5-agent team](../../libs/cellforge-agents/) predict how hard a task
-is, or does it only react to an error the agents have been shown? The paper tests
-this under five pre-registered criteria. The feature that meets its ranking criterion
-(the drop in confidence across rounds) is stated after every role has been shown the
+[five-agent team modelled on the CellForge system](../../libs/cellforge-agents/) predict
+how hard a task is, or does it only react to an error the agents have been shown? The paper tests
+this under five pre-registered criteria. The features that meet the ranking criterion
+(the drop in confidence across rounds and the composite that includes it) are stated after
+every role has been shown the
 previous round's held-out error; in an exploratory analysis the mean confidence stated
 before any feedback does not rank tasks. The preflight probe and the recommender for
 team size, round count and backbone are specified and released, not fitted or

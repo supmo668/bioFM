@@ -58,50 +58,63 @@
 \maketitle
 
 \begin{abstract}
-A multi-agent group-generation system, as operated here, spends test-time
-compute uniformly across tasks. That a single agent's own vote distribution
-can gate its test-time compute is already reported by
-\textsc{CATTS}~\citep{lee2026catts}; we ask the multi-agent question: whether
-the distribution of stated confidences and critiques across a group of
-role-specialised agents predicts how hard a task is, which would let the
-group's compute be allocated adaptively. Taking as testbed a five-agent orchestrator for Perturb-seq
-response prediction inspired by \textsc{CellForge}~\citep{chen2025cellforge}
-and operated via \textsc{MassGen}~\citep{massgen2025github}, we define four
-trace metrics --- Agent Confidence Entropy (ACE), Critique
-Severity Dispersion (CSD), a convergence signal ($\Delta C$), and a Winner
-Flip Rate (WFR) --- and their composite, the Task Difficulty Index (TDI).
-We pre-register five hypotheses with criteria: attainable error on
-\textsc{Adamson 2016}~\citep{adamson2016perturbseq} (CRISPR interference) and
-\textsc{Norman 2019}~\citep{norman2019perturbseq} (CRISPR activation), the
-Architect agent's backbone-choice entropy, the rank correlation of each TDI
-component with held-out error, and cross-dataset transfer of a calibrated
-TDI. The design is $41$ held-out K562 tasks ($21$ Adamson, $15$ Norman
-singletons, $5$ Norman doublets) drawn deterministically, a trainer sweep of
-\resNTrainerRecordsPerTask{} records per task and three fixed-length agentic
-lifecycle runs per task, all in one process. The agents are large language models (LLMs) from a pinned
-roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles,
-Sonnet 5.5 for the Validator) whose served model is recorded and asserted
-per call; a run with any rule-based fallback step is invalid. Every run records its git revision, resolved
-configuration, library versions, dataset SHA-256 digests, task plan and
-label contract. We find that \resGateSummary. The trainer sweep reaches
-the pre-registered error on both screens, and the Architect's choice of backbone
-varies above the pre-registered entropy floor. Within each screen, the drop in the
-agents' confidence across rounds, and the composite that inherits it, rank tasks by
-held-out error. From the second round on, however, every agent's prompt carries the
+A multi-agent group-generation system, in which language-model agents propose,
+critique and vote over several rounds, spends test-time compute (computation at
+inference) uniformly across tasks as operated here. That a single agent's own vote distribution can gate its test-time compute
+is already reported by the \textsc{CATTS} method of \citet{lee2026catts}; we ask the
+multi-agent question: whether the distribution of stated confidences and
+critiques across a group of role-specialised agents predicts how hard a task
+is, which would let the group's compute be allocated adaptively. The testbed is
+a five-agent orchestrator that predicts gene-expression responses in Perturb-seq
+data (pooled CRISPR screens read out by single-cell RNA sequencing), inspired by
+the \textsc{CellForge} system~\citep{chen2025cellforge} and operated with the
+\textsc{MassGen} framework~\citep{massgen2025github}. We define metrics on
+the record of a run, among them Agent Confidence Entropy (an evenness index of the
+agents' stated confidences) and the change in the agents' mean stated confidence
+from the first round to the last, and a composite, the Task Difficulty Index (TDI).
+The testbed records no agent-by-agent critiques and no per-round winner, so only the
+confidence metrics and their composite are tested. We pre-register five hypotheses, each with
+a criterion: that a sweep of trained models can attain low error, taking the best
+configuration for each task (a best-case bound, selected on the data it is scored
+on), on each of two screens of the K562 cell
+line, \textsc{Adamson 2016}~\citep{adamson2016perturbseq} (CRISPR interference) and
+\textsc{Norman 2019}~\citep{norman2019perturbseq} (CRISPR activation); that the
+Architect, the agent that selects the prediction model (the backbone), states varied
+choices, as measured by their Shannon entropy; that one of those metrics or their
+composite ranks tasks, within a screen, by held-out error (the mean squared deviation
+on the twenty most differentially expressed genes of the held-out perturbation); and
+that a composite fitted on one screen (its weights estimated by regression on that screen's tasks) ranks the tasks of the other. The design is $41$ held-out
+perturbations, called tasks ($21$ from Adamson, and $15$ single-gene and $5$
+two-gene perturbations from Norman), a sweep of \resNTrainerRecordsPerTask{}
+model fits per task, and three runs of the agents per task, each of
+exactly three rounds. The agents
+are large language models from a pinned roster of Anthropic Claude
+models (Haiku 4.5 for the four roles that propose, Sonnet 5.5 for the role that
+validates) whose served model is recorded and asserted per call. A run in which
+any agent step falls back to a rule-based default is invalid, and every run
+records its code revision, configuration, dataset digests and serving models. We find that \resGateSummary. The sweep reaches
+the pre-registered error on both screens, and the entropy of the Architect's stated
+choices is above the pre-registered minimum. Within each screen, the drop in the
+agents' mean confidence across rounds, and the composite that includes it, rank tasks
+by held-out error, which meets the pre-registered ranking criterion. From the second
+round on, however, every agent's prompt carries the
 previous round's held-out error, so that drop is stated after an error has been
 shown. In an exploratory analysis, the mean confidence stated before any feedback does
-not rank tasks by error ($\rho=\explAdaConfRZeroMsdRho$ on Adamson and
-$\explNorConfRZeroMsdRho$ on Norman, both intervals including zero). Read with the
-design and that analysis, the pre-registered pass is consistent with stated confidence
-falling further where a larger error was shown; it is not evidence that the group's
-confidence anticipates difficulty. The composite fitted
+not rank tasks by error (Spearman's rank correlation
+$\rho=\explAdaConfRZeroMsdRho$ on Adamson and
+$\explNorConfRZeroMsdRho$ on Norman, both confidence intervals including zero). Read
+with the design and that analysis, the pre-registered pass is consistent with stated
+confidence falling further where a larger error was shown; it is not evidence that the
+group's confidence anticipates difficulty. The composite fitted
 on Adamson did not meet the pre-registered transfer criterion on Norman
 ($\rho=\resHFiveRho$ against a criterion of $>\resHFiveThreshold$). The point
-estimates for confidence entropy, an evenness index over the agents, run against the
-pre-registered direction in both screens; this is exploratory, and no claim is made.
-The preflight probe and recommender are specified but not evaluated.
-The values reported in the earlier release of this work are superseded in
-full; the defects behind each are listed in the appendix.
+estimates for Agent Confidence Entropy run against
+the pre-registered direction in both screens; this observation is exploratory and
+supports no claim. A probe that would observe the agents' confidences and critiques in a single
+shallow round, and a rule that would recommend an agent
+configuration from it, are specified but not evaluated. The values reported in the
+earlier release (v0.5.0) are superseded in full; the appendix lists the defects behind
+each.
 \end{abstract}
 
 % =====================================================================
@@ -110,7 +123,7 @@ full; the defects behind each are listed in the appendix.
 Test-time compute (TTC) has emerged as a first-class axis of capability in
 large language models (LLMs). \citet{snell2024scaling} showed that an
 \emph{optimally allocated} per-prompt TTC budget lets a small model match a
-$14\times$ larger model under FLOPs-matched comparison, with the optimal
+$14\times$ larger model when the two are matched on floating-point operations, with the optimal
 allocation depending on the difficulty of the prompt. The recent taxonomy of
 \citet{zhang2025ttssurvey} organises the exploding TTC literature along four
 orthogonal axes --- \emph{what} to scale, \emph{how} to scale, \emph{where} to
@@ -122,32 +135,40 @@ trained via reinforcement learning~\citep{deepseek2025r1,muennighoff2025s1}.
 
 The multi-agent case is structurally different but no less TTC-laden. A
 group-generation system such as \textsc{CellForge}~\citep{chen2025cellforge}
-dispatches several specialised agents --- typically a data curator, a
-literature/prior agent, a model architect, a trainer, and a biological
-validator --- and coordinates them through propose-critique-vote rounds. As
+dispatches several specialised agents --- typically a data curator, an
+agent that supplies prior knowledge from the literature, a model architect, a
+trainer, and a biological validator --- and coordinates them through rounds in
+which the agents propose, critique one another and vote. As
 operated here, such a system spends compute \emph{uniformly}: the same number of agents
 for the same number of rounds regardless of whether the task is a
 well-characterised single-gene perturbation or a novel combinatorial one.
 \emph{This paper asks whether the group's own internal dynamics carry enough
 signal to allocate its compute adaptively}, and tests that question under a
 pre-registered design so that either answer is informative. The answer on this
-run is narrower than the question: the trace feature that meets its criterion is
+run is narrower than the question: the features of a run's record (its
+\emph{trace}) that meet the ranking criterion --- the drop in confidence across
+rounds and the composite that includes it --- are
 stated after the agents have been shown a held-out error, and, in an exploratory
 analysis added after the outcome, the mean confidence stated before any such
 feedback does not rank tasks (\S\ref{subsec:exploratory}). No pre-registered or
 claimed signal here is available before compute is spent.
 
 \paragraph{Contributions.} We make four contributions, all within the
-empirical frame of Perturb-seq response prediction~\citep{norman2019perturbseq,%
-adamson2016perturbseq} but generalising to any propose-critique-vote system:
+empirical frame of predicting the response to a perturbation in Perturb-seq
+data~\citep{norman2019perturbseq,%
+adamson2016perturbseq}, but applicable to any system built on rounds of proposal,
+critique and voting:
 
 \begin{enumerate}[leftmargin=*]
-  \item We test whether a \emph{multi-agent group's} confidence/critique
-        distribution is an explicit item-difficulty signal. We formalise four
-        observables of such a run, each computed from the trace --- ACE, CSD,
-        $\Delta C$/$\Delta$ACE, and WFR --- over the stated confidences and
+  \item We test whether the distribution of confidences and critiques in a
+        \emph{multi-agent group} is an explicit signal of task difficulty. We
+        formalise four observables of such a run, each computed from the trace
+        (\S\ref{sec:metrics}): Agent Confidence Entropy (ACE), Critique Severity
+        Dispersion (CSD), the change across rounds in the mean confidence
+        ($\Delta C$) and in ACE ($\Delta\mathrm{ACE}$), and the Winner Flip
+        Rate (WFR). They are computed over the stated confidences and
         critiques of $N$ role-specialised agents, within and across rounds,
-        and combine them into a scalar Task Difficulty Index (TDI). That an
+        and combined into a scalar Task Difficulty Index (TDI). That an
         agent's own vote distribution can gate test-time compute is reported
         by \textsc{CATTS}~\citep{lee2026catts}, whose statistics are computed
         over $N$ candidate actions sampled from one base model at a single
@@ -155,26 +176,31 @@ adamson2016perturbseq} but generalising to any propose-critique-vote system:
         agent'' (their \S2); we claim nothing about that case.
   \item We specify a \emph{preflight probe}: a single shallow round whose
         four-dimensional signature is the feature vector of a recommender
-        over orchestration hyperparameters
-        $\varphi = (N, R, \textrm{backbone})$. The probe and the recommender
+        over the orchestration hyperparameters $\varphi$: the number of agents
+        $N$, the number of rounds $R$ and the \emph{backbone}, the prediction
+        model that the agents configure and train. The probe and the recommender
         are specified and released; neither is fitted or evaluated in this
         paper (\S\ref{sec:probe}, \S\ref{sec:limits}).
   \item We pre-register five hypotheses and their criteria
         (\S\ref{sec:results}) and test them
-        on $41$ held-out K562 tasks from \textsc{Adamson 2016} and
-        \textsc{Norman 2019}, with a trainer sweep and an agentic lifecycle
-        run over the identical task set in one process.
+        on $41$ held-out tasks, each a perturbation from the
+        \textsc{Adamson 2016} or the \textsc{Norman 2019} screen of the K562 cell
+        line. A grid of trained models (the \emph{trainer sweep},
+        \S\ref{subsec:oracle}) and the agents' multi-round runs (the
+        \emph{agentic lifecycle}, \S\ref{subsec:lifecycle}) cover the identical
+        task set in one process.
   \item We release a provenance-complete run record --- git revision,
         resolved configuration, resolved library versions, dataset digests,
-        task plan, label contract, and the serving model of every agent step
-        --- together with the calibration harness and the
-        \textsc{MassGen}-installable evaluation skill
-        (\S\ref{sec:reproducibility}).
+        task plan, the rules that map dataset labels to tasks (the label
+        contract), and the serving model of every agent step --- together with
+        the calibration harness and the evaluation packaged as a plug-in (a
+        ``skill'') for the \textsc{MassGen} multi-agent
+        framework~\citep{massgen2025github} (\S\ref{sec:reproducibility}).
 \end{enumerate}
 
-\paragraph{Scope.} Both datasets are K562 Perturb-seq screens from the
-scPerturb~\citep{peidli2024scperturb} repackaging (Zenodo record
-$13350497$). Genome-scale validation on
+\paragraph{Scope.} Both datasets are Perturb-seq screens of the K562 cell line,
+taken from the scPerturb collection of harmonised perturbation
+datasets~\citep{peidli2024scperturb} (Zenodo record $13350497$). Genome-scale validation on
 \textsc{Replogle 2022}~\citep{replogle2022perturbseq} is the natural next step
 and is enumerated in \S\ref{sec:limits}; the paper does not extrapolate
 beyond K562.
@@ -195,23 +221,24 @@ difficulty-conditional compute-optimal idea that motivates our question in
 the group setting.
 
 \paragraph{Multi-agent TTC.} \textsc{AutoGen}~\citep{wu2023autogen} and
-\textsc{MassGen}~\citep{massgen2025github} generalise propose-critique-vote to
-heterogeneous agent pools; \textsc{Archon}~\citep{saad2024archon} and
+\textsc{MassGen}~\citep{massgen2025github} generalise the propose-critique-vote
+pattern to heterogeneous agent pools; \textsc{Archon}~\citep{saad2024archon} and
 \textsc{MAV}~\citep{lifshitz2025mav} treat inference-time architecture
 \emph{itself} as the search space. \textsc{CellForge}~\citep{chen2025cellforge}
 applies this pattern specifically to single-cell experimental design. We do
 not claim the signal is new. Recent work reports gating test-time
 compute on confidence- or consensus-type signals from an agent's own vote
 distribution or from a group of agents~\citep{lee2026catts,morandi2026sprt};
-we have read the sections cited below and have not reproduced or
-re-derived their methods; beyond the design differences stated below, we
+we have read the sections cited in the rest of this paragraph and have not reproduced or
+re-derived their methods; beyond the design differences stated there, we
 make no claim about how our signal relates to theirs. \textsc{CATTS}~\citep{lee2026catts} computes its uncertainty statistics over
 $N$ candidate actions sampled from one base model at a single step (their
 \S3.1), under the stated assumption of ``a fixed base agent'' (their \S2);
 the quantities tested here are computed over the stated confidences of the
 five role-specialised agents of one run, within and across rounds
 (\S\ref{sec:tdi-real}).
-The Wald-SPRT governor of \citet{morandi2026sprt} consumes an LLM judge's
+The compute governor of \citet{morandi2026sprt}, built on Wald's sequential
+probability ratio test, consumes an LLM judge's
 consensus score on the agents' positions after each round (their \S III),
 with the agent count held fixed in its real-LLM evaluation (their
 \S VII-C14), and its author separates that across-agent signal from
@@ -247,9 +274,10 @@ A task $t$ has a latent intrinsic difficulty $d_t\!\in\![0,1]$. The team's
 downstream utility on the task is proxied by the prediction error
 $u(t, \varphi)$ on the held-out perturbation (the mean squared deviation, MSD, on its top-$20$
 differentially expressed genes, \S\ref{subsec:eval}), where
-$\varphi = (N, R, b)$ with $b$ a backbone choice.
-\emph{Agentic hyperparameter tuning} is the problem of picking
-$\varphi^\star\!\in\!\Phi$ minimising compute subject to a target error ---
+$\varphi = (N, R, b)$ with $b$ the choice of backbone.
+\emph{Agentic hyperparameter tuning} is the problem of picking, from a set
+$\Phi$ of candidate configurations, the
+$\varphi^\star\!\in\!\Phi$ that minimises compute subject to a target error ---
 the multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation.
 
@@ -341,8 +369,10 @@ $(\alpha,\beta,\gamma,\delta)=(0.35,0.25,0.25,0.15)$. ``Calibrated'' in this pap
 means \emph{fitted by ridge regression against held-out error}; it is not a
 statement about probabilistic calibration, which the trace gives no label to
 assess. Three forms of the index appear and should not be confused:
-the four-term form~(\ref{eq:tdi}); the two-term lifecycle composite with
-renormalised default weights that enters the ranking tests (\S\ref{sec:probe});
+the four-term form~(\ref{eq:tdi}); the two-term composite with renormalised
+default weights that is computed on the agentic lifecycle of
+\S\ref{subsec:lifecycle} and enters the ranking tests (the \emph{lifecycle
+composite}, \S\ref{sec:probe});
 and the two-term ridge fit on standardised features that enters the transfer test
 (\S\ref{subsec:h5}).
 
@@ -352,13 +382,14 @@ and the two-term ridge fit on standardised features that enters the transfer tes
 \paragraph{Forms used in the pre-registered tests.} For the pre-registered tests in
 \S\ref{sec:results}, $\mathrm{ACE}_{\mathrm{norm}}$ is the entropy of the \emph{direct
 simplex projection} of the confidence vector, with no temperature, and the confidence-drop
-term is the \emph{unclipped} $1-\Delta C\in[0,2]$; the lifecycle composite renormalises the
+term is the \emph{unclipped} $1-\Delta C\in[0,2]$; the lifecycle composite, written
+$\mathrm{TDI}_{\mathrm{lifecycle}}$, renormalises the
 two default weights over these two terms and is not clipped, so
-$\mathrm{TDI}_{\mathrm{lifecycle}}\in[0,17/12]$. The softmax form above and the clipped
+$\mathrm{TDI}_{\mathrm{lifecycle}}\in[0,17/12]$. The softmax form of \S\ref{sec:metrics} and the clipped
 term are reported descriptively beside them. Both changes were made by amendment before any
 data from this sweep existed (Table~\ref{tab:amendments}).
 
-\paragraph{Status of this section.} The probe and the recommender below are a
+\paragraph{Status of this section.} The probe and the recommender described in this section are a
 specification with released code. The recommender is not fitted on any data in
 this paper and no result in \S\ref{sec:results} depends on it.
 
@@ -375,13 +406,14 @@ space of orchestration hyperparameters
 $\varphi = (N, R, b)$. We model
 $\mathbf{x}_0 \mid \varphi^\star \sim \mathcal{N}(\mu_\varphi,
 \Sigma_\varphi)$ with diagonal $\Sigma_\varphi$, and weight each configuration by
-$\pi(\varphi) \propto \exp(-\mathrm{cost}(\varphi) / \kappa)$, where
+$\pi(\varphi) \propto \exp(-\mathrm{cost}(\varphi) / \kappa)$, where $\kappa>0$
+is a scale parameter and
 $\mathrm{cost}(\varphi) = N \cdot R \cdot \omega_b$ is a unitless proxy for compute
 with a per-backbone weight $\omega_b$; it is not a count of floating-point
 operations. $\pi$ sits where a prior would, but it encodes a cost preference, not
 a belief about which configuration is best. Given a calibration set
-$\{(\mathbf{x}_0^{(k)}, \varphi^{\star(k)})\}_{k=1}^K$, the recommender
-picks
+$\{(\mathbf{x}_0^{(k)}, \varphi^{\star(k)})\}_{k=1}^K$ of $K$ runs and a compute
+budget $B$, the recommender picks
 \begin{equation}
   \widehat\varphi(\mathbf{x}_0) = \arg\max_{\varphi \in \Phi,\, \mathrm{cost}(\varphi) \leq B}
   \;\; \log \pi(\varphi) + \log \mathcal{N}(\mathbf{x}_0; \mu_\varphi, \Sigma_\varphi).
@@ -418,13 +450,13 @@ $\{\Sigma_\varphi\}$, budget $B$.\\
 \section{Implementation and Observability Layer}\label{sec:impl}
 
 So far the paper has been algorithmic. This section is deliberately
-engineering-heavy because the paper's reviewer question
-``\emph{what did you have to contribute to MassGen?}'' deserves a
-precise answer. We separate our work into three buckets --- novel
-contribution, thin adapter over existing infrastructure, and explicitly-scoped
-future work --- and state each with enough detail that a reviewer can locate
-the corresponding component in the released code (the file names are given in
-\S\ref{sec:reproducibility}). A fuller design document is released with the code;
+engineering-heavy, because a reader may fairly ask what had to be contributed to
+\textsc{MassGen} and \textsc{CellForge} to obtain the traces. We separate our work
+into three kinds --- novel contribution, thin adapter over existing
+infrastructure, and explicitly scoped future work
+(Table~\ref{tab:contrib}) --- and state each with enough detail that a reader
+can locate the corresponding component in the released code (the file names are
+given in \S\ref{sec:reproducibility}). A fuller design document is released with the code;
 what follows is a one-section summary.
 
 \subsection{The trace schema as the decoupling contract}
@@ -456,11 +488,12 @@ Trace types and metrics & Abstraction + metrics authored here & contributed \\
 Preflight probe, recommender, calibration & Procedures authored here & contributed \\
 Adapter for the \textsc{CellForge} consensus result & Adapter & contributed \\
 JSON entry points for the \textsc{MassGen} skill & Adapter & contributed \\
-Draft \textsc{MassGen} skill (in the repository) & Ready to submit & not yet submitted upstream \\
+Draft \textsc{MassGen} skill (in the repository) & Plug-in, ready to submit & not yet submitted to the \textsc{MassGen} project \\
 LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt + pure-Python scaffold & not yet calibrated on live traces \\
 \bottomrule
 \end{tabular}}
-\caption{Contribution audit. The released design document gives the full file-by-file breakdown.}
+\caption{The components contributed by this work, the kind of each, and its status. The
+design document released with the code gives the breakdown file by file.}
 \label{tab:contrib}
 \end{table}
 
@@ -469,7 +502,8 @@ LLM-based severity projection (\S\ref{subsec:massgen_bridge}) & Extractor prompt
 The orchestrator returns a consensus result object whose rounds carry
 proposals (the agent, its confidence and the content) and critiques (the
 critic, the target agent and the severity). Our adapter is $\approx\!40$ lines of
-pure projection: it duck-types those two interfaces, builds a critique
+pure projection: it relies only on those attributes being present, with no
+dependence on the orchestrator's classes (duck typing), builds a critique
 matrix that excludes self-critique, and reconstructs the per-round winner
 as $\arg\max_j (c_j - \overline{S}_{\cdot j})$. No orchestrator patching is
 required. Any propose-critique-vote system that exposes these two minimal
@@ -492,7 +526,7 @@ the answer.
 (ii) the reason attached to a \textsc{MassGen} vote is a free-text rationale,
 not a numeric severity.
 \textsc{MassGen}'s own contributor guidelines explicitly forbid
-keyword/regex-based categorisation of such rationales (\emph{``No
+categorisation of such rationales by keywords or regular expressions (\emph{``No
 keyword/heuristic matching for categorization or similarity''}), so the
 projection must use a small LLM-based rater.
 
@@ -516,7 +550,7 @@ handlers are $\leq 20$ lines of glue over the evaluator's JSON entry points, whi
 keeps the skill minimal and audit-friendly.
 
 \paragraph{What we have \emph{not} done.} We have not (a) submitted the
-skill to \textsc{MassGen} upstream, (b) calibrated the severity rater
+skill to the \textsc{MassGen} project, (b) calibrated the severity rater
 against human annotators on recorded \textsc{MassGen} traces, or (c) validated
 the vote-share confidence projection against an alternative projection
 (e.g.\ an LLM-rated confidence). Each of these is one incremental
@@ -545,7 +579,8 @@ threshold or outcome changes with the word. The sixth also records that the
 exploratory analyses of \S\ref{subsec:exploratory} were added after the outcome.
 
 \paragraph{Reading the criteria together.} The two attainable-error hypotheses
-bound what the trainer sweep can reach (an oracle, \S\ref{subsec:oracle}); they say
+bound what the trainer sweep can reach (an oracle quantity, selected on the data
+it is scored on; \S\ref{subsec:oracle}); they say
 nothing about whether the agents find those configurations. The backbone-choice
 hypothesis asks whether the Architect uses its choice of backbone at all, and the
 ranking and transfer hypotheses ask whether the trace metrics carry information
@@ -588,14 +623,14 @@ new pre-registered experiment.
 \paragraph{What a single-round probe can and cannot observe.} A single-round
 probe by definition cannot observe convergence. It sees only the starting
 distribution of agent confidences and critiques, which encodes a snapshot of
-prior agreement but not the response-to-critique dynamics that $\Delta C$ and
-WFR summarise. That is a structural property of the minimal probe. The data now
+prior agreement but not the response-to-critique dynamics that the confidence
+change $\Delta C$ and the Winner Flip Rate summarise. That is a structural property of the minimal probe. The data now
 add an empirical observation, exploratory and stated as such: in this run the
 round-$0$ mean confidence, which is what such a probe would see, does not rank
 tasks by error (\S\ref{subsec:exploratory}), and the probe and recommender of
 \S\ref{sec:probe} were not evaluated.
 
-\paragraph{Implications for upstream systems.} For
+\paragraph{Implications for the systems this work builds on.} For
 \textsc{CellForge}~\citep{chen2025cellforge} and
 \textsc{MassGen}~\citep{massgen2025github}, one recommendation does not depend
 on the criterion outcomes: \emph{emit the $\{C(r), S(r), w(r)\}$ trace, and the
@@ -615,16 +650,18 @@ evaluated. Integrating pretrained \textsc{scGPT}~\citep{cui2024scgpt},
 \paragraph{Oracle, not held-out, error.} The attainable-error hypotheses select the
 best of \resNDistinctConfigs{} distinct configurations (\resNTrainerRecordsPerTask{}
 records per task) on the same evaluation genes and cells they are scored on
-(\S\ref{subsec:oracle}). There is no nested validation/test split; the
+(\S\ref{subsec:oracle}). There is no nested split into validation and test data; the
 quantity is an attainable upper bound.
 
 \paragraph{Evaluation genes and feature spaces.} The top-$20$ differentially
-expressed genes are chosen using the held-out cells (the CPA/GEARS convention), and
-each task's HVG set is selected on that task's training cells, so the cross-task
+expressed genes are chosen using the held-out cells (the convention of CPA and
+GEARS~\citep{lotfollahi2023cpa,roohani2024gears}), and
+each task's set of highly variable genes is selected on that task's training cells, so the cross-task
 medians aggregate models with different inputs (\S\ref{subsec:eval}).
 
-\paragraph{LLM condition: a single model family.} All five roles are served
-by Anthropic Claude models, as amended before data collection, so nothing here
+\paragraph{Language-model condition: a single model family.} All five roles are served
+by Anthropic Claude models, as fixed by the fourth amendment before data collection
+(Table~\ref{tab:amendments}), so nothing here
 supports a claim of cross-family generality, and the backbone-choice entropy may be
 lower than a multi-family pool would give. The Validator judges proposals from the
 same family; it sits on a different tier (Sonnet 5.5) from the four Haiku 4.5
@@ -641,8 +678,9 @@ other four roles add those and a one-line rationale holding the held-out sign
 agreement and the accept-or-reject verdict against the Validator's threshold. The
 round index changes with them as well. The design therefore does not isolate the
 shown error as the cause of the drop. The pre-registered null (no association) does
-not model this feedback, the pre-registration did not state it, and the archived
-versions of this paper before this one did not disclose it. A test of prediction
+not model this feedback, the pre-registration did not state it, and the versions of
+this paper archived before this one (including versions 0.6.0 and 0.6.1, which report
+this run) did not disclose it. A test of prediction
 proper would elicit confidence with no error in context; that needs new runs under a
 new pre-registration.
 
@@ -659,7 +697,7 @@ the two hypotheses that bear on the title question.
 
 \paragraph{Sample size and the sign of confidence entropy.} The within-screen tests
 use $n=\resHFourAdaAceN$ and $n=\resHFourNorAceN$ tasks; every $\rho$ carries a
-bootstrap CI over tasks (Table~\ref{tab:tdi-real}), and the pre-registered
+bootstrap confidence interval (CI) over tasks (Table~\ref{tab:tdi-real}), and the pre-registered
 false-positive rate of the six-test criterion under the null is a few percent. The
 point estimates for confidence entropy were negative in both screens (the Adamson CI
 excludes zero, the Norman CI includes it); that direction was not pre-registered,
@@ -673,7 +711,7 @@ Architect's backbone-choice distribution is K562-conditioned. Genome-scale
 validation on \textsc{Replogle 2022}~\citep{replogle2022perturbseq} and a
 non-K562 follow-up are explicit next steps.
 
-\paragraph{Configuration space.} $|\Phi|$ remains modest. Widening to
+\paragraph{Configuration space.} The configuration space $\Phi$ remains small. Widening to
 include continuous learning-rate schedules, per-agent retrieval depth,
 and explicit batch-correction ablations is straightforward but would
 expand the trainer sweep beyond its budget cap.
@@ -683,20 +721,22 @@ expand the trainer sweep beyond its budget cap.
 round-$0$ signature can select a configuration. It is a plug-in point rule and
 reports no uncertainty.
 
-\paragraph{Reward model free-riding.} We deliberately do not train a
-process reward model. A PRM over agent traces could outperform hand-designed
+\paragraph{No learned reward model.} We deliberately do not train a
+process reward model. Such a model over agent traces could outperform hand-designed
 metrics, but it would also require an expensive labelling phase. The
 question tested here is whether hand-designed difficulty metrics over the
-already-produced trace carry the signal; a PRM is a complementary rather
-than competing direction.
+already-produced trace carry the signal; a learned reward model is a complementary
+rather than competing direction.
 
 % =====================================================================
 \section{Reproducibility}\label{sec:reproducibility}
 
-The sweep is one Modal command,
-\texttt{modal run scripts/modal/app\_v05.py::entrypoint} (with the pinned
-\texttt{--prior-spend-usd}), which runs a
-CPU preflight, the trainer sweep and the lifecycle sweep in one process.
+The sweep is one command, run on the Modal cloud platform with the pinned
+\texttt{--prior-spend-usd} option:
+\begin{center}
+\texttt{modal run scripts/modal/app\_v05.py::entrypoint}
+\end{center}
+It runs a preflight check on CPU, the trainer sweep and the lifecycle sweep in one process.
 The preflight fetches and verifies the dataset digests, builds and validates
 the task plan, and refuses the whole run --- before any GPU work --- if the
 Anthropic key is absent, if any roster model is unprobed, if any role has fewer
@@ -755,11 +795,15 @@ implemented in \path{src/perturb_eval/experiments/preregistered.py} and called f
 \texttt{numpy.random.default\_rng(2026)}; the null false-positive rates of the ranking
 criterion come from \path{scripts/local/prereg_null_fwer.py}; and the per-task
 evaluation genes are recorded in \texttt{summary.json} under
-\path{eval_genes_per_task}. The transformer backbone is \texttt{scgpt\_small} in the
+\path{eval_genes_per_task}. The exploratory values of \S\ref{subsec:exploratory} are computed
+by \path{scripts/paper/fill_v060_exploratory.py} and stored in
+\path{paper/data/exploratory_v060.json}, and the two figures are drawn from that file by
+\path{scripts/paper/make_v060_figures.py}. The transformer backbone is \texttt{scgpt\_small} in the
 code.
 
-The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on main
-(\resLandSha, PR~\resLandPR) differ in \resPostRunPathCount{} source files under
+The run's code revision (\resGitSha) and the revision at which v0.6.0 was merged into
+the repository's main branch
+(\resLandSha, pull request~\resLandPR) differ in \resPostRunPathCount{} source files under
 \path{src/} and \path{scripts/modal/} (\path{src/perturb_eval/llm/anthropic_client.py},
 \path{src/perturb_eval/llm/openrouter_client.py},
 \path{src/perturb_eval/experiments/provenance.py},
@@ -769,7 +813,7 @@ The run's code revision (\resGitSha) and the revision at which v0.6.0 landed on 
 mismatch now aborts without failover, ``replay'' is a finalisable status, a recorded
 mismatch withdraws the analyser's licence, and docstrings and one recorded-reason
 string changed. The run recorded \resServedMismatch{} mismatches, \resNFailover{}
-failovers and replay flag \resReplay. The landed analyser adds one key,
+failovers and replay flag \resReplay. The analyser at the merged revision adds one key,
 \path{served_mismatch_count}, equal to \resServedMismatch; re-run on the committed run
 files, it reproduces every committed value of \texttt{summary.json}.
 This holds on Python 3.12: Python 3.12 made the built-in \texttt{sum()} over floats
@@ -826,12 +870,15 @@ severity-rater prompt is \path{massgen_skill_draft/prompts/severity_rater.md}).
 % =====================================================================
 \section{Conclusion}\label{sec:conclusion}
 
-We have proposed ACE, CSD, $\Delta C$-based convergence signals, and WFR as a
-four-feature lens on multi-agent group-generation traces, combined into a
-Task Difficulty Index, and proposed the TDI and its probe as a candidate
+We have proposed Agent Confidence Entropy (ACE), Critique Severity Dispersion
+(CSD), convergence signals based on the change in mean confidence across rounds
+($\Delta C$), and the Winner Flip Rate (WFR) as four features of the traces of
+multi-agent group generation, combined into a
+Task Difficulty Index (TDI), and proposed the TDI and its probe as a candidate
 multi-agent analogue of \citet{snell2024scaling}'s compute-optimal
 single-chain allocation. We test whether these signals rank tasks by held-out
-error under five pre-registered criteria on $41$ held-out K562 tasks, with
+error under five pre-registered criteria on $41$ held-out tasks from two screens
+of the K562 cell line, with
 every run carrying its revision, configuration, dataset digests, task plan,
 label contract and per-step serving model. The test gives this answer:
 \resGateSummary. Within each screen the change in confidence across rounds, and the
@@ -846,10 +893,11 @@ responding to measured error; it is not evidence that confidence predicts
 difficulty before that error is measured. That question remains open, and the
 probe and recommender that would use such a signal were not evaluated.
 
-\paragraph{Code and data.} All artifacts are released under Apache-2.0 at the
-repository that accompanies this submission, including the
-\textsc{MassGen}-installable skill that produces per-run metric reports for
-any propose-critique-vote orchestrator.
+\paragraph{Code and data.} The code, the run files and the pre-registration are
+released under the Apache-2.0 licence at \url{https://github.com/supmo668/bioFM}
+(directory \path{projects/perturb-seq-eval}), including the draft \textsc{MassGen}
+skill that produces per-run metric reports for any orchestrator built on rounds of
+proposal, critique and voting.
 
 % =====================================================================
 \small

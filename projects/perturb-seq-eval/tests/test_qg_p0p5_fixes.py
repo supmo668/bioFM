@@ -905,8 +905,14 @@ class TestC11LiteratureParagraph:
         # The C2/C3/C8 marker was resolved by amendment A2-3 (PREREGISTRATION.md):
         # the executors APPLY the parsed fields with a fixed precedence.
         assert "% PENDING principal ruling C2/C3/C8" not in tex
-        assert "\\emph{apply} the parsed fields" in tex
-        assert "Validator delta $>$ Architect $>$ DataCurator $>$ Trainer" in tex
+        flat = " ".join(tex.split())
+        assert "\\emph{applies} the parsed fields" in flat
+        # the precedence order is written out in words, highest first (no ">" chain)
+        assert (
+            "the order of precedence, from highest to lowest, is the Validator delta, the "
+            "Architect, the DataCurator, the Trainer and the defaults" in flat
+        )
+        assert "$>$" not in tex
 
 
 # ---------------------------------------------------------------- C27

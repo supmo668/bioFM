@@ -16,11 +16,11 @@
 # exploratory section with two figures, and takes the Amendment 6 title. It includes the
 # plain-English rewrite (HACA-119) and the reproducibility sentence (HACA-124). No hypothesis,
 # threshold, estimator, run or outcome changed. paper/PREREGISTRATION.md IS amended (Amendment 6).
-# PUBLISHED 2026-11-25 on the principal's separate go (approvals row 42), after the row 41 dry
+# PUBLISHED 2026-11-25 on the principal's separate go (approvals row 43), after the row 41 dry
 # run was reviewed: Zenodo 10.5281/zenodo.24518637 and Figshare 10.6084/m9.figshare.32086920.v8.
 # 0.6.1 (principal 2026-11-08) was the Amendment-5 revision of v0.6.0. The git tags v0.6.0-a5 and
-# v0.6.0-a6 (the latter on the deposit commit 07a5e57b) are PREREGISTRATION
-# amendment tags only, not deposit versions.
+# v0.6.0-a6 (the latter exists: an annotated tag on commit 07a5e57b, created 2026-11-25) are
+# PREREGISTRATION amendment tags only, not deposit versions; neither marks a release.
 version: "0.6.2"
 
 # State file for THIS release (the new-version ids). 0.6.2 is the NEXT VERSION of the published
@@ -41,50 +41,65 @@ title: >-
 
 # GENERATED from paper/paper.tex's abstract by scripts/paper/render_publish_description.py -- do not edit by hand.
 description: |
-  A multi-agent group-generation system, as operated here, spends test-time
-  compute uniformly across tasks. That a single agent's own vote distribution
-  can gate its test-time compute is already reported by CATTS; we ask the
-  multi-agent question: whether the distribution of stated confidences and
+  A multi-agent group-generation system, in which language-model agents
+  propose, critique and vote over several rounds, spends test-time compute
+  (computation at inference) uniformly across tasks as operated here. That a
+  single agent's own vote distribution can gate its test-time compute is
+  already reported by the CATTS method of Lee and colleagues (2026); we ask
+  the multi-agent question: whether the distribution of stated confidences and
   critiques across a group of role-specialised agents predicts how hard a task
-  is, which would let the group's compute be allocated adaptively. Taking as
-  testbed a five-agent orchestrator for Perturb-seq response prediction
-  inspired by CellForge and operated via MassGen, we define four trace metrics
-  — Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a
-  convergence signal (ΔC), and a Winner Flip Rate (WFR) — and their composite,
-  the Task Difficulty Index (TDI). We pre-register five hypotheses with
-  criteria: attainable error on Adamson 2016 (CRISPR interference) and Norman
-  2019 (CRISPR activation), the Architect agent's backbone-choice entropy, the
-  rank correlation of each TDI component with held-out error, and
-  cross-dataset transfer of a calibrated TDI. The design is 41 held-out K562
-  tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets) drawn
-  deterministically, a trainer sweep of 27 records per task and three
-  fixed-length agentic lifecycle runs per task, all in one process. The agents
-  are large language models (LLMs) from a pinned roster of Anthropic Claude
-  models (Haiku 4.5 for the four proposer roles, Sonnet 5.5 for the Validator)
-  whose served model is recorded and asserted per call; a run with any
-  rule-based fallback step is invalid. Every run records its git revision,
-  resolved configuration, library versions, dataset SHA-256 digests, task plan
-  and label contract. We find that four of the five pre-registered hypotheses
-  are supported and the cross-dataset transfer hypothesis is not; every
-  hypothesis could be evaluated. The trainer sweep reaches the pre-registered
-  error on both screens, and the Architect's choice of backbone varies above
-  the pre-registered entropy floor. Within each screen, the drop in the
-  agents' confidence across rounds, and the composite that inherits it, rank
-  tasks by held-out error. From the second round on, however, every agent's
-  prompt carries the previous round's held-out error, so that drop is stated
-  after an error has been shown. In an exploratory analysis, the mean
-  confidence stated before any feedback does not rank tasks by error (ρ =
-  0.003 on Adamson and 0.214 on Norman, both intervals including zero). Read
-  with the design and that analysis, the pre-registered pass is consistent
-  with stated confidence falling further where a larger error was shown; it is
-  not evidence that the group's confidence anticipates difficulty. The
-  composite fitted on Adamson did not meet the pre-registered transfer
-  criterion on Norman (ρ = 0.286 against a criterion of > 0.4). The point
-  estimates for confidence entropy, an evenness index over the agents, run
-  against the pre-registered direction in both screens; this is exploratory,
-  and no claim is made. The preflight probe and recommender are specified but
-  not evaluated. The values reported in the earlier release of this work are
-  superseded in full; the defects behind each are listed in the appendix.
+  is, which would let the group's compute be allocated adaptively. The testbed
+  is a five-agent orchestrator that predicts gene-expression responses in
+  Perturb-seq data (pooled CRISPR screens read out by single-cell RNA
+  sequencing), inspired by the CellForge system and operated with the MassGen
+  framework. We define metrics on the record of a run, among them Agent
+  Confidence Entropy (an evenness index of the agents' stated confidences) and
+  the change in the agents' mean stated confidence from the first round to the
+  last, and a composite, the Task Difficulty Index (TDI). The testbed records
+  no agent-by-agent critiques and no per-round winner, so only the confidence
+  metrics and their composite are tested. We pre-register five hypotheses,
+  each with a criterion: that a sweep of trained models can attain low error,
+  taking the best configuration for each task (a best-case bound, selected on
+  the data it is scored on), on each of two screens of the K562 cell line,
+  Adamson 2016 (CRISPR interference) and Norman 2019 (CRISPR activation); that
+  the Architect, the agent that selects the prediction model (the backbone),
+  states varied choices, as measured by their Shannon entropy; that one of
+  those metrics or their composite ranks tasks, within a screen, by held-out
+  error (the mean squared deviation on the twenty most differentially
+  expressed genes of the held-out perturbation); and that a composite fitted
+  on one screen (its weights estimated by regression on that screen's tasks)
+  ranks the tasks of the other. The design is 41 held-out perturbations,
+  called tasks (21 from Adamson, and 15 single-gene and 5 two-gene
+  perturbations from Norman), a sweep of 27 model fits per task, and three
+  runs of the agents per task, each of exactly three rounds. The agents are
+  large language models from a pinned roster of Anthropic Claude models (Haiku
+  4.5 for the four roles that propose, Sonnet 5.5 for the role that validates)
+  whose served model is recorded and asserted per call. A run in which any
+  agent step falls back to a rule-based default is invalid, and every run
+  records its code revision, configuration, dataset digests and serving
+  models. We find that four of the five pre-registered hypotheses are
+  supported and the cross-dataset transfer hypothesis is not; every hypothesis
+  could be evaluated. The sweep reaches the pre-registered error on both
+  screens, and the entropy of the Architect's stated choices is above the
+  pre-registered minimum. Within each screen, the drop in the agents' mean
+  confidence across rounds, and the composite that includes it, rank tasks by
+  held-out error, which meets the pre-registered ranking criterion. From the
+  second round on, however, every agent's prompt carries the previous round's
+  held-out error, so that drop is stated after an error has been shown. In an
+  exploratory analysis, the mean confidence stated before any feedback does
+  not rank tasks by error (Spearman's rank correlation ρ = 0.003 on Adamson
+  and 0.214 on Norman, both confidence intervals including zero). Read with
+  the design and that analysis, the pre-registered pass is consistent with
+  stated confidence falling further where a larger error was shown; it is not
+  evidence that the group's confidence anticipates difficulty. The composite
+  fitted on Adamson did not meet the pre-registered transfer criterion on
+  Norman (ρ = 0.286 against a criterion of > 0.4). The point estimates for
+  Agent Confidence Entropy run against the pre-registered direction in both
+  screens; this observation is exploratory and supports no claim. A probe that
+  would observe the agents' confidences and critiques in a single shallow
+  round, and a rule that would recommend an agent configuration from it, are
+  specified but not evaluated. The values reported in the earlier release
+  (v0.5.0) are superseded in full; the appendix lists the defects behind each.
 
 
 # Author metadata. ORCID is optional but strongly recommended for DOI quality.
@@ -108,7 +123,7 @@ keywords:
 license: cc-by-4.0
 
 # Deposit-time sequence. 0.6.2 supersedes 0.6.1 as a NEW VERSION of the existing records
-# (approvals row 41, 2026-11-24, published on the go of row 42, 2026-11-25; as 0.6.1
+# (approvals row 41, 2026-11-24, published on the go of row 43, 2026-11-25; as 0.6.1
 # did v0.6.0 and v0.6.0 did v0.5.x, D-1 = B, CTO #647), so no duplicate record exists. The
 # submitter performs exactly the
 # two operations in ALLOWED_REVISIONS (venues.<venue>.revision_of below) and refuses any other
@@ -138,19 +153,19 @@ files:
   # gitignored, so the build is part of the deposit, not a precondition).
   - path: paper/paper.pdf
     name: paper.pdf
-    description: "The 0.6.2 manuscript (Amendment 6) of the v0.6.0 pre-registered results: it discloses the error feedback in the agents' prompts, reframes the reading of the H4 pass and adds a labelled exploratory section with two figures; no hypothesis, threshold, estimator, run or outcome changed. Built with tectonic from the landed sources; the build log is paper_build.log."
+    description: "The manuscript, version 0.6.2, reporting the pre-registered results of the v0.6.0 run. Relative to version 0.6.1 it discloses that the agents' prompts carry the previous round's held-out error, revises accordingly how the supported trace-feature ranking hypothesis (that a feature of the agents' stated confidences ranks tasks by held-out error) is to be read, and adds an exploratory section with two figures, labelled as added after the outcomes were known; these changes are recorded as the sixth amendment to the pre-registration, listed in the manuscript's table of amendments. No hypothesis, threshold, estimator, run or outcome changed. Built from the repository's LaTeX sources with the tectonic engine; the build log is paper_build.log."
   - path: build/deposit/paper_build.log
     name: paper_build.log
-    description: "tectonic build log of paper.pdf (overfull/undefined-reference counts are in the log)."
+    description: "Build log written by the tectonic LaTeX engine when it compiled paper.pdf; it records any overfull boxes and undefined references."
   - path: build/deposit/v060_run_artifacts
     name: v060_run_artifacts.zip
-    description: "The pre-registered v0.6.0 run 20260929T035447Z-ce5f237 (git ce5f237, prereg_version v0.6.0-a4): trainer_runs.jsonl, lifecycle_runs.jsonl, provenance.json, summary.json, the run manifest and SHA256SUMS. Every result in paper.pdf is generated from these files."
+    description: "The files of the pre-registered v0.6.0 run, run identifier 20260929T035447Z-ce5f237, made at git revision ce5f237 under the pre-registration version labelled v0.6.0-a4: the records of the trained-model sweep (trainer_runs.jsonl) and of the agents' runs (lifecycle_runs.jsonl), the provenance record (provenance.json), the analysis summary (summary.json), the run manifest and a SHA-256 checksum list (SHA256SUMS). Every result in paper.pdf is generated from these files."
   - path: docs
     name: supplement.zip
-    description: "SUPERSEDED: v0.5-era design and supplement documentation (docs/), kept for the record. It describes the earlier OpenRouter condition and the best-of-54 grid; it is not the source of any v0.6.0 result -- paper.pdf and v060_run_artifacts.zip are."
+    description: "SUPERSEDED: design and supplement documentation written for version 0.5 of this work (the docs/ directory of the repository), kept for the record. It describes the earlier design, in which the language models were served through the OpenRouter API and the trained-model sweep had 54 configurations per task; it is not the source of any result in paper.pdf. The sources of the results are paper.pdf and v060_run_artifacts.zip."
   - path: artifacts/v0.5.0
     name: v050_run_artifacts.zip
-    description: "SUPERSEDED: the v0.5.0 sweep artifacts, superseded in full by the v0.6.0 run. Kept only as the record the manuscript's 'Corrections relative to v0.5.0' appendix cites; not the source of any reported result."
+    description: "SUPERSEDED: the run files of version 0.5.0 of this work, superseded in full by the v0.6.0 run. They are kept only as the record that the manuscript's appendix 'Corrections relative to v0.5.0' cites, and are not the source of any reported result."
 
 # Per-venue configuration. Set enabled:false to skip.
 venues:
@@ -178,21 +193,32 @@ venues:
         scheme: "doi"
     # The one permitted Zenodo revision (ALLOWED_REVISIONS): a new version from 0.6.1.
     revision_of: 24430429
-    # The notes name the amendment tag v0.6.0-a6, which the CTO created on the landed commit
-    # 07a5e57b before the dry run.
+    # The notes name the amendment tag v0.6.0-a6. It exists: an annotated tag on commit 07a5e57b,
+    # created 2026-11-25. It marks the amendment, not a release.
     notes: >-
-      0.6.2 is the next version of this record (concept DOI 10.5281/zenodo.19716140), carrying
-      Amendment 6 of the pre-registration (tag v0.6.0-a6). The manuscript now discloses that
-      from the second round on (round 1 in the run's zero-based indexing) every agent's prompt
-      carries the previous round's held-out error, which neither the pre-registration nor the
-      earlier versions stated. It reframes the reading of the H4 pass accordingly: the pass is
-      consistent with stated confidence falling further where a larger error was shown, and is
-      not evidence that the group's confidence anticipates difficulty. It adds an exploratory
-      section with two figures, labelled exploratory and added after the outcomes were known,
-      and the paper is retitled 'Does Multi-Agent Confidence Predict Task Difficulty, or Only
-      React to It? A Pre-registered Test on Perturb-seq'. The text is also rewritten in plain
-      academic English, with one added sentence on reproducing two values across numerical
-      libraries. No hypothesis, threshold, estimator, run or outcome changed.
+      0.6.2 is the next version of this record (concept DOI 10.5281/zenodo.19716140). It
+      carries the sixth amendment to the study's pre-registration (Amendment 6, repository
+      tag v0.6.0-a6), which is listed with the earlier amendments in the manuscript's table
+      of amendments. The manuscript now discloses that from the second round on (round 1 in
+      the run's zero-based numbering) every agent's prompt carries the previous round's
+      held-out error, which neither the pre-registration nor the earlier versions of this
+      record (including versions 0.6.0 and 0.6.1, which report this run) stated. This changes
+      how one supported hypothesis is to be read, namely the pre-registered trace-feature
+      ranking hypothesis, which states that a feature of the agents' stated confidences ranks
+      tasks by held-out prediction error within each screen. Its criterion is still met, but
+      that outcome is consistent with stated confidence falling further where a larger error
+      was shown, and is not evidence that the group's confidence anticipates difficulty. The
+      manuscript adds an exploratory section with two figures, labelled exploratory and
+      added after the outcomes were known, and the paper is retitled 'Does Multi-Agent
+      Confidence Predict Task Difficulty, or Only React to It? A Pre-registered Test on
+      Perturb-seq'. The text is also rewritten in plain academic English, with one added
+      sentence on reproducing two values across numerical libraries. One reference is
+      corrected: the CellForge preprint (arXiv:2508.02276), which versions up to 0.6.1
+      credited to 'Xiangru Chen and others' in the bibliography and to 'Wei, Yi' under a
+      different title in the citation file, is by Xiangru Tang, Jiapeng Chen, Daniel Shao,
+      Zhuoyun Yu and others (15 authors); its version-1 title is 'CellForge: Agentic Design
+      of Virtual Cell Models' and its current title is 'AI Scientists for Building
+      Virtual-Cell Models'. No hypothesis, threshold, estimator, run or outcome changed.
 
   figshare:
     enabled: true

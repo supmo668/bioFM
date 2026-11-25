@@ -5,14 +5,16 @@
 
 \section{Corrections relative to v0.5.0}\label{app:corrections}
 
-All values reported in the earlier release of this work are superseded; none is carried
-into this version. The figures of the earlier release quoted below are read from its archived
+This appendix concerns v0.5.0, the release of this work that preceded the pre-registered
+study and is archived under the same record as this paper. All values reported in that earlier
+release are superseded; none is carried into this version. Table~\ref{tab:corrections} maps
+each superseded value to the defects behind it. The figures of the earlier release quoted in this appendix are read from its archived
 record (added at commit \texttt{\resVFiveRecordCommit} and unchanged since), never typed. The
 narrative figures (the Norman split, the share of unannotated cells in one task, the almost
 disjoint task sets, the four of five roles and the four pooled constructs) are quoted from the
 internal audit of the earlier release that found them, and each quote is checked against the
 audit's record. The
-artifact set of the earlier release does not describe a single experiment, and several of its
+files released with the earlier release do not describe a single experiment, and several of its
 values were computed on inputs that a code defect had altered. The defects, whose
 audit findings are released with the code, were the following.
 
@@ -42,8 +44,8 @@ audit findings are released with the code, were the following.
   \item[Gene selection saw held-out cells.] Highly variable genes were selected on all cells,
     including the held-out perturbation's cells.
   \item[Reporting defects.] Criteria that could not be evaluated were dropped from the tally;
-    the LLM condition was misstated and not recorded; the documented Norman design
-    contradicted the artifact; and the provenance record held no code revision, seed or
+    the language models that served the agents were misstated and not recorded; the
+    documented Norman design contradicted the released files; and the provenance record held no code revision, seed or
     dataset digest.
 \end{description}
 
@@ -54,26 +56,26 @@ audit findings are released with the code, were the following.
 \toprule
 Superseded value or claim of the earlier release & Superseded because of & Replacement \\
 \midrule
-Adamson median best-configuration MSD $\resVFiveAdamsonMedian$, reported as meeting its criterion
+Adamson median of the lowest mean squared deviation (MSD) over configurations, $\resVFiveAdamsonMedian$, reported as meeting its criterion
   & disjoint task sets, pooled Adamson constructs, missing annotations decoded, gene selection saw held-out cells
   & Adamson attainable-error hypothesis, \resHOneVerdict \\
-Norman median best-configuration MSD $\resVFiveNormanMedian$, reported as meeting its criterion
+Norman median of the lowest MSD over configurations, $\resVFiveNormanMedian$, reported as meeting its criterion
   & disjoint task sets, doublet labels misparsed, unresolved Norman labels, gene selection saw held-out cells
   & Norman attainable-error hypothesis, \resHTwoVerdict \\
-Norman $n=15$ described as $15$ singletons $+\,5$ doublets (artifact: $7+8$)
+Norman $n=15$ described as $15$ singletons $+\,5$ doublets (the released files hold $7+8$)
   & reporting defects, doublet labels misparsed
   & $\resHTwoSingletonN+\resHTwoDoubletN$ asserted at preflight \\
-$\resVFiveNTrainerRuns$ trainer cells ($\resVFiveNTasks$ tasks $\times$ $\resVFiveConfigsPerTask$)
+$\resVFiveNTrainerRuns$ trainer records ($\resVFiveNTasks$ tasks $\times$ $\resVFiveConfigsPerTask$ configurations)
   & disjoint task sets, doublet labels misparsed
   & $\resNTasks$ tasks $\times$ \resNTrainerRecordsPerTask{} records (\resNDistinctConfigs{} distinct configurations) \\
 $\resVFiveNLifecycleRuns$ lifecycle runs over $\resVFiveNTasks$ held-out tasks
   & disjoint task sets, seeds not propagated
   & $\resNTasks$ tasks $\times$ $3$ seeds, same task set as the trainer \\
 Architect backbone entropy $\resVFiveBackboneEntropy$ nats; the transformer in $\resVFiveScgptSharePct\%$ of
-  $\resVFiveNPicks$ picks; HVG-count entropy $\resVFiveHVGEntropy$ nats
+  $\resVFiveNPicks$ picks; entropy of the count of highly variable genes (HVGs) $\resVFiveHVGEntropy$ nats
   & disjoint task sets, seeds not propagated, step source not recorded, reporting defects, missing annotations decoded
   & backbone-choice hypothesis, \resHThreeVerdict; HVG-count entropy \resHVGEntropy{} nats \\
-TDI and component $\rho$ reported as not available; transfer $\rho$ not available
+Rank correlations $\rho$ of the Task Difficulty Index (TDI) and its components with error, and the transfer $\rho$, reported as not available
   & reporting defects
   & trace-feature ranking and cross-dataset transfer hypotheses \\
 ``Two of three pre-registered gates pass''
@@ -87,8 +89,10 @@ Byte-equivalent re-run from ``the same code revision'' & reporting defects & re-
   recorded revision and configuration \\
 \bottomrule
 \end{tabular}
-\caption{Map from each superseded value or claim of the earlier release to the defects that
-supersede it, named by the headings of the list above, and to its replacement in this version.}
+\caption{Each superseded value or claim of the earlier release (v0.5.0), the defects that
+supersede it, named by the headings of the list that precedes this table, and its replacement
+in this version. The hypotheses named in the last column are those of
+Table~\ref{tab:gates}.}
 \label{tab:corrections}
 \end{table}
 
@@ -96,7 +100,7 @@ supersede it, named by the headings of the list above, and to its replacement in
 \begin{sloppypar}
 The run record was amended twice after the run; both amendments are logged with the code, and
 the hashes of every file before and after are released with the data. The first amendment
-(\resRROneDate, a ruling by the author) removed the record of where the LLM API
+(\resRROneDate, decided by the author) removed the record of where the LLM API
 key was stored (the name of the secret store, an organisation project, an environment, a home
 project and a cross-project flag; no secret value) from \resRROneFileCount{} run files, the run
 record and the three run manifests, because it supports no claim. The SHA-256 prefix of the run

@@ -210,7 +210,7 @@ SUPERSEDED_RECORDS: dict[str, frozenset] = {
 
 # The only two operations permitted on a published record -- exactly one revision per venue.
 # 0.6.2 (the Amendment 6 manuscript; perturb-seq-eval approvals row 41, 2026-11-24, for the
-# preparation and dry run, and row 42, 2026-11-25, the separate go to publish) supersedes the
+# preparation and dry run, and row 43, 2026-11-25, the separate go to publish) supersedes the
 # published 0.6.1 record as a NEW VERSION, so no duplicate record exists (as 0.6.1 did v0.6.0,
 # and v0.6.0 did v0.5.x, D-1 = B, CTO #647).
 #   zenodo:   POST actions/newversion on 24430429 (0.6.1; superseded by 24518637 = 0.6.2) --

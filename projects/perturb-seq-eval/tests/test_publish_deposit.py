@@ -49,12 +49,14 @@ def test_descriptions_are_a_fresh_render_of_the_abstract():
 
 
 def test_method_sentence_matches_the_run_evidence():
-    """The roster sentence is bound to provenance: pinned Haiku/Sonnet roster, Validator on
-    Sonnet, four proposer roles on Haiku, no served-model mismatch, no fallback step."""
+    """The roster sentence is bound to provenance: pinned Haiku/Sonnet roster, the validating
+    role on Sonnet, the four proposing roles on Haiku, no served-model mismatch, no fallback
+    step. The abstract names the roles by what they do, since it does not define their names."""
     desc = " ".join(_cfg()["description"].split())
     assert (
-        "pinned roster of Anthropic Claude models (Haiku 4.5 for the four proposer roles, "
-        "Sonnet 5.5 for the Validator) whose served model is recorded and asserted per call" in desc
+        "pinned roster of Anthropic Claude models (Haiku 4.5 for the four roles that propose, "
+        "Sonnet 5.5 for the role that validates) whose served model is recorded and asserted "
+        "per call" in desc
     )
     import re
 
@@ -961,6 +963,15 @@ def test_render_rules(tmp_path, monkeypatch):
     )
     import pytest
 
+    # a textual citation renders from the explicit CITET map and from nowhere else: the mapped
+    # key gives its plain-text form, and an unmapped key stops the render
+    assert rd.CITET == {"lee2026catts": "Lee and colleagues (2026)"}
+    assert (
+        run("the \\textsc{CATTS} method of \\citet{lee2026catts}; we ask~\\citep{k}.")
+        == "the CATTS method of Lee and colleagues (2026); we ask."
+    )
+    with pytest.raises(ValueError, match="CITET"):
+        run("as \\citet{k} show")
     with pytest.raises(ValueError):
         run("(\\citet{k}) 10\\%")
     with pytest.raises(KeyError):
@@ -982,7 +993,7 @@ def test_keywords_and_citation_version_are_true_of_the_work():
         assert kw.lower() in tex, kw
     assert set(cit["keywords"]) >= set(_cfg()["keywords"]) - {"provenance"}
     # 0.6.2 is the Amendment 6 manuscript deposit of the unchanged v0.6.0 run (approvals row 41,
-    # 2026-11-24; published 2026-11-25 on the go of row 42). CITATION.cff names the released
+    # 2026-11-24; published 2026-11-25 on the go of row 43). CITATION.cff names the released
     # work: 0.6.1 until the 0.6.2 deposit was published, 0.6.2 and its DOI since
     # (publish.yml sequence step 5).
     sv = _load("scripts/publish/submit_to_venues.py", "sv_citation")
@@ -1841,7 +1852,7 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     for tok in (
         "0.286",
         "> 0.4",
-        "four of the five hypotheses are supported",
+        "Four of the five hypotheses are supported",
         "the cross-dataset transfer hypothesis is not",
         "every hypothesis could be evaluated",
         # the five hypotheses, named by what they claim (HACA-119)
@@ -1855,7 +1866,11 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
         "21 Adamson",
         "15 Norman",
         "5 Norman",
-        "27 trainer-sweep",
+        "27 model fits",
+        # restored after the self-containment pass dropped or weakened them
+        "a group of role-specialised agents",
+        "(Haiku 4.5, Sonnet 5.5), the served model asserted per call",
+        "every prompt carries the prior round's held-out error",
         "Haiku 4.5",
         "Sonnet 5.5",
         "CATTS",
@@ -1866,6 +1881,22 @@ def test_arxiv_override_keeps_every_result_token_and_states_its_length():
     assert not re.search(r"\bgates?\b", ov.replace("can gate its compute", ""))
     # HACA-119: the venue abstract names hypotheses in words, never by label or status word
     assert not re.search(r"\bH[1-5]\b|PASS|FAIL|UNEVALUATED|unevaluated", ov)
+    # Self-containment: an abbreviation is defined at first use and then used again (one used
+    # once is written out instead), no metric acronym appears undefined, the first rho is named,
+    # the two datasets are said to be screens, and the role and model terms are glossed.
+    defined = re.findall(r"\(([A-Z]{2,})\)", ov)
+    assert defined == ["ACE", "TDI"], defined
+    for abbr in defined:
+        assert ov.index(f"({abbr})") == re.search(rf"\b{abbr}\b", ov).start() - 1, abbr
+        assert len(re.findall(rf"\b{abbr}\b", ov)) >= 2, abbr
+    assert not re.search(r"\b(CSD|WFR|LLM|HVG|MSD|CI)\b|Delta|singleton|doublet", ov)
+    assert ov.index("Spearman's $\\rho$") == ov.index("$\\rho$") - len("Spearman's ")
+    assert "on Norman 2019 (screens of the K562 cell line)" in ov and "from these screens" in ov
+    assert "Perturb-seq (single-cell CRISPR screen)" in ov
+    assert "it is not evidence that confidence anticipates difficulty" in ov  # no dangling "it"
+    assert "that it anticipates" not in ov
+    assert "the Architect (the model-choosing agent)" in ov
+    assert "ranks tasks by error, meeting its criterion" in ov  # the antecedent of "The pass"
     assert f"This version is {len(ov)} characters, 0 non-ASCII" in cfg
     sub = (ROOT / "paper" / "SUBMISSION.md").read_text()
     assert f"The override is {len(ov)} characters, 0 non-ASCII" in sub
@@ -1928,10 +1959,10 @@ def test_arxiv_override_numbers_are_the_generated_macros():
     # wording the override must carry after the row-39 reframe and its quality gate
     for tok in (
         "the mean confidence stated before any feedback does not rank tasks",
-        "in both screens; exploratory, no claim",
+        "in both screens. This too is exploratory; no claim is made.",
         "The pass is consistent with",
         "it is not evidence that",
-        "The probe and recommender are specified, not evaluated",
+        "A one-round probe and configuration recommender are specified, not evaluated.",
     ):
         assert tok in ov, tok
     assert "supported result" not in ov

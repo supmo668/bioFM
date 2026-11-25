@@ -786,7 +786,8 @@ def test_prose_claims_match_artifacts(art, land):
     assert "reproduces every committed value" in main and "\\path{served_mismatch_count}" in main
     assert (
         "code paths the run did not reach" in main
-        and "revision at which v0.6.0 landed on main" in main
+        and "revision at which v0.6.0 was merged into the repository's main branch" in flat_main
+        and "pull request~\\resLandPR" in main  # the number is introduced in words
     )
     flat_res = " ".join(_strip(res).split())
     assert "\\resLandSha" not in flat_res and "reproduces every committed value" not in flat_res
@@ -821,7 +822,7 @@ def test_methods_wording_matches_the_amendments():
     assert "H3 condition is unchanged" not in setup
     assert (
         "non-default sampling" in setup
-        and "key/value" in setup
+        and "arrays of key--value pairs" in setup
         and "modality" in setup
         and "non-finite" in setup
     )
@@ -883,7 +884,7 @@ def test_post_run_docs_and_prose_are_current():
         and "\\resEvalGeneTasks" in res
         and "\\resEvalGeneMismatch" in res
     )
-    assert "401/402/403/404" in setup
+    assert "(HTTP status 401, 402, 403 or 404)" in setup
     assert "flagged as not implemented" in res and "not computed per stratum" in res
     assert (
         "\\sloppy " not in main and "\\sloppy\n" not in main
@@ -1282,26 +1283,44 @@ def test_amendments_table_rows_and_caption_follow_the_post_outcome_flags():
     """QG B12/B13: every amendment record has a row in tab:amendments; the post-outcome ones (A5,
     approvals row 16; A6, approvals row 40) carry the double dagger and the others do not; the
     caption never calls the whole table pre-data, and names the pre-data range from the records
-    themselves."""
+    themselves. The table numbers the amendments 1-6 under a "No." header and its caption says
+    "Amendments 1--4" in words: the record ids A1-A6 are not shown to the reader."""
     am = json.loads((PAPER / "data" / "amendments_v060.json").read_text())["amendments"]
     res = _strip(RESULTS.read_text())
     flags = {a["id"]: a.get("post_outcome", False) for a in am}
     assert all(type(v) is bool for v in flags.values()), flags
     assert [k for k, v in flags.items() if v] == ["A5", "A6"]
+    assert "No. & Version label & Locked (UTC) & Lock commit(s) & Change" in res
+    # amendments 2-4 have a version label and no git tag: the caption must not call the column tags
+    flat = " ".join(res.split())
+    assert "version tag" not in flat.lower()
+    assert "amendments 5 and 6 are also git tags of that name" in flat
+    assert "predates the version labels" in flat
     for a in am:
         w = WORDS[a["id"]]
-        row = re.search(rf"^{a['id']}\b.*\\resAmend{w}Change \\\\$", res, re.M)
+        num = a["id"].removeprefix("A")
+        assert num.isdigit(), a["id"]
+        row = re.search(rf"^{num} & .*\\resAmend{w}Change \\\\$", res, re.M)
         assert row, f"no tab:amendments row for {a['id']}"
+        assert f"\\resAmend{w}Version" in row.group(0), a["id"]  # the number matches its record
         assert ("\\ddagger" in row.group(0)) is flags[a["id"]], a["id"]
     cap = re.search(
-        r"\\caption\{Amendments to the pre-registration(.*?)\\label\{tab:amendments\}", res, re.S
+        r"\\caption\{The six amendments to the pre-registration(.*?)\\label\{tab:amendments\}",
+        res,
+        re.S,
     )
     cap = " ".join(cap.group(1).split())
     assert "each locked before any data from this sweep existed (" not in cap
-    pre = [k for k, v in flags.items() if not v]
-    assert f"{pre[0]}--{pre[-1]} were each locked before any data from this sweep existed" in cap
-    assert "$^{\\ddagger}$A5 and A6 were locked \\emph{after} the outcome was known" in cap
+    assert len(am) == 6  # "The six amendments"
+    pre = [k.removeprefix("A") for k, v in flags.items() if not v]
+    assert (
+        f"Amendments {pre[0]}--{pre[-1]} were each locked before any data from this sweep existed"
+        in cap
+    )
+    assert "$^{\\ddagger}$Amendments 5 and 6 were locked \\emph{after} the outcome was known" in cap
     assert "no run exists under either" in cap
+    assert "lock commits" in cap  # the column header is defined where it is used
+    assert not re.search(r"\bA[1-6]\b", res), "an amendment record id is shown to the reader"
 
 
 # --------------------------------------------------------------------------- HACA-119 wording
@@ -1316,14 +1335,30 @@ STATUS_WORD = re.compile(
 
 
 def test_hypothesis_labels_appear_only_in_the_hypotheses_table():
-    """HACA-119: H1-H5 are defined in tab:gates and named in words everywhere else, captions
-    and headings included, and the generated macros carry none."""
+    """HACA-119, tightened: the labels H1-H5 appear nowhere in the manuscript, the hypotheses
+    table included (its label column was dropped because the text never used the labels), and
+    the generated macros carry none. The table names each hypothesis as the text does."""
     for fpath in TEX_INPUTS + [GEN]:
         text = _strip(fpath.read_text())
-        if fpath == RESULTS:
-            start = text.rindex("\\begin{tabular}", 0, text.index("& Hypothesis & Criterion"))
-            text = text[:start] + text[text.index("\\end{tabular}", start) :]
         assert not HLABEL.search(text), (fpath.name, HLABEL.search(text))
+    res = _strip(RESULTS.read_text())
+    table = res[res.index("Hypothesis & Criterion & Outcome") : res.index("\\label{tab:gates}")]
+    for name in (
+        "\\emph{Attainable error on Adamson.}",
+        "\\emph{Attainable error on Norman.}",
+        "\\emph{Backbone choice.}",
+        "\\emph{Trace-feature ranking.}",
+        "\\emph{Cross-dataset transfer.}",
+    ):
+        assert table.count(name) == 1, name
+    flat = " ".join(res.split())
+    for name in (
+        "attainable-error",
+        "backbone-choice",
+        "trace-feature ranking",
+        "cross-dataset transfer",
+    ):
+        assert f"\\emph{{{name}}}" in flat, name  # the text introduces the same names
 
 
 def test_no_capitalised_status_words_or_inline_register_codes():
@@ -1354,3 +1389,95 @@ def test_no_capitalised_status_words_or_inline_register_codes():
 )
 def test_shorthand_guards_catch_variants(bad):
     assert HLABEL.search(bad) or REGISTER_CODE.search(bad) or STATUS_WORD.search(bad), bad
+
+
+def test_clarity_pass_corrections_stay_true_to_the_code_and_the_run():
+    """Statements a self-containment pass got wrong, each pinned to its source: the attainable
+    error is an oracle (never "held-out"); two features in both screens meet the ranking
+    criterion (never "the one feature"); the sweep's R is a training-budget index whose formula
+    is the code's; the lifecycle has no critique-severity matrix and no per-round winner; the
+    transfer composite is ridge-fitted, not the fixed-weight TDI_lifecycle."""
+    from perturb_eval.experiments.heldout import R_SEED_INVARIANT_BACKBONES, trainer_config
+
+    flat = {p.name: " ".join(_strip(p.read_text()).split()) for p in (MAIN, RESULTS, SETUP)}
+    main, res, setup = flat["paper.tex"], flat["results.tex"], flat["experimental_setup.tex"]
+    readme = " ".join((ROOT / "README.md").read_text().split())
+    abstract = main[main.index("\\begin{abstract}") : main.index("\\end{abstract}")]
+
+    # the oracle is not a held-out error, on any surface that states the hypotheses
+    for name, text in (("abstract", abstract), ("results", res), ("README", readme)):
+        assert "low held-out error" not in text, name
+    for ds in ("Adamson", "Norman"):
+        assert (
+            f"\\emph{{Attainable error on {ds}.}} The best configuration of the trainer sweep, "
+            "selected on the data it is scored on (an oracle quantity, \\S\\ref{subsec:oracle}), "
+            f"attains low error on the {ds} tasks." in res
+        )
+    assert (
+        "taking the best configuration for each task (a best-case bound, selected on the "
+        in abstract
+    )
+    assert "(best configuration per task, an oracle bound)" in readme
+    assert "ranks tasks by held-out error within each dataset" in readme
+
+    # four of the six tests pass: two features in each of two screens
+    h4 = json.loads((ROOT / "artifacts/v0.6.0/summary.json").read_text())["preregistered"]["H4"]
+    assert h4["n_tests_passing"] == 4 and len(h4["all_six"]) == 6
+    assert "the one feature" not in main and "The feature that meets" not in readme
+    assert (
+        "the features of a run's record (its \\emph{trace}) that meet the ranking criterion --- "
+        "the drop in confidence across rounds and the composite that includes it --- are stated "
+        "after the agents have been shown a held-out error" in main
+    )
+    assert (
+        "The six within-dataset tests of the ranking hypothesis are these three features in "
+        "each of the two screens." in res
+    )
+
+    # R in the trainer sweep: the stated formula is trainer_config's, and linear ignores it
+    assert "round count" not in setup
+    assert (
+        "it sets the trainer's iteration budget, the number of training iterations, to $20+40R$"
+        in setup
+    )
+    assert [trainer_config(r, 2026).max_iter for r in (1, 2, 3)] == [20 + 40 * r for r in (1, 2, 3)]
+    assert R_SEED_INVARIANT_BACKBONES == {"linear"}
+    assert "The \\textsc{linear} backbone ignores both $R$ and the seed" in setup
+
+    # CSD / WFR
+    assert "records neither critiques" not in res
+    assert (
+        "cannot be computed: the lifecycle records no critique-severity matrix and has no "
+        "per-round winner" in res
+    )
+
+    # the transfer composite is not the fixed-weight TDI_lifecycle
+    assert (
+        "\\emph{Cross-dataset transfer.} A two-term composite of $\\mathrm{ACE}_{\\mathrm{norm}}$ "
+        "and $1-\\Delta C$, with weights fitted by ridge regression on the Adamson tasks, ranks "
+        "the Norman tasks by held-out error." in res
+    )
+    assert "a TDI calibrated on one screen" not in abstract
+    assert "composite fitted on one screen (its weights estimated by regression" in abstract
+
+    # earlier archived versions are not a complete two-item list
+    for text in (main, setup):
+        assert "(including versions 0.6.0 and 0.6.1, which report this run)" in text
+        assert "(versions 0.6.0 and 0.6.1)" not in text
+
+    # the amendment tag v0.6.0-a6 exists and marks the amendment, not a release
+    for rel in ("CHANGELOG.md", "publish.yml", "paper/SUBMISSION.md"):
+        text = " ".join((ROOT / rel).read_text().replace("#", " ").split())
+        assert "creates the amendment tag" not in text and "to be created by the CTO" not in text, (
+            rel
+        )
+        if rel != "paper/SUBMISSION.md":  # there the phrase is about the 0.6.2 record, truly
+            assert "does not exist yet" not in text, rel
+        assert "07a5e57b" in text and "not a release" in text, rel
+    # ... and the CellForge reference correction is disclosed where a reader of the record looks
+    for rel in ("CHANGELOG.md", "publish.yml"):
+        text = " ".join((ROOT / rel).read_text().split())
+        assert (
+            "Xiangru Tang, Jiapeng Chen, Daniel Shao, Zhuoyun Yu and others (15 authors)" in text
+        ), rel
+        assert "Xiangru Chen and others" in text and "Wei, Yi" in text, rel
