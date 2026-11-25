@@ -2106,10 +2106,12 @@ def test_the_published_062_release_stays_on_record_while_063_is_only_prepared():
     assert "before the self-contained rewrite of the wording that is prepared as 0.6.3" in (
         surfaces["CITATION.cff"].replace("# ", "")
     )
+    # "not published" is checked in the sentence that names 0.6.3, not anywhere in the file
+    assert "prepared as archive version 0.6.3 and is **not published**" in surfaces["README.md"]
+    assert "`0.6.3` is prepared and **not published**" in surfaces["paper/SUBMISSION.md"]
+    assert "**`0.6.3`, prepared, not published**" in surfaces["paper/SUBMISSION.md"]
     for rel in ("README.md", "paper/SUBMISSION.md"):
-        text = " ".join((ROOT / rel).read_text().split())
-        assert "0.6.3" in text and "not published" in text, rel
-        assert zenodo_doi in text, rel
+        assert zenodo_doi in surfaces[rel], rel
 
 
 def test_a_lineage_state_file_is_refused_from_either_source(tmp_path, monkeypatch):
