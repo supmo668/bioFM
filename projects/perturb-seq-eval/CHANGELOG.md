@@ -53,7 +53,9 @@ be built from the commit of this branch once it is merged.
 
 - An unpublished Zenodo draft, deposit 24519260, was made from commit `c42ac57c` with the
   version field `0.6.2` before the version number was decided. It is not recorded in any state
-  file and is not to be published as it is; the 0.6.3 dry run reuses or replaces it.
+  file and is not to be published as it is. If Zenodo hands it back as the open draft of the
+  new version, the 0.6.3 dry run reuses it (its files and metadata are replaced by the 0.6.3
+  set); otherwise the dry run stops. The submitter cannot discard a draft.
 
 ## [0.6.2] — 2026-11-25 (manuscript revision; published)
 
