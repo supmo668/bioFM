@@ -35,10 +35,11 @@ The pipeline automates everything up to the Submit button; the process document 
 and this file is what to type.
 
 **Abstract note:** the arXiv abstract is a *venue-specific override* in `arxiv.toml`, not the
-`CITATION.cff` one. The CFF abstract is 3222 characters with 5 non-ASCII characters (measured 2026-11-24); arXiv rejects
-anything over 1920 and accepts ASCII only. The override is 1918 characters, 0 non-ASCII, with every
+`CITATION.cff` one. The CFF abstract is 4332 characters with 2 non-ASCII characters (measured 2026-11-25); arXiv rejects
+anything over 1920 and accepts ASCII only. The override is 1919 characters, 0 non-ASCII, with every
 number and the integrity claim that every hypothesis could be evaluated preserved, in sentences rather
-than hypothesis labels. Use the generated block.
+than hypothesis labels, and with the two metric abbreviations (ACE, TDI) and the one symbol (Spearman's rho) it
+uses defined in it; CRISPR and the cell-line name K562 are used without expansion. Use the generated block.
 
 | | |
 |---|---|
@@ -198,32 +199,32 @@ Comments:
   Pre-registered study; pre-registration and provenance manifests included. Archived with full data and code at doi:10.5281/zenodo.19716140 (concept DOI). The same work is deposited on Figshare as doi:10.6084/m9.figshare.32086920 (all versions).
 
 Abstract:
-  That a single agent's own vote distribution can gate its compute is reported
+  That a single agent's vote distribution can gate its compute is reported
   (CATTS, arXiv:2602.12276); we ask the multi-agent question: does the
-  distribution of stated confidences across a group of role-specialised agents
-  predict task difficulty, allowing adaptive compute allocation? In a five-agent
-  CellForge-style Perturb-seq orchestrator run via MassGen, we define four trace
-  metrics, Agent Confidence Entropy (ACE), Critique Severity Dispersion (CSD), a
-  convergence signal ($\Delta$C) and Winner Flip Rate (WFR), and their composite
-  Task Difficulty Index (TDI). We pre-register five hypotheses: low attainable
-  error on Adamson 2016 and on Norman 2019, varied backbone choice by the
-  Architect, the rank correlation of each TDI component with error, and
-  cross-dataset transfer of a calibrated TDI. We test them on 41 held-out K562
-  tasks (21 Adamson, 15 Norman singletons, 5 Norman doublets), with 27
-  trainer-sweep records and three fixed-length agentic runs each, on a pinned
-  Claude roster (Haiku 4.5, Sonnet 5.5) asserted per call. We find that four of
-  the five hypotheses are supported and the cross-dataset transfer hypothesis is
-  not; every hypothesis could be evaluated. Within each screen the drop in
-  confidence across rounds ranks tasks by error; the fitted composite does not
-  reach the transfer criterion at the pre-registered level ($\rho$ = 0.286
-  against > 0.4). From round two on, every prompt carries the prior round's
-  held-out error, so that drop follows a shown error; the mean confidence stated
-  before any feedback does not rank tasks ($\rho$ = 0.003 on Adamson and 0.214
-  on Norman; this is exploratory). The pass is consistent with confidence
-  falling further after a larger shown error; it is not evidence that it
-  anticipates difficulty. ACE, an evenness index, runs against the
-  pre-registered direction in both screens; exploratory, no claim. The probe and
-  recommender are specified, not evaluated.
+  distribution of confidences stated by a group of role-specialised agents
+  predict task difficulty? In a five-agent system that predicts Perturb-seq
+  (single-cell CRISPR screen) responses, we define run metrics, including Agent
+  Confidence Entropy (ACE), and a composite Task Difficulty Index (TDI). We
+  pre-register five hypotheses: low attainable error on Adamson 2016 and on
+  Norman 2019 (screens of the K562 cell line), varied backbone choice by the
+  Architect (the model-choosing agent), the rank correlation of each TDI
+  component with error, and cross-dataset transfer of a calibrated TDI. We test
+  on 41 held-out perturbations from these screens (21 Adamson, 15 Norman
+  single-gene, 5 Norman two-gene), with 27 model fits and three agent runs each;
+  agents are pinned Claude models (Haiku 4.5, Sonnet 5.5), the served model
+  asserted per call. Four of the five hypotheses are supported and the
+  cross-dataset transfer hypothesis is not; every hypothesis could be evaluated.
+  In each screen the confidence drop across rounds ranks tasks by error, meeting
+  its criterion; the fitted composite misses the transfer criterion at the
+  pre-registered level (Spearman's $\rho$ = 0.286 against > 0.4). From round two
+  on, every prompt carries the prior round's held-out error, so that drop
+  follows a shown error; the mean confidence stated before any feedback does not
+  rank tasks ($\rho$ = 0.003 on Adamson and 0.214 on Norman; this is
+  exploratory). The pass is consistent with confidence falling further after a
+  larger shown error; it is not evidence that confidence anticipates difficulty.
+  ACE, an evenness index, runs against the pre-registered direction in both
+  screens. This too is exploratory; no claim is made. A one-round probe and
+  configuration recommender are specified, not evaluated.
 
 === END ===
 
@@ -493,7 +494,7 @@ fallback it is, not as a way around the venue decision.
 | 2 | OpenAlex: claim the author profile; confirm the Work exists (7.3 #2) | nothing |
 | 3 | ~~Principal decides the venue~~ **Decided: arXiv `cs.LG` by personal endorsement** (approvals row 34; fallback Research Square after 14 days) | 7.1, 7.2 |
 | 4 | **Get one arXiv endorsement (Part 1). BLOCKS step 5.** Start the `cs.LG` submission to receive the code, then ask endorsers one or two at a time (Part 1). **The 14-day fallback clock starts when the first request is sent** | 3 |
-| 4a | **Archive the Amendment 6 manuscript as version `0.6.2`** (approvals row 41, 2026-11-24: preparation and dry run only). In order: (i) this branch lands and the CTO creates the amendment tag `v0.6.0-a6`, which the Zenodo notes name; (ii) `build_deposit.py` on the clean landed commit — that commit is the **`0.6.2` deposit commit**, printed in `build/deposit/paper_build.log`; (iii) `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3): a new-version draft of Zenodo `24430429` and Figshare `32086920`'s next version prepared unpublished, ids recorded in `publish.state.v062.json`; (iv) the principal reviews both drafts; (v) **a separate, explicit go to publish — not yet given** — then the same commands without `--dry-run`, with no rebuild in between; (vi) `publish.yml` deposit-time step 5 (CITATION version, date and DOIs, CHANGELOG, Zenodo `isIdenticalTo` Figshare version 8). **The `0.6.2` Zenodo DOI is unknown until the dry run (iii) reserves it and does not resolve until (v); the Figshare version 8 DOI and the publication date are unknown until (v).** This file states none. The `0.6.1` records carry the Amendment-5 manuscript and title, and the v0.6.0 records the pre-amendment ones, so step 6's `isIdenticalTo` would be false against either | nothing for (i)–(iv) (can run in parallel with 4); (v) needs the principal's go |
+| 4a | **Archive the Amendment 6 manuscript as version `0.6.2`** (approvals row 41, 2026-11-24: preparation and dry run only). In order: (i) this branch lands; the amendment tag `v0.6.0-a6`, which the Zenodo notes name, already exists (annotated, on commit `07a5e57b`, created 2026-11-25) and marks the amendment, not a release; (ii) `build_deposit.py` on the clean landed commit — that commit is the **`0.6.2` deposit commit**, printed in `build/deposit/paper_build.log`; (iii) `submit_to_venues.py zenodo --dry-run` and `figshare --dry-run` under the principal's `infisical run` invocation (approvals rows 2–3): a new-version draft of Zenodo `24430429` and Figshare `32086920`'s next version prepared unpublished, ids recorded in `publish.state.v062.json`; (iv) the principal reviews both drafts; (v) **a separate, explicit go to publish — not yet given** — then the same commands without `--dry-run`, with no rebuild in between; (vi) `publish.yml` deposit-time step 5 (CITATION version, date and DOIs, CHANGELOG, Zenodo `isIdenticalTo` Figshare version 8). **The `0.6.2` Zenodo DOI is unknown until the dry run (iii) reserves it and does not resolve until (v); the Figshare version 8 DOI and the publication date are unknown until (v).** This file states none. The `0.6.1` records carry the Amendment-5 manuscript and title, and the v0.6.0 records the pre-amendment ones, so step 6's `isIdenticalTo` would be false against either | nothing for (i)–(iv) (can run in parallel with 4); (v) needs the principal's go |
 | 5 | Parts 0–2: upload the CI `tar.gz` (LaTeX source) to arXiv. **The bundle is built by CI from the `0.6.2` deposit commit** — the SHA printed in `build/deposit/paper_build.log` at 4a. Ask the CTO to tag that commit `v0.6.2`, run the `arxiv-package` workflow on the tag, and confirm the run's head SHA matches, so the arXiv record and the `0.6.2` archive are the same manuscript. **Not from `980fd099` (tag `v0.6.1`): the existing artifact of run `44977934225` is the `0.6.1` manuscript and must NOT be uploaded.** A correct bundle has 10 files and the Amendment 6 title (Part 0). **Before pasting the metadata block, re-run `arxiv_package.py metadata`** so the Comments line is current. Open arXiv's preview PDF: any `[?]` means stop. Then Part 3: record the arXiv ID and DOI | 4, 4a (published) |
 | 5′ | **Fallback, only if no endorser has agreed 14 days after the first request.** (1) The principal reads Research Square's licence terms; stop if CC BY 4.0 is not offered. (2) Delete the unsubmitted arXiv submission and tell any endorser you asked that the request is withdrawn — a late endorsement must not lead to a second server. (3) Upload the 4a `paper.pdf` to Research Square. A posted preprint there "cannot be removed". (4) Parts 3–5 then apply with the Research Square DOI as `<venue DOI>`; the arXiv-only checks (Comments line, cross-lists) do not | 4, 4a |
 | 6 | Part 4 reciprocal link with the venue DOI, `isIdenticalTo`, once, **on the `0.6.2` Zenodo record** — its DOI is reserved at the 4a dry run and resolves only once 4a publishes; read it from `publish.state.v062.json`. Not on `0.6.1` (`10.5281/zenodo.24430429`) and not on v0.6.0 (`10.5281/zenodo.23422745`): both hold a different manuscript | 5 |

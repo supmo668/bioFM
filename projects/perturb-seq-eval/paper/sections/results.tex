@@ -19,69 +19,97 @@ be evaluated is never counted as not supported, and the tally is always
 stated out of five. In the text we refer to the hypotheses by what they claim: the two
 \emph{attainable-error} hypotheses, one per screen; the \emph{backbone-choice} hypothesis; the
 \emph{trace-feature ranking} hypothesis; and the \emph{cross-dataset transfer} hypothesis.
-Bootstrap confidence intervals are 95\% percentile intervals over \emph{tasks}, with $B=10\,000$
+Bootstrap confidence intervals (CIs) are 95\% percentile intervals over \emph{tasks}, with $B=10\,000$
 resamples from a generator seeded with 2026. In summary, \resGateSummary.
 
 The five criteria are of three kinds, and the tally should be read with that in mind. The two
-attainable-error hypotheses are feasibility checks on an oracle selected on the evaluation
-split. The backbone-choice hypothesis checks that a design lever was exercised. Only the
+attainable-error hypotheses are feasibility checks on an oracle quantity, the best
+configuration selected on the same data it is scored on (\S\ref{subsec:oracle}). The backbone-choice hypothesis checks that a design lever was exercised. Only the
 ranking and transfer hypotheses bear on the title question, and of those two one is supported
 and one is not. Each criterion is a threshold on a point estimate. No error rate spanning the
 five was pre-registered and no power analysis was made; the only quantified false-positive rate
 is that of the ranking criterion (\S\ref{sec:tdi-real}).
 
-\begin{table}[ht]
+\begin{table}[htp]
 \footnotesize
 \centering
 \begin{tabular}{p{0.03\linewidth}p{0.09\linewidth}p{0.1\linewidth}p{0.17\linewidth}p{0.45\linewidth}}
 \toprule
-& version tag & locked (UTC) & lock commit(s) & change \\
+No. & Version label & Locked (UTC) & Lock commit(s) & Change \\
 \midrule
-A1 & \resAmendOneVersion$^{\dagger}$ & \resAmendOneDate & \texttt{\resAmendOneCommit} & \resAmendOneChange \\
-A2 & \texttt{\resAmendTwoVersion} & \resAmendTwoDate & \texttt{\resAmendTwoCommit} & \resAmendTwoChange \\
-A3 & \texttt{\resAmendThreeVersion} & \resAmendThreeDate & \texttt{\resAmendThreeCommit} & \resAmendThreeChange \\
-A4 & \texttt{\resAmendFourVersion} & \resAmendFourDate & \texttt{\resAmendFourCommit} & \resAmendFourChange \\
+1 & \resAmendOneVersion$^{\dagger}$ & \resAmendOneDate & \texttt{\resAmendOneCommit} & \resAmendOneChange \\
+2 & \texttt{\resAmendTwoVersion} & \resAmendTwoDate & \texttt{\resAmendTwoCommit} & \resAmendTwoChange \\
+3 & \texttt{\resAmendThreeVersion} & \resAmendThreeDate & \texttt{\resAmendThreeCommit} & \resAmendThreeChange \\
+4 & \texttt{\resAmendFourVersion} & \resAmendFourDate & \texttt{\resAmendFourCommit} & \resAmendFourChange \\
 \midrule
-A5 & \texttt{\resAmendFiveVersion}$^{\ddagger}$ & \resAmendFiveDate & \texttt{\resAmendFiveCommit} & \resAmendFiveChange \\
-A6 & \texttt{\resAmendSixVersion}$^{\ddagger}$ & \resAmendSixDate & \texttt{\resAmendSixCommit} & \resAmendSixChange \\
+5 & \texttt{\resAmendFiveVersion}$^{\ddagger}$ & \resAmendFiveDate & \texttt{\resAmendFiveCommit} & \resAmendFiveChange \\
+6 & \texttt{\resAmendSixVersion}$^{\ddagger}$ & \resAmendSixDate & \texttt{\resAmendSixCommit} & \resAmendSixChange \\
 \bottomrule
 \end{tabular}
-\caption{Amendments to the pre-registration. A1--A4 were each locked before any data from this
-sweep existed. $^{\ddagger}$A5 and A6 were locked \emph{after} the outcome was known; A5 changes
-the title and one term only, A6 changes the title again and records the exploratory analyses
-added after the outcome, and no run exists under either. $^{\dagger}$The first amendment predates the
-version tags, so it has none; the run was made under the fourth amendment's tag. For the fourth
+\caption{The six amendments to the pre-registration, numbered in order. For each, the table
+gives the pre-registration's version label (the \texttt{prereg\_version} string that the
+amendment sets and that a run made under it records in its provenance; amendments 5 and 6 are
+also git tags of that name), the date on which
+the amendment was locked, the repository commit or commits that locked its text (the lock
+commits), and what it changed. Amendments 1--4 were each locked before any data from this
+sweep existed. $^{\ddagger}$Amendments 5 and 6 were locked \emph{after} the outcome was known;
+the fifth changes the title and one term only, the sixth changes the title again and records
+the exploratory analyses added after the outcome, and no run exists under either.
+$^{\dagger}$The first amendment predates the
+version labels, so it has none; the run was made under the fourth amendment's label. For the fourth
 amendment, \resAmendFourNote. Dates and commits are taken from the repository history and
 checked against it automatically.}
 \label{tab:amendments}
 \end{table}
 
-\begin{table}[ht]
+\begin{table}[htp]
 \small
 \centering
-\begin{tabular}{p{0.05\linewidth}p{0.36\linewidth}p{0.2\linewidth}p{0.27\linewidth}}
+\begin{tabular}{p{0.43\linewidth}p{0.24\linewidth}p{0.24\linewidth}}
 \toprule
-& Hypothesis & Criterion & Outcome \\
+Hypothesis & Criterion & Outcome \\
 \midrule
-H1 & Trainer sweep attains low error on Adamson (oracle, \S\ref{subsec:oracle})
-  & median $<\resHOneThreshold$ & \resHOneVerdict{} (median \resHOneMedian) \\
-H2 & Trainer sweep attains low error on Norman (oracle) & median $<\resHTwoThreshold$
+\emph{Attainable error on Adamson.} The best configuration of the trainer sweep, selected
+  on the data it is scored on (an oracle quantity, \S\ref{subsec:oracle}), attains low error
+  on the Adamson tasks.
+  & The median over tasks of the lowest MSD is below $\resHOneThreshold$.
+  & \resHOneVerdict{} (median \resHOneMedian) \\
+\addlinespace
+\emph{Attainable error on Norman.} The best configuration of the trainer sweep, selected
+  on the data it is scored on (an oracle quantity, \S\ref{subsec:oracle}), attains low error
+  on the Norman tasks.
+  & The median over tasks of the lowest MSD is below $\resHTwoThreshold$.
   & \resHTwoVerdict{} (median \resHTwoMedian) \\
-H3 & Architect exercises its backbone choice (stated backbone over the pool of all LLM-sourced
-  Architect steps across tasks, seeds and rounds)
-  & entropy $\ge 0.5$ nats & \resHThreeVerdict{} (\resHThreeEntropy{} nats) \\
-H4 & A trace feature ($\mathrm{ACE}_{\mathrm{norm}}$, $1-\Delta C$ or
-  $\mathrm{TDI}_{\mathrm{lifecycle}}$) ranks tasks by held-out error
-  & Spearman $\rho>0.5$ for $\ge 1$ of six within-dataset tests
+\addlinespace
+\emph{Backbone choice.} The Architect uses its choice of backbone: the backbones it states,
+  pooled over all its LLM-sourced steps across tasks, seeds and rounds, are varied.
+  & The Shannon entropy of the stated backbone is at least $0.5$ nats.
+  & \resHThreeVerdict{} (\resHThreeEntropy{} nats) \\
+\addlinespace
+\emph{Trace-feature ranking.} A feature of the trace ($\mathrm{ACE}_{\mathrm{norm}}$,
+  $1-\Delta C$ or $\mathrm{TDI}_{\mathrm{lifecycle}}$) ranks tasks by held-out error.
+  & Spearman's $\rho$ exceeds $0.5$ in at least one of the six within-dataset tests.
   & \resHFourVerdict{} (\resHFourNPassing{} of \resHFourNTests{} tests) \\
-H5 & Ridge-calibrated $\mathrm{TDI}_{\mathrm{lifecycle}}$ transfers Adamson $\to$ Norman
-  & Spearman $\rho>\resHFiveThreshold$ & \resHFiveVerdict{} ($\rho=\resHFiveRho$) \\
+\addlinespace
+\emph{Cross-dataset transfer.} A two-term composite of $\mathrm{ACE}_{\mathrm{norm}}$ and
+  $1-\Delta C$, with weights fitted by ridge regression on the Adamson tasks, ranks the Norman
+  tasks by held-out error.
+  & Spearman's $\rho$ on the Norman tasks exceeds $\resHFiveThreshold$.
+  & \resHFiveVerdict{} ($\rho=\resHFiveRho$) \\
 \bottomrule
 \end{tabular}
-\caption{Pre-registered hypotheses and criteria. The outcome reads \emph{supported} when the
+\caption{The five pre-registered hypotheses, each named as it is in the text, with its
+criterion and outcome. The outcome reads \emph{supported} when the
 criterion is met, \emph{not supported} when it is not, and \emph{not evaluable} when the data do
 not allow the test. Tally out of \resTallyOut: supported \resTallyPass, not supported
-\resTallyFail, not evaluable \resTallyUneval. The estimators are given in the subsections below
+\resTallyFail, not evaluable \resTallyUneval. Held-out error is the mean squared deviation
+(MSD) on the evaluation genes (\S\ref{subsec:eval}); the lowest MSD of the trainer sweep is an
+oracle quantity (\S\ref{subsec:oracle}). $\mathrm{ACE}_{\mathrm{norm}}$ is the normalised
+entropy of the agents' final-round confidences, $1-\Delta C$ is one minus the change in their
+mean confidence from the first round to the last, and $\mathrm{TDI}_{\mathrm{lifecycle}}$ is
+the fixed-weight composite of the two (\S\ref{sec:tdi-real}); $\rho$ is Spearman's rank
+correlation across tasks. The six within-dataset tests of the ranking hypothesis are these
+three features in each of the two screens. The estimators are given in the subsections that follow
 and in the pre-registration.}
 \label{tab:gates}
 \end{table}
@@ -95,15 +123,16 @@ is scored on, it is an oracle (\S\ref{subsec:oracle}). The criterion is the medi
 minimum over the tasks of each dataset. The evaluation genes are fixed per task, for all
 \resEvalGeneTasks{} tasks, and the agentic lifecycle is scored on the same genes, as amended
 before data collection (Table~\ref{tab:amendments}); the trainer's and the lifecycle's gene
-lists differ on \resEvalGeneMismatch{} tasks.
+lists differ on \resEvalGeneMismatch{} tasks. Table~\ref{tab:headline-msd} gives the
+distribution of the per-task minimum in each dataset.
 
-\begin{table}[ht]
+\begin{table}[htp]
 \small
 \centering
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{lllllll}
 \toprule
-Dataset & $n$ & median & IQR & max & fraction over criterion & 95\% CI (median) \\
+Dataset & $n$ & Median & IQR & Maximum & Fraction over criterion & 95\% CI of the median \\
 \midrule
 Adamson 2016 & \resHOneN & \resHOneMedian & [\resHOneIQRLo, \resHOneIQRHi] & \resHOneMax & \resHOneFracOver & [\resHOneCILo, \resHOneCIHi] \\
 Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \resHTwoMax & \resHTwoFracOver & [\resHTwoCILo, \resHTwoCIHi] \\
@@ -111,9 +140,14 @@ Norman 2019 & \resHTwoN & \resHTwoMedian & [\resHTwoIQRLo, \resHTwoIQRHi] & \res
 \quad doublets & \resHTwoDoubletN & \resHTwoDoubletMedian & [\resHTwoDoubletIQRLo, \resHTwoDoubletIQRHi] & \resHTwoDoubletMax & \resHTwoDoubletFracOver & --- \\
 \bottomrule
 \end{tabular}}
-\caption{Oracle MSD on the top-$20$ evaluation genes (best of the distinct configurations,
-selected on the evaluation split). The criteria are an Adamson median below $\resHOneThreshold$
-(\resHOneVerdict) and a Norman median below $\resHTwoThreshold$ (\resHTwoVerdict). Bootstrap CIs
+\caption{The lowest mean squared deviation (MSD) that the trainer sweep reaches on the
+top-$20$ evaluation genes of each task, summarised over the $n$ tasks of each dataset. The
+minimum is taken over the distinct configurations and selected on the same data it is scored
+on, so it is an oracle quantity (\S\ref{subsec:oracle}). IQR is the interquartile range, and
+CI the bootstrap confidence interval over tasks. The criteria are an Adamson median below
+$\resHOneThreshold$ (\resHOneVerdict) and a Norman median below $\resHTwoThreshold$
+(\resHTwoVerdict). Singletons and doublets are the single-gene and two-gene perturbations of
+Norman. Bootstrap CIs
 are not computed per stratum. The median of the Norman doublet stratum
 (\resHTwoDoubletMedian) lies above the criterion; the criterion is the median over all
 $\resHTwoN$ Norman tasks.}
@@ -150,8 +184,8 @@ are flagged as not implemented there; they are not computed here, and are report
 \subsection{Do the trace metrics rank tasks by held-out error?}\label{sec:tdi-real}
 
 \paragraph{Which quantities.} The four-component TDI of equation~(\ref{eq:tdi})
-\emph{cannot be computed}: CSD needs a critique matrix and WFR a per-round winner, and the five-role
-lifecycle records neither. The trace-feature ranking hypothesis therefore uses the components the
+\emph{cannot be computed}: CSD needs a critique-severity matrix and WFR a per-round winner,
+and the five-role lifecycle records no such matrix and has no per-round winner. The trace-feature ranking hypothesis therefore uses the components the
 traces supply. For each run, with $C(r)$ the confidences of the LLM-sourced steps in round $r$,
 these are $\mathrm{ACE}_{\mathrm{norm}}$ of the final round, the entropy of the direct simplex
 projection of $C(\text{last})$ divided by $\ln N$ (range $[0,1]$); the unclipped $1-\Delta C$, with
@@ -170,9 +204,9 @@ had exactly three rounds: \resHFourRunsUndefined{} runs were undefined and
 
 \paragraph{Estimator.} The unit of analysis is the task: per task, each component and the
 lifecycle's final MSD, scored on the same evaluation genes as the attainable-error hypotheses, are
-medians over the three seeds. Spearman's $\rho$ is computed \emph{within} Adamson and
+medians over the three seeds. Spearman's rank correlation $\rho$ is computed \emph{within} Adamson and
 \emph{within} Norman separately, with the default weights and no in-sample calibration. All six
-values are reported with $n$ and a bootstrap CI, and the criterion is met if any of the six
+values are reported with the number of tasks $n$ and a bootstrap CI, and the criterion is met if any of the six
 exceeds $0.5$; the pooled $\rho$ is descriptive only. The six tests are dependent, because the
 composite is a fixed combination of the other two components. The pre-registered false-positive
 rate of the whole criterion under the null, measured by permutation through the estimator itself,
@@ -181,27 +215,38 @@ $5.84\%$ when they are independent, against $0.0475\%$ for a single pooled test 
 correction for multiple testing was pre-registered, and all six $\rho$ are reported whatever their
 outcome.
 
-\begin{table}[ht]
+\begin{table}[htp]
 \small
 \centering
 \begin{tabular}{p{0.24\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.16\linewidth}}
 \toprule
-Component & Adamson $\rho$ ($n=\resHFourAdaAceN$; CI) & Norman $\rho$ ($n=\resHFourNorAceN$; CI) & Pooled $\rho$ (descriptive) \\
+Trace feature & Adamson $\rho$ [CI], $n=\resHFourAdaAceN$ & Norman $\rho$ [CI], $n=\resHFourNorAceN$ & Pooled $\rho$ \\
 \midrule
 $\mathrm{ACE}_{\mathrm{norm}}$ (final round) & \resHFourAdaAceRho{} [\resHFourAdaAceCILo, \resHFourAdaAceCIHi] & \resHFourNorAceRho{} [\resHFourNorAceCILo, \resHFourNorAceCIHi] & \resHFourPooledAceRho \\
 $1-\Delta C$ & \resHFourAdaDcRho{} [\resHFourAdaDcCILo, \resHFourAdaDcCIHi] & \resHFourNorDcRho{} [\resHFourNorDcCILo, \resHFourNorDcCIHi] & \resHFourPooledDcRho \\
 $\mathrm{TDI}_{\mathrm{lifecycle}}$ & \resHFourAdaTdiRho{} [\resHFourAdaTdiCILo, \resHFourAdaTdiCIHi] & \resHFourNorTdiRho{} [\resHFourNorTdiCILo, \resHFourNorTdiCIHi] & \resHFourPooledTdiRho \\
 \midrule
-softmax $\mathrm{ACE}_{\mathrm{norm}}$ (descriptive) & \resHFourAdaAceSoftmaxRho{} [\resHFourAdaAceSoftmaxCILo, \resHFourAdaAceSoftmaxCIHi] & \resHFourNorAceSoftmaxRho{} [\resHFourNorAceSoftmaxCILo, \resHFourNorAceSoftmaxCIHi] & --- \\
-clipped $1-\Delta C$ (descriptive) & \resHFourAdaDcClippedRho{} [\resHFourAdaDcClippedCILo, \resHFourAdaDcClippedCIHi] & \resHFourNorDcClippedRho{} [\resHFourNorDcClippedCILo, \resHFourNorDcClippedCIHi] & --- \\
+$\mathrm{ACE}_{\mathrm{norm}}$, softmax form & \resHFourAdaAceSoftmaxRho{} [\resHFourAdaAceSoftmaxCILo, \resHFourAdaAceSoftmaxCIHi] & \resHFourNorAceSoftmaxRho{} [\resHFourNorAceSoftmaxCILo, \resHFourNorAceSoftmaxCIHi] & --- \\
+$1-\Delta C$, clipped form & \resHFourAdaDcClippedRho{} [\resHFourAdaDcClippedCILo, \resHFourAdaDcClippedCIHi] & \resHFourNorDcClippedRho{} [\resHFourNorDcClippedCILo, \resHFourNorDcClippedCIHi] & --- \\
 \midrule
-CSD, WFR & \multicolumn{3}{l}{structurally undefined for the lifecycle (cannot be computed)} \\
+CSD and WFR & \multicolumn{3}{p{0.64\linewidth}}{cannot be computed: the lifecycle records no critique-severity matrix and has no per-round winner} \\
 \bottomrule
 \end{tabular}
-\caption{All six pre-registered tests, reported regardless of outcome. The criterion is
+\caption{Spearman's rank correlation $\rho$ across tasks between each trace feature and the
+held-out error (the mean squared deviation on the evaluation genes), with its 95\% bootstrap
+confidence interval (CI) in brackets and the number of tasks $n$. The first three rows are the
+six pre-registered within-dataset tests, all reported whatever their outcome:
+$\mathrm{ACE}_{\mathrm{norm}}$ is the normalised entropy of the agents' final-round
+confidences, $1-\Delta C$ is one minus the change in their mean confidence from the first round
+to the last, and $\mathrm{TDI}_{\mathrm{lifecycle}}$ is the weighted composite of the two. The
+next two rows give, for description only, the softmax and clipped forms that the
+pre-registered forms replaced, and the last row the two metrics of \S\ref{sec:metrics}
+(Critique Severity Dispersion, CSD, and Winner Flip Rate, WFR) that this testbed does not
+supply. The criterion is
 $\rho>0.5$ for at least one test; \resHFourNPassing{} of \resHFourNTests{} meet it, so the
 hypothesis is \resHFourVerdict. The tests that meet it are $1-\Delta C$ and
-$\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. The pooled $\rho$ never enters a criterion.}
+$\mathrm{TDI}_{\mathrm{lifecycle}}$ in both datasets. The pooled $\rho$, over the tasks of
+both datasets, is descriptive and never enters a criterion.}
 \label{tab:tdi-real}
 \end{table}
 
@@ -212,12 +257,12 @@ by themselves place $\rho$ above the criterion, which is met on the point estima
 pre-registered.
 
 \paragraph{What the passing feature is conditioned on.} The confidences of rounds $1$ and $2$
-are stated after every role has been shown the previous round's held-out error (the paragraph
+are stated after every role has been shown the previous round's held-out error (see the paragraph
 ``What each agent has seen when it states a confidence'' in \S\ref{par:feedback}).
 $1-\Delta C$ is therefore large when confidence fell after that error was shown. The
 pre-registered outcome stands; how it is to be read is examined in \S\ref{subsec:exploratory}.
 Figure~\ref{fig:h4-scatter} shows the per-task values behind the six tests; the figure was
-added after the outcome.
+added after the outcome was known, under the sixth amendment (Table~\ref{tab:amendments}).
 
 \paragraph{The confidence-entropy rows.} The two $\mathrm{ACE}_{\mathrm{norm}}$ point estimates are
 negative ($\rho=\resHFourAdaAceRho$ on Adamson, where the CI excludes zero, and
@@ -225,7 +270,7 @@ $\resHFourNorAceRho$ on Norman, where the Norman CI includes zero), against the 
 positive direction, so neither test meets the one-sided criterion. The support for the
 hypothesis comes from the confidence-drop component and from the composite that inherits it. The
 Adamson $\mathrm{ACE}_{\mathrm{norm}}$ values have a standard deviation of \resHFiveStdSdAce{}
-about a mean of \resHFiveStdMeanAce{} (the standardisation used for the transfer test below), so
+about a mean of \resHFiveStdMeanAce{} (the standardisation used for the transfer test of \S\ref{subsec:h5}), so
 the composite ranks tasks almost as $1-\Delta C$ alone does. Because
 $\mathrm{ACE}_{\mathrm{norm}}$ is an evenness index (\S\ref{sec:metrics}), it can fall when some
 roles lower their confidence and others do not: it does so when the roles that lower theirs
@@ -258,59 +303,80 @@ should not be interpreted.
 
 \subsection{Exploratory: confidence before and after error feedback}\label{subsec:exploratory}
 
-\emph{Everything in this subsection is exploratory. It was specified after the outcomes above
+\emph{Everything in this subsection is exploratory. It was specified after the pre-registered outcomes
 were known, it enters no criterion, and it changes none of them.} It asks how the outcome of the
 ranking hypothesis is to be read, given that every role is shown the previous round's held-out
-error from round $1$ on (\S\ref{par:feedback}). The values come from the committed run files through
-\path{scripts/paper/fill_v060_exploratory.py}, which first reproduces the pre-registered
+error from round $1$ on (\S\ref{par:feedback}). The values are computed from the released run
+files by a released script, which first reproduces the pre-registered
 $1-\Delta C$ correlations of Table~\ref{tab:tdi-real}; all \explNQuantities{} quantities it computes
-are in \path{paper/data/exploratory_v060.json}, and Table~\ref{tab:exploratory} gives every
-rank correlation among them.
+are released as a data file (\S\ref{sec:reproducibility}), and Table~\ref{tab:exploratory} gives every
+rank correlation among them. Figure~\ref{fig:conf-by-round} shows the confidence of each role and
+the held-out error by round.
 
-\begin{table}[ht]
+\begin{table}[htp]
 \small
 \centering
 \begin{tabular}{p{0.46\linewidth}p{0.22\linewidth}p{0.22\linewidth}}
 \toprule
-Quantity (exploratory) & Adamson $\rho$ ($n=\explAdaNTasks$; CI) & Norman $\rho$ ($n=\explNorNTasks$; CI) \\
+Pair of quantities correlated & Adamson $\rho$ [CI], $n=\explAdaNTasks$ & Norman $\rho$ [CI], $n=\explNorNTasks$ \\
 \midrule
 \multicolumn{3}{l}{\emph{Stated before any error feedback}} \\
-Mean confidence, round $0$, vs final MSD & \explAdaConfRZeroMsdRho{} [\explAdaConfRZeroMsdCILo, \explAdaConfRZeroMsdCIHi] & \explNorConfRZeroMsdRho{} [\explNorConfRZeroMsdCILo, \explNorConfRZeroMsdCIHi] \\
-$\mathrm{ACE}_{\mathrm{norm}}$ of round $0$, vs final MSD & \explAdaAceRZeroMsdRho{} [\explAdaAceRZeroMsdCILo, \explAdaAceRZeroMsdCIHi] & \explNorAceRZeroMsdRho{} [\explNorAceRZeroMsdCILo, \explNorAceRZeroMsdCIHi] \\
+Mean confidence in round $0$ and final MSD & \explAdaConfRZeroMsdRho{} [\explAdaConfRZeroMsdCILo, \explAdaConfRZeroMsdCIHi] & \explNorConfRZeroMsdRho{} [\explNorConfRZeroMsdCILo, \explNorConfRZeroMsdCIHi] \\
+$\mathrm{ACE}_{\mathrm{norm}}$ of round $0$ and final MSD & \explAdaAceRZeroMsdRho{} [\explAdaAceRZeroMsdCILo, \explAdaAceRZeroMsdCIHi] & \explNorAceRZeroMsdRho{} [\explNorAceRZeroMsdCILo, \explNorAceRZeroMsdCIHi] \\
 \midrule
 \multicolumn{3}{l}{\emph{Stated after error feedback}} \\
-Mean confidence, round $1$, vs final MSD & \explAdaConfROneMsdRho{} [\explAdaConfROneMsdCILo, \explAdaConfROneMsdCIHi] & \explNorConfROneMsdRho{} [\explNorConfROneMsdCILo, \explNorConfROneMsdCIHi] \\
-Mean confidence, round $2$, vs final MSD & \explAdaConfRTwoMsdRho{} [\explAdaConfRTwoMsdCILo, \explAdaConfRTwoMsdCIHi] & \explNorConfRTwoMsdRho{} [\explNorConfRTwoMsdCILo, \explNorConfRTwoMsdCIHi] \\
-$1-\Delta C$ vs round-$0$ MSD (shown before round $1$) & \explAdaDcMsdRZeroRho{} [\explAdaDcMsdRZeroCILo, \explAdaDcMsdRZeroCIHi] & \explNorDcMsdRZeroRho{} [\explNorDcMsdRZeroCILo, \explNorDcMsdRZeroCIHi] \\
-$1-\Delta C$ vs round-$1$ MSD (shown before round $2$) & \explAdaDcMsdROneRho{} [\explAdaDcMsdROneCILo, \explAdaDcMsdROneCIHi] & \explNorDcMsdROneRho{} [\explNorDcMsdROneCILo, \explNorDcMsdROneCIHi] \\
+Mean confidence in round $1$ and final MSD & \explAdaConfROneMsdRho{} [\explAdaConfROneMsdCILo, \explAdaConfROneMsdCIHi] & \explNorConfROneMsdRho{} [\explNorConfROneMsdCILo, \explNorConfROneMsdCIHi] \\
+Mean confidence in round $2$ and final MSD & \explAdaConfRTwoMsdRho{} [\explAdaConfRTwoMsdCILo, \explAdaConfRTwoMsdCIHi] & \explNorConfRTwoMsdRho{} [\explNorConfRTwoMsdCILo, \explNorConfRTwoMsdCIHi] \\
+$1-\Delta C$ and the round-$0$ MSD (shown before round $1$) & \explAdaDcMsdRZeroRho{} [\explAdaDcMsdRZeroCILo, \explAdaDcMsdRZeroCIHi] & \explNorDcMsdRZeroRho{} [\explNorDcMsdRZeroCILo, \explNorDcMsdRZeroCIHi] \\
+$1-\Delta C$ and the round-$1$ MSD (shown before round $2$) & \explAdaDcMsdROneRho{} [\explAdaDcMsdROneCILo, \explAdaDcMsdROneCIHi] & \explNorDcMsdROneRho{} [\explNorDcMsdROneCILo, \explNorDcMsdROneCIHi] \\
 \midrule
 \multicolumn{3}{l}{\emph{The error itself}} \\
-Round-$0$ MSD vs round-$2$ MSD & \explAdaMsdRZeroVsRTwoRho{} [\explAdaMsdRZeroVsRTwoCILo, \explAdaMsdRZeroVsRTwoCIHi] & \explNorMsdRZeroVsRTwoRho{} [\explNorMsdRZeroVsRTwoCILo, \explNorMsdRZeroVsRTwoCIHi] \\
-Round-$1$ MSD vs round-$2$ MSD & \explAdaMsdROneVsRTwoRho{} [\explAdaMsdROneVsRTwoCILo, \explAdaMsdROneVsRTwoCIHi] & \explNorMsdROneVsRTwoRho{} [\explNorMsdROneVsRTwoCILo, \explNorMsdROneVsRTwoCIHi] \\
-Lifecycle final MSD vs trainer-sweep oracle MSD & \explAdaOracleRho{} [\explAdaOracleCILo, \explAdaOracleCIHi] & \explNorOracleRho{} [\explNorOracleCILo, \explNorOracleCIHi] \\
+Round-$0$ MSD and round-$2$ MSD & \explAdaMsdRZeroVsRTwoRho{} [\explAdaMsdRZeroVsRTwoCILo, \explAdaMsdRZeroVsRTwoCIHi] & \explNorMsdRZeroVsRTwoRho{} [\explNorMsdRZeroVsRTwoCILo, \explNorMsdRZeroVsRTwoCIHi] \\
+Round-$1$ MSD and round-$2$ MSD & \explAdaMsdROneVsRTwoRho{} [\explAdaMsdROneVsRTwoCILo, \explAdaMsdROneVsRTwoCIHi] & \explNorMsdROneVsRTwoRho{} [\explNorMsdROneVsRTwoCILo, \explNorMsdROneVsRTwoCIHi] \\
+Final MSD of the lifecycle and lowest MSD of the trainer sweep & \explAdaOracleRho{} [\explAdaOracleCILo, \explAdaOracleCIHi] & \explNorOracleRho{} [\explNorOracleCILo, \explNorOracleCIHi] \\
 \bottomrule
 \end{tabular}
-\caption{Exploratory rank correlations, none pre-registered and none entering a criterion. The estimator is the
-pre-registered one (seed medians per task, Spearman's $\rho$ within screen, bootstrap over tasks, $B=\explBootstrapB$).
+\caption{Exploratory rank correlations; none was pre-registered and none enters a criterion. Each
+row gives Spearman's rank correlation $\rho$ across tasks between the two quantities named, with its 95\%
+bootstrap confidence interval (CI) in brackets and the number of tasks $n$. MSD is the mean squared
+deviation on the evaluation genes, the held-out error; the final MSD is that of the last round; rounds
+are numbered from $0$; $\mathrm{ACE}_{\mathrm{norm}}$ is the normalised entropy of the agents'
+confidences in a round; and $1-\Delta C$ is one minus the change in mean confidence from round $0$
+to round $2$. The estimator is the pre-registered one: each quantity is the median over the three
+seeds of a task, $\rho$ is computed within each screen, and the bootstrap resamples tasks
+$B=\explBootstrapB$ times.
 All \explNCorrelations{} correlations computed for this section are shown, \explNCorrelationsPerScreen{} per screen.}
 \label{tab:exploratory}
 \end{table}
 
-\begin{figure}[ht]
+\begin{figure}[htp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_confidence_by_round.pdf}
-\caption{Left: mean stated confidence per role by round (mean over tasks of the seed median).
-Right: median held-out MSD by round. The dashed line marks where the previous round's held-out
-error enters every prompt. Exploratory.}
+\caption{Stated confidence and held-out error by round, for the Adamson tasks (top row) and
+the Norman tasks (bottom row); rounds are numbered from $0$. The left panels show the mean
+stated confidence of each of the five roles, where the value for a task is the median over its
+three seeds and the mean is taken over tasks; the legend's Curator is the DataCurator role.
+The right panels show the median over tasks of the held-out error, the mean squared deviation
+(MSD) on the evaluation genes. The dashed vertical line marks the point from which every prompt
+carries the previous round's held-out error. The figure is exploratory and was added after the
+outcome was known.}
 \label{fig:conf-by-round}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[htp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_h4_scatter.pdf}
-\caption{The six pre-registered tests of Table~\ref{tab:tdi-real}, one point per task (seed
-medians), with the held-out MSD on a logarithmic axis. No statistic is added; the figure shows
-the data behind the reported $\rho$. Added after the outcome (Amendment 6).}
+\caption{The data behind the six pre-registered tests of Table~\ref{tab:tdi-real}, for the
+Adamson tasks (top row) and the Norman tasks (bottom row), with one point per task. The
+vertical axis is the held-out error, the mean squared deviation (MSD) on the evaluation genes,
+on a logarithmic scale. The horizontal axes are the three trace features:
+$\mathrm{ACE}_{\mathrm{norm}}$, the normalised entropy of the agents' final-round confidences;
+$1-\Delta C$, one minus the change in their mean confidence from the first round to the last;
+and $\mathrm{TDI}_{\mathrm{lifecycle}}$, the weighted composite of the two
+(\S\ref{sec:tdi-real}). Every value is the median over the three seeds of a task. No fitted
+line or statistic is drawn; Spearman's rank correlations $\rho$ are those of
+Table~\ref{tab:tdi-real}. The figure was added after the outcome was known, under the sixth
+amendment to the pre-registration (Table~\ref{tab:amendments}).}
 \label{fig:h4-scatter}
 \end{figure}
 
@@ -329,7 +395,8 @@ round, and the lifecycle's final MSD ranks tasks almost as the trainer sweep's o
 (Table~\ref{tab:exploratory}). The rank order of tasks by the difficulty proxy thus depends
 little on the agents' choices. Its level does depend on them: the lifecycle's percentile rank
 within the trainer sweep differs between the screens (a median of \explAdaOraclePctRankMedian{}
-on Adamson and \explNorOraclePctRankMedian{} on Norman; ``Stability and the sweep'' below). Read with
+on Adamson and \explNorOraclePctRankMedian{} on Norman; see the paragraph ``Stability and the
+sweep'' at the end of this subsection). Read with
 the design, the pre-registered pass is consistent with \emph{stated confidence falling further
 on tasks where the agents were shown a larger held-out error}; it is not evidence that the
 group's confidence anticipates difficulty before any error is measured. Nor does it isolate the
@@ -351,7 +418,7 @@ and its interval includes zero ($\explAdaAceRZeroMsdRho$). This is one of \explN
 unplanned correlations, in the direction opposite to the pre-registered one, and it generates no
 claim; testing it needs a new pre-registration.
 
-\paragraph{Stability and the sweep.} Leaving out one task at a time, the pre-registered
+\paragraph{Stability and the sweep.} When one task at a time is left out, the pre-registered
 $1-\Delta C$ correlation ranges over [\explAdaLotoDcRhoMin, \explAdaLotoDcRhoMax] on Adamson and
 [\explNorLotoDcRhoMin, \explNorLotoDcRhoMax] on Norman; the criterion is evaluated once, on all
 tasks, and this range re-decides nothing. Within each task's \resNTrainerRecordsPerTask{} trainer
@@ -384,7 +451,7 @@ model--role probes live. The trainer sweep wrote \resNTrainerRuns{} records
 
 Spend was \$\resSpendLLM{} on LLM calls (Haiku \$\resSpendHaiku{} and Sonnet \$\resSpendSonnet{}
 in the sweep, plus \$\resSpendPreflight{} of preflight probes), \$\resSpendGPU{} on GPU time
-(\resGPUHours{} A100-hours) and \$\resSpendPrior{} carried in from the aborted earlier attempt and the dry run, a total of
+(\resGPUHours{} A100-hours) and \$\resSpendPrior{} carried in from an earlier attempt at the sweep that was aborted and from the dry run, a total of
 \$\resSpendTotal{} against a \$\resSpendStopLine{} stop-and-report line and a \$\resKillLine{}
 kill line. Neither line was reached (recorded stop reason: \resStopReasonNone).
 
