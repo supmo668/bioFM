@@ -1475,8 +1475,7 @@ def test_clarity_pass_corrections_stay_true_to_the_code_and_the_run():
         assert "creates the amendment tag" not in text and "to be created by the CTO" not in text, (
             rel
         )
-        if rel != "paper/SUBMISSION.md":  # there the phrase is about the 0.6.2 record, truly
-            assert "does not exist yet" not in text, rel
+        assert "does not exist yet" not in text, rel
         assert "07a5e57b" in text and "not a release" in text, rel
     # ... and the CellForge reference correction is disclosed where a reader of the record looks
     for rel in ("CHANGELOG.md", "publish.yml"):
