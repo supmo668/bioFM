@@ -460,7 +460,8 @@ No `newversion`, no metadata edit on a published article, no file deletion, no
 re-upload.
 
 > **Superseded in part.** The 2026-10-15 ruling was reversed on 2026-10-16 (D-1 = B: v0.6.0 is the next
-> version of the existing records), and on 2026-11-08 the principal ruled the next deposit `0.6.1` the same way.
+> version of the existing records). Each later deposit was ruled the same way: 0.6.1 (principal, 2026-11-08),
+> 0.6.2 (approvals row 41) and 0.6.3 (approvals row 45).
 > The submitter now permits **exactly one** write path per venue on a published record, named in
 > `ALLOWED_REVISIONS` (`projects/perturb-seq-eval/scripts/publish/submit_to_venues.py`): a Zenodo `newversion` on
 > the current published version and Figshare article `32086920`'s next version. Every other write is refused. The
@@ -485,10 +486,12 @@ this in code rather than by instruction:
 | `DraftRequiredError` | publishing in the same run that created the draft — the two-gos rule, enforced mechanically |
 | `DraftMismatchError` | a same-name file whose content changed since the draft was created |
 
-Each release gets **its own state file** (`state_file:` in `publish.yml`;
-`publish.state.v060.json` for v0.6.0). `publish.state.json` is the v0.5.x record
-and is **never written again** — so the references to it elsewhere on this page
-(§5, §6.3, §8, §9) describe the v0.5.x history, not a file to update.
+Each release gets **its own state file** (`state_file:` in `publish.yml`). The latest release,
+0.6.3 (published 2026-11-25), uses `publish.state.v063.json`, still the `state_file:` in `publish.yml`. Four lineage records are **never
+written again**: `publish.state.json` (v0.5.x), `publish.state.v060.json` (v0.6.0),
+`publish.state.v061.json` (0.6.1) and `publish.state.v062.json` (0.6.2). The references to
+`publish.state.json` elsewhere on this page (§5, §6.1, the retired §6.5 and §7) describe the v0.5.x history, not a
+file to update.
 
 **Known defect on this page, left for whoever edits it next:** the heading `6.5`
 is used twice — once for Research Square above, once here. Renumber when this
@@ -520,8 +523,8 @@ Then stage a single PR with those four files touched."
 ## 8. Resume / recovery
 
 The state file is idempotent. If the script is interrupted between
-venues, rerunning with the same state file — **this release's `state_file` in `publish.yml`** (`publish.state.v061.json`
-for 0.6.1) — in place picks up where it left off — existing deposition IDs are reused.
+venues, rerunning with the same state file — **this release's `state_file` in `publish.yml`** (`publish.state.v063.json`
+for 0.6.3) — in place picks up where it left off — existing deposition IDs are reused.
 
 | Failure mode | What the script does on retry |
 |---|---|
@@ -531,7 +534,8 @@ for 0.6.1) — in place picks up where it left off — existing deposition IDs a
 | Production vs sandbox mix-up | Flip `sandbox:` flag; clear only the `zenodo` section of this release's `state_file` |
 
 Delete the state file entirely only for a genuinely fresh start. **Never point `--state` at a published lineage record**
-(`publish.state.json`, `publish.state.v060.json`); the submitter refuses them by name.
+(`publish.state.json`, `publish.state.v060.json`, `publish.state.v061.json`,
+`publish.state.v062.json`); the submitter refuses them by name.
 
 ## 9. What Claude needs from you to run this unattended
 

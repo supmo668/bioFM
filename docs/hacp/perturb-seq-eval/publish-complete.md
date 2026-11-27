@@ -1,4 +1,4 @@
-# perturb-seq-eval (bioFM) — v0.6.0 publication: completion review
+# perturb-seq-eval (bioFM) — publication: completion review (latest published: 0.6.3)
 
 <!-- HACP subproject page · Project=bioFM · L1 — Review (completion) · local source. Written 2026-10-16
      by the perturb-seq-eval worktree agent on the principal's direction ("share the HACP completion
@@ -6,21 +6,31 @@
 
 | | |
 |---|---|
-| **Outcome** | **v0.6.0 published, 2026-10-16**, as the next version of the existing records on both venues — no duplicate record |
-| **Share this link** | **https://doi.org/10.5281/zenodo.19716140** — the concept DOI; it always resolves to the latest version (now v0.6.0) |
+| **Outcome** | **0.6.3 published, 2026-11-25**, the latest of four next versions of the existing records on both venues (v0.6.0 on 2026-10-16, 0.6.1 on 2026-11-22, 0.6.2 and 0.6.3 on 2026-11-25) — no duplicate record |
+| **Share this link** | **https://doi.org/10.5281/zenodo.19716140** — the concept DOI; it always resolves to the latest version (now 0.6.3) |
 | **Decisions closed** | D-1 = B (revise, don't duplicate) · D-2 = publish |
 
 ## The records
 
 | Venue | Record | DOI | Link |
 |---|---|---|---|
-| Zenodo | v0.6.0 (version 6 under the concept) | `10.5281/zenodo.23422745` | https://zenodo.org/records/23422745 |
 | Zenodo | concept (always the latest) | `10.5281/zenodo.19716140` | https://doi.org/10.5281/zenodo.19716140 |
-| Figshare | article 32086920, **version 6** | `10.6084/m9.figshare.32086920.v6` | https://doi.org/10.6084/m9.figshare.32086920.v6 |
+| Zenodo | **0.6.3** (version 9 under the concept) | `10.5281/zenodo.24519260` | https://zenodo.org/records/24519260 |
+| Figshare | article 32086920, **version 9** (0.6.3) | `10.6084/m9.figshare.32086920.v9` | https://doi.org/10.6084/m9.figshare.32086920.v9 |
+| Zenodo | 0.6.2 (version 8) | `10.5281/zenodo.24518637` | https://zenodo.org/records/24518637 |
+| Figshare | article 32086920, version 8 (0.6.2) | `10.6084/m9.figshare.32086920.v8` | https://doi.org/10.6084/m9.figshare.32086920.v8 |
+| Zenodo | 0.6.1 (version 7) | `10.5281/zenodo.24430429` | https://zenodo.org/records/24430429 |
+| Figshare | article 32086920, version 7 (0.6.1) | `10.6084/m9.figshare.32086920.v7` | https://doi.org/10.6084/m9.figshare.32086920.v7 |
+| Zenodo | v0.6.0 (version 6) | `10.5281/zenodo.23422745` | https://zenodo.org/records/23422745 |
+| Figshare | article 32086920, version 6 (v0.6.0) | `10.6084/m9.figshare.32086920.v6` | https://doi.org/10.6084/m9.figshare.32086920.v6 |
 
-Earlier versions stay reachable as the history of the same records: Zenodo v0.5.2 `20074427` (still published), Figshare version 5 (still listed with its 3 original files).
+0.6.1, 0.6.2 and 0.6.3 are manuscript revisions; the v0.6.0 run and every outcome are unchanged. Earlier versions stay reachable as the history of the same records: Zenodo v0.5.2 `20074427` (still published), Figshare version 5 (still listed with its 3 original files).
 
-## Verified after publish (public, unauthenticated read-back)
+**Closed 2026-11-25:** the Zenodo 0.6.1, 0.6.2 and 0.6.3 records carry `isIdenticalTo` their Figshare version DOIs (v7, v8, v9), as v0.6.0's record does, each added by a metadata-only edit with no file or other metadata changed (HACA-141; `CITATION.cff`, lineage comment).
+
+## Verified after the v0.6.0 publish (public, unauthenticated read-back)
+
+*The checks and the incident below are those of the v0.6.0 publish, 2026-10-16. The 0.6.1, 0.6.2 and 0.6.3 read-backs are recorded in `projects/perturb-seq-eval/CITATION.cff`.*
 
 | Check | Result |
 |---|---|
@@ -76,4 +86,4 @@ Earlier versions stay reachable as the history of the same records: Zenodo v0.5.
 
 ## Repository
 
-`CITATION.cff` now carries `date-released: 2026-10-16` and both new DOIs; the showcase's publication record and the decision log are updated; `publish.state.v060.json` records the published state.
+`projects/perturb-seq-eval/CITATION.cff` names 0.6.3 as the latest published release (`version: "0.6.3"`, `date-released: 2026-11-25`) and lists the DOIs of every published version. The published state of each release is recorded in its own state file: `publish.state.v060.json` (v0.6.0), `publish.state.v061.json` (0.6.1), `publish.state.v062.json` (0.6.2) and `publish.state.v063.json` (0.6.3, still the `state_file` in `publish.yml`).
