@@ -310,8 +310,9 @@ Expected:
 OSF's DOI is minted after publication; for BioHackrXiv it usually lands
 in under an hour (often minutes).
 
-The DOIs are recorded in `publish.state.json`. Commit that file so the
-next run knows everything is already out the door.
+The DOIs are recorded in this release's state file, the `state_file:` in
+`projects/perturb-seq-eval/publish.yml` (`publish.state.v063.json` for 0.6.3). Commit
+that file so the next run knows everything is already out the door.
 
 ## 6. Manual-only venues 👤
 
@@ -452,7 +453,7 @@ Commit the updated `paper.tex` + `paper.pdf` before continuing to §5.
 ### 6.5 Updating an already-published paper — **RETIRED 2026-10-15, DO NOT USE** 🚫
 
 **The recipes that used to live here are forbidden.** They scripted a Zenodo
-`newversion` against `publish.state.json`'s deposit id, a Figshare file
+`newversion` against the deposit id in `publish.state.json` (the v0.5.x state file, now a lineage record), a Figshare file
 delete-and-replace inside article `32086920`, and an OSF delete-and-re-upload
 through Waterbutler. **The principal ruled on 2026-10-15, verbatim: *"New
 standalone records on both venues"*** — a published record is **never** mutated.
@@ -473,9 +474,10 @@ command is not a guard — the command is the hazard. They remain in git history
 (`git log -p -- research/PUBLISHING_RUNBOOK.md`) if anyone needs to see what was
 once prescribed; nothing is lost.
 
-**What to do instead.** Deposit the new version as a **new standalone record** on
-each venue, carrying `isNewVersionOf` to the superseded DOI, and say in the record's
-notes why the version chain breaks. The implementation is
+**What to do instead.** Deposit the new version as the **next version of the same
+records** through the gated submitter: a Zenodo new version under concept DOI
+`10.5281/zenodo.19716140` and the next version of Figshare article `32086920`, each
+selected by `venues.<venue>.revision_of` in `publish.yml`. The implementation is
 `projects/perturb-seq-eval/scripts/publish/submit_to_venues.py`, which now enforces
 this in code rather than by instruction:
 
@@ -490,7 +492,7 @@ Each release gets **its own state file** (`state_file:` in `publish.yml`). The l
 0.6.3 (published 2026-11-25), uses `publish.state.v063.json`, still the `state_file:` in `publish.yml`. Four lineage records are **never
 written again**: `publish.state.json` (v0.5.x), `publish.state.v060.json` (v0.6.0),
 `publish.state.v061.json` (0.6.1) and `publish.state.v062.json` (0.6.2). The references to
-`publish.state.json` elsewhere on this page (§5, §6.1, the retired §6.5 and §7) describe the v0.5.x history, not a
+`publish.state.json` elsewhere on this page (§6.1, the retired §6.5 and §7) describe the v0.5.x history, not a
 file to update.
 
 **Known defect on this page, left for whoever edits it next:** the heading `6.5`
