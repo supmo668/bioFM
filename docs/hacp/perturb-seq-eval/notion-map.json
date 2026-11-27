@@ -19,8 +19,8 @@
       "kind": "Presentation",
       "section": "eval",
       "granularity": "L1 — Review",
-      "synced": "2026-10-31",
-      "synced_basis": "RECONCILED 2026-10-31. This page is the recorded case of a Notion mirror running AHEAD of its declared source: the row carried a dated 2026-10-25 addendum the floor never received, and the floor caught up on 2026-10-29 (commit 5b0a168). The CTO then measured the remaining difference and found the row's own Relations table still omitted the isIdenticalTo relation the floor now lists, and added it on 2026-10-31. Both surfaces now name it."
+      "synced": "2026-11-27",
+      "synced_basis": "Mirrored 2026-11-27 by the CTO (HACA-143) from the floor page at 2e99c6c: whole-page replace of the Notion row, title updated to 0.6.2; reloaded and checked: one row under bioFM · Build, L1 — Review, no duplicate. Earlier: RECONCILED 2026-10-31 (isIdenticalTo relation added to the row to match the floor)."
     },
     "publish-review.md": {
       "notion": "https://app.notion.com/p/3fb749bd250d81d8a73cc45ecf79f1bb",
