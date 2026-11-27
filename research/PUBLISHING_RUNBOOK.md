@@ -461,7 +461,7 @@ re-upload.
 
 > **Superseded in part.** The 2026-10-15 ruling was reversed on 2026-10-16 (D-1 = B: v0.6.0 is the next
 > version of the existing records). Each later deposit was ruled the same way: 0.6.1 (principal, 2026-11-08),
-> 0.6.2 (approvals row 41) and the prepared 0.6.3 (approvals row 45).
+> 0.6.2 (approvals row 41) and 0.6.3 (approvals row 45).
 > The submitter now permits **exactly one** write path per venue on a published record, named in
 > `ALLOWED_REVISIONS` (`projects/perturb-seq-eval/scripts/publish/submit_to_venues.py`): a Zenodo `newversion` on
 > the current published version and Figshare article `32086920`'s next version. Every other write is refused. The
@@ -486,8 +486,8 @@ this in code rather than by instruction:
 | `DraftRequiredError` | publishing in the same run that created the draft — the two-gos rule, enforced mechanically |
 | `DraftMismatchError` | a same-name file whose content changed since the draft was created |
 
-Each release gets **its own state file** (`state_file:` in `publish.yml`). The prepared,
-unpublished release 0.6.3 uses `publish.state.v063.json`. Four lineage records are **never
+Each release gets **its own state file** (`state_file:` in `publish.yml`). The latest release,
+0.6.3 (published 2026-11-25), uses `publish.state.v063.json`, still the `state_file:` in `publish.yml`. Four lineage records are **never
 written again**: `publish.state.json` (v0.5.x), `publish.state.v060.json` (v0.6.0),
 `publish.state.v061.json` (0.6.1) and `publish.state.v062.json` (0.6.2). The references to
 `publish.state.json` elsewhere on this page (§5, §6.1, the retired §6.5 and §7) describe the v0.5.x history, not a
