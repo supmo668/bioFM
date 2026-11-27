@@ -6,24 +6,26 @@ of `docs/SUPPLEMENT.md` §9 Deviation Log.
 
 ## [Unreleased]
 
-Repository changes that are in no archive deposit. An archive deposit (0.6.2, and 0.6.3 as prepared) holds the manuscript, its build log, the run artifacts and the superseded supplement, and no tests; the test change below is in the deposit commit `07a5e57b` but is not a deposited file.
+Repository changes that are in no archive deposit. An archive deposit (0.6.2, 0.6.3) holds the manuscript, its build log, the run artifacts and the superseded supplement, and no tests; the test change below is in the deposit commit `07a5e57b` but is not a deposited file.
 
 ### Changed
 
+- **Zenodo ↔ Figshare `isIdenticalTo` links added to the 0.6.1, 0.6.2 and 0.6.3 records (HACA-141, 2026-11-25).** Zenodo `24430429` → Figshare v7, `24518637` → v8, `24519260` → v9, each a metadata-only edit published on the principal's go (card `1164ce4d`) and read back from the public API. No file md5 and no other metadata field changed, and no new version was minted. It closes the post-publish item that the 0.6.3, 0.6.2 and 0.6.1 entries below listed as open; each now records it under "Follow-up".
 - **Tests: the MLP regression pin and two `summary.json` keys compare within a bounded ulp instead of bit-exactly (HACA-124).** The numbers move by a few ulp with the numpy/BLAS build: numpy 2.4.4 and 2.5.5 on the same x86_64 CPU differ, and the aarch64 host and the x86_64 runner both miss the pins recorded 2026-09-24 (HACA-121). The MLP regression pin now matches within 4 ulp of its largest magnitude (the linear pin stays bit-exact). The reproduction check stays exact for every `summary.json` key except `preregistered.H5.weights.one_minus_delta_c` and `preregistered.H5.norman_tdi`, which match within 4 ulp per element, and every reported value must be identical. Every test run prints its numeric environment (python, numpy, scipy, scikit-learn, torch, BLAS build and runtime core); the checked builds are in `tests/fixtures/numeric_environment.json`. The paper's Reproducibility paragraph discloses the two keys. No result, macro or artifact changed.
 
-## [0.6.3] — unreleased (manuscript wording revision; prepared, not published)
+## [0.6.3] — 2026-11-25 (manuscript wording revision; published)
 
-Version 0.6.3 revises the wording of version 0.6.2 only. It reports the same pre-registered run
-as v0.6.0, 0.6.1 and 0.6.2, and no hypothesis, threshold, estimator, run or outcome changed;
-`paper/PREREGISTRATION.md` is not changed by it. It is prepared as the next version of the
-existing archive records: a new version of Zenodo record 10.5281/zenodo.24518637 (under the
-concept DOI 10.5281/zenodo.19716140) and version 9 of Figshare article
-10.6084/m9.figshare.32086920. **It is not published, and the author has not yet approved its
-publication**: the author decided that this manuscript is archived as 0.6.3 and not as a second
-0.6.2 (perturb-seq-eval approvals row 45, 2026-11-25), which covers the relabel and a dry run
-only. No 0.6.3 DOI, release date or deposit commit exists yet. The deposited `paper.pdf` is to
-be built from the commit of this branch once it is merged.
+Published as the next version of the existing records: Zenodo 10.5281/zenodo.24519260 (a new
+version of 10.5281/zenodo.24518637, concept 10.5281/zenodo.19716140) and Figshare
+10.6084/m9.figshare.32086920.v9 — the same five files, `paper.pdf` md5-identical on both
+(`8264667ba840276071f631a962643e42`, read back from the public records and equal to the build),
+built from the deposit commit `8f35d652` (git tag `v0.6.3`). The author decided that this
+manuscript is archived as 0.6.3 and not as a second 0.6.2 (perturb-seq-eval approvals row 45,
+2026-11-25, which covered the relabel and a dry run only), and then gave the separate go to
+publish; the drafts were published as reviewed, with no rebuild. Version 0.6.3 revises the
+wording of version 0.6.2 only. It reports the same pre-registered run as v0.6.0, 0.6.1 and
+0.6.2, and no hypothesis, threshold, estimator, run or outcome changed;
+`paper/PREREGISTRATION.md` is not changed by it.
 
 ### Changed
 
@@ -49,17 +51,21 @@ be built from the commit of this branch once it is merged.
   say "archived before version 0.6.2", because version 0.6.2 discloses it and, with 0.6.3, is
   itself an earlier archived version.
 
-### Open
+### Deposit note
 
-- An unpublished Zenodo draft, deposit 24519260, was made from commit `c42ac57c` with the
-  version field `0.6.2` before the version number was decided. It is not recorded in any state
-  file and is not to be published as it is. If Zenodo hands it back as the open draft of the
-  new version, the 0.6.3 dry run reuses it (its files and metadata are replaced by the 0.6.3
-  set); otherwise the dry run stops. The submitter cannot discard a draft.
+- The Zenodo 0.6.3 record is deposit 24519260, a draft made from commit `c42ac57c` with the
+  version field `0.6.2` before the version number was decided. The 0.6.3 dry run reused it as
+  the open draft of the new version and replaced its files and metadata with the 0.6.3 set; it
+  was published only after that, as reviewed.
+
+### Follow-up
+
+- The Zenodo 0.6.3 record carries `isIdenticalTo` the Figshare v9 DOI since 2026-11-25
+  (`publish.yml` deposit-time step 5, done after publication under HACA-141).
 
 ## [0.6.2] — 2026-11-25 (manuscript revision; published)
 
-Published as the next version of the existing records: Zenodo 10.5281/zenodo.24518637 (a new version of 10.5281/zenodo.24430429, concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v8 — the same five files, `paper.pdf` md5-identical on both (`e605c293db3296b80adb3b835a50888d`, downloaded from the public records), built from commit `07a5e57b` (tag `v0.6.0-a6`). Principal's go: perturb-seq-eval approvals row 43 (2026-11-25), the separate go that row 41 required; the drafts were published as reviewed, with no rebuild. The deposited manuscript is the Amendment 6 one, not the plain-English-only manuscript of `main` at `db93576f` (row 41). It holds the manuscript as it read **before** the self-contained rewrite that is prepared as 0.6.3 (above). The git tag `v0.6.2` is on commit `07a5e57b`.
+Published as the next version of the existing records: Zenodo 10.5281/zenodo.24518637 (a new version of 10.5281/zenodo.24430429, concept 10.5281/zenodo.19716140) and Figshare 10.6084/m9.figshare.32086920.v8 — the same five files, `paper.pdf` md5-identical on both (`e605c293db3296b80adb3b835a50888d`, downloaded from the public records), built from commit `07a5e57b` (tag `v0.6.0-a6`). Principal's go: perturb-seq-eval approvals row 43 (2026-11-25), the separate go that row 41 required; the drafts were published as reviewed, with no rebuild. The deposited manuscript is the Amendment 6 one, not the plain-English-only manuscript of `main` at `db93576f` (row 41). It holds the manuscript as it read **before** the self-contained rewrite that was published as 0.6.3 (above). The git tag `v0.6.2` is on commit `07a5e57b`.
 
 ### Changed
 
@@ -100,9 +106,9 @@ Published as the next version of the existing records: Zenodo 10.5281/zenodo.245
   Zenodo record 24430429 and Figshare version 8, with the state file `publish.state.v062.json`,
   which now records the published ids.
 
-### Open
+### Follow-up
 
-- The Zenodo 0.6.2 record does not yet carry `isIdenticalTo` the Figshare v8 DOI (`publish.yml` deposit-time step 5; done for v6 on 2026-10-25).
+- The Zenodo 0.6.2 record carries `isIdenticalTo` the Figshare v8 DOI since 2026-11-25 (`publish.yml` deposit-time step 5, done after publication under HACA-141).
 
 ## [0.6.1] — 2026-11-22 (manuscript revision; published)
 
@@ -113,9 +119,9 @@ Published as the next version of the existing records: Zenodo 10.5281/zenodo.244
 - **Manuscript only.** Amendment 5 of `paper/PREREGISTRATION.md` (tag `v0.6.0-a5`): the paper is retitled, its contribution is narrowed to the multi-agent case, and 'gate' is renamed 'pre-registered criterion'. One related-work sentence on Morandi (2026) is added and the prior-work disclaimer is narrowed to match.
 - **No hypothesis, threshold, estimator, run or outcome changed.** The run artifacts are the v0.6.0 run's.
 
-### Open
+### Follow-up
 
-- The Zenodo 0.6.1 record does not yet carry `isIdenticalTo` the Figshare v7 DOI (done for v6 on 2026-10-25).
+- The Zenodo 0.6.1 record carries `isIdenticalTo` the Figshare v7 DOI since 2026-11-25 (HACA-141).
 
 ## [0.6.0] — 2026-10-16 (pre-registered sweep run; manuscript filled; published)
 

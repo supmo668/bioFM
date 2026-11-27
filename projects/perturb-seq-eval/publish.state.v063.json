@@ -1,0 +1,44 @@
+{
+  "figshare": {
+    "article_id": 32086920,
+    "revision_of": 32086920,
+    "doi": "10.6084/m9.figshare.32086920",
+    "public_baseline": [
+      8,
+      [
+        [
+          "paper.pdf",
+          "e605c293db3296b80adb3b835a50888d"
+        ],
+        [
+          "paper_build.log",
+          "9d695ade952f0447697f441972bafe14"
+        ],
+        [
+          "supplement.zip",
+          "7858ab95c532fe3bddc9a659bfd7be29"
+        ],
+        [
+          "v050_run_artifacts.zip",
+          "f1c1fccc1aa99eaa2d90d1c8f386adb8"
+        ],
+        [
+          "v060_run_artifacts.zip",
+          "91a79e406b4a79a0e0bd365c0318ff4c"
+        ]
+      ]
+    ],
+    "inherited_files_removed": true,
+    "prepared": true,
+    "published": true
+  },
+  "zenodo": {
+    "deposit_id": 24519260,
+    "bucket": "https://zenodo.org/api/files/df0f5f84-136b-48c6-b190-0443a1b7731d",
+    "revision_of": 24518637,
+    "inherited_files_removed": true,
+    "doi": "10.5281/zenodo.24519260",
+    "prepared": true,
+    "published": true
+  }
+}
