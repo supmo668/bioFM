@@ -14,8 +14,10 @@
 # manuscript asked for in row 42: the hypotheses and the amendments are named in words instead
 # of by label, abbreviations and symbols are defined at first use, and the CellForge reference
 # is corrected. No hypothesis, threshold, estimator, run or outcome changed, and
-# paper/PREREGISTRATION.md is not changed by it. PREPARED, NOT PUBLISHED: row 45 covers the
-# relabel and a dry run only, and publishing 0.6.3 needs a separate explicit go.
+# paper/PREREGISTRATION.md is not changed by it. Row 45 covered the relabel and a dry run only;
+# PUBLISHED 2026-11-25 on the principal's separate go (card b4a00c9a): Zenodo
+# 10.5281/zenodo.24519260 and Figshare 10.6084/m9.figshare.32086920.v9, built from commit
+# 8f35d652 (git tag v0.6.3).
 # 0.6.2 (approvals row 41, with rows 39-40) is the manuscript of the sixth amendment to the
 # pre-registration (Amendment 6), BEFORE that rewrite. PUBLISHED 2026-11-25 on the principal's
 # separate go (approvals row 43): Zenodo 10.5281/zenodo.24518637 and Figshare
